@@ -273,7 +273,7 @@ async function isPhoneDuplicate(phoneNumber: string): Promise<boolean> {
       .eq('phone_number', cleanedPhone)
       .limit(1);
     
-    return data && data.length > 0;
+    return Boolean(data && data.length > 0);
   } catch {
     return false;
   }

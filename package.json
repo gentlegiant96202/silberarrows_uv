@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "scrape:dubizzle": "tsx lib/scraper/scrape.ts",
-    "postinstall": "playwright install --with-deps"
+    "postinstall": "npm run install-playwright-safe",
+    "install-playwright-safe": "if [ \"$VERCEL\" = \"1\" ]; then echo 'Skipping Playwright installation on Vercel'; else playwright install --with-deps; fi",
+    "install-playwright": "playwright install --with-deps"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.5",
@@ -24,10 +26,10 @@
     "react-pdf": "^10.0.1",
     "recharts": "^2.15.4",
     "tailwindcss": "^3.4.17",
-    "zustand": "^5.0.6",
-    "playwright": "^1.42.0"
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "playwright": "^1.42.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

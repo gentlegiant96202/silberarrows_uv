@@ -2,79 +2,163 @@ import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { supabase } from '@/lib/supabaseClient';
 
-// Vercel-compatible scraper function
-async function scrapeDubizzleVercel(url: string, targetLeads: number = 20, jobId: string) {
-  console.log(`🚀 VERCEL SCRAPER - Starting for ${targetLeads} leads`);
+// Check if we're running in Vercel
+const isVercel = process.env.VERCEL === '1';
+
+// Simple scraper that works in Vercel (limited functionality)
+async function scrapeBasicInfo(url: string, targetLeads: number = 20, jobId: string) {
+  console.log(`🔍 BASIC SCRAPER (Vercel) - Limited to public info only`);
   
   try {
-    // Update job status
     await supabase.from('scrape_jobs').update({ 
       status: 'running',
-      log: 'Starting Vercel-compatible scraper...'
+      log: 'Running basic scraper (Vercel environment - no phone extraction)'
     }).eq('id', jobId);
 
-    // Import Playwright dynamically to handle potential installation issues
-    let chromium;
-    try {
-      const playwright = await import('playwright');
-      chromium = playwright.chromium;
-    } catch (error) {
-      throw new Error('Playwright not available in this environment');
+    // Use simple HTTP fetch instead of browser automation
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const html = await response.text();
+    
+    // Extract car URLs using regex
+    const urlPattern = /\/motors\/used-cars\/[^\/]+\/[^\/]+\/\d{4}\/\d{1,2}\/\d{1,2}\/[^"'\s>]+/g;
+    const matches = html.match(urlPattern) || [];
+    
+    const carUrls = Array.from(new Set(matches.map(match => 
+      match.startsWith('http') ? match : `https://dubai.dubizzle.com${match}`
+    )));
+
+    console.log(`📋 Found ${carUrls.length} cars (basic extraction)`);
+    
+    if (carUrls.length === 0) {
+      await supabase.from('scrape_jobs').update({ 
+        status: 'error',
+        finished_at: new Date(),
+        log: 'No car listings found in HTML'
+      }).eq('id', jobId);
+      return;
     }
 
-    // Launch browser with Vercel-compatible settings
+    await supabase.from('scrape_jobs').update({ 
+      total: carUrls.length,
+      log: `Found ${carUrls.length} cars. Note: Phone extraction not available in Vercel environment`
+    }).eq('id', jobId);
+
+    let successfulLeads = 0;
+    const maxCarsToProcess = Math.min(carUrls.length, 5); // Even more limited for basic scraper
+    
+    // Process cars with basic info only (no phone numbers)
+    for (let i = 0; i < maxCarsToProcess; i++) {
+      const carUrl = carUrls[i];
+      
+      try {
+        const carResponse = await fetch(carUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          }
+        });
+        
+        if (carResponse.ok) {
+          const carHtml = await carResponse.text();
+          
+          // Extract basic info using regex
+          const titleMatch = carHtml.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+          const priceMatch = carHtml.match(/AED\s*([\d,]+)/i);
+          
+          const title = titleMatch ? titleMatch[1].trim() : '';
+          const priceText = priceMatch ? priceMatch[1].replace(/,/g, '') : '';
+          const price = priceText ? parseInt(priceText, 10) : null;
+          
+          if (title && price) {
+            const dbData = {
+              status: 'new_lead',
+              phone_number: null, // No phone extraction in basic mode
+              vehicle_model: title,
+              asking_price: price,
+              listing_url: carUrl,
+            };
+            
+            await supabase.from('consignments').insert(dbData);
+            successfulLeads++;
+            console.log(`✅ Basic Lead ${successfulLeads}: ${title} - AED ${price} (No phone)`);
+          }
+        }
+        
+        await supabase.from('scrape_jobs').update({ 
+          processed: i + 1,
+          successful_leads: successfulLeads,
+          log: `Processed ${i + 1} cars (basic mode - no phone extraction)`
+        }).eq('id', jobId);
+        
+      } catch (err) {
+        console.error(`❌ Error processing car ${i + 1}: ${err}`);
+      }
+    }
+    
+    await supabase.from('scrape_jobs').update({ 
+      status: 'finished',
+      finished_at: new Date(),
+      log: `Completed basic scraping: ${successfulLeads} leads (no phone numbers - Vercel limitation)`
+    }).eq('id', jobId);
+    
+    console.log(`🎉 Basic scraping completed: ${successfulLeads} leads without phone numbers`);
+    
+  } catch (error: any) {
+    console.error('Basic scraper error:', error);
+    
+    await supabase.from('scrape_jobs').update({ 
+      status: 'error',
+      finished_at: new Date(),
+      log: `Basic scraper error: ${error.message}`
+    }).eq('id', jobId);
+    
+    throw error;
+  }
+}
+
+// Full scraper with browser automation (for local development)
+async function scrapeWithBrowser(url: string, targetLeads: number = 20, jobId: string) {
+  console.log(`🚀 FULL SCRAPER (Local) - With phone extraction`);
+  
+  try {
+    await supabase.from('scrape_jobs').update({ 
+      status: 'running',
+      log: 'Running full scraper with browser automation'
+    }).eq('id', jobId);
+
+    const playwright = await import('playwright');
+    const { chromium } = playwright;
+
     const browser = await chromium.launch({
-      headless: true, // Must be headless for Vercel
+      headless: false, // Required for Dubizzle
       args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
         '--disable-gpu',
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
         '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-default-apps',
-        '--disable-translate',
-        '--disable-sync',
-        '--disable-background-networking',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--mute-audio',
-        '--no-first-run',
-        '--no-default-browser-check',
-        '--disable-popup-blocking',
-        '--single-process', // Important for serverless
-        '--no-zygote', // Important for serverless
-        '--disable-ipc-flooding-protection'
+        '--disable-features=VizDisplayCompositor'
       ]
     });
 
     const context = await browser.newContext({
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      viewport: { width: 1366, height: 768 },
-      locale: 'en-US',
-      timezoneId: 'Asia/Dubai'
+      viewport: { width: 1366, height: 768 }
     });
 
     const page = await context.newPage();
-    page.setDefaultTimeout(15000); // Reduced timeout for Vercel
-    page.setDefaultNavigationTimeout(15000);
-
-    // Simplified scraping - just get a few listings from first page
-    console.log(`🔍 Loading search page: ${url}`);
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
     
-    // Quick popup dismissal
-    try {
-      const popup = page.locator('button:has-text("Accept"), button:has-text("Don\'t Allow")');
-      if (await popup.count()) {
-        await popup.first().click({ timeout: 2000 });
-      }
-    } catch {}
-
-    // Extract car URLs from first page only (to stay within time limits)
+    // Navigate to search page
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    
+    // Extract car URLs
     const pageSource = await page.content();
     const urlPattern = /\/motors\/used-cars\/[^\/]+\/[^\/]+\/\d{4}\/\d{1,2}\/\d{1,2}\/[^"'\s>]+/g;
     const matches = pageSource.match(urlPattern) || [];
@@ -83,62 +167,56 @@ async function scrapeDubizzleVercel(url: string, targetLeads: number = 20, jobId
       match.startsWith('http') ? match : `https://dubai.dubizzle.com${match}`
     )));
 
-    console.log(`📋 Found ${carUrls.length} cars on first page`);
+    console.log(`📋 Found ${carUrls.length} cars (full extraction)`);
     
     if (carUrls.length === 0) {
+      await browser.close();
       await supabase.from('scrape_jobs').update({ 
         status: 'error',
         finished_at: new Date(),
-        log: 'No car listings found on search page'
+        log: 'No car listings found'
       }).eq('id', jobId);
       return;
     }
 
     await supabase.from('scrape_jobs').update({ 
       total: carUrls.length,
-      log: `Found ${carUrls.length} cars, starting to process...`
+      log: `Found ${carUrls.length} cars, extracting phone numbers...`
     }).eq('id', jobId);
 
     let successfulLeads = 0;
-    let carsChecked = 0;
+    const maxCarsToProcess = Math.min(carUrls.length, 10);
     
-    // Process a limited number of cars to stay within Vercel timeout
-    const maxCarsToProcess = Math.min(carUrls.length, 10); // Limit to 10 cars max
-    
+    // Process cars with full phone extraction
     for (let i = 0; i < maxCarsToProcess && successfulLeads < targetLeads; i++) {
       const carUrl = carUrls[i];
-      carsChecked++;
-      
-      console.log(`🚗 Processing car ${carsChecked}/${maxCarsToProcess}`);
       
       try {
-        // Navigate to car page
-        await page.goto(carUrl, { waitUntil: 'domcontentloaded', timeout: 10000 });
+        await page.goto(carUrl, { waitUntil: 'domcontentloaded' });
         
         // Extract basic info
         let title = '';
         let price = '';
+        let phoneNumber = '';
         
         try {
-          const titleElement = await page.locator('h1, [data-testid*="title"]').first();
+          const titleElement = await page.locator('h1').first();
           title = await titleElement.textContent() || '';
         } catch {}
         
         try {
-          const priceElement = await page.locator('[class*="price"], [data-testid*="price"]').first();
+          const priceElement = await page.locator('[class*="price"]').first();
           const priceText = await priceElement.textContent() || '';
           price = priceText.replace(/[^\d]/g, '');
         } catch {}
 
-        // Try to find and click call button
-        let phoneNumber = '';
+        // Try to extract phone number
         try {
           const callButton = page.locator('button:has-text("Call"), a:has-text("Call")').first();
           if (await callButton.count() > 0) {
-            await callButton.click({ timeout: 3000 });
+            await callButton.click();
             await page.waitForTimeout(2000);
             
-            // Look for phone number
             const phoneSelectors = [
               'a[href^="tel:"]',
               '[class*="phone"]',
@@ -180,7 +258,7 @@ async function scrapeDubizzleVercel(url: string, targetLeads: number = 20, jobId
           }
         }
 
-        // Save to database if we have minimum required info
+        // Save to database
         if (title && price) {
           const dbData = {
             status: 'new_lead',
@@ -192,43 +270,39 @@ async function scrapeDubizzleVercel(url: string, targetLeads: number = 20, jobId
           
           await supabase.from('consignments').insert(dbData);
           successfulLeads++;
-          console.log(`✅ Lead ${successfulLeads}: ${title} - ${phoneNumber || 'No phone'}`);
+          console.log(`✅ Full Lead ${successfulLeads}: ${title} - ${phoneNumber || 'No phone'}`);
         }
         
-        // Update job progress
         await supabase.from('scrape_jobs').update({ 
-          processed: carsChecked,
+          processed: i + 1,
           successful_leads: successfulLeads,
-          log: `Processed ${carsChecked} cars, found ${successfulLeads} leads`
+          log: `Processed ${i + 1} cars, found ${successfulLeads} leads with phone numbers`
         }).eq('id', jobId);
         
-        // Small delay to avoid overwhelming the server
         await page.waitForTimeout(1000);
         
       } catch (err) {
-        console.error(`❌ Error processing car ${carsChecked}: ${err}`);
+        console.error(`❌ Error processing car ${i + 1}: ${err}`);
       }
     }
     
-    // Close browser
     await browser.close();
     
-    // Update final job status
     await supabase.from('scrape_jobs').update({ 
       status: 'finished',
       finished_at: new Date(),
-      log: `Completed: ${successfulLeads} leads from ${carsChecked} cars processed`
+      log: `Completed full scraping: ${successfulLeads} leads with phone numbers`
     }).eq('id', jobId);
     
-    console.log(`🎉 Vercel scraping completed: ${successfulLeads} leads`);
+    console.log(`🎉 Full scraping completed: ${successfulLeads} leads with phone numbers`);
     
   } catch (error: any) {
-    console.error('Scraper error:', error);
+    console.error('Full scraper error:', error);
     
     await supabase.from('scrape_jobs').update({ 
       status: 'error',
       finished_at: new Date(),
-      log: `Error: ${error.message}`
+      log: `Full scraper error: ${error.message}`
     }).eq('id', jobId);
     
     throw error;
@@ -253,16 +327,20 @@ export async function POST(req: Request) {
       successful_leads: 0
     });
 
-    // Run the Vercel-compatible scraper
-    // Note: This will run synchronously to avoid timeout issues
-    await scrapeDubizzleVercel(url, max ?? 20, id);
+    // Choose scraper based on environment
+    if (isVercel) {
+      console.log('🔧 Running in Vercel - using basic scraper (no phone extraction)');
+      await scrapeBasicInfo(url, max ?? 20, id);
+    } else {
+      console.log('🔧 Running locally - using full scraper with phone extraction');
+      await scrapeWithBrowser(url, max ?? 20, id);
+    }
 
     return NextResponse.json({ jobId: id }, { status: 202 });
     
   } catch (error: any) {
     console.error('API error:', error);
     
-    // Update job status to error
     await supabase.from('scrape_jobs').update({ 
       status: 'error', 
       finished_at: new Date(),

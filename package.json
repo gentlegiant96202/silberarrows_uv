@@ -1,0 +1,45 @@
+{
+  "name": "used-car-sales-crm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "scrape:dubizzle": "tsx lib/scraper/scrape.ts",
+    "postinstall": "playwright install --with-deps"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.5",
+    "dayjs": "^1.11.13",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.292.0",
+    "next": "14.0.4",
+    "openai": "^5.8.2",
+    "pdfjs-dist": "^5.3.31",
+    "react": "^18",
+    "react-datepicker": "^8.4.0",
+    "react-dom": "^18",
+    "react-pdf": "^10.0.1",
+    "recharts": "^2.15.4",
+    "tailwindcss": "^3.4.17",
+    "zustand": "^5.0.6",
+    "playwright": "^1.42.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.21",
+    "browser-image-compression": "^2.0.0",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.4",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
+    "postcss": "^8.5.6",
+    "typescript": "^5",
+    "tsx": "^4.7.0",
+    "dotenv": "^16.4.5"
+  }
+}

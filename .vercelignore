@@ -1,0 +1,24 @@
+# Exclude scraper logs and development files
+*.log
+*.pid
+run-scraper.sh
+stop-scraper.sh
+scraper-*.log
+
+# Exclude development files
+.env.local
+.next/
+node_modules/
+
+# Exclude documentation files
+docs/
+README.md
+webhook_fix_guide.md
+MIGRATION_INSTRUCTIONS.md
+
+# Exclude music files (not needed for deployment)
+public/music/
+
+# Exclude git files
+.git/
+.gitignore 

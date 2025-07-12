@@ -82,9 +82,10 @@ async function findCarListings(page: Page, searchUrl: string, startingPage: numb
         break;
       }
       
-      for (const url of pageCarUrls) {
+      // Convert Set to Array for compatibility
+      Array.from(pageCarUrls).forEach(url => {
         allCarUrls.add(url);
-      }
+      });
       
       // Check for next page
       const hasNext = await page.locator('a[data-testid="page-next"]:not([disabled])').count() > 0;

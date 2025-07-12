@@ -447,8 +447,8 @@ export default function ConsignmentKanbanBoard() {
                 </div>
               </div>
               
-              {/* Progress Bar - Only show in NEW LEAD column */}
-              {col.key === 'new_lead' && renderProgressBar()}
+              {/* Progress Bar - Only show in development environment */}
+              {col.key === 'new_lead' && !isProd && renderProgressBar()}
             </div>
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-hide">
               {grouped[col.key as ColKey].map((c) => (

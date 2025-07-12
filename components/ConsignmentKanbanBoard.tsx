@@ -105,13 +105,14 @@ export default function ConsignmentKanbanBoard() {
 
   // Load consignments from Supabase
   useEffect(() => {
-    async function load() {
+    const load = async () => {
       const { data } = await supabase
         .from("consignments")
         .select("*")
         .order("created_at", { ascending: false });
       if (data) setItems(data as unknown as Consignment[]);
-    }
+    };
+    
     load();
 
     const channel = supabase
@@ -127,10 +128,13 @@ export default function ConsignmentKanbanBoard() {
             return prev;
           });
         }
-      )
-      .subscribe();
+      );
 
-    return () => supabase.removeChannel(channel);
+    channel.subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Save state to localStorage whenever it changes
@@ -152,7 +156,7 @@ export default function ConsignmentKanbanBoard() {
   
   const onDragEnd = () => setIsDragging(false);
   
-  const onDrop = (target: ColKey) => async (e: React.DragEvent) => {
+  const onDrop = (target: ColKey) => (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     setHovered(null);
@@ -166,7 +170,14 @@ export default function ConsignmentKanbanBoard() {
       return [moved, ...prev.filter((i) => i.id !== id)];
     });
     
-    await supabase.from("consignments").update({ status: target }).eq("id", id);
+    // Update database asynchronously without awaiting
+    supabase.from("consignments").update({ status: target }).eq("id", id).then(
+      (result) => {
+        if (result.error) {
+          console.error('Error updating consignment status:', result.error);
+        }
+      }
+    );
   };
   
   const onDragOver = (e: React.DragEvent) => e.preventDefault();

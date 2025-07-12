@@ -49,6 +49,7 @@ export default function ConsignmentKanbanBoard() {
   const [currentJob, setCurrentJob] = useState<ScrapeJob | null>(null);
   const [isScrapingActive, setIsScrapingActive] = useState(false);
   const [selectedConsignment, setSelectedConsignment] = useState<Consignment | null>(null);
+  const isProd = process.env.NODE_ENV === 'production';
 
   // CRITICAL FIX: Restore state from localStorage on mount instead of clearing it
   useEffect(() => {
@@ -424,14 +425,20 @@ export default function ConsignmentKanbanBoard() {
                   {col.icon}
                   <h3 className="text-xs font-medium text-white whitespace-nowrap">{col.title}</h3>
                   {col.key === 'new_lead' ? (
-                    <button
-                      onClick={toggleScraping}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
-                      title={isScrapingActive ? "Stop finding leads" : "Find new leads"}
-                    >
-                      {grouped.new_lead.length}
-                      <span className="ml-1">{isScrapingActive ? 'STOP' : 'FIND LEADS'}</span>
-                    </button>
+                    !isProd ? (
+                      <button
+                        onClick={toggleScraping}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
+                        title={isScrapingActive ? "Stop finding leads" : "Find new leads"}
+                      >
+                        {grouped.new_lead.length}
+                        <span className="ml-1">{isScrapingActive ? 'STOP' : 'FIND LEADS'}</span>
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
+                        {grouped.new_lead.length}
+                      </span>
+                    )
                   ) : (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
                       {grouped[col.key as ColKey].length}

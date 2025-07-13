@@ -44,8 +44,21 @@ async function findCarListings(page: Page, searchUrl: string, startingPage: numb
     console.log(`📄 Scraping page ${pageNum}: ${currentUrl}`);
     
     try {
-      // SPEED: Faster navigation with reduced timeout
-      await page.goto(currentUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+      // Robust navigation: give first page more time & use early commit event
+      const navTimeout = pageNum === startingPage ? 90_000 : 45_000;
+      await page.goto(currentUrl, { waitUntil: 'commit', timeout: navTimeout });
+
+      // Handle Cloudflare / bot-check pages that block real content
+      const cfChallenge = page.locator('text=Checking your browser').first();
+      if (await cfChallenge.count()) {
+        console.log('⚠️  Cloudflare challenge detected – waiting to pass…');
+        try {
+          await cfChallenge.waitFor({ state: 'detached', timeout: 45_000 });
+          console.log('✅ Challenge cleared');
+        } catch {
+          console.log('❌ Challenge did not clear in time');
+        }
+      }
       
       // SPEED: Minimal wait
       await page.waitForTimeout(1000);
@@ -202,7 +215,7 @@ async function getRealPhoneNumber(page: Page, carUrl: string): Promise<ScrapedRe
     console.log(`🔗 Loading: ${carUrl}`);
     
     // SPEED: Fast navigation
-    await page.goto(carUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    await page.goto(carUrl, { waitUntil: "commit", timeout: 60_000 });
     
     // SPEED: Quick data extraction
     await page.waitForTimeout(800);
@@ -309,12 +322,7 @@ export async function scrapeDubizzle(url: string, targetLeads: number = 20) {
       '--disable-default-apps',
       '--disable-translate',
       '--disable-sync',
-      '--disable-background-networking',
-      '--disable-background-timer-throttling',
-      '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding',
-      '--disable-features=TranslateUI,BlinkGenPropertyTrees',
-      '--disable-ipc-flooding-protection',
+      // Keep networking alive
       '--mute-audio',
       '--no-first-run',
       '--no-default-browser-check',

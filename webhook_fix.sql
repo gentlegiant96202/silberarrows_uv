@@ -10,9 +10,16 @@ RETURNS TRIGGER AS $$
 DECLARE
   payload  jsonb;
   pdf_url  text;
+  formatted_date text;
 BEGIN
   /* start with full NEW row */
   payload := to_jsonb(NEW);
+
+  /* Format appointment_date from YYYY-MM-DD to DD-MM-YYYY */
+  IF NEW.appointment_date IS NOT NULL THEN
+    formatted_date := to_char(NEW.appointment_date, 'DD-MM-YYYY');
+    payload := payload || jsonb_build_object('appointment_date_formatted', formatted_date);
+  END IF;
 
   /* overwrite phone_number with concatenated value and drop country_code */
   payload := (payload - 'country_code' - 'phone_number')

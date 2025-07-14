@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
+import dayjs from 'dayjs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,17 +42,44 @@ export async function POST(req: NextRequest) {
 async function handleLeadsWebhook(type: string, record: any, old_record?: any) {
   console.log(`Processing leads webhook: ${type}`);
   
+  // Format appointment date from YYYY-MM-DD to DD-MM-YYYY for external systems
+  const formatDateForWebhook = (dateString: string) => {
+    if (!dateString) return dateString;
+    try {
+      return dayjs(dateString).format('DD-MM-YYYY');
+    } catch (error) {
+      console.warn('Failed to format date:', dateString, error);
+      return dateString; // Return original if formatting fails
+    }
+  };
+  
   switch (type) {
     case 'INSERT':
-      console.log('New lead created:', record);
+      // Format the appointment date before logging/sending
+      const newRecord = { ...record };
+      if (newRecord.appointment_date) {
+        newRecord.appointment_date_formatted = formatDateForWebhook(newRecord.appointment_date);
+      }
+      
+      console.log('New lead created:', newRecord);
       // Add any custom logic for new leads
       // e.g., send notification emails, update external systems
+      // Use newRecord.appointment_date_formatted for external API calls
       break;
+      
     case 'UPDATE':
-      console.log('Lead updated:', record);
+      // Format the appointment date before logging/sending
+      const updatedRecord = { ...record };
+      if (updatedRecord.appointment_date) {
+        updatedRecord.appointment_date_formatted = formatDateForWebhook(updatedRecord.appointment_date);
+      }
+      
+      console.log('Lead updated:', updatedRecord);
       // Add any custom logic for lead updates
       // e.g., track status changes, send notifications
+      // Use updatedRecord.appointment_date_formatted for external API calls
       break;
+      
     case 'DELETE':
       console.log('Lead deleted:', old_record);
       // Add any custom logic for lead deletion

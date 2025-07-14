@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
         status: 'queued',
         total: 0,
         processed: 0,
-        // successful_leads: 0, // Temporarily commented out due to schema cache issue
+        successful_leads: 0,
         search_url: defaultSearchUrl,
         max_listings: targetLeads,
         log: `Starting from page ${startingPage} (reverse round-robin)`

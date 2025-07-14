@@ -4,6 +4,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from "@/lib/supabaseClient";
 import MatchingCarsList from "@/components/MatchingCarsList";
 import NotesTimeline, { NoteItem } from '@/components/NotesTimeline';
+import dayjs from 'dayjs';
 
 interface Props {
   onClose: () => void;
@@ -114,7 +115,7 @@ export default function NewAppointmentModal({ onClose, onCreated }: Props) {
       payment_type: paymentType,
       monthly_budget: paymentType === 'monthly' ? Number(monthlyBudget) || 0 : 0,
       total_budget: paymentType === 'cash' ? Number(totalBudget) || 0 : 0,
-      appointment_date: appointmentDate ? appointmentDate.toISOString().slice(0,10) : '',
+      appointment_date: appointmentDate ? dayjs(appointmentDate).format('YYYY-MM-DD') : '',
       time_slot: timeSlot,
       timeline_notes: notesArray,
       inventory_car_id: selectedCarId||null,

@@ -60,8 +60,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [expanded, setExpanded] = useState<{[key:string]:boolean}>({});
   const canEdit = isAdmin && ['new_listing','marketing','qc_ceo'].includes(car.status);
   const [editing, setEditing] = useState(false);
-  // drag source index
-  const [dragIdx, setDragIdx] = useState<number|null>(null);
+  // Remove drag-related state
+  // const [dragIdx, setDragIdx] = useState<number|null>(null);
 
   const toggleExpand = (label:string)=> setExpanded(p=>({...p,[label]:!p[label]}));
 
@@ -132,6 +132,37 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       console.error(err);
       alert('Failed to prepare ZIP file');
     }
+  };
+
+  // New function to move photos left/right one position at a time
+  const movePhoto = async (currentIndex: number, direction: 'up' | 'down') => {
+    if (!isAdmin || !editing) return;
+    
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= gallery.length) return;
+    
+    // Create new array and move the item to its new position
+    const newGallery = [...gallery];
+    const [movedItem] = newGallery.splice(currentIndex, 1); // Remove item from current position
+    newGallery.splice(newIndex, 0, movedItem); // Insert at new position
+    
+    // Update local state immediately
+    const newMedia = [...media];
+    const galleryStartIndex = media.findIndex(m => m.kind !== 'document');
+    const docsCount = media.filter(m => m.kind === 'document').length;
+    
+    // Rebuild the media array with documents first, then reordered gallery
+    const docs = media.filter(m => m.kind === 'document');
+    const reorderedMedia = [...docs, ...newGallery];
+    setMedia(reorderedMedia);
+    
+    // Update database with new sort orders for all gallery items
+    await Promise.all(newGallery.map(async (item, index) => {
+      await supabase
+        .from('car_media')
+        .update({ sort_order: index })
+        .eq('id', item.id);
+    }));
   };
 
   const handleGeneratePdf = async ()=>{
@@ -316,13 +347,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     return ()=>window.removeEventListener('keydown', escListener);
   },[showGallery, escListener]);
 
-  // helper to reorder array (immutable)
-  const moveItem = <T,>(arr: T[], from: number, to: number): T[] => {
-    const copy = [...arr];
-    const [it] = copy.splice(from, 1);
-    copy.splice(to, 0, it);
-    return copy;
-  };
+  // Removed moveItem helper function - no longer needed with arrow buttons
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
@@ -470,12 +495,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           <div className="space-y-4">
             {/* Documents Section */}
             <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-              {isAdmin && (
-                <DocUploader carId={car.id} onUploaded={async ()=>{
-                  const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('created_at');
-                  setMedia(docRows||[]);
-                }} />
-              )}
+              <DocUploader carId={car.id} onUploaded={async ()=>{
+                const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('created_at');
+                setMedia(docRows||[]);
+              }} />
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-semibold text-white/70">Documents ({docs.length})</h4>
@@ -514,21 +537,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     <div
                       key={m.id}
                       className="relative group"
-                      draggable={isAdmin && editing}
-                      onDragStart={()=>setDragIdx(i)}
-                      onDragOver={e=>{ if(isAdmin && editing) e.preventDefault(); }}
-                      onDrop={async()=>{
-                        if(!isAdmin || dragIdx===null || dragIdx===i) return;
-                        const reordered = moveItem(gallery, dragIdx, i);
-                        setMedia(prev=>moveItem(prev, dragIdx, i));
-                        setDragIdx(null);
-                        // persist new order
-                        reordered.forEach(async (row:any, idx:number)=>{
-                          if(row.sort_order!==idx){
-                            await supabase.from('car_media').update({ sort_order: idx }).eq('id', row.id);
-                          }
-                        });
-                      }}
                     >
                       {m.kind==='photo' ? (
                         <img src={m.url} loading="lazy" className="w-full h-24 object-contain rounded bg-black" onClick={()=>setShowGallery(i)} />)
@@ -546,6 +554,29 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                           <button onClick={()=>handleDeleteMedia(m)} className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block">×</button>
                           {m.kind==='photo' && !m.is_primary && (
                             <button onClick={()=>handleMakePrimary(m)} className="absolute bottom-0 left-0 text-[9px] bg-black/60 text-white px-1 hidden group-hover:block">Primary</button>
+                          )}
+                          {/* Arrow buttons for reordering - only show when editing */}
+                          {editing && (
+                            <>
+                              {/* Left arrow - move photo left (up in order) */}
+                              <button 
+                                onClick={(e) => {e.stopPropagation(); movePhoto(i, 'up');}}
+                                disabled={i === 0}
+                                className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
+                                title="Move left"
+                              >
+                                ←
+                              </button>
+                              {/* Right arrow - move photo right (down in order) */}
+                              <button 
+                                onClick={(e) => {e.stopPropagation(); movePhoto(i, 'down');}}
+                                disabled={i === gallery.length - 1}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
+                                title="Move right"
+                              >
+                                →
+                              </button>
+                            </>
                           )}
                         </>
                       )}

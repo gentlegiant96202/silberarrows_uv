@@ -279,12 +279,24 @@ export default function KanbanBoard() {
                 onDragEnd={onDragEnd}
                 onClick={(e) => handleCardClick(l, e)}
                 className={`${(()=>{
-                  const upcoming = dayjs(l.appointment_date).isAfter(dayjs()) && dayjs(l.appointment_date).diff(dayjs(),'day')<1;
-                  const past = col.key==='new_customer' && l.appointment_date && dayjs(l.appointment_date).isBefore(dayjs(),'day');
+                  // Create precise appointment datetime by combining date and time_slot
+                  const appointmentDateTime = l.appointment_date && l.time_slot 
+                    ? dayjs(`${l.appointment_date} ${l.time_slot}`)
+                    : null;
+                  
+                  const now = dayjs();
                   const base = 'backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ';
-                  if(past) return base+'bg-red-500/20 border-red-400/30';
-                  if(upcoming && col.key==='new_customer') return base+'bg-green-500/20 border-green-400/30';
-                  return base+'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20';
+                  
+                  // Only apply colors for new_customer column and when we have a complete appointment datetime
+                  if (col.key === 'new_customer' && appointmentDateTime) {
+                    const past = appointmentDateTime.isBefore(now);
+                    const within24Hours = appointmentDateTime.isAfter(now) && appointmentDateTime.diff(now, 'hour') <= 24;
+                    
+                    if (past) return base + 'bg-red-500/20 border-red-400/30';
+                    if (within24Hours) return base + 'bg-green-500/20 border-green-400/30';
+                  }
+                  
+                  return base + 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20';
                 })()}`}
               >
                 <div className="flex items-start justify-between mb-1">

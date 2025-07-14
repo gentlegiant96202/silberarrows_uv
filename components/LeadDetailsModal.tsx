@@ -602,7 +602,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                     </label>
                     <DatePicker
                       selected={formData.appointment_date ? new Date(formData.appointment_date) : null}
-                      onChange={(d)=>handleChange({target:{name:'appointment_date',value:(d as Date).toISOString().slice(0,10)}} as any)}
+                      onChange={(d)=>handleChange({target:{name:'appointment_date',value:dayjs(d as Date).format('YYYY-MM-DD')}} as any)}
                       dateFormat="dd/MM/yyyy"
                       popperPlacement="top-start"
                       className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"

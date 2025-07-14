@@ -55,7 +55,7 @@ CREATE TABLE leads (
 CREATE TABLE consignments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     status TEXT NOT NULL DEFAULT 'new_lead' CHECK (status IN ('new_lead', 'negotiation', 'pre_inspection', 'consigned_purchased', 'lost')),
-    phone_number TEXT,
+    phone_number TEXT UNIQUE, -- Prevent duplicate phone numbers
     vehicle_model TEXT,
     asking_price INTEGER,
     listing_url TEXT NOT NULL UNIQUE, -- Prevent duplicate URLs

@@ -40,6 +40,7 @@ interface ScrapeJob {
   search_url?: string;
   max_listings?: number;
   started_at?: string;
+  log?: string;
 }
 
 export default function ConsignmentKanbanBoard() {
@@ -57,17 +58,22 @@ export default function ConsignmentKanbanBoard() {
     const savedIsActive = localStorage.getItem('isScrapingActive') === 'true';
     const savedJob = localStorage.getItem('currentScrapeJob');
     
+    console.log('🔄 Checking localStorage on mount:', { savedIsActive, savedJob: savedJob ? 'exists' : 'none' });
+    
     if (savedIsActive && savedJob) {
       try {
         const job = JSON.parse(savedJob);
         setCurrentJob(job);
         setIsScrapingActive(true);
         console.log('🔄 Restored scraping state from localStorage:', job);
+        console.log('🔄 Set isScrapingActive to:', true);
       } catch (err) {
-        console.error('Failed to restore scraping state:', err);
+        console.error('❌ Failed to restore scraping state:', err);
         localStorage.removeItem('currentScrapeJob');
         localStorage.removeItem('isScrapingActive');
       }
+    } else {
+      console.log('🔄 No saved scraping state found');
     }
 
     // CRITICAL: Add browser-level keep-alive to prevent tab throttling
@@ -249,7 +255,10 @@ export default function ConsignmentKanbanBoard() {
 
   // ENHANCED: Poll job status with better error handling and persistence
   useEffect(() => {
-    if (!isScrapingActive || !currentJob) return;
+    if (!isScrapingActive || !currentJob) {
+      console.log('🔄 Polling stopped - isScrapingActive:', isScrapingActive, 'currentJob:', currentJob?.id);
+      return;
+    }
 
     console.log('🔄 Starting polling for job:', currentJob.id);
 
@@ -258,6 +267,7 @@ export default function ConsignmentKanbanBoard() {
         const res = await fetch(`/api/consignments/scrape?id=${currentJob.id}`);
         if (res.ok) {
           const job = await res.json();
+          console.log('📊 Frontend received job update:', job);
           setCurrentJob(job);
           
           // Always save updated job to localStorage
@@ -280,10 +290,10 @@ export default function ConsignmentKanbanBoard() {
             localStorage.removeItem('isScrapingActive');
           }
         } else {
-          console.error('Failed to poll job status:', res.status);
+          console.error('❌ Failed to poll job status:', res.status);
         }
       } catch (err) {
-        console.error('Error polling job:', err);
+        console.error('❌ Error polling job:', err);
       }
     };
 
@@ -312,6 +322,21 @@ export default function ConsignmentKanbanBoard() {
     if (isScrapingActive) {
       // Stop scraping
       console.log('🛑 Stopping scraper by user request');
+      
+      // Call DELETE endpoint to kill Python processes
+      try {
+        const res = await fetch('/api/consignments/scrape', {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          console.log('✅ Scraper stopped successfully');
+        } else {
+          console.log('⚠️ Error stopping scraper:', res.status);
+        }
+      } catch (error) {
+        console.log('⚠️ Error calling stop endpoint:', error);
+      }
+      
       setIsScrapingActive(false);
       setCurrentJob(null);
       localStorage.removeItem('currentScrapeJob');
@@ -321,13 +346,16 @@ export default function ConsignmentKanbanBoard() {
       console.log('🚀 Starting scraper');
       const url = 'https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/?seller_type=OW&regional_specs=824&regional_specs=827&fuel_type=380&fuel_type=383&kilometers__lte=100000&kilometers__gte=0&year__gte=2015&year__lte=2026';
       try {
+        console.log('🔄 Making fetch request to /api/consignments/scrape');
         const res = await fetch('/api/consignments/scrape', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url, max: 20 })
         });
+        console.log('🔄 Fetch response:', res.status, res.statusText);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
+        console.log('🔄 Fetch response JSON:', json);
         
         const newJob = { 
           id: json.jobId, 
@@ -335,9 +363,11 @@ export default function ConsignmentKanbanBoard() {
           total: 0, 
           processed: 0,
           max_listings: 20,
-          successful_leads: 0
+          successful_leads: 0,
+          log: 'Starting scraper...'
         };
         
+        console.log('🔄 Setting up new job:', newJob);
         setCurrentJob(newJob);
         setIsScrapingActive(true);
         
@@ -346,6 +376,12 @@ export default function ConsignmentKanbanBoard() {
         localStorage.setItem('isScrapingActive', 'true');
         
         console.log('✅ Scraper started with job ID:', json.jobId);
+        console.log('✅ isScrapingActive set to:', true);
+        
+        // Force a re-render to ensure UI updates
+        setTimeout(() => {
+          console.log('🔄 Force checking state after timeout:', { isScrapingActive: true, jobId: json.jobId });
+        }, 100);
         
       } catch (err: any) {
         console.error('❌ Failed to start scraper:', err);
@@ -354,7 +390,7 @@ export default function ConsignmentKanbanBoard() {
     }
   };
 
-  // Helper to render the silver foil progress bar
+  // Helper to render the enhanced progress bar with Python scraper details
   const renderProgressBar = () => {
     const job = currentJob;
     const leads = job?.successful_leads ?? 0;
@@ -369,7 +405,9 @@ export default function ConsignmentKanbanBoard() {
         ? "Starting…"
         : job?.status === "finished"
         ? "Complete!"
-        : "Error"
+        : job?.status === "error"
+        ? "Error"
+        : "Processing…"
       : "Idle";
 
     return (
@@ -386,6 +424,29 @@ export default function ConsignmentKanbanBoard() {
             {processed ? Math.round((leads / Math.max(processed, 1)) * 100) : 0}% success rate
           </span>
         </div>
+        
+        {/* Enhanced progress info for Python scraper */}
+        {job?.log && (
+          <div className="mb-1">
+            <span className="text-[9px] text-white/40 truncate block">
+              {job.log}
+            </span>
+          </div>
+        )}
+        
+        {/* Show additional stats if available */}
+        {job && job.processed > 0 && (
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[8px] text-white/30">
+              {job.status === 'running' ? 'Processing...' : 
+               job.status === 'finished' ? 'Completed' : 
+               job.status === 'error' ? 'Error' : 'Status unknown'}
+            </span>
+            <span className="text-[8px] text-white/30">
+              {job.successful_leads || 0} successful
+            </span>
+          </div>
+        )}
         <div className="w-full h-2 bg-black/30 rounded-full overflow-hidden border border-white/20 shadow-inner">
           <div
             className="h-full bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 transition-all duration-500 ease-out relative rounded-full"
@@ -428,8 +489,13 @@ export default function ConsignmentKanbanBoard() {
                     !isProd ? (
                       <button
                         onClick={toggleScraping}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition shadow-sm ${
+                          isScrapingActive 
+                            ? 'bg-gradient-to-br from-red-400 via-red-500 to-red-600 text-white animate-pulse' 
+                            : 'bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110'
+                        }`}
                         title={isScrapingActive ? "Stop finding leads" : "Find new leads"}
+                        disabled={false}
                       >
                         {grouped.new_lead.length}
                         <span className="ml-1">{isScrapingActive ? 'STOP' : 'FIND LEADS'}</span>
@@ -449,6 +515,13 @@ export default function ConsignmentKanbanBoard() {
               
               {/* Progress Bar - Only show in development environment */}
               {col.key === 'new_lead' && !isProd && renderProgressBar()}
+              
+              {/* Debug info - Only show in development */}
+              {col.key === 'new_lead' && !isProd && (
+                <div className="text-[8px] text-white/30 mt-1">
+                  Debug: isScrapingActive={isScrapingActive.toString()}, jobId={currentJob?.id || 'none'}
+                </div>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-hide">
               {grouped[col.key as ColKey].map((c) => (

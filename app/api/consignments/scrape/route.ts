@@ -1,9 +1,194 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { supabase } from '@/lib/supabaseClient';
+import { spawn } from 'child_process';
+import path from 'path';
 
 // Check if we're running in Vercel
 const isVercel = process.env.VERCEL === '1';
+const isDev = process.env.NODE_ENV === 'development';
+
+// Global process tracking
+let currentPythonProcess: any = null;
+
+// Python scraper for development (enhanced functionality)
+async function scrapeWithPython(url: string, targetLeads: number = 20, jobId: string) {
+  console.log(`🐍 PYTHON SCRAPER (Development) - With enhanced phone extraction`);
+  
+  // Kill any existing Python process
+  if (currentPythonProcess) {
+    console.log('🔪 Killing existing Python process');
+    try {
+      currentPythonProcess.kill('SIGTERM');
+      // Also kill any child processes
+      process.kill(-currentPythonProcess.pid, 'SIGTERM');
+    } catch (error) {
+      console.log('⚠️ Error killing existing process:', error);
+    }
+    currentPythonProcess = null;
+  }
+  
+  return new Promise((resolve, reject) => {
+    // Path to Python scraper
+    const pythonScriptPath = path.join(process.cwd(), 'lib', 'scraper', 'python_scraper.py');
+    
+    // Spawn Python process
+    const pythonProcess = spawn('python3', [pythonScriptPath, jobId, url, targetLeads.toString()], {
+      detached: true  // Allow us to kill the process group
+    });
+    
+    // Track the current process
+    currentPythonProcess = pythonProcess;
+    
+    let hasError = false;
+    
+    // Handle Python stdout for progress updates
+    pythonProcess.stdout.on('data', (data) => {
+      const lines = data.toString().split('\n');
+      
+      for (const line of lines) {
+        if (line.trim()) {
+          console.log('Raw line:', line);
+          
+          // Look for our progress updates
+          if (line.includes('PYTHON_PROGRESS:')) {
+            try {
+              const jsonStr = line.split('PYTHON_PROGRESS:')[1].trim();
+              const progressData = JSON.parse(jsonStr);
+              
+              console.log('📊 Python progress update:', progressData);
+              
+              // Update database with progress
+              supabase.from('scrape_jobs').update({
+                status: progressData.status,
+                processed: progressData.processed,
+                successful_leads: progressData.successful_leads,
+                log: progressData.message
+              }).eq('id', progressData.job_id).then(result => {
+                if (result.error) {
+                  console.error('❌ Error updating scrape_jobs:', result.error);
+                } else {
+                  console.log('✅ Updated scrape_jobs for job:', progressData.job_id);
+                }
+              });
+              
+              // If we have car data, insert it into consignments
+              if (progressData.car_data && progressData.car_data.phone_number) {
+                const carData = progressData.car_data;
+                const dbData = {
+                  status: 'new_lead',
+                  phone_number: carData.phone_number,
+                  vehicle_model: carData.title,
+                  asking_price: carData.price ? parseInt(carData.price, 10) || null : null,
+                  listing_url: carData.url,
+                };
+                
+                // Check for duplicates before inserting
+                const checkDuplicates = async () => {
+                  try {
+                    // Check if phone number already exists
+                    const { data: phoneExists } = await supabase
+                      .from('consignments')
+                      .select('id, phone_number')
+                      .eq('phone_number', carData.phone_number)
+                      .limit(1);
+                    
+                    if (phoneExists && phoneExists.length > 0) {
+                      console.log(`⏭️ Duplicate phone number found: ${carData.phone_number}`);
+                      return;
+                    }
+                    
+                    // Check if listing URL already exists
+                    const { data: urlExists } = await supabase
+                      .from('consignments')
+                      .select('id, listing_url')
+                      .eq('listing_url', carData.url)
+                      .limit(1);
+                    
+                    if (urlExists && urlExists.length > 0) {
+                      console.log(`⏭️ Duplicate listing URL found: ${carData.url}`);
+                      return;
+                    }
+                    
+                    // Insert new consignment if no duplicates found
+                    const result = await supabase.from('consignments').insert(dbData);
+                    if (result.error) {
+                      // Handle database constraint violations
+                      if (result.error.code === '23505') { // Unique constraint violation
+                        if (result.error.message.includes('phone_number')) {
+                          console.log(`⏭️ Duplicate phone number (DB constraint): ${carData.phone_number}`);
+                        } else if (result.error.message.includes('listing_url')) {
+                          console.log(`⏭️ Duplicate listing URL (DB constraint): ${carData.url}`);
+                        } else {
+                          console.log(`⏭️ Duplicate entry (DB constraint): ${result.error.message}`);
+                        }
+                      } else {
+                        console.error('❌ Error inserting consignment:', result.error);
+                      }
+                    } else {
+                      console.log('✅ Inserted new consignment:', carData.phone_number);
+                    }
+                  } catch (error) {
+                    console.error('❌ Error checking duplicates:', error);
+                  }
+                };
+                
+                checkDuplicates();
+              }
+            } catch (error) {
+              console.error('❌ Error parsing Python output:', error);
+              console.error('Raw line:', line);
+            }
+          }
+        }
+      }
+    });
+    
+    // Handle stderr (logs)
+    pythonProcess.stderr.on('data', (data) => {
+      console.log(`Python stderr: ${data}`);
+    });
+    
+    // Handle process completion
+    pythonProcess.on('close', async (code) => {
+      // Clear the current process reference
+      if (currentPythonProcess === pythonProcess) {
+        currentPythonProcess = null;
+      }
+      
+      if (code !== 0 && !hasError) {
+        hasError = true;
+        await supabase.from('scrape_jobs').update({
+          status: 'error',
+          finished_at: new Date(),
+          log: `Python process exited with code ${code}`
+        }).eq('id', jobId);
+        reject(new Error(`Python process exited with code ${code}`));
+      } else if (!hasError) {
+        resolve(undefined);
+      }
+    });
+    
+    // Handle process error
+    pythonProcess.on('error', async (error) => {
+      if (!hasError) {
+        hasError = true;
+        await supabase.from('scrape_jobs').update({
+          status: 'error',
+          finished_at: new Date(),
+          log: `Python process error: ${error.message}`
+        }).eq('id', jobId);
+        reject(error);
+      }
+    });
+    
+    // Set initial status
+    supabase.from('scrape_jobs').update({
+      status: 'running',
+      log: 'Starting Python scraper...'
+    }).eq('id', jobId);
+  });
+}
 
 // Simple scraper that works in Vercel (limited functionality)
 async function scrapeBasicInfo(url: string, targetLeads: number = 20, jobId: string) {
@@ -315,6 +500,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'url is required' }, { status: 400 });
   }
 
+  // Check if a Python process is already running
+  if (isDev && currentPythonProcess) {
+    console.log('⚠️ Python scraper already running, rejecting new request');
+    return NextResponse.json({ error: 'Scraper already running. Please stop the current scraper first.' }, { status: 409 });
+  }
+
   const id = randomUUID();
 
   try {
@@ -331,6 +522,12 @@ export async function POST(req: Request) {
     if (isVercel) {
       console.log('🔧 Running in Vercel - using basic scraper (no phone extraction)');
       await scrapeBasicInfo(url, max ?? 20, id);
+    } else if (isDev) {
+      console.log('🔧 Running in development - using Python scraper with enhanced phone extraction');
+      // Don't await - let Python run in background
+      scrapeWithPython(url, max ?? 20, id).catch(error => {
+        console.error('Python scraper error:', error);
+      });
     } else {
       console.log('🔧 Running locally - using full scraper with phone extraction');
       await scrapeWithBrowser(url, max ?? 20, id);
@@ -359,4 +556,34 @@ export async function GET(req: Request) {
   const { data } = await supabase.from('scrape_jobs').select('*').eq('id', id).single();
   if (!data) return NextResponse.json({ error: 'job not found' }, { status: 404 });
   return NextResponse.json(data);
+}
+
+export async function DELETE(req: Request) {
+  console.log('🛑 STOP request received');
+  
+  // Kill the current Python process if it exists
+  if (currentPythonProcess) {
+    console.log('🔪 Killing Python process:', currentPythonProcess.pid);
+    try {
+      // Kill the process group to ensure all child processes are killed
+      process.kill(-currentPythonProcess.pid, 'SIGTERM');
+      currentPythonProcess = null;
+      console.log('✅ Python process killed successfully');
+    } catch (error) {
+      console.log('⚠️ Error killing Python process:', error);
+    }
+  } else {
+    console.log('ℹ️ No Python process to kill');
+  }
+  
+  // Also kill any remaining python processes that might be running
+  try {
+    const { spawn } = require('child_process');
+    spawn('pkill', ['-f', 'python_scraper.py']);
+    console.log('🔪 Killed any remaining python_scraper.py processes');
+  } catch (error) {
+    console.log('⚠️ Error killing remaining processes:', error);
+  }
+  
+  return NextResponse.json({ message: 'Scraper stopped' }, { status: 200 });
 } 

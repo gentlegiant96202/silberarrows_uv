@@ -66,9 +66,8 @@ export default function CarKanbanBoard() {
 
   // drag helpers
   const onDragStart = (car: Car) => (e: React.DragEvent) => {
-    // Normal users may only move cards that are in NEW LISTING or MARKETING
-    const canMove = isAdmin;
-    if (!canMove) {
+    // Only admins can drag cars
+    if (!isAdmin) {
       e.preventDefault();
       return;
     }
@@ -219,10 +218,10 @@ export default function CarKanbanBoard() {
                 {list.map(c => (
                   <div
                     key={c.id}
-                    draggable={isAdmin || ['marketing','qc_ceo'].includes(c.status)}
+                    draggable={isAdmin}
                     onDragStart={onDragStart(c)}
                     onClick={() => setSelected(c)}
-                    className="w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group"
+                    className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${isAdmin ? 'cursor-move' : ''}`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       {/* thumbnail */}

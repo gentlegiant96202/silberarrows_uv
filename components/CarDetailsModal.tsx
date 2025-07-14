@@ -58,7 +58,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const hasAdmin = (val:any)=> typeof val==='string' && val.toLowerCase()==='admin';
   const isAdmin = hasAdmin(meta.role) || hasAdmin(appMeta.role) || (Array.isArray(meta.roles) && meta.roles.map((r:any)=>String(r).toLowerCase()).includes('admin'));
   const [expanded, setExpanded] = useState<{[key:string]:boolean}>({});
-  const canEdit = ['new_listing','marketing','qc_ceo'].includes(car.status);
+  const canEdit = isAdmin && ['new_listing','marketing','qc_ceo'].includes(car.status);
   const [editing, setEditing] = useState(false);
   // drag source index
   const [dragIdx, setDragIdx] = useState<number|null>(null);
@@ -336,7 +336,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         <div className="flex items-start justify-between mb-3 pr-6 gap-4 flex-wrap">
           <h2 className="text-base font-semibold text-white">Vehicle Details</h2>
           <div className="flex gap-1.5 mt-0.5">
-            {isAdmin && canEdit && !editing && (
+            {isAdmin && canEdit && (
               <button onClick={handleDelete} className="px-2 py-1 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs rounded transition-all">Delete</button>
             )}
             {canEdit && (
@@ -470,10 +470,12 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           <div className="space-y-4">
             {/* Documents Section */}
             <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-              <DocUploader carId={car.id} onUploaded={async ()=>{
-                const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('created_at');
-                setMedia(docRows||[]);
-              }} />
+              {isAdmin && (
+                <DocUploader carId={car.id} onUploaded={async ()=>{
+                  const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('created_at');
+                  setMedia(docRows||[]);
+                }} />
+              )}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-semibold text-white/70">Documents ({docs.length})</h4>
@@ -493,7 +495,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               </div>
             </div>
 
-            {car.status === 'marketing' && (
+            {isAdmin && car.status === 'marketing' && (
               <MediaUploader carId={car.id} onUploaded={async () => {
                 const { data } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('created_at');
                 setMedia(data || []);
@@ -512,11 +514,11 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     <div
                       key={m.id}
                       className="relative group"
-                      draggable={editing}
+                      draggable={isAdmin && editing}
                       onDragStart={()=>setDragIdx(i)}
-                      onDragOver={e=>{ if(editing) e.preventDefault(); }}
+                      onDragOver={e=>{ if(isAdmin && editing) e.preventDefault(); }}
                       onDrop={async()=>{
-                        if(dragIdx===null || dragIdx===i) return;
+                        if(!isAdmin || dragIdx===null || dragIdx===i) return;
                         const reordered = moveItem(gallery, dragIdx, i);
                         setMedia(prev=>moveItem(prev, dragIdx, i));
                         setDragIdx(null);
@@ -538,10 +540,14 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                             </div>
                           </div>
                         )}
-                      {/* overlay buttons */}
-                      <button onClick={()=>handleDeleteMedia(m)} className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block">×</button>
-                      {m.kind==='photo' && !m.is_primary && (
-                        <button onClick={()=>handleMakePrimary(m)} className="absolute bottom-0 left-0 text-[9px] bg-black/60 text-white px-1 hidden group-hover:block">Primary</button>
+                      {/* overlay buttons - admin only */}
+                      {isAdmin && (
+                        <>
+                          <button onClick={()=>handleDeleteMedia(m)} className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block">×</button>
+                          {m.kind==='photo' && !m.is_primary && (
+                            <button onClick={()=>handleMakePrimary(m)} className="absolute bottom-0 left-0 text-[9px] bg-black/60 text-white px-1 hidden group-hover:block">Primary</button>
+                          )}
+                        </>
                       )}
                     </div>
                   ))}
@@ -555,7 +561,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               {pdfUrl ? (
                 <div className="flex items-center gap-2">
                   <a href={pdfUrl + '?download'} download className="underline text-brand text-xs">Download PDF</a>
-                  {car.status==='marketing' && (
+                  {isAdmin && car.status==='marketing' && (
                     <button onClick={handleGeneratePdf} disabled={generating} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded disabled:opacity-40 flex items-center gap-1">
                       {generating && (<span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />)}
                       {generating ? 'Regenerating…' : 'Regenerate'}
@@ -563,13 +569,13 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   )}
                 </div>
               ) : (
-                car.status==='marketing' ? (
+                isAdmin && car.status==='marketing' ? (
                   <button onClick={handleGeneratePdf} disabled={generating} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded disabled:opacity-40 flex items-center gap-1">
                     {generating && (<span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />)}
                     {generating ? 'Generating…' : 'Generate PDF'}
                   </button>
                 ) : (
-                  <p className="text-white/50 text-[11px]">PDF available only in Marketing stage.</p>
+                  <p className="text-white/50 text-[11px]">PDF available only to admins in Marketing stage.</p>
                 )
               )}
               {statusMsg && <div className="text-[10px] text-white/50">{statusMsg}</div>}

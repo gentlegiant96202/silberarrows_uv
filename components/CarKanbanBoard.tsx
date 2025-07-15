@@ -28,6 +28,7 @@ export default function CarKanbanBoard() {
   
   // Inventory filter state
   const [showInventoryFilters, setShowInventoryFilters] = useState(false);
+  const [inventoryExpanded, setInventoryExpanded] = useState(false);
   const [inventoryFilters, setInventoryFilters] = useState({
     ownership: [] as string[], // ['stock', 'consignment']
     stockAge: [] as string[], // ['fresh', 'aging', 'old']
@@ -250,9 +251,9 @@ export default function CarKanbanBoard() {
     });
   };
 
-  return (
+      return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
-      <div className="flex gap-3 pb-4 w-full h-full overflow-x-auto">
+      <div className={`flex gap-3 pb-4 w-full h-full ${inventoryExpanded ? 'overflow-hidden' : 'overflow-x-auto'}`}>
         {columns.map(col => {
           const listAll = cars.filter(c=> match(c.stock_number) || match(c.vehicle_model));
           let list = listAll.filter(c => {
@@ -278,10 +279,19 @@ export default function CarKanbanBoard() {
           if (col.key === 'inventory') {
             list = applyInventoryFilters(list);
           }
+          // Hide non-inventory columns when expanded
+          if (inventoryExpanded && col.key !== 'inventory') {
+            return null;
+          }
+
           return (
             <div
               key={col.key}
-              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 w-80 min-w-0 flex flex-col"
+              className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col transition-all duration-300 ${
+                inventoryExpanded && col.key === 'inventory' 
+                  ? 'w-full min-w-0' 
+                  : 'w-80 min-w-0'
+              }`}
               onDragOver={onDragOver}
               onDrop={onDrop(col.key as ColKey)}
             >
@@ -293,14 +303,30 @@ export default function CarKanbanBoard() {
                       <span className="text-[9px] text-orange-400 font-medium">({getActiveFilterCount()})</span>
                     )}
                     {col.key === 'inventory' && (
-                      <button
-                        onClick={() => setShowInventoryFilters(!showInventoryFilters)}
-                        className="ml-1 text-white/60 hover:text-white transition-colors"
-                      >
-                        <svg className={`w-3 h-3 transition-transform ${showInventoryFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setShowInventoryFilters(!showInventoryFilters)}
+                          className="ml-1 text-white/60 hover:text-white transition-colors"
+                          title="Filters"
+                        >
+                          <svg className={`w-3 h-3 transition-transform ${showInventoryFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setInventoryExpanded(!inventoryExpanded)}
+                          className="ml-1 text-white/60 hover:text-white transition-colors"
+                          title={inventoryExpanded ? "Collapse" : "Expand"}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {inventoryExpanded ? (
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            ) : (
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            )}
+                          </svg>
+                        </button>
+                      </>
                     )}
                   </div>
                   {col.key === 'marketing' ? (
@@ -417,43 +443,79 @@ export default function CarKanbanBoard() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                {list.map(c => (
-                  <div
-                    key={c.id}
-                    draggable={isAdmin}
-                    onDragStart={onDragStart(c)}
-                    onClick={async () => {
-                      setSelected(c);
-                      const fullData = await loadFullCarData(c.id);
-                      setSelectedCarFull(fullData);
-                    }}
-                    className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${isAdmin ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {/* thumbnail */}
-                      <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded overflow-hidden">
-                        {thumbs[c.id]? (
-                          <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy" />
-                        ): null}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[10px] font-semibold text-white leading-tight break-words max-h-8 overflow-hidden">{highlight(c.stock_number)}</div>
-                        <div className="text-[9px] text-white/60 leading-tight break-words whitespace-normal max-h-8 overflow-hidden">{highlight(c.model_year+' '+cleanModel(c.vehicle_model))}</div>
-                        <div className="text-white font-semibold text-[9px] flex items-center gap-0.5 mt-0.5 whitespace-nowrap truncate">
-                          <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
+              <div className="flex-1 overflow-y-auto pr-1">
+                {inventoryExpanded && col.key === 'inventory' ? (
+                  // Grid layout for expanded inventory view
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                    {list.map(c => (
+                      <div
+                        key={c.id}
+                        draggable={isAdmin}
+                        onDragStart={onDragStart(c)}
+                        onClick={async () => {
+                          setSelected(c);
+                          const fullData = await loadFullCarData(c.id);
+                          setSelectedCarFull(fullData);
+                        }}
+                        className={`bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-2 text-xs select-none cursor-pointer group ${isAdmin ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
+                      >
+                        {/* thumbnail */}
+                        <div className="w-full h-20 bg-white/10 rounded overflow-hidden mb-2">
+                          {thumbs[c.id] ? (
+                            <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy" />
+                          ) : null}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-[10px] font-semibold text-white leading-tight truncate">{highlight(c.stock_number)}</div>
+                          <div className="text-[9px] text-white/60 leading-tight line-clamp-2">{highlight(c.model_year+' '+cleanModel(c.vehicle_model))}</div>
+                          <div className="text-white font-semibold text-[9px] flex items-center gap-0.5">
+                            <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-white/50">
-                        <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  // Normal vertical list layout
+                  <div className="space-y-2">
+                    {list.map(c => (
+                      <div
+                        key={c.id}
+                        draggable={isAdmin}
+                        onDragStart={onDragStart(c)}
+                        onClick={async () => {
+                          setSelected(c);
+                          const fullData = await loadFullCarData(c.id);
+                          setSelectedCarFull(fullData);
+                        }}
+                        className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${isAdmin ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {/* thumbnail */}
+                          <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded overflow-hidden">
+                            {thumbs[c.id]? (
+                              <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy" />
+                            ): null}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[10px] font-semibold text-white leading-tight break-words max-h-8 overflow-hidden">{highlight(c.stock_number)}</div>
+                            <div className="text-[9px] text-white/60 leading-tight break-words whitespace-normal max-h-8 overflow-hidden">{highlight(c.model_year+' '+cleanModel(c.vehicle_model))}</div>
+                            <div className="text-white font-semibold text-[9px] flex items-center gap-0.5 mt-0.5 whitespace-nowrap truncate">
+                              <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-white/50">
+                            <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {list.length === 0 && (
-                  <p className="text-center text-white/40 text-[10px]">No cars</p>
+                  <p className="text-center text-white/40 text-[10px] mt-4">No cars</p>
                 )}
               </div>
             </div>

@@ -38,6 +38,11 @@ BEGIN
     payload := payload || jsonb_build_object('appointment_date_formatted', formatted_appointment_date);
   END IF;
 
+  -- Format time slot with AM/PM (e.g., "2:30 PM")
+  IF NEW.time_slot IS NOT NULL THEN
+    payload := payload || jsonb_build_object('time_slot_formatted', to_char(NEW.time_slot, 'HH12:MI AM'));
+  END IF;
+
   -- Fetch simplified car data if linked to inventory (only model year and model name)
   car_data := NULL;
   IF payload ? 'inventory_car_id' AND payload->>'inventory_car_id' IS NOT NULL THEN
@@ -158,6 +163,7 @@ Example payload structure this will now generate:
   "appointment_date": "2024-01-15",
   "time_slot": "10:00:00",
   "appointment_date_formatted": "15th Jan 2024",
+  "time_slot_formatted": "10:00 AM",
   "notes": "Customer notes here",
   "inventory_car_id": "car-uuid-here",
   "car_details": {

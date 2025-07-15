@@ -22,6 +22,7 @@ export default function CarKanbanBoard() {
   const [cars, setCars] = useState<Car[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<Car | null>(null);
+  const [selectedCarFull, setSelectedCarFull] = useState<any | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
 
   const columns = [
@@ -171,6 +172,15 @@ export default function CarKanbanBoard() {
     return '';
   };
 
+  const loadFullCarData = async (carId: string) => {
+    const { data } = await supabase
+      .from('cars')
+      .select('*')
+      .eq('id', carId)
+      .single();
+    return data;
+  };
+
   return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
       <div className="flex gap-3 pb-4 w-full h-full overflow-x-auto">
@@ -228,7 +238,11 @@ export default function CarKanbanBoard() {
                     key={c.id}
                     draggable={isAdmin}
                     onDragStart={onDragStart(c)}
-                    onClick={() => setSelected(c)}
+                    onClick={async () => {
+                      setSelected(c);
+                      const fullData = await loadFullCarData(c.id);
+                      setSelectedCarFull(fullData);
+                    }}
                     className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${isAdmin ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -272,17 +286,22 @@ export default function CarKanbanBoard() {
         />
       )}
 
-      {selected && (
+      {selected && selectedCarFull && (
         <CarDetailsModal
-          car={selected as any}
-          onClose={() => setSelected(null)}
+          car={selectedCarFull}
+          onClose={() => {
+            setSelected(null);
+            setSelectedCarFull(null);
+          }}
           onDeleted={(id)=>{
             setSelected(null);
+            setSelectedCarFull(null);
             setCars(prev=>prev.filter(c=>c.id!==id));
           }}
           onSaved={(updated)=>{
             setCars(prev=>prev.map(c=>c.id===updated.id? updated as any: c));
             setSelected(updated as any);
+            setSelectedCarFull(updated);
           }}
         />
       )}

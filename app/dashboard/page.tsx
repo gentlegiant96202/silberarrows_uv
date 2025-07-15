@@ -76,7 +76,7 @@ function LeadsFunnel() {
 
   // Use conversion funnel data - shows total entries into each stage
   const totalLeads = funnelData?.summary?.totalLeads || 0;
-  const maxCount = Math.max(...Object.values(currentLeadCounts), 1);
+  const maxCount = Math.max(...Object.values(currentLeadCounts).map(v => Number(v) || 0), 1);
   
   // Show skeleton immediately, even while loading
   const showSkeleton = Object.keys(currentLeadCounts).length === 0;

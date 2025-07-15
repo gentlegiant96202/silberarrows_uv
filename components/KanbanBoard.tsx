@@ -368,7 +368,7 @@ export default function KanbanBoard() {
       {showModal && (
         <NewAppointmentModal
           onClose={() => setShowModal(false)}
-          onCreated={lead => setLeads(prev => [lead as any, ...prev])}
+          onCreated={() => {}} // Real-time subscription will handle adding the lead
         />
       )}
       

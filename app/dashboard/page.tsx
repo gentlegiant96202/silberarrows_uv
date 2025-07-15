@@ -7,85 +7,150 @@ import { useDashboardFilter } from '@/lib/dashboardFilterStore';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 
-// Inline LeadsFunnel component to keep dashboard self-contained
+// Enhanced LeadsFunnel component with conversion tracking
 function LeadsFunnel() {
   const STAGES = [
-    { key: 'lost', label: 'Lost' },
-    { key: 'new_customer', label: 'New' },
-    { key: 'negotiation', label: 'Negotiation' },
-    { key: 'won', label: 'Reserved' },
-    { key: 'delivered', label: 'Delivered' },
+    { key: 'new_customer', label: 'New Customer', color: 'bg-blue-500' },
+    { key: 'negotiation', label: 'Negotiation', color: 'bg-yellow-500' },
+    { key: 'won', label: 'Reserved', color: 'bg-green-500' },
+    { key: 'delivered', label: 'Delivered', color: 'bg-purple-500' },
+    { key: 'lost', label: 'Lost', color: 'bg-red-500' },
   ];
 
   const { year, months } = useDashboardFilter();
-  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [funnelData, setFunnelData] = useState<any>(null);
+  const [currentLeadCounts, setCurrentLeadCounts] = useState<any>({});
   const [loading, setLoading] = useState(false);
+  const [animateAfterLoad, setAnimateAfterLoad] = useState(false);
 
   useEffect(() => {
-    async function fetchCounts() {
+    async function fetchConversionFunnel() {
       setLoading(true);
-      const from = new Date(year, 0, 1).toISOString();
-      const to = new Date(year + 1, 0, 1).toISOString();
+      setAnimateAfterLoad(false);
+      
+      try {
+        // Calculate date range based on filters
+        const from = new Date(year, 0, 1);
+        const to = new Date(year + 1, 0, 1);
+        
+        if (months.length > 0) {
+          const firstMonth = Math.min(...months) - 1;
+          const lastMonth = Math.max(...months);
+          from.setMonth(firstMonth);
+          to.setMonth(lastMonth);
+          to.setDate(0);
+        }
 
-      let { data, error } = await supabase
-        .from('leads')
-        .select('status, created_at')
-        .gte('created_at', from)
-        .lt('created_at', to);
-
-      if (error) {
-        console.error(error);
+        // Fetch funnel metrics - this shows total entries into each stage over time
+        const response = await fetch(`/api/funnel-metrics?startDate=${from.toISOString().split('T')[0]}&endDate=${to.toISOString().split('T')[0]}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          console.error('API Error:', data.error);
+          setFunnelData(null);
+        } else {
+          setFunnelData(data);
+          
+          // Create conversion funnel counts (total entries into each stage)
+          const conversionCounts: any = {};
+          if (data.funnelMetrics) {
+            data.funnelMetrics.forEach((stage: any) => {
+              conversionCounts[stage.stage] = stage.total_entered || 0;
+            });
+          }
+          setCurrentLeadCounts(conversionCounts);
+          
+          // Trigger animation after data loads
+          setTimeout(() => setAnimateAfterLoad(true), 100);
+        }
+      } catch (error) {
+        console.error('Error fetching funnel data:', error);
+        setFunnelData(null);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      if (!data) data = [];
-
-      const filtered = data.filter((row: any) => {
-        if (months.length === 0) return true;
-        const m = new Date(row.created_at).getMonth() + 1;
-        return months.includes(m);
-      });
-
-      const stageCounts: Record<string, number> = {};
-      STAGES.forEach((s) => (stageCounts[s.key] = 0));
-
-      filtered.forEach((row: any) => {
-        stageCounts[row.status] = (stageCounts[row.status] || 0) + 1;
-      });
-
-      setCounts(stageCounts);
-      setLoading(false);
     }
 
-    fetchCounts();
+    fetchConversionFunnel();
   }, [year, months]);
 
-  if (loading) return <p className="text-white/60">Loading funnel…</p>;
-
-  const maxCount = Math.max(...STAGES.map((s) => counts[s.key] || 0), 1);
+  // Use conversion funnel data - shows total entries into each stage
+  const totalLeads = funnelData?.summary?.totalLeads || 0;
+  const maxCount = Math.max(...Object.values(currentLeadCounts), 1);
+  
+  // Show skeleton immediately, even while loading
+  const showSkeleton = Object.keys(currentLeadCounts).length === 0;
 
   return (
     <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[260px] flex flex-col">
-      <h2 className="text-sm font-semibold text-white/80 mb-4">Lead Funnel</h2>
-      <div className="space-y-2 flex-1 overflow-hidden">
-        {STAGES.map((stage) => {
-          const c = counts[stage.key] || 0;
-          const widthPercent = (c / maxCount) * 100;
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-white/80">Lead Conversion Funnel</h2>
+        <span className="text-xs text-white/50">
+          {totalLeads} total leads
+        </span>
+      </div>
+      
+      <div className="space-y-2 flex-1">
+        {STAGES.filter(stage => stage.key !== 'lost').map((stage, index) => {
+          const leadCount = currentLeadCounts[stage.key] || 0;
+          const widthPercent = leadCount > 0 ? (leadCount / maxCount) * 100 : 0;
+          
+          // Get conversion rate from historical data if available
+          const stageData = funnelData?.funnelMetrics?.find((s: any) => s.stage === stage.key);
+          const conversionRate = stageData?.conversion_to_next || 0;
+
           return (
-            <div key={stage.key} className="flex items-center gap-2">
-              <div
-                className="transition-all h-6 rounded-r-full bg-white/80 relative text-black"
-                style={{ width: `${widthPercent}%`, minWidth: '4px' }}
-              >
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-black">
-                  {c}
-                </span>
+            <div key={stage.key} className="relative">
+              <div className="w-full bg-white/10 rounded-lg h-8 relative overflow-hidden">
+                {showSkeleton ? (
+                  <div className="bg-white/30 h-8 rounded-lg animate-pulse absolute inset-0" style={{ width: '30%' }} />
+                ) : (
+                  <div
+                    className="bg-white h-8 rounded-lg absolute inset-0 transition-all duration-700 ease-out flex items-center justify-between px-3"
+                    style={{ 
+                      width: animateAfterLoad ? `${Math.max(widthPercent, leadCount > 0 ? 15 : 0)}%` : '0%'
+                    }}
+                  >
+                    <span className="text-sm font-semibold text-black">
+                      {stage.label}
+                    </span>
+                    <span className="text-sm font-bold text-black">
+                      {leadCount}
+                    </span>
+                  </div>
+                )}
               </div>
-              <span className="text-xs text-white/70 w-20">{stage.label}</span>
             </div>
           );
         })}
+        
+        {/* Lost leads section */}
+        {(() => {
+          const lostCount = currentLeadCounts['lost'] || 0;
+          if (lostCount === 0) return null;
+          
+          const lostWidthPercent = lostCount > 0 ? (lostCount / maxCount) * 100 : 0;
+          
+          return (
+            <div className="border-t border-white/10 pt-2 mt-2 relative">
+              <div className="w-full bg-red-500/20 rounded-lg h-8 relative overflow-hidden">
+                <div
+                  className="bg-red-500/80 h-8 rounded-lg absolute inset-0 transition-all duration-700 ease-out flex items-center justify-between px-3"
+                  style={{ 
+                    width: animateAfterLoad ? `${Math.max(lostWidthPercent, lostCount > 0 ? 15 : 0)}%` : '0%'
+                  }}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    Lost
+                  </span>
+                  <span className="text-sm font-bold text-white">
+                    {lostCount}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
@@ -330,7 +395,7 @@ const MiniCalendar: React.FC<{year:number; months:number[]}> = ({year, months}) 
         {firstDay.format('MMMM YYYY')}
       </h2>
       <div className="grid grid-cols-7 gap-1 text-[10px] text-center text-white/60 mb-1">
-        {['S','M','T','W','T','F','S'].map(d=>(<div key={d}>{d}</div>))}
+        {['S','M','T','W','T','F','S'].map((d,index)=>(<div key={index}>{d}</div>))}
       </div>
       <div className="grid grid-cols-7 gap-1 text-[10px] flex-1 overflow-y-auto">
         {weeks.map((day,i)=>{

@@ -42,6 +42,15 @@ export async function POST(req: NextRequest) {
 async function handleLeadsWebhook(type: string, record: any, old_record?: any) {
   console.log(`Processing leads webhook: ${type}`);
   
+  // Trigger webhook queue processing for real-time delivery
+  try {
+    fetch('http://localhost:3000/api/process-webhooks', { 
+      method: 'POST' 
+    }).catch(err => console.log('Queue processing trigger failed:', err));
+  } catch (error) {
+    console.log('Failed to trigger queue processing:', error);
+  }
+  
   // Format appointment date from YYYY-MM-DD to DD-MM-YYYY for external systems
   const formatDateForWebhook = (dateString: string) => {
     if (!dateString) return dateString;
@@ -68,16 +77,24 @@ async function handleLeadsWebhook(type: string, record: any, old_record?: any) {
       break;
       
     case 'UPDATE':
-      // Format the appointment date before logging/sending
-      const updatedRecord = { ...record };
-      if (updatedRecord.appointment_date) {
-        updatedRecord.appointment_date_formatted = formatDateForWebhook(updatedRecord.appointment_date);
-      }
+      // Only fire webhook for appointment date/time changes, not status changes
+      const appointmentDateChanged = old_record?.appointment_date !== record?.appointment_date;
+      const timeSlotChanged = old_record?.time_slot !== record?.time_slot;
       
-      console.log('Lead updated:', updatedRecord);
-      // Add any custom logic for lead updates
-      // e.g., track status changes, send notifications
-      // Use updatedRecord.appointment_date_formatted for external API calls
+      if (appointmentDateChanged || timeSlotChanged) {
+        // Format the appointment date before logging/sending
+        const updatedRecord = { ...record };
+        if (updatedRecord.appointment_date) {
+          updatedRecord.appointment_date_formatted = formatDateForWebhook(updatedRecord.appointment_date);
+        }
+        
+        console.log('Lead appointment updated:', updatedRecord);
+        // Add any custom logic for appointment updates
+        // e.g., send notifications for rescheduled appointments
+        // Use updatedRecord.appointment_date_formatted for external API calls
+      } else {
+        console.log('Lead status changed (no webhook fired):', record.status);
+      }
       break;
       
     case 'DELETE':

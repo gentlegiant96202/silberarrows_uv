@@ -37,6 +37,7 @@ interface CarInfo {
   fuel_level_nm: number | null;
   car_location: string | null;
   fuel_level: number | null;
+  stock_age_days: number | null;
 }
 
 interface Props {
@@ -359,7 +360,14 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           ×
         </button>
         <div className="flex items-start justify-between mb-3 pr-6 gap-4 flex-wrap">
-          <h2 className="text-base font-semibold text-white">Vehicle Details</h2>
+          <div className="flex flex-col">
+            <h2 className="text-base font-semibold text-white">Vehicle Details</h2>
+            {localCar.stock_age_days !== null && (
+              <div className="text-white/70 text-xs mt-1">
+                <span className="text-white/50">Stock Age:</span> {localCar.stock_age_days} days
+              </div>
+            )}
+          </div>
           <div className="flex gap-1.5 mt-0.5">
             {isAdmin && canEdit && (
               <button onClick={handleDelete} className="px-2 py-1 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs rounded transition-all">Delete</button>

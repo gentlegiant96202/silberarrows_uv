@@ -16,6 +16,7 @@ interface Car {
   status: string;
   sale_status: string;
   stock_age_days: number | null;
+  ownership_type: string;
 }
 
 export default function CarKanbanBoard() {
@@ -24,6 +25,14 @@ export default function CarKanbanBoard() {
   const [selected, setSelected] = useState<Car | null>(null);
   const [selectedCarFull, setSelectedCarFull] = useState<any | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  
+  // Inventory filter state
+  const [showInventoryFilters, setShowInventoryFilters] = useState(false);
+  const [inventoryFilters, setInventoryFilters] = useState({
+    ownership: [] as string[], // ['stock', 'consignment']
+    stockAge: [] as string[], // ['fresh', 'aging', 'old']
+    model: '' as string
+  });
 
   const columns = [
     { key: 'marketing',   title: 'MARKETING' },
@@ -181,12 +190,72 @@ export default function CarKanbanBoard() {
     return data;
   };
 
+  // Filter helper functions
+  const getStockAgeCategory = (stockAgeDays: number | null) => {
+    if (stockAgeDays === null) return 'unknown';
+    if (stockAgeDays >= 90) return 'old';
+    if (stockAgeDays >= 60) return 'aging';
+    return 'fresh';
+  };
+
+  const getUniqueModels = (cars: Car[]) => {
+    const models = cars
+      .filter(c => c.status === 'inventory' && c.sale_status === 'available')
+      .map(c => c.vehicle_model)
+      .filter(Boolean);
+    return Array.from(new Set(models)).sort();
+  };
+
+  const applyInventoryFilters = (cars: Car[]) => {
+    return cars.filter(car => {
+      // Ownership filter
+      if (inventoryFilters.ownership.length > 0) {
+        if (!inventoryFilters.ownership.includes(car.ownership_type)) {
+          return false;
+        }
+      }
+
+      // Stock age filter
+      if (inventoryFilters.stockAge.length > 0) {
+        const ageCategory = getStockAgeCategory(car.stock_age_days);
+        if (!inventoryFilters.stockAge.includes(ageCategory)) {
+          return false;
+        }
+      }
+
+      // Model filter
+      if (inventoryFilters.model && inventoryFilters.model !== '') {
+        if (!car.vehicle_model.toLowerCase().includes(inventoryFilters.model.toLowerCase())) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  };
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (inventoryFilters.ownership.length > 0) count++;
+    if (inventoryFilters.stockAge.length > 0) count++;
+    if (inventoryFilters.model && inventoryFilters.model !== '') count++;
+    return count;
+  };
+
+  const clearAllFilters = () => {
+    setInventoryFilters({
+      ownership: [],
+      stockAge: [],
+      model: ''
+    });
+  };
+
   return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
       <div className="flex gap-3 pb-4 w-full h-full overflow-x-auto">
         {columns.map(col => {
           const listAll = cars.filter(c=> match(c.stock_number) || match(c.vehicle_model));
-          const list = listAll.filter(c => {
+          let list = listAll.filter(c => {
             if (col.key === 'marketing' || col.key === 'qc_ceo') {
               return c.status === col.key;
             }
@@ -204,6 +273,11 @@ export default function CarKanbanBoard() {
             }
             return false;
           });
+
+          // Apply inventory filters if this is the inventory column
+          if (col.key === 'inventory') {
+            list = applyInventoryFilters(list);
+          }
           return (
             <div
               key={col.key}
@@ -211,24 +285,135 @@ export default function CarKanbanBoard() {
               onDragOver={onDragOver}
               onDrop={onDrop(col.key as ColKey)}
             >
-              <div className="mb-3 px-1 flex items-center justify-between">
-                <h3 className="text-xs font-medium text-white">{col.title}</h3>
-                {col.key === 'marketing' ? (
-                  <button
-                    onClick={() => setShowModal(true)}
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-gray-900 text-[10px] font-semibold ring-1 ring-white/20 shadow transition hover:brightness-110"
-                    style={{
-                      background:
-                        'linear-gradient(135deg, #f3f4f6 0%, #d1d5db 15%, #ffffff 30%, #9ca3af 50%, #ffffff 70%, #d1d5db 85%, #f3f4f6 100%)'
-                    }}
-                  >
-                    {list.length}
-                    <span className="ml-1 text-[12px] leading-none">＋</span>
-                  </button>
-                ) : (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
-                    {list.length}
-                  </span>
+              <div className="mb-3 px-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1">
+                    <h3 className="text-xs font-medium text-white">{col.title}</h3>
+                    {col.key === 'inventory' && getActiveFilterCount() > 0 && (
+                      <span className="text-[9px] text-orange-400 font-medium">({getActiveFilterCount()})</span>
+                    )}
+                    {col.key === 'inventory' && (
+                      <button
+                        onClick={() => setShowInventoryFilters(!showInventoryFilters)}
+                        className="ml-1 text-white/60 hover:text-white transition-colors"
+                      >
+                        <svg className={`w-3 h-3 transition-transform ${showInventoryFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {col.key === 'marketing' ? (
+                    <button
+                      onClick={() => setShowModal(true)}
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-gray-900 text-[10px] font-semibold ring-1 ring-white/20 shadow transition hover:brightness-110"
+                      style={{
+                        background:
+                          'linear-gradient(135deg, #f3f4f6 0%, #d1d5db 15%, #ffffff 30%, #9ca3af 50%, #ffffff 70%, #d1d5db 85%, #f3f4f6 100%)'
+                      }}
+                    >
+                      {list.length}
+                      <span className="ml-1 text-[12px] leading-none">＋</span>
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
+                      {list.length}
+                    </span>
+                  )}
+                </div>
+
+                {/* Inventory Filter Panel */}
+                {col.key === 'inventory' && showInventoryFilters && (
+                  <div className="bg-black/40 border border-white/10 rounded-lg p-3 mb-2 space-y-3">
+                    {/* Ownership Type Filter */}
+                    <div>
+                      <h4 className="text-[10px] font-medium text-white/80 mb-1">Ownership</h4>
+                      <div className="space-y-1">
+                        {['stock', 'consignment'].map(type => (
+                          <label key={type} className="flex items-center gap-1.5 text-[9px] text-white/70 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={inventoryFilters.ownership.includes(type)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setInventoryFilters(prev => ({
+                                    ...prev,
+                                    ownership: [...prev.ownership, type]
+                                  }));
+                                } else {
+                                  setInventoryFilters(prev => ({
+                                    ...prev,
+                                    ownership: prev.ownership.filter(t => t !== type)
+                                  }));
+                                }
+                              }}
+                              className="w-3 h-3 rounded text-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Stock Age Filter */}
+                    <div>
+                      <h4 className="text-[10px] font-medium text-white/80 mb-1">Stock Age</h4>
+                      <div className="space-y-1">
+                        {[
+                          { key: 'fresh', label: 'Fresh (0-59 days)' },
+                          { key: 'aging', label: 'Aging (60-89 days)' },
+                          { key: 'old', label: 'Old (90+ days)' }
+                        ].map(age => (
+                          <label key={age.key} className="flex items-center gap-1.5 text-[9px] text-white/70 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={inventoryFilters.stockAge.includes(age.key)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setInventoryFilters(prev => ({
+                                    ...prev,
+                                    stockAge: [...prev.stockAge, age.key]
+                                  }));
+                                } else {
+                                  setInventoryFilters(prev => ({
+                                    ...prev,
+                                    stockAge: prev.stockAge.filter(a => a !== age.key)
+                                  }));
+                                }
+                              }}
+                              className="w-3 h-3 rounded text-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                            {age.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Model Filter */}
+                    <div>
+                      <h4 className="text-[10px] font-medium text-white/80 mb-1">Model</h4>
+                      <select
+                        value={inventoryFilters.model}
+                        onChange={(e) => setInventoryFilters(prev => ({ ...prev, model: e.target.value }))}
+                        className="w-full bg-black/50 border border-white/20 rounded px-2 py-1 text-[9px] text-white"
+                      >
+                        <option value="">All Models</option>
+                        {getUniqueModels(cars).map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Clear Filters */}
+                    {getActiveFilterCount() > 0 && (
+                      <button
+                        onClick={clearAllFilters}
+                        className="w-full text-[9px] text-orange-400 hover:text-orange-300 transition-colors"
+                      >
+                        Clear All Filters
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 

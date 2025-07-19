@@ -9,6 +9,10 @@ import dayjs from 'dayjs';
 interface Props {
   onClose: () => void;
   onCreated: (lead: any) => void;
+  mode?: 'create_lead' | 'convert_appointment';
+  existingLead?: any; // For convert mode
+  initialSelectedCarId?: string; // Preserve selected car across modal instances
+  onInventoryCarSelected?: (carId: string) => void; // Callback to update parent state
 }
 
 interface InventoryCar {
@@ -16,6 +20,8 @@ interface InventoryCar {
   stock_number:string;
   model_year:number;
   vehicle_model:string;
+  advertised_price_aed:number;
+  colour:string;
 }
 
 // Generate 15-minute time slots from 8:00 AM to 8:00 PM
@@ -39,29 +45,66 @@ const generateTimeSlots = () => {
   return slots;
 };
 
-export default function NewAppointmentModal({ onClose, onCreated }: Props) {
-  const [fullName, setFullName] = useState("");
-  const [countryCode, setCountryCode] = useState("+971");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [modelOfInterest, setModelOfInterest] = useState<string>("");
-  const [maxAge, setMaxAge] = useState("1yr");
-  const [paymentType, setPaymentType] = useState<"monthly" | "cash">("monthly");
-  const [monthlyBudget, setMonthlyBudget] = useState('');
-  const [totalBudget, setTotalBudget] = useState('');
-  const [notesArray, setNotesArray] = useState<NoteItem[]>([]);
-  const [appointmentDate, setAppointmentDate] = useState<Date|null>(null);
-  const [timeSlot, setTimeSlot] = useState("");
+export default function NewAppointmentModal({ onClose, onCreated, mode = 'create_lead', existingLead, initialSelectedCarId = "", onInventoryCarSelected }: Props) {
+  const [fullName, setFullName] = useState(existingLead?.full_name || "");
+  const [countryCode, setCountryCode] = useState(existingLead?.country_code || "+971");
+  const [phoneNumber, setPhoneNumber] = useState(existingLead?.phone_number || "");
+  const [modelOfInterest, setModelOfInterest] = useState<string>(existingLead?.model_of_interest || "");
+  const [maxAge, setMaxAge] = useState(existingLead?.max_age || "1yr");
+  const [paymentType, setPaymentType] = useState<"monthly" | "cash">(existingLead?.payment_type || "monthly");
+  const [monthlyBudget, setMonthlyBudget] = useState(existingLead?.monthly_budget?.toString() || '');
+  const [totalBudget, setTotalBudget] = useState(existingLead?.total_budget?.toString() || '');
+  const [notesArray, setNotesArray] = useState<NoteItem[]>(existingLead?.timeline_notes || []);
+  const [appointmentDate, setAppointmentDate] = useState<Date|null>(existingLead?.appointment_date ? new Date(existingLead.appointment_date) : null);
+  const [timeSlot, setTimeSlot] = useState(existingLead?.time_slot || "");
   const [saving, setSaving] = useState(false);
 
   // inventory car picker
   const [inventoryCars,setInventoryCars] = useState<InventoryCar[]>([]);
-  const [selectedCarId,setSelectedCarId] = useState<string>("");
+  const [thumbs, setThumbs] = useState<Record<string,string>>({});
+  const [showCarPicker, setShowCarPicker] = useState(false);
+  
+  // Determine initial car selection: prioritize existingLead data, then parent state
+  const getInitialCarId = () => {
+    if (mode === 'convert_appointment' && existingLead?.inventory_car_id) {
+      return existingLead.inventory_car_id;
+    }
+    return initialSelectedCarId || "";
+  };
+  
+  const [selectedCarId,setSelectedCarId] = useState<string>(getInitialCarId());
+
+  // Update parent state when car selection changes
+  const handleCarSelection = (carId: string) => {
+    setSelectedCarId(carId);
+    onInventoryCarSelected?.(carId);
+  };
+
+  // Sync local state when initial value changes (when switching between modal instances)
+  useEffect(() => {
+    const newCarId = getInitialCarId();
+    setSelectedCarId(newCarId);
+  }, [initialSelectedCarId, existingLead?.inventory_car_id, mode]);
 
   useEffect(()=>{
     // load cars currently in inventory & available
     async function loadCars(){
-      const { data } = await supabase.from('cars').select('id,stock_number,model_year,vehicle_model').eq('status','inventory').eq('sale_status','available').limit(100);
+      const { data } = await supabase.from('cars').select('id,stock_number,model_year,vehicle_model,advertised_price_aed,colour').eq('status','inventory').eq('sale_status','available').order('advertised_price_aed', { ascending: true });
       setInventoryCars(data as any[]||[]);
+      
+      // Fetch thumbnails for the cars
+      const ids = (data || []).map((c: any) => c.id);
+      if (ids.length) {
+        const { data: mediaRows } = await supabase
+          .from('car_media')
+          .select('car_id,url')
+          .eq('is_primary', true)
+          .eq('kind', 'photo')
+          .in('car_id', ids);
+        const map: Record<string,string> = {};
+        (mediaRows || []).forEach((m: any) => { map[m.car_id] = m.url; });
+        setThumbs(map);
+      }
     }
     loadCars();
   },[]);
@@ -101,46 +144,77 @@ export default function NewAppointmentModal({ onClose, onCreated }: Props) {
 
   async function createLead(e: React.FormEvent) {
     e.preventDefault();
-    if (!fullName.trim() || !phoneNumber.trim() || !modelOfInterest || (paymentType === 'monthly' && Number(monthlyBudget) <= 0) || (paymentType === 'cash' && Number(totalBudget) <= 0) || !appointmentDate || !timeSlot) return;
+    
+    // Basic validation for all modes
+    if (!fullName.trim() || !phoneNumber.trim() || !modelOfInterest || (paymentType === 'monthly' && Number(monthlyBudget) <= 0) || (paymentType === 'cash' && Number(totalBudget) <= 0)) return;
+    
+    // Additional validation for convert_appointment mode
+    if (mode === 'convert_appointment' && (!appointmentDate || !timeSlot)) {
+      alert('Please select both date and time slot to schedule the appointment.');
+      return;
+    }
+    
     setSaving(true);
     
-    // Create lead object matching new database schema
+    // Create lead object matching database schema
     const leadData = {
       full_name: fullName.trim(),
       country_code: countryCode,
       phone_number: phoneNumber.trim(),
-      status: "new_customer",
+      status: mode === 'create_lead' ? "new_lead" : "new_customer", // new_lead vs new_customer (appointment)
       model_of_interest: modelOfInterest,
       max_age: maxAge,
       payment_type: paymentType,
       monthly_budget: paymentType === 'monthly' ? Number(monthlyBudget) || 0 : 0,
       total_budget: paymentType === 'cash' ? Number(totalBudget) || 0 : 0,
-      appointment_date: appointmentDate ? dayjs(appointmentDate).format('YYYY-MM-DD') : '',
-      time_slot: timeSlot,
+      appointment_date: (mode === 'convert_appointment' && appointmentDate) ? dayjs(appointmentDate).format('YYYY-MM-DD') : null,
+      time_slot: (mode === 'convert_appointment') ? timeSlot : null,
       timeline_notes: notesArray,
       inventory_car_id: selectedCarId||null,
     };
     
     try {
-      const { data, error } = await supabase
-        .from('leads')
-        .insert([leadData])
-        .select();
-      
-      if (error) {
-        console.error('Error creating lead:', error);
-        alert('Error creating lead: ' + error.message);
-        setSaving(false);
-        return;
+      if (mode === 'convert_appointment' && existingLead) {
+        // Update existing lead to appointment
+        const { data, error } = await supabase
+          .from('leads')
+          .update(leadData)
+          .eq('id', existingLead.id)
+          .select();
+        
+        if (error) {
+          console.error('Error converting lead:', error);
+          alert('Error converting lead: ' + error.message);
+          setSaving(false);
+          return;
+        }
+        
+        if (data && data[0]) {
+          onCreated(data[0]);
+        }
+      } else {
+        // Create new lead
+        const { data, error } = await supabase
+          .from('leads')
+          .insert([leadData])
+          .select();
+        
+        if (error) {
+          console.error('Error creating lead:', error);
+          alert('Error creating lead: ' + error.message);
+          setSaving(false);
+          return;
+        }
+        
+        if (data && data[0]) {
+          onCreated(data[0]);
+        }
       }
       
-      if (data && data[0]) {
-        onCreated(data[0]);
-      }
       onClose();
     } catch (error) {
-      console.error('Error creating lead:', error);
-      alert('Error creating lead. Please try again.');
+      console.error('Error processing lead:', error);
+      alert('Error processing lead. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -158,8 +232,15 @@ export default function NewAppointmentModal({ onClose, onCreated }: Props) {
         
         {/* Header */}
         <div className="mb-3">
-          <h2 className="text-base font-semibold text-white mb-0.5">New Appointment</h2>
-          <p className="text-xs text-white/60">Create a new lead and schedule an appointment</p>
+          <h2 className="text-base font-semibold text-white mb-0.5">
+            {mode === 'create_lead' ? 'New Lead' : 'Schedule Appointment'}
+          </h2>
+          <p className="text-xs text-white/60">
+            {mode === 'create_lead' 
+              ? 'Create a new lead (appointment can be scheduled later)' 
+              : 'Add appointment date and time to convert lead'
+            }
+          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
@@ -246,25 +327,100 @@ export default function NewAppointmentModal({ onClose, onCreated }: Props) {
                 </select>
               </div>
 
-                {/* Model from Inventory - drag & drop zone */}
+                {/* Inventory car drop zone with expanding section */}
                 <div>
                   <label className="block text-xs font-medium text-white mb-1 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13l2-5h14l2 5M5 13v5a1 1 0 001 1h1a1 1 0 001-1v-1h8v1a1 1 0 001 1h1a1 1 0 001-1v-5"/></svg>
                     Inventory Car <span className="text-white/40 font-normal">(drag or click)</span>
                   </label>
+                  
+                  {/* Expanding car picker section */}
+                  {showCarPicker && (
+                    <div className="mb-3 bg-black/30 border border-white/10 rounded-lg p-3 max-h-64 overflow-y-auto">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-xs font-semibold text-white">Select Inventory Car</h4>
+                        <button 
+                          onClick={() => setShowCarPicker(false)}
+                          className="text-white/70 hover:text-white text-sm leading-none"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {inventoryCars.map(car=>(
+                          <div 
+                            key={car.id} 
+                            onClick={()=>{handleCarSelection(car.id); setShowCarPicker(false);}} 
+                            className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white flex items-center gap-2 cursor-pointer hover:bg-white/10 transition-colors"
+                          >
+                            <div className="w-14 h-10 bg-white/10 flex-shrink-0 rounded overflow-hidden">
+                              {thumbs[car.id] && <img src={thumbs[car.id]} className="w-full h-full object-cover"/>}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[10px] font-semibold leading-tight truncate">
+                                {car.stock_number}
+                              </div>
+                              <div className="text-[9px] text-white/60 leading-tight truncate">
+                                {car.model_year} {car.vehicle_model}
+                              </div>
+                              <div className="text-[10px] font-semibold text-white mt-0.5">
+                                <span className="font-bold">AED</span> {car.advertised_price_aed?.toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Drop zone */}
                   <div
                     onDragOver={(e)=>e.preventDefault()}
-                    onDrop={(e)=>{ const id=e.dataTransfer.getData('text/plain'); if(id) setSelectedCarId(id);} }
-                    className={`w-full h-12 flex items-center justify-center rounded border-2 border-dashed ${selectedCarId? 'border-green-500':'border-white/20'} bg-black/20 text-[10px] text-white/60 cursor-pointer`}
+                    onDrop={(e)=>{ const id=e.dataTransfer.getData('text/plain'); if(id) handleCarSelection(id);} }
+                    className={`relative w-full h-12 flex items-center justify-start px-2 gap-2 rounded-lg border-2 border-dashed ${selectedCarId? 'border-green-500':'border-white/20'} bg-black/20 text-[10px] text-white/60 cursor-pointer transition-colors hover:border-white/30`}
                     onClick={()=>{
-                      const pick = prompt('Enter stock number to link inventory car:');
-                      const found = inventoryCars.find(c=>c.stock_number===pick);
-                      if(found) setSelectedCarId(found.id);
+                      if(selectedCarId) return;
+                      setShowCarPicker(!showCarPicker);
                     }}
                   >
                     {selectedCarId? (
-                      (()=>{ const car=inventoryCars.find(c=>c.id===selectedCarId); return car? `${car.stock_number} – ${car.model_year} ${car.vehicle_model}`: 'Selected'; })()
-                    ) : 'Drag a car here or click to select'}
+                      <>
+                        {(()=>{ 
+                          const car = inventoryCars.find(c => c.id === selectedCarId); 
+                          if (!car) return 'Selected'; 
+                          return (
+                            <div className="flex items-center gap-2">
+                              <div className="w-12 h-10 bg-white/10 rounded overflow-hidden flex-shrink-0">
+                                {thumbs[selectedCarId] && <img src={thumbs[selectedCarId]} className="w-full h-full object-cover"/>}
+                              </div>
+                              <div className="text-[9px] leading-tight">
+                                {car.stock_number}<br/>
+                                {car.model_year} {car.vehicle_model}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        <button 
+                          type="button" 
+                          onClick={(e)=>{ e.stopPropagation(); handleCarSelection(''); }} 
+                          className="absolute top-0.5 right-1 text-white/70 hover:text-white text-[10px] leading-none"
+                        >
+                          ×
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between w-full">
+                        <span>Drag a car here or click to select</span>
+                        <svg 
+                          className={`w-4 h-4 text-white/60 transition-transform ${showCarPicker ? 'rotate-180' : ''}`} 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -345,55 +501,57 @@ export default function NewAppointmentModal({ onClose, onCreated }: Props) {
             </div>
           </div>
 
-          {/* Appointment Details */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
-            <div className="space-y-2.5">
-              {/* Date and Time */}
-              <div className="grid grid-cols-2 gap-1.5">
-                <div>
-                  <label className="block text-xs font-medium text-white mb-1 flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Date
-                  </label>
-                  <DatePicker
-                    selected={appointmentDate}
-                    onChange={(d)=>setAppointmentDate(d as Date)}
-                    dateFormat="dd/MM/yyyy"
-                    popperPlacement="top-start"
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
-                    wrapperClassName="w-full"
-                    required
-                  />
+          {/* Appointment Details - Only show in convert_appointment mode */}
+          {mode === 'convert_appointment' && (
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
+              <div className="space-y-2.5">
+                {/* Date and Time */}
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div>
+                    <label className="block text-xs font-medium text-white mb-1 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Date
+                    </label>
+                    <DatePicker
+                      selected={appointmentDate}
+                      onChange={(d)=>setAppointmentDate(d as Date)}
+                      dateFormat="dd/MM/yyyy"
+                      popperPlacement="top-start"
+                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
+                      wrapperClassName="w-full"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-white mb-1 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Time Slot
+                    </label>
+                    <select
+                      value={timeSlot}
+                      onChange={e => setTimeSlot(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                      style={{ backgroundImage: 'none' }}
+                      required
+                    >
+                      <option value="">Select time</option>
+                      {timeSlots.map(slot => (
+                        <option key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-white mb-1 flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Time Slot
-                  </label>
-                  <select
-                    value={timeSlot}
-                    onChange={e => setTimeSlot(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
-                    style={{ backgroundImage: 'none' }}
-                    required
-                  >
-                    <option value="">Select time</option>
-                    {timeSlots.map(slot => (
-                      <option key={slot.value} value={slot.value}>
-                        {slot.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
                 {/* Notes textarea removed */}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Submit Button */}
           <button
@@ -407,10 +565,10 @@ export default function NewAppointmentModal({ onClose, onCreated }: Props) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Creating...
+                {mode === 'create_lead' ? 'Creating...' : 'Scheduling...'}
               </>
             ) : (
-              "Create Appointment"
+              mode === 'create_lead' ? 'Create Lead' : 'Schedule Appointment'
             )}
           </button>
         </form>

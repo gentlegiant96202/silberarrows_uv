@@ -13,6 +13,7 @@ interface CarInfo {
   stock_number: string;
   model_year: number;
   vehicle_model: string;
+  model_family: string | null;
   colour: string;
   interior_colour: string | null;
   chassis_number: string;
@@ -54,6 +55,37 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
   const { user } = useAuth();
+
+  // Mercedes-Benz models from appointment modal
+  const models = [
+    { id: "1", name: "A" },
+    { id: "2", name: "SLK" },
+    { id: "3", name: "C" },
+    { id: "4", name: "CLA" },
+    { id: "5", name: "CLK" },
+    { id: "6", name: "E" },
+    { id: "7", name: "CLS" },
+    { id: "8", name: "S" },
+    { id: "9", name: "CL" },
+    { id: "10", name: "G" },
+    { id: "11", name: "GLA" },
+    { id: "12", name: "GLB" },
+    { id: "13", name: "GLK" },
+    { id: "14", name: "GLC" },
+    { id: "15", name: "ML" },
+    { id: "16", name: "GLE" },
+    { id: "17", name: "GL" },
+    { id: "18", name: "GLS" },
+    { id: "19", name: "V" },
+    { id: "20", name: "SLC" },
+    { id: "21", name: "SL" },
+    { id: "22", name: "SLS" },
+    { id: "23", name: "AMG GT 2-DR" },
+    { id: "24", name: "AMG GT 4-DR" },
+    { id: "25", name: "SLR" },
+    { id: "26", name: "Maybach" },
+    { id: "27", name: "CLE" }
+  ];
   const meta:any = user?.user_metadata || {};
   const appMeta:any = (user as any)?.app_metadata || {};
   const hasAdmin = (val:any)=> typeof val==='string' && val.toLowerCase()==='admin';
@@ -260,6 +292,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         { label: 'HP', value: localCar.horsepower_hp || '—', field:'horsepower_hp' },
         { label: 'Torque', value: localCar.torque_nm || '—', field:'torque_nm' },
         { label: 'CC', value: localCar.cubic_capacity_cc || '—', field:'cubic_capacity_cc' },
+        { label: 'Model Family', value: localCar.model_family || '—', field:'model_family' },
       ],
     },
     {
@@ -452,7 +485,22 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         <dt className="text-white/60 text-[11px]">{r.label}</dt>
                         <dd className="text-white text-[11px] max-w-[60%] text-right whitespace-normal break-words">
                           {editing && r.field ? (
-                            <input type="text" className="bg-black/40 border border-white/20 px-1 text-right w-full uppercase" value={(localCar[r.field]??'') as any} onChange={e=>handleFieldChange(r.field!, e.target.value.toUpperCase())} />
+                            r.field === 'model_family' ? (
+                              <select 
+                                className="bg-black/40 border border-white/20 px-1 text-right w-full text-white text-[11px]" 
+                                value={(localCar[r.field]??'') as any} 
+                                onChange={e=>handleFieldChange(r.field!, e.target.value)}
+                              >
+                                <option value="">Select...</option>
+                                {models.map(m => (
+                                  <option key={m.id} value={m.name}>
+                                    {m.name}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input type="text" className="bg-black/40 border border-white/20 px-1 text-right w-full uppercase" value={(localCar[r.field]??'') as any} onChange={e=>handleFieldChange(r.field!, e.target.value.toUpperCase())} />
+                            )
                           ) : (
                             display
                           )}
@@ -473,7 +521,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
             <div className="border border-white/15 rounded-md p-3 bg-white/5 flex flex-col flex-1 min-h-0 overflow-hidden">
               <h3 className="text-white text-[12px] font-bold mb-1 uppercase tracking-wide flex-shrink-0">Description</h3>
               {editing? (
-                <textarea className="w-full bg-black/40 border border-white/20 p-1 text-[11px] leading-normal text-white resize-none flex-1 overflow-y-auto" value={localCar.description||''} onChange={e=>handleFieldChange('description',e.target.value)} />
+                <textarea className="w-full bg-black/40 border border-white/20 p-1 text-[11px] leading-normal text-white resize-y min-h-[100px]" value={localCar.description||''} onChange={e=>handleFieldChange('description',e.target.value)} />
               ): (
                 <div className="flex-1 overflow-y-auto">
                   <p className="text-white text-[11px] leading-normal whitespace-pre-wrap break-words">{localCar.description||'—'}</p>
@@ -485,7 +533,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
             <div className="border border-white/15 rounded-md p-3 bg-white/5 flex flex-col flex-1 min-h-0 overflow-hidden">
               <h3 className="text-white text-[12px] font-bold mb-1 uppercase tracking-wide flex-shrink-0">Key Equipment</h3>
               {editing? (
-                <textarea className="w-full bg-black/40 border border-white/20 p-1 text-[10px] text-white resize-y flex-1 overflow-y-auto" value={localCar.key_equipment||''} onChange={e=>handleFieldChange('key_equipment',e.target.value)} placeholder="Comma or newline separated" />
+                <textarea className="w-full bg-black/40 border border-white/20 p-1 text-[10px] text-white resize-y min-h-[100px]" value={localCar.key_equipment||''} onChange={e=>handleFieldChange('key_equipment',e.target.value)} placeholder="Comma or newline separated" />
               ): (
                 <div className="flex-1 overflow-y-auto">
                   {localCar.key_equipment? (

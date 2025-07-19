@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from '@/lib/supabaseClient';
@@ -28,7 +28,7 @@ interface Lead {
   inventory_car_id?: string;
 }
 
-interface InventoryCar { id:string; stock_number:string; model_year:number; vehicle_model:string; }
+interface InventoryCar { id:string; stock_number:string; model_year:number; vehicle_model:string; advertised_price_aed:number; colour:string; }
 
 interface LeadDetailsModalProps {
   lead: Lead;
@@ -69,7 +69,8 @@ const models = [
 ];
 
 const statusOptions = [
-  { value: 'new_customer', label: 'New Customer' },
+  { value: 'new_lead', label: 'New Lead' },
+  { value: 'new_appointment', label: 'New Appointment' },
   { value: 'negotiation', label: 'Negotiation' },
   { value: 'won', label: 'Won' },
   { value: 'delivered', label: 'Delivered' },
@@ -148,12 +149,10 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
   },[formData.model_of_interest,inventoryCars]);
 
   const [showCarPicker,setShowCarPicker] = useState(false);
-  const [pickerPos,setPickerPos] = useState<{top:number,left:number}>({top:0,left:0});
-  const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(()=>{
     async function loadCars(){
-      const { data } = await supabase.from('cars').select('id,stock_number,model_year,vehicle_model').eq('status','inventory').eq('sale_status','available').limit(100);
+              const { data } = await supabase.from('cars').select('id,stock_number,model_year,vehicle_model,advertised_price_aed,colour').eq('status','inventory').eq('sale_status','available').order('advertised_price_aed', { ascending: true });
       setInventoryCars(data as any[]||[]);
       const ids = (data||[]).map((c:any)=>c.id);
       if(ids.length){
@@ -181,8 +180,8 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
           payment_type: formData.payment_type,
           monthly_budget: formData.payment_type === 'monthly' ? parseInt(formData.monthly_budget) || 0 : 0,
           total_budget: formData.payment_type === 'cash' ? parseInt(formData.total_budget) || 0 : 0,
-          appointment_date: formData.appointment_date,
-          time_slot: formData.time_slot,
+          appointment_date: formData.appointment_date || null,
+          time_slot: formData.time_slot || null,
           // Remove notes from update - timeline handles this separately
           status: formData.status,
           inventory_car_id: selectedCarId||null,
@@ -436,73 +435,102 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                   </select>
                 </div>
 
-                  {/* Inventory car drop zone */}
+                  {/* Inventory car drop zone with expanding section */}
                   <div>
                     <label className="block text-xs font-medium text-white mb-1 flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13l2-5h14l2 5M5 13v5a1 1 0 001 1h1a1 1 0 001-1v-1h8v1a1 1 0 001 1h1a1 1 0 001-1v-5"/></svg>
-                      Inventory Car <span className="text-white/40 font-normal" >(drag or click)</span>
+                      Inventory Car <span className="text-white/40 font-normal">(drag or click)</span>
                     </label>
+                    
+                    {/* Expanding car picker section */}
+                    {showCarPicker && (
+                      <div className="mb-3 bg-black/30 border border-white/10 rounded-lg p-3 max-h-64 overflow-y-auto">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-xs font-semibold text-white">Select Inventory Car</h4>
+                          <button 
+                            onClick={() => setShowCarPicker(false)}
+                            className="text-white/70 hover:text-white text-sm leading-none"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {inventoryCars.map(car=>(
+                            <div 
+                              key={car.id} 
+                              onClick={()=>{setSelectedCarId(car.id); setShowCarPicker(false);}} 
+                              className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white flex items-center gap-2 cursor-pointer hover:bg-white/10 transition-colors"
+                            >
+                              <div className="w-14 h-10 bg-white/10 flex-shrink-0 rounded overflow-hidden">
+                                {thumbs[car.id] && <img src={thumbs[car.id]} className="w-full h-full object-cover"/>}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[10px] font-semibold leading-tight truncate">
+                                  {car.stock_number}
+                                </div>
+                                <div className="text-[9px] text-white/60 leading-tight truncate">
+                                  {car.model_year} {car.vehicle_model}
+                                </div>
+                                <div className="text-[10px] font-semibold text-white mt-0.5">
+                                  <span className="font-bold">AED</span> {car.advertised_price_aed?.toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Drop zone */}
                     <div
                       onDragOver={(e)=>e.preventDefault()}
                       onDrop={(e)=>{ const id=e.dataTransfer.getData('text/plain'); if(id) setSelectedCarId(id);} }
-                      className={`relative w-full h-12 flex items-center justify-start px-2 gap-2 rounded border-2 border-dashed ${selectedCarId? 'border-green-500':'border-white/20'} bg-black/20 text-[10px] text-white/60 cursor-pointer`}
-                      ref={dropRef}
+                      className={`relative w-full h-12 flex items-center justify-start px-2 gap-2 rounded-lg border-2 border-dashed ${selectedCarId? 'border-green-500':'border-white/20'} bg-black/20 text-[10px] text-white/60 cursor-pointer transition-colors hover:border-white/30`}
                       onClick={()=>{
                         if(selectedCarId) return;
-                        if(dropRef.current){
-                          const rect=dropRef.current.getBoundingClientRect();
-                          const preferredTop = rect.top + window.scrollY;
-                          const maxTop = window.scrollY + window.innerHeight - 300; // leave space for list box
-                          const top = Math.min(preferredTop, maxTop);
-                          setPickerPos({top,left:rect.left+rect.width/2});
-                        }
-                        setShowCarPicker(true);
+                        setShowCarPicker(!showCarPicker);
                       }}
                     >
                       {selectedCarId? (
                         <>
-                          {(()=>{ const car=inventoryCars.find(c=>c.id===selectedCarId); if(!car) return 'Selected'; return (
-                            <div className="flex items-center gap-2">
-                              <div className="w-12 h-10 bg-white/10 rounded overflow-hidden flex-shrink-0">
-                                {thumbs[selectedCarId] && <img src={thumbs[selectedCarId]} className="w-full h-full object-cover"/>}
+                          {(()=>{ 
+                            const car = inventoryCars.find(c => c.id === selectedCarId); 
+                            if (!car) return 'Selected'; 
+                            return (
+                              <div className="flex items-center gap-2">
+                                <div className="w-12 h-10 bg-white/10 rounded overflow-hidden flex-shrink-0">
+                                  {thumbs[selectedCarId] && <img src={thumbs[selectedCarId]} className="w-full h-full object-cover"/>}
+                                </div>
+                                <div className="text-[9px] leading-tight">
+                                  {car.stock_number}<br/>
+                                  {car.model_year} {car.vehicle_model}
+                                </div>
                               </div>
-                              <div className="text-[9px] leading-tight">{car.stock_number}<br/>{car.model_year} {car.vehicle_model}</div>
-                            </div>
-                          );})()}
-                          <button type="button" onClick={(e)=>{ e.stopPropagation(); setSelectedCarId(''); }} className="absolute top-0.5 right-1 text-white/70 hover:text-white text-[10px] leading-none">×</button>
+                            );
+                          })()}
+                          <button 
+                            type="button" 
+                            onClick={(e)=>{ e.stopPropagation(); setSelectedCarId(''); }} 
+                            className="absolute top-0.5 right-1 text-white/70 hover:text-white text-[10px] leading-none"
+                          >
+                            ×
+                          </button>
                         </>
-                      ): 'Drag a car here or click to select'}
+                      ) : (
+                        <div className="flex items-center justify-between w-full">
+                          <span>Drag a car here or click to select</span>
+                          <svg 
+                            className={`w-4 h-4 text-white/60 transition-transform ${showCarPicker ? 'rotate-180' : ''}`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                {/* Car picker overlay */}
-                {showCarPicker && (
-                  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[999] p-4">
-                    <div style={{position:'absolute',top:pickerPos.top,left:pickerPos.left,transform:'translateX(-50%)'}}>
-                      <div className="bg-black/90 border border-white/10 rounded-lg p-4 w-screen max-w-md max-h-[70vh] flex flex-col">
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="text-sm font-semibold text-white">Select Inventory Car</h3>
-                          <button className="text-white/70 hover:text-white text-lg leading-none" onClick={()=>setShowCarPicker(false)}>×</button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto pr-1">
-                          <ul className="space-y-2">
-                            {inventoryCars.map(car=>(
-                              <li key={car.id} onClick={()=>{setSelectedCarId(car.id); setShowCarPicker(false);}} className="bg-white/5 border border-white/10 rounded-lg p-1.5 text-xs text-white flex items-center gap-2 min-w-0 cursor-pointer hover:bg-white/10">
-                                <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded overflow-hidden">
-                                  {/* thumbnail placeholder; could fetch but skip for picker */}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-[10px] font-semibold leading-tight break-words max-h-8 overflow-hidden">{car.stock_number}</div>
-                                  <div className="text-[9px] text-white/60 leading-tight break-words max-h-8 overflow-hidden">{car.model_year} {car.vehicle_model}</div>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Year Range & Budget Type in row */}
                 <div className="grid grid-cols-2 gap-1.5">
@@ -607,7 +635,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                       popperPlacement="top-start"
                       className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
                       wrapperClassName="w-full"
-                      required={formData.status === 'new_customer'}
+                      required={formData.status === 'new_appointment'}
                     />
                   </div>
                   <div>
@@ -623,7 +651,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                       onChange={handleChange}
                       className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                       style={{ backgroundImage: 'none' }}
-                      required={formData.status === 'new_customer'}
+                      required={formData.status === 'new_appointment'}
                     >
                       <option value="">No time set</option>
                       {timeSlots.map(slot => (

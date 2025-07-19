@@ -27,7 +27,8 @@ interface Lead {
 }
 
 const columns = [
-  { key: "new_customer", title: "NEW CUSTOMER", icon: null },
+  { key: "new_lead", title: "NEW LEAD", icon: null },
+  { key: "new_customer", title: "NEW APPOINTMENT", icon: null },
   { 
     key: "negotiation", 
     title: "NEGOTIATION",
@@ -78,6 +79,8 @@ export default function KanbanBoard() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [hovered, setHovered] = useState<ColKey | null>(null);
+  const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
+  const [selectedInventoryCarId, setSelectedInventoryCarId] = useState<string>("");
 
   // Search store
   const { query } = useSearchStore();
@@ -136,6 +139,7 @@ export default function KanbanBoard() {
   }, []);
 
   const grouped: Record<ColKey, Lead[]> = {
+    new_lead: [],
     new_customer: [],
     negotiation: [],
     won: [],
@@ -160,7 +164,7 @@ export default function KanbanBoard() {
     if (grouped[normalisedStatus]) {
       grouped[normalisedStatus].push(l);
     } else {
-      grouped.new_customer.push(l); // fallback
+      grouped.new_lead.push(l); // fallback to new lead
     }
   });
 
@@ -188,7 +192,17 @@ export default function KanbanBoard() {
     setHovered(null);
     const id = e.dataTransfer.getData("text/plain");
     if (!id) return;
-    // optimistic update: move card to top of list
+    
+    const leadToMove = leads.find(l => l.id === id);
+    if (!leadToMove) return;
+    
+    // Special case: converting from new_lead to new_customer (appointment)
+    if (leadToMove.status === 'new_lead' && targetCol === 'new_customer') {
+      setConvertingLead(leadToMove);
+      return; // Don't update database yet, wait for modal
+    }
+    
+    // Normal drag and drop - update immediately
     setLeads(prev => {
       const idx = prev.findIndex(l => l.id === id);
       if (idx === -1) return prev;
@@ -223,6 +237,15 @@ export default function KanbanBoard() {
     setSelectedLead(null);
   };
 
+  const handleConversionCompleted = (updatedLead: Lead) => {
+    setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+    setConvertingLead(null);
+  };
+
+  const handleConversionCancelled = () => {
+    setConvertingLead(null);
+  };
+
   const formatBudget = (lead: Lead) => {
     if (lead.payment_type === 'monthly') {
       if (!lead.monthly_budget || lead.monthly_budget === 0) return "No monthly budget set";
@@ -254,13 +277,13 @@ export default function KanbanBoard() {
               <h3 className="text-xs font-medium text-white whitespace-nowrap">
                 {col.title}
               </h3>
-              {col.key === 'new_customer' ? (
+              {(col.key === 'new_lead' || col.key === 'new_customer') ? (
               <button
                 onClick={() => setShowModal(true)}
                   className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
-                title="Add new customer"
+                title={col.key === 'new_lead' ? "Add new lead" : "Add new appointment"}
               >
-                  {grouped.new_customer.length}
+                  {grouped[col.key as ColKey].length}
                   <span className="ml-1 text-[12px] leading-none">＋</span>
               </button>
               ) : (
@@ -294,6 +317,11 @@ export default function KanbanBoard() {
                     
                     if (past) return base + 'bg-red-500/20 border-red-400/30';
                     if (within24Hours) return base + 'bg-green-500/20 border-green-400/30';
+                  }
+                  
+                  // Special styling for new_lead column
+                  if (col.key === 'new_lead') {
+                    return base + 'bg-blue-500/10 border-blue-400/20 hover:bg-blue-500/15 hover:border-blue-400/30';
                   }
                   
                   return base + 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20';
@@ -332,15 +360,20 @@ export default function KanbanBoard() {
                   </div>
                   
                   <div className="text-[10px] text-white/70 flex items-center gap-1 mt-0.5 pt-0.5 border-t border-white/10">
-                    {col.key === 'new_customer' ? (
+                    {col.key === 'new_customer' && l.appointment_date && l.time_slot ? (
                       <>
                         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                         {dayjs(l.appointment_date).format('DD MMM')}
-                    {l.time_slot && (
-                      <span className="text-white/50">at {formatTimeForDisplay(l.time_slot)}</span>
-                        )}
+                        <span className="text-white/50">at {formatTimeForDisplay(l.time_slot)}</span>
+                      </>
+                    ) : col.key === 'new_lead' ? (
+                      <>
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Drag to schedule appointment
                       </>
                     ) : (
                       <>
@@ -367,8 +400,22 @@ export default function KanbanBoard() {
       
       {showModal && (
         <NewAppointmentModal
+          mode="create_lead"
           onClose={() => setShowModal(false)}
           onCreated={() => {}} // Real-time subscription will handle adding the lead
+          initialSelectedCarId={selectedInventoryCarId}
+          onInventoryCarSelected={setSelectedInventoryCarId}
+        />
+      )}
+      
+      {convertingLead && (
+        <NewAppointmentModal
+          mode="convert_appointment"
+          existingLead={convertingLead}
+          onClose={handleConversionCancelled}
+          onCreated={handleConversionCompleted}
+          initialSelectedCarId={selectedInventoryCarId}
+          onInventoryCarSelected={setSelectedInventoryCarId}
         />
       )}
       

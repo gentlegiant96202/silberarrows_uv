@@ -21,46 +21,25 @@ export default function MatchingCarsList({ model }: { model: string }) {
     if(!model) { setCars([]); return; }
     setLoading(true);
 
-    const ignore = new Set(['DR', 'DOOR', 'DOORS']);
-    const tokens = model
-      .toUpperCase()
-      .split(/[\s-]+/)
-      .filter(tok => /^[A-Z]{2,}$/.test(tok) && !ignore.has(tok));
-    // Fallback: if nothing left (edge-case), keep the first meaningful token
-    if (tokens.length === 0) {
-      const fallback = model.toUpperCase().split(/[\s-]+/).find(Boolean);
-      if (fallback) tokens.push(fallback);
-    }
-
-    // Base query – limit to inventory cars that are still available for sale
-    let query = supabase
-      .from('cars')
-      .select('*')
-      .eq('status', 'inventory')
-      .eq('sale_status', 'available');
-
-    // First filter at DB with OR to narrow results, then refine on client to require all tokens.
-    if (tokens.length) {
-      const orFilter = tokens.map(tok => `vehicle_model.ilike.%${tok}%`).join(',');
-      query = query.or(orFilter);
-    }
-
     const fetch = async () => {
-      const { data, error } = await query
+      // Simple filter by model_family - much cleaner than text matching
+      const { data, error } = await supabase
+        .from('cars')
+        .select('*')
+        .eq('status', 'inventory')
+        .eq('sale_status', 'available')
+        .eq('model_family', model)
         .order('advertised_price_aed', { ascending: true })
         .limit(6);
+
       if (error) {
         console.error('[MatchingCarsList] Supabase error:', error.message);
         setCars([]);
       } else {
-        // Enforce that every token actually appears (AND) to avoid loose matches
-        const filtered = (data ?? []).filter((c:any) =>
-          tokens.every(tok => c.vehicle_model.toUpperCase().includes(tok))
-        );
-        setCars(filtered);
+        setCars(data ?? []);
 
         // fetch thumbs
-        const ids = filtered.map(c=>c.id);
+        const ids = (data ?? []).map(c=>c.id);
         if(ids.length){
           const { data: mediaRows } = await supabase
             .from('car_media')

@@ -499,7 +499,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                 ))}
                               </select>
                             ) : (
-                              <input type="text" className="bg-black/40 border border-white/20 px-1 text-right w-full uppercase" value={(localCar[r.field]??'') as any} onChange={e=>handleFieldChange(r.field!, e.target.value.toUpperCase())} />
+                            <input type="text" className="bg-black/40 border border-white/20 px-1 text-right w-full uppercase" value={(localCar[r.field]??'') as any} onChange={e=>handleFieldChange(r.field!, e.target.value.toUpperCase())} />
                             )
                           ) : (
                             display

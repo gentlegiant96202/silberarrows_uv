@@ -24,9 +24,9 @@ export default function MatchingCarsList({ model }: { model: string }) {
     const fetch = async () => {
       // Simple filter by model_family - much cleaner than text matching
       const { data, error } = await supabase
-        .from('cars')
-        .select('*')
-        .eq('status', 'inventory')
+      .from('cars')
+      .select('*')
+      .eq('status', 'inventory')
         .eq('sale_status', 'available')
         .eq('model_family', model)
         .order('advertised_price_aed', { ascending: true })

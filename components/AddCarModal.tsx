@@ -373,29 +373,29 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
 
             {/* Step 1: Vehicle Information */}
             {step === 1 && (
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5 space-y-4">
-                <div>
-                  <h3 className="text-white/80 text-xs font-semibold mb-2">Vehicle Information</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      { label: "Stock Number", name: "stock_number", readOnly: true, placeholder: "Auto generated" },
-                      { label: "Model Year", name: "model_year", type: "number" },
-                      { label: "Vehicle Model", name: "vehicle_model" },
-                    ].map((f) => (
-                      <div key={f.name}>
-                        <label className="block text-white/70 mb-0.5">{f.label}</label>
-                        <input
-                          name={f.name}
-                          type={(f as any).type || "text"}
-                          value={(form as any)[f.name]}
-                          onChange={handleChange}
-                          className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                          required={f.name !== 'stock_number'}
-                          readOnly={(f as any).readOnly}
-                          placeholder={(f as any).placeholder}
-                        />
-                      </div>
-                    ))}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5 space-y-4">
+              <div>
+                <h3 className="text-white/80 text-xs font-semibold mb-2">Vehicle Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { label: "Stock Number", name: "stock_number", readOnly: true, placeholder: "Auto generated" },
+                    { label: "Model Year", name: "model_year", type: "number" },
+                    { label: "Vehicle Model", name: "vehicle_model" },
+                  ].map((f) => (
+                    <div key={f.name}>
+                      <label className="block text-white/70 mb-0.5">{f.label}</label>
+                      <input
+                        name={f.name}
+                        type={(f as any).type || "text"}
+                        value={(form as any)[f.name]}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        required={f.name !== 'stock_number'}
+                        readOnly={(f as any).readOnly}
+                        placeholder={(f as any).placeholder}
+                      />
+                    </div>
+                  ))}
                     
                     {/* Model Family Dropdown */}
                     <div>
@@ -433,265 +433,265 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                       </div>
                     ))}
                   </div>
-                </div>
               </div>
+            </div>
             )}
 
             {/* Step 2: Pricing & Condition */}
             {step === 2 && (
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                <h3 className="text-white/80 text-xs font-semibold mb-2">Pricing & Condition</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Ownership Type */}
-                  <div>
-                    <label className="block text-white/70 mb-0.5">Ownership Type</label>
-                    <select
-                      name="ownership_type"
-                      value={form.ownership_type}
-                      onChange={handleChange}
-                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                    >
-                      <option value="stock">Stock</option>
-                      <option value="consignment">Consignment</option>
-                    </select>
-                  </div>
-
-                  {/* Regional Specification */}
-                  <div>
-                    <label className="block text-white/60 mb-0.5">Regional Specification</label>
-                    <select
-                      name="regional_specification"
-                      value={form.regional_specification}
-                      onChange={handleChange}
-                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                      required
-                    >
-                      <option value="">Select...</option>
-                      <option value="GCC SPECIFICATION">GCC Specification</option>
-                      <option value="EUROPEAN SPECIFICATION">European Specification</option>
-                      <option value="JAPANESE SPECIFICATION">Japanese Specification</option>
-                      <option value="CANADIAN SPECIFICATION">Canadian Specification</option>
-                    </select>
-                  </div>
-
-                  {/* Mileage */}
-                  <div>
-                    <label className="block text-white/60 mb-0.5">Mileage (KM)</label>
-                    <input
-                      name="current_mileage_km"
-                      value={form.current_mileage_km}
-                      onChange={handleChange}
-                      inputMode="numeric"
-                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                      required
-                    />
-                  </div>
-
-                  {/* Number of Keys */}
-                  <div>
-                    <label className="block text-white/60 mb-0.5">Number of Keys</label>
-                    <input
-                      type="number"
-                      name="number_of_keys"
-                      value={form.number_of_keys}
-                      onChange={handleChange}
-                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                    />
-                  </div>
-
-                  {/* Warranty Package */}
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-white/60 mb-0.5">Warranty Package</label>
-                    <select
-                      name="warranty_package_type"
-                      value={form.warranty_package_type}
-                      onChange={handleChange}
-                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                      required
-                    >
-                      <option value="silberarrows">SilberArrows</option>
-                      <option value="dealer">Dealer</option>
-                    </select>
-                    {form.warranty_package_type === 'dealer' && (
-                      <div className="mt-1 grid grid-cols-2 gap-1.5">
-                        <input
-                          type="date"
-                          name="warranty_expiry_date"
-                          value={form.warranty_expiry_date}
-                          onChange={handleChange}
-                          className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                        />
-                        <input
-                          type="text"
-                          name="warranty_km_limit"
-                          value={form.warranty_km_limit}
-                          onChange={handleChange}
-                          inputMode="numeric"
-                          placeholder="KM limit"
-                          className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Service Package */}
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-white/60 mb-0.5">Service Package</label>
-                    <select
-                      name="service_package_type"
-                      value={form.service_package_type}
-                      onChange={handleChange}
-                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                      required
-                    >
-                      <option value="silberarrows">SilberArrows</option>
-                      <option value="dealer">Dealer</option>
-                    </select>
-                    {form.service_package_type === 'dealer' && (
-                      <div className="mt-1 grid grid-cols-2 gap-1.5">
-                        <input
-                          type="date"
-                          name="service_expiry_date"
-                          value={form.service_expiry_date}
-                          onChange={handleChange}
-                          className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                        />
-                        <input
-                          type="text"
-                          name="service_km_limit"
-                          value={form.service_km_limit}
-                          onChange={handleChange}
-                          inputMode="numeric"
-                          placeholder="KM limit"
-                          className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Cost & Advertised Price */}
-                  <div>
-                    <label className="block text-white/60 mb-0.5">Cost Price (AED)</label>
-                    <input
-                      name="cost_price_aed"
-                      value={form.cost_price_aed}
-                      onChange={handleChange}
-                      inputMode="numeric"
-                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-white/60 mb-0.5">Advertised Price (AED)</label>
-                    <input
-                      name="advertised_price_aed"
-                      value={form.advertised_price_aed}
-                      onChange={handleChange}
-                      inputMode="numeric"
-                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                      required
-                    />
-                    {monthlyPayments && (
-                      <div className="mt-1 text-[10px] text-white/70 space-y-0.5">
-                        <p>0% Down: AED {monthlyPayments.zero.toLocaleString()}/mo</p>
-                        <p>20% Down: AED {monthlyPayments.twenty.toLocaleString()}/mo</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Consignment Customer Details */}
-                  {form.ownership_type === 'consignment' && (
-                    <>
-                      <div className="col-span-2 sm:col-span-1">
-                        <label className="block text-white/60 mb-0.5">Customer Name</label>
-                        <input
-                          name="customer_name"
-                          value={form.customer_name}
-                          onChange={handleChange}
-                          className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                          required
-                        />
-                      </div>
-                      <div className="col-span-2 sm:col-span-1">
-                        <label className="block text-white/60 mb-0.5">Customer Phone</label>
-                        <input
-                          name="customer_phone"
-                          value={form.customer_phone}
-                          onChange={handleChange}
-                          className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                          required
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block text-white/60 mb-0.5">Customer Email</label>
-                        <input
-                          name="customer_email"
-                          type="email"
-                          value={form.customer_email}
-                          onChange={handleChange}
-                          className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                          required
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Specifications */}
-            {step === 3 && (
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                <h3 className="text-white/80 text-xs font-semibold mb-2">Specifications</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { label: "Engine", name: "engine" },
-                    { label: "Transmission", name: "transmission" },
-                    { label: "Horsepower (hp)", name: "horsepower_hp", type: "number" },
-                    { label: "Torque (Nm)", name: "torque_nm", type: "number" },
-                    { label: "Cubic Capacity (cc)", name: "cubic_capacity_cc", type: "number" },
-                  ].map((f) => (
-                    <div key={f.name}>
-                      <label className="block text-white/60 mb-0.5">{f.label}</label>
-                      <input
-                        type={f.type || 'text'}
-                        name={f.name}
-                        value={(form as any)[f.name]}
-                        onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Key Equipment & Description */}
-            {step === 4 && (
-              <>
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                  <h3 className="text-white/80 text-xs font-semibold mb-2">Key Equipment</h3>
-                  <textarea
-                    name="key_equipment"
-                    value={form.key_equipment}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
+              <h3 className="text-white/80 text-xs font-semibold mb-2">Pricing & Condition</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Ownership Type */}
+                <div>
+                  <label className="block text-white/70 mb-0.5">Ownership Type</label>
+                  <select
+                    name="ownership_type"
+                    value={form.ownership_type}
                     onChange={handleChange}
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white resize-y min-h-[100px]"
-                    rows={4}
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                  >
+                    <option value="stock">Stock</option>
+                    <option value="consignment">Consignment</option>
+                  </select>
+                </div>
+
+                {/* Regional Specification */}
+                <div>
+                  <label className="block text-white/60 mb-0.5">Regional Specification</label>
+                  <select
+                    name="regional_specification"
+                    value={form.regional_specification}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    required
+                  >
+                    <option value="">Select...</option>
+                    <option value="GCC SPECIFICATION">GCC Specification</option>
+                    <option value="EUROPEAN SPECIFICATION">European Specification</option>
+                    <option value="JAPANESE SPECIFICATION">Japanese Specification</option>
+                    <option value="CANADIAN SPECIFICATION">Canadian Specification</option>
+                  </select>
+                </div>
+
+                {/* Mileage */}
+                <div>
+                  <label className="block text-white/60 mb-0.5">Mileage (KM)</label>
+                  <input
+                    name="current_mileage_km"
+                    value={form.current_mileage_km}
+                    onChange={handleChange}
+                    inputMode="numeric"
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
                     required
                   />
                 </div>
 
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                  <h3 className="text-white/80 text-xs font-semibold mb-2">Description</h3>
-                  <textarea
-                    name="description"
-                    value={form.description}
+                {/* Number of Keys */}
+                <div>
+                  <label className="block text-white/60 mb-0.5">Number of Keys</label>
+                  <input
+                    type="number"
+                    name="number_of_keys"
+                    value={form.number_of_keys}
                     onChange={handleChange}
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white resize-y min-h-[100px]"
-                    rows={3}
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
                   />
                 </div>
-              </>
+
+                {/* Warranty Package */}
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-white/60 mb-0.5">Warranty Package</label>
+                  <select
+                    name="warranty_package_type"
+                    value={form.warranty_package_type}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    required
+                  >
+                    <option value="silberarrows">SilberArrows</option>
+                    <option value="dealer">Dealer</option>
+                  </select>
+                  {form.warranty_package_type === 'dealer' && (
+                    <div className="mt-1 grid grid-cols-2 gap-1.5">
+                      <input
+                        type="date"
+                        name="warranty_expiry_date"
+                        value={form.warranty_expiry_date}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                      />
+                      <input
+                        type="text"
+                        name="warranty_km_limit"
+                        value={form.warranty_km_limit}
+                        onChange={handleChange}
+                        inputMode="numeric"
+                        placeholder="KM limit"
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Service Package */}
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-white/60 mb-0.5">Service Package</label>
+                  <select
+                    name="service_package_type"
+                    value={form.service_package_type}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    required
+                  >
+                    <option value="silberarrows">SilberArrows</option>
+                    <option value="dealer">Dealer</option>
+                  </select>
+                  {form.service_package_type === 'dealer' && (
+                    <div className="mt-1 grid grid-cols-2 gap-1.5">
+                      <input
+                        type="date"
+                        name="service_expiry_date"
+                        value={form.service_expiry_date}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                      />
+                      <input
+                        type="text"
+                        name="service_km_limit"
+                        value={form.service_km_limit}
+                        onChange={handleChange}
+                        inputMode="numeric"
+                        placeholder="KM limit"
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Cost & Advertised Price */}
+                <div>
+                  <label className="block text-white/60 mb-0.5">Cost Price (AED)</label>
+                  <input
+                    name="cost_price_aed"
+                    value={form.cost_price_aed}
+                    onChange={handleChange}
+                    inputMode="numeric"
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-white/60 mb-0.5">Advertised Price (AED)</label>
+                  <input
+                    name="advertised_price_aed"
+                    value={form.advertised_price_aed}
+                    onChange={handleChange}
+                    inputMode="numeric"
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    required
+                  />
+                  {monthlyPayments && (
+                    <div className="mt-1 text-[10px] text-white/70 space-y-0.5">
+                      <p>0% Down: AED {monthlyPayments.zero.toLocaleString()}/mo</p>
+                      <p>20% Down: AED {monthlyPayments.twenty.toLocaleString()}/mo</p>
+                    </div>
+                  )}
+                </div>
+
+                  {/* Consignment Customer Details */}
+                {form.ownership_type === 'consignment' && (
+                  <>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-white/60 mb-0.5">Customer Name</label>
+                      <input
+                        name="customer_name"
+                        value={form.customer_name}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        required
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-white/60 mb-0.5">Customer Phone</label>
+                      <input
+                        name="customer_phone"
+                        value={form.customer_phone}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        required
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-white/60 mb-0.5">Customer Email</label>
+                      <input
+                        name="customer_email"
+                        type="email"
+                        value={form.customer_email}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            )}
+
+            {/* Step 3: Specifications */}
+            {step === 3 && (
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
+              <h3 className="text-white/80 text-xs font-semibold mb-2">Specifications</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { label: "Engine", name: "engine" },
+                  { label: "Transmission", name: "transmission" },
+                  { label: "Horsepower (hp)", name: "horsepower_hp", type: "number" },
+                  { label: "Torque (Nm)", name: "torque_nm", type: "number" },
+                  { label: "Cubic Capacity (cc)", name: "cubic_capacity_cc", type: "number" },
+                ].map((f) => (
+                  <div key={f.name}>
+                    <label className="block text-white/60 mb-0.5">{f.label}</label>
+                    <input
+                      type={f.type || 'text'}
+                      name={f.name}
+                      value={(form as any)[f.name]}
+                      onChange={handleChange}
+                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            )}
+
+            {/* Step 4: Key Equipment & Description */}
+            {step === 4 && (
+             <>
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
+                <h3 className="text-white/80 text-xs font-semibold mb-2">Key Equipment</h3>
+                <textarea
+                  name="key_equipment"
+                  value={form.key_equipment}
+                  onChange={handleChange}
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white resize-y min-h-[100px]"
+                  rows={4}
+                  required
+                  />
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
+                <h3 className="text-white/80 text-xs font-semibold mb-2">Description</h3>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white resize-y min-h-[100px]"
+                  rows={3}
+                />
+              </div>
+             </>
             )}
 
             {/* Navigation Buttons */}
@@ -735,7 +735,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
               const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', savedCar.id).eq('kind', 'document');
               setDocs(docRows || []);
             }} />
-            
+
             {docs.length > 0 && (
               <ul className="list-disc list-inside text-white/70 text-xs space-y-1">
                 {docs.map(d => (
@@ -747,7 +747,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                 ))}
               </ul>
             )}
-            
+
             <button
               type="button"
               onClick={() => {

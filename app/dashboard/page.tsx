@@ -30,15 +30,20 @@ function LeadsFunnel() {
       
       try {
         // Calculate date range based on filters
-        const from = new Date(year, 0, 1);
-        const to = new Date(year + 1, 0, 1);
+        let from: Date;
+        let to: Date;
         
         if (months.length > 0) {
-          const firstMonth = Math.min(...months) - 1;
-          const lastMonth = Math.max(...months);
-          from.setMonth(firstMonth);
-          to.setMonth(lastMonth);
-          to.setDate(0);
+          // When specific months are selected
+          const firstMonth = Math.min(...months) - 1; // Convert to 0-based index
+          const lastMonth = Math.max(...months) - 1;  // Convert to 0-based index
+          
+          from = new Date(year, firstMonth, 1); // First day of first selected month
+          to = new Date(year, lastMonth + 1, 0); // Last day of last selected month
+        } else {
+          // When no months selected (show full year)
+          from = new Date(year, 0, 1);     // January 1st
+          to = new Date(year, 11, 31);     // December 31st
         }
 
         // Fetch funnel metrics - this shows total entries into each stage over time
@@ -208,34 +213,45 @@ export default function DashboardPage() {
   // re-calc counts for selected period (year + months)
   useEffect(() => {
     async function fetchPeriodCounts() {
-      const from = new Date(year, 0, 1).toISOString();
-      const to = new Date(year + 1, 0, 1).toISOString();
+      // Calculate date range based on filters (same logic as funnel)
+      let from: Date;
+      let to: Date;
+      
+      if (months.length > 0) {
+        // When specific months are selected
+        const firstMonth = Math.min(...months) - 1; // Convert to 0-based index
+        const lastMonth = Math.max(...months) - 1;  // Convert to 0-based index
+        
+        from = new Date(year, firstMonth, 1); // First day of first selected month
+        to = new Date(year, lastMonth + 1, 0); // Last day of last selected month
+      } else {
+        // When no months selected (show full year)
+        from = new Date(year, 0, 1);     // January 1st
+        to = new Date(year, 11, 31);     // December 31st
+      }
 
+      // Fetch leads filtered by date range
       const { data, error } = await supabase
         .from('leads')
-        .select('created_at,updated_at,status');
+        .select('created_at,updated_at,status')
+        .gte('created_at', from.toISOString().split('T')[0])
+        .lte('created_at', to.toISOString().split('T')[0]);
+      
       if (error) { console.error(error); return; }
 
-      const filtered = (data || []).filter((row: any) => {
-        // within year range
-        const date = new Date(row.created_at);
-        if (date < new Date(from) || date >= new Date(to)) return false;
-        if (months.length === 0) return true;
-        const m = date.getMonth() + 1;
-        return months.includes(m);
-      });
+      const leadsCount = data?.length || 0;
+      
+      // Get negotiations count (leads currently in negotiation status)
+      const { count: negotiationCount, error: negError } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'negotiation')
+        .gte('created_at', from.toISOString().split('T')[0])
+        .lte('created_at', to.toISOString().split('T')[0]);
+      
+      if (negError) { console.error(negError); return; }
 
-      const leadsCount = filtered.length;
-      const negotiationsCount = (data || []).filter((row: any) => {
-        if (row.status !== 'negotiation') return false;
-        const upd = new Date(row.updated_at);
-        if (upd < new Date(from) || upd >= new Date(to)) return false;
-        if (months.length === 0) return true;
-        const m = upd.getMonth() + 1;
-        return months.includes(m);
-      }).length;
-
-      setKpi(prev => ({ ...prev, periodLeads: leadsCount, negotiations: negotiationsCount }));
+      setKpi(prev => ({ ...prev, periodLeads: leadsCount, negotiations: negotiationCount || 0 }));
     }
 
     fetchPeriodCounts();
@@ -244,29 +260,37 @@ export default function DashboardPage() {
   // trend effect
   useEffect(() => {
     async function fetchTrend() {
-      const from = new Date(year, 0, 1).toISOString();
-      const to = new Date(year + 1, 0, 1).toISOString();
+      // Calculate date range based on filters (same logic as funnel)
+      let from: Date;
+      let to: Date;
+      
+      if (months.length > 0) {
+        // When specific months are selected
+        const firstMonth = Math.min(...months) - 1; // Convert to 0-based index
+        const lastMonth = Math.max(...months) - 1;  // Convert to 0-based index
+        
+        from = new Date(year, firstMonth, 1); // First day of first selected month
+        to = new Date(year, lastMonth + 1, 0); // Last day of last selected month
+      } else {
+        // When no months selected (show full year)
+        from = new Date(year, 0, 1);     // January 1st
+        to = new Date(year, 11, 31);     // December 31st
+      }
 
       const { data, error } = await supabase
         .from('leads')
         .select('created_at,status')
-        .gte('created_at', from)
-        .lt('created_at', to);
+        .gte('created_at', from.toISOString().split('T')[0])
+        .lte('created_at', to.toISOString().split('T')[0]);
 
       if (error) {
         console.error(error);
         return;
       }
 
-      const filtered = (data || []).filter((row: any) => {
-        if (months.length === 0) return true;
-        const m = new Date(row.created_at).getMonth() + 1;
-        return months.includes(m);
-      });
-
       type RowAgg = { date: string; new_customer: number; negotiation: number; won: number; delivered: number; lost: number };
       const map: Record<string, RowAgg> = {};
-      filtered.forEach((row: any) => {
+      (data || []).forEach((row: any) => {
         const d = dayjs(row.created_at).format('YYYY-MM-DD');
         if (!map[d]) {
           map[d] = { date: d, new_customer: 0, negotiation: 0, won: 0, delivered: 0, lost: 0 };
@@ -356,10 +380,19 @@ const MiniCalendar: React.FC<{year:number; months:number[]}> = ({year, months}) 
 
   useEffect(() => {
     async function fetchAppts() {
-      if (months.length === 0) return setEvents({});
-      const firstMonth = months[0] - 1; // JS month index
-      const start = dayjs(new Date(year, firstMonth, 1)).startOf('month');
-      const end = dayjs(start).endOf('month');
+      let start: dayjs.Dayjs;
+      let end: dayjs.Dayjs;
+      
+      if (months.length === 0) {
+        // When no months selected, show current month
+        start = dayjs().startOf('month');
+        end = dayjs().endOf('month');
+      } else {
+        // When specific months are selected, show first selected month
+        const firstMonth = months[0] - 1; // JS month index
+        start = dayjs(new Date(year, firstMonth, 1)).startOf('month');
+        end = dayjs(start).endOf('month');
+      }
 
       const { data } = await supabase
         .from('leads')

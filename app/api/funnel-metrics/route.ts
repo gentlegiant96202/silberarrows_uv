@@ -7,10 +7,12 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
 
-    // Get ALL current lead counts by status (for accurate funnel display)
+    // Get filtered lead counts by status based on date range
     const { data: currentLeads, error: currentLeadsError } = await supabase
       .from('leads')
       .select('status, created_at')
+      .gte('created_at', startDate)
+      .lte('created_at', endDate)
       .order('created_at', { ascending: false });
 
     if (currentLeadsError) {

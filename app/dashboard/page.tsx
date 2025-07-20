@@ -10,11 +10,11 @@ import dayjs from 'dayjs';
 // Enhanced LeadsFunnel component with conversion tracking
 function LeadsFunnel() {
   const STAGES = [
-    { key: 'new_customer', label: 'New Customer', color: 'bg-blue-500' },
+    { key: 'new_lead', label: 'New Lead', color: 'bg-slate-500' },
+    { key: 'new_customer', label: 'New Appointment', color: 'bg-blue-500' },
     { key: 'negotiation', label: 'Negotiation', color: 'bg-yellow-500' },
     { key: 'won', label: 'Reserved', color: 'bg-green-500' },
     { key: 'delivered', label: 'Delivered', color: 'bg-purple-500' },
-    { key: 'lost', label: 'Lost', color: 'bg-red-500' },
   ];
 
   const { year, months } = useDashboardFilter();
@@ -96,7 +96,7 @@ function LeadsFunnel() {
       </div>
       
       <div className="space-y-2 flex-1">
-        {STAGES.filter(stage => stage.key !== 'lost').map((stage, index) => {
+        {STAGES.map((stage, index) => {
           const leadCount = currentLeadCounts[stage.key] || 0;
           const widthPercent = leadCount > 0 ? (leadCount / maxCount) * 100 : 0;
           
@@ -128,34 +128,6 @@ function LeadsFunnel() {
             </div>
           );
         })}
-        
-        {/* Lost leads section */}
-        {(() => {
-          const lostCount = currentLeadCounts['lost'] || 0;
-          if (lostCount === 0) return null;
-          
-          const lostWidthPercent = lostCount > 0 ? (lostCount / maxCount) * 100 : 0;
-          
-          return (
-            <div className="border-t border-white/10 pt-2 mt-2 relative">
-              <div className="w-full bg-red-500/20 rounded-lg h-8 relative overflow-hidden">
-                <div
-                  className="bg-red-500/80 h-8 rounded-lg absolute inset-0 transition-all duration-700 ease-out flex items-center justify-between px-3"
-                  style={{ 
-                    width: animateAfterLoad ? `${Math.max(lostWidthPercent, lostCount > 0 ? 15 : 0)}%` : '0%'
-                  }}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    Lost
-                  </span>
-                  <span className="text-sm font-bold text-white">
-                    {lostCount}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
       </div>
     </div>
   );
@@ -288,12 +260,12 @@ export default function DashboardPage() {
         return;
       }
 
-      type RowAgg = { date: string; new_customer: number; negotiation: number; won: number; delivered: number; lost: number };
+      type RowAgg = { date: string; new_lead: number; new_customer: number; negotiation: number; won: number; delivered: number };
       const map: Record<string, RowAgg> = {};
       (data || []).forEach((row: any) => {
         const d = dayjs(row.created_at).format('YYYY-MM-DD');
         if (!map[d]) {
-          map[d] = { date: d, new_customer: 0, negotiation: 0, won: 0, delivered: 0, lost: 0 };
+          map[d] = { date: d, new_lead: 0, new_customer: 0, negotiation: 0, won: 0, delivered: 0 };
         }
         (map[d] as any)[row.status] = ((map[d] as any)[row.status] || 0) + 1;
       });

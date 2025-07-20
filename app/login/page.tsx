@@ -64,6 +64,13 @@ export default function LoginPage() {
         {/* Hero Content */}
         <div className="relative z-10 text-center max-w-lg">
           <div className="mb-8">
+            <div className="mb-6">
+              <img
+                src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png"
+                alt="Logo"
+                className="w-20 h-20 object-contain mx-auto mb-4"
+              />
+            </div>
             <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
               Welcome to Your<br />
               <span className="bg-gradient-to-r from-gray-300 to-white bg-clip-text text-transparent">

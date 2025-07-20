@@ -97,7 +97,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
   const monthlyPayments = price > 0 ? (() => {
     const principal0 = price; // 0% down
     const principal20 = price * 0.8; // 20% down
-    const r = 0.025 / 12;
+    const r = 0.03 / 12;
     const n = 60;
     const calc = (p: number) => Math.round(p * r / (1 - Math.pow(1 + r, -n)));
     return {
@@ -358,7 +358,9 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         <p className="text-white/60 text-xs mb-3">Step {step + 1} of {totalSteps}</p>
 
         {!savedCar ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <>
+          {/* Prevent implicit submits; we call handleSubmit manually */}
+          <form onSubmit={(e) => { e.preventDefault(); }} className="space-y-4">
             {/* Step 0: Chassis */}
             {step === 0 && (
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
@@ -719,7 +721,8 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit as any}
                   disabled={saving}
                   className="flex-1 py-2 rounded bg-brand hover:bg-brand/90 disabled:opacity-50 text-white text-xs"
                 >
@@ -728,6 +731,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
               )}
             </div>
           </form>
+          </>
         ) : (
           <div className="space-y-4">
             <h3 className="text-white/80 text-xs font-semibold">Upload Pre-UVC Documents (PDF)</h3>

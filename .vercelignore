@@ -16,8 +16,7 @@ README.md
 webhook_fix_guide.md
 MIGRATION_INSTRUCTIONS.md
 
-# Exclude music files (not needed for deployment)
-public/music/
+# Music files included for deployment
 
 # Exclude git files
 .git/

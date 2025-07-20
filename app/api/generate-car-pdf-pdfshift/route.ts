@@ -746,7 +746,7 @@ export async function POST(request: NextRequest) {
                       ${(() => {
                         const p = car.advertised_price_aed || 0;
                         if (!p) return '';
-                        const r = 0.025 / 12;
+                        const r = 0.03 / 12;
                         const n = 60;
                         const calc = (pr: number) => Math.round(pr * r / (1 - Math.pow(1 + r, -n))).toLocaleString();
                         const m0 = calc(p);
@@ -801,7 +801,7 @@ export async function POST(request: NextRequest) {
                       ${(() => {
                         const p = car.advertised_price_aed || 0;
                         if (!p) return '';
-                        const r = 0.025 / 12;
+                        const r = 0.03 / 12;
                         const n = 60;
                         const calc = (pr: number) => Math.round(pr * r / (1 - Math.pow(1 + r, -n))).toLocaleString();
                         const m0 = calc(p);

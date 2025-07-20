@@ -46,7 +46,7 @@ export default function Header() {
   const calcMonthly = () => {
     const p = parseFloat(finPrice || '0');
     if(!p) return { zero: 0, twenty: 0 };
-    const r = 0.025/12;
+    const r = 0.03/12;
     const n = finYears*12;
     const pay = (principal:number)=> Math.round(principal*r/(1-Math.pow(1+r,-n)));
     return { zero: pay(p), twenty: pay(p*0.8) };

@@ -145,7 +145,8 @@ export default function CarKanbanBoard() {
         (payload: any) => {
           setCars(prev => {
             if (payload.eventType === 'INSERT') {
-              return [payload.new as Car, ...prev];
+              const exists = prev.some(c => c.id === payload.new.id);
+              return exists ? prev : [payload.new as Car, ...prev];
             }
             if (payload.eventType === 'UPDATE') {
               return prev.map(c => c.id === payload.new.id ? (payload.new as Car) : c);
@@ -528,7 +529,7 @@ export default function CarKanbanBoard() {
           onClose={() => setShowModal(false)}
           onCreated={(newCar) => {
             setShowModal(false);
-            setCars((prev) => [newCar, ...prev]);
+            setCars((prev) => prev.some(c => c.id === newCar.id) ? prev : [newCar, ...prev]);
           }}
         />
       )}

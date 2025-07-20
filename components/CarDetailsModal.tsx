@@ -309,8 +309,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       rows: [
         { label: 'Advertised', value: `AED ${localCar.advertised_price_aed?.toLocaleString()}`, field:'advertised_price_aed' },
         { label: 'Cost', value: localCar.cost_price_aed ? `AED ${localCar.cost_price_aed.toLocaleString()}` : '—', field:'cost_price_aed' },
-        { label: 'Monthly (0% Down)', value: (()=>{ const p=localCar.advertised_price_aed||0; if(!p) return '—'; const r=0.025/12; const n=60; const m=Math.round(p*r/(1-Math.pow(1+r,-n))); return `AED ${m.toLocaleString()}/mo`;})() },
-        { label: 'Monthly (20% Down)', value: (()=>{ const p=localCar.advertised_price_aed||0; if(!p) return '—'; const principal=p*0.8; const r=0.025/12; const n=60; const m=Math.round(principal*r/(1-Math.pow(1+r,-n))); return `AED ${m.toLocaleString()}/mo`;})() },
+        { label: 'Monthly (0% Down)', value: (()=>{ const p=localCar.advertised_price_aed||0; if(!p) return '—'; const r=0.03/12; const n=60; const m=Math.round(p*r/(1-Math.pow(1+r,-n))); return `AED ${m.toLocaleString()}/mo`;})() },
+        { label: 'Monthly (20% Down)', value: (()=>{ const p=localCar.advertised_price_aed||0; if(!p) return '—'; const principal=p*0.8; const r=0.03/12; const n=60; const m=Math.round(principal*r/(1-Math.pow(1+r,-n))); return `AED ${m.toLocaleString()}/mo`;})() },
         { label: 'Status', value: localCar.status, field:'status' },
         { label: 'Sale', value: localCar.sale_status, field:'sale_status' },
       ],

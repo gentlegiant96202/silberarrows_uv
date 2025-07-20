@@ -17,6 +17,28 @@ export default function SignupPage() {
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Domain restriction settings
+  const ALLOWED_DOMAINS = ['@silberarrows.com'];
+  const [emailDomainError, setEmailDomainError] = useState<string | null>(null);
+
+  // Check if email domain is allowed
+  const isValidDomain = (email: string): boolean => {
+    return ALLOWED_DOMAINS.some(domain => email.toLowerCase().endsWith(domain.toLowerCase()));
+  };
+
+  // Handle email change with real-time domain validation
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setEmailDomainError(null);
+    
+    // Only validate if email contains @ and appears complete
+    if (value.includes('@') && value.length > 3) {
+      if (!isValidDomain(value)) {
+        setEmailDomainError(`Only ${ALLOWED_DOMAINS.join(' or ')} email addresses are allowed`);
+      }
+    }
+  };
+
   if (user) {
     router.replace("/");
     return (
@@ -33,6 +55,15 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setEmailDomainError(null);
+
+    // Validate domain before attempting signup
+    if (!isValidDomain(email)) {
+      setEmailDomainError(`Only ${ALLOWED_DOMAINS.join(' or ')} email addresses are allowed`);
+      setError('Please use a valid company email address.');
+      return;
+    }
+
     const { error } = await signUp(email, password);
     if (error) {
       setError(error);
@@ -51,6 +82,7 @@ export default function SignupPage() {
             alt="Luxury car showcase" 
             fill 
             priority 
+            sizes="(max-width: 1024px) 0vw, 50vw"
             className="object-cover" 
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
@@ -111,20 +143,39 @@ export default function SignupPage() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => handleEmailChange(e.target.value)}
                     onFocus={() => setIsEmailFocused(true)}
                     onBlur={() => setIsEmailFocused(false)}
                     className={`w-full px-4 py-3 bg-black/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-200 focus:outline-none ${
-                      isEmailFocused || email
+                      emailDomainError
+                        ? 'border-red-400/50 shadow-lg shadow-red-400/20'
+                        : isEmailFocused || email
                         ? 'border-gray-300/50 shadow-lg shadow-gray-300/20'
                         : 'border-white/20 hover:border-white/30'
                     }`}
-                    placeholder="Enter your email"
+                    placeholder="Enter your company email"
                     required
                   />
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-gray-300/10 to-white/10 opacity-0 transition-opacity duration-200 pointer-events-none" 
                        style={{ opacity: isEmailFocused ? 1 : 0 }} />
                 </div>
+                
+                {/* Domain validation message */}
+                {emailDomainError && (
+                  <div className="flex items-center space-x-2 text-red-400 text-sm mt-1">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{emailDomainError}</span>
+                  </div>
+                )}
+                
+                {/* Helpful hint for valid domains */}
+                {!emailDomainError && !email && (
+                  <div className="text-gray-500 text-xs mt-1">
+                    Use your company email ({ALLOWED_DOMAINS.join(' or ')})
+                  </div>
+                )}
               </div>
 
               {/* Password Field */}
@@ -191,7 +242,7 @@ export default function SignupPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !!emailDomainError}
                 className="w-full py-3 px-4 rounded-xl font-semibold text-black transition-all duration-200 transform relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 style={{
                   background: 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 50%, #9ca3af 100%)',

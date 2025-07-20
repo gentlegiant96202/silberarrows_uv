@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import MediaUploader from '@/components/MediaUploader';
 import DocUploader from '@/components/DocUploader';
 import { useAuth } from '@/components/AuthProvider';
+import { useUserRole } from '@/lib/useUserRole';
 import { createClient } from '@supabase/supabase-js';
 import { createPortal } from 'react-dom';
 
@@ -86,10 +87,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     { id: "26", name: "Maybach" },
     { id: "27", name: "CLE" }
   ];
-  const meta:any = user?.user_metadata || {};
-  const appMeta:any = (user as any)?.app_metadata || {};
-  const hasAdmin = (val:any)=> typeof val==='string' && val.toLowerCase()==='admin';
-  const isAdmin = hasAdmin(meta.role) || hasAdmin(appMeta.role) || (Array.isArray(meta.roles) && meta.roles.map((r:any)=>String(r).toLowerCase()).includes('admin'));
+  // Use new role system
+  const { isAdmin } = useUserRole();
   const [expanded, setExpanded] = useState<{[key:string]:boolean}>({});
   const canEdit = isAdmin && ['new_listing','marketing','qc_ceo'].includes(car.status);
   const [editing, setEditing] = useState(false);

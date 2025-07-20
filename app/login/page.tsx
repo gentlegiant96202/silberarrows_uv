@@ -56,6 +56,7 @@ export default function LoginPage() {
             alt="Luxury car showcase" 
             fill 
             priority 
+            sizes="(max-width: 1024px) 0vw, 50vw"
             className="object-cover" 
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />

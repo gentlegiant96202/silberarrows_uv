@@ -5,6 +5,7 @@ import AddCarModal from '@/components/AddCarModal';
 import CarDetailsModal from '@/components/CarDetailsModal';
 import { useAuth } from '@/components/AuthProvider';
 import { useSearchStore } from '@/lib/searchStore';
+import { useUserRole } from '@/lib/useUserRole'; // 🆕 NEW ROLE SYSTEM
 
 interface Car {
   id: string;
@@ -46,12 +47,10 @@ export default function CarKanbanBoard() {
 
   type ColKey = (typeof columns)[number]['key'];
 
+  // Use new role system
   const { user } = useAuth();
-  const meta:any = user?.user_metadata || {};
-  const appMeta:any = (user as any)?.app_metadata || {};
-  const hasAdmin = (val:any)=> typeof val==='string' && val.toLowerCase()==='admin';
-  const arrayHasAdmin = (arr:any)=> Array.isArray(arr) && arr.map((r:any)=>String(r).toLowerCase()).includes('admin');
-  const isAdmin = hasAdmin(meta.role) || hasAdmin(appMeta.role) || arrayHasAdmin(meta.roles) || arrayHasAdmin(appMeta.roles);
+  const { isAdmin } = useUserRole();
+  
 
   const load = async () => {
     const { data } = await supabase
@@ -81,7 +80,13 @@ export default function CarKanbanBoard() {
     // Only admins can drag cars
     if (!isAdmin) {
       e.preventDefault();
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚫 Drag prevented - not admin');
+      }
       return;
+    }
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Drag allowed - user is admin');
     }
     e.dataTransfer.setData('text/plain', car.id);
   };
@@ -92,7 +97,16 @@ export default function CarKanbanBoard() {
     if (!id) return;
 
     // Permission checks for non-admin users
-    if (!isAdmin) return; // non-admins cannot drop
+    if (!isAdmin) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚫 Drop prevented - not admin');
+      }
+      return; // non-admins cannot drop
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Drop allowed - user is admin');
+    }
 
     // optimistic update
     setCars(prev => {
@@ -252,8 +266,12 @@ export default function CarKanbanBoard() {
     });
   };
 
-      return (
+
+
+  return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
+
+      
       <div className={`flex gap-3 pb-4 w-full h-full ${inventoryExpanded ? 'overflow-hidden' : 'overflow-x-auto'}`}>
         {columns.map(col => {
           const listAll = cars.filter(c=> match(c.stock_number) || match(c.vehicle_model));

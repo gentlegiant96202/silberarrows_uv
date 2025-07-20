@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/components/AuthProvider'
 import { useRouter, usePathname } from 'next/navigation';
-import { LogOut, User, ChevronDown, Sun, CloudSun, CloudRain, Music2, Check, Calculator } from 'lucide-react';
+import { LogOut, User, ChevronDown, Sun, CloudSun, CloudRain, Music2, Check, Calculator, Settings } from 'lucide-react';
 import { useSearchStore } from '@/lib/searchStore';
+import { useIsAdminSimple } from '@/lib/useIsAdminSimple';
 
 // -------------------- Global Calm-Mode Audio --------------------
 // Persisted across component unmounts so music keeps playing while navigating.
@@ -17,6 +18,7 @@ export default function Header() {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'CRM' | 'CUSTOMERS' | 'INVENTORY' | 'CONSIGNMENTS'>('DASHBOARD');
   const { user, signOut } = useAuth();
+  const { isAdmin } = useIsAdminSimple();
   const { query, setQuery } = useSearchStore();
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -24,14 +26,19 @@ export default function Header() {
   const [clock, setClock] = useState<string>('');
   const [dark, setDark] = useState(true);
 
-  // calm mode audio
+  // calm mode audio - all local files for reliability
   const tracks = {
-    happy:       { label: 'Happy',       file: 'Happy.mp3' },
-    ocean:       { label: 'Ocean',       file: 'Ocean.mp3' },
-    tokyo_rain:  { label: 'Tokyo Rain',  file: 'Tokyo Rain.mp3' },
-    birds:       { label: 'Birds',       file: 'Birds.mp3' },
-    rock:        { label: 'Rock',        file: 'Rock.mp3' },
-    lofi:        { label: 'Lo-Fi',       file: 'LoFi.mp3' }
+    happy:            { label: 'Happy',            file: 'Happy.mp3', type: 'local' },
+    ocean:            { label: 'Ocean',            file: 'Ocean.mp3', type: 'local' },
+    tokyo_rain:       { label: 'Tokyo Rain',       file: 'Tokyo Rain.mp3', type: 'local' },
+    birds:            { label: 'Birds',            file: 'Birds.mp3', type: 'local' },
+    rock:             { label: 'Rock',             file: 'Rock.mp3', type: 'local' },
+    lofi:             { label: 'Lo-Fi',            file: 'LoFi.mp3', type: 'local' },
+    delilah:          { label: 'Delilah',          file: 'Delilah.mp3', type: 'local' },
+    
+    // High-quality ambient tracks
+    zen_garden:       { label: 'Zen Garden',       file: 'Zen_Garden.mp3', type: 'local' },
+    peaceful_piano:   { label: 'Peaceful Piano',   file: 'Peaceful_Piano.mp3', type: 'local' }
   } as const;
   type TrackKey = keyof typeof tracks;
   const [track, setTrack] = useState<TrackKey>((globalTrackKey as TrackKey) || 'happy');
@@ -66,13 +73,56 @@ export default function Header() {
     // Stop current if different track
     if (globalAudio) {
       globalAudio.pause();
+      globalAudio.src = '';
     }
 
-    const src = `/music/${encodeURIComponent(tracks[key].file)}`;
-    const el = new Audio(src);
-    el.loop = true;
+    const trackInfo = tracks[key];
+    const src = trackInfo.type === 'local' 
+      ? `/music/${encodeURIComponent(trackInfo.file)}`
+      : trackInfo.file;
+    
+    const el = new Audio();
+    
+    // Configure audio element
     el.volume = 0.25;
-    el.play();
+    el.preload = 'none';
+    
+    // Loop all local tracks
+    el.loop = true;
+    
+    // Log track loading
+    console.log(`🎵 Attempting to play ${trackInfo.type}: ${trackInfo.label}`);
+    
+    // Enhanced error handling
+    el.onerror = (e) => {
+      console.warn(`❌ Failed to load ${trackInfo.type}: ${trackInfo.label}`, e);
+      setPlaying(false);
+    };
+    
+    el.onloadstart = () => {
+      console.log(`🔄 Loading ${trackInfo.type}: ${trackInfo.label}`);
+    };
+    
+    el.oncanplay = () => {
+      console.log(`✅ Ready to play ${trackInfo.type}: ${trackInfo.label}`);
+    };
+    
+    // Set source and attempt to play
+    el.src = src;
+    
+    const playPromise = el.play();
+    
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log(`🎵 Successfully playing ${trackInfo.type}: ${trackInfo.label}`);
+          setPlaying(true);
+        })
+        .catch(err => {
+          console.warn(`❌ Playback failed for ${trackInfo.type}: ${trackInfo.label}`, err);
+          setPlaying(false);
+        });
+    }
 
     // Update globals so other Header instances can reuse
     globalAudio = el;
@@ -81,7 +131,6 @@ export default function Header() {
     // Sync local state
     setAudio(el);
     setTrack(key);
-    setPlaying(true);
   };
 
   /**
@@ -268,7 +317,7 @@ export default function Header() {
               <button
                 onClick={togglePlay}
                 className={`w-5 h-5 flex items-center justify-center ${playing ? 'animate-pulse text-emerald-400' : 'text-white/60'} hover:text-white`}
-                title={playing ? 'Pause Calm Mode' : 'Play Calm Mode'}
+                title={playing ? 'Pause Music' : 'Play Music'}
               >
                 <Music2 className="w-4 h-4" />
               </button>
@@ -365,6 +414,25 @@ export default function Header() {
                   className={`fixed right-4 top-16 w-56 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 z-50 origin-top transition-transform transition-opacity duration-200 ${showProfile ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 pointer-events-none'}`}
                 >
                     <p className="text-sm text-white break-all mb-3">{user.email}</p>
+                    
+                    {/* Admin Settings Button */}
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setShowProfile(false);
+                            routerHook.push('/admin/settings');
+                          }}
+                          className="flex items-center space-x-2 w-full text-left text-sm text-white hover:text-brand mb-2"
+                        >
+                          <Settings className="w-4 h-4" />
+                          <span>Settings</span>
+                        </button>
+                        <div className="border-t border-white/10 my-2"></div>
+                      </>
+                    )}
+                    
+                    {/* Logout Button */}
                     <button
                       onClick={async () => {
                         await signOut();

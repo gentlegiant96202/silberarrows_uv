@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import DashboardFilterBar from '@/components/DashboardFilterBar';
 import { supabase } from '@/lib/supabaseClient';
 import { useDashboardFilter } from '@/lib/dashboardFilterStore';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 
 // Enhanced LeadsFunnel component with conversion tracking
@@ -136,98 +136,8 @@ function LeadsFunnel() {
 export default function DashboardPage() {
   const { year, months } = useDashboardFilter();
 
-  // KPI counts
-  const [kpi, setKpi] = useState<{ today: number; periodLeads: number; negotiations: number; upcoming: number }>({ today: 0, periodLeads: 0, negotiations: 0, upcoming: 0 });
-
   // Trend chart data
   const [trendData, setTrendData] = useState<any[]>([]);
-
-  useEffect(() => {
-    async function fetchKpis() {
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      const startOfTomorrow = new Date(startOfToday);
-      startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
-
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      const weekAhead = new Date();
-      weekAhead.setDate(weekAhead.getDate() + 7);
-
-      const todayRes = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', startOfToday.toISOString())
-        .lt('created_at', startOfTomorrow.toISOString());
-
-      const weekRes = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', sevenDaysAgo.toISOString());
-
-      const upcomingRes = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .gte('appointment_date', dayjs().format('YYYY-MM-DD'))
-        .lte('appointment_date', dayjs(weekAhead).format('YYYY-MM-DD'));
-
-      setKpi(prev => ({
-        ...prev,
-        today: todayRes.count || 0,
-        upcoming: upcomingRes.count || 0,
-      }));
-    }
-
-    fetchKpis();
-  }, []);
-
-  // re-calc counts for selected period (year + months)
-  useEffect(() => {
-    async function fetchPeriodCounts() {
-      // Calculate date range based on filters (same logic as funnel)
-      let from: Date;
-      let to: Date;
-      
-      if (months.length > 0) {
-        // When specific months are selected
-        const firstMonth = Math.min(...months) - 1; // Convert to 0-based index
-        const lastMonth = Math.max(...months) - 1;  // Convert to 0-based index
-        
-        from = new Date(year, firstMonth, 1); // First day of first selected month
-        to = new Date(year, lastMonth + 1, 0); // Last day of last selected month
-      } else {
-        // When no months selected (show full year)
-        from = new Date(year, 0, 1);     // January 1st
-        to = new Date(year, 11, 31);     // December 31st
-      }
-
-      // Fetch leads filtered by date range
-      const { data, error } = await supabase
-        .from('leads')
-        .select('created_at,updated_at,status')
-        .gte('created_at', from.toISOString().split('T')[0])
-        .lte('created_at', to.toISOString().split('T')[0]);
-      
-      if (error) { console.error(error); return; }
-
-      const leadsCount = data?.length || 0;
-      
-      // Get negotiations count (leads currently in negotiation status)
-      const { count: negotiationCount, error: negError } = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'negotiation')
-        .gte('created_at', from.toISOString().split('T')[0])
-        .lte('created_at', to.toISOString().split('T')[0]);
-      
-      if (negError) { console.error(negError); return; }
-
-      setKpi(prev => ({ ...prev, periodLeads: leadsCount, negotiations: negotiationCount || 0 }));
-    }
-
-    fetchPeriodCounts();
-  }, [year, months]);
 
   // trend effect
   useEffect(() => {
@@ -286,57 +196,173 @@ export default function DashboardPage() {
         {/* Board grid split */}
         <div className="grid gap-4 lg:grid-cols-2">
           {/* Left column */}
-          <div className="space-y-4">
-            <div className="grid gap-3 grid-cols-2">
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-                <p className="text-[11px] text-white/60">New Leads (Today)</p>
-                <p className="text-xl font-semibold text-white">{kpi.today}</p>
-              </div>
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-                <p className="text-[11px] text-white/60">Leads (Selected Months)</p>
-                <p className="text-xl font-semibold text-white">{kpi.periodLeads}</p>
-              </div>
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-                <p className="text-[11px] text-white/60">Negotiations (Selected Months)</p>
-                <p className="text-xl font-semibold text-white">{kpi.negotiations}</p>
-              </div>
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-                <p className="text-[11px] text-white/60">Appointments (Next 7 Days)</p>
-                <p className="text-xl font-semibold text-white">{kpi.upcoming}</p>
-              </div>
-            </div>
-          </div>
+          <LeadKPICards year={year} months={months} />
 
           {/* Right column inventory KPI cards */}
           <InventoryKPICards year={year} months={months} />
         </div>
 
-        {/* Second row: Funnel/Calendar and Coming-Soon column */}
-        <div className="grid gap-4 mt-4 lg:grid-cols-2">
-          {/* Left sub-column */}
-          <div className="space-y-4">
+        {/* Second row: Charts and Analytics */}
+        <div className="grid gap-4 mt-4 lg:grid-cols-3">
+          {/* Lead Conversion Funnel */}
+          <div className="lg:col-span-1">
             <LeadsFunnel />
-            <MiniCalendar year={year} months={months} />
           </div>
 
-          {/* Right sub-column – Inventory & Model Analytics */}
-          <div className="space-y-4">
-            <InventoryDashboard year={year} months={months} />
-            <ModelDemandAnalysis year={year} months={months} />
+          {/* Inventory Status Chart */}
+          <div className="lg:col-span-1">
+            <InventoryStatusChart year={year} months={months} />
+          </div>
+
+          {/* Model Demand Chart */}
+          <div className="lg:col-span-1">
+            <ModelDemandChart year={year} months={months} />
           </div>
         </div>
+
+
       </div>
     </main>
   );
 }
 
+/* ---------------- Lead KPI Cards ---------------- */
+const LeadKPICards: React.FC<{year:number; months:number[]}> = ({year, months}) => {
+  const [kpi, setKpi] = useState({
+    newLeads: 0,
+    previousLeads: 0,
+    activePipeline: 0,
+    conversions: 0,
+    conversionRate: 0,
+    averageBudget: 0
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchKPIs() {
+      setLoading(true);
+      
+      // Calculate current and previous period dates
+      let currentFrom: Date, currentTo: Date, previousFrom: Date, previousTo: Date;
+      if (months.length > 0) {
+        const first = Math.min(...months) - 1;
+        const last = Math.max(...months) - 1;
+        currentFrom = new Date(year, first, 1);
+        currentTo = new Date(year, last + 1, 0);
+        // Previous period (same months, previous year)
+        previousFrom = new Date(year - 1, first, 1);
+        previousTo = new Date(year - 1, last + 1, 0);
+      } else {
+        currentFrom = new Date(year, 0, 1);
+        currentTo = new Date(year, 11, 31);
+        previousFrom = new Date(year - 1, 0, 1);
+        previousTo = new Date(year - 1, 11, 31);
+      }
+
+      // Fetch all leads for current period
+      const { data: currentLeads } = await supabase
+        .from('leads')
+        .select('status, payment_type, monthly_budget, total_budget, created_at')
+        .gte('created_at', currentFrom.toISOString().split('T')[0])
+        .lte('created_at', currentTo.toISOString().split('T')[0]);
+
+      // Fetch previous period for comparison
+      const { count: previousLeadsCount } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'new_lead')
+        .gte('created_at', previousFrom.toISOString().split('T')[0])
+        .lte('created_at', previousTo.toISOString().split('T')[0]);
+
+      // Fetch current active pipeline (all statuses except new_lead)
+      const { count: activePipelineCount } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['new_customer', 'negotiation']);
+
+      if (currentLeads) {
+        // Calculate metrics
+        const newLeads = currentLeads.filter(l => l.status === 'new_lead').length;
+        const conversions = currentLeads.filter(l => l.status === 'won' || l.status === 'delivered').length;
+        const totalLeads = currentLeads.length;
+        const conversionRate = totalLeads > 0 ? Math.round((conversions / totalLeads) * 100) : 0;
+        
+        // Calculate average budget
+        const leadsWithBudget = currentLeads.filter(l => {
+          if (l.payment_type === 'monthly') return l.monthly_budget > 0;
+          if (l.payment_type === 'cash') return l.total_budget > 0;
+          return false;
+        });
+        
+        const averageBudget = leadsWithBudget.length > 0 
+          ? Math.round(leadsWithBudget.reduce((sum, lead) => {
+              return sum + (lead.payment_type === 'monthly' ? lead.monthly_budget : lead.total_budget);
+            }, 0) / leadsWithBudget.length)
+          : 0;
+
+        setKpi({
+          newLeads,
+          previousLeads: previousLeadsCount || 0,
+          activePipeline: activePipelineCount || 0,
+          conversions,
+          conversionRate,
+          averageBudget
+        });
+      }
+      
+      setLoading(false);
+    }
+
+    fetchKPIs();
+  }, [year, months]);
+
+  const formatBudget = (amount: number) =>
+    amount >= 1000 ? `${Math.round(amount / 1000)}K` : amount.toString();
+
+  const getGrowthIndicator = () => {
+    if (kpi.previousLeads === 0) return '';
+    const growth = kpi.newLeads - kpi.previousLeads;
+    return growth > 0 ? `+${growth}` : growth < 0 ? `${growth}` : '0';
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 grid-cols-2">
+        <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
+          <p className="text-[11px] text-white/60">New Leads</p>
+          <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.newLeads}</p>
+          <p className="text-[8px] text-white/40">vs last year: {getGrowthIndicator()}</p>
+        </div>
+        <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
+          <p className="text-[11px] text-white/60">Active Pipeline</p>
+          <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.activePipeline}</p>
+          <p className="text-[8px] text-white/40">In progress</p>
+        </div>
+        <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
+          <p className="text-[11px] text-white/60">Conversions</p>
+          <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.conversions}</p>
+          <p className="text-[8px] text-white/40">Won + delivered</p>
+        </div>
+        <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
+          <p className="text-[11px] text-white/60">Conversion Rate</p>
+          <p className="text-xl font-semibold text-white">{loading ? '—' : `${kpi.conversionRate}%`}</p>
+          <p className="text-[8px] text-white/40">Success rate</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ---------------- Inventory KPI Cards ---------------- */
 const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, months}) => {
   const [kpiData, setKpiData] = useState({
-    available: 0,
-    reserved: 0,
-    soldThisMonth: 0,
-    totalValue: 0
+    stockCars: 0,
+    consignmentCars: 0,
+    stockReserved: 0,
+    consignmentReserved: 0,
+    totalCars: 0,
+    stockBoughtPeriod: 0,
+    consignmentBoughtPeriod: 0
   });
   const [loading, setLoading] = useState(false);
 
@@ -344,13 +370,7 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
     async function fetchKPIData() {
       setLoading(true);
       try {
-        // Fetch all cars
-        const { data: allCars } = await supabase
-          .from('cars')
-          .select('sale_status, advertised_price_aed, updated_at, status')
-          .eq('status', 'inventory');
-
-        // Calculate date range for "sold this month"
+        // Calculate date range for period analysis
         let from: Date, to: Date;
         if (months.length > 0) {
           const firstMonth = Math.min(...months) - 1;
@@ -358,32 +378,61 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
           from = new Date(year, firstMonth, 1);
           to = new Date(year, lastMonth + 1, 0);
         } else {
-          from = new Date(year, new Date().getMonth(), 1);
-          to = new Date(year, new Date().getMonth() + 1, 0);
+          from = new Date(year, 0, 1);
+          to = new Date(year, 11, 31);
         }
 
+        // Fetch all cars with ownership type
+        const { data: allCars } = await supabase
+          .from('cars')
+          .select('ownership_type, sale_status, status, created_at')
+          .eq('status', 'inventory');
+
         if (allCars) {
-          const available = allCars.filter(c => c.sale_status === 'available').length;
-          const reserved = allCars.filter(c => c.sale_status === 'reserved').length;
+          // Current inventory breakdown
+          const stockCars = allCars.filter(c => 
+            c.ownership_type === 'stock' && c.sale_status === 'available'
+          ).length;
           
-          // Count cars sold within the selected period
-          const soldThisMonth = allCars.filter(c => {
-            if (c.sale_status === 'sold' && c.updated_at) {
-              const soldDate = new Date(c.updated_at);
-              return soldDate >= from && soldDate <= to;
+          const consignmentCars = allCars.filter(c => 
+            c.ownership_type === 'consignment' && c.sale_status === 'available'
+          ).length;
+          
+          const stockReserved = allCars.filter(c => 
+            c.ownership_type === 'stock' && c.sale_status === 'reserved'
+          ).length;
+          
+          const consignmentReserved = allCars.filter(c => 
+            c.ownership_type === 'consignment' && c.sale_status === 'reserved'
+          ).length;
+
+          const totalCars = allCars.length;
+
+          // Cars bought/added in selected period
+          const stockBoughtPeriod = allCars.filter(c => {
+            if (c.ownership_type === 'stock' && c.created_at) {
+              const addedDate = new Date(c.created_at);
+              return addedDate >= from && addedDate <= to;
             }
             return false;
           }).length;
-          
-          const totalValue = allCars
-            .filter(c => c.sale_status === 'available')
-            .reduce((sum, car) => sum + (car.advertised_price_aed || 0), 0);
+
+          const consignmentBoughtPeriod = allCars.filter(c => {
+            if (c.ownership_type === 'consignment' && c.created_at) {
+              const addedDate = new Date(c.created_at);
+              return addedDate >= from && addedDate <= to;
+            }
+            return false;
+          }).length;
 
           setKpiData({
-            available,
-            reserved,
-            soldThisMonth,
-            totalValue
+            stockCars,
+            consignmentCars,
+            stockReserved,
+            consignmentReserved,
+            totalCars,
+            stockBoughtPeriod,
+            consignmentBoughtPeriod
           });
         }
       } catch (error) {
@@ -396,522 +445,222 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
     fetchKPIData();
   }, [year, months]);
 
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED', minimumFractionDigits: 0 }).format(amount);
-
-  const formatValue = (amount: number) =>
-    amount >= 1000000 
-      ? `${(amount / 1000000).toFixed(1)}M`
-      : amount >= 1000 
-        ? `${(amount / 1000).toFixed(0)}K`
-        : amount.toString();
-
   return (
     <div className="grid gap-3 grid-cols-2">
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Stock (Available)</p>
-        <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.available}</p>
+        <p className="text-[11px] text-white/60">Stock Cars</p>
+        <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.stockCars}</p>
+        <p className="text-[8px] text-white/40">Reserved: {kpiData.stockReserved}</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Reserved</p>
-        <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.reserved}</p>
+        <p className="text-[11px] text-white/60">Consignment Cars</p>
+        <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.consignmentCars}</p>
+        <p className="text-[8px] text-white/40">Reserved: {kpiData.consignmentReserved}</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Sold This Month</p>
-        <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.soldThisMonth}</p>
+        <p className="text-[11px] text-white/60">Total Cars</p>
+        <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.totalCars}</p>
+        <p className="text-[8px] text-white/40">All inventory</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Total Stock Value</p>
+        <p className="text-[11px] text-white/60">Added This Period</p>
         <p className="text-xl font-semibold text-white">
-          {loading ? '—' : `${formatValue(kpiData.totalValue)}`}
+          {loading ? '—' : kpiData.stockBoughtPeriod + kpiData.consignmentBoughtPeriod}
+        </p>
+        <p className="text-[8px] text-white/40">
+          S:{kpiData.stockBoughtPeriod} C:{kpiData.consignmentBoughtPeriod}
         </p>
       </div>
     </div>
   );
 };
 
-/* ---------------- Inventory Dashboard ---------------- */
-const InventoryDashboard: React.FC<{year:number; months:number[]}> = ({year, months}) => {
-  const [inventoryData, setInventoryData] = useState<any>({
-    available: 0,
-    reserved: 0,
-    sold: 0,
-    aging30: 0,
-    aging60: 0,
-    aging90: 0,
-    totalValue: 0,
-    popularModels: []
-  });
+/* ---------------- Monthly Acquisitions Chart ---------------- */
+const InventoryStatusChart: React.FC<{year:number; months:number[]}> = ({year, months}) => {
+  const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchInventoryData() {
+    async function fetchChartData() {
       setLoading(true);
       try {
-        // Calculate date range for filtering
-        let dateFilter = '';
+        // Fetch all cars added to inventory in the selected year
+        const { data: cars } = await supabase
+          .from('cars')
+          .select('ownership_type, created_at')
+          .eq('status', 'inventory')
+          .gte('created_at', new Date(year, 0, 1).toISOString())
+          .lte('created_at', new Date(year, 11, 31).toISOString());
+
+        if (cars) {
+          // Create monthly data for all 12 months
+          const monthlyData = [];
+          for (let month = 1; month <= 12; month++) {
+            const monthCars = cars.filter(car => {
+              const carDate = new Date(car.created_at);
+              return carDate.getMonth() + 1 === month;
+            });
+
+            const stockCars = monthCars.filter(c => c.ownership_type === 'stock').length;
+            const consignmentCars = monthCars.filter(c => c.ownership_type === 'consignment').length;
+
+            monthlyData.push({
+              month: new Date(year, month - 1).toLocaleDateString('default', { month: 'short' }),
+              stock: stockCars,
+              consignment: consignmentCars,
+              total: stockCars + consignmentCars
+            });
+          }
+
+          setChartData(monthlyData);
+        }
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchChartData();
+  }, [year, months]);
+
+  return (
+    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[280px]">
+      <h2 className="text-sm font-semibold text-white/80 mb-3">Monthly Acquisitions ({year})</h2>
+      
+      {loading ? (
+        <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={chartData}>
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0,0,0,0.8)', 
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }} 
+            />
+            <Area dataKey="stock" stackId="1" fill="#ffffff80" name="Stock Cars" />
+            <Area dataKey="consignment" stackId="1" fill="#ffffff40" name="Consignment Cars" />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+};
+
+/* ---------------- Model Demand Chart ---------------- */
+const ModelDemandChart: React.FC<{year:number; months:number[]}> = ({year, months}) => {
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchDemandChart() {
+      setLoading(true);
+      try {
+        // Calculate date range
+        let from: Date, to: Date;
         if (months.length > 0) {
           const firstMonth = Math.min(...months) - 1;
           const lastMonth = Math.max(...months) - 1;
-          const from = new Date(year, firstMonth, 1);
-          const to = new Date(year, lastMonth + 1, 0);
-          dateFilter = `created_at.gte.${from.toISOString().split('T')[0]}.and.created_at.lte.${to.toISOString().split('T')[0]}`;
+          from = new Date(year, firstMonth, 1);
+          to = new Date(year, lastMonth + 1, 0);
         } else {
-          const from = new Date(year, 0, 1);
-          const to = new Date(year, 11, 31);
-          dateFilter = `created_at.gte.${from.toISOString().split('T')[0]}.and.created_at.lte.${to.toISOString().split('T')[0]}`;
+          from = new Date(year, 0, 1);
+          to = new Date(year, 11, 31);
         }
 
-        // Fetch car inventory data
-        const { data: cars } = await supabase
-          .from('cars')
-          .select('sale_status, advertised_price_aed, vehicle_model, stock_age_days, created_at')
-          .eq('status', 'inventory');
-
-        // Fetch lead model interests for comparison (filtered by date)
+        // Fetch leads and inventory
         const { data: leads } = await supabase
           .from('leads')
           .select('model_of_interest')
-          .or(dateFilter);
+          .gte('created_at', from.toISOString().split('T')[0])
+          .lte('created_at', to.toISOString().split('T')[0]);
 
-        if (cars && leads) {
-          // Calculate inventory stats
-          const available = cars.filter(c => c.sale_status === 'available').length;
-          const reserved = cars.filter(c => c.sale_status === 'reserved').length;
-          const sold = cars.filter(c => c.sale_status === 'sold').length;
-          
-          // Calculate aging inventory
-          const aging30 = cars.filter(c => c.stock_age_days && c.stock_age_days > 30 && c.sale_status === 'available').length;
-          const aging60 = cars.filter(c => c.stock_age_days && c.stock_age_days > 60 && c.sale_status === 'available').length;
-          const aging90 = cars.filter(c => c.stock_age_days && c.stock_age_days > 90 && c.sale_status === 'available').length;
-          
-          // Calculate total inventory value
-          const totalValue = cars
-            .filter(c => c.sale_status === 'available')
-            .reduce((sum, car) => sum + (car.advertised_price_aed || 0), 0);
-
-          // Calculate popular models from leads vs inventory
-          const leadModels: Record<string, number> = {};
-          const inventoryModels: Record<string, number> = {};
-          
-          leads.forEach(lead => {
-            if (lead.model_of_interest) {
-              leadModels[lead.model_of_interest] = (leadModels[lead.model_of_interest] || 0) + 1;
-            }
-          });
-          
-          cars.filter(c => c.sale_status === 'available').forEach(car => {
-            if (car.vehicle_model) {
-              inventoryModels[car.vehicle_model] = (inventoryModels[car.vehicle_model] || 0) + 1;
-            }
-          });
-
-          // Create popular models comparison (top 5)
-          const popularModels = Object.entries(leadModels)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 5)
-            .map(([model, demand]) => ({
-              model,
-              demand,
-              supply: inventoryModels[model] || 0
-            }));
-
-          setInventoryData({
-            available,
-            reserved,
-            sold,
-            aging30,
-            aging60,
-            aging90,
-            totalValue,
-            popularModels
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching inventory data:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchInventoryData();
-  }, [year, months]);
-
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED', minimumFractionDigits: 0 }).format(amount);
-
-  return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[260px] overflow-y-auto">
-      <h2 className="text-sm font-semibold text-white/80 mb-3 flex items-center gap-2">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-        Inventory Overview
-      </h2>
-      
-      {loading ? (
-        <div className="flex items-center justify-center h-32 text-white/50">Loading...</div>
-      ) : (
-        <div className="space-y-3">
-          {/* Inventory Status */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-white/5 rounded p-2 text-center">
-              <p className="text-[10px] text-white/60">Available</p>
-              <p className="text-lg font-bold text-green-400">{inventoryData.available}</p>
-            </div>
-            <div className="bg-white/5 rounded p-2 text-center">
-              <p className="text-[10px] text-white/60">Reserved</p>
-              <p className="text-lg font-bold text-yellow-400">{inventoryData.reserved}</p>
-            </div>
-            <div className="bg-white/5 rounded p-2 text-center">
-              <p className="text-[10px] text-white/60">Sold</p>
-              <p className="text-lg font-bold text-blue-400">{inventoryData.sold}</p>
-            </div>
-          </div>
-
-          {/* Aging Alerts */}
-          <div className="bg-white/5 rounded p-2">
-            <p className="text-[10px] text-white/60 mb-1">Aging Stock Alerts</p>
-            <div className="flex justify-between text-xs">
-              <span className="text-orange-400">&gt;30d: {inventoryData.aging30}</span>
-              <span className="text-red-400">&gt;60d: {inventoryData.aging60}</span>
-              <span className="text-red-500">&gt;90d: {inventoryData.aging90}</span>
-            </div>
-          </div>
-
-          {/* Total Value */}
-          <div className="bg-white/5 rounded p-2">
-            <p className="text-[10px] text-white/60">Total Stock Value</p>
-            <p className="text-sm font-bold text-white">{formatCurrency(inventoryData.totalValue)}</p>
-          </div>
-
-          {/* Popular Models Comparison */}
-          <div className="bg-white/5 rounded p-2">
-            <p className="text-[10px] text-white/60 mb-1">Demand vs Supply (Top 5)</p>
-            <div className="space-y-1">
-              {inventoryData.popularModels.slice(0, 3).map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between text-[10px]">
-                  <span className="text-white/70 truncate w-12">{item.model}</span>
-                  <span className="text-blue-400">D:{item.demand}</span>
-                  <span className="text-green-400">S:{item.supply}</span>
-                  <span className={`${item.demand > item.supply ? 'text-red-400' : 'text-green-400'}`}>
-                    {item.demand > item.supply ? '⚠️' : '✅'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-/* ---------------- Model Demand Analysis ---------------- */
-const ModelDemandAnalysis: React.FC<{year:number; months:number[]}> = ({year, months}) => {
-  const [demandData, setDemandData] = useState<any>({
-    currentPeriod: {},
-    previousPeriod: {},
-    gapAnalysis: [],
-    trends: []
-  });
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    async function fetchDemandData() {
-      setLoading(true);
-      try {
-        // Calculate current and previous period dates
-        let currentFrom: Date, currentTo: Date, previousFrom: Date, previousTo: Date;
-        
-        if (months.length > 0) {
-          const firstMonth = Math.min(...months) - 1;
-          const lastMonth = Math.max(...months) - 1;
-          currentFrom = new Date(year, firstMonth, 1);
-          currentTo = new Date(year, lastMonth + 1, 0);
-          
-          // Previous period (same months, previous year)
-          previousFrom = new Date(year - 1, firstMonth, 1);
-          previousTo = new Date(year - 1, lastMonth + 1, 0);
-        } else {
-          // Full year
-          currentFrom = new Date(year, 0, 1);
-          currentTo = new Date(year, 11, 31);
-          previousFrom = new Date(year - 1, 0, 1);
-          previousTo = new Date(year - 1, 11, 31);
-        }
-
-        // Fetch current period leads
-        const { data: currentLeads } = await supabase
-          .from('leads')
-          .select('model_of_interest')
-          .gte('created_at', currentFrom.toISOString().split('T')[0])
-          .lte('created_at', currentTo.toISOString().split('T')[0]);
-
-        // Fetch previous period leads
-        const { data: previousLeads } = await supabase
-          .from('leads')
-          .select('model_of_interest')
-          .gte('created_at', previousFrom.toISOString().split('T')[0])
-          .lte('created_at', previousTo.toISOString().split('T')[0]);
-
-        // Fetch current inventory
-        const { data: inventory } = await supabase
+        const { data: cars } = await supabase
           .from('cars')
-          .select('vehicle_model')
+          .select('model_family')
           .eq('status', 'inventory')
           .eq('sale_status', 'available');
 
-        if (currentLeads && previousLeads && inventory) {
-          // Count current period demand
-          const currentDemand: Record<string, number> = {};
-          currentLeads.forEach(lead => {
-            if (lead.model_of_interest) {
-              currentDemand[lead.model_of_interest] = (currentDemand[lead.model_of_interest] || 0) + 1;
-            }
-          });
+                 if (leads && cars) {
+           // Count demand by model of interest
+           const demandCount: Record<string, number> = {};
+           leads.forEach(lead => {
+             if (lead.model_of_interest) {
+               demandCount[lead.model_of_interest] = (demandCount[lead.model_of_interest] || 0) + 1;
+             }
+           });
 
-          // Count previous period demand
-          const previousDemand: Record<string, number> = {};
-          previousLeads.forEach(lead => {
-            if (lead.model_of_interest) {
-              previousDemand[lead.model_of_interest] = (previousDemand[lead.model_of_interest] || 0) + 1;
-            }
-          });
+           // Create chart data for top 5 demanded models
+           const chartData = Object.entries(demandCount)
+             .sort(([,a], [,b]) => b - a)
+             .slice(0, 5)
+             .map(([demandedModel, demand]) => {
+               // Match based on model_family from inventory
+               const matchingSupply = cars.filter(car => {
+                 if (!car.model_family) return false;
+                 
+                 // Case-insensitive matching - check if model_family matches the demanded model
+                 const modelFamily = car.model_family.toUpperCase();
+                 const requestedModel = demandedModel.toUpperCase();
+                 
+                 // Direct match or contains match
+                 return modelFamily === requestedModel || 
+                        modelFamily.includes(requestedModel) ||
+                        requestedModel.includes(modelFamily);
+               }).length;
 
-          // Count current inventory
-          const currentInventory: Record<string, number> = {};
-          inventory.forEach(car => {
-            if (car.vehicle_model) {
-              currentInventory[car.vehicle_model] = (currentInventory[car.vehicle_model] || 0) + 1;
-            }
-          });
+               return {
+                 model: demandedModel.length > 8 ? demandedModel.slice(0, 8) + '...' : demandedModel,
+                 demand,
+                 supply: matchingSupply,
+                 gap: demand - matchingSupply
+               };
+             });
 
-          // Calculate gap analysis (high demand, low inventory)
-          const gapAnalysis = Object.entries(currentDemand)
-            .map(([model, demand]) => ({
-              model,
-              demand,
-              supply: currentInventory[model] || 0,
-              gap: demand - (currentInventory[model] || 0),
-              growthRate: previousDemand[model] ? 
-                ((demand - previousDemand[model]) / previousDemand[model] * 100) : 100
-            }))
-            .filter(item => item.gap > 0)
-            .sort((a, b) => b.gap - a.gap)
-            .slice(0, 5);
-
-          // Calculate top trends (growth rates)
-          const trends = Object.entries(currentDemand)
-            .map(([model, demand]) => ({
-              model,
-              current: demand,
-              previous: previousDemand[model] || 0,
-              change: demand - (previousDemand[model] || 0),
-              growthRate: previousDemand[model] ? 
-                ((demand - previousDemand[model]) / previousDemand[model] * 100) : 100
-            }))
-            .sort((a, b) => b.growthRate - a.growthRate)
-            .slice(0, 5);
-
-          setDemandData({
-            currentPeriod: currentDemand,
-            previousPeriod: previousDemand,
-            gapAnalysis,
-            trends
-          });
-        }
+           setChartData(chartData);
+         }
       } catch (error) {
-        console.error('Error fetching demand data:', error);
+        console.error('Error fetching demand chart:', error);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchDemandData();
+    fetchDemandChart();
   }, [year, months]);
 
   return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[260px] overflow-y-auto">
-      <h2 className="text-sm font-semibold text-white/80 mb-3 flex items-center gap-2">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-        Model Demand Analysis
-      </h2>
+    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[280px]">
+      <h2 className="text-sm font-semibold text-white/80 mb-3">Demand vs Supply</h2>
       
       {loading ? (
-        <div className="flex items-center justify-center h-32 text-white/50">Loading...</div>
+        <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
       ) : (
-        <div className="space-y-3">
-          {/* Gap Analysis */}
-          <div className="bg-white/5 rounded p-2">
-            <p className="text-[10px] text-white/60 mb-2 flex items-center gap-1">
-              <span className="w-2 h-2 bg-red-400 rounded"></span>
-              High Demand, Low Stock
-            </p>
-            <div className="space-y-1">
-              {demandData.gapAnalysis.slice(0, 3).map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-center text-[10px]">
-                  <span className="text-white/70 truncate w-14">{item.model}</span>
-                  <div className="flex gap-2">
-                    <span className="text-red-400">-{item.gap}</span>
-                    <span className="text-white/50">({item.demand}/{item.supply})</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Trend Analysis */}
-          <div className="bg-white/5 rounded p-2">
-            <p className="text-[10px] text-white/60 mb-2 flex items-center gap-1">
-              <span className="w-2 h-2 bg-green-400 rounded"></span>
-              Growth Trends (vs Last Year)
-            </p>
-            <div className="space-y-1">
-              {demandData.trends.slice(0, 3).map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-center text-[10px]">
-                  <span className="text-white/70 truncate w-14">{item.model}</span>
-                  <div className="flex gap-2">
-                    <span className={`${item.change > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {item.change > 0 ? '+' : ''}{item.change}
-                    </span>
-                    <span className="text-white/50">
-                      ({item.current}/{item.previous})
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Period Comparison */}
-          <div className="bg-white/5 rounded p-2">
-            <p className="text-[10px] text-white/60 mb-1">Period Comparison</p>
-            <div className="flex justify-between text-xs">
-              <div className="text-center">
-                <p className="text-white/50">Current</p>
-                <p className="text-white font-bold">
-                  {Object.values(demandData.currentPeriod).reduce((a: number, b: number) => a + b, 0)}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-white/50">Previous</p>
-                <p className="text-white font-bold">
-                  {Object.values(demandData.previousPeriod).reduce((a: number, b: number) => a + b, 0)}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-white/50">Change</p>
-                <p className={`font-bold ${
-                  Object.values(demandData.currentPeriod).reduce((a: number, b: number) => a + b, 0) > 
-                  Object.values(demandData.previousPeriod).reduce((a: number, b: number) => a + b, 0) 
-                    ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {Object.values(demandData.currentPeriod).reduce((a: number, b: number) => a + b, 0) > 
-                   Object.values(demandData.previousPeriod).reduce((a: number, b: number) => a + b, 0) ? '+' : ''}
-                  {Object.values(demandData.currentPeriod).reduce((a: number, b: number) => a + b, 0) - 
-                   Object.values(demandData.previousPeriod).reduce((a: number, b: number) => a + b, 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={chartData}>
+            <XAxis dataKey="model" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0,0,0,0.8)', 
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }} 
+            />
+            <Bar dataKey="demand" fill="#ffffff80" name="Demand" />
+            <Bar dataKey="supply" fill="#ffffff40" name="Supply" />
+          </BarChart>
+        </ResponsiveContainer>
       )}
     </div>
   );
 };
 
-/* ---------------- Mini Calendar ---------------- */
-const MiniCalendar: React.FC<{year:number; months:number[]}> = ({year, months}) => {
-  const [events, setEvents] = useState<Record<string, any[]>>({}); // date -> leads array
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchAppts() {
-      let start: dayjs.Dayjs;
-      let end: dayjs.Dayjs;
-      
-      if (months.length === 0) {
-        // When no months selected, show current month
-        start = dayjs().startOf('month');
-        end = dayjs().endOf('month');
-      } else {
-        // When specific months are selected, show first selected month
-        const firstMonth = months[0] - 1; // JS month index
-        start = dayjs(new Date(year, firstMonth, 1)).startOf('month');
-        end = dayjs(start).endOf('month');
-      }
-
-      const { data } = await supabase
-        .from('leads')
-        .select('id,full_name,time_slot,appointment_date')
-        .gte('appointment_date', start.format('YYYY-MM-DD'))
-        .lte('appointment_date', end.format('YYYY-MM-DD'));
-
-      const map: Record<string, any[]> = {};
-      (data || []).forEach((row: any) => {
-        const d = row.appointment_date;
-        map[d] ||= [];
-        map[d].push(row);
-      });
-      setEvents(map);
-    }
-    fetchAppts();
-  }, [year, months]);
-
-  // Build days grid for first selected month
-  const monthIdx = months.length ? months[0] - 1 : new Date().getMonth();
-  const firstDay = dayjs(new Date(year, monthIdx, 1));
-  const daysInMonth = firstDay.daysInMonth();
-  const prefix = firstDay.day(); // 0=Sun
-
-  const weeks: (number | null)[] = Array(prefix).fill(null).concat(
-    Array.from({ length: daysInMonth }, (_, i) => i + 1)
-  );
-  while (weeks.length % 7 !== 0) weeks.push(null);
-
-  return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-3 border border-white/10 h-[260px] flex flex-col">
-      <h2 className="text-xs font-semibold text-white/80 mb-2">
-        {firstDay.format('MMMM YYYY')}
-      </h2>
-      <div className="grid grid-cols-7 gap-1 text-[10px] text-center text-white/60 mb-1">
-        {['S','M','T','W','T','F','S'].map((d,index)=>(<div key={index}>{d}</div>))}
-      </div>
-      <div className="grid grid-cols-7 gap-1 text-[10px] flex-1 overflow-y-auto">
-        {weeks.map((day,i)=>{
-          if(day===null) return <div key={i} />;
-          const dateStr = dayjs(new Date(year, monthIdx, day)).format('YYYY-MM-DD');
-          const has = events[dateStr]?.length;
-          const selected = selectedDate===dateStr;
-          return (
-            <button
-              key={i}
-              onClick={()=>setSelectedDate(dateStr)}
-              className={`h-6 rounded flex items-center justify-center relative
-                ${selected ? 'bg-white text-black shadow-inner' : has ? 'bg-white/10 text-white shadow' : 'bg-white/5 hover:bg-white/10 text-white/50'}
-              `}
-            >
-              {day}
-              {has && !selected && (
-                <span className="absolute bottom-0.5 right-0.5 w-1 h-1 rounded-full bg-white"></span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-      {selectedDate && events[selectedDate]?.length && (
-        <div className="mt-2 flex-1 overflow-y-auto text-[11px] text-white/80">
-          <p className="mb-1 font-semibold">{dayjs(selectedDate).format('DD MMM')} Appointments</p>
-          {events[selectedDate].map((e,i)=>(
-            <div key={i} className="border-b border-white/10 py-0.5 last:border-none">
-              {e.time_slot?.slice(0,5)} – {e.full_name}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}; 
+ 

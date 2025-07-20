@@ -60,13 +60,13 @@ export default function SignupPage() {
         <div className="relative z-10 text-center max-w-lg">
           <div className="mb-8">
             <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
-              Join<br />
+              Join the<br />
               <span className="bg-gradient-to-r from-gray-300 to-white bg-clip-text text-transparent">
-                SilberArrows
+                Team
               </span>
             </h1>
             <p className="text-xl text-gray-300 leading-relaxed">
-              Create your account to access our premium automotive CRM platform and start managing your business.
+              Create your account to access the internal CRM system and start managing leads and inventory.
             </p>
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function SignupPage() {
           {/* Desktop Welcome */}
           <div className="hidden lg:block mb-8 text-center">
             <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
-            <p className="text-gray-400">Get started with SilberArrows</p>
+            <p className="text-gray-400">Get access to the internal system</p>
           </div>
 
           {/* Signup Form */}

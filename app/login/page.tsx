@@ -65,9 +65,9 @@ export default function LoginPage() {
         <div className="relative z-10 text-center max-w-lg">
           <div className="mb-8">
             <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
-              Welcome to<br />
+              Welcome to Your<br />
               <span className="bg-gradient-to-r from-gray-300 to-white bg-clip-text text-transparent">
-                SilberArrows
+                Dashboard
               </span>
             </h1>
             <p className="text-xl text-gray-300 leading-relaxed">

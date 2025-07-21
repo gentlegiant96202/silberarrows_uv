@@ -217,6 +217,11 @@ export default function DashboardPage() {
           <StockAgeInsights year={year} months={months} />
         </div>
 
+        {/* Location Insights */}
+        <div className="mt-4">
+          <LocationInsights year={year} months={months} />
+        </div>
+
                 {/* Third row: Charts and Analytics */}
         <div className="grid gap-4 mt-4 lg:grid-cols-2">
           {/* Lead Conversion Funnel */}
@@ -1142,6 +1147,186 @@ const ModelDemandChart: React.FC<{year:number; months:number[]}> = ({year, month
         </ResponsiveContainer>
       )}
     </div>
+  );
+};
+
+/* ---------------- Location Insights ---------------- */
+const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, months}) => {
+  const [locationData, setLocationData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showCarList, setShowCarList] = useState<{ location: string; cars: any[] } | null>(null);
+
+  useEffect(() => {
+    async function fetchLocationData() {
+      setLoading(true);
+      try {
+        // Fetch all current inventory cars with location data
+        const { data: cars, error } = await supabase
+          .from('cars')
+          .select('id, stock_number, vehicle_model, model_year, ownership_type, car_location, advertised_price_aed, stock_age_days')
+          .eq('status', 'inventory')
+          .eq('sale_status', 'available');
+
+        if (error) {
+          console.error('❌ [Location] Error fetching cars:', error);
+          return;
+        }
+
+        if (cars) {
+          // Define all possible locations
+          const locations = ['SHOWROOM','YARD','STONE','CAR PARK','SHOWROOM 2','NOT ON SITE','GARGASH'];
+          
+          // Group cars by location
+          const locationGroups: Record<string, any[]> = {};
+          let unaccountedCars: any[] = [];
+
+          // Initialize location groups
+          locations.forEach(loc => {
+            locationGroups[loc] = [];
+          });
+
+          // Categorize cars
+          cars.forEach(car => {
+            if (!car.car_location || car.car_location.trim() === '') {
+              unaccountedCars.push(car);
+            } else {
+              const location = car.car_location.toUpperCase();
+              if (locationGroups[location]) {
+                locationGroups[location].push(car);
+              } else {
+                // Handle any unexpected locations
+                locationGroups[location] = locationGroups[location] || [];
+                locationGroups[location].push(car);
+              }
+            }
+          });
+
+          // Create data for cards
+          const locationCards = [];
+          
+          // Add cards for each location
+          Object.entries(locationGroups).forEach(([location, cars]) => {
+            if (cars.length > 0) {
+              locationCards.push({
+                location,
+                count: cars.length,
+                cars,
+                type: 'location'
+              });
+            }
+          });
+
+          // Add unaccounted card if there are cars without location
+          if (unaccountedCars.length > 0) {
+            locationCards.push({
+              location: 'UNACCOUNTED FOR',
+              count: unaccountedCars.length,
+              cars: unaccountedCars,
+              type: 'unaccounted'
+            });
+          }
+
+          setLocationData(locationCards);
+        }
+      } catch (error) {
+        console.error('Error fetching location data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLocationData();
+  }, [year, months]);
+
+  const handleLocationClick = (locationCard: any) => {
+    setShowCarList({ 
+      location: locationCard.location, 
+      cars: locationCard.cars 
+    });
+  };
+
+  return (
+    <>
+      <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
+        <h3 className="text-white text-sm font-semibold mb-4">📍 Vehicle Locations</h3>
+        
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white/50"></div>
+          </div>
+        ) : (
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {locationData.map((locationCard) => (
+              <div 
+                key={locationCard.location}
+                onClick={() => handleLocationClick(locationCard)}
+                className={`cursor-pointer transition-all duration-200 rounded-lg p-3 border ${
+                  locationCard.type === 'unaccounted' 
+                    ? 'bg-red-500/10 border-red-400/30 hover:bg-red-500/20 hover:border-red-400/50' 
+                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${
+                    locationCard.type === 'unaccounted' ? 'text-red-400' : 'text-white'
+                  }`}>
+                    {locationCard.count}
+                  </div>
+                  <div className={`text-xs font-medium ${
+                    locationCard.type === 'unaccounted' ? 'text-red-300' : 'text-white/70'
+                  }`}>
+                    {locationCard.location}
+                  </div>
+                  <div className="text-xs text-white/40 mt-1">
+                    {locationCard.count === 1 ? 'vehicle' : 'vehicles'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Location Cars Modal */}
+      {showCarList && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur flex items-center justify-center z-50 p-4">
+          <div className="bg-black/90 rounded-lg border border-white/20 max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">
+                📍 {showCarList.location} - {showCarList.cars.length} vehicles
+              </h2>
+              <button 
+                onClick={() => setShowCarList(null)}
+                className="text-white/60 hover:text-white text-xl"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              {showCarList.cars.length === 0 ? (
+                <p className="text-white/60 text-center py-8">No cars found at this location</p>
+              ) : (
+                <div className="grid gap-3">
+                  {showCarList.cars.map((car) => (
+                    <div key={car.id} className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-center justify-between">
+                      <div>
+                        <div className="text-white font-semibold">{car.stock_number}</div>
+                        <div className="text-white/70 text-sm">{car.model_year} {car.vehicle_model}</div>
+                        <div className="text-white/50 text-xs">{car.ownership_type}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-white font-semibold">AED {car.advertised_price_aed?.toLocaleString()}</div>
+                        <div className="text-white/60 text-sm">{car.stock_age_days || 0} days</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

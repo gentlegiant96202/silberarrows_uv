@@ -1201,30 +1201,27 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
             }
           });
 
-          // Create data for cards
+          // Create data for cards - ALWAYS show all 8 cards (7 locations + unaccounted)
           const locationCards = [];
           
-          // Add cards for each location
-          Object.entries(locationGroups).forEach(([location, cars]) => {
-            if (cars.length > 0) {
-              locationCards.push({
-                location,
-                count: cars.length,
-                cars,
-                type: 'location'
-              });
-            }
+          // Add cards for each location (always show all 7 locations)
+          locations.forEach(location => {
+            const cars = locationGroups[location] || [];
+            locationCards.push({
+              location,
+              count: cars.length,
+              cars,
+              type: 'location'
+            });
           });
 
-          // Add unaccounted card if there are cars without location
-          if (unaccountedCars.length > 0) {
-            locationCards.push({
-              location: 'UNACCOUNTED FOR',
-              count: unaccountedCars.length,
-              cars: unaccountedCars,
-              type: 'unaccounted'
-            });
-          }
+          // Always add unaccounted card (even if 0 cars)
+          locationCards.push({
+            location: 'UNACCOUNTED FOR',
+            count: unaccountedCars.length,
+            cars: unaccountedCars,
+            type: 'unaccounted'
+          });
 
           setLocationData(locationCards);
         }

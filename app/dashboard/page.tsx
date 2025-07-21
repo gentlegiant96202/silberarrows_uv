@@ -1252,29 +1252,29 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white/50"></div>
           </div>
         ) : (
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div className="flex gap-2 overflow-x-auto">
             {locationData.map((locationCard) => (
               <div 
                 key={locationCard.location}
                 onClick={() => handleLocationClick(locationCard)}
-                className={`cursor-pointer transition-all duration-200 rounded-lg p-3 border ${
+                className={`cursor-pointer transition-all duration-200 rounded-lg p-2 border flex-shrink-0 min-w-[100px] ${
                   locationCard.type === 'unaccounted' 
                     ? 'bg-red-500/10 border-red-400/30 hover:bg-red-500/20 hover:border-red-400/50' 
                     : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                 }`}
               >
                 <div className="text-center">
-                  <div className={`text-2xl font-bold ${
+                  <div className={`text-lg font-bold ${
                     locationCard.type === 'unaccounted' ? 'text-red-400' : 'text-white'
                   }`}>
                     {locationCard.count}
                   </div>
-                  <div className={`text-xs font-medium ${
+                  <div className={`text-[10px] font-medium ${
                     locationCard.type === 'unaccounted' ? 'text-red-300' : 'text-white/70'
                   }`}>
                     {locationCard.location}
                   </div>
-                  <div className="text-xs text-white/40 mt-1">
+                  <div className="text-[9px] text-white/40">
                     {locationCard.count === 1 ? 'vehicle' : 'vehicles'}
                   </div>
                 </div>

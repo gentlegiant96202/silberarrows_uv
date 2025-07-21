@@ -1252,12 +1252,12 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white/50"></div>
           </div>
         ) : (
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex gap-2">
             {locationData.map((locationCard) => (
               <div 
                 key={locationCard.location}
                 onClick={() => handleLocationClick(locationCard)}
-                className={`cursor-pointer transition-all duration-200 rounded-lg p-2 border flex-shrink-0 min-w-[100px] ${
+                className={`cursor-pointer transition-all duration-200 rounded-lg p-2 border flex-1 ${
                   locationCard.type === 'unaccounted' 
                     ? 'bg-red-500/10 border-red-400/30 hover:bg-red-500/20 hover:border-red-400/50' 
                     : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'

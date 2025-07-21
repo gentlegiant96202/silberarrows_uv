@@ -40,6 +40,9 @@ interface CarInfo {
   car_location: string | null;
   fuel_level: number | null;
   stock_age_days: number | null;
+  customer_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
 }
 
 interface Props {
@@ -510,6 +513,60 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                 </dl>
               </div>
             ))}
+
+            {/* Vehicle Owner Details - Only for Consignment Cars */}
+            {localCar.ownership_type === 'consignment' && (
+              <div className="border border-white/15 rounded-md p-3 bg-white/5">
+                <h3 className="text-white text-[12px] font-bold mb-1 uppercase tracking-wide">Vehicle Owner Details</h3>
+                <dl className="grid grid-cols-1 gap-x-4 gap-y-2">
+                  <div className="flex items-start justify-between">
+                    <dt className="text-white/60 text-[11px]">Owner Name</dt>
+                    <dd className="text-white text-[11px] max-w-[60%] text-right whitespace-normal break-words">
+                      {editing ? (
+                        <input 
+                          type="text" 
+                          className="bg-black/40 border border-white/20 px-1 text-right w-full" 
+                          value={localCar.customer_name ?? ''} 
+                          onChange={e=>handleFieldChange('customer_name', e.target.value)} 
+                        />
+                      ) : (
+                        localCar.customer_name || '—'
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <dt className="text-white/60 text-[11px]">Phone Number</dt>
+                    <dd className="text-white text-[11px] max-w-[60%] text-right whitespace-normal break-words">
+                      {editing ? (
+                        <input 
+                          type="text" 
+                          className="bg-black/40 border border-white/20 px-1 text-right w-full" 
+                          value={localCar.customer_phone ?? ''} 
+                          onChange={e=>handleFieldChange('customer_phone', e.target.value)} 
+                        />
+                      ) : (
+                        localCar.customer_phone || '—'
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <dt className="text-white/60 text-[11px]">Email Address</dt>
+                    <dd className="text-white text-[11px] max-w-[60%] text-right whitespace-normal break-words">
+                      {editing ? (
+                        <input 
+                          type="email" 
+                          className="bg-black/40 border border-white/20 px-1 text-right w-full" 
+                          value={localCar.customer_email ?? ''} 
+                          onChange={e=>handleFieldChange('customer_email', e.target.value)} 
+                        />
+                      ) : (
+                        localCar.customer_email || '—'
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )}
 
             {/* Removed description block from left column */}
           </div>

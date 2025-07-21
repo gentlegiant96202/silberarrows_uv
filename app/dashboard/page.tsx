@@ -191,9 +191,19 @@ export default function DashboardPage() {
     <main className="min-h-screen overflow-y-auto no-scrollbar">
       <Header />
       <div className="p-4 text-white text-sm">
-        <h1 className="text-lg font-semibold mb-4">Dashboard</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg font-semibold">Dashboard</h1>
+          <a 
+            href="/dashboard/gargash-report" 
+            className="px-6 py-3 bg-black border border-white/20 hover:border-white/40 text-white text-sm font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-3 hover:bg-white/5 group"
+          >
+            <span className="text-lg group-hover:scale-110 transition-transform duration-200">◼️</span>
+            <span>Gargash Report</span>
+          </a>
+        </div>
         <DashboardFilterBar />
-        {/* Board grid split */}
+        
+        {/* Top row: Lead and Inventory KPIs */}
         <div className="grid gap-4 lg:grid-cols-2">
           {/* Left column */}
           <LeadKPICards year={year} months={months} />
@@ -202,16 +212,16 @@ export default function DashboardPage() {
           <InventoryKPICards year={year} months={months} />
         </div>
 
-        {/* Second row: Charts and Analytics */}
-        <div className="grid gap-4 mt-4 lg:grid-cols-3">
+        {/* Second row: Stock Age Insights */}
+        <div className="mt-4">
+          <StockAgeInsights year={year} months={months} />
+        </div>
+
+                {/* Third row: Charts and Analytics */}
+        <div className="grid gap-4 mt-4 lg:grid-cols-2">
           {/* Lead Conversion Funnel */}
           <div className="lg:col-span-1">
             <LeadsFunnel />
-          </div>
-
-          {/* Inventory Status Chart */}
-          <div className="lg:col-span-1">
-            <InventoryStatusChart year={year} months={months} />
           </div>
 
           {/* Model Demand Chart */}
@@ -220,6 +230,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Fourth row: Acquisitions Charts */}
+        <div className="grid gap-4 mt-4 lg:grid-cols-2">
+          {/* Stock Acquisitions Chart */}
+          <div className="lg:col-span-1">
+            <StockAcquisitionsChart year={year} months={months} />
+          </div>
+
+          {/* Consignment Acquisitions Chart */}
+          <div className="lg:col-span-1">
+            <ConsignmentAcquisitionsChart year={year} months={months} />
+          </div>
+        </div>
+
+        {/* Fifth row: Combined Acquisitions Trend */}
+        <div className="mt-4">
+          <AcquisitionsTrendChart year={year} months={months} />
+        </div>
 
       </div>
     </main>
@@ -475,25 +502,453 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
   );
 };
 
-/* ---------------- Monthly Acquisitions Chart ---------------- */
-const InventoryStatusChart: React.FC<{year:number; months:number[]}> = ({year, months}) => {
+/* ---------------- Stock Age Insights ---------------- */
+const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, months}) => {
+  const [ageData, setAgeData] = useState({
+    stockAvgAge: 0,
+    consignmentAvgAge: 0,
+    freshCars: 0,
+    agingCars: 0,
+    oldCars: 0,
+    stockFresh: 0,
+    stockAging: 0,
+    stockOld: 0,
+    consignmentFresh: 0,
+    consignmentAging: 0,
+    consignmentOld: 0
+  });
+  const [loading, setLoading] = useState(false);
+  const [showCarList, setShowCarList] = useState<{ type: string; cars: any[] } | null>(null);
+
+  useEffect(() => {
+    async function fetchStockAgeData() {
+      setLoading(true);
+      try {
+        // Fetch all current inventory cars with stock age
+        const { data: cars, error } = await supabase
+          .from('cars')
+          .select('ownership_type, stock_age_days')
+          .eq('status', 'inventory')
+          .eq('sale_status', 'available')
+          .not('stock_age_days', 'is', null);
+
+        if (error) {
+          console.error('❌ [Stock Age] Error fetching cars:', error);
+          return;
+        }
+
+        if (cars) {
+          // Separate by ownership type
+          const stockCars = cars.filter(c => c.ownership_type === 'stock');
+          const consignmentCars = cars.filter(c => c.ownership_type === 'consignment');
+
+          // Calculate averages
+          const stockAvgAge = stockCars.length > 0 
+            ? Math.round(stockCars.reduce((sum, car) => sum + (car.stock_age_days || 0), 0) / stockCars.length)
+            : 0;
+          
+          const consignmentAvgAge = consignmentCars.length > 0 
+            ? Math.round(consignmentCars.reduce((sum, car) => sum + (car.stock_age_days || 0), 0) / consignmentCars.length)
+            : 0;
+
+          // Categorize by age ranges
+          const categorizeByAge = (carList: any[]) => {
+            const fresh = carList.filter(c => (c.stock_age_days || 0) < 60).length;
+            const aging = carList.filter(c => (c.stock_age_days || 0) >= 60 && (c.stock_age_days || 0) < 90).length;
+            const old = carList.filter(c => (c.stock_age_days || 0) >= 90).length;
+            return { fresh, aging, old };
+          };
+
+          const stockAges = categorizeByAge(stockCars);
+          const consignmentAges = categorizeByAge(consignmentCars);
+
+          // Overall totals
+          const freshCars = stockAges.fresh + consignmentAges.fresh;
+          const agingCars = stockAges.aging + consignmentAges.aging;
+          const oldCars = stockAges.old + consignmentAges.old;
+
+          setAgeData({
+            stockAvgAge,
+            consignmentAvgAge,
+            freshCars,
+            agingCars,
+            oldCars,
+            stockFresh: stockAges.fresh,
+            stockAging: stockAges.aging,
+            stockOld: stockAges.old,
+            consignmentFresh: consignmentAges.fresh,
+            consignmentAging: consignmentAges.aging,
+            consignmentOld: consignmentAges.old
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching stock age data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchStockAgeData();
+  }, [year, months]); // Update when filters change to refresh data
+
+  const handleCategoryClick = async (category: 'fresh' | 'aging' | 'old') => {
+    try {
+      let minDays = 0;
+      let maxDays = 0;
+      let title = '';
+
+      switch (category) {
+        case 'fresh':
+          minDays = 0;
+          maxDays = 59;
+          title = 'Fresh Cars (0-59 days)';
+          break;
+        case 'aging':
+          minDays = 60;
+          maxDays = 89;
+          title = 'Aging Cars (60-89 days)';
+          break;
+        case 'old':
+          minDays = 90;
+          maxDays = 9999;
+          title = 'Old Cars (90+ days)';
+          break;
+      }
+
+      const { data: cars, error } = await supabase
+        .from('cars')
+        .select('id, stock_number, vehicle_model, model_year, ownership_type, stock_age_days, advertised_price_aed')
+        .eq('status', 'inventory')
+        .eq('sale_status', 'available')
+        .gte('stock_age_days', minDays)
+        .lte('stock_age_days', maxDays)
+        .order('stock_age_days', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching car list:', error);
+        return;
+      }
+
+      setShowCarList({ type: title, cars: cars || [] });
+    } catch (error) {
+      console.error('Error in handleCategoryClick:', error);
+    }
+  };
+
+  return (
+    <>
+      <div className="rounded-lg bg-black/50 backdrop-blur p-4 border border-white/10">
+        <h3 className="text-sm font-semibold text-white/80 mb-3">Stock Age Analysis</h3>
+        <div className="grid gap-3 grid-cols-5">
+          {/* Average Ages */}
+          <div className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner">
+            <p className="text-[11px] text-white/60">Stock Avg Age</p>
+            <p className="text-lg font-semibold text-white">{loading ? '—' : `${ageData.stockAvgAge}`}</p>
+            <p className="text-[8px] text-white/40">days</p>
+          </div>
+          <div className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner">
+            <p className="text-[11px] text-white/60">Consignment Avg</p>
+            <p className="text-lg font-semibold text-white">{loading ? '—' : `${ageData.consignmentAvgAge}`}</p>
+            <p className="text-[8px] text-white/40">days</p>
+          </div>
+          
+          {/* Age Categories - Clickable */}
+          <div 
+            className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner cursor-pointer hover:bg-white/20 transition-colors"
+            onClick={() => handleCategoryClick('fresh')}
+          >
+            <p className="text-[11px] text-white/60">Fresh (0-59d)</p>
+            <p className="text-lg font-semibold text-white">{loading ? '—' : ageData.freshCars}</p>
+            <p className="text-[8px] text-white/40">S:{ageData.stockFresh} C:{ageData.consignmentFresh}</p>
+          </div>
+          <div 
+            className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner cursor-pointer hover:bg-white/20 transition-colors"
+            onClick={() => handleCategoryClick('aging')}
+          >
+            <p className="text-[11px] text-white/60">Aging (60-89d)</p>
+            <p className="text-lg font-semibold text-white">{loading ? '—' : ageData.agingCars}</p>
+            <p className="text-[8px] text-white/40">S:{ageData.stockAging} C:{ageData.consignmentAging}</p>
+          </div>
+          <div 
+            className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner cursor-pointer hover:bg-white/20 transition-colors"
+            onClick={() => handleCategoryClick('old')}
+          >
+            <p className="text-[11px] text-white/60">Old (90+ days)</p>
+            <p className="text-lg font-semibold text-white">{loading ? '—' : ageData.oldCars}</p>
+            <p className="text-[8px] text-white/40">S:{ageData.stockOld} C:{ageData.consignmentOld}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Car List Modal */}
+      {showCarList && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur flex items-center justify-center z-50 p-4">
+          <div className="bg-black/90 rounded-lg border border-white/20 max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">{showCarList.type}</h2>
+              <button 
+                onClick={() => setShowCarList(null)}
+                className="text-white/60 hover:text-white text-xl"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              {showCarList.cars.length === 0 ? (
+                <p className="text-white/60 text-center py-8">No cars found in this category</p>
+              ) : (
+                <div className="grid gap-3">
+                  {showCarList.cars.map((car) => (
+                    <div key={car.id} className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-center justify-between">
+                      <div>
+                        <div className="text-white font-semibold">{car.stock_number}</div>
+                        <div className="text-white/70 text-sm">{car.model_year} {car.vehicle_model}</div>
+                        <div className="text-white/50 text-xs">{car.ownership_type}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-white font-semibold">AED {car.advertised_price_aed?.toLocaleString()}</div>
+                        <div className="text-white/60 text-sm">{car.stock_age_days} days</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+/* ---------------- Stock Acquisitions Chart ---------------- */
+const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year, months}) => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchChartData() {
+    async function fetchStockData() {
       setLoading(true);
       try {
-        // Fetch all cars added to inventory in the selected year
+        console.log(`🔍 [Stock] Fetching data for year: ${year}`);
+        
+        const { data: cars, error } = await supabase
+          .from('cars')
+          .select('created_at, advertised_price_aed, stock_number')
+          .eq('ownership_type', 'stock')
+          .gte('created_at', `${year}-01-01`)
+          .lte('created_at', `${year}-12-31T23:59:59`);
+
+        if (error) {
+          console.error('❌ [Stock] Query error:', error);
+          return;
+        }
+
+        console.log(`✅ [Stock] Found ${cars?.length || 0} cars for ${year}`);
+
+        if (cars) {
+          const monthlyData = [];
+          for (let month = 1; month <= 12; month++) {
+            const monthCars = cars.filter(car => {
+              const carDate = new Date(car.created_at);
+              const carMonth = carDate.getMonth() + 1;
+              return carMonth === month;
+            });
+
+            const count = monthCars.length;
+            
+            // Debug January specifically
+            if (month === 1) {
+              console.log(`📊 [Stock] January ${year} cars:`, count);
+            }
+
+            monthlyData.push({
+              month: new Date(year, month - 1).toLocaleDateString('default', { month: 'short' }),
+              count
+            });
+          }
+
+          setChartData(monthlyData);
+        }
+      } catch (error) {
+        console.error('💥 [Stock] Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchStockData();
+  }, [year, months]);
+
+  return (
+    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[300px]">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-white/80">Stock Acquisitions ({year})</h2>
+        <div className="flex items-center gap-4 text-xs text-white/50">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-2 bg-white/80 rounded-sm"></div>
+            <span>Count</span>
+          </div>
+        </div>
+      </div>
+      
+      {loading ? (
+        <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={240}>
+          <AreaChart data={chartData}>
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0,0,0,0.9)', 
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }} 
+              formatter={(value: any, name: string) => {
+                if (name === 'count') return [value, 'Cars Added'];
+                return [value, name];
+              }}
+            />
+            <Area dataKey="count" fill="url(#stockGradient)" stroke="#ffffff80" strokeWidth={2} name="count" />
+            <defs>
+              <linearGradient id="stockGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.1}/>
+              </linearGradient>
+            </defs>
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+};
+
+/* ---------------- Consignment Acquisitions Chart ---------------- */
+const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year, months}) => {
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchConsignmentData() {
+      setLoading(true);
+      try {
+        console.log(`🔍 [Consignment] Fetching data for year: ${year}`);
+        
+        const { data: cars, error } = await supabase
+          .from('cars')
+          .select('created_at, advertised_price_aed, stock_number')
+          .eq('ownership_type', 'consignment')
+          .gte('created_at', `${year}-01-01`)
+          .lte('created_at', `${year}-12-31T23:59:59`);
+
+        if (error) {
+          console.error('❌ [Consignment] Query error:', error);
+          return;
+        }
+
+        console.log(`✅ [Consignment] Found ${cars?.length || 0} cars for ${year}`);
+
+        if (cars) {
+          const monthlyData = [];
+          for (let month = 1; month <= 12; month++) {
+            const monthCars = cars.filter(car => {
+              const carDate = new Date(car.created_at);
+              const carMonth = carDate.getMonth() + 1;
+              return carMonth === month;
+            });
+
+            const count = monthCars.length;
+            
+            // Debug January specifically
+            if (month === 1) {
+              console.log(`📊 [Consignment] January ${year} cars:`, count);
+              if (count > 0) {
+                console.log('🚗 [Consignment] January cars:', monthCars.map(c => c.stock_number));
+              }
+            }
+
+            monthlyData.push({
+              month: new Date(year, month - 1).toLocaleDateString('default', { month: 'short' }),
+              count
+            });
+          }
+
+          console.log('📈 [Consignment] Monthly data:', monthlyData);
+          setChartData(monthlyData);
+        }
+      } catch (error) {
+        console.error('💥 [Consignment] Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchConsignmentData();
+  }, [year, months]);
+
+  return (
+    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[300px]">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-white/80">Consignment Acquisitions ({year})</h2>
+        <div className="flex items-center gap-4 text-xs text-white/50">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-2 bg-white/60 rounded-sm"></div>
+            <span>Count</span>
+          </div>
+        </div>
+      </div>
+      
+      {loading ? (
+        <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={240}>
+          <AreaChart data={chartData}>
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0,0,0,0.9)', 
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }} 
+              formatter={(value: any, name: string) => {
+                if (name === 'count') return [value, 'Cars Added'];
+                return [value, name];
+              }}
+            />
+            <Area dataKey="count" fill="url(#consignmentGradient)" stroke="#ffffff60" strokeWidth={2} name="count" />
+            <defs>
+              <linearGradient id="consignmentGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.6}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.05}/>
+              </linearGradient>
+            </defs>
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+};
+
+/* ---------------- Combined Acquisitions Trend Chart ---------------- */
+const AcquisitionsTrendChart: React.FC<{year:number; months:number[]}> = ({year, months}) => {
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchTrendData() {
+      setLoading(true);
+      try {
         const { data: cars } = await supabase
           .from('cars')
           .select('ownership_type, created_at')
-          .eq('status', 'inventory')
           .gte('created_at', new Date(year, 0, 1).toISOString())
           .lte('created_at', new Date(year, 11, 31).toISOString());
 
         if (cars) {
-          // Create monthly data for all 12 months
           const monthlyData = [];
           for (let month = 1; month <= 12; month++) {
             const monthCars = cars.filter(car => {
@@ -501,50 +956,78 @@ const InventoryStatusChart: React.FC<{year:number; months:number[]}> = ({year, m
               return carDate.getMonth() + 1 === month;
             });
 
-            const stockCars = monthCars.filter(c => c.ownership_type === 'stock').length;
-            const consignmentCars = monthCars.filter(c => c.ownership_type === 'consignment').length;
+            const stockCount = monthCars.filter(c => c.ownership_type === 'stock').length;
+            const consignmentCount = monthCars.filter(c => c.ownership_type === 'consignment').length;
+            const total = stockCount + consignmentCount;
 
             monthlyData.push({
               month: new Date(year, month - 1).toLocaleDateString('default', { month: 'short' }),
-              stock: stockCars,
-              consignment: consignmentCars,
-              total: stockCars + consignmentCars
+              stock: stockCount,
+              consignment: consignmentCount,
+              total
             });
           }
 
           setChartData(monthlyData);
         }
       } catch (error) {
-        console.error('Error fetching chart data:', error);
+        console.error('Error fetching trend data:', error);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchChartData();
+    fetchTrendData();
   }, [year, months]);
 
   return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[280px]">
-      <h2 className="text-sm font-semibold text-white/80 mb-3">Monthly Acquisitions ({year})</h2>
+    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[320px]">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-white/80">Acquisitions Comparison Trend ({year})</h2>
+        <div className="flex items-center gap-6 text-xs text-white/50">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-2 bg-white/80 rounded-sm"></div>
+            <span>Stock</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-2 bg-white/40 rounded-sm"></div>
+            <span>Consignment</span>
+          </div>
+        </div>
+      </div>
       
       {loading ? (
         <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={chartData}>
             <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#ffffff60' }} />
             <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />
             <Tooltip 
               contentStyle={{ 
-                backgroundColor: 'rgba(0,0,0,0.8)', 
-                border: '1px solid rgba(255,255,255,0.1)',
+                backgroundColor: 'rgba(0,0,0,0.9)', 
+                border: '1px solid rgba(255,255,255,0.2)',
                 borderRadius: '8px',
                 color: '#ffffff'
               }} 
+              formatter={(value: any, name: string) => {
+                if (name === 'stock') return [value, 'Stock Cars'];
+                if (name === 'consignment') return [value, 'Consignment Cars'];
+                return [value, name];
+              }}
             />
-            <Area dataKey="stock" stackId="1" fill="#ffffff80" name="Stock Cars" />
-            <Area dataKey="consignment" stackId="1" fill="#ffffff40" name="Consignment Cars" />
+            <Area dataKey="stock" stackId="1" fill="url(#stockTrendGradient)" stroke="#ffffff80" strokeWidth={2} name="stock" />
+            <Area dataKey="consignment" stackId="1" fill="url(#consignmentTrendGradient)" stroke="#ffffff40" strokeWidth={2} name="consignment" />
+            <defs>
+              <linearGradient id="stockTrendGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.6}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.1}/>
+              </linearGradient>
+              <linearGradient id="consignmentTrendGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.2}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.05}/>
+              </linearGradient>
+            </defs>
           </AreaChart>
         </ResponsiveContainer>
       )}
@@ -586,44 +1069,44 @@ const ModelDemandChart: React.FC<{year:number; months:number[]}> = ({year, month
           .eq('status', 'inventory')
           .eq('sale_status', 'available');
 
-                 if (leads && cars) {
-           // Count demand by model of interest
-           const demandCount: Record<string, number> = {};
-           leads.forEach(lead => {
-             if (lead.model_of_interest) {
-               demandCount[lead.model_of_interest] = (demandCount[lead.model_of_interest] || 0) + 1;
-             }
-           });
+        if (leads && cars) {
+          // Count demand by model of interest
+          const demandCount: Record<string, number> = {};
+          leads.forEach(lead => {
+            if (lead.model_of_interest) {
+              demandCount[lead.model_of_interest] = (demandCount[lead.model_of_interest] || 0) + 1;
+            }
+          });
 
-           // Create chart data for top 5 demanded models
-           const chartData = Object.entries(demandCount)
-             .sort(([,a], [,b]) => b - a)
-             .slice(0, 5)
-             .map(([demandedModel, demand]) => {
-               // Match based on model_family from inventory
-               const matchingSupply = cars.filter(car => {
-                 if (!car.model_family) return false;
-                 
-                 // Case-insensitive matching - check if model_family matches the demanded model
-                 const modelFamily = car.model_family.toUpperCase();
-                 const requestedModel = demandedModel.toUpperCase();
-                 
-                 // Direct match or contains match
-                 return modelFamily === requestedModel || 
-                        modelFamily.includes(requestedModel) ||
-                        requestedModel.includes(modelFamily);
-               }).length;
+          // Create chart data for top 5 demanded models
+          const chartData = Object.entries(demandCount)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 5)
+            .map(([demandedModel, demand]) => {
+              // Match based on model_family from inventory
+              const matchingSupply = cars.filter(car => {
+                if (!car.model_family) return false;
+                
+                // Case-insensitive matching - check if model_family matches the demanded model
+                const modelFamily = car.model_family.toUpperCase();
+                const requestedModel = demandedModel.toUpperCase();
+                
+                // Direct match or contains match
+                return modelFamily === requestedModel || 
+                       modelFamily.includes(requestedModel) ||
+                       requestedModel.includes(modelFamily);
+              }).length;
 
-               return {
-                 model: demandedModel.length > 8 ? demandedModel.slice(0, 8) + '...' : demandedModel,
-                 demand,
-                 supply: matchingSupply,
-                 gap: demand - matchingSupply
-               };
-             });
+              return {
+                model: demandedModel.length > 8 ? demandedModel.slice(0, 8) + '...' : demandedModel,
+                demand,
+                supply: matchingSupply,
+                gap: demand - matchingSupply
+              };
+            });
 
-           setChartData(chartData);
-         }
+          setChartData(chartData);
+        }
       } catch (error) {
         console.error('Error fetching demand chart:', error);
       } finally {
@@ -635,13 +1118,13 @@ const ModelDemandChart: React.FC<{year:number; months:number[]}> = ({year, month
   }, [year, months]);
 
   return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[280px]">
+    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[260px]">
       <h2 className="text-sm font-semibold text-white/80 mb-3">Demand vs Supply</h2>
       
       {loading ? (
         <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData}>
             <XAxis dataKey="model" tick={{ fontSize: 10, fill: '#ffffff60' }} />
             <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />

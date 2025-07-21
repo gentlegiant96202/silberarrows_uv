@@ -18,6 +18,9 @@ interface Car {
   sale_status: string;
   stock_age_days: number | null;
   ownership_type: string;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
 }
 
 export default function CarKanbanBoard() {

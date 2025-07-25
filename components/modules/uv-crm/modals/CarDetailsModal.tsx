@@ -60,6 +60,11 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [statusMsg, setStatusMsg] = useState<string>('');
   const { user } = useAuth();
 
+  // Loading states for media operations
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [primaryLoading, setPrimaryLoading] = useState<string | null>(null); // ID of media being set as primary
+  const [reorderLoading, setReorderLoading] = useState(false);
+
   // Mercedes-Benz models from appointment modal
   const models = [
     { id: "1", name: "A" },
@@ -100,8 +105,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   const toggleExpand = (label:string)=> setExpanded(p=>({...p,[label]:!p[label]}));
 
-  useEffect(() => {
-    const load = async () => {
+  // Unified function to refetch media from database
+  const refetchMedia = async () => {
+    setMediaLoading(true);
+    try {
       const { data } = await supabase
         .from('car_media')
         .select('*')
@@ -109,14 +116,34 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         .order('sort_order', { ascending: true })
         .order('created_at');
       setMedia(data || []);
-    };
-    load();
+    } catch (error) {
+      console.error('Failed to refetch media:', error);
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refetchMedia();
   }, [car.id]);
 
   useEffect(()=>{ setLocalCar(car); },[car]);
 
   const docs = media.filter((m:any)=>m.kind==='document');
-  const gallery = media.filter((m:any)=>m.kind!=='document');
+  
+  // Primary-first display logic: show primary photo first, then sort by sort_order
+  const gallery = media
+    .filter((m:any)=>m.kind!=='document')
+    .sort((a, b) => {
+      // Primary photos come first
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      
+      // Then sort by sort_order
+      const aOrder = a.sort_order ?? 999999;
+      const bOrder = b.sort_order ?? 999999;
+      return aOrder - bOrder;
+    });
 
   const downloadAll = async (items: any[], zipName: string = 'car_media.zip') => {
     if (items.length === 0) return;
@@ -171,33 +198,42 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   // New function to move photos left/right one position at a time
   const movePhoto = async (currentIndex: number, direction: 'up' | 'down') => {
-    if (!isAdmin || !editing) return;
+    if (!isAdmin || !editing || reorderLoading) return;
     
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex < 0 || newIndex >= gallery.length) return;
     
-    // Create new array and move the item to its new position
+    setReorderLoading(true);
+    
+    // Optimistic update: show change immediately
     const newGallery = [...gallery];
-    const [movedItem] = newGallery.splice(currentIndex, 1); // Remove item from current position
-    newGallery.splice(newIndex, 0, movedItem); // Insert at new position
+    const [movedItem] = newGallery.splice(currentIndex, 1);
+    newGallery.splice(newIndex, 0, movedItem);
     
-    // Update local state immediately
-    const newMedia = [...media];
-    const galleryStartIndex = media.findIndex(m => m.kind !== 'document');
-    const docsCount = media.filter(m => m.kind === 'document').length;
-    
-    // Rebuild the media array with documents first, then reordered gallery
     const docs = media.filter(m => m.kind === 'document');
-    const reorderedMedia = [...docs, ...newGallery];
-    setMedia(reorderedMedia);
+    const optimisticMedia = [...docs, ...newGallery];
+    const previousMedia = [...media]; // Backup for rollback
+    setMedia(optimisticMedia);
     
-    // Update database with new sort orders for all gallery items
-    await Promise.all(newGallery.map(async (item, index) => {
-      await supabase
-        .from('car_media')
-        .update({ sort_order: index })
-        .eq('id', item.id);
-    }));
+    try {
+      // Update database with new sort orders for all gallery items
+      await Promise.all(newGallery.map(async (item, index) => {
+        await supabase
+          .from('car_media')
+          .update({ sort_order: index })
+          .eq('id', item.id);
+      }));
+      
+      // Refetch to ensure consistency
+      await refetchMedia();
+    } catch (error) {
+      console.error('Failed to reorder media:', error);
+      // Rollback on failure
+      setMedia(previousMedia);
+      alert('Failed to reorder media. Please try again.');
+    } finally {
+      setReorderLoading(false);
+    }
   };
 
   const handleGeneratePdf = async ()=>{
@@ -342,28 +378,67 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   const handleDeleteMedia = async (m:any)=>{
     if(!confirm('Delete this media?')) return;
-    // remove from DB
-    await supabase.from('car_media').delete().eq('id', m.id);
-    // remove file from storage if path exists
-    try{
-      const prefix = '/car-media/';
-      const idx = m.url.indexOf(prefix);
-      if(idx!==-1){
-        const path = m.url.slice(idx + prefix.length);
-        await supabase.storage.from('car-media').remove([path]);
-      }
-    }catch(e){}
-    // refresh
-    const { data: rows } = await supabase.from('car_media').select('*').eq('car_id', car.id);
-    setMedia(rows||[]);
+    if (primaryLoading || reorderLoading || mediaLoading) return;
+    
+    setMediaLoading(true);
+    
+    // Optimistic update: remove from UI immediately
+    const previousMedia = [...media];
+    const optimisticMedia = media.filter(item => item.id !== m.id);
+    setMedia(optimisticMedia);
+    
+    try {
+      // remove from DB
+      await supabase.from('car_media').delete().eq('id', m.id);
+      // remove file from storage if path exists
+      try{
+        const prefix = '/car-media/';
+        const idx = m.url.indexOf(prefix);
+        if(idx!==-1){
+          const path = m.url.slice(idx + prefix.length);
+          await supabase.storage.from('car-media').remove([path]);
+        }
+      }catch(e){}
+      
+      // Refetch to ensure consistency
+      await refetchMedia();
+    } catch (error) {
+      console.error('Failed to delete media:', error);
+      // Rollback on failure
+      setMedia(previousMedia);
+      alert('Failed to delete media. Please try again.');
+    }
   };
 
   const handleMakePrimary = async (m:any)=>{
-    // clear existing primary
-    await supabase.from('car_media').update({ is_primary:false }).eq('car_id', car.id).eq('kind','photo');
-    await supabase.from('car_media').update({ is_primary:true }).eq('id', m.id);
-    const { data: rows } = await supabase.from('car_media').select('*').eq('car_id', car.id);
-    setMedia(rows||[]);
+    if (primaryLoading || reorderLoading) return;
+    
+    setPrimaryLoading(m.id);
+    
+    // Optimistic update: show change immediately
+    const previousMedia = [...media];
+    const optimisticMedia = media.map(item => ({
+      ...item,
+      is_primary: item.id === m.id ? true : (item.kind === 'photo' ? false : item.is_primary)
+    }));
+    setMedia(optimisticMedia);
+    
+    try {
+      // Clear existing primary photos
+      await supabase.from('car_media').update({ is_primary:false }).eq('car_id', car.id).eq('kind','photo');
+      // Set new primary
+      await supabase.from('car_media').update({ is_primary:true }).eq('id', m.id);
+      
+      // Refetch to ensure consistency
+      await refetchMedia();
+    } catch (error) {
+      console.error('Failed to set primary media:', error);
+      // Rollback on failure
+      setMedia(previousMedia);
+      alert('Failed to set primary photo. Please try again.');
+    } finally {
+      setPrimaryLoading(null);
+    }
   };
 
   // lightbox state
@@ -631,18 +706,26 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
             </div>
 
             {isAdmin && car.status === 'marketing' && (
-              <MediaUploader carId={car.id} onUploaded={async () => {
-                const { data } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('created_at');
-                setMedia(data || []);
-              }} />
+              <MediaUploader carId={car.id} onUploaded={refetchMedia} />
             )}
 
             {/* Media Section */}
             {gallery.length>0 && (
               <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-white/70">Pictures / Videos ({gallery.length})</h4>
-                  <button onClick={()=>downloadAll(gallery, 'media.zip')} className="text-[10px] underline text-white/60 hover:text-white">Download All</button>
+                  <h4 className="text-xs font-semibold text-white/70">
+                    Pictures / Videos ({gallery.length})
+                    {mediaLoading && <span className="ml-2 text-red-400">Loading...</span>}
+                    {reorderLoading && <span className="ml-2 text-blue-400">Reordering...</span>}
+                    {primaryLoading && <span className="ml-2 text-yellow-400">Setting Primary...</span>}
+                  </h4>
+                  <button 
+                    onClick={()=>downloadAll(gallery, 'media.zip')} 
+                    disabled={!!(mediaLoading || reorderLoading || primaryLoading)}
+                    className="text-[10px] underline text-white/60 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Download All
+                  </button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {gallery.map((m:any, i:number)=>(
@@ -663,9 +746,26 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                       {/* overlay buttons - admin only */}
                       {isAdmin && (
                         <>
-                          <button onClick={()=>handleDeleteMedia(m)} className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block">×</button>
+                          <button 
+                            onClick={()=>handleDeleteMedia(m)} 
+                            disabled={!!(mediaLoading || primaryLoading || reorderLoading)}
+                            className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {mediaLoading ? '...' : '×'}
+                          </button>
                           {m.kind==='photo' && !m.is_primary && (
-                            <button onClick={()=>handleMakePrimary(m)} className="absolute bottom-0 left-0 text-[9px] bg-black/60 text-white px-1 hidden group-hover:block">Primary</button>
+                            <button 
+                              onClick={()=>handleMakePrimary(m)} 
+                              disabled={!!(primaryLoading !== null || reorderLoading || mediaLoading)}
+                              className="absolute bottom-0 left-0 text-[9px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {primaryLoading === m.id ? 'Setting...' : 'Primary'}
+                            </button>
+                          )}
+                          {m.kind==='photo' && m.is_primary && (
+                            <span className="absolute bottom-0 left-0 text-[9px] bg-green-600/80 text-white px-1 font-semibold">
+                              PRIMARY
+                            </span>
                           )}
                           {/* Arrow buttons for reordering - only show when editing */}
                           {editing && (
@@ -673,20 +773,20 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                               {/* Left arrow - move photo left (up in order) */}
                               <button 
                                 onClick={(e) => {e.stopPropagation(); movePhoto(i, 'up');}}
-                                disabled={i === 0}
+                                disabled={!!(i === 0 || reorderLoading || primaryLoading || mediaLoading)}
                                 className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
                                 title="Move left"
                               >
-                                ←
+                                {reorderLoading ? '...' : '←'}
                               </button>
                               {/* Right arrow - move photo right (down in order) */}
                               <button 
                                 onClick={(e) => {e.stopPropagation(); movePhoto(i, 'down');}}
-                                disabled={i === gallery.length - 1}
+                                disabled={!!(i === gallery.length - 1 || reorderLoading || primaryLoading || mediaLoading)}
                                 className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
                                 title="Move right"
                               >
-                                →
+                                {reorderLoading ? '...' : '→'}
                               </button>
                             </>
                           )}

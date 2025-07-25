@@ -20,6 +20,17 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
     setTotalFiles(files.length);
     setProgress(0);
 
+    // Get current max sort_order to ensure proper ordering
+    const { data: existingMedia } = await supabase
+      .from('car_media')
+      .select('sort_order')
+      .eq('car_id', carId)
+      .eq('kind', 'photo')
+      .order('sort_order', { ascending: false })
+      .limit(1);
+
+    let currentMaxSortOrder = existingMedia?.[0]?.sort_order ?? -1;
+
     for (let idx=0; idx<files.length; idx++){
       const file = files[idx];
       // If this is an image, compress it before upload (max 1600 px, 1 MB)
@@ -65,12 +76,16 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
       const { data: pub } = supabase.storage.from('car-media').getPublicUrl(path);
       const url = pub.publicUrl;
 
-      // Store the public URL in DB
+      // Increment sort_order for each new upload
+      currentMaxSortOrder++;
+
+      // Store the public URL in DB with proper sort_order
       await supabase.from('car_media').insert({
         car_id: carId,
         kind: file.type.startsWith('video') ? 'video' : 'photo',
         url,
         is_primary: isFirstPhoto,
+        sort_order: currentMaxSortOrder, // Ensure proper ordering
       });
 
       // update progress & notify parent immediately

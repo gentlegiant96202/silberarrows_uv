@@ -1,8 +1,10 @@
 "use client";
 import Header from '@/components/Header';
+import RouteProtector from '@/components/shared/RouteProtector';
 
 export default function MarketingDashboard() {
   return (
+    <RouteProtector moduleName="marketing">
     <div className="min-h-screen bg-black">
       <Header />
       <div className="p-6">
@@ -44,5 +46,6 @@ export default function MarketingDashboard() {
         </div>
       </div>
     </div>
+    </RouteProtector>
   );
 } 

@@ -128,7 +128,7 @@ export default function KanbanBoard() {
             } else if (payload.eventType === "DELETE") {
               newLeads = prev.filter(l => l.id !== payload.old.id);
             } else {
-              return prev;
+            return prev;
             }
             
             // Always maintain updated_at DESC sorting to prevent glitching

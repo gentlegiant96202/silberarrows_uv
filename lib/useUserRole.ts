@@ -3,8 +3,12 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
 
 interface UserRole {
-  role: 'admin' | 'user';
+  role: 'admin' | 'sales' | 'marketing' | 'service' | 'leasing';
   isAdmin: boolean;
+  isSales: boolean;
+  isMarketing: boolean;
+  isService: boolean;
+  isLeasing: boolean;
   isLoading: boolean;
   error: string | null;
   
@@ -22,7 +26,7 @@ interface UserRole {
  */
 export function useUserRole(): UserRole {
   const { user } = useAuth();
-  const [role, setRole] = useState<'admin' | 'user'>('user');
+  const [role, setRole] = useState<'admin' | 'sales' | 'marketing' | 'service' | 'leasing'>('sales');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -46,7 +50,7 @@ export function useUserRole(): UserRole {
     async function fetchUserRole() {
       if (!user?.id) {
         setIsLoading(false);
-        setRole('user'); // Set default role
+        setRole('sales'); // Set default role to sales
         return;
       }
 
@@ -83,7 +87,7 @@ export function useUserRole(): UserRole {
         }
 
         // Method 3: Fallback to legacy metadata logic
-        const legacyRole = isAdminLegacy ? 'admin' : 'user';
+        const legacyRole = isAdminLegacy ? 'admin' : 'sales'; // Convert old 'user' to 'sales'
         setRole(legacyRole);
         console.log('📜 Using legacy metadata role:', legacyRole);
 
@@ -103,7 +107,7 @@ export function useUserRole(): UserRole {
         setError(err.message);
         
         // Ultimate fallback to legacy logic
-        const legacyRole = isAdminLegacy ? 'admin' : 'user';
+        const legacyRole = isAdminLegacy ? 'admin' : 'sales';
         setRole(legacyRole);
         console.log('⚠️ Error fallback to legacy role:', legacyRole);
       } finally {
@@ -117,6 +121,10 @@ export function useUserRole(): UserRole {
   return {
     role,
     isAdmin: role === 'admin',
+    isSales: role === 'sales',
+    isMarketing: role === 'marketing',
+    isService: role === 'service',
+    isLeasing: role === 'leasing',
     isLoading,
     error,
     

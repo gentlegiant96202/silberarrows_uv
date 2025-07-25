@@ -12,10 +12,14 @@ import ModuleSwitcher from '@/components/shared/ModuleSwitcher';
 export default function Header() {
   const pathname = usePathname();
   
+  // Check if we're on the module selection page
+  const isModuleSelectionPage = pathname === '/module-selection';
+  
   // Determine current module based on path
   const getCurrentModule = () => {
     if (pathname.startsWith('/workshop')) return 'workshop';
     if (pathname.startsWith('/marketing')) return 'marketing';
+    if (pathname.startsWith('/leasing')) return 'leasing';
     return 'uv-crm'; // default
   };
   
@@ -31,13 +35,20 @@ export default function Header() {
           
           {/* Module-specific Navigation & Search */}
           <div className="flex-1 flex items-center space-x-4">
-            {/* Module-specific navigation */}
-            {currentModule === 'uv-crm' && <CRMNavigation />}
-            {currentModule === 'workshop' && (
-              <div className="text-white/60 text-sm">Workshop Navigation Coming Soon</div>
-            )}
-            {currentModule === 'marketing' && (
-              <div className="text-white/60 text-sm">Marketing Navigation Coming Soon</div>
+            {/* Module-specific navigation - Hide on module selection page */}
+            {!isModuleSelectionPage && (
+              <>
+                {currentModule === 'uv-crm' && <CRMNavigation />}
+                {currentModule === 'workshop' && (
+                  <div className="text-white/60 text-sm">Workshop Navigation Coming Soon</div>
+                )}
+                {currentModule === 'marketing' && (
+                  <div className="text-white/60 text-sm">Marketing Navigation Coming Soon</div>
+                )}
+                {currentModule === 'leasing' && (
+                  <div className="text-white/60 text-sm">Leasing Navigation Coming Soon</div>
+                )}
+              </>
             )}
 
             {/* Universal Search Bar */}
@@ -52,8 +63,8 @@ export default function Header() {
             {/* Music Player - Universal */}
             <MusicPlayer />
 
-            {/* Module-specific Tools */}
-            {currentModule === 'uv-crm' && <FinanceCalculator />}
+            {/* Module-specific Tools - Hide on module selection page */}
+            {!isModuleSelectionPage && currentModule === 'uv-crm' && <FinanceCalculator />}
 
             {/* Module Switcher - Universal */}
             <div className="ml-4">

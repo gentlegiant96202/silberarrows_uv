@@ -1,9 +1,9 @@
 "use client";
-import { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserRole } from '@/lib/useUserRole';
-import UserRoleManager from '@/components/shared/UserRoleManager';
-import { ArrowLeft, Users, Settings, Shield } from 'lucide-react';
+import UnifiedRoleManager from '@/components/modules/admin/UnifiedRoleManager';
+import { ArrowLeft, Settings, Shield } from 'lucide-react';
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -51,7 +51,7 @@ export default function AdminSettingsPage() {
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="px-6 py-4">
+                  <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
@@ -68,7 +68,7 @@ export default function AdminSettingsPage() {
             </div>
             <div className="flex items-center space-x-2 text-sm text-white/60">
               <Shield className="w-4 h-4" />
-              <span>Administrator Access</span>
+              <span>Admin Panel</span>
             </div>
           </div>
         </div>
@@ -77,51 +77,8 @@ export default function AdminSettingsPage() {
       {/* Main Content */}
       <div className="px-6 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Page Description */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-white mb-2">System Administration</h2>
-            <p className="text-white/70">
-              Manage user roles, permissions, and system settings. Only administrators can access these features.
-            </p>
-          </div>
-
-          {/* Settings Sections */}
-          <div className="grid gap-8">
-            {/* User Role Management Section */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-              <div className="flex items-center space-x-3 mb-6">
-                <Users className="w-6 h-6 text-blue-400" />
-                <h3 className="text-xl font-semibold text-white">User Role Management</h3>
-              </div>
-              
-              <div className="text-white/70 mb-6">
-                <p>Manage user roles and permissions. You can promote users to administrators or demote administrators to regular users.</p>
-              </div>
-
-              {/* User Role Manager Component */}
-              <div className="bg-white rounded-lg">
-                <UserRoleManager />
-              </div>
-            </div>
-
-            {/* Future Settings Sections */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Settings className="w-6 h-6 text-gray-400" />
-                <h3 className="text-xl font-semibold text-white">System Settings</h3>
-              </div>
-              
-              <div className="text-white/50 italic">
-                <p>Additional system settings will be added here in future updates.</p>
-                <ul className="mt-3 space-y-1 text-sm">
-                  <li>• Database backup settings</li>
-                  <li>• Email notification preferences</li>
-                  <li>• System maintenance windows</li>
-                  <li>• API configuration</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          {/* Unified Role & User Management */}
+          <UnifiedRoleManager />
         </div>
       </div>
     </div>

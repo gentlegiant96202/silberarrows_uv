@@ -1,5 +1,9 @@
 import { AuthProvider } from "@/components/shared/AuthProvider";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <AuthProvider>
+      {children}
+    </AuthProvider>
+  );
 } 

@@ -49,8 +49,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     setLoading(true);
+    
+    try {
+      // Clear Supabase session
     await supabase.auth.signOut();
+      
+      // Clear any cached auth data from storage
+      if (typeof window !== 'undefined') {
+        // Clear localStorage items that might contain auth data
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('supabase')) {
+            localStorage.removeItem(key);
+          }
+        });
+        
+        // Clear sessionStorage items
+        Object.keys(sessionStorage).forEach(key => {
+          if (key.includes('supabase')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      }
+      
+      // Force state update
+      setSession(null);
+      setUser(null);
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
     setLoading(false);
+    }
   };
 
   const signUp = async (email: string, password: string) => {

@@ -121,7 +121,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     } finally {
       setMediaLoading(false);
     }
-  };
+    };
 
   useEffect(() => {
     refetchMedia();
@@ -216,13 +216,13 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     setMedia(optimisticMedia);
     
     try {
-      // Update database with new sort orders for all gallery items
-      await Promise.all(newGallery.map(async (item, index) => {
-        await supabase
-          .from('car_media')
-          .update({ sort_order: index })
-          .eq('id', item.id);
-      }));
+    // Update database with new sort orders for all gallery items
+    await Promise.all(newGallery.map(async (item, index) => {
+      await supabase
+        .from('car_media')
+        .update({ sort_order: index })
+        .eq('id', item.id);
+    }));
       
       // Refetch to ensure consistency
       await refetchMedia();
@@ -388,17 +388,17 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     setMedia(optimisticMedia);
     
     try {
-      // remove from DB
-      await supabase.from('car_media').delete().eq('id', m.id);
-      // remove file from storage if path exists
-      try{
-        const prefix = '/car-media/';
-        const idx = m.url.indexOf(prefix);
-        if(idx!==-1){
-          const path = m.url.slice(idx + prefix.length);
-          await supabase.storage.from('car-media').remove([path]);
-        }
-      }catch(e){}
+    // remove from DB
+    await supabase.from('car_media').delete().eq('id', m.id);
+    // remove file from storage if path exists
+    try{
+      const prefix = '/car-media/';
+      const idx = m.url.indexOf(prefix);
+      if(idx!==-1){
+        const path = m.url.slice(idx + prefix.length);
+        await supabase.storage.from('car-media').remove([path]);
+      }
+    }catch(e){}
       
       // Refetch to ensure consistency
       await refetchMedia();
@@ -425,9 +425,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     
     try {
       // Clear existing primary photos
-      await supabase.from('car_media').update({ is_primary:false }).eq('car_id', car.id).eq('kind','photo');
+    await supabase.from('car_media').update({ is_primary:false }).eq('car_id', car.id).eq('kind','photo');
       // Set new primary
-      await supabase.from('car_media').update({ is_primary:true }).eq('id', m.id);
+    await supabase.from('car_media').update({ is_primary:true }).eq('id', m.id);
       
       // Refetch to ensure consistency
       await refetchMedia();

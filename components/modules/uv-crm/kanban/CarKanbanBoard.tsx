@@ -6,6 +6,7 @@ import CarDetailsModal from '@/components/modules/uv-crm/modals/CarDetailsModal'
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useSearchStore } from '@/lib/searchStore';
 import { useUserRole } from '@/lib/useUserRole'; // 🆕 NEW ROLE SYSTEM
+import { useModulePermissions } from '@/lib/useModulePermissions';
 
 interface Car {
   id: string;
@@ -53,6 +54,7 @@ export default function CarKanbanBoard() {
   // Use new role system
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+  const { canEdit: canEditCars, canCreate: canCreateCars } = useModulePermissions('uv_crm');
   
 
   const load = async () => {
@@ -80,16 +82,16 @@ export default function CarKanbanBoard() {
 
   // drag helpers
   const onDragStart = (car: Car) => (e: React.DragEvent) => {
-    // Only admins can drag cars
-    if (!isAdmin) {
+    // Only users with edit permission can drag cars
+    if (!canEditCars) {
       e.preventDefault();
       if (process.env.NODE_ENV === 'development') {
-        console.log('🚫 Drag prevented - not admin');
+        console.log('🚫 Drag prevented - no edit permission for UV CRM');
       }
       return;
     }
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Drag allowed - user is admin');
+      console.log('✅ Drag allowed - user has edit permission');
     }
     e.dataTransfer.setData('text/plain', car.id);
   };
@@ -99,16 +101,16 @@ export default function CarKanbanBoard() {
     const id = e.dataTransfer.getData('text/plain');
     if (!id) return;
 
-    // Permission checks for non-admin users
-    if (!isAdmin) {
+    // Permission checks for users without edit access
+    if (!canEditCars) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🚫 Drop prevented - not admin');
+        console.log('🚫 Drop prevented - no edit permission for UV CRM');
       }
-      return; // non-admins cannot drop
+      return; // users without edit permission cannot drop
     }
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Drop allowed - user is admin');
+      console.log('✅ Drop allowed - user has edit permission');
     }
 
     // optimistic update
@@ -472,14 +474,14 @@ export default function CarKanbanBoard() {
                     {list.map(c => (
                       <div
                         key={c.id}
-                        draggable={isAdmin}
+                        draggable={canEditCars}
                         onDragStart={onDragStart(c)}
                         onClick={async () => {
                           setSelected(c);
                           const fullData = await loadFullCarData(c.id);
                           setSelectedCarFull(fullData);
                         }}
-                        className={`bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-2 text-xs select-none cursor-pointer group ${isAdmin ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
+                        className={`bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-2 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
                       >
                         {/* thumbnail */}
                         <div className="w-full h-20 bg-white/10 rounded overflow-hidden mb-2">
@@ -503,14 +505,14 @@ export default function CarKanbanBoard() {
                     {list.map(c => (
                       <div
                         key={c.id}
-                        draggable={isAdmin}
+                        draggable={canEditCars}
                         onDragStart={onDragStart(c)}
                         onClick={async () => {
                           setSelected(c);
                           const fullData = await loadFullCarData(c.id);
                           setSelectedCarFull(fullData);
                         }}
-                        className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${isAdmin ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
+                        className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           {/* thumbnail */}

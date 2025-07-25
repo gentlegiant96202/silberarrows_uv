@@ -22,8 +22,10 @@ interface Lead {
   appointment_date: string;
   time_slot: string;
   notes: string;
+  timeline_notes?: any[]; // Add timeline_notes field
   created_at: string;
   updated_at: string;
+  inventory_car_id?: string; // Also add this field that might be missing
 }
 
 const columns = [
@@ -229,7 +231,7 @@ export default function KanbanBoard() {
 
   const handleLeadUpdated = (updatedLead: Lead) => {
     setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
-    setSelectedLead(null);
+    setSelectedLead(updatedLead); // Keep modal open with fresh data (like mobile version)
   };
 
   const handleLeadDeleted = (leadId: string) => {

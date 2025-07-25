@@ -54,12 +54,16 @@ export function useUserRole(): UserRole {
         setIsLoading(true);
         setError(null);
 
-        // Method 1: Try database first (new system)
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
+        // Method 1: Try database first (new system) - TEMPORARILY DISABLED TO FIX 500 ERRORS
+        let roleData = null;
+        let roleError = { message: 'Temporarily disabled' };
+        
+        // Uncomment when database issues are fixed:
+        // const { data: roleData, error: roleError } = await supabase
+        //   .from('user_roles')
+        //   .select('role')
+        //   .eq('user_id', user.id)
+        //   .single();
 
         if (roleData && !roleError) {
           // Found in database - use new system

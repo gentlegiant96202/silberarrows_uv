@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import dayjs from 'dayjs';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -28,6 +28,12 @@ export default function NotesTimeline({ leadId, notes, canEdit, onAdded }: Notes
   const [items, setItems] = useState<NoteItem[]>(normalizeNotes(notes));
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Update internal items when notes prop changes (fix for timeline persistence)
+  React.useEffect(() => {
+    const normalizedNotes = normalizeNotes(notes);
+    setItems(normalizedNotes);
+  }, [notes]);
 
   const handleAdd = async () => {
     const text = draft.trim();

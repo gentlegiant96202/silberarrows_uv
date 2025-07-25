@@ -22,12 +22,16 @@ export function useIsAdminSimple(): { isAdmin: boolean; isLoading: boolean } {
       try {
         setIsLoading(true);
 
-        // Try database first
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
+        // Try database first - TEMPORARILY DISABLED TO FIX 500 ERRORS
+        let roleData = null;
+        let roleError = { message: 'Temporarily disabled' };
+        
+        // Uncomment when database issues are fixed:
+        // const { data: roleData, error: roleError } = await supabase
+        //   .from('user_roles')
+        //   .select('role')
+        //   .eq('user_id', user.id)
+        //   .single();
 
         if (roleData && !roleError) {
           setIsAdmin(roleData.role === 'admin');

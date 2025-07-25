@@ -121,6 +121,10 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
   const [thumbs,setThumbs] = useState<Record<string,string>>({});
   const [selectedCarId,setSelectedCarId] = useState<string>(lead.inventory_car_id||'');
 
+  // Timeline notes state - similar to ConsignmentDetailsModal
+  const [notesArray, setNotesArray] = useState<NoteItem[]>([]);
+  const [savingNote, setSavingNote] = useState(false);
+
   // Track if user manually selected a model from the fallback dropdown
   const [manualModelChosen,setManualModelChosen] = useState(false);
 
@@ -149,6 +153,21 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
   },[formData.model_of_interest,inventoryCars]);
 
   const [showCarPicker,setShowCarPicker] = useState(false);
+
+  // Initialize timeline notes from lead data - refresh when lead changes
+  useEffect(() => {
+    if (lead.timeline_notes && Array.isArray(lead.timeline_notes)) {
+      // timeline_notes is already a JSONB array, no need to parse
+      const formattedNotes = lead.timeline_notes.map((note: any) => ({
+        ts: note.ts || note.timestamp || new Date().toISOString(),
+        text: note.text || '',
+        user: note.user || note.author || 'System'
+      }));
+      setNotesArray(formattedNotes);
+    } else {
+      setNotesArray([]);
+    }
+  }, [lead.id, lead.timeline_notes, lead.status]); // React to lead changes including status
 
   useEffect(()=>{
     async function loadCars(){
@@ -222,6 +241,50 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
       alert('Error deleting lead. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Save notes immediately when timeline is updated - similar to ConsignmentDetailsModal
+  const handleNoteAdded = async (note: NoteItem) => {
+    const updatedNotes = [note, ...notesArray];
+    setNotesArray(updatedNotes);
+    setSavingNote(true);
+    
+    // Save to database immediately using timeline_notes JSONB column
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .update({
+          timeline_notes: updatedNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', lead.id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+      
+      // Update parent component with fresh data (parent will keep modal open)
+      onUpdated(data);
+      
+    } catch (error: any) {
+      console.error('Error saving note:', error);
+      
+      // Revert the state if save failed
+      setNotesArray(notesArray);
+      
+      const errorMessage = error?.message || 'Unknown error occurred';
+      alert(`Failed to save note: ${errorMessage}`);
+    } finally {
+      setSavingNote(false);
     }
   };
 
@@ -687,9 +750,18 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
 
               {/* Timeline panel */}
               <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden p-2.5">
-                <h3 className="text-xs font-semibold text-white mb-1">Timeline</h3>
+                <h3 className="text-xs font-semibold text-white mb-1 flex items-center gap-1.5">
+                  Timeline & Notes
+                  {savingNote && (
+                    <span className="text-[10px] text-blue-400 animate-pulse">Saving...</span>
+                  )}
+                </h3>
                 <div className="h-[calc(100%-1rem)] overflow-y-auto pr-1">
-                  <NotesTimeline leadId={lead.id} notes={lead.timeline_notes || []} canEdit={isEditing} />
+                  <NotesTimeline 
+                    notes={notesArray} 
+                    canEdit={true} 
+                    onAdded={handleNoteAdded} 
+                  />
                 </div>
               </div>
             </div>
@@ -851,9 +923,18 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
 
               {/* Timeline panel */}
               <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden p-2.5">
-                <h3 className="text-xs font-semibold text-white mb-1">Timeline</h3>
+                <h3 className="text-xs font-semibold text-white mb-1 flex items-center gap-1.5">
+                  Timeline & Notes
+                  {savingNote && (
+                    <span className="text-[10px] text-blue-400 animate-pulse">Saving...</span>
+                  )}
+                </h3>
                 <div className="h-[calc(100%-1rem)] overflow-y-auto pr-1">
-                  <NotesTimeline leadId={lead.id} notes={lead.timeline_notes || []} canEdit={false} />
+                  <NotesTimeline 
+                    notes={notesArray} 
+                    canEdit={true} 
+                    onAdded={handleNoteAdded} 
+                  />
                 </div>
               </div>
             </div>

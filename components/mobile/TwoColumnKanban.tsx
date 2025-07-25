@@ -25,8 +25,10 @@ interface Lead {
   appointment_date: string;
   time_slot: string;
   notes: string;
+  timeline_notes?: any[]; // Add timeline_notes field
   created_at: string;
   updated_at: string;
+  inventory_car_id?: string; // Also add this field that might be missing
 }
 
 export default function TwoColumnKanban() {

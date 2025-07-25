@@ -59,7 +59,7 @@ export default function CarKanbanBoard() {
     const { data } = await supabase
       .from('cars')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('updated_at', { ascending: false });
     const carRows = (data as any[] || []) as Car[];
     setCars(carRows);
 

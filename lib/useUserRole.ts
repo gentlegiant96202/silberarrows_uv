@@ -87,8 +87,9 @@ export function useUserRole(): UserRole {
         setRole(legacyRole);
         console.log('📜 Using legacy metadata role:', legacyRole);
 
-        // Auto-migrate user if using legacy
-        if (roleError || helperError) {
+        // Auto-migrate user if using legacy - TEMPORARILY DISABLED
+        // if (roleError || helperError) {
+        if (helperError) {
           console.log('🔄 Auto-migrating user to database...');
           try {
             await supabase.rpc('migrate_user_role', { migrate_user_id: user.id });

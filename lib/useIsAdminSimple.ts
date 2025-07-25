@@ -23,8 +23,8 @@ export function useIsAdminSimple(): { isAdmin: boolean; isLoading: boolean } {
         setIsLoading(true);
 
         // Try database first - TEMPORARILY DISABLED TO FIX 500 ERRORS
-        let roleData = null;
-        let roleError = { message: 'Temporarily disabled' };
+        // let roleData = null;
+        // let roleError = { message: 'Temporarily disabled' };
         
         // Uncomment when database issues are fixed:
         // const { data: roleData, error: roleError } = await supabase
@@ -33,11 +33,11 @@ export function useIsAdminSimple(): { isAdmin: boolean; isLoading: boolean } {
         //   .eq('user_id', user.id)
         //   .single();
 
-        if (roleData && !roleError) {
-          setIsAdmin(roleData.role === 'admin');
-          setIsLoading(false);
-          return;
-        }
+        // if (roleData && !roleError) {
+        //   setIsAdmin(roleData.role === 'admin');
+        //   setIsLoading(false);
+        //   return;
+        // }
 
         // Fallback to metadata (legacy system)
         const meta: any = user?.user_metadata || {};

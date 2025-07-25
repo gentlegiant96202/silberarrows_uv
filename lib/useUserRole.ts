@@ -55,8 +55,8 @@ export function useUserRole(): UserRole {
         setError(null);
 
         // Method 1: Try database first (new system) - TEMPORARILY DISABLED TO FIX 500 ERRORS
-        let roleData = null;
-        let roleError = { message: 'Temporarily disabled' };
+        // let roleData = null;
+        // let roleError = { message: 'Temporarily disabled' };
         
         // Uncomment when database issues are fixed:
         // const { data: roleData, error: roleError } = await supabase
@@ -65,12 +65,12 @@ export function useUserRole(): UserRole {
         //   .eq('user_id', user.id)
         //   .single();
 
-        if (roleData && !roleError) {
-          // Found in database - use new system
-          setRole(roleData.role);
-          console.log('🆕 Using database role:', roleData.role);
-          return;
-        }
+        // if (roleData && !roleError) {
+        //   // Found in database - use new system
+        //   setRole(roleData.role);
+        //   console.log('🆕 Using database role:', roleData.role);
+        //   return;
+        // }
 
         // Method 2: Use helper function (checks both database and metadata)
         const { data: helperResult, error: helperError } = await supabase

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.5",
+    "@vercel/speed-insights": "^1.2.0",
     "dayjs": "^1.11.13",
     "jszip": "^3.10.1",
     "lucide-react": "^0.292.0",
@@ -29,17 +30,17 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
-    "playwright": "^1.42.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.21",
     "browser-image-compression": "^2.0.0",
+    "dotenv": "^16.4.5",
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
+    "playwright": "^1.42.0",
     "postcss": "^8.5.6",
-    "typescript": "^5",
     "tsx": "^4.7.0",
-    "dotenv": "^16.4.5"
+    "typescript": "^5"
   }
 }

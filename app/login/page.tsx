@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/components/shared/AuthProvider";
 import Link from 'next/link';
-import AuthLogo from '@/components/AuthLogo';
+import AuthLogo from '@/components/shared/AuthLogo';
 import Image from 'next/image';
 
 export default function LoginPage() {

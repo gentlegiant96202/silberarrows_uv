@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import DocUploader from "@/components/DocUploader";
-import ChassisInput from '@/components/ChassisInput';
+import DocUploader from "@/components/modules/uv-crm/components/DocUploader";
+import ChassisInput from '@/components/modules/uv-crm/components/ChassisInput';
 
 interface Props {
   onClose: () => void;

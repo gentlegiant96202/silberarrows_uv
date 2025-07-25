@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Car, Phone, MapPin, Calendar, DollarSign, ExternalLink, Edit2, Save, X } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import NotesTimeline, { NoteItem } from '@/components/NotesTimeline';
+import NotesTimeline, { NoteItem } from '@/components/shared/NotesTimeline';
 
 dayjs.extend(relativeTime);
 

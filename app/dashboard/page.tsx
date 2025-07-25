@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import Header from '@/components/Header';
-import DashboardFilterBar from '@/components/DashboardFilterBar';
+import DashboardFilterBar from '@/components/modules/uv-crm/dashboard/DashboardFilterBar';
 import { supabase } from '@/lib/supabaseClient';
 import { useDashboardFilter } from '@/lib/dashboardFilterStore';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';

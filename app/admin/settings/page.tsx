@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserRole } from '@/lib/useUserRole';
-import UserRoleManager from '@/components/UserRoleManager';
+import UserRoleManager from '@/components/shared/UserRoleManager';
 import { ArrowLeft, Users, Settings, Shield } from 'lucide-react';
 
 export default function AdminSettingsPage() {

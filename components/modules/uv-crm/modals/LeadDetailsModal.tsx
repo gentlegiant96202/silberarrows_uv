@@ -4,9 +4,9 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from '@/lib/supabaseClient';
 import dayjs from 'dayjs';
-import DocUploader from '@/components/DocUploader';
-import MatchingCarsList from '@/components/MatchingCarsList';
-import NotesTimeline, { NoteItem } from '@/components/NotesTimeline';
+import DocUploader from '@/components/modules/uv-crm/components/DocUploader';
+import MatchingCarsList from '@/components/modules/uv-crm/components/MatchingCarsList';
+import NotesTimeline, { NoteItem } from '@/components/shared/NotesTimeline';
 
 interface Lead {
   id: string;

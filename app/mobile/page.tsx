@@ -1,11 +1,11 @@
 "use client";
 
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/components/shared/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import MobileHeader from '@/components/mobile/MobileHeader';
-import TwoColumnKanban from '@/components/mobile/TwoColumnKanban';
-import MobileActions from '@/components/mobile/MobileActions';
+import MobileHeader from '@/components/modules/uv-crm/mobile/MobileHeader';
+import TwoColumnKanban from '@/components/modules/uv-crm/mobile/TwoColumnKanban';
+import MobileActions from '@/components/modules/uv-crm/mobile/MobileActions';
 
 export default function MobilePage() {
   const { user, loading } = useAuth();

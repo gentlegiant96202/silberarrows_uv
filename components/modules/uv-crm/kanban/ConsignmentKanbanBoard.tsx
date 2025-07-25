@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { MessageSquare, CheckCircle, Wrench, XCircle, Car } from "lucide-react";
 import { useSearchStore } from "@/lib/searchStore";
-import ConsignmentDetailsModal from "./ConsignmentDetailsModal";
+import ConsignmentDetailsModal from "../modals/ConsignmentDetailsModal";
 
 dayjs.extend(relativeTime);
 

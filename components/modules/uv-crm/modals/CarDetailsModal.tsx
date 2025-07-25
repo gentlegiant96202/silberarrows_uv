@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import MediaUploader from '@/components/MediaUploader';
-import DocUploader from '@/components/DocUploader';
-import { useAuth } from '@/components/AuthProvider';
+import MediaUploader from '@/components/modules/uv-crm/components/MediaUploader';
+import DocUploader from '@/components/modules/uv-crm/components/DocUploader';
+import { useAuth } from '@/components/shared/AuthProvider';
 import { useUserRole } from '@/lib/useUserRole';
 import { createClient } from '@supabase/supabase-js';
 import { createPortal } from 'react-dom';

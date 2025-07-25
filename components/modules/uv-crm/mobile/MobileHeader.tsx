@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/components/shared/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 

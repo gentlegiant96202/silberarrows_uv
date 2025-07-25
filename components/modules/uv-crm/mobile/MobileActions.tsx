@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Calendar } from 'lucide-react';
-import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewAppointmentModal from '@/components/modules/uv-crm/modals/NewAppointmentModal';
 
 export default function MobileActions() {
   const [showCreateLead, setShowCreateLead] = useState(false);

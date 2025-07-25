@@ -1,9 +1,9 @@
 "use client";
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/components/shared/AuthProvider';
 import Header from '@/components/Header'
-import KanbanBoard from '@/components/KanbanBoard'
+import KanbanBoard from '@/components/modules/uv-crm/kanban/KanbanBoard'
 
 export default function Home() {
   const { user, loading } = useAuth();

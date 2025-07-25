@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import AuthLogo from "@/components/AuthLogo";
-import { useAuth } from "@/components/AuthProvider";
+import AuthLogo from "@/components/shared/AuthLogo";
+import { useAuth } from "@/components/shared/AuthProvider";
 import Image from 'next/image';
 
 export default function SignupPage() {

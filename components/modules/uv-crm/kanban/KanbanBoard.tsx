@@ -4,8 +4,8 @@ import { supabase } from "@/lib/supabaseClient";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { MessageSquare, CheckCircle, Car, XCircle } from 'lucide-react';
-import NewAppointmentModal from "./NewAppointmentModal";
-import LeadDetailsModal from "./LeadDetailsModal";
+import NewAppointmentModal from "../modals/NewAppointmentModal";
+import LeadDetailsModal from "../modals/LeadDetailsModal";
 import { useSearchStore } from "@/lib/searchStore";
 
 interface Lead {

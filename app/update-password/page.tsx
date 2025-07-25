@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { useAuth } from "@/components/AuthProvider";
-import AuthLogo from "@/components/AuthLogo";
+import { useAuth } from "@/components/shared/AuthProvider";
+import AuthLogo from "@/components/shared/AuthLogo";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();

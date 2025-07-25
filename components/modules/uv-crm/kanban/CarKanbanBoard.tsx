@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import AddCarModal from '@/components/AddCarModal';
-import CarDetailsModal from '@/components/CarDetailsModal';
-import { useAuth } from '@/components/AuthProvider';
+import AddCarModal from '@/components/modules/uv-crm/modals/AddCarModal';
+import CarDetailsModal from '@/components/modules/uv-crm/modals/CarDetailsModal';
+import { useAuth } from '@/components/shared/AuthProvider';
 import { useSearchStore } from '@/lib/searchStore';
 import { useUserRole } from '@/lib/useUserRole'; // 🆕 NEW ROLE SYSTEM
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
 
 interface UserRole {

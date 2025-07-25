@@ -1,6 +1,6 @@
 "use client";
 import Header from '@/components/Header';
-import CarKanbanBoard from '@/components/CarKanbanBoard';
+import CarKanbanBoard from '@/components/modules/uv-crm/kanban/CarKanbanBoard';
 
 export default function InventoryPage() {
   return (

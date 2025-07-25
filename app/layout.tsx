@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Providers from '@/components/Providers'
+import Providers from '@/components/shared/Providers'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 export const metadata: Metadata = {

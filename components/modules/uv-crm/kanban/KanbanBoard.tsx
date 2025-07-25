@@ -107,7 +107,7 @@ export default function KanbanBoard() {
   // fetch initial data
   useEffect(() => {
     async function load() {
-      const leadsResult = await supabase.from("leads").select("*").order("created_at", { ascending: false });
+      const leadsResult = await supabase.from("leads").select("*").order("updated_at", { ascending: false });
       if (leadsResult.data) setLeads(leadsResult.data as unknown as Lead[]);
     }
     load();
@@ -120,16 +120,21 @@ export default function KanbanBoard() {
         { event: "*", schema: "public", table: "leads" },
         (payload: any) => {
           setLeads(prev => {
+            let newLeads;
             if (payload.eventType === "INSERT") {
-              return [payload.new as Lead, ...prev];
+              newLeads = [payload.new as Lead, ...prev];
+            } else if (payload.eventType === "UPDATE") {
+              newLeads = prev.map(l => (l.id === payload.new.id ? (payload.new as Lead) : l));
+            } else if (payload.eventType === "DELETE") {
+              newLeads = prev.filter(l => l.id !== payload.old.id);
+            } else {
+              return prev;
             }
-            if (payload.eventType === "UPDATE") {
-              return prev.map(l => (l.id === payload.new.id ? (payload.new as Lead) : l));
-            }
-            if (payload.eventType === "DELETE") {
-              return prev.filter(l => l.id !== payload.old.id);
-            }
-            return prev;
+            
+            // Always maintain updated_at DESC sorting to prevent glitching
+            return newLeads.sort((a, b) => 
+              dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf()
+            );
           });
         }
       )
@@ -170,12 +175,10 @@ export default function KanbanBoard() {
     }
   });
 
-  // sort each column by appointment_date nearest first (nulls last)
+  // sort each column by updated_at newest first (stacking on top)
   (Object.keys(grouped) as ColKey[]).forEach(k=>{
     grouped[k].sort((a,b)=>{
-      if(!a.appointment_date) return 1;
-      if(!b.appointment_date) return -1;
-      return dayjs(a.appointment_date).valueOf() - dayjs(b.appointment_date).valueOf();
+      return dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf();
     });
   });
 
@@ -204,15 +207,15 @@ export default function KanbanBoard() {
       return; // Don't update database yet, wait for modal
     }
     
-    // Normal drag and drop - update immediately
-    setLeads(prev => {
-      const idx = prev.findIndex(l => l.id === id);
-      if (idx === -1) return prev;
-      const moved = { ...prev[idx], status: targetCol } as Lead;
-      const rest = prev.filter(l => l.id !== id);
-      return [moved, ...rest];
-    });
-    await supabase.from("leads").update({ status: targetCol }).eq("id", id);
+    // Normal drag and drop - update database and let realtime subscription handle UI update
+    const { error } = await supabase.from("leads").update({ 
+      status: targetCol,
+      updated_at: new Date().toISOString() // Ensure updated_at is refreshed for proper sorting
+    }).eq("id", id);
+    
+    if (error) {
+      console.error("Failed to update lead status:", error);
+    }
   };
 
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
@@ -230,7 +233,13 @@ export default function KanbanBoard() {
   };
 
   const handleLeadUpdated = (updatedLead: Lead) => {
-    setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+    setLeads(prev => {
+      const updated = prev.map(l => l.id === updatedLead.id ? updatedLead : l);
+      // Maintain sorting after update
+      return updated.sort((a, b) => 
+        dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf()
+      );
+    });
     setSelectedLead(updatedLead); // Keep modal open with fresh data (like mobile version)
   };
 
@@ -240,7 +249,13 @@ export default function KanbanBoard() {
   };
 
   const handleConversionCompleted = (updatedLead: Lead) => {
-    setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+    setLeads(prev => {
+      const updated = prev.map(l => l.id === updatedLead.id ? updatedLead : l);
+      // Maintain sorting after update
+      return updated.sort((a, b) => 
+        dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf()
+      );
+    });
     setConvertingLead(null);
   };
 

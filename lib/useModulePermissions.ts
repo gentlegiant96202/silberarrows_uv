@@ -192,9 +192,9 @@ export function useAllModulePermissions(): AllModulePermissions {
         const errorPerms = { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: false, error: err.message };
         setAllPermissions({
           uv_crm: errorPerms,
-          inventory: errorPerms,
           marketing: errorPerms,
           workshop: errorPerms,
+          leasing: errorPerms,
           admin: errorPerms,
           isLoading: false,
           error: err.message || 'Failed to fetch permissions',

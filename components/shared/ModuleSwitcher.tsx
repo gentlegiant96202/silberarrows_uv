@@ -107,7 +107,7 @@ export default function ModuleSwitcher() {
               <currentModule.icon className="w-3 h-3 text-white" />
             </div>
           )}
-          <span className="text-xs font-medium whitespace-nowrap truncate">{currentModule?.name}</span>
+          <span className="text-xs font-impact font-medium whitespace-nowrap truncate">{currentModule?.name}</span>
         </div>
         <ChevronDown className="w-4 h-4 flex-shrink-0" />
       </button>
@@ -144,7 +144,7 @@ export default function ModuleSwitcher() {
                     </div>
                     
                     <div className="flex flex-col min-w-0">
-                      <div className="font-medium text-sm">{module.name}</div>
+                      <div className="font-impact font-medium text-sm">{module.name}</div>
                       <div className="text-xs text-white/60 mt-1">{module.description}</div>
                       {module.id === currentModuleId && (
                         <div className="mt-2 pt-2 border-t border-white/20">

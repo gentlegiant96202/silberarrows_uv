@@ -7,9 +7,6 @@ module.exports = {
   ],
   theme: {
     extend: {
-      fontFamily: {
-        'impact': ['Impact', 'Arial Black', 'sans-serif'],
-      },
       colors: {
         brand: {
           DEFAULT: '#d85050',

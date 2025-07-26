@@ -574,18 +574,20 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
         </form>
 
           {/* Right column with inventory & timeline */}
-          <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1 max-h-[80vh]">
+          <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1">
             {/* Matching inventory */}
-            <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
               <div className="h-full overflow-y-auto p-1.5">
                 <MatchingCarsList model={modelOfInterest} />
               </div>
             </div>
 
             {/* Timeline */}
-            <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden p-2.5">
-              <h3 className="text-xs font-semibold text-white mb-1">Timeline</h3>
-              <div className="h-[calc(100%-1rem)] overflow-y-auto pr-1">
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
+              <div className="p-2.5 border-b border-white/10 flex-shrink-0">
+                <h3 className="text-xs font-semibold text-white">Timeline</h3>
+              </div>
+              <div className="p-2.5 overflow-y-auto scrollbar-hide" style={{ height: 'calc(100% - 40px)' }}>
                 <NotesTimeline notes={notesArray} canEdit={true} onAdded={n=>setNotesArray(prev=>[n,...prev])} />
               </div>
             </div>

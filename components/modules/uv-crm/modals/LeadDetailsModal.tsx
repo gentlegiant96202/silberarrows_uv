@@ -732,16 +732,16 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
             </form>
 
             {/* Timeline & Matching inventory column */}
-            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1 max-h-[80vh]">
+            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1">
               {/* Matching inventory or fallback model chooser (edit mode only) */}
               {isEditing ? (
-                <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
+                <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
                   <div className="h-full overflow-y-auto p-1.5">
                     <MatchingCarsList model={formData.model_of_interest} />
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
+                <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
                   <div className="h-full overflow-y-auto p-1.5">
                     <MatchingCarsList model={lead.model_of_interest} />
                   </div>
@@ -749,8 +749,8 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
               )}
 
               {/* Timeline panel */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
-                <div className="p-2.5 border-b border-white/10">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
+                <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                     Timeline & Notes
                     {savingNote && (
@@ -758,7 +758,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                     )}
                   </h3>
                 </div>
-                <div className="p-2.5 h-80 overflow-y-auto scrollbar-hide">
+                <div className="p-2.5 overflow-y-auto scrollbar-hide" style={{ height: 'calc(100% - 40px)' }}>
                   <NotesTimeline 
                     notes={notesArray} 
                     canEdit={true} 
@@ -915,17 +915,17 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                   </div>
 
             {/* Timeline & Matching inventory on the right */}
-            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1 max-h-[80vh]">
+            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1">
               {/* Matching inventory panel (view mode) */}
-              <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
                 <div className="h-full overflow-y-auto p-1.5">
                   <MatchingCarsList model={lead.model_of_interest} />
                 </div>
               </div>
 
               {/* Timeline panel */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
-                <div className="p-2.5 border-b border-white/10">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
+                <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                     Timeline & Notes
                     {savingNote && (
@@ -933,7 +933,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                     )}
                   </h3>
                 </div>
-                <div className="p-2.5 h-80 overflow-y-auto scrollbar-hide">
+                <div className="p-2.5 overflow-y-auto scrollbar-hide" style={{ height: 'calc(100% - 40px)' }}>
                   <NotesTimeline 
                     notes={notesArray} 
                     canEdit={true} 

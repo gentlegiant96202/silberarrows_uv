@@ -749,14 +749,16 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
               )}
 
               {/* Timeline panel */}
-              <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden p-2.5">
-                <h3 className="text-xs font-semibold text-white mb-1 flex items-center gap-1.5">
-                  Timeline & Notes
-                  {savingNote && (
-                    <span className="text-[10px] text-blue-400 animate-pulse">Saving...</span>
-                  )}
-                </h3>
-                <div className="h-[calc(100%-1rem)] overflow-y-auto pr-1">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
+                <div className="p-2.5 border-b border-white/10">
+                  <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    Timeline & Notes
+                    {savingNote && (
+                      <span className="text-[10px] text-blue-400 animate-pulse">Saving...</span>
+                    )}
+                  </h3>
+                </div>
+                <div className="p-2.5 h-80 overflow-y-auto scrollbar-hide">
                   <NotesTimeline 
                     notes={notesArray} 
                     canEdit={true} 
@@ -922,14 +924,16 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
               </div>
 
               {/* Timeline panel */}
-              <div className="flex-1 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden p-2.5">
-                <h3 className="text-xs font-semibold text-white mb-1 flex items-center gap-1.5">
-                  Timeline & Notes
-                  {savingNote && (
-                    <span className="text-[10px] text-blue-400 animate-pulse">Saving...</span>
-                  )}
-                </h3>
-                <div className="h-[calc(100%-1rem)] overflow-y-auto pr-1">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
+                <div className="p-2.5 border-b border-white/10">
+                  <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    Timeline & Notes
+                    {savingNote && (
+                      <span className="text-[10px] text-blue-400 animate-pulse">Saving...</span>
+                    )}
+                  </h3>
+                </div>
+                <div className="p-2.5 h-80 overflow-y-auto scrollbar-hide">
                   <NotesTimeline 
                     notes={notesArray} 
                     canEdit={true} 

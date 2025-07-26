@@ -258,8 +258,13 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         throw new Error(error.error || 'Failed to generate PDF');
       }
       
-      setStatusMsg('Processing PDF...');
+      setStatusMsg('Generating PDF...');
       const result = await response.json();
+      
+      // Log PDF stats
+      if (result.pdfStats) {
+        console.log('📊 PDF Generation Results:', result.pdfStats);
+      }
       
       // Convert base64 to blob and upload to Supabase
       const pdfBlob = new Blob([
@@ -299,7 +304,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       await supabase.from('cars').update({ vehicle_details_pdf_url: data.publicUrl }).eq('id', car.id);
       
       setPdfUrl(data.publicUrl);
-      setStatusMsg('PDF generated successfully!');
+      const sizeInfo = result.pdfStats 
+        ? ` (${result.pdfStats.fileSizeMB}MB)`
+        : '';
+      setStatusMsg(`PDF generated successfully!${sizeInfo}`);
     }catch(e:any){
       console.error(e);
       alert(e.message||'Failed to create PDF');
@@ -363,6 +371,16 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   };
 
   const handleSaveEdit = async ()=>{
+    // Check character limits before saving
+    if ((localCar.description || '').length > 1700) {
+      alert('Description must be 1700 characters or less');
+      return;
+    }
+    if ((localCar.key_equipment || '').length > 1800) {
+      alert('Key equipment must be 1800 characters or less');
+      return;
+    }
+    
     const { error, data } = await supabase.from('cars').update(localCar).eq('id', car.id).select().single();
     if(error){ alert(error.message); return; }
     setEditing(false);
@@ -650,9 +668,28 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           <div className="flex flex-col gap-2">
             {/* Description */}
             <div className="border border-white/15 rounded-md p-3 bg-white/5 flex flex-col flex-1 min-h-0 overflow-hidden">
-              <h3 className="text-white text-[12px] font-bold mb-1 uppercase tracking-wide flex-shrink-0">Description</h3>
+              <div className="flex justify-between items-center mb-1 flex-shrink-0">
+                <h3 className="text-white text-[12px] font-bold uppercase tracking-wide">Description</h3>
+                {editing && (
+                  <span className={`text-[10px] ${(localCar.description || '').length > 1700 ? 'text-red-400' : 'text-white/60'}`}>
+                    {(localCar.description || '').length}/1700
+                  </span>
+                )}
+              </div>
               {editing? (
-                <textarea className="w-full bg-black/40 border border-white/20 p-1 text-[11px] leading-normal text-white resize-y min-h-[100px]" value={localCar.description||''} onChange={e=>handleFieldChange('description',e.target.value)} />
+                <>
+                  <textarea 
+                    className={`w-full bg-black/40 border p-1 text-[11px] leading-normal text-white resize-y min-h-[100px] ${
+                      (localCar.description || '').length > 1700 ? 'border-red-400' : 'border-white/20'
+                    }`} 
+                    value={localCar.description||''} 
+                    onChange={e=>handleFieldChange('description',e.target.value)} 
+                    maxLength={1700}
+                  />
+                  {(localCar.description || '').length > 1700 && (
+                    <p className="text-red-400 text-[10px] mt-1">Description must be 1700 characters or less</p>
+                  )}
+                </>
               ): (
                 <div className="flex-1 overflow-y-auto">
                   <p className="text-white text-[11px] leading-normal whitespace-pre-wrap break-words">{localCar.description||'—'}</p>
@@ -662,9 +699,29 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
             {/* Key Equipment */}
             <div className="border border-white/15 rounded-md p-3 bg-white/5 flex flex-col flex-1 min-h-0 overflow-hidden">
-              <h3 className="text-white text-[12px] font-bold mb-1 uppercase tracking-wide flex-shrink-0">Key Equipment</h3>
+              <div className="flex justify-between items-center mb-1 flex-shrink-0">
+                <h3 className="text-white text-[12px] font-bold uppercase tracking-wide">Key Equipment</h3>
+                {editing && (
+                  <span className={`text-[10px] ${(localCar.key_equipment || '').length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
+                    {(localCar.key_equipment || '').length}/1800
+                  </span>
+                )}
+              </div>
               {editing? (
-                <textarea className="w-full bg-black/40 border border-white/20 p-1 text-[10px] text-white resize-y min-h-[100px]" value={localCar.key_equipment||''} onChange={e=>handleFieldChange('key_equipment',e.target.value)} placeholder="Comma or newline separated" />
+                <>
+                  <textarea 
+                    className={`w-full bg-black/40 border p-1 text-[10px] text-white resize-y min-h-[100px] ${
+                      (localCar.key_equipment || '').length > 1800 ? 'border-red-400' : 'border-white/20'
+                    }`} 
+                    value={localCar.key_equipment||''} 
+                    onChange={e=>handleFieldChange('key_equipment',e.target.value)} 
+                    placeholder="Comma or newline separated" 
+                    maxLength={1800}
+                  />
+                  {(localCar.key_equipment || '').length > 1800 && (
+                    <p className="text-red-400 text-[10px] mt-1">Key equipment must be 1800 characters or less</p>
+                  )}
+                </>
               ): (
                 <div className="flex-1 overflow-y-auto">
                   {localCar.key_equipment? (
@@ -804,7 +861,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               {pdfUrl ? (
                 <div className="flex items-center gap-2">
                   <a href={pdfUrl + '?download'} download className="underline text-brand text-xs">Download PDF</a>
-                  {isAdmin && car.status==='marketing' && (
+                  {isAdmin && (car.status==='marketing' || car.status==='qc_ceo') && (
                     <button onClick={handleGeneratePdf} disabled={generating} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded disabled:opacity-40 flex items-center gap-1">
                       {generating && (<span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />)}
                       {generating ? 'Regenerating…' : 'Regenerate'}
@@ -812,13 +869,13 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   )}
                 </div>
               ) : (
-                isAdmin && car.status==='marketing' ? (
+                isAdmin && (car.status==='marketing' || car.status==='qc_ceo') ? (
                   <button onClick={handleGeneratePdf} disabled={generating} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded disabled:opacity-40 flex items-center gap-1">
                     {generating && (<span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />)}
                     {generating ? 'Generating…' : 'Generate PDF'}
                   </button>
                 ) : (
-                  <p className="text-white/50 text-[11px]">PDF available only to admins in Marketing stage.</p>
+                  <p className="text-white/50 text-[11px]">PDF available only to admins in Marketing or QC stages.</p>
                 )
               )}
               {statusMsg && <div className="text-[10px] text-white/50">{statusMsg}</div>}

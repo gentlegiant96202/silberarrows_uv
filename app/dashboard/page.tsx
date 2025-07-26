@@ -7,8 +7,8 @@ import { useDashboardFilter } from '@/lib/dashboardFilterStore';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 
-// Enhanced LeadsFunnel component with conversion tracking
-function LeadsFunnel() {
+// Simple Cumulative Funnel Component
+function CumulativeFunnel() {
   const STAGES = [
     { key: 'new_lead', label: 'New Lead', color: 'bg-slate-500' },
     { key: 'new_customer', label: 'New Appointment', color: 'bg-blue-500' },
@@ -18,15 +18,13 @@ function LeadsFunnel() {
   ];
 
   const { year, months } = useDashboardFilter();
-  const [funnelData, setFunnelData] = useState<any>(null);
-  const [currentLeadCounts, setCurrentLeadCounts] = useState<any>({});
+  const [funnelData, setFunnelData] = useState<any[]>([]);
+  const [totalLeads, setTotalLeads] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [animateAfterLoad, setAnimateAfterLoad] = useState(false);
 
   useEffect(() => {
-    async function fetchConversionFunnel() {
+    async function fetchFunnelData() {
       setLoading(true);
-      setAnimateAfterLoad(false);
       
       try {
         // Calculate date range based on filters
@@ -34,93 +32,72 @@ function LeadsFunnel() {
         let to: Date;
         
         if (months.length > 0) {
-          // When specific months are selected
-          const firstMonth = Math.min(...months) - 1; // Convert to 0-based index
-          const lastMonth = Math.max(...months) - 1;  // Convert to 0-based index
-          
-          from = new Date(year, firstMonth, 1); // First day of first selected month
-          to = new Date(year, lastMonth + 1, 0); // Last day of last selected month
+          const firstMonth = Math.min(...months) - 1;
+          const lastMonth = Math.max(...months) - 1;
+          from = new Date(year, firstMonth, 1);
+          to = new Date(year, lastMonth + 1, 0);
         } else {
-          // When no months selected (show full year)
-          from = new Date(year, 0, 1);     // January 1st
-          to = new Date(year, 11, 31);     // December 31st
+          from = new Date(year, 0, 1);
+          to = new Date(year, 11, 31);
         }
 
-        // Fetch funnel metrics - this shows total entries into each stage over time
         const response = await fetch(`/api/funnel-metrics?startDate=${from.toISOString().split('T')[0]}&endDate=${to.toISOString().split('T')[0]}`);
         const data = await response.json();
         
         if (data.error) {
-          console.error('API Error:', data.error);
-          setFunnelData(null);
+          console.error('Funnel API Error:', data.error);
+          setFunnelData([]);
+          setTotalLeads(0);
         } else {
-          setFunnelData(data);
-          
-          // Create conversion funnel counts (total entries into each stage)
-          const conversionCounts: any = {};
-          if (data.funnelMetrics) {
-            data.funnelMetrics.forEach((stage: any) => {
-              conversionCounts[stage.stage] = stage.total_entered || 0;
-            });
-          }
-          setCurrentLeadCounts(conversionCounts);
-          
-          // Trigger animation after data loads
-          setTimeout(() => setAnimateAfterLoad(true), 100);
+          setFunnelData(data.funnelData || []);
+          setTotalLeads(data.totalLeads || 0);
         }
       } catch (error) {
         console.error('Error fetching funnel data:', error);
-        setFunnelData(null);
+        setFunnelData([]);
+        setTotalLeads(0);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchConversionFunnel();
+    fetchFunnelData();
   }, [year, months]);
 
-  // Use conversion funnel data - shows total entries into each stage
-  const totalLeads = funnelData?.summary?.totalLeads || 0;
-  const maxCount = Math.max(...Object.values(currentLeadCounts).map(v => Number(v) || 0), 1);
-  
-  // Show skeleton immediately, even while loading
-  const showSkeleton = Object.keys(currentLeadCounts).length === 0;
+  const maxCount = Math.max(...funnelData.map(stage => stage.cumulative_count || 0), 1);
 
   return (
     <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[260px] flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-white/80">Lead Conversion Funnel</h2>
+        <h2 className="text-sm font-semibold text-white/80">Cumulative Lead Funnel</h2>
         <span className="text-xs text-white/50">
           {totalLeads} total leads
         </span>
       </div>
       
       <div className="space-y-2 flex-1">
-        {STAGES.map((stage, index) => {
-          const leadCount = currentLeadCounts[stage.key] || 0;
-          const widthPercent = leadCount > 0 ? (leadCount / maxCount) * 100 : 0;
-          
-          // Get conversion rate from historical data if available
-          const stageData = funnelData?.funnelMetrics?.find((s: any) => s.stage === stage.key);
-          const conversionRate = stageData?.conversion_to_next || 0;
+        {STAGES.map((stage) => {
+          const stageData = funnelData.find(s => s.stage === stage.key);
+          const cumulativeCount = stageData?.cumulative_count || 0;
+          const widthPercent = cumulativeCount > 0 ? (cumulativeCount / maxCount) * 100 : 0;
 
           return (
             <div key={stage.key} className="relative">
               <div className="w-full bg-white/10 rounded-lg h-8 relative overflow-hidden">
-                {showSkeleton ? (
+                {loading ? (
                   <div className="bg-white/30 h-8 rounded-lg animate-pulse absolute inset-0" style={{ width: '30%' }} />
                 ) : (
                   <div
                     className="bg-white h-8 rounded-lg absolute inset-0 transition-all duration-700 ease-out flex items-center justify-between px-3"
                     style={{ 
-                      width: animateAfterLoad ? `${Math.max(widthPercent, leadCount > 0 ? 15 : 0)}%` : '0%'
+                      width: `${Math.max(widthPercent, cumulativeCount > 0 ? 15 : 0)}%`
                     }}
                   >
                     <span className="text-sm font-semibold text-black">
                       {stage.label}
                     </span>
                     <span className="text-sm font-bold text-black">
-                      {leadCount}
+                      {cumulativeCount}
                     </span>
                   </div>
                 )}
@@ -132,6 +109,8 @@ function LeadsFunnel() {
     </div>
   );
 }
+
+
 
 export default function DashboardPage() {
   const { year, months } = useDashboardFilter();
@@ -224,9 +203,9 @@ export default function DashboardPage() {
 
                 {/* Third row: Charts and Analytics */}
         <div className="grid gap-4 mt-4 lg:grid-cols-2">
-          {/* Lead Conversion Funnel */}
+          {/* Cumulative Lead Funnel */}
           <div className="lg:col-span-1">
-            <LeadsFunnel />
+            <CumulativeFunnel />
           </div>
 
           {/* Model Demand Chart */}

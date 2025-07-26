@@ -1,5 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Actual image optimization - resize and compress images before PDF generation
+async function optimizeImageForPdf(imageUrl: string): Promise<string> {
+  try {
+    console.log('🔍 Optimizing image:', imageUrl);
+    
+    // Fetch the original image
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.warn('Failed to fetch image, using original');
+      return imageUrl;
+    }
+    
+    const imageBuffer = await response.arrayBuffer();
+    const uint8Array = new Uint8Array(imageBuffer);
+    
+    // Use canvas API for image resizing (available in Node.js)
+    const { createCanvas, loadImage } = await import('canvas');
+    
+    // Load the image
+    const img = await loadImage(Buffer.from(uint8Array));
+    
+    // Calculate new dimensions (max 1200px width, maintain aspect ratio)
+    const maxWidth = 1200;
+    const aspectRatio = img.height / img.width;
+    const newWidth = Math.min(img.width, maxWidth);
+    const newHeight = Math.round(newWidth * aspectRatio);
+    
+    // Create canvas and draw resized image
+    const canvas = createCanvas(newWidth, newHeight);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+    
+    // Convert to base64 data URL with compression
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.75); // 75% quality
+    
+    console.log(`✅ Resized ${img.width}x${img.height} → ${newWidth}x${newHeight}`);
+    return dataUrl;
+    
+  } catch (error) {
+    console.warn('Image optimization failed, using original:', error);
+    return imageUrl;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { car, media } = await request.json();
@@ -9,7 +53,24 @@ export async function POST(request: NextRequest) {
     }
     
     const photos = media.filter((m: any) => m.kind === 'photo');
-    const firstPhotoUrl = photos[0]?.url || '';
+    
+    // Optimize all photos for PDF (actual resizing and compression)
+    console.log('🖼️ Optimizing', photos.length, 'images for PDF...');
+    
+    const optimizedPhotos = await Promise.all(
+      photos.map(async (photo: any, index: number) => {
+        console.log(`📸 Processing image ${index + 1}/${photos.length}...`);
+        const optimizedUrl = await optimizeImageForPdf(photo.url);
+        return {
+          ...photo,
+          url: optimizedUrl
+        };
+      })
+    );
+    
+    console.log('✅ All images optimized for PDF generation');
+    
+    const firstPhotoUrl = optimizedPhotos[0]?.url || '';
     
     // Helper functions
     const toTitle = (s: string) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
@@ -30,6 +91,13 @@ export async function POST(request: NextRequest) {
                   margin: 0;
                   padding: 0;
                   box-sizing: border-box;
+              }
+              
+              /* Global image optimization for PDF */
+              img {
+                  image-rendering: -webkit-optimize-contrast;
+                  image-rendering: optimize-contrast;
+                  image-rendering: crisp-edges;
               }
               
               body {
@@ -281,6 +349,9 @@ export async function POST(request: NextRequest) {
                   object-fit: cover;
                   border-radius: 10px;
                   border: none;
+                  /* Force max resolution for PDF optimization */
+                  max-width: 800px;
+                  max-height: 600px;
               }
               
               .image-placeholder {
@@ -315,19 +386,22 @@ export async function POST(request: NextRequest) {
                   height: 100%;
                   object-fit: cover;
                   border-radius: 7px;
+                  /* Force max resolution for PDF optimization */
+                  max-width: 400px;
+                  max-height: 300px;
               }
               
               /* Dirham SVG Symbol Styling */
               .dirham-symbol {
                   display: inline-block;
-                  width: 0.85em;
-                  height: 0.85em;
-                  margin-right: 6px;
-                  vertical-align: middle;
+                  width: 1em;
+                  height: 1em;
+                  margin-right: 4px;
+                  vertical-align: text-bottom;
                   fill: currentColor;
                   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
-                  /* Remove vertical nudge for better baseline alignment */
-                  transform: translateY(0);
+                  /* Move down to align with number baseline */
+                  transform: translateY(0.15em);
               }
               
               .dirham-symbol path {
@@ -346,6 +420,7 @@ export async function POST(request: NextRequest) {
                   display: flex;
                   align-items: baseline;
                   justify-content: center;
+                  line-height: 1.2;
               }
               
               .payment-option-value {
@@ -359,6 +434,7 @@ export async function POST(request: NextRequest) {
                   display: flex;
                   align-items: baseline;
                   justify-content: center;
+                  line-height: 1.2;
               }
               
               /* Make sure SVG inherits gradient styling */
@@ -604,6 +680,9 @@ export async function POST(request: NextRequest) {
                   height: 100%;
                   object-fit: cover;
                   display: block;
+                  /* Force max resolution for PDF optimization */
+                  max-width: 1000px;
+                  max-height: 750px;
               }
           </style>
       </head>
@@ -660,14 +739,14 @@ export async function POST(request: NextRequest) {
                             '<div class="image-placeholder">Main Vehicle Image<br><small>Primary photo will appear here</small></div>'}
                       </div>
                       <div class="thumbnail-grid">
-                          ${photos.slice(1, 5).map((photo: any, index: number) => 
+                          ${optimizedPhotos.slice(1, 5).map((photo: any, index: number) => 
                             `<div class="thumbnail">
                                 <img src="${photo.url}" alt="Vehicle image ${index + 2}" />
                             </div>`
                           ).join('')}
-                          ${Array.from({ length: Math.max(0, 4 - photos.slice(1).length) }, (_, i) => 
+                          ${Array.from({ length: Math.max(0, 4 - optimizedPhotos.slice(1).length) }, (_, i) => 
                             `<div class="thumbnail">
-                                <div class="image-placeholder" style="font-size: 9px;">Image ${photos.slice(1).length + i + 2}</div>
+                                <div class="image-placeholder" style="font-size: 9px;">Image ${optimizedPhotos.slice(1).length + i + 2}</div>
                             </div>`
                           ).join('')}
                       </div>
@@ -869,13 +948,13 @@ export async function POST(request: NextRequest) {
           </div>`}
 
           <!-- REST OF PAGES: Image Gallery Section (as they were) -->
-          ${photos.length > 0 ? `
+          ${optimizedPhotos.length > 0 ? `
           <div class="image-gallery">
               ${(() => {
                   const imagePages = [];
                   // Group images in pairs (2 per page)
-                  for (let i = 0; i < photos.length; i += 2) {
-                      const pageImages = photos.slice(i, i + 2);
+                  for (let i = 0; i < optimizedPhotos.length; i += 2) {
+                      const pageImages = optimizedPhotos.slice(i, i + 2);
                       const pageHTML = `
                       <div class="image-page">
                           ${pageImages.map((photo: any, index: number) => `
@@ -895,6 +974,7 @@ export async function POST(request: NextRequest) {
     `;
 
     // Call PDFShift API
+    console.log('📄 Generating PDF with Supabase images...');
     const response = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
       method: 'POST',
       headers: {
@@ -904,7 +984,14 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         source: html,
         landscape: false,
-        use_print: false
+        use_print: false,
+        // Basic PDF settings (PDFShift supported)
+        margin: {
+          top: '0.5in',
+          bottom: '0.5in',
+          left: '0.5in',
+          right: '0.5in'
+        }
       }),
     });
 
@@ -914,6 +1001,12 @@ export async function POST(request: NextRequest) {
     }
 
     const pdfBuffer = await response.arrayBuffer();
+    const pdfSizeMB = (pdfBuffer.byteLength / (1024 * 1024)).toFixed(2);
+    
+    console.log(`📄 PDF Generated:`);
+    console.log(`   Final PDF size: ${pdfSizeMB}MB`);
+    console.log(`   Image count: ${optimizedPhotos.length}`);
+    console.log(`   ${parseFloat(pdfSizeMB) < 5 ? '✅ Optimization successful!' : '⚠️ Still large - check image processing'}`);
     
     // Return PDF as base64 to client - let client handle Supabase upload
     const base64Pdf = Buffer.from(pdfBuffer).toString('base64');
@@ -921,7 +1014,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       pdfData: base64Pdf,
-      carId: car.id 
+      carId: car.id,
+      pdfStats: {
+        imageCount: optimizedPhotos.length,
+        fileSizeMB: parseFloat(pdfSizeMB),
+        status: parseFloat(pdfSizeMB) < 5 ? 'Optimized' : 'Standard'
+      }
     });
     
   } catch (error: any) {

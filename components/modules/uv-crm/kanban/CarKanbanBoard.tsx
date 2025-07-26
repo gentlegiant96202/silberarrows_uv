@@ -7,6 +7,7 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { useSearchStore } from '@/lib/searchStore';
 import { useUserRole } from '@/lib/useUserRole'; // 🆕 NEW ROLE SYSTEM
 import { useModulePermissions } from '@/lib/useModulePermissions';
+import { Check } from 'lucide-react';
 
 interface Car {
   id: string;
@@ -22,6 +23,7 @@ interface Car {
   customer_name?: string | null;
   customer_email?: string | null;
   customer_phone?: string | null;
+  vehicle_details_pdf_url?: string | null;
 }
 
 export default function CarKanbanBoard() {
@@ -512,8 +514,15 @@ export default function CarKanbanBoard() {
                           const fullData = await loadFullCarData(c.id);
                           setSelectedCarFull(fullData);
                         }}
-                        className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
+                        className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)} relative`}
                       >
+                        {/* PDF Generated Checkmark - Top Right */}
+                        {col.key === 'inventory' && c.vehicle_details_pdf_url && (
+                          <div className="absolute top-0.5 right-0.5">
+                            <Check className="w-2 h-2 text-green-400" strokeWidth={2} />
+                          </div>
+                        )}
+                        
                         <div className="flex items-center gap-2 min-w-0">
                           {/* thumbnail */}
                           <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded overflow-hidden">

@@ -65,23 +65,14 @@ export default function ModuleSelectionPage() {
     }
   }, [user, authLoading, router]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('=== MODULE SELECTION DEBUG ===');
-    console.log('User:', user?.id);
-    console.log('Permissions loading:', permissionsLoading);
-    console.log('Permissions error:', error);
-    console.log('All permissions object:', allPermissions);
-    console.log('Show fallback:', showFallback);
-  }, [user, permissionsLoading, error, allPermissions, showFallback]);
+  // Optional: Add any necessary logging here if needed for troubleshooting
 
   // Timeout fallback after 5 seconds (reduced from 10)
   useEffect(() => {
     if (permissionsLoading) {
       const timeout = setTimeout(() => {
-        console.warn('Permissions loading timeout - showing fallback');
         setShowFallback(true);
-      }, 5000); // Reduced to 5 seconds
+      }, 5000); // Show fallback after 5 seconds
 
       return () => clearTimeout(timeout);
     }
@@ -94,15 +85,7 @@ export default function ModuleSelectionPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-white/60">Loading your modules...</p>
           {permissionsLoading && (
-            <div>
-              <p className="text-white/40 text-sm mt-2">If this takes too long, we'll show a fallback...</p>
-              <button 
-                onClick={() => setDebugMode(true)}
-                className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded text-sm"
-              >
-                Enable Debug Mode (Skip Permissions)
-              </button>
-            </div>
+            <p className="text-white/40 text-sm mt-2">Loading your access permissions...</p>
           )}
         </div>
       </div>
@@ -117,10 +100,10 @@ export default function ModuleSelectionPage() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <Building2 className="w-8 h-8 text-yellow-400" />
+              <Building2 className="w-8 h-8 text-white" />
               <div>
                 <h1 className="text-2xl font-bold text-white">SilberArrows CRM</h1>
-                <p className="text-yellow-400 text-sm">DEBUG MODE - All Modules Shown</p>
+                <p className="text-white/60 text-sm">Select your business module</p>
               </div>
             </div>
             <div className="text-white/60 mb-4">
@@ -159,7 +142,6 @@ export default function ModuleSelectionPage() {
                     </div>
                     <h3 className="text-xl font-semibold text-white mb-2">{module.name}</h3>
                     <p className="text-white/60 text-sm leading-relaxed">{module.description}</p>
-                    <div className="mt-2 text-yellow-400 text-xs">DEBUG: Always accessible</div>
                   </div>
                 </div>
               );
@@ -189,11 +171,10 @@ export default function ModuleSelectionPage() {
                 <p className="text-white/60 text-sm">Select your business module (Fallback Mode)</p>
               </div>
             </div>
-            <p className="text-yellow-400 mb-2">⚠️ {showFallback ? 'Permission loading timeout' : 'Permission system unavailable'}</p>
             <p className="text-white/60 mb-4 text-sm">
               {showFallback 
-                ? 'Permissions took too long to load. Functions might exist but are not responding.' 
-                : 'Database functions missing. Please run the SQL setup script.'}
+                ? 'Loading your personalized modules...' 
+                : 'Setting up your access permissions...'}
             </p>
             <div className="space-x-2">
               <button 
@@ -201,12 +182,6 @@ export default function ModuleSelectionPage() {
                 className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded text-sm"
               >
                 Retry Loading Permissions
-              </button>
-              <button 
-                onClick={() => setDebugMode(true)}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded text-sm"
-              >
-                Enable Debug Mode
               </button>
             </div>
           </div>

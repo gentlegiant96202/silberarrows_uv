@@ -281,6 +281,12 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     e.preventDefault();
     if (!form.stock_number || !form.model_year || !form.vehicle_model || !form.model_family || !form.colour || !form.chassis_number || !form.advertised_price_aed) return;
     
+    // Check character limits
+    if (form.description.length > 1700 || form.key_equipment.length > 1800) {
+      alert('Please check character limits: Description max 1700, Key Equipment max 1800');
+      return;
+    }
+    
     setSaving(true);
     const { data, error } = await supabase.from("cars").insert([
       {
@@ -672,26 +678,48 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
             {step === 4 && (
              <>
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                <h3 className="text-white/80 text-xs font-semibold mb-2">Key Equipment</h3>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-white/80 text-xs font-semibold">Key Equipment</h3>
+                  <span className={`text-xs ${form.key_equipment.length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
+                    {form.key_equipment.length}/1800
+                  </span>
+                </div>
                 <textarea
                   name="key_equipment"
                   value={form.key_equipment}
                   onChange={handleChange}
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white resize-y min-h-[100px]"
+                  className={`w-full px-2 py-1 rounded bg-black/20 border text-white resize-y min-h-[100px] ${
+                    form.key_equipment.length > 1800 ? 'border-red-400' : 'border-white/10'
+                  }`}
                   rows={4}
                   required
-                  />
+                  maxLength={1800}
+                />
+                {form.key_equipment.length > 1800 && (
+                  <p className="text-red-400 text-xs mt-1">Key equipment must be 1800 characters or less</p>
+                )}
               </div>
 
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                <h3 className="text-white/80 text-xs font-semibold mb-2">Description</h3>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-white/80 text-xs font-semibold">Description</h3>
+                  <span className={`text-xs ${form.description.length > 1700 ? 'text-red-400' : 'text-white/60'}`}>
+                    {form.description.length}/1700
+                  </span>
+                </div>
                 <textarea
                   name="description"
                   value={form.description}
                   onChange={handleChange}
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white resize-y min-h-[100px]"
+                  className={`w-full px-2 py-1 rounded bg-black/20 border text-white resize-y min-h-[100px] ${
+                    form.description.length > 1700 ? 'border-red-400' : 'border-white/10'
+                  }`}
                   rows={3}
+                  maxLength={1700}
                 />
+                {form.description.length > 1700 && (
+                  <p className="text-red-400 text-xs mt-1">Description must be 1700 characters or less</p>
+                )}
               </div>
              </>
             )}

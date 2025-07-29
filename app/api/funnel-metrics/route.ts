@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
-// Force this API route to use Node.js runtime
+// Force this API route to use Node.js runtime and be dynamic
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // Use nextUrl instead of url to avoid dynamic server usage
-    const searchParams = request.nextUrl.searchParams;
-    const startDate = searchParams.get('startDate') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
+    // Use try-catch for search params to avoid static generation issues
+    let startDate: string;
+    let endDate: string;
+    
+    try {
+      const url = new URL(request.url);
+      startDate = url.searchParams.get('startDate') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      endDate = url.searchParams.get('endDate') || new Date().toISOString().split('T')[0];
+    } catch {
+      // Fallback if URL parsing fails
+      startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      endDate = new Date().toISOString().split('T')[0];
+    }
 
     // Call the database function
     const { data: funnelData, error: funnelError } = await supabase

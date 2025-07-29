@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Inbox, CheckCircle, Instagram } from 'lucide-react';
+import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Archive, CheckCircle, Instagram } from 'lucide-react';
 import { MarketingTask, MarketingStatus, MarketingColumn } from '@/types/marketing';
 import { supabase } from '@/lib/supabaseClient';
 import AddTaskModal from './AddTaskModal';
@@ -21,7 +21,7 @@ const columns: MarketingColumn[] = [
   { 
     key: "intake", 
     title: "INTAKE", 
-    icon: <Inbox className="w-4 h-4" />,
+    icon: <Archive className="w-4 h-4" />,
     color: "blue"
   },
   { 

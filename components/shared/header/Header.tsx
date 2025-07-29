@@ -7,9 +7,15 @@ import MusicPlayer from './sections/MusicPlayer';
 import ProfileDropdown from './sections/ProfileDropdown';
 import CRMNavigation from './modules/uv-crm/CRMNavigation';
 import FinanceCalculator from './modules/uv-crm/FinanceCalculator';
+import MarketingNavigation from './modules/marketing/MarketingNavigation';
 import ModuleSwitcher from '@/components/shared/ModuleSwitcher';
 
-export default function Header() {
+interface HeaderProps {
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
+}
+
+export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
   const pathname = usePathname();
   
   // Check if we're on the module selection page
@@ -42,8 +48,11 @@ export default function Header() {
                 {currentModule === 'workshop' && (
                   <div className="text-white/60 text-sm">Workshop Navigation Coming Soon</div>
                 )}
-                {currentModule === 'marketing' && (
-                  <div className="text-white/60 text-sm">Marketing Navigation Coming Soon</div>
+                {currentModule === 'marketing' && activeTab && onTabChange && (
+                  <MarketingNavigation activeTab={activeTab} onTabChange={onTabChange} />
+                )}
+                {currentModule === 'marketing' && (!activeTab || !onTabChange) && (
+                  <MarketingNavigation activeTab="design" onTabChange={() => {}} />
                 )}
                 {currentModule === 'leasing' && (
                   <div className="text-white/60 text-sm">Leasing Navigation Coming Soon</div>
@@ -51,29 +60,22 @@ export default function Header() {
               </>
             )}
 
-            {/* Universal Search Bar */}
+            {/* Search Bar */}
             <SearchBar />
           </div>
-          
-          {/* Right Side - Weather, Music, Tools, Profile */}
-          <div className="hidden lg:flex items-center gap-3 text-white/80 text-xs">
-            {/* Weather & Clock - Universal */}
+
+          {/* Right Side Components */}
+          <div className="flex items-center space-x-4">
+            {/* Module Switcher - Hide on module selection page */}
+            {!isModuleSelectionPage && <ModuleSwitcher />}
+            
+            {/* Finance Calculator for CRM module only */}
+            {currentModule === 'uv-crm' && <FinanceCalculator />}
+            
             <WeatherClock />
-
-            {/* Music Player - Universal */}
             <MusicPlayer />
-
-            {/* Module-specific Tools - Hide on module selection page */}
-            {!isModuleSelectionPage && currentModule === 'uv-crm' && <FinanceCalculator />}
-
-            {/* Module Switcher - Universal */}
-            <div className="ml-4">
-              <ModuleSwitcher />
-            </div>
+            <ProfileDropdown />
           </div>
-
-          {/* Profile Dropdown - Universal */}
-          <ProfileDropdown />
         </div>
       </div>
     </header>

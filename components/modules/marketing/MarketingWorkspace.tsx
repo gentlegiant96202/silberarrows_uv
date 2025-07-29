@@ -1414,7 +1414,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                                  <div 
                                    key={annotation.id} 
                                    onClick={() => {
-                                     setSelectedAnnotationId(annotation.id);
+                                     handleAnnotationClick(annotation);
                                      setIsAnnotationMode(false);
                                    }}
                                    className={`rounded-lg p-2.5 border transition-colors cursor-pointer ${

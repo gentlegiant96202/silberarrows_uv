@@ -355,7 +355,7 @@ export default function CarKanbanBoard() {
                       </>
                     )}
                   </div>
-                  {col.key === 'marketing' ? (
+                  {col.key === 'marketing' && canCreateCars ? (
                     <button
                       onClick={() => setShowModal(true)}
                       className="inline-flex items-center px-2 py-0.5 rounded-full text-gray-900 text-[10px] font-semibold ring-1 ring-white/20 shadow transition hover:brightness-110"

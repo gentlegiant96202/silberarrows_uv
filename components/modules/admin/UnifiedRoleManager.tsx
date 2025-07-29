@@ -130,11 +130,6 @@ export default function UnifiedRoleManager() {
       setModules(modulesData || []);
 
       console.log('✅ All data loaded successfully!');
-      console.log('🔍 Modules loaded:', modulesData?.length || 0, 'modules');
-      console.log('🔍 Permissions loaded:', permissionsData?.length || 0, 'permissions'); 
-      if (modulesData?.length) {
-        console.log('🔍 Module names:', modulesData.map(m => m.name).join(', '));
-      }
 
     } catch (err: any) {
       console.error('❌ Error loading data:', err);
@@ -255,7 +250,6 @@ export default function UnifiedRoleManager() {
           return prevPermissions;
         }
         
-        console.log(`🆕 Creating new permission entry for ${role} -> ${moduleName}`);
         const newPermission = {
           role,
           module_name: module.name,

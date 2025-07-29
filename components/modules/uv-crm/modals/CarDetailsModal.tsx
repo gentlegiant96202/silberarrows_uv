@@ -6,6 +6,7 @@ import MediaUploader from '@/components/modules/uv-crm/components/MediaUploader'
 import DocUploader from '@/components/modules/uv-crm/components/DocUploader';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useUserRole } from '@/lib/useUserRole';
+import { useModulePermissions } from '@/lib/useModulePermissions';
 import { createClient } from '@supabase/supabase-js';
 import { createPortal } from 'react-dom';
 
@@ -97,8 +98,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   ];
   // Use new role system
   const { isAdmin } = useUserRole();
+  const { canEdit: canEditInventory, canDelete: canDeleteInventory } = useModulePermissions('inventory');
   const [expanded, setExpanded] = useState<{[key:string]:boolean}>({});
-  const canEdit = isAdmin && ['new_listing','marketing','qc_ceo'].includes(car.status);
+  const canEdit = canEditInventory && ['new_listing','marketing','qc_ceo'].includes(car.status);
   const [editing, setEditing] = useState(false);
   // Remove drag-related state
   // const [dragIdx, setDragIdx] = useState<number|null>(null);
@@ -198,7 +200,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   // New function to move photos left/right one position at a time
   const movePhoto = async (currentIndex: number, direction: 'up' | 'down') => {
-    if (!isAdmin || !editing || reorderLoading) return;
+    if (!canEditInventory || !editing || reorderLoading) return;
     
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex < 0 || newIndex >= gallery.length) return;
@@ -497,7 +499,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
             )}
           </div>
           <div className="flex gap-1.5 mt-0.5">
-            {isAdmin && canEdit && (
+            {canDeleteInventory && ['new_listing','marketing','qc_ceo'].includes(car.status) && (
               <button onClick={handleDelete} className="px-2 py-1 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs rounded transition-all">Delete</button>
             )}
             {canEdit && (
@@ -762,7 +764,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               </div>
             </div>
 
-            {isAdmin && car.status === 'marketing' && (
+            {canEdit && car.status === 'marketing' && (
               <MediaUploader carId={car.id} onUploaded={refetchMedia} />
             )}
 
@@ -800,9 +802,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                             </div>
                           </div>
                         )}
-                      {/* overlay buttons - admin only */}
-                      {isAdmin && (
-                        <>
+                      {/* overlay buttons - for users with edit/delete permissions */}
+                      <>
+                        {canDeleteInventory && (
                           <button 
                             onClick={()=>handleDeleteMedia(m)} 
                             disabled={!!(mediaLoading || primaryLoading || reorderLoading)}
@@ -810,43 +812,43 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                           >
                             {mediaLoading ? '...' : '×'}
                           </button>
-                          {m.kind==='photo' && !m.is_primary && (
-                            <button 
-                              onClick={()=>handleMakePrimary(m)} 
-                              disabled={!!(primaryLoading !== null || reorderLoading || mediaLoading)}
-                              className="absolute bottom-0 left-0 text-[9px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              {primaryLoading === m.id ? 'Setting...' : 'Primary'}
-                            </button>
-                          )}
-                          {m.kind==='photo' && m.is_primary && (
-                            <span className="absolute bottom-0 left-0 text-[9px] bg-green-600/80 text-white px-1 font-semibold">
-                              PRIMARY
-                            </span>
-                          )}
-                          {/* Arrow buttons for reordering - only show when editing */}
-                          {editing && (
-                            <>
-                              {/* Left arrow - move photo left (up in order) */}
-                              <button 
-                                onClick={(e) => {e.stopPropagation(); movePhoto(i, 'up');}}
-                                disabled={!!(i === 0 || reorderLoading || primaryLoading || mediaLoading)}
-                                className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
-                                title="Move left"
-                              >
-                                {reorderLoading ? '...' : '←'}
-                              </button>
-                              {/* Right arrow - move photo right (down in order) */}
-                              <button 
-                                onClick={(e) => {e.stopPropagation(); movePhoto(i, 'down');}}
-                                disabled={!!(i === gallery.length - 1 || reorderLoading || primaryLoading || mediaLoading)}
-                                className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
-                                title="Move right"
-                              >
-                                {reorderLoading ? '...' : '→'}
-                              </button>
-                            </>
-                          )}
+                        )}
+                        {canEdit && m.kind==='photo' && !m.is_primary && (
+                          <button 
+                            onClick={()=>handleMakePrimary(m)} 
+                            disabled={!!(primaryLoading !== null || reorderLoading || mediaLoading)}
+                            className="absolute bottom-0 left-0 text-[9px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {primaryLoading === m.id ? '...' : '1°'}
+                          </button>
+                        )}
+                      </>
+                      {m.kind==='photo' && m.is_primary && (
+                        <span className="absolute bottom-0 left-0 text-[9px] bg-green-600/80 text-white px-1 font-semibold">
+                          PRIMARY
+                        </span>
+                      )}
+                      {/* Arrow buttons for reordering - only show when editing */}
+                      {editing && (
+                        <>
+                          {/* Left arrow - move photo left (up in order) */}
+                          <button 
+                            onClick={(e) => {e.stopPropagation(); movePhoto(i, 'up');}}
+                            disabled={!!(i === 0 || reorderLoading || primaryLoading || mediaLoading)}
+                            className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
+                            title="Move left"
+                          >
+                            {reorderLoading ? '...' : '←'}
+                          </button>
+                          {/* Right arrow - move photo right (down in order) */}
+                          <button 
+                            onClick={(e) => {e.stopPropagation(); movePhoto(i, 'down');}}
+                            disabled={!!(i === gallery.length - 1 || reorderLoading || primaryLoading || mediaLoading)}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
+                            title="Move right"
+                          >
+                            {reorderLoading ? '...' : '→'}
+                          </button>
                         </>
                       )}
                     </div>
@@ -861,7 +863,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               {pdfUrl ? (
                 <div className="flex items-center gap-2">
                   <a href={pdfUrl + '?download'} download className="underline text-brand text-xs">Download PDF</a>
-                  {isAdmin && (car.status==='marketing' || car.status==='qc_ceo') && (
+                  {canEdit && (car.status==='marketing' || car.status==='qc_ceo') && (
                     <button onClick={handleGeneratePdf} disabled={generating} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded disabled:opacity-40 flex items-center gap-1">
                       {generating && (<span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />)}
                       {generating ? 'Regenerating…' : 'Regenerate'}
@@ -869,7 +871,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   )}
                 </div>
               ) : (
-                isAdmin && (car.status==='marketing' || car.status==='qc_ceo') ? (
+                canEdit && (car.status==='marketing' || car.status==='qc_ceo') ? (
                   <button onClick={handleGeneratePdf} disabled={generating} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded disabled:opacity-40 flex items-center gap-1">
                     {generating && (<span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />)}
                     {generating ? 'Generating…' : 'Generate PDF'}

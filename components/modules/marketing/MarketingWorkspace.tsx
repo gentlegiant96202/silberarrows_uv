@@ -201,7 +201,14 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               const updatedAnnotations = [...currentAnnotations, newAnnotation];
               onAnnotationsChange?.(updatedAnnotations);
               // Save to DB
-              supabase.from('design_tasks').update({ annotations: updatedAnnotations }).eq('id', task.id);
+              supabase.from('design_tasks')
+                .update({ annotations: updatedAnnotations })
+                .eq('id', task.id)
+                .then(({ error }) => {
+                  if (error) {
+                    console.error('Error saving annotation:', error);
+                  }
+                });
             }}
             existingPaths={selectedAnnotationId
               ? currentAnnotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700' }))
@@ -276,7 +283,14 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
           const updatedAnnotations = [...currentAnnotations, newAnnotation];
           onAnnotationsChange?.(updatedAnnotations);
           // Save to DB
-          supabase.from('design_tasks').update({ annotations: updatedAnnotations }).eq('id', task.id);
+          supabase.from('design_tasks')
+            .update({ annotations: updatedAnnotations })
+            .eq('id', task.id)
+            .then(({ error }) => {
+              if (error) {
+                console.error('Error saving annotation:', error);
+              }
+            });
         }}
         existingPaths={selectedAnnotationId
           ? currentAnnotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700' }))
@@ -308,6 +322,8 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [showCommentPopup, setShowCommentPopup] = useState(false);
   const [failedThumbnails, setFailedThumbnails] = useState<Set<number>>(new Set());
+  const [loadingThumbnails, setLoadingThumbnails] = useState<Set<number>>(new Set());
+  const [isMounted, setIsMounted] = useState(false);
 
   // Local state for media files that can be modified
   const [mediaFiles, setMediaFiles] = useState(() => {
@@ -316,7 +332,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
 
   // Filter for different file types  
   const imageFiles = useMemo(() => {
-    return mediaFiles.filter((file: any) => {
+    const filtered = mediaFiles.filter((file: any) => {
       if (typeof file === 'string') {
         return file.match(/\.(jpe?g|png|gif|webp)$/i);
       }
@@ -325,19 +341,21 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
              file.originalType === 'application/pdf' ||
              file.name?.match(/\.(jpe?g|png|gif|webp)$/i);
     });
+    return filtered;
   }, [mediaFiles, refreshKey]);
 
   const videoFiles = useMemo(() => {
-    return mediaFiles.filter((file: any) => {
+    const filtered = mediaFiles.filter((file: any) => {
       if (typeof file === 'string') {
         return file.match(/\.(mp4|mov|avi|webm|mkv)$/i);
       }
       return file.type?.startsWith('video/') || file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
     });
+    return filtered;
   }, [mediaFiles, refreshKey]);
 
   const pdfFiles = useMemo(() => {
-    return mediaFiles.filter((file: any) => {
+    const filtered = mediaFiles.filter((file: any) => {
       if (typeof file === 'string') {
         return file.match(/\.pdf$/i);
       }
@@ -345,6 +363,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
       return (file.type === 'application/pdf' || file.name?.match(/\.pdf$/i)) && 
              !file.originalType; // Converted PDFs have originalType
     });
+    return filtered;
   }, [mediaFiles, refreshKey]);
 
   const otherFiles = mediaFiles.filter((file: any) => {
@@ -361,18 +380,32 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
     return !isImage && !isVideo && !isPdf;
   });
 
-  // Combine all files for navigation with proper mapping
+  // Combine all files for navigation with proper mapping - maintain original order!
   const allViewableFiles = useMemo(() => {
-    return [...imageFiles, ...videoFiles, ...pdfFiles];
-  }, [imageFiles, videoFiles, pdfFiles, refreshKey]);
+    // Instead of grouping by type, filter mediaFiles to keep original order
+    const viewableInOriginalOrder = mediaFiles.filter((file: any) => {
+      if (typeof file === 'string') {
+        return file.match(/\.(jpe?g|png|gif|webp|mp4|mov|avi|webm|mkv|pdf)$/i);
+      }
+      // Include images, videos, and PDFs (including converted PDFs)
+      return file.type?.startsWith('image/') || 
+             file.type?.startsWith('video/') || 
+             file.type === 'application/pdf' ||
+             file.originalType === 'application/pdf' ||
+             file.name?.match(/\.(jpe?g|png|gif|webp|mp4|mov|avi|webm|mkv|pdf)$/i);
+    });
+    
+    return viewableInOriginalOrder;
+  }, [mediaFiles, refreshKey]); // Remove imageFiles, videoFiles, pdfFiles dependencies
 
   // Create mapping between viewable files and original media files indices
   const viewableToMediaMapping = useMemo(() => {
     const mapping: number[] = [];
-    const allViewable = [...imageFiles, ...videoFiles, ...pdfFiles];
     
-    allViewable.forEach((viewableFile: any) => {
-      const originalIndex = mediaFiles.findIndex((mediaFile: any) => {
+    // Since allViewableFiles now maintains original order, we just need to find 
+    // the original media index for each viewable file
+    allViewableFiles.forEach((viewableFile: any, viewableIndex: number) => {
+      const originalIndex = mediaFiles.findIndex((mediaFile: any, mediaIndex: number) => {
         const viewableUrl = typeof viewableFile === 'string' ? viewableFile : viewableFile.url;
         const mediaUrl = typeof mediaFile === 'string' ? mediaFile : mediaFile.url;
         return viewableUrl === mediaUrl;
@@ -383,7 +416,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
     });
     
     return mapping;
-  }, [mediaFiles, imageFiles, videoFiles, pdfFiles, refreshKey]);
+  }, [mediaFiles, allViewableFiles, refreshKey]);
 
   // Navigate thumbnails
   const handlePrevImage = () => {
@@ -435,12 +468,20 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
   // Reset failed thumbnails when media files change
   useEffect(() => {
     setFailedThumbnails(new Set());
+    setLoadingThumbnails(new Set());
   }, [mediaFiles, refreshKey]);
+
+  // Handle initial mount to prevent layout shift
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 100); // Small delay to ensure layout is stable
+    
+    return () => clearTimeout(timer);
+  }, []);
 
     // Enhanced drag and drop for thumbnail reordering
   const handleThumbnailDragStart = (e: React.DragEvent, index: number) => {
-    console.log('🚀 THUMBNAIL DRAG START:', index, 'annotation mode:', isAnnotationMode);
-    
     if (isAnnotationMode) {
       e.preventDefault();
       return;
@@ -457,8 +498,6 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
   };
 
   const handleThumbnailDragEnd = (e: React.DragEvent) => {
-    console.log('🏁 THUMBNAIL DRAG END');
-    
     // Reset opacity
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '1';
@@ -501,15 +540,12 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
   };
 
   const handleThumbnailDrop = (e: React.DragEvent, targetIndex: number) => {
-    console.log('💥 THUMBNAIL DROP:', draggedIndex, '→', targetIndex);
-    
     e.preventDefault();
     e.stopPropagation();
     
     setDragOverIndex(null);
     
     if (isAnnotationMode || draggedIndex === null || draggedIndex === targetIndex) {
-      console.log('❌ Drop cancelled - invalid conditions');
       setDraggedIndex(null);
       return;
     }
@@ -520,42 +556,36 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
       const targetMediaIndex = viewableToMediaMapping[targetIndex];
       
       if (draggedMediaIndex === undefined || targetMediaIndex === undefined) {
-        console.log('❌ Drop cancelled - invalid mapping');
         setDraggedIndex(null);
         return;
       }
 
-      console.log('📍 Mapping:', { 
-        draggedViewable: draggedIndex, 
-        targetViewable: targetIndex, 
-        draggedMedia: draggedMediaIndex, 
-        targetMedia: targetMediaIndex 
-      });
-
       // Reorder the original media files array
-      const newMediaFiles = [...mediaFiles];
+    const newMediaFiles = [...mediaFiles];
       const draggedItem = newMediaFiles[draggedMediaIndex];
       
       // Remove from old position
       newMediaFiles.splice(draggedMediaIndex, 1);
       
-      // Calculate new insertion index after removal
+      // Calculate correct insertion index after removal
       let insertIndex = targetMediaIndex;
       if (draggedMediaIndex < targetMediaIndex) {
-        insertIndex = targetMediaIndex; // No adjustment needed since we removed an item before target
+        // When moving forward, target index shifts left by 1 after removal
+        insertIndex = targetMediaIndex - 1;
       } else {
-        insertIndex = targetMediaIndex; // Target index stays the same
+        // When moving backward, target index stays the same
+        insertIndex = targetMediaIndex;
       }
       
       // Insert at new position
       newMediaFiles.splice(insertIndex, 0, draggedItem);
 
-      console.log('✅ Reordered media files:', mediaFiles.length, '→', newMediaFiles.length);
-
-      // Update state immediately
-      setMediaFiles(newMediaFiles);
-      task.media_files = newMediaFiles;
-      setRefreshKey(prev => prev + 1);
+    // Force immediate state updates
+    setMediaFiles(newMediaFiles);
+    task.media_files = newMediaFiles;
+    
+    // Force refresh of all computed arrays
+    setRefreshKey(prev => prev + 1);
       
       // Adjust selected index if necessary (working with viewable indices)
       if (selectedImageIndex === draggedIndex) {
@@ -566,18 +596,16 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
         setSelectedImageIndex(selectedImageIndex + 1);
       }
       
-      setDraggedIndex(null);
-      
-      // Update database
-      supabase
-        .from('design_tasks')
-        .update({ media_files: newMediaFiles })
+    setDraggedIndex(null);
+    
+    // Update database
+    supabase
+      .from('design_tasks')
+      .update({ media_files: newMediaFiles })
         .eq('id', task.id)
         .then(({ error }) => {
           if (error) {
             console.error('Failed to update media files order:', error);
-          } else {
-            console.log('✅ Database updated successfully');
           }
         });
         
@@ -587,29 +615,10 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
     }
   };
 
-  // Test browser support for video thumbnail generation
-  const testVideoSupport = () => {
-    const video = document.createElement('video');
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    console.log('🔍 Browser video support test:', {
-      canPlayMP4: video.canPlayType('video/mp4'),
-      canPlayWebM: video.canPlayType('video/webm'),
-      canPlayMOV: video.canPlayType('video/quicktime'),
-      hasCanvas: !!ctx,
-      hasBlobSupport: typeof canvas.toBlob === 'function',
-      hasFileAPI: typeof File !== 'undefined'
-    });
-  };
-
   // Generate video thumbnail from 0.05 second frame
   const generateVideoThumbnail = (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
       console.log('🎬 Starting thumbnail generation for:', file.name, 'Type:', file.type, 'Size:', file.size);
-      
-      // Test browser support first
-      testVideoSupport();
       
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
@@ -1381,7 +1390,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                 Annotations
               </h4>
               <div className="space-y-2 overflow-y-auto" style={{ maxHeight: '280px' }}>
-                                                  {(() => {
+                {(() => {
                    // Use real annotations from MediaViewer
                    const annotations = currentAnnotations;
                    const currentPage = selectedImageIndex + 1;
@@ -1452,7 +1461,6 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                                    )}
                                  </div>
                                ))}
-
                              </div>
                            </div>
                          ))}
@@ -1460,6 +1468,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                    );
                  })()}
               </div>
+            </div>
             </div>
 
             {/* Middle Section - Thumbnails & Tools */}
@@ -1478,177 +1487,204 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                 className="flex gap-3 overflow-x-auto pb-2 mb-4 scrollbar-hide" 
                 style={{ 
                   scrollbarWidth: 'none', 
-                  msOverflowStyle: 'none'
+                  msOverflowStyle: 'none',
+                  minHeight: '72px' // Fixed min-height to prevent initial collapse
                 }}
               >
-                 {allViewableFiles.map((file: any, index: number) => {
-                   const isVideo = typeof file === 'string' ? 
-                     file.match(/\.(mp4|mov|avi|webm|mkv)$/i) :
-                     file.type?.startsWith('video/') || file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
-                   const isPdf = typeof file === 'string' ? 
-                     file.match(/\.pdf$/i) :
-                     (file.type === 'application/pdf' || file.name?.match(/\.pdf$/i)) && !file.originalType;
-                   const isConvertedPdf = typeof file === 'string' ? false : file.originalType === 'application/pdf';
-                   
-                   return (
-                     <div
-                       key={index}
-                       data-thumbnail-draggable="true"
-                       draggable={!isAnnotationMode && true}
-                       onDragStart={(e) => handleThumbnailDragStart(e, index)}
-                       onDragEnd={handleThumbnailDragEnd}
-                       onDragOver={(e) => handleThumbnailDragOver(e, index)}
-                       onDragEnter={(e) => handleThumbnailDragEnter(e, index)}
-                       onDragLeave={(e) => handleThumbnailDragLeave(e, index)}
-                       onDrop={(e) => handleThumbnailDrop(e, index)}
-                       className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-16 h-16 ${
-                         selectedImageIndex === index
-                           ? 'ring-2 ring-white/40 shadow-lg'
-                           : 'hover:ring-1 hover:ring-white/20'
-                       } ${isAnnotationMode ? 'opacity-50 cursor-not-allowed' : ''} ${
-                         draggedIndex === index ? 'opacity-30 scale-95 rotate-3' : ''
-                       } ${
-                         dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-400 scale-105' : ''
-                       }`}
-                       onClick={() => {
-                         if (!isAnnotationMode) {
-                           setSelectedImageIndex(index);
-                           setSelectedAnnotationId(null);
-                         }
-                       }}
-                     >
-                      <div className="w-full h-full bg-white/5 relative">
-                        {isVideo ? (
-                          // Show video thumbnail if available, otherwise show video icon
-                          typeof file === 'string' ? (
-                            <div className="w-full h-full flex items-center justify-center bg-black/50">
-                              <Video className="w-4 h-4 text-white/60" />
-                            </div>
-                          ) : file.thumbnail && !failedThumbnails.has(index) ? (
-                            <img
-                              src={file.thumbnail}
-                              alt={`Video thumbnail ${index + 1}`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Mark this thumbnail as failed and let React re-render
-                                setFailedThumbnails(prev => new Set(prev).add(index));
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-black/50">
-                              <Video className="w-4 h-4 text-white/60" />
-                            </div>
-                          )
-                        ) : isPdf || isConvertedPdf ? (
-                          <div className="w-full h-full flex items-center justify-center bg-white/10">
-                            <FileText className="w-4 h-4 text-gray-400" />
-                          </div>
-                        ) : (
-                          <img
-                            src={getImageUrl(file)}
-                            alt={`Media ${index + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        )}
-                        
-                        {/* Media type indicators */}
-                        {isVideo && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="bg-black/60 backdrop-blur-sm rounded-full p-1">
-                              <Play className="w-2 h-2 text-white fill-white" />
-                            </div>
-                          </div>
-                        )}
-                        
-                        {(isPdf || isConvertedPdf) && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="bg-white/20 backdrop-blur-sm rounded-full p-1">
-                              <FileText className="w-2 h-2 text-white" />
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Delete button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteFile(index);
-                          }}
-                          disabled={deleting === index}
-                          className="absolute top-1 right-1 p-0.5 bg-black/80 hover:bg-black backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:opacity-50"
-                          title="Delete file"
-                        >
-                          {deleting === index ? (
-                            <div className="w-2 h-2 border border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            <Trash2 className="w-2 h-2" />
-                          )}
-                        </button>
-                        
-                        {/* Index indicator */}
-                        <div className="absolute bottom-1 left-1 bg-black/60 backdrop-blur-sm rounded px-1 py-0.5">
-                          <div className="text-white text-[10px] font-medium">#{index + 1}</div>
-                        </div>
+                {!isMounted || allViewableFiles.length === 0 ? (
+                  // Loading skeleton to prevent layout shift
+                  <div className="flex gap-3 items-center">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 animate-pulse">
+                        <div className="w-full h-full bg-white/10"></div>
                       </div>
-                    </div>
-                  );
-                })}
-                
-                                 {/* Upload button */}
-                 <div className="aspect-square border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center hover:border-white/40 transition-colors cursor-pointer group relative flex-shrink-0 w-16 h-16">
-                   <input
-                     type="file"
-                     multiple
-                     accept="image/*,video/*,.pdf"
-                     onChange={(e) => {
-                       if (e.target.files) {
-                         handleFileUpload(e.target.files);
-                       }
-                       e.target.value = ''; // Reset input
-                     }}
-                     className="absolute inset-0 opacity-0 cursor-pointer"
-                     disabled={uploading}
-                   />
-                   <div className="text-center pointer-events-none">
-                     {uploading ? (
-                       <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin mx-auto mb-1" />
-                     ) : (
-                       <Plus className="w-4 h-4 text-white/50 group-hover:text-white/80 mx-auto mb-1" />
-                     )}
-                     <div className="text-[10px] text-white/50 group-hover:text-white/80">
-                       {uploading ? 'Uploading...' : 'Upload'}
-                     </div>
-                   </div>
-                 </div>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    {allViewableFiles.map((file: any, index: number) => {
+                      const isVideo = typeof file === 'string' ? 
+                        file.match(/\.(mp4|mov|avi|webm|mkv)$/i) :
+                        file.type?.startsWith('video/') || file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+                      const isPdf = typeof file === 'string' ? 
+                        file.match(/\.pdf$/i) :
+                        (file.type === 'application/pdf' || file.name?.match(/\.pdf$/i)) && !file.originalType;
+                      const isConvertedPdf = typeof file === 'string' ? false : file.originalType === 'application/pdf';
+                      
+                      // Generate stable key for React rendering
+                      const stableKey = typeof file === 'string' 
+                        ? `${file}-${index}-${refreshKey}` 
+                        : `${file.url || file.name}-${index}-${refreshKey}`;
+                      
+                      return (
+                        <div
+                          key={stableKey}
+                          data-thumbnail-draggable="true"
+                          draggable={true}
+                          onDragStart={(e) => handleThumbnailDragStart(e, index)}
+                          onDragEnd={handleThumbnailDragEnd}
+                          onDragOver={(e) => handleThumbnailDragOver(e, index)}
+                          onDragEnter={(e) => handleThumbnailDragEnter(e, index)}
+                          onDragLeave={(e) => handleThumbnailDragLeave(e, index)}
+                          onDrop={(e) => handleThumbnailDrop(e, index)}
+                          className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-16 h-16 hover:ring-1 hover:ring-white/20 ${
+                            draggedIndex === index ? 'opacity-30 scale-95 rotate-3' : ''
+                          } ${
+                            dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-400 scale-105' : ''
+                          }`}
+                          style={{
+                            width: '64px',
+                            height: '64px',
+                            minWidth: '64px',
+                            minHeight: '64px',
+                            maxWidth: '64px',
+                            maxHeight: '64px'
+                          }}
+                        >
+                            <div className="w-full h-full bg-white/5 relative">
+                            {/* Video thumbnail or icon */}
+                            {isVideo ? (
+                              isPdf || isConvertedPdf ? (
+                                <div className="w-full h-full flex items-center justify-center bg-red-500/20">
+                                  <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              ) : file.thumbnail && !failedThumbnails.has(index) ? (
+                                <div className="relative w-full h-full bg-black/50">
+                                  {loadingThumbnails.has(index) && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                                      <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                    </div>
+                                  )}
+                                  <img
+                                    src={file.thumbnail}
+                                    alt={`Video thumbnail ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    style={{ 
+                                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                      minWidth: '64px',
+                                      minHeight: '64px'
+                                    }}
+                                    onLoad={() => {
+                                      setLoadingThumbnails(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(index);
+                                        return newSet;
+                                      });
+                                    }}
+                                    onLoadStart={() => {
+                                      setLoadingThumbnails(prev => new Set(prev).add(index));
+                                    }}
+                                    onError={() => {
+                                      setFailedThumbnails(prev => new Set(prev).add(index));
+                                      setLoadingThumbnails(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(index);
+                                        return newSet;
+                                      });
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                  <svg className="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m15 9-6 6m0 0v-6m0 6h6" />
+                                  </svg>
+                                </div>
+                              )
+                            ) : isPdf || isConvertedPdf ? (
+                              <div className="w-full h-full flex items-center justify-center bg-red-500/20">
+                                <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            ) : (
+                              <div className="relative w-full h-full bg-white/10">
+                                {loadingThumbnails.has(index) && (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+                                    <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                  </div>
+                                )}
+                                <img
+                                  src={getImageUrl(file)}
+                                  alt={`Media ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                  style={{ 
+                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                    minWidth: '64px',
+                                    minHeight: '64px'
+                                  }}
+                                  onLoad={() => {
+                                    setLoadingThumbnails(prev => {
+                                      const newSet = new Set(prev);
+                                      newSet.delete(index);
+                                      return newSet;
+                                    });
+                                  }}
+                                  onLoadStart={() => {
+                                    setLoadingThumbnails(prev => new Set(prev).add(index));
+                                  }}
+                                  onError={(e) => {
+                                    setLoadingThumbnails(prev => {
+                                      const newSet = new Set(prev);
+                                      newSet.delete(index);
+                                      return newSet;
+                                    });
+                                    // Keep the placeholder instead of hiding
+                                    e.currentTarget.style.opacity = '0';
+                                  }}
+                                />
+                              </div>
+                            )}
+
+                            {/* Delete button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const mediaIndex = viewableToMediaMapping[index];
+                                if (mediaIndex !== undefined) {
+                                  handleDeleteFile(mediaIndex);
+                                }
+                              }}
+                              className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                            >
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
               </div>
             </div>
-            
-            {/* Tools Row */}
-            <div className="border-t border-white/10 pt-3 flex-shrink-0">
-              <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-2">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+
+            {/* Tools */}
+            <div className="pt-2 border-t border-white/10 flex-shrink-0">
+              <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
                 </svg>
-                Tools & Controls
+                Tools
               </h4>
               
-                             {/* Zoom Controls Group */}
-               <div className="space-y-3">
+              {/* Zoom Controls */}
+              <div className="space-y-3 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-white/60 min-w-[40px]">Zoom:</span>
                   <div className="flex items-center gap-1">
-                    <button 
+                    <button
                       onClick={() => {
                         setZoom(Math.max(0.5, zoom / 1.2));
                         setSelectedAnnotationId(null);
                       }} 
                       disabled={isAnnotationMode}
                       className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold transition-colors ${
-                        isAnnotationMode 
+                        isAnnotationMode
                           ? 'bg-white/5 text-white/40 cursor-not-allowed' 
                           : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30'
                       }`}
@@ -1694,37 +1730,32 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                     </button>
                   </div>
                 </div>
-                
-                                 {/* Annotation Tools Group */}
-                 <div className="flex items-center gap-2">
-                   <span className="text-xs text-white/60 min-w-[40px]">Draw:</span>
-                   <div className="flex items-center gap-1">
-                     <button
-                       onClick={() => {
-                         if (isAnnotationMode) {
-                           setIsAnnotationMode(false);
-                           setSelectedAnnotationId(null);
-                         } else {
-                           setIsAnnotationMode(true);
-                           resetZoomPan();
-                           setSelectedAnnotationId(null);
-                         }
-                       }}
-                       className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                         isAnnotationMode 
-                           ? 'bg-yellow-500 text-black shadow-md' 
-                           : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30'
-                       }`}
-                       disabled={showCommentPopup || !!selectedAnnotationId}
-                       title={isAnnotationMode ? "Exit highlighting mode" : "Start highlighting/annotating"}
-                     >
-                       🖍️ Highlight
-                     </button>
-                   </div>
-                 </div>
+              </div>
+
+              {/* Annotation Tool */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/60 min-w-[40px]">Draw:</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setIsAnnotationMode(!isAnnotationMode)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-all ${
+                      isAnnotationMode
+                        ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                        : 'bg-black/20 text-white/70 border border-white/10 hover:bg-black/30'
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    Highlighter
+                  </button>
+                </div>
               </div>
             </div>
             </div>
+
+            {/* Bottom Section - Annotations */}
+            <div className="flex-1 flex flex-col min-h-0">
             </div>
           </div>
         </div>

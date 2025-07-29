@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import dayjs from 'dayjs';
 import { MarketingTask } from '@/types/marketing';
-import { Trash2, FileText, Video, Image as ImageIcon } from 'lucide-react';
+import { Trash2, FileText, Video, Image as ImageIcon, Plus, Play } from 'lucide-react';
 
 // PDF conversion is currently disabled (dependency issues). Return empty list.
 const convertPdfToImages = async (_file: File): Promise<Array<{blob: Blob, name: string, pageIndex: number, dataURL: string}>> => {
@@ -29,97 +29,7 @@ interface FileWithThumbnail {
   error?: string;
 }
 
-interface ExistingFileItemProps {
-  file: any;
-  index: number;
-  onDelete: (file: any, index: number) => void;
-}
 
-function ExistingFileItem({ file, index, onDelete }: ExistingFileItemProps) {
-  const [imageLoadError, setImageLoadError] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const isImage = file.type?.startsWith('image/') || file.name?.match(/\.(jpe?g|png|gif|webp)$/i);
-
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await onDelete(file, index);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  // Get file type icon
-  const getExistingFileIcon = (file: any) => {
-    const fileName = file.name || '';
-    const fileType = file.type || '';
-    
-    if (fileType.startsWith('image/') || fileName.match(/\.(jpe?g|png|gif|webp)$/i)) {
-      return <ImageIcon className="w-6 h-6 text-white/60" />;
-    } else if (fileType.startsWith('video/') || fileName.match(/\.(mp4|mov|avi|webm|mkv)$/i)) {
-      return <Video className="w-6 h-6 text-white/60" />;
-    } else if (fileType === 'application/pdf' || fileName.match(/\.pdf$/i)) {
-      return <FileText className="w-6 h-6 text-gray-400" />;
-    } else {
-      return <FileText className="w-6 h-6 text-white/60" />;
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-3 p-2 bg-black/20 border border-white/5 rounded group">
-      {/* Thumbnail or file icon */}
-      <div className="flex-shrink-0 w-12 h-12 rounded overflow-hidden bg-white/5 flex items-center justify-center">
-        {isImage && file.url && !imageLoadError ? (
-          <img 
-            src={file.url} 
-            alt={file.name || 'image'}
-            className="w-full h-full object-cover"
-            onError={() => setImageLoadError(true)}
-          />
-        ) : (
-          getExistingFileIcon(file)
-        )}
-      </div>
-
-      {/* File info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-white text-[10px] truncate">{file.name || 'file'}</span>
-          {file.size && (
-            <span className="text-white/40 text-[9px] flex-shrink-0">
-              {(file.size / 1024 / 1024).toFixed(1)} MB
-            </span>
-          )}
-        </div>
-        <div className="text-[9px] text-green-400">✓ Uploaded</div>
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-2">
-        <a
-          href={file.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-shrink-0 text-indigo-300 hover:text-indigo-200 text-[10px] underline"
-        >
-          View
-        </a>
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="flex-shrink-0 p-1 text-gray-400 hover:text-white hover:bg-black/20 rounded transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
-          title="Delete file"
-        >
-          {deleting ? (
-            <div className="w-3 h-3 border border-gray-400/30 border-t-gray-400 rounded-full animate-spin" />
-          ) : (
-            <Trash2 className="w-3 h-3" />
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTaskModalProps) {
   const [loading, setLoading] = useState(false);
@@ -136,8 +46,206 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
   const [selectedFiles, setSelectedFiles] = useState<FileWithThumbnail[]>([]);
   const [existingMedia, setExistingMedia] = useState<any[]>(task?.media_files || []);
 
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [failedThumbnails, setFailedThumbnails] = useState<Set<number>>(new Set());
+
   // Check if caption should be visible (not in intake)
   const showCaption = formData.status !== 'intake';
+
+  // Filter for different file types (similar to MarketingWorkspace)
+  const imageFiles = useMemo(() => {
+    return existingMedia.filter((file: any) => {
+      if (typeof file === 'string') {
+        return file.match(/\.(jpe?g|png|gif|webp)$/i);
+      }
+      return file.type?.startsWith('image/') || 
+             file.originalType === 'application/pdf' ||
+             file.name?.match(/\.(jpe?g|png|gif|webp)$/i);
+    });
+  }, [existingMedia, refreshKey]);
+
+  const videoFiles = useMemo(() => {
+    return existingMedia.filter((file: any) => {
+      if (typeof file === 'string') {
+        return file.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+      }
+      return file.type?.startsWith('video/') || file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+    });
+  }, [existingMedia, refreshKey]);
+
+  const pdfFiles = useMemo(() => {
+    return existingMedia.filter((file: any) => {
+      if (typeof file === 'string') {
+        return file.match(/\.pdf$/i);
+      }
+      return (file.type === 'application/pdf' || file.name?.match(/\.pdf$/i)) && 
+             !file.originalType;
+    });
+  }, [existingMedia, refreshKey]);
+
+  // Combine all files for navigation - maintain original order!
+  const allViewableFiles = useMemo(() => {
+    const viewableInOriginalOrder = existingMedia.filter((file: any) => {
+      if (typeof file === 'string') {
+        return file.match(/\.(jpe?g|png|gif|webp|mp4|mov|avi|webm|mkv|pdf)$/i);
+      }
+      return file.type?.startsWith('image/') || 
+             file.type?.startsWith('video/') || 
+             file.type === 'application/pdf' ||
+             file.originalType === 'application/pdf' ||
+             file.name?.match(/\.(jpe?g|png|gif|webp|mp4|mov|avi|webm|mkv|pdf)$/i);
+    });
+    return viewableInOriginalOrder;
+  }, [existingMedia, refreshKey]);
+
+  // Create mapping between viewable files and original media files indices
+  const viewableToMediaMapping = useMemo(() => {
+    const mapping: number[] = [];
+    allViewableFiles.forEach((viewableFile: any, viewableIndex: number) => {
+      const originalIndex = existingMedia.findIndex((mediaFile: any, mediaIndex: number) => {
+        const viewableUrl = typeof viewableFile === 'string' ? viewableFile : viewableFile.url;
+        const mediaUrl = typeof mediaFile === 'string' ? mediaFile : mediaFile.url;
+        return viewableUrl === mediaUrl;
+      });
+      if (originalIndex !== -1) {
+        mapping.push(originalIndex);
+      }
+    });
+    return mapping;
+  }, [existingMedia, allViewableFiles, refreshKey]);
+
+  // Reset failed thumbnails when media files change
+  useEffect(() => {
+    setFailedThumbnails(new Set());
+  }, [existingMedia, refreshKey]);
+
+  // Drag and drop handlers (from MarketingWorkspace)
+  const handleThumbnailDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+    
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  };
+
+  const handleThumbnailDragEnd = (e: React.DragEvent) => {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleThumbnailDragOver = (e: React.DragEvent, targetIndex: number) => {
+    if (draggedIndex === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== targetIndex) {
+      setDragOverIndex(targetIndex);
+    }
+  };
+
+  const handleThumbnailDragEnter = (e: React.DragEvent, targetIndex: number) => {
+    if (draggedIndex === null) return;
+    e.preventDefault();
+  };
+
+  const handleThumbnailDragLeave = (e: React.DragEvent, targetIndex: number) => {
+    if (draggedIndex === null) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      if (dragOverIndex === targetIndex) {
+        setDragOverIndex(null);
+      }
+    }
+  };
+
+  const handleThumbnailDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverIndex(null);
+    
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    try {
+      const draggedMediaIndex = viewableToMediaMapping[draggedIndex];
+      const targetMediaIndex = viewableToMediaMapping[targetIndex];
+      
+      if (draggedMediaIndex === undefined || targetMediaIndex === undefined) {
+        setDraggedIndex(null);
+        return;
+      }
+
+      const newMediaFiles = [...existingMedia];
+      const draggedItem = newMediaFiles[draggedMediaIndex];
+      
+      // Remove from old position
+      newMediaFiles.splice(draggedMediaIndex, 1);
+      
+      // Calculate correct insertion index
+      let insertIndex = targetMediaIndex;
+      if (draggedMediaIndex < targetMediaIndex) {
+        insertIndex = targetMediaIndex - 1;
+      } else {
+        insertIndex = targetMediaIndex;
+      }
+      
+      // Insert at new position
+      newMediaFiles.splice(insertIndex, 0, draggedItem);
+
+      // Update state
+      setExistingMedia(newMediaFiles);
+      setRefreshKey(prev => prev + 1);
+      setDraggedIndex(null);
+      
+      // Update database if editing existing task
+      if (task?.id) {
+        supabase
+          .from('design_tasks')
+          .update({ media_files: newMediaFiles })
+          .eq('id', task.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Failed to update media files order:', error);
+            }
+          });
+      }
+    } catch (error) {
+      console.error('Error during drop:', error);
+      setDraggedIndex(null);
+    }
+  };
+
+  // Helper functions for file URLs and types
+  const getImageUrl = (file: any) => {
+    if (typeof file === 'string') {
+      return file;
+    }
+    
+    const isVideo = file.type?.startsWith('video/') || 
+                   file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+    
+    if (isVideo && file.thumbnail) {
+      return file.thumbnail;
+    }
+    
+    return file.url;
+  };
+
+  const getOriginalFileUrl = (file: any) => {
+    return typeof file === 'string' ? file : file.url;
+  };
 
   useEffect(() => {
     if (task) {
@@ -585,21 +693,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
     }
   };
 
-  // Get file type for existing files
-  const getExistingFileIcon = (file: any) => {
-    const fileName = file.name || '';
-    const fileType = file.type || '';
-    
-    if (fileType.startsWith('image/') || fileName.match(/\.(jpe?g|png|gif|webp)$/i)) {
-      return <ImageIcon className="w-6 h-6 text-white/60" />;
-    } else if (fileType.startsWith('video/') || fileName.match(/\.(mp4|mov|avi|webm|mkv)$/i)) {
-      return <Video className="w-6 h-6 text-white/60" />;
-    } else if (fileType === 'application/pdf' || fileName.match(/\.pdf$/i)) {
-      return <FileText className="w-6 h-6 text-gray-400" />;
-    } else {
-      return <FileText className="w-6 h-6 text-white/60" />;
-    }
-  };
+
 
   const handleDeleteExistingFile = async (file: any, index: number) => {
     if (!task?.id) return;
@@ -608,25 +702,47 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
     if (!confirmDelete) return;
 
     try {
-      // Extract storage path from URL
-      const fileUrl = file.url;
-      const urlParts = fileUrl.split('/storage/v1/object/public/media-files/');
-      if (urlParts.length > 1) {
-        const filePath = urlParts[1];
-        
-        // Delete from Supabase storage
+      // Get the original file URL (not thumbnail) for proper comparison
+      const originalFileUrl = getOriginalFileUrl(file);
+      
+      // For videos with thumbnails, we need to delete both files from storage
+      const filesToDeleteFromStorage: string[] = [];
+      
+      // Extract original file storage path
+      const originalUrlParts = originalFileUrl.split('/storage/v1/object/public/media-files/');
+      if (originalUrlParts.length > 1) {
+        filesToDeleteFromStorage.push(originalUrlParts[1]);
+      }
+      
+      // If this is a video with a thumbnail, also delete the thumbnail
+      if (typeof file !== 'string' && file.thumbnail) {
+        const thumbnailUrlParts = file.thumbnail.split('/storage/v1/object/public/media-files/');
+        if (thumbnailUrlParts.length > 1) {
+          filesToDeleteFromStorage.push(thumbnailUrlParts[1]);
+        }
+      }
+      
+      // Delete files from Supabase storage
+      if (filesToDeleteFromStorage.length > 0) {
         const { error: storageError } = await supabase.storage
           .from('media-files')
-          .remove([filePath]);
+          .remove(filesToDeleteFromStorage);
 
         if (storageError) {
           console.error('Storage deletion error:', storageError);
         }
       }
 
-      // Remove from local state
-      const updatedMedia = existingMedia.filter((_, i) => i !== index);
+      // Remove from local state using original file URL for comparison
+      const updatedMedia = existingMedia.filter((existingFile: any) => {
+        const currentOriginalUrl = typeof existingFile === 'string' ? existingFile : existingFile.url;
+        return currentOriginalUrl !== originalFileUrl;
+      });
+      
       setExistingMedia(updatedMedia);
+      
+      // Force refresh of computed arrays
+      setRefreshKey(prev => prev + 1);
 
       // Update database
       const { error: dbError } = await supabase
@@ -896,14 +1012,126 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                   </div>
                 )}
 
-                {/* Existing media list with thumbnails */}
-                {existingMedia.length > 0 && (
+                {/* Existing media files with MarketingWorkspace-style thumbnails */}
+                {allViewableFiles.length > 0 && (
                   <div className="mt-3">
-                    <span className="text-[10px] text-white/50 mb-2 block">Existing Files:</span>
-                    <div className="space-y-2">
-                      {existingMedia.map((file, idx) => (
-                        <ExistingFileItem key={idx} file={file} index={idx} onDelete={handleDeleteExistingFile} />
-                      ))}
+                    <span className="text-[10px] text-white/50 mb-2 block">Media Files ({allViewableFiles.length})</span>
+                    
+                    {/* Horizontal Thumbnail Grid */}
+                    <div 
+                      className="flex gap-3 overflow-x-auto pb-2 mb-4 scrollbar-hide" 
+                      style={{ 
+                        scrollbarWidth: 'none', 
+                        msOverflowStyle: 'none'
+                      }}
+                    >
+                      {allViewableFiles.map((file: any, index: number) => {
+                        const isVideo = typeof file === 'string' ? 
+                          file.match(/\.(mp4|mov|avi|webm|mkv)$/i) :
+                          file.type?.startsWith('video/') || file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+                        const isPdf = typeof file === 'string' ? 
+                          file.match(/\.pdf$/i) :
+                          (file.type === 'application/pdf' || file.name?.match(/\.pdf$/i)) && !file.originalType;
+                        const isConvertedPdf = typeof file === 'string' ? false : file.originalType === 'application/pdf';
+                        
+                        // Generate stable key for React rendering
+                        const stableKey = typeof file === 'string' 
+                          ? `${file}-${index}-${refreshKey}` 
+                          : `${file.url || file.name}-${index}-${refreshKey}`;
+                        
+                        return (
+                          <div
+                            key={stableKey}
+                            data-thumbnail-draggable="true"
+                            draggable={true}
+                            onDragStart={(e) => handleThumbnailDragStart(e, index)}
+                            onDragEnd={handleThumbnailDragEnd}
+                            onDragOver={(e) => handleThumbnailDragOver(e, index)}
+                            onDragEnter={(e) => handleThumbnailDragEnter(e, index)}
+                            onDragLeave={(e) => handleThumbnailDragLeave(e, index)}
+                            onDrop={(e) => handleThumbnailDrop(e, index)}
+                            className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-16 h-16 hover:ring-1 hover:ring-white/20 ${
+                              draggedIndex === index ? 'opacity-30 scale-95 rotate-3' : ''
+                            } ${
+                              dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-400 scale-105' : ''
+                            }`}
+                          >
+                            <div className="w-full h-full bg-white/5 relative">
+                              {isVideo ? (
+                                // Show video thumbnail if available, otherwise show video icon
+                                typeof file === 'string' ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                    <Video className="w-4 h-4 text-white/60" />
+                                  </div>
+                                ) : file.thumbnail && !failedThumbnails.has(index) ? (
+                                  <img
+                                    src={file.thumbnail}
+                                    alt={`Video thumbnail ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    onError={() => {
+                                      setFailedThumbnails(prev => new Set(prev).add(index));
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                    <Video className="w-4 h-4 text-white/60" />
+                                  </div>
+                                )
+                              ) : isPdf || isConvertedPdf ? (
+                                <div className="w-full h-full flex items-center justify-center bg-white/10">
+                                  <FileText className="w-4 h-4 text-gray-400" />
+                                </div>
+                              ) : (
+                                <img
+                                  src={getImageUrl(file)}
+                                  alt={`Media ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              
+                              {/* Media type indicators */}
+                              {isVideo && (
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <div className="bg-black/60 backdrop-blur-sm rounded-full p-1">
+                                    <Play className="w-2 h-2 text-white fill-white" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {(isPdf || isConvertedPdf) && (
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <div className="bg-white/20 backdrop-blur-sm rounded-full p-1">
+                                    <FileText className="w-2 h-2 text-white" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Delete button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const originalIndex = viewableToMediaMapping[index];
+                                  if (originalIndex !== undefined) {
+                                    handleDeleteExistingFile(existingMedia[originalIndex], originalIndex);
+                                  }
+                                }}
+                                className="absolute top-1 right-1 p-0.5 bg-black/80 hover:bg-black backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-200"
+                                title="Delete file"
+                              >
+                                <Trash2 className="w-2 h-2" />
+                              </button>
+                              
+                              {/* Index indicator */}
+                              <div className="absolute bottom-1 left-1 bg-black/60 backdrop-blur-sm rounded px-1 py-0.5">
+                                <div className="text-white text-[10px] font-medium">#{index + 1}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

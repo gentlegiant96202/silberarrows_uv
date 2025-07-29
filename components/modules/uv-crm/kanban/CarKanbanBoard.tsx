@@ -195,7 +195,7 @@ export default function CarKanbanBoard() {
         {text.slice(0,idx)}<span className="bg-yellow-300 text-black">{text.slice(idx,idx+query.length)}</span>{text.slice(idx+query.length)}
       </span>
     );
-  }
+  };
 
   const getStockAgeColor = (stockAgeDays: number | null) => {
     if (stockAgeDays === null) return '';
@@ -273,13 +273,9 @@ export default function CarKanbanBoard() {
     });
   };
 
-
-
   return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
-
-      
-      <div className={`flex gap-3 pb-4 w-full h-full ${inventoryExpanded ? 'overflow-hidden' : 'overflow-x-auto'}`}>
+      <div className={`flex gap-3 pb-4 w-full h-full ${inventoryExpanded ? 'overflow-hidden' : ''}`}>
         {columns.map(col => {
           const listAll = cars.filter(c=> match(c.stock_number) || match(c.vehicle_model));
           let list = listAll.filter(c => {
@@ -290,21 +286,22 @@ export default function CarKanbanBoard() {
               return c.status === 'inventory' && c.sale_status === 'available';
             }
             if (col.key === 'reserved') {
-              return c.sale_status === 'reserved';
+              return c.status === 'inventory' && c.sale_status === 'reserved';
             }
             if (col.key === 'sold') {
-              return c.sale_status === 'sold';
+              return c.status === 'inventory' && c.sale_status === 'sold';
             }
             if (col.key === 'returned') {
-              return c.sale_status === 'returned';
+              return c.status === 'inventory' && c.sale_status === 'returned';
             }
             return false;
           });
 
-          // Apply inventory filters if this is the inventory column
+          // Apply inventory filters only to inventory column
           if (col.key === 'inventory') {
             list = applyInventoryFilters(list);
           }
+
           // Hide non-inventory columns when expanded
           if (inventoryExpanded && col.key !== 'inventory') {
             return null;
@@ -313,13 +310,9 @@ export default function CarKanbanBoard() {
           return (
             <div
               key={col.key}
-              className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col transition-all duration-300 ${
-                inventoryExpanded && col.key === 'inventory' 
-                  ? 'w-full min-w-0' 
-                  : 'w-80 min-w-0'
-              }`}
+              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col flex-1 min-w-0 transition-all duration-300"
               onDragOver={onDragOver}
-              onDrop={onDrop(col.key as ColKey)}
+              onDrop={onDrop(col.key)}
             >
               <div className="mb-3 px-1">
                 <div className="flex items-center justify-between mb-2">
@@ -469,7 +462,7 @@ export default function CarKanbanBoard() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-1">
+              <div className="flex-1 overflow-y-auto space-y-2 scrollbar-hide">
                 {inventoryExpanded && col.key === 'inventory' ? (
                   // Grid layout for expanded inventory view
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
@@ -502,50 +495,48 @@ export default function CarKanbanBoard() {
                     ))}
                   </div>
                 ) : (
-                  // Normal vertical list layout
-                  <div className="space-y-2">
-                    {list.map(c => (
-                      <div
-                        key={c.id}
-                        draggable={canEditCars}
-                        onDragStart={onDragStart(c)}
-                        onClick={async () => {
-                          setSelected(c);
-                          const fullData = await loadFullCarData(c.id);
-                          setSelectedCarFull(fullData);
-                        }}
-                        className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)} relative`}
-                      >
-                        {/* PDF Generated Checkmark - Top Right */}
-                        {col.key === 'inventory' && c.vehicle_details_pdf_url && (
-                          <div className="absolute top-0.5 right-0.5">
-                            <Check className="w-2 h-2 text-green-400" strokeWidth={2} />
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center gap-2 min-w-0">
-                          {/* thumbnail */}
-                          <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded overflow-hidden">
-                            {thumbs[c.id]? (
-                              <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy" />
-                            ): null}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[10px] font-semibold text-white leading-tight break-words max-h-8 overflow-hidden">{highlight(c.stock_number)}</div>
-                            <div className="text-[9px] text-white/60 leading-tight break-words whitespace-normal max-h-8 overflow-hidden">{highlight(c.model_year+' '+cleanModel(c.vehicle_model))}</div>
-                            <div className="text-white font-semibold text-[9px] flex items-center gap-0.5 mt-0.5 whitespace-nowrap truncate">
-                              <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-white/50">
-                            <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                  // Normal vertical list layout - direct children without wrapper div
+                  list.map(c => (
+                    <div
+                      key={c.id}
+                      draggable={canEditCars}
+                      onDragStart={onDragStart(c)}
+                      onClick={async () => {
+                        setSelected(c);
+                        const fullData = await loadFullCarData(c.id);
+                        setSelectedCarFull(fullData);
+                      }}
+                      className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)} relative`}
+                    >
+                      {/* PDF Generated Checkmark - Top Right */}
+                      {col.key === 'inventory' && c.vehicle_details_pdf_url && (
+                        <div className="absolute top-0.5 right-0.5">
+                          <Check className="w-2 h-2 text-green-400" strokeWidth={2} />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 min-w-0">
+                        {/* thumbnail */}
+                        <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded overflow-hidden">
+                          {thumbs[c.id]? (
+                            <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy" />
+                          ): null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[10px] font-semibold text-white leading-tight break-words max-h-8 overflow-hidden">{highlight(c.stock_number)}</div>
+                          <div className="text-[9px] text-white/60 leading-tight break-words whitespace-normal max-h-8 overflow-hidden">{highlight(c.model_year+' '+cleanModel(c.vehicle_model))}</div>
+                          <div className="text-white font-semibold text-[9px] flex items-center gap-0.5 mt-0.5 whitespace-nowrap truncate">
+                            <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
                           </div>
                         </div>
+                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-white/50">
+                          <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))
                 )}
                 {list.length === 0 && (
                   <p className="text-center text-white/40 text-[10px] mt-4">No cars</p>

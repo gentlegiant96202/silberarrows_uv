@@ -17,6 +17,7 @@ interface AllModulePermissions {
   marketing: ModulePermissions;
   workshop: ModulePermissions;
   leasing: ModulePermissions;
+  accounts: ModulePermissions;
   admin: ModulePermissions;
   isLoading: boolean;
   error: string | null;
@@ -30,13 +31,12 @@ interface UserWithRole {
   updated_at: string;
 }
 
-
 /**
  * Hook to get permissions for a specific module
  */
 export function useModulePermissions(moduleName: string): ModulePermissions {
   const { user } = useAuth();
-  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { role, isLoading: roleLoading } = useUserRole();
   const [permissions, setPermissions] = useState<ModulePermissions>({
     canView: false,
     canCreate: false,
@@ -55,7 +55,7 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
           canEdit: false,
           canDelete: false,
           isLoading: false,
-          error: null,
+          error: 'No user found',
         });
         return;
       }
@@ -133,6 +133,7 @@ export function useAllModulePermissions(): AllModulePermissions {
     marketing: { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: true, error: null },
     workshop: { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: true, error: null },
     leasing: { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: true, error: null },
+    accounts: { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: true, error: null },
     admin: { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: true, error: null },
     isLoading: true,
     error: null,
@@ -147,6 +148,7 @@ export function useAllModulePermissions(): AllModulePermissions {
           marketing: emptyPerms,
           workshop: emptyPerms,
           leasing: emptyPerms,
+          accounts: emptyPerms,
           admin: emptyPerms,
           isLoading: false,
           error: null,
@@ -157,7 +159,7 @@ export function useAllModulePermissions(): AllModulePermissions {
       try {
         setAllPermissions(prev => ({ ...prev, isLoading: true, error: null }));
 
-        const modules = ['uv_crm', 'marketing', 'workshop', 'leasing', 'admin'];
+        const modules = ['uv_crm', 'marketing', 'workshop', 'leasing', 'accounts', 'admin'];
         const permissionPromises = modules.map(module =>
           supabase.rpc('get_user_module_permissions', {
             check_user_id: user.id,
@@ -204,13 +206,14 @@ export function useAllModulePermissions(): AllModulePermissions {
 
         setAllPermissions(newPermissions);
       } catch (err: any) {
-        console.error('Error in useAllModulePermissions:', err);
+        console.error('Error fetching all permissions:', err);
         const errorPerms = { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: false, error: err.message };
         setAllPermissions({
           uv_crm: errorPerms,
           marketing: errorPerms,
           workshop: errorPerms,
           leasing: errorPerms,
+          accounts: errorPerms,
           admin: errorPerms,
           isLoading: false,
           error: err.message || 'Failed to fetch permissions',

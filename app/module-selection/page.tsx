@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useAllModulePermissions } from '@/lib/useModulePermissions';
 import Header from '@/components/shared/header/Header';
-import { Building2, Car, TrendingUp, Wrench, Users, AlertCircle } from 'lucide-react';
+import LightRays from '@/components/shared/LightRays';
+import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 
 interface ModuleCard {
   id: string;
@@ -12,36 +13,61 @@ interface ModuleCard {
   description: string;
   basePath: string;
   icon: React.ComponentType<any>;
+  gradient: string;
+  stats?: string;
+  badge?: string;
 }
 
 const moduleCards: ModuleCard[] = [
   {
-    id: 'uv_crm',
-    name: 'UV CRM & Inventory',
-    description: 'Customer relationship management and car inventory',
-    basePath: '/dashboard',
-    icon: Car
-  },
-  {
-    id: 'marketing',
-    name: 'Marketing Dashboard',
-    description: 'Campaigns, leads, social media analytics',
-    basePath: '/marketing/dashboard',
-    icon: TrendingUp
-  },
-  {
     id: 'workshop',
-    name: 'Workshop & Service',
-    description: 'Service department management and repairs',
+    name: 'Service Department',
+    description: 'Vehicle maintenance, repairs, and service workflow management',
     basePath: '/workshop/dashboard',
-    icon: Wrench
+    icon: Wrench,
+    gradient: 'from-gray-400 via-gray-300 to-gray-500',
+    badge: 'Service',
+    stats: 'Workshop'
+  },
+  {
+    id: 'uv_crm',
+    name: 'Used Vehicles Department',
+    description: 'Comprehensive vehicle sales, inventory management, and customer relations',
+    basePath: '/dashboard',
+    icon: Car,
+    gradient: 'from-gray-400 via-gray-300 to-gray-500',
+    badge: 'Sales',
+    stats: 'Dashboard'
   },
   {
     id: 'leasing',
     name: 'Leasing Department',
-    description: 'Vehicle leasing and financing management',
+    description: 'Vehicle financing, lease agreements, and payment processing',
     basePath: '/leasing/dashboard',
-    icon: Users
+    icon: CreditCard,
+    gradient: 'from-gray-400 via-gray-300 to-gray-500',
+    badge: 'Leasing',
+    stats: 'Portal'
+  },
+  {
+    id: 'marketing',
+    name: 'Marketing Department',
+    description: 'Campaign management, content creation, and brand promotion',
+    basePath: '/marketing/dashboard',
+    icon: TrendingUp,
+    gradient: 'from-gray-400 via-gray-300 to-gray-500',
+    badge: 'Growth',
+    stats: 'Studio'
+  },
+  {
+    id: 'accounts',
+    name: 'Accounts Department',
+    description: 'Financial reporting, accounting, and business analytics',
+    basePath: '/accounts/dashboard',
+    icon: Calculator,
+    gradient: 'from-gray-400 via-gray-300 to-gray-500',
+    badge: 'Finance',
+    stats: 'Hub'
   }
 ];
 
@@ -65,14 +91,12 @@ export default function ModuleSelectionPage() {
     }
   }, [user, authLoading, router]);
 
-  // Optional: Add any necessary logging here if needed for troubleshooting
-
-  // Timeout fallback after 5 seconds (reduced from 10)
+  // Timeout fallback after 5 seconds
   useEffect(() => {
     if (permissionsLoading) {
       const timeout = setTimeout(() => {
         setShowFallback(true);
-      }, 5000); // Show fallback after 5 seconds
+      }, 5000);
 
       return () => clearTimeout(timeout);
     }
@@ -80,132 +104,28 @@ export default function ModuleSelectionPage() {
 
   if (authLoading || (permissionsLoading && !showFallback && !debugMode)) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white/60">Loading your modules...</p>
+      <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
+        {/* Light Rays Background */}
+        <div className="absolute inset-0">
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#c0c0c0"
+            raysSpeed={0.8}
+            lightSpread={0.6}
+            rayLength={1.5}
+            followMouse={true}
+            mouseInfluence={0.05}
+            noiseAmount={0.02}
+            distortion={0.02}
+          />
+        </div>
+        
+        <div className="text-center relative z-10">
+          <div className="w-12 h-12 border-4 border-gray-600 border-t-silver-400 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-300 font-medium">Loading your workspace...</p>
           {permissionsLoading && (
-            <p className="text-white/40 text-sm mt-2">Loading your access permissions...</p>
+            <p className="text-gray-500 text-sm mt-2">Initializing departments...</p>
           )}
-        </div>
-      </div>
-    );
-  }
-
-  // DEBUG MODE: Show all modules regardless of permissions
-  if (debugMode) {
-    return (
-      <div className="min-h-screen bg-black">
-        <Header />
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Building2 className="w-8 h-8 text-white" />
-              <div>
-                <h1 className="text-2xl font-bold text-white">SilberArrows CRM</h1>
-                <p className="text-white/60 text-sm">Select your business module</p>
-              </div>
-            </div>
-            <div className="text-white/60 mb-4">
-              <p>Debug Info:</p>
-              <p>User ID: {user?.id}</p>
-              <p>Permissions Loading: {permissionsLoading.toString()}</p>
-              <p>Error: {error || 'None'}</p>
-                             <p>Permissions Object: {JSON.stringify(allPermissions, null, 2)}</p>
-            </div>
-            <button 
-              onClick={() => setDebugMode(false)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm mr-4"
-            >
-              Exit Debug Mode
-            </button>
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
-            >
-              Reload Page
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {moduleCards.map((module) => {
-              const IconComponent = module.icon;
-              return (
-                <div
-                  key={module.id}
-                  onClick={() => handleModuleClick(module)}
-                  className="group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2"
-                >
-                  <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full hover:bg-white/10 hover:border-white/20 transition-all duration-300">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-gray-300 via-gray-500 to-gray-700 flex items-center justify-center mb-4 shadow-inner">
-                      <IconComponent className="w-8 h-8 text-white" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">{module.name}</h3>
-                    <p className="text-white/60 text-sm leading-relaxed">{module.description}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || showFallback || (!allPermissions && !permissionsLoading)) {
-    console.error('Permissions error:', error);
-    // Fallback: Show all modules if permissions fail
-    const fallbackModules = moduleCards; // All modules (admin already removed from moduleCards)
-    
-    return (
-      <div className="min-h-screen bg-black">
-        {/* Use shared header instead of custom header */}
-        <Header />
-
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Building2 className="w-8 h-8 text-white" />
-              <div>
-                <h1 className="text-2xl font-bold text-white">SilberArrows CRM</h1>
-                <p className="text-white/60 text-sm">Select your business module (Fallback Mode)</p>
-              </div>
-            </div>
-            <p className="text-white/60 mb-4 text-sm">
-              {showFallback 
-                ? 'Loading your personalized modules...' 
-                : 'Setting up your access permissions...'}
-            </p>
-            <div className="space-x-2">
-              <button 
-                onClick={() => window.location.reload()} 
-                className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded text-sm"
-              >
-                Retry Loading Permissions
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {fallbackModules.map((module) => {
-              const IconComponent = module.icon;
-              return (
-                <div
-                  key={module.id}
-                  onClick={() => handleModuleClick(module)}
-                  className="group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2"
-                >
-                  <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full hover:bg-white/10 hover:border-white/20 transition-all duration-300">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-gray-300 via-gray-500 to-gray-700 flex items-center justify-center mb-4 shadow-inner">
-                      <IconComponent className="w-8 h-8 text-white" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">{module.name}</h3>
-                    <p className="text-white/60 text-sm leading-relaxed">{module.description}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </div>
     );
@@ -213,77 +133,144 @@ export default function ModuleSelectionPage() {
 
   // Filter modules based on permissions
   const accessibleModules = moduleCards.filter(module => {
+    if (debugMode || showFallback || error) return true; // Show all in fallback modes
     if (!allPermissions) return false;
     const permission = allPermissions[module.id as keyof typeof allPermissions];
-    // Check if permission is a ModulePermissions object and has canView
     return typeof permission === 'object' && permission !== null && 'canView' in permission && permission.canView === true;
   });
 
   return (
-    <div className="min-h-screen bg-black">
-      {/* Use shared header instead of custom header */}
-      <Header />
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* WebGL Light Rays Background */}
+      <div className="absolute inset-0 z-0">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#ffffff"
+          raysSpeed={1.2}
+          lightSpread={0.8}
+          rayLength={1.8}
+          followMouse={true}
+          mouseInfluence={0.08}
+          noiseAmount={0.03}
+          distortion={0.03}
+          fadeDistance={1.0}
+          saturation={1.0}
+        />
+      </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        {accessibleModules.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-white/60" />
-            </div>
-            <h2 className="text-xl font-semibold text-white mb-2">No Modules Available</h2>
-            <p className="text-white/60 mb-6">Contact your administrator to get access to business modules.</p>
-          </div>
-        ) : (
-          <>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-white mb-4">Choose Your Module</h2>
-              <p className="text-white/60 text-lg">Select a business module to get started</p>
-            </div>
+      {/* Header with transparent background */}
+      <div className="relative z-20">
+        <Header />
+      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {accessibleModules.map((module) => {
-                const IconComponent = module.icon;
-                return (
-                  <div
-                    key={module.id}
-                    onClick={() => handleModuleClick(module)}
-                    className="group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:-translate-y-2"
-                  >
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full hover:bg-white/10 hover:border-white/20 transition-all duration-300">
-                      {/* Icon with gradient background */}
-                      <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-gray-300 via-gray-500 to-gray-700 flex items-center justify-center mb-4 shadow-inner group-hover:shadow-lg group-hover:shadow-gray-500/25 transition-all duration-300">
-                        <IconComponent className="w-8 h-8 text-white" />
-                      </div>
-                      
-                      {/* Content */}
-                      <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-white transition-colors">
-                        {module.name}
-                      </h3>
-                      <p className="text-white/60 text-sm leading-relaxed group-hover:text-white/80 transition-colors">
-                        {module.description}
-                      </p>
-                      
-                      {/* Hover indicator */}
-                      <div className="mt-4 flex items-center text-white/40 group-hover:text-white/80 transition-colors text-sm">
-                        <span>Click to enter</span>
-                        <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+      {/* Main Content - Centered in Viewport */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center">
+        <div className="px-6 max-w-7xl mx-auto">
+          {accessibleModules.length === 0 && !debugMode && !showFallback ? (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 flex items-center justify-center mx-auto mb-6">
+                <AlertCircle className="w-8 h-8 text-gray-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">No Departments Available</h2>
+              <p className="text-gray-400 mb-8 max-w-md mx-auto">Contact your administrator to get access to business departments.</p>
+            </div>
+          ) : (
+            <>
+              {/* Hero Section */}
+              <div className="text-center mb-12">
+                <h1 className="text-6xl font-bold text-white mb-6">
+                  SilberArrows
+                </h1>
+                <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8">
+                  Access specialized tools and workflows designed for your department's operations
+                </p>
+              </div>
+
+              {/* Module Cards */}
+              <div className="grid grid-cols-5 gap-8 max-w-6xl mx-auto">
+                {accessibleModules.map((module, index) => {
+                  const IconComponent = module.icon;
+                  
+                  return (
+                    <div
+                      key={module.id}
+                      onClick={() => handleModuleClick(module)}
+                      className="group cursor-pointer relative"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      {/* Glass Morphism Card */}
+                      <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl hover:shadow-white/5 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:bg-white/8 hover:border-white/20 overflow-hidden aspect-square">
+                        
+                        {/* Background Gradient Overlay */}
+                        <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3xl`} />
+                        
+                        {/* Badge */}
+                        <div className="absolute top-4 right-4">
+                          <span className="px-2 py-1 text-xs font-medium bg-white/20 text-white/90 rounded-full border border-white/30">
+                            {module.badge}
+                          </span>
+                        </div>
+                        
+                        {/* Card Content */}
+                        <div className="p-6 h-full flex flex-col justify-between">
+                          
+                          {/* Top Section */}
+                          <div>
+                            {/* Icon Section */}
+                            <div className="flex-shrink-0 mb-6">
+                              <div className="relative inline-block">
+                                <div className={`w-16 h-16 bg-gradient-to-br ${module.gradient} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-500`}>
+                                  <IconComponent className="w-8 h-8 text-black" />
+                                </div>
+                                {/* Glow Effect */}
+                                <div className={`absolute inset-0 w-16 h-16 bg-gradient-to-br ${module.gradient} rounded-2xl opacity-30 blur-lg group-hover:opacity-50 transition-opacity duration-500 -z-10`} />
+                              </div>
+                            </div>
+                            
+                            {/* Heading */}
+                            <h3 className="text-xl font-bold text-white leading-tight group-hover:text-gray-100 transition-colors">
+                              {module.name}
+                            </h3>
+                          </div>
+                          
+                          {/* Bottom Action */}
+                          <div className="flex-shrink-0 pt-4 border-t border-white/10">
+                            <div className="flex items-center text-gray-500 group-hover:text-gray-300 transition-colors">
+                              <span className="text-sm font-medium">Open Portal</span>
+                              <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-300" />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Glass Reflection */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none" />
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
 
-            {/* Footer info */}
-            <div className="text-center mt-16 pt-8 border-t border-white/10">
-              <p className="text-white/40 text-sm">
-                You have access to {accessibleModules.length} module{accessibleModules.length !== 1 ? 's' : ''}
-              </p>
+        {/* Debug Mode Section */}
+        {(debugMode || showFallback || error) && (
+          <div className="fixed bottom-6 right-6 p-4 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 text-sm text-gray-400 max-w-xs">
+            <div className="font-semibold text-gray-300 mb-2">Debug Info</div>
+            <div className="space-y-1 text-xs">
+              <div>Debug: {debugMode ? 'ON' : 'OFF'}</div>
+              <div>Fallback: {showFallback ? 'ON' : 'OFF'}</div>
+              <div>Error: {error ? 'YES' : 'NO'}</div>
             </div>
-          </>
+            {debugMode && (
+              <button 
+                onClick={() => setDebugMode(false)}
+                className="mt-3 px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded-lg transition-colors"
+              >
+                Exit Debug
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

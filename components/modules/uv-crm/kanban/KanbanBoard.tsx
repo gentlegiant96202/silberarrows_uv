@@ -276,7 +276,7 @@ export default function KanbanBoard() {
   return (
     <div className="px-4">
       <div
-        className="flex flex-col md:flex-row md:flex-wrap gap-3 pb-4 w-full"
+        className="flex gap-3 pb-4 w-full h-full overflow-hidden"
         style={{ height: "calc(100vh - 72px)" }}
       >
         {columns.map(col => (
@@ -310,7 +310,7 @@ export default function KanbanBoard() {
             )}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-2 scrollbar-hide">
             {grouped[col.key as ColKey].map(l => (
               <div
                 key={l.id}

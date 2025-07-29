@@ -32,7 +32,7 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
   const currentModule = getCurrentModule();
 
   return (
-    <header className="sticky top-0 z-50 bg-black border-b border-white/10 overflow-visible">
+    <header className={`sticky top-0 z-50 ${isModuleSelectionPage ? 'bg-transparent' : 'bg-black'} border-b ${isModuleSelectionPage ? 'border-white/5' : 'border-white/10'} overflow-visible`}>
       <div className="px-4 overflow-visible relative">
         <div className="flex flex-wrap items-center py-3 overflow-y-visible">
           
@@ -69,8 +69,8 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
             {/* Module Switcher - Hide on module selection page */}
             {!isModuleSelectionPage && <ModuleSwitcher />}
             
-            {/* Finance Calculator for CRM module only */}
-            {currentModule === 'uv-crm' && <FinanceCalculator />}
+            {/* Finance Calculator for CRM module only - Hide on module selection page */}
+            {!isModuleSelectionPage && currentModule === 'uv-crm' && <FinanceCalculator />}
             
             <WeatherClock />
             <MusicPlayer />

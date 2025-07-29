@@ -42,15 +42,16 @@ interface MediaViewerProps {
   setShowCommentPopup: (show: boolean) => void; // Set comment popup handler from parent
   isAnnotationMode: boolean; // Annotation mode state from parent
   setIsAnnotationMode: (mode: boolean) => void; // Set annotation mode handler from parent
+  currentAnnotations: any[]; // Pass current annotations from parent
 }
 
-function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotationsChange, currentPageNumber, selectedAnnotationId, onPageChange, setSelectedAnnotationId, zoom, setZoom, resetZoomPan, pan, setPan, showCommentPopup, setShowCommentPopup, isAnnotationMode, setIsAnnotationMode }: MediaViewerProps) {
+function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotationsChange, currentPageNumber, selectedAnnotationId, onPageChange, setSelectedAnnotationId, zoom, setZoom, resetZoomPan, pan, setPan, showCommentPopup, setShowCommentPopup, isAnnotationMode, setIsAnnotationMode, currentAnnotations }: MediaViewerProps) {
   // Zoom and Pan state
   const [isDragging, setIsDragging] = useState(false);
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
   
-  // Annotation state
-  const [annotations, setAnnotations] = useState<any[]>([]);
+  // Use annotations from parent workspace instead of local state
+  // const [annotations, setAnnotations] = useState<any[]>([]);  // REMOVED - causes state sync issues
   
   // Mouse wheel zoom handler
   const handleWheel = (e: React.WheelEvent) => {
@@ -116,35 +117,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
 
 
   
-  // Load annotations when component mounts
-  useEffect(() => {
-    const loadAnnotations = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('design_tasks')
-          .select('annotations')
-          .eq('id', task.id)
-          .single();
-          
-        if (error) {
-          console.error('Error loading annotations:', error);
-          return;
-        }
-        
-        if (data?.annotations) {
-          console.log('Loaded annotations from database:', data.annotations);
-          setAnnotations(data.annotations);
-          onAnnotationsChange?.(data.annotations);
-        } else {
-          console.log('No annotations found in database for task:', task.id);
-        }
-      } catch (error) {
-        console.error('Error loading annotations:', error);
-      }
-    };
-    
-    loadAnnotations();
-  }, [task.id]);
+  // Annotations are now managed by parent workspace - no need to load here
 
   // Add global mouse up listener
   useEffect(() => {
@@ -225,14 +198,13 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
                 zoom,
                 pan
               };
-              const updatedAnnotations = [...annotations, newAnnotation];
-              setAnnotations(updatedAnnotations);
+              const updatedAnnotations = [...currentAnnotations, newAnnotation];
               onAnnotationsChange?.(updatedAnnotations);
               // Save to DB
               supabase.from('design_tasks').update({ annotations: updatedAnnotations }).eq('id', task.id);
             }}
             existingPaths={selectedAnnotationId
-              ? annotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700' }))
+              ? currentAnnotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700' }))
               : []}
           />
         )}
@@ -301,14 +273,13 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
             zoom,
             pan
           };
-          const updatedAnnotations = [...annotations, newAnnotation];
-          setAnnotations(updatedAnnotations);
+          const updatedAnnotations = [...currentAnnotations, newAnnotation];
           onAnnotationsChange?.(updatedAnnotations);
           // Save to DB
           supabase.from('design_tasks').update({ annotations: updatedAnnotations }).eq('id', task.id);
         }}
         existingPaths={selectedAnnotationId
-          ? annotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700' }))
+          ? currentAnnotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700' }))
           : []}
       />
       
@@ -428,6 +399,37 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
+
+  // Load annotations when workspace mounts
+  useEffect(() => {
+    const loadAnnotations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('design_tasks')
+          .select('annotations')
+          .eq('id', task.id)
+          .single();
+          
+        if (error) {
+          console.error('Error loading annotations:', error);
+          return;
+        }
+        
+        if (data?.annotations) {
+          console.log('Loaded annotations from database:', data.annotations);
+          setCurrentAnnotations(data.annotations);
+        } else {
+          console.log('No annotations found in database for task:', task.id);
+          setCurrentAnnotations([]);
+        }
+      } catch (error) {
+        console.error('Error loading annotations:', error);
+        setCurrentAnnotations([]);
+      }
+    };
+    
+    loadAnnotations();
+  }, [task.id]);
 
     // Enhanced drag and drop for thumbnail reordering
   const handleThumbnailDragStart = (e: React.DragEvent, index: number) => {
@@ -1188,6 +1190,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                   setShowCommentPopup={setShowCommentPopup}
                   isAnnotationMode={isAnnotationMode}
                   setIsAnnotationMode={setIsAnnotationMode}
+                  currentAnnotations={currentAnnotations}
                 />
               );
             } else if (isPdf) {
@@ -1217,6 +1220,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                     setShowCommentPopup={setShowCommentPopup}
                     isAnnotationMode={isAnnotationMode}
                     setIsAnnotationMode={setIsAnnotationMode}
+                    currentAnnotations={currentAnnotations}
                   />
                 );
               } else {
@@ -1242,6 +1246,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                     setShowCommentPopup={setShowCommentPopup}
                     isAnnotationMode={isAnnotationMode}
                     setIsAnnotationMode={setIsAnnotationMode}
+                    currentAnnotations={currentAnnotations}
                   />
                 );
               }
@@ -1268,6 +1273,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                   setShowCommentPopup={setShowCommentPopup}
                   isAnnotationMode={isAnnotationMode}
                   setIsAnnotationMode={setIsAnnotationMode}
+                  currentAnnotations={currentAnnotations}
                 />
               );
             }

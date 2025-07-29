@@ -307,6 +307,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [showCommentPopup, setShowCommentPopup] = useState(false);
+  const [failedThumbnails, setFailedThumbnails] = useState<Set<number>>(new Set());
 
   // Local state for media files that can be modified
   const [mediaFiles, setMediaFiles] = useState(() => {
@@ -430,6 +431,11 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
     
     loadAnnotations();
   }, [task.id]);
+
+  // Reset failed thumbnails when media files change
+  useEffect(() => {
+    setFailedThumbnails(new Set());
+  }, [mediaFiles, refreshKey]);
 
     // Enhanced drag and drop for thumbnail reordering
   const handleThumbnailDragStart = (e: React.DragEvent, index: number) => {
@@ -1518,21 +1524,14 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                             <div className="w-full h-full flex items-center justify-center bg-black/50">
                               <Video className="w-4 h-4 text-white/60" />
                             </div>
-                          ) : file.thumbnail ? (
+                          ) : file.thumbnail && !failedThumbnails.has(index) ? (
                             <img
                               src={file.thumbnail}
                               alt={`Video thumbnail ${index + 1}`}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                // Fallback to video icon if thumbnail fails to load
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.parentElement!.innerHTML = `
-                                  <div class="w-full h-full flex items-center justify-center bg-black/50">
-                                    <svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                    </svg>
-                                  </div>
-                                `;
+                                // Mark this thumbnail as failed and let React re-render
+                                setFailedThumbnails(prev => new Set(prev).add(index));
                               }}
                             />
                           ) : (

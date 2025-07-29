@@ -82,6 +82,45 @@ export default function MarketingKanbanBoard() {
 
   useEffect(() => {
     fetchTasks();
+
+    // Real-time subscription for live updates across browsers
+    const channel = supabase
+      .channel('marketing-tasks-stream')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'design_tasks' },
+        (payload: any) => {
+          setTasks(prev => {
+            if (payload.eventType === 'INSERT') {
+              const newTask = payload.new as MarketingTask;
+              
+              // Check if task already exists to prevent duplicates (local creation + real-time)
+              const taskExists = prev.some(task => task.id === newTask.id);
+              if (taskExists) {
+                return prev; // Don't add duplicate
+              }
+              
+              return [newTask, ...prev];
+            }
+            if (payload.eventType === 'UPDATE') {
+              const updatedTask = payload.new as MarketingTask;
+              return prev.map(task => 
+                task.id === updatedTask.id ? updatedTask : task
+              );
+            }
+            if (payload.eventType === 'DELETE') {
+              return prev.filter(task => task.id !== payload.old.id);
+            }
+            return prev;
+          });
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Group tasks by status
@@ -156,16 +195,6 @@ export default function MarketingKanbanBoard() {
     setShowModal(true);
   };
 
-  const handleCloseWorkspace = () => {
-    setShowWorkspace(false);
-    setSelectedTask(null);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedTask(null);
-  };
-
   const handleSaveTask = async (taskData: Partial<MarketingTask>): Promise<MarketingTask | null> => {
     try {
       if (selectedTask) {
@@ -183,10 +212,11 @@ export default function MarketingKanbanBoard() {
 
         if (response.ok) {
           const updatedTask: MarketingTask = await response.json();
-          const updatedTasks = tasks.map(task =>
-            task.id === selectedTask.id ? updatedTask : task
-          );
-          setTasks(updatedTasks);
+          // Don't update local state - let real-time subscription handle it  
+          // const updatedTasks = tasks.map(task =>
+          //   task.id === selectedTask.id ? updatedTask : task
+          // );
+          // setTasks(updatedTasks); // REMOVED to prevent conflicts
           return updatedTask;
         } else {
           console.error('Failed to update task');
@@ -204,7 +234,8 @@ export default function MarketingKanbanBoard() {
 
         if (response.ok) {
           const newTask: MarketingTask = await response.json();
-          setTasks([...tasks, newTask]);
+          // Don't add to local state - let real-time subscription handle it
+          // setTasks([...tasks, newTask]); // REMOVED to prevent duplicates
           return newTask;
         } else {
           console.error('Failed to create task');
@@ -218,6 +249,16 @@ export default function MarketingKanbanBoard() {
       setShowModal(false);
       setSelectedTask(null);
     }
+  };
+
+  const handleCloseWorkspace = () => {
+    setShowWorkspace(false);
+    setSelectedTask(null);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedTask(null);
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -301,7 +342,15 @@ export default function MarketingKanbanBoard() {
                       onDragStart={() => onDragStart(task)}
                       onDragEnd={onDragEnd}
                       onClick={() => handleCardClick(task)}
-                      className="aspect-[4/5] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm cursor-pointer group relative overflow-hidden"
+                      className={`aspect-[4/5] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm cursor-pointer group relative overflow-hidden ${
+                        draggedTask?.id === task.id 
+                          ? 'z-50 scale-105 rotate-2 shadow-2xl bg-white/20 border-white/30' 
+                          : 'z-10'
+                      }`}
+                      style={{
+                        transform: draggedTask?.id === task.id ? 'translateY(-8px)' : 'translateY(0px)',
+                        transition: 'all 0.2s ease-in-out'
+                      }}
                     >
                       {/* Annotation Badge - Subtle */}
                       {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
@@ -341,7 +390,15 @@ export default function MarketingKanbanBoard() {
                     onDragStart={() => onDragStart(task)}
                     onDragEnd={onDragEnd}
                     onClick={() => handleCardClick(task)}
-                    className="backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 group relative"
+                    className={`backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 group relative ${
+                      draggedTask?.id === task.id 
+                        ? 'z-50 scale-105 rotate-2 shadow-2xl bg-white/20 border-white/30' 
+                        : 'z-10'
+                    }`}
+                    style={{
+                      transform: draggedTask?.id === task.id ? 'translateY(-8px)' : 'translateY(0px)',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
                   >
                     {/* Annotation Badge - Subtle */}
                     {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (

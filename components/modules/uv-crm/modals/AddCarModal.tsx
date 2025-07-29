@@ -3,7 +3,6 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DocUploader from "@/components/modules/uv-crm/components/DocUploader";
 import ChassisInput from '@/components/modules/uv-crm/components/ChassisInput';
-import { useModulePermissions } from '@/lib/useModulePermissions';
 
 interface Props {
   onClose: () => void;
@@ -21,37 +20,6 @@ function firstDesc(obj: any) {
 }
 
 export default function AddCarModal({ onClose, onCreated }: Props) {
-  const { canCreate: canCreateCars, isLoading: permissionsLoading } = useModulePermissions('inventory');
-  
-  // Security check: only allow users with create permissions
-  if (permissionsLoading) {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white mx-auto"></div>
-          <p className="text-white text-sm mt-2">Checking permissions...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!canCreateCars) {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-          <h2 className="text-white text-lg font-semibold mb-2">Access Denied</h2>
-          <p className="text-white/70 text-sm mb-4">You don't have permission to create cars.</p>
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded text-white text-sm"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const [form, setForm] = useState({
     stock_number: "",
     model_year: "",

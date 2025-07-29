@@ -10,11 +10,23 @@ scraper-*.log
 .next/
 node_modules/
 
-# Exclude documentation files
+# Exclude ALL documentation and text files
+*.md
+*.txt
+*.MD
+*.TXT
 docs/
-README.md
-webhook_fix_guide.md
-MIGRATION_INSTRUCTIONS.md
+README*
+CHANGELOG*
+LICENSE*
+CONTRIBUTING*
+
+# Exclude ALL shell scripts and command files
+*.sh
+*.bat
+*.cmd
+*.command
+*.ps1
 
 # Exclude all SQL files (database migration scripts)
 *.sql
@@ -22,17 +34,39 @@ database/
 
 # Exclude development scripts and logs
 scripts/
-debug_*.sql
-debug_*.js
+debug_*
+test_*
+migration_*
+webhook_*
 
-# Music files included for deployment
-
-# Exclude git files
+# Exclude build and cache directories
+.next/
+.vercel/
+.env*
+.DS_Store
 .git/
 .gitignore
+.eslintrc*
+.prettierrc*
+node_modules/
 
-# Exclude additional development files
-.DS_Store
+# Exclude temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
 *.swp
 *.swo
-*~ 
+
+# Only include essential files for deployment
+!/app/**
+!/components/**
+!/lib/**
+!/types/**
+!/public/**
+!/package.json
+!/next.config.js
+!/tailwind.config.js
+!/postcss.config.js
+!/tsconfig.json 

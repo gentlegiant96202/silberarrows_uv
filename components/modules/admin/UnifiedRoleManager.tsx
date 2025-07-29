@@ -130,6 +130,11 @@ export default function UnifiedRoleManager() {
       setModules(modulesData || []);
 
       console.log('✅ All data loaded successfully!');
+      console.log('🔍 Modules loaded:', modulesData?.length || 0, 'modules');
+      console.log('🔍 Permissions loaded:', permissionsData?.length || 0, 'permissions'); 
+      if (modulesData?.length) {
+        console.log('🔍 Module names:', modulesData.map(m => m.name).join(', '));
+      }
 
     } catch (err: any) {
       console.error('❌ Error loading data:', err);
@@ -231,13 +236,40 @@ export default function UnifiedRoleManager() {
   };
 
   const updatePermission = (role: string, moduleName: string, permissionType: keyof Pick<RolePermission, 'can_view' | 'can_create' | 'can_edit' | 'can_delete'>, value: boolean) => {
-    setPermissions(prevPermissions =>
-      prevPermissions.map(p =>
-        p.role === role && p.module_name === moduleName
-          ? { ...p, [permissionType]: value }
-          : p
-      )
-    );
+    setPermissions(prevPermissions => {
+      // Check if permission entry exists
+      const existingIndex = prevPermissions.findIndex(p => p.role === role && p.module_name === moduleName);
+      
+      if (existingIndex >= 0) {
+        // Update existing permission
+        return prevPermissions.map((p, index) =>
+          index === existingIndex
+            ? { ...p, [permissionType]: value }
+            : p
+        );
+      } else {
+        // Create new permission entry
+        const module = modules.find(m => m.name === moduleName);
+        if (!module) {
+          console.error(`Module ${moduleName} not found!`);
+          return prevPermissions;
+        }
+        
+        console.log(`🆕 Creating new permission entry for ${role} -> ${moduleName}`);
+        const newPermission = {
+          role,
+          module_name: module.name,
+          module_display_name: module.display_name,
+          module_description: module.description,
+          can_view: permissionType === 'can_view' ? value : false,
+          can_create: permissionType === 'can_create' ? value : false,
+          can_edit: permissionType === 'can_edit' ? value : false,
+          can_delete: permissionType === 'can_delete' ? value : false
+        };
+        
+        return [...prevPermissions, newPermission];
+      }
+    });
   };
 
   const getUsersForRole = (role: string) => {
@@ -245,7 +277,32 @@ export default function UnifiedRoleManager() {
   };
 
   const getPermissionsForRole = (role: string) => {
-    return permissions.filter(p => p.role === role);
+    // Get existing permissions for this role
+    const rolePermissions = permissions.filter(p => p.role === role);
+    
+    // Ensure all modules are represented, even if they don't have permission entries
+    const allModulePermissions = modules.map(module => {
+      // Find existing permission for this module, or create a default one
+      const existingPermission = rolePermissions.find(p => p.module_name === module.name);
+      
+      if (existingPermission) {
+        return existingPermission;
+      } else {
+        // Create default permission entry for modules not in database
+        return {
+          role,
+          module_name: module.name,
+          module_display_name: module.display_name,
+          module_description: module.description,
+          can_view: false,
+          can_create: false,
+          can_edit: false,
+          can_delete: false
+        };
+      }
+    });
+    
+    return allModulePermissions;
   };
 
   const getRoleStats = (role: string) => {

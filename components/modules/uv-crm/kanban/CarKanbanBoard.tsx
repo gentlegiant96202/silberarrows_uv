@@ -56,7 +56,7 @@ export default function CarKanbanBoard() {
   // Use new role system
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
-  const { canEdit: canEditCars, canCreate: canCreateCars } = useModulePermissions('uv_crm');
+  const { canEdit: canEditCars, canCreate: canCreateCars } = useModulePermissions('inventory');
   
 
   const load = async () => {

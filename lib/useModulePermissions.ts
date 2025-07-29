@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/components/shared/AuthProvider';
+import { useUserRole } from '@/lib/useUserRole';
 
 interface ModulePermissions {
   canView: boolean;
@@ -21,11 +22,21 @@ interface AllModulePermissions {
   error: string | null;
 }
 
+interface UserWithRole {
+  id: string;
+  email: string;
+  role: 'admin' | 'sales' | 'marketing' | 'service' | 'leasing';
+  created_at: string;
+  updated_at: string;
+}
+
+
 /**
  * Hook to get permissions for a specific module
  */
 export function useModulePermissions(moduleName: string): ModulePermissions {
   const { user } = useAuth();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
   const [permissions, setPermissions] = useState<ModulePermissions>({
     canView: false,
     canCreate: false,
@@ -46,6 +57,11 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
           isLoading: false,
           error: null,
         });
+        return;
+      }
+
+      // Wait for role to load
+      if (roleLoading) {
         return;
       }
 
@@ -78,7 +94,7 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
             error: null,
           });
         } else {
-          // No permissions found - default to no access
+          // No permissions found - default to no access (even for admins)
           setPermissions({
             canView: false,
             canCreate: false,
@@ -102,7 +118,7 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
     }
 
     fetchPermissions();
-  }, [user?.id, moduleName]);
+  }, [user?.id, moduleName, roleLoading]);
 
   return permissions;
 }

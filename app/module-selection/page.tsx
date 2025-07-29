@@ -187,7 +187,7 @@ export default function ModuleSelectionPage() {
               </div>
 
               {/* Module Cards */}
-              <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
+              <div className="flex justify-center gap-6 max-w-7xl mx-auto">
                 {accessibleModules.map((module, index) => {
                   const IconComponent = module.icon;
                   
@@ -195,7 +195,7 @@ export default function ModuleSelectionPage() {
                     <div
                       key={module.id}
                       onClick={() => handleModuleClick(module)}
-                      className="group cursor-pointer relative w-36"
+                      className="group cursor-pointer relative w-52"
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       {/* Glass Morphism Card */}
@@ -205,39 +205,39 @@ export default function ModuleSelectionPage() {
                         <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3xl`} />
                         
                         {/* Badge */}
-                        <div className="absolute top-2 right-2">
-                          <span className="px-1.5 py-0.5 text-xs font-medium bg-white/20 text-white/90 rounded-full border border-white/30">
+                        <div className="absolute top-4 right-4">
+                          <span className="px-3 py-1 text-xs font-medium bg-white/20 text-white/90 rounded-full border border-white/30">
                             {module.badge}
                           </span>
                         </div>
                         
                         {/* Card Content */}
-                        <div className="p-4 h-full flex flex-col justify-between">
+                        <div className="p-6 h-full flex flex-col justify-between">
                           
                           {/* Top Section */}
                           <div>
                             {/* Icon Section */}
-                            <div className="flex-shrink-0 mb-3">
+                            <div className="flex-shrink-0 mb-5">
                               <div className="relative inline-block">
-                                <div className={`w-12 h-12 bg-gradient-to-br ${module.gradient} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-500`}>
-                                  <IconComponent className="w-6 h-6 text-black" />
+                                <div className={`w-16 h-16 bg-gradient-to-br ${module.gradient} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-500`}>
+                                  <IconComponent className="w-8 h-8 text-black" />
                                 </div>
                                 {/* Glow Effect */}
-                                <div className={`absolute inset-0 w-12 h-12 bg-gradient-to-br ${module.gradient} rounded-2xl opacity-30 blur-lg group-hover:opacity-50 transition-opacity duration-500 -z-10`} />
+                                <div className={`absolute inset-0 w-16 h-16 bg-gradient-to-br ${module.gradient} rounded-2xl opacity-30 blur-lg group-hover:opacity-50 transition-opacity duration-500 -z-10`} />
                               </div>
                             </div>
                             
                             {/* Heading */}
-                            <h3 className="text-base font-bold text-white leading-tight group-hover:text-gray-100 transition-colors">
+                            <h3 className="text-xl font-bold text-white leading-tight group-hover:text-gray-100 transition-colors">
                               {module.name}
                             </h3>
                           </div>
                           
                           {/* Bottom Action */}
-                          <div className="flex-shrink-0 pt-2 border-t border-white/10">
+                          <div className="flex-shrink-0 pt-4 border-t border-white/10">
                             <div className="flex items-center text-gray-500 group-hover:text-gray-300 transition-colors">
-                              <span className="text-xs font-medium">Open Portal</span>
-                              <ArrowRight className="w-3 h-3 ml-1 transform group-hover:translate-x-1 transition-transform duration-300" />
+                              <span className="text-sm font-medium">Open Portal</span>
+                              <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-300" />
                             </div>
                           </div>
                         </div>

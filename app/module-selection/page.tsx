@@ -187,7 +187,7 @@ export default function ModuleSelectionPage() {
               </div>
 
               {/* Module Cards */}
-              <div className="grid grid-cols-5 gap-8 max-w-6xl mx-auto">
+              <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
                 {accessibleModules.map((module, index) => {
                   const IconComponent = module.icon;
                   
@@ -195,7 +195,7 @@ export default function ModuleSelectionPage() {
                     <div
                       key={module.id}
                       onClick={() => handleModuleClick(module)}
-                      className="group cursor-pointer relative"
+                      className="group cursor-pointer relative w-60"
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       {/* Glass Morphism Card */}

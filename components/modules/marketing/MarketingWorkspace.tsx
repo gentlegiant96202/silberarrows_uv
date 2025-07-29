@@ -1361,14 +1361,14 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
             {/* Bottom Section - Annotations */}
             <div className="flex-1 flex flex-col min-h-0">
             {/* Annotations */}
-            <div className="pt-3 border-t border-white/10 flex flex-col min-h-0" style={{ maxHeight: '400px' }}>
-              <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-2 flex-shrink-0">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="pt-2 border-t border-white/10 flex flex-col min-h-0" style={{ maxHeight: '300px' }}>
+              <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-1.5 flex-shrink-0">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
                 Annotations
               </h4>
-              <div className="space-y-3 overflow-y-auto" style={{ maxHeight: '350px' }}>
+              <div className="space-y-2 overflow-y-auto" style={{ maxHeight: '280px' }}>
                                                   {(() => {
                    // Use real annotations from MediaViewer
                    const annotations = currentAnnotations;
@@ -1376,7 +1376,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                    
                    if (annotations.length === 0) {
                      return (
-                       <div className="text-xs text-white/40 italic text-center py-4">
+                       <div className="text-xs text-white/40 italic text-center py-3">
                          No annotations yet. Use the highlighter tool to add annotations.
                        </div>
                      );
@@ -1391,25 +1391,25 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                    }, {});
                    
                    return (
-                     <div className="space-y-3">
+                     <div className="space-y-2">
                        {Object.entries(annotationsByPage)
                          .sort(([a], [b]) => Number(a) - Number(b))
                          .map(([pageNum, pageAnnotations]: [string, any]) => (
-                           <div key={pageNum} className="mb-4">
-                             <div className={`text-xs font-medium mb-2 flex items-center gap-2 ${
+                           <div key={pageNum} className="mb-3">
+                             <div className={`text-xs font-medium mb-1.5 flex items-center gap-1.5 ${
                                Number(pageNum) === currentPage ? 'text-white' : 'text-white/50'
                              }`}>
                                <span>Page {pageNum}</span>
                                {Number(pageNum) === currentPage && (
-                                 <span className="bg-yellow-500/30 text-yellow-300 px-2 py-0.5 rounded text-xs">
+                                 <span className="bg-yellow-500/30 text-yellow-300 px-1.5 py-0.5 rounded text-xs">
                                    Current
                                  </span>
                                )}
                                <span className="text-white/40">
-                                 ({pageAnnotations.length} annotation{pageAnnotations.length !== 1 ? 's' : ''})
+                                 ({pageAnnotations.length})
                                </span>
                              </div>
-                             <div className="space-y-2">
+                             <div className="space-y-1.5">
                                {pageAnnotations.map((annotation: any) => (
                                  <div 
                                    key={annotation.id} 
@@ -1417,7 +1417,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                                      setSelectedAnnotationId(annotation.id);
                                      setIsAnnotationMode(false);
                                    }}
-                                   className={`rounded-lg p-3 border transition-colors cursor-pointer ${
+                                   className={`rounded-lg p-2.5 border transition-colors cursor-pointer ${
                                      selectedAnnotationId === annotation.id
                                        ? 'bg-yellow-500/20 border-yellow-500/40 hover:bg-yellow-500/30'
                                        : Number(pageNum) === currentPage
@@ -1425,7 +1425,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                                          : 'bg-black/10 border-white/5 hover:bg-black/20'
                                    }`}
                                  >
-                                   <div className={`text-xs mb-1 ${
+                                   <div className={`text-xs mb-0.5 ${
                                      Number(pageNum) === currentPage ? 'text-white/90' : 'text-white/60'
                                    }`}>
                                      {annotation.comment}
@@ -1434,7 +1434,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                                      {new Date(annotation.timestamp).toLocaleString()}
                                    </div>
                                    {selectedAnnotationId === annotation.id && (
-                                     <div className="text-xs text-yellow-400 mt-1 font-medium">
+                                     <div className="text-xs text-yellow-400 mt-0.5 font-medium">
                                        ● Selected
                                      </div>
                                    )}

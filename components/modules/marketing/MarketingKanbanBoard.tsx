@@ -415,7 +415,7 @@ export default function MarketingKanbanBoard() {
 
                     <div className="flex items-center justify-between text-xs text-white/60">
                       <div className="flex items-center gap-1">
-                        <span>Requested on</span>
+                        <span>Created</span>
                         <span>{formatDate(task.created_at)}</span>
                       </div>
                       <div className="flex items-center gap-1">

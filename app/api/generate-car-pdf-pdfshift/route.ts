@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force this API route to use Node.js runtime (not Edge)
+export const runtime = 'nodejs';
+
 // Actual image optimization - resize and compress images before PDF generation
 async function optimizeImageForPdf(imageUrl: string): Promise<string> {
   try {
@@ -12,31 +15,54 @@ async function optimizeImageForPdf(imageUrl: string): Promise<string> {
       return imageUrl;
     }
     
+    // Check if we're in a serverless environment (Vercel)
+    const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME;
+    
+    if (isServerless) {
+      // In serverless environments, skip canvas processing and return original URL
+      console.log('📦 Serverless environment detected, skipping canvas optimization');
+      return imageUrl;
+    }
+    
     const imageBuffer = await response.arrayBuffer();
     const uint8Array = new Uint8Array(imageBuffer);
     
-    // Use canvas API for image resizing (available in Node.js)
-    const { createCanvas, loadImage } = await import('canvas');
-    
-    // Load the image
-    const img = await loadImage(Buffer.from(uint8Array));
-    
-    // Calculate new dimensions (max 1200px width, maintain aspect ratio)
-    const maxWidth = 1200;
-    const aspectRatio = img.height / img.width;
-    const newWidth = Math.min(img.width, maxWidth);
-    const newHeight = Math.round(newWidth * aspectRatio);
-    
-    // Create canvas and draw resized image
-    const canvas = createCanvas(newWidth, newHeight);
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, newWidth, newHeight);
-    
-    // Convert to base64 data URL with compression
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.75); // 75% quality
-    
-    console.log(`✅ Resized ${img.width}x${img.height} → ${newWidth}x${newHeight}`);
-    return dataUrl;
+    try {
+      // Check if canvas module is available before importing
+      let createCanvas: any, loadImage: any;
+      try {
+        // Use require instead of import to avoid TypeScript resolution issues
+        const canvasModule = eval('require')('canvas');
+        createCanvas = canvasModule.createCanvas;
+        loadImage = canvasModule.loadImage;
+      } catch (importError) {
+        console.log('📦 Canvas module not available, using original image');
+        return imageUrl;
+      }
+      
+      // Load the image
+      const img: any = await loadImage(Buffer.from(uint8Array));
+      
+      // Calculate new dimensions (max 1200px width, maintain aspect ratio)
+      const maxWidth = 1200;
+      const aspectRatio = img.height / img.width;
+      const newWidth = Math.min(img.width, maxWidth);
+      const newHeight = Math.round(newWidth * aspectRatio);
+      
+      // Create canvas and draw resized image
+      const canvas: any = createCanvas(newWidth, newHeight);
+      const ctx: any = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+      
+      // Convert to base64 data URL with compression
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75); // 75% quality
+      
+      console.log(`✅ Resized ${img.width}x${img.height} → ${newWidth}x${newHeight}`);
+      return dataUrl;
+    } catch (canvasError) {
+      console.warn('Canvas optimization failed, using original URL:', canvasError);
+      return imageUrl;
+    }
     
   } catch (error) {
     console.warn('Image optimization failed, using original:', error);

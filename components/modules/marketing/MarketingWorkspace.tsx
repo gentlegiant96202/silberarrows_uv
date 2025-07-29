@@ -1081,6 +1081,134 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
     return typeof file === 'string' ? file : file.url;
   };
 
+  // Download all media files
+  const handleDownloadAllMedia = async () => {
+    if (allViewableFiles.length === 0) return;
+    
+    try {
+      // Dynamic import of JSZip for client-side ZIP creation
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      // Update button state to show progress
+      const button = document.querySelector('[title="Download all media files"]') as HTMLButtonElement;
+      if (button) {
+        button.innerHTML = `
+          <div class="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+          Creating ZIP...
+        `;
+        button.disabled = true;
+      }
+      
+      let processedFiles = 0;
+      const totalFiles = allViewableFiles.length;
+      
+      for (let i = 0; i < allViewableFiles.length; i++) {
+        const file = allViewableFiles[i];
+        let fileUrl: string;
+        let fileName: string;
+        
+        if (typeof file === 'string') {
+          fileUrl = file;
+          fileName = `media_${i + 1}_${file.split('/').pop() || 'file'}`;
+        } else {
+          fileUrl = (file as any).url || getOriginalFileUrl(file);
+          fileName = (file as any).name || `media_${i + 1}`;
+        }
+        
+        try {
+          // Fetch the file content
+          const response = await fetch(fileUrl);
+          if (!response.ok) {
+            console.warn(`Failed to fetch ${fileName}: ${response.statusText}`);
+            continue;
+          }
+          
+          // Get file as blob
+          const blob = await response.blob();
+          
+          // Add to ZIP with organized folder structure
+          const fileExtension = fileName.split('.').pop()?.toLowerCase();
+          let folderName = 'Other';
+          
+          if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(fileExtension || '')) {
+            folderName = 'Images';
+          } else if (['mp4', 'mov', 'avi', 'webm', 'mkv'].includes(fileExtension || '')) {
+            folderName = 'Videos';
+          } else if (fileExtension === 'pdf') {
+            folderName = 'PDFs';
+          }
+          
+          // Add file to appropriate folder in ZIP
+          zip.folder(folderName)?.file(fileName, blob);
+          
+          processedFiles++;
+          
+          // Update progress
+          if (button) {
+            button.innerHTML = `
+              <div class="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+              ${Math.round((processedFiles / totalFiles) * 100)}%
+            `;
+          }
+        } catch (fileError) {
+          console.error(`Error processing file ${fileName}:`, fileError);
+          continue;
+        }
+      }
+      
+      if (processedFiles === 0) {
+        throw new Error('No files could be processed');
+      }
+      
+      // Update button to show ZIP generation
+      if (button) {
+        button.innerHTML = `
+          <div class="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+          Generating ZIP...
+        `;
+      }
+      
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ 
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      });
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = `${task.title || 'Media Files'}_${new Date().toISOString().split('T')[0]}.zip`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up blob URL
+      URL.revokeObjectURL(link.href);
+      
+      console.log(`✅ Successfully downloaded ${processedFiles} files in ZIP format`);
+      
+    } catch (error) {
+      console.error('Error creating ZIP file:', error);
+      alert(`Error creating ZIP file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      // Restore button state
+      const button = document.querySelector('[title="Download all media files"]') as HTMLButtonElement;
+      if (button) {
+        button.innerHTML = `
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Download All
+        `;
+        button.disabled = false;
+      }
+    }
+  };
+
   if (!allViewableFiles.length) {
     return (
       <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50">
@@ -1480,6 +1608,20 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 Media Files ({allViewableFiles.length})
+                
+                {/* Download All Button - Show only for specific statuses */}
+                {(task.status === 'in_progress' || task.status === 'approved' || task.status === 'in_review') && allViewableFiles.length > 0 && (
+                  <button
+                    onClick={handleDownloadAllMedia}
+                    className="ml-auto px-2 py-1 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded text-xs font-medium text-green-300 hover:text-green-200 transition-all flex items-center gap-1"
+                    title="Download all media files"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download All
+                  </button>
+                )}
               </h4>
               
                                            {/* Horizontal Thumbnail Grid */}
@@ -1527,10 +1669,18 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                           onDragEnter={(e) => handleThumbnailDragEnter(e, index)}
                           onDragLeave={(e) => handleThumbnailDragLeave(e, index)}
                           onDrop={(e) => handleThumbnailDrop(e, index)}
+                          onClick={() => {
+                            const mediaIndex = viewableToMediaMapping[index];
+                            if (mediaIndex !== undefined) {
+                              setSelectedImageIndex(mediaIndex);
+                            }
+                          }}
                           className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-16 h-16 hover:ring-1 hover:ring-white/20 ${
                             draggedIndex === index ? 'opacity-30 scale-95 rotate-3' : ''
                           } ${
                             dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-400 scale-105' : ''
+                          } ${
+                            selectedImageIndex === viewableToMediaMapping[index] ? 'ring-2 ring-white scale-105' : ''
                           }`}
                           style={{
                             width: '64px',
@@ -1658,6 +1808,35 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                         </div>
                       );
                     })}
+                    
+                    {/* Upload button */}
+                    <div className="aspect-square border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center hover:border-white/40 transition-colors cursor-pointer group relative flex-shrink-0 w-16 h-16">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,video/*,.pdf"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            handleFileUpload(e.target.files);
+                          }
+                          e.target.value = ''; // Reset input
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        disabled={uploading}
+                      />
+                      <div className="text-center pointer-events-none">
+                        {uploading ? (
+                          <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin mx-auto mb-1" />
+                        ) : (
+                          <svg className="w-4 h-4 text-white/50 group-hover:text-white/80 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        )}
+                        <div className="text-[10px] text-white/50 group-hover:text-white/80">
+                          {uploading ? 'Uploading...' : 'Upload'}
+                        </div>
+                      </div>
+                    </div>
                   </>
                 )}
               </div>
@@ -1685,15 +1864,19 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                       disabled={isAnnotationMode}
                       className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold transition-colors ${
                         isAnnotationMode
-                          ? 'bg-white/5 text-white/40 cursor-not-allowed' 
-                          : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30'
+                          ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10' 
+                          : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30 border border-white/20'
                       }`}
-                      title="Zoom Out"
+                      title={isAnnotationMode ? "Disabled during annotation" : "Zoom Out"}
                     >
                       −
                     </button>
                     
-                    <div className="px-2 py-1 bg-black/50 text-white text-xs rounded text-center min-w-[50px] border border-white/10">
+                    <div className={`px-2 py-1 text-white text-xs rounded text-center min-w-[50px] border transition-colors ${
+                      isAnnotationMode 
+                        ? 'bg-black/20 border-white/10 text-white/30' 
+                        : 'bg-black/50 border-white/10 text-white'
+                    }`}>
                       {Math.round(zoom * 100)}%
                     </div>
                     
@@ -1705,10 +1888,10 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                       disabled={isAnnotationMode}
                       className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold transition-colors ${
                         isAnnotationMode 
-                          ? 'bg-white/5 text-white/40 cursor-not-allowed' 
-                          : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30'
+                          ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10' 
+                          : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30 border border-white/20'
                       }`}
-                      title="Zoom In"
+                      title={isAnnotationMode ? "Disabled during annotation" : "Zoom In"}
                     >
                       +
                     </button>
@@ -1721,10 +1904,10 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                       disabled={isAnnotationMode}
                       className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
                         isAnnotationMode 
-                          ? 'bg-white/5 text-white/40 cursor-not-allowed' 
-                          : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30'
+                          ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10' 
+                          : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30 border border-white/20'
                       }`}
-                      title="Reset Zoom & Pan"
+                      title={isAnnotationMode ? "Disabled during annotation" : "Reset Zoom & Pan"}
                     >
                       Reset
                     </button>
@@ -1737,7 +1920,18 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                 <span className="text-xs text-white/60 min-w-[40px]">Draw:</span>
                 <div className="flex items-center gap-1.5">
                   <button
-                    onClick={() => setIsAnnotationMode(!isAnnotationMode)}
+                    onClick={() => {
+                      if (!isAnnotationMode) {
+                        // When activating annotation mode, reset zoom and pan for better annotation experience
+                        resetZoomPan();
+                        setSelectedAnnotationId(null);
+                        setIsAnnotationMode(true);
+                      } else {
+                        // When deactivating annotation mode, just turn it off
+                        setIsAnnotationMode(false);
+                        setSelectedAnnotationId(null);
+                      }
+                    }}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-all ${
                       isAnnotationMode
                         ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
@@ -1762,4 +1956,4 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
       </div>
   </div>
   );
-} 
+  }

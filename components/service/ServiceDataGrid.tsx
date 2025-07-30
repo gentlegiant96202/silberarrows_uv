@@ -611,14 +611,7 @@ export default function ServiceDataGrid({
                     </div>
                   </th>
                 ))}
-                {CALCULATED_METRICS.map(field => (
-                  <th key={field} className="w-20 px-2 py-2 text-left">
-                    <div className="flex items-center space-x-1 text-xs font-medium text-yellow-300">
-                      {getFieldIcon(field)}
-                      <span className="truncate">{METRIC_DEFINITIONS[field]?.name || field}</span>
-                    </div>
-                  </th>
-                ))}
+
                 <th className="w-20 px-2 py-2 text-left">
                   <div className="flex items-center space-x-1 text-xs font-medium text-purple-300">
                     <Target className="w-3 h-3" />

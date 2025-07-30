@@ -1,12 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    esmExternals: true,
-    // Enable Turbopack for faster builds (optional)
-    turbo: {
-      resolveAlias: {
-        // Add any custom resolve aliases if needed
-      }
+    esmExternals: true
+  },
+  // Turbopack configuration (stable in Next.js 15)
+  turbopack: {
+    resolveAlias: {
+      // Add any custom resolve aliases if needed
     }
   },
   // Enable modern image optimization with Sharp

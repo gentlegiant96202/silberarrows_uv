@@ -1,16 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    esmExternals: true
+    esmExternals: true,
+    // Enable Turbopack for faster builds (optional)
+    turbo: {
+      resolveAlias: {
+        // Add any custom resolve aliases if needed
+      }
+    }
   },
-  // Disable problematic output file tracing to prevent stack overflow
-  outputFileTracing: false,
-  // Reduce bundle size and improve build performance
-  swcMinify: true,
-  // Optimize images and static files
+  // Enable modern image optimization with Sharp
   images: {
-    unoptimized: true // Prevents build issues on Vercel
+    formats: ['image/webp', 'image/avif'],
+    // Remove unoptimized: true to use Sharp optimization
   },
+  // Configure for better build performance
+  // Note: swcMinify is now enabled by default in Next.js 15
+  
   // Configure webpack to avoid circular dependencies
   webpack: (config, { dev, isServer }) => {
     // Optimize for production builds

@@ -498,7 +498,6 @@ export default function ServiceDataGrid({
     'metric_date',
     ...INPUT_METRICS,
     ...INDIVIDUAL_METRICS,
-    ...CALCULATED_METRICS,
     'net_sales_target',
     'labour_sales_target',
     'number_of_working_days',

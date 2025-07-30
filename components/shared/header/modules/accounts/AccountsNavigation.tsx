@@ -1,22 +1,20 @@
 'use client';
 
-const marketingTabs = [
-  { key: 'design', title: 'DESIGN' },
-  { key: 'photo', title: 'PHOTO' },
-  { key: 'blog', title: 'BLOG' },
-  { key: 'email', title: 'EMAIL' },
-  { key: 'workflow', title: 'WORKFLOW' }
+const accountsTabs = [
+  { key: 'service', title: 'SERVICE' },
+  { key: 'sales', title: 'SALES' },
+  { key: 'leasing', title: 'LEASING' }
 ];
 
-interface MarketingNavigationProps {
+interface AccountsNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
 
-export default function MarketingNavigation({ activeTab, onTabChange }: MarketingNavigationProps) {
+export default function AccountsNavigation({ activeTab, onTabChange }: AccountsNavigationProps) {
   return (
     <div className="flex gap-1.5">
-      {marketingTabs.map((tab) => (
+      {accountsTabs.map((tab) => (
         <button
           key={tab.key}
           onClick={() => onTabChange(tab.key)}

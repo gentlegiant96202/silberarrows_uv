@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { ChevronDown, Car, TrendingUp, Wrench, Users } from 'lucide-react';
+import { ChevronDown, Car, TrendingUp, Wrench, Users, Calculator } from 'lucide-react';
 import { useAllModulePermissions } from '@/lib/useModulePermissions';
 
 interface Module {
@@ -40,6 +40,13 @@ const allModules: Module[] = [
     description: 'Vehicle leasing and financing',
     basePath: '/leasing',
     icon: Users
+  },
+  {
+    id: 'accounts',
+    name: 'Accounts Department',
+    description: 'Financial reporting and analytics',
+    basePath: '/accounts',
+    icon: Calculator
   }
 ];
 
@@ -59,6 +66,7 @@ export default function ModuleSwitcher() {
     if (pathname.startsWith('/workshop')) return 'workshop';
     if (pathname.startsWith('/marketing')) return 'marketing';
     if (pathname.startsWith('/leasing')) return 'leasing';
+    if (pathname.startsWith('/accounts')) return 'accounts';
     // /inventory is part of UV CRM now
     return 'uv_crm'; // default (includes /inventory, /dashboard, etc.)
   };

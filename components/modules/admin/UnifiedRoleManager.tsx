@@ -2,12 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRole } from '@/lib/useUserRole';
-import { User, Shield, Users, Briefcase, Wrench, Key, Settings, ChevronRight, ChevronDown } from 'lucide-react';
+import { User, Shield, Users, Briefcase, Wrench, Key, Settings, ChevronRight, ChevronDown, Calculator } from 'lucide-react';
 
 interface UserWithRole {
   id: string;
   email: string;
-  role: 'admin' | 'sales' | 'marketing' | 'service' | 'leasing';
+  role: 'admin' | 'sales' | 'marketing' | 'service' | 'leasing' | 'accounts';
   created_at: string;
 }
 
@@ -57,6 +57,13 @@ const ROLE_CONFIGS = [
     description: 'Leasing department - UV CRM + limited inventory access', 
     color: 'bg-yellow-600', 
     icon: Key 
+  },
+  { 
+    id: 'accounts', 
+    name: 'Accounts', 
+    description: 'Accounts department - financial reporting and business analytics', 
+    color: 'bg-indigo-600', 
+    icon: Calculator 
   },
   { 
     id: 'admin', 

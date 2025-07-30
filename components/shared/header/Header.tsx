@@ -8,6 +8,7 @@ import ProfileDropdown from './sections/ProfileDropdown';
 import CRMNavigation from './modules/uv-crm/CRMNavigation';
 import FinanceCalculator from './modules/uv-crm/FinanceCalculator';
 import MarketingNavigation from './modules/marketing/MarketingNavigation';
+import AccountsNavigation from './modules/accounts/AccountsNavigation';
 import ModuleSwitcher from '@/components/shared/ModuleSwitcher';
 
 interface HeaderProps {
@@ -26,6 +27,7 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
     if (pathname.startsWith('/workshop')) return 'workshop';
     if (pathname.startsWith('/marketing')) return 'marketing';
     if (pathname.startsWith('/leasing')) return 'leasing';
+    if (pathname.startsWith('/accounts')) return 'accounts';
     return 'uv-crm'; // default
   };
   
@@ -56,6 +58,12 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
                 )}
                 {currentModule === 'leasing' && (
                   <div className="text-white/60 text-sm">Leasing Navigation Coming Soon</div>
+                )}
+                {currentModule === 'accounts' && activeTab && onTabChange && (
+                  <AccountsNavigation activeTab={activeTab} onTabChange={onTabChange} />
+                )}
+                {currentModule === 'accounts' && (!activeTab || !onTabChange) && (
+                  <AccountsNavigation activeTab="service" onTabChange={() => {}} />
                 )}
               </>
             )}

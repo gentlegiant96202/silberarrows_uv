@@ -33,6 +33,7 @@ export async function GET() {
       updated_at: task.updated_at,
       media_files: task.media_files || [],
       annotations: task.annotations || [], // Include annotations field
+      pinned: task.pinned || false, // Include pinned field
       priority: 'medium', // Default since we don't store this
       content_type: 'post', // Default since we don't store this
       tags: [] // Default since we don't store this
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
       updated_at: data.updated_at,
       media_files: data.media_files || [],
       annotations: data.annotations || [], // Include annotations field
+      pinned: data.pinned || false, // Include pinned field
       priority: 'medium',
       content_type: 'post',
       tags: []
@@ -145,6 +147,7 @@ export async function PUT(req: NextRequest) {
       updated_at: data.updated_at,
       media_files: data.media_files || [],
       annotations: data.annotations || [], // Include annotations field
+      pinned: data.pinned || false, // Include pinned field
       priority: 'medium',
       content_type: 'post',
       tags: []

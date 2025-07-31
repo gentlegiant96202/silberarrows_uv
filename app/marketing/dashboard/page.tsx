@@ -28,8 +28,10 @@ export default function MarketingDashboard() {
   return (
     <div className="min-h-screen bg-black">
       <Header activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="max-w-[1800px] mx-auto">
-        {renderContent()}
+      <div className="flex h-[calc(100vh-72px)]">
+        <div className="flex-1 overflow-auto">
+          {renderContent()}
+        </div>
       </div>
     </div>
   );

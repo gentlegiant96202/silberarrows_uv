@@ -1,8 +1,7 @@
 'use client';
 
 const marketingTabs = [
-  { key: 'design', title: 'DESIGN' },
-  { key: 'photo', title: 'PHOTO' },
+  { key: 'design', title: 'CREATIVE HUB' },
   { key: 'blog', title: 'BLOG' },
   { key: 'email', title: 'EMAIL' },
   { key: 'workflow', title: 'WORKFLOW' }

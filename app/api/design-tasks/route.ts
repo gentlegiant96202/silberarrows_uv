@@ -34,6 +34,7 @@ export async function GET() {
       media_files: task.media_files || [],
       annotations: task.annotations || [], // Include annotations field
       pinned: task.pinned || false, // Include pinned field
+      task_type: task.task_type || 'design', // Include task_type field
       priority: 'medium', // Default since we don't store this
       content_type: 'post', // Default since we don't store this
       tags: [] // Default since we don't store this
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log('Creating design task:', body);
 
-    const { title, headline, description, status = 'intake', assignee, due_date, media_files = [] } = body;
+    const { title, headline, description, status = 'planned', assignee, due_date, task_type = 'design', media_files = [] } = body;
 
     const taskData = {
       title: title || headline, // Handle both title and headline fields
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
       status,
       requested_by: assignee,
       due_date: due_date || undefined, // Use undefined instead of null for optional dates
+      task_type: task_type || 'design', // Include task_type with default
       media_files
     };
 
@@ -90,6 +92,7 @@ export async function POST(req: NextRequest) {
       media_files: data.media_files || [],
       annotations: data.annotations || [], // Include annotations field
       pinned: data.pinned || false, // Include pinned field
+      task_type: data.task_type || 'design', // Include task_type field
       priority: 'medium',
       content_type: 'post',
       tags: []
@@ -111,7 +114,8 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     console.log('Updating design task:', body);
 
-    const { id, title, headline, description, status, assignee, due_date, media_files } = body;
+    const { id, title, headline, description, status, assignee, due_date, task_type, media_files } = body;
+    console.log('Extracted fields:', { id, title, headline, description, status, assignee, due_date, task_type, media_files });
 
     const updates: any = {};
     if (title !== undefined || headline !== undefined) updates.title = title || headline;
@@ -119,9 +123,12 @@ export async function PUT(req: NextRequest) {
     if (status !== undefined) updates.status = status;
     if (assignee !== undefined) updates.requested_by = assignee;
     if (due_date !== undefined) updates.due_date = due_date || undefined;
+    if (task_type !== undefined) updates.task_type = task_type;
     if (media_files !== undefined) updates.media_files = media_files;
 
     updates.updated_at = new Date().toISOString();
+    
+    console.log('Updates to be applied:', updates);
 
     const { data, error } = await supabase
       .from('design_tasks')
@@ -134,6 +141,8 @@ export async function PUT(req: NextRequest) {
       console.error('Error updating design task:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    console.log('Database response after update:', data);
 
     // Transform response to match frontend expectations
     const transformedTask = {
@@ -148,10 +157,13 @@ export async function PUT(req: NextRequest) {
       media_files: data.media_files || [],
       annotations: data.annotations || [], // Include annotations field
       pinned: data.pinned || false, // Include pinned field
+      task_type: data.task_type || 'design', // Include task_type field
       priority: 'medium',
       content_type: 'post',
       tags: []
     };
+
+    console.log('Transformed response being sent:', transformedTask);
 
     return NextResponse.json(transformedTask);
   } catch (error) {

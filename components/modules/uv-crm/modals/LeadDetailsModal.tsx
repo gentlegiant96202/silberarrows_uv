@@ -128,6 +128,9 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
   // Track if user manually selected a model from the fallback dropdown
   const [manualModelChosen,setManualModelChosen] = useState(false);
 
+  // WhatsApp chat panel state
+  const [showWhatsAppChat, setShowWhatsAppChat] = useState(false);
+
   // Unique list of models currently available in inventory (sorted)
   const uniqueInventoryModels = React.useMemo(()=>{
     const set = new Set<string>();
@@ -325,9 +328,25 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
     }
   };
 
+  // Format phone number for WhatsApp chat URL
+  const formatPhoneForWhatsApp = (phone: string) => {
+    // Remove any spaces, dashes, or special characters except +
+    return phone.replace(/[\s\-\(\)]/g, '');
+  };
+
+  // Generate WhatsApp chat URL with mobile parameters
+  const whatsappChatUrl = `https://web.doubletick.io/conversations/97143805515/${formatPhoneForWhatsApp(lead.phone_number)}?mobile=true&view=compact`;
+
+  // Toggle WhatsApp chat panel
+  const toggleWhatsAppChat = () => {
+    setShowWhatsAppChat(!showWhatsAppChat);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-3xl text-xs relative max-h-[90vh] overflow-visible shadow-2xl">
+      <div className={`bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full text-xs relative max-h-[90vh] overflow-visible shadow-2xl transition-all duration-300 ${
+        showWhatsAppChat ? 'max-w-[98vw] min-w-[98vw]' : 'max-w-3xl'
+      }`}>
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-lg leading-none text-white/70 hover:text-white transition-colors z-10"
@@ -367,6 +386,17 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
               ) : (
                 <>
                 <button
+                  onClick={toggleWhatsAppChat}
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                    showWhatsAppChat 
+                      ? 'bg-green-600 hover:bg-green-700 text-white' 
+                      : 'bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white hover:text-green-400'
+                  }`}
+                  title={showWhatsAppChat ? 'Hide WhatsApp Chat' : 'Show WhatsApp Chat'}
+                >
+                  💬 Chat
+                </button>
+                <button
                   onClick={() => setIsEditing(true)}
                   className="px-2 py-1 bg-brand hover:bg-brand/90 text-white text-xs rounded transition-colors"
                   disabled={loading}
@@ -386,8 +416,12 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
           </div>
         </div>
 
-        {isEditing ? (
-          <div className="flex flex-col sm:flex-row gap-4">
+        {/* Main Content Area */}
+        <div className={`flex gap-4 ${showWhatsAppChat ? 'h-[calc(90vh-120px)]' : ''}`}>
+          {/* Left Panel - Lead Details */}
+          <div className={`${showWhatsAppChat ? 'w-[736px] flex-shrink-0' : 'flex-1'} ${showWhatsAppChat ? 'overflow-y-auto' : ''}`}>
+            {isEditing ? (
+              <div className="flex flex-col sm:flex-row gap-4">
             {/* Edit form */}
             <form onSubmit={handleUpdate} className="flex-1 space-y-3 overflow-y-auto pr-1">
             {/* Customer Information */}
@@ -944,6 +978,57 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
             </div>
           </div>
         )}
+          </div>
+
+          {/* Right Panel - WhatsApp Chat */}
+          {showWhatsAppChat && (
+            <div className="flex-[2] bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
+              <div className="bg-white/10 px-3 py-2 border-b border-white/10 flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-white">WhatsApp Chat</span>
+                <span className="text-[10px] text-white/60 ml-auto">{formatPhoneForWhatsApp(lead.phone_number)}</span>
+                
+              </div>
+                                            <div className="w-full" style={{ height: 'calc(100% - 48px)' }}>
+                {/* Debug info display */}
+                <div className="absolute top-2 left-2 z-10 bg-black/80 text-white text-[8px] px-1 py-0.5 rounded">
+                  <div className="truncate">{whatsappChatUrl}</div>
+                                     <div className="text-green-400">📐 75% scaled (134% content, 0.75 scale)</div>
+                </div>
+                
+                <iframe
+                  src={whatsappChatUrl}
+                  className="w-full h-full bg-white border-0"
+                  title="WhatsApp Chat"
+                  allow="microphone; camera; geolocation"
+                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+                  onLoad={() => {
+                    console.log('WhatsApp iframe loaded - 75% scaled view');
+                  }}
+                  style={{
+                    minHeight: '600px',
+                    transform: 'scale(0.75)',
+                    transformOrigin: 'top left',
+                    width: '134%',
+                    height: '134%'
+                  }}
+                />
+                
+                {/* Open in New Tab button */}
+                <div className="absolute bottom-4 right-4 z-20">
+                  <a
+                    href={whatsappChatUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-gradient-to-br from-gray-300 via-gray-500 to-gray-700 hover:from-gray-200 hover:via-gray-400 hover:to-gray-600 text-white text-xs px-3 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 backdrop-blur-sm border border-white/20"
+                  >
+                    🔗 <span>Open in New Tab</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -15,6 +15,43 @@ const formatDate = (dateString: string) => {
   });
 };
 
+// Helper function to format relative due dates
+const formatRelativeDueDate = (dateString: string) => {
+  const dueDate = new Date(dateString);
+  const today = new Date();
+  
+  // Reset time to start of day for accurate day comparison
+  dueDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  
+  const diffTime = dueDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return 'Due today';
+  } else if (diffDays === 1) {
+    return 'Due in 1D';
+  } else if (diffDays > 1 && diffDays <= 7) {
+    return `Due in ${diffDays}D`;
+  } else if (diffDays > 7 && diffDays <= 30) {
+    const weeks = Math.ceil(diffDays / 7);
+    return `Due in ${weeks}W`;
+  } else if (diffDays > 30) {
+    const months = Math.ceil(diffDays / 30);
+    return `Due in ${months}M`;
+  } else if (diffDays === -1) {
+    return 'Overdue 1D';
+  } else if (diffDays < -1 && diffDays >= -7) {
+    return `Overdue ${Math.abs(diffDays)}D`;
+  } else if (diffDays < -7 && diffDays >= -30) {
+    const weeks = Math.ceil(Math.abs(diffDays) / 7);
+    return `Overdue ${weeks}W`;
+  } else {
+    const months = Math.ceil(Math.abs(diffDays) / 30);
+    return `Overdue ${months}M`;
+  }
+};
+
 interface MarketingWorkspaceProps {
   task: MarketingTask;
   onClose: () => void;
@@ -173,7 +210,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
                     draggable={false}
                   />
                   {/* Page number indicator */}
-                  <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md border border-white/15 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg ring-1 ring-white/5">
                     Page {index + 1}
                   </div>
                 </div>
@@ -1250,13 +1287,13 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
 
   // --- Main return ---
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex">
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-2xl z-50 flex">
       {/* Header Bar */}
-      <div className="absolute top-0 left-0 right-0 h-14 bg-black/40 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6 z-10">
+      <div className="absolute top-0 left-0 right-0 h-16 bg-white/8 backdrop-blur-xl border-b border-white/20 flex items-center justify-between px-6 z-10 shadow-lg ring-1 ring-white/10">
         <div className="flex items-center gap-4">
           <button
             onClick={onClose}
-            className="flex items-center gap-2 text-white/70 hover:text-white transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg text-white/70 hover:text-white transition-all shadow-lg ring-1 ring-white/5"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back to Board</span>
@@ -1268,10 +1305,10 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
         <div className="flex items-center gap-3">
           {/* Delete notification */}
           {deleteMessage && (
-            <div className={`px-3 py-1.5 rounded text-xs font-medium ${
+            <div className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-sm shadow-lg ring-1 ${
               deleteMessage.includes('successfully') 
-                ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
-                : 'bg-white/20 text-white border border-white/30'
+                ? 'bg-green-500/25 text-green-300 border border-green-500/40 ring-green-500/20' 
+                : 'bg-white/25 text-white border border-white/40 ring-white/20'
             }`}>
               {deleteMessage}
             </div>
@@ -1283,7 +1320,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black text-sm rounded transition-colors font-semibold disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 text-black text-sm rounded-lg transition-all font-semibold disabled:opacity-50 shadow-lg"
           >
             <Save className="w-3.5 h-3.5" />
             {saving ? 'Saving...' : 'Save'}
@@ -1292,7 +1329,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
       </div>
 
       {/* Main Content */}
-      <div className="flex w-full pt-14">
+      <div className="flex w-full pt-16">
         
         {/* Main Canvas Area - Now Full Width */}
         <div className="flex-1 relative bg-black/10">
@@ -1467,13 +1504,13 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
             <>
               <button
                 onClick={handlePrevImage}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 p-3 bg-black/60 backdrop-blur-sm rounded-full text-white/80 hover:text-white hover:bg-black/80 transition-all z-10"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 p-3 bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 rounded-full text-white/80 hover:text-white transition-all z-10 shadow-lg ring-1 ring-white/5"
               >
                 <ChevronUp className="w-6 h-6 -rotate-90" />
               </button>
               <button
                 onClick={handleNextImage}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-3 bg-black/60 backdrop-blur-sm rounded-full text-white/80 hover:text-white hover:bg-black/80 transition-all z-10"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-3 bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 rounded-full text-white/80 hover:text-white transition-all z-10 shadow-lg ring-1 ring-white/5"
               >
                 <ChevronUp className="w-6 h-6 rotate-90" />
               </button>
@@ -1482,7 +1519,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
         </div>
 
         {/* Right Sidebar - Task Info */}
-        <div className="w-96 bg-black/30 backdrop-blur-sm border-l border-white/10 flex flex-col h-screen">
+        <div className="w-96 bg-white/8 backdrop-blur-xl border-l border-white/20 flex flex-col h-screen shadow-2xl ring-1 ring-white/10">
           <div className="p-4 flex-1 overflow-hidden flex flex-col">
             
             {/* Top Section - Task Info */}
@@ -1499,7 +1536,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded text-sm text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all"
+                className="w-full px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner"
                 placeholder="Enter task title..."
               />
             </div>
@@ -1516,13 +1553,13 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 rows={5}
-                className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded text-sm text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/30 transition-all resize-none"
+                className="w-full px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all resize-none shadow-inner"
                 placeholder="Write your social media caption here..."
               />
             </div>
 
             {/* Task Metadata */}
-            <div className="space-y-2 pt-3 border-t border-white/10 flex-shrink-0">
+            <div className="space-y-2 pt-4 border-t border-white/20 flex-shrink-0 bg-white/3 backdrop-blur-sm rounded-lg p-3 mt-3 ring-1 ring-white/5">
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <div className="text-white/50 mb-0.5">Status</div>
@@ -1541,7 +1578,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                 </div>
                 <div>
                   <div className="text-white/50 mb-0.5">Due Date</div>
-                  <div className="text-white text-xs">{task.due_date ? formatDate(task.due_date) : 'No deadline'}</div>
+                  <div className="text-white text-xs">{task.due_date ? formatRelativeDueDate(task.due_date) : 'No deadline'}</div>
                 </div>
               </div>
             </div>
@@ -1590,9 +1627,9 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                              }`}>
                                <span>Page {pageNum}</span>
                                {Number(pageNum) === currentPage && (
-                                 <span className="bg-yellow-500/30 text-yellow-300 px-1.5 py-0.5 rounded text-xs">
-                                   Current
-                                 </span>
+                                                                 <span className="bg-yellow-500/35 backdrop-blur-sm border border-yellow-500/40 text-yellow-300 px-1.5 py-0.5 rounded-lg text-xs shadow-lg ring-1 ring-yellow-500/20">
+                                  Current
+                                </span>
                                )}
                                <span className="text-white/40">
                                  ({pageAnnotations.length})
@@ -1606,13 +1643,13 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                                      handleAnnotationClick(annotation);
                                      setIsAnnotationMode(false);
                                    }}
-                                   className={`rounded-lg p-2.5 border transition-colors cursor-pointer ${
-                                     selectedAnnotationId === annotation.id
-                                       ? 'bg-yellow-500/20 border-yellow-500/40 hover:bg-yellow-500/30'
-                                       : Number(pageNum) === currentPage
-                                         ? 'bg-black/20 border-white/10 hover:bg-black/30'
-                                         : 'bg-black/10 border-white/5 hover:bg-black/20'
-                                   }`}
+                                                                     className={`rounded-lg p-2.5 border transition-all cursor-pointer backdrop-blur-sm shadow-lg ring-1 ${
+                                    selectedAnnotationId === annotation.id
+                                      ? 'bg-yellow-500/25 border-yellow-500/50 hover:bg-yellow-500/35 ring-yellow-500/25'
+                                      : Number(pageNum) === currentPage
+                                        ? 'bg-black/30 border-white/15 hover:bg-black/40 ring-white/5'
+                                        : 'bg-black/20 border-white/10 hover:bg-black/30 ring-white/5'
+                                  }`}
                                  >
                                    <div className={`text-xs mb-0.5 ${
                                      Number(pageNum) === currentPage ? 'text-white/90' : 'text-white/60'
@@ -1653,7 +1690,7 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                 {(task.status === 'in_progress' || task.status === 'approved' || task.status === 'in_review') && allViewableFiles.length > 0 && (
                   <button
                     onClick={handleDownloadAllMedia}
-                    className="ml-auto px-2 py-1 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded text-xs font-medium text-green-300 hover:text-green-200 transition-all flex items-center gap-1"
+                    className="ml-auto px-3 py-2 bg-green-600/25 hover:bg-green-600/35 backdrop-blur-sm border border-green-500/40 rounded-lg text-xs font-medium text-green-300 hover:text-green-200 transition-all flex items-center gap-1 shadow-lg ring-1 ring-green-500/20"
                     title="Download all media files"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

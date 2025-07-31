@@ -16,6 +16,59 @@ const formatDate = (dateString: string) => {
   });
 };
 
+// Helper function to format relative due dates
+const formatRelativeDueDate = (dateString: string) => {
+  const dueDate = new Date(dateString);
+  const today = new Date();
+  
+  // Reset time to start of day for accurate day comparison
+  dueDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  
+  const diffTime = dueDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return 'Due today';
+  } else if (diffDays === 1) {
+    return 'Due in 1D';
+  } else if (diffDays > 1 && diffDays <= 7) {
+    return `Due in ${diffDays}D`;
+  } else if (diffDays > 7 && diffDays <= 30) {
+    const weeks = Math.ceil(diffDays / 7);
+    return `Due in ${weeks}W`;
+  } else if (diffDays > 30) {
+    const months = Math.ceil(diffDays / 30);
+    return `Due in ${months}M`;
+  } else if (diffDays === -1) {
+    return 'Overdue 1D';
+  } else if (diffDays < -1 && diffDays >= -7) {
+    return `Overdue ${Math.abs(diffDays)}D`;
+  } else if (diffDays < -7 && diffDays >= -30) {
+    const weeks = Math.ceil(Math.abs(diffDays) / 7);
+    return `Overdue ${weeks}W`;
+  } else {
+    const months = Math.ceil(Math.abs(diffDays) / 30);
+    return `Overdue ${months}M`;
+  }
+};
+
+// Helper function to check if task is urgent (due in 1 day or overdue)
+const isTaskUrgent = (dateString: string) => {
+  const dueDate = new Date(dateString);
+  const today = new Date();
+  
+  // Reset time to start of day for accurate day comparison
+  dueDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  
+  const diffTime = dueDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  // Urgent if due today, due in 1 day, or overdue
+  return diffDays <= 1;
+};
+
 // Column definitions matching CRM Kanban style
 const columns: MarketingColumn[] = [
   { 
@@ -23,6 +76,12 @@ const columns: MarketingColumn[] = [
     title: "INTAKE", 
     icon: <Archive className="w-4 h-4" />,
     color: "blue"
+  },
+  { 
+    key: "planned", 
+    title: "PLANNED", 
+    icon: <Calendar className="w-4 h-4" />,
+    color: "purple"
   },
   { 
     key: "in_progress", 
@@ -93,7 +152,29 @@ export default function MarketingKanbanBoard() {
         (payload: any) => {
           setTasks(prev => {
             if (payload.eventType === 'INSERT') {
-              const newTask = payload.new as MarketingTask;
+              const rawTask = payload.new;
+              console.log('Real-time INSERT received (raw):', rawTask);
+              
+              // Transform raw database data to match frontend expectations
+              const newTask: MarketingTask = {
+                id: rawTask.id,
+                title: rawTask.title,
+                description: rawTask.description,
+                status: rawTask.status,
+                assignee: rawTask.requested_by, // Map database field to frontend field
+                due_date: rawTask.due_date,
+                created_at: rawTask.created_at,
+                updated_at: rawTask.updated_at,
+                media_files: rawTask.media_files || [],
+                annotations: rawTask.annotations || [],
+                pinned: rawTask.pinned || false,
+                task_type: rawTask.task_type || 'design', // Include task_type field
+                priority: 'medium',
+                content_type: 'post',
+                tags: []
+              };
+              
+              console.log('Real-time INSERT transformed:', newTask);
               
               // Check if task already exists to prevent duplicates (local creation + real-time)
               const taskExists = prev.some(task => task.id === newTask.id);
@@ -104,7 +185,30 @@ export default function MarketingKanbanBoard() {
               return [newTask, ...prev];
             }
             if (payload.eventType === 'UPDATE') {
-              const updatedTask = payload.new as MarketingTask;
+              const rawTask = payload.new;
+              console.log('Real-time UPDATE received (raw):', rawTask);
+              
+              // Transform raw database data to match frontend expectations
+              const updatedTask: MarketingTask = {
+                id: rawTask.id,
+                title: rawTask.title,
+                description: rawTask.description,
+                status: rawTask.status,
+                assignee: rawTask.requested_by, // Map database field to frontend field
+                due_date: rawTask.due_date,
+                created_at: rawTask.created_at,
+                updated_at: rawTask.updated_at,
+                media_files: rawTask.media_files || [],
+                annotations: rawTask.annotations || [],
+                pinned: rawTask.pinned || false,
+                task_type: rawTask.task_type || 'design', // Include task_type field
+                priority: 'medium',
+                content_type: 'post',
+                tags: []
+              };
+              
+              console.log('Real-time UPDATE transformed:', updatedTask);
+              
               return prev.map(task => 
                 task.id === updatedTask.id ? updatedTask : task
               );
@@ -139,8 +243,8 @@ export default function MarketingKanbanBoard() {
         return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       }
       
-      // If both unpinned: sort by created_at DESC (newest first)
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      // If both unpinned: sort by updated_at DESC (newest moved/updated cards go to top)
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });
     
     return acc;
@@ -255,24 +359,23 @@ export default function MarketingKanbanBoard() {
     try {
       if (selectedTask) {
         // Update existing task
+        const updatePayload = {
+          id: selectedTask.id,
+          ...taskData,
+        };
+        console.log('Sending update request:', updatePayload);
+        
         const response = await fetch('/api/design-tasks', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            id: selectedTask.id,
-            ...taskData,
-          }),
+          body: JSON.stringify(updatePayload),
         });
 
         if (response.ok) {
           const updatedTask: MarketingTask = await response.json();
-          // Don't update local state - let real-time subscription handle it  
-          // const updatedTasks = tasks.map(task =>
-          //   task.id === selectedTask.id ? updatedTask : task
-          // );
-          // setTasks(updatedTasks); // REMOVED to prevent conflicts
+          // Let real-time subscription handle the update
           return updatedTask;
         } else {
           console.error('Failed to update task');
@@ -290,8 +393,7 @@ export default function MarketingKanbanBoard() {
 
         if (response.ok) {
           const newTask: MarketingTask = await response.json();
-          // Don't add to local state - let real-time subscription handle it
-          // setTasks([...tasks, newTask]); // REMOVED to prevent duplicates
+          // Let real-time subscription handle the update
           return newTask;
         } else {
           console.error('Failed to create task');
@@ -356,7 +458,7 @@ export default function MarketingKanbanBoard() {
         {columns.map(col => (
           <div
             key={col.key}
-            className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 ${col.key === 'instagram_feed_preview' ? 'flex-[1.5]' : 'flex-[0.8]'} min-w-0 flex flex-col transition-shadow ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''}`}
+                          className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 ${col.key === 'instagram_feed_preview' ? 'flex-[1.3]' : 'flex-[0.8]'} min-w-0 flex flex-col transition-shadow ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''}`}
             onDragOver={(e) => { onDragOver(e); setHovered(col.key); }}
             onDrop={onDrop(col.key)}
             onDragEnter={() => setHovered(col.key)}
@@ -522,6 +624,33 @@ export default function MarketingKanbanBoard() {
                           : '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
                       }}
                     >
+                      {/* Task Type Badge - Top Right */}
+                      <div className="absolute top-1 right-1 z-20">
+                        {task.task_type === 'design' && (
+                          <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <span className="text-[7px] font-medium uppercase">Design</span>
+                          </div>
+                        )}
+                        {task.task_type === 'photo' && (
+                          <div className="flex items-center gap-1 bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M9 2l1.06 2.06L12 5l-1.94.94L9 8 7.94 5.94 6 5l1.94-.94L9 2zm6.5 6L17 10l-1.5 2L14 10l1.5-2zm2.5 5l-.62 1.38L16 15l1.38.62L18 17l.62-1.38L20 15l-1.38-.62L18 13z"/>
+                            </svg>
+                            <span className="text-[7px] font-medium uppercase">Photo</span>
+                          </div>
+                        )}
+                                                 {task.task_type === 'video' && (
+                           <div className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                             <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                               <path d="M8 5v14l11-7z"/>
+                             </svg>
+                             <span className="text-[7px] font-medium uppercase">Video</span>
+                           </div>
+                         )}
+                      </div>
 
                       
                       {/* Main Content Container */}
@@ -596,10 +725,21 @@ export default function MarketingKanbanBoard() {
                             </div>
                             
                             {/* Due Date */}
-                            <div className="flex items-center gap-1.5 text-white/60">
+                            <div className={`flex items-center gap-1.5 ${
+                              task.due_date && isTaskUrgent(task.due_date) && (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') 
+                                ? 'text-red-400' 
+                                : 'text-white/60'
+                            }`}>
                               <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
-                              <span className="text-[8px] truncate">
-                                {task.due_date ? `Due ${formatDate(task.due_date)}` : 'No deadline'}
+                              <span 
+                                className="text-[8px] truncate"
+                                style={
+                                  task.due_date && isTaskUrgent(task.due_date) && (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress')
+                                    ? { animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                                    : {}
+                                }
+                              >
+                                {task.due_date ? formatRelativeDueDate(task.due_date) : 'No deadline'}
                               </span>
                             </div>
                           </div>

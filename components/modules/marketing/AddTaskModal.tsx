@@ -40,7 +40,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
     due_date: task?.due_date || '',
     requested_by: task?.assignee || '',
     caption: task?.description || '', // We'll use description field for caption for now
-    status: (task?.status || 'intake') as MarketingTask['status'],
+    status: (task?.status || 'planned') as MarketingTask['status'],
+    task_type: (task?.task_type || 'design') as MarketingTask['task_type'],
   });
 
   const [selectedFiles, setSelectedFiles] = useState<FileWithThumbnail[]>([]);
@@ -52,8 +53,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
   const [refreshKey, setRefreshKey] = useState(0);
   const [failedThumbnails, setFailedThumbnails] = useState<Set<number>>(new Set());
 
-  // Check if caption should be visible (not in intake)
-  const showCaption = formData.status !== 'intake';
+  // Check if caption should be visible (not in planned or intake)
+  const showCaption = formData.status !== 'planned' && formData.status !== 'intake';
 
   // Filter for different file types (similar to MarketingWorkspace)
   const imageFiles = useMemo(() => {
@@ -255,7 +256,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
         due_date: task.due_date || '',
         requested_by: task.assignee || '',
         caption: task.description || '', // We'll use description field for caption for now
-        status: task.status || 'intake',
+        status: task.status || 'planned',
+        task_type: task.task_type || 'design',
       });
       setExistingMedia(task.media_files || []);
     } else {
@@ -631,10 +633,12 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
 
     try {
       const taskData: Partial<MarketingTask> = {
-        ...formData,
+        title: formData.title,
+        status: formData.status,
         // Handle empty due_date by setting to undefined instead of empty string
         due_date: formData.due_date || undefined,
         assignee: formData.requested_by,
+        task_type: formData.task_type,
         // Use caption field for description when visible, otherwise use description
         description: showCaption ? formData.caption : formData.description,
       };
@@ -642,6 +646,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
       if (task) {
         taskData.id = task.id;
       }
+
+      console.log('AddTaskModal - Form data:', formData);
+      console.log('AddTaskModal - Sending task data:', taskData);
 
       const savedTask = await onSave(taskData);
 
@@ -658,7 +665,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
           due_date: '',
           requested_by: '',
           caption: '',
-          status: 'intake',
+          status: 'planned',
+          task_type: 'design',
         });
         setSelectedFiles([]);
       }
@@ -771,23 +779,26 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-2xl text-xs relative max-h-[90vh] overflow-visible shadow-2xl">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-2">
+      <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-xl p-5 w-full max-w-2xl text-xs relative max-h-[90vh] overflow-visible shadow-2xl ring-1 ring-white/10">
         <button 
           onClick={onClose}
-          className="absolute top-3 right-3 text-lg leading-none text-white/70 hover:text-white transition-colors z-10"
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 rounded-full text-white/70 hover:text-white transition-all z-10"
         >
-          ×
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
         
         {/* Header */}
-        <div className="mb-3 pr-8">
+        <div className="mb-4 pr-10 bg-white/3 backdrop-blur-sm rounded-lg p-3 border border-white/5">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h2 className="text-base font-semibold text-white mb-0.5">
+              <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
+                <div className="w-2 h-2 bg-gradient-to-r from-gray-300 to-gray-500 rounded-full"></div>
                 {task ? 'Edit Task' : 'Create New Task'}
               </h2>
-              <p className="text-xs text-white/60">
+              <p className="text-xs text-white/70">
                 {task ? 'Update task information and details' : 'Create a new marketing design task'}
               </p>
             </div>
@@ -798,7 +809,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
         <form onSubmit={handleSubmit} className="space-y-3 overflow-y-auto pr-1">
           
           {/* Task Information */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
+          <div className="bg-white/8 backdrop-blur-md rounded-xl p-4 border border-white/15 shadow-lg ring-1 ring-white/5">
             <div className="space-y-2.5">
               
               {/* Title */}
@@ -813,7 +824,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all uppercase shadow-inner"
                   style={{ textTransform: 'uppercase' }}
                   placeholder="Enter task title"
                   required
@@ -834,7 +845,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                     value={formData.description}
                     onChange={handleChange}
                   rows={3}
-                  className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all resize-none"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all resize-none shadow-inner"
                     placeholder="Enter task description and requirements"
                 />
               </div>
@@ -854,7 +865,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                     value={formData.caption}
                     onChange={handleChange}
                     rows={3}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all resize-none"
+                    className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all resize-none shadow-inner"
                     placeholder="Enter social media caption"
                   />
                 </div>
@@ -879,7 +890,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                     } as any)}
                     dateFormat="dd/MM/yyyy"
                     popperPlacement="top-start"
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
+                    className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner"
                     wrapperClassName="w-full"
                     placeholderText="Select due date"
                     isClearable
@@ -897,17 +908,37 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                     name="requested_by"
                     value={formData.requested_by}
                     onChange={handleChange}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
+                    className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all uppercase shadow-inner"
                     placeholder="Enter requester name"
                   />
                 </div>
+              </div>
+
+              {/* Task Type */}
+              <div>
+                <label className="block text-xs font-medium text-white mb-1 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  Task Type
+                </label>
+                <select
+                  name="task_type"
+                  value={formData.task_type}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner"
+                >
+                  <option value="design" className="bg-black text-white">Design Task</option>
+                  <option value="photo" className="bg-black text-white">Photo Task</option>
+                  <option value="video" className="bg-black text-white">Video Task</option>
+                </select>
               </div>
 
             </div>
           </div>
 
           {/* File Upload */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
+          <div className="bg-white/8 backdrop-blur-md rounded-xl p-4 border border-white/15 shadow-lg ring-1 ring-white/5">
             <div className="space-y-2.5">
               <div>
                 <label className="block text-xs font-medium text-white mb-1 flex items-center gap-1.5">
@@ -929,7 +960,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                   />
                   <label
                     htmlFor="file-upload"
-                    className="w-full h-12 flex items-center justify-center px-3 gap-2 rounded-lg border-2 border-dashed border-white/20 bg-black/20 text-[10px] text-white/60 cursor-pointer transition-colors hover:border-white/30 hover:bg-black/30"
+                    className="w-full h-12 flex items-center justify-center px-3 gap-2 rounded-lg border-2 border-dashed border-white/25 bg-black/30 backdrop-blur-sm text-[10px] text-white/70 cursor-pointer transition-all hover:border-white/40 hover:bg-black/40 shadow-inner ring-1 ring-white/5"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -946,7 +977,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                       const isImage = file.type.startsWith('image/');
                       
                       return (
-                        <div key={index} className="flex items-center gap-3 p-2 bg-black/30 border border-white/10 rounded">
+                        <div key={index} className="flex items-center gap-3 p-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg shadow-inner ring-1 ring-white/5">
                           {/* Thumbnail or file icon */}
                           <div className="flex-shrink-0 w-12 h-12 rounded overflow-hidden bg-white/5 flex items-center justify-center">
                             {thumbnail ? (
@@ -1168,18 +1199,18 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
             </div>
 
             {/* Save/Cancel buttons */}
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-2 py-1 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs rounded transition-all"
+                className="px-4 py-2 bg-white/8 hover:bg-white/12 backdrop-blur-md border border-white/15 text-white text-xs rounded-lg transition-all shadow-lg ring-1 ring-white/5"
                 disabled={loading || deleting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-2 py-1 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black text-xs rounded transition-colors font-semibold"
+                className="px-4 py-2 bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 text-black text-xs rounded-lg transition-all font-semibold shadow-lg"
                 disabled={loading || deleting}
               >
                 {loading ? 'Saving...' : (task ? 'Update' : 'Create')} Task

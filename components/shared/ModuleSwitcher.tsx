@@ -106,7 +106,7 @@ export default function ModuleSwitcher() {
       {/* Module Switcher Button - styled like profile icon */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-48 px-4 py-1.5 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full shadow-inner hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand"
+        className="flex items-center justify-between w-64 px-4 py-1.5 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full shadow-inner hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand"
         title="Switch Business Module"
       >
         <div className="flex items-center gap-2">
@@ -130,7 +130,7 @@ export default function ModuleSwitcher() {
           />
           
           {/* Dropdown Menu - styled like profile dropdown */}
-          <div className="fixed right-20 top-16 w-64 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 z-50 origin-top transition-transform transition-opacity duration-200">
+          <div className="fixed right-4 top-16 w-80 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 z-50 origin-top transition-transform transition-opacity duration-200">
             <p className="text-white/70 text-sm mb-3">Business Modules</p>
             
             <div className="space-y-2">

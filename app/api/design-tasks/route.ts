@@ -186,6 +186,10 @@ export async function PUT(req: NextRequest) {
     }
 
     // Check if user is admin for admin-only field restrictions
+    if (!authResult.user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 401 });
+    }
+
     const { data: roleData } = await supabaseAdmin
       .from('user_roles')
       .select('role')

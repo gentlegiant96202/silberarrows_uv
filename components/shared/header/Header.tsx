@@ -75,9 +75,6 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
 
           {/* Right Side Components */}
           <div className="flex items-center space-x-4">
-            {/* Module Switcher - Hide on module selection page */}
-            {!isModuleSelectionPage && <ModuleSwitcher />}
-            
             {/* Marketing Tickets Dropdown - Hide on module selection page */}
             {!isModuleSelectionPage && <MarketingTicketsDropdown />}
             
@@ -86,6 +83,9 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
             
             <WeatherClock />
             <MusicPlayer />
+            
+            {/* Module Switcher - Right next to profile - Hide on module selection page */}
+            {!isModuleSelectionPage && <ModuleSwitcher />}
             <ProfileDropdown />
           </div>
         </div>

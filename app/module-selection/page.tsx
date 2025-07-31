@@ -16,6 +16,7 @@ interface ModuleCard {
   gradient: string;
   stats?: string;
   badge?: string;
+  action?: string;
 }
 
 const moduleCards: ModuleCard[] = [
@@ -27,7 +28,8 @@ const moduleCards: ModuleCard[] = [
     icon: Wrench,
     gradient: 'from-gray-400 via-gray-300 to-gray-500',
     badge: 'Service',
-    stats: 'Workshop'
+    stats: 'Workshop',
+    action: 'Open Portal'
   },
   {
     id: 'uv_crm',
@@ -37,7 +39,8 @@ const moduleCards: ModuleCard[] = [
     icon: Car,
     gradient: 'from-gray-400 via-gray-300 to-gray-500',
     badge: 'Sales',
-    stats: 'Dashboard'
+    stats: 'Dashboard',
+    action: 'Open Portal'
   },
   {
     id: 'leasing',
@@ -47,27 +50,30 @@ const moduleCards: ModuleCard[] = [
     icon: CreditCard,
     gradient: 'from-gray-400 via-gray-300 to-gray-500',
     badge: 'Leasing',
-    stats: 'Portal'
+    stats: 'Portal',
+    action: 'Open Portal'
   },
   {
     id: 'marketing',
     name: 'Marketing Department',
-    description: 'Campaign management, content creation, and brand promotion',
+    description: 'Digital marketing campaigns, brand management, and content creation',
     basePath: '/marketing/dashboard',
     icon: TrendingUp,
     gradient: 'from-gray-400 via-gray-300 to-gray-500',
-    badge: 'Growth',
-    stats: 'Studio'
+    badge: 'Marketing',
+    stats: 'Studio',
+    action: 'Open Portal'
   },
   {
     id: 'accounts',
     name: 'Accounts Department',
-    description: 'Financial reporting, accounting, and business analytics',
+    description: 'Financial tracking, business intelligence, and performance analytics',
     basePath: '/accounts/dashboard',
     icon: Calculator,
     gradient: 'from-gray-400 via-gray-300 to-gray-500',
     badge: 'Finance',
-    stats: 'Hub'
+    stats: 'Analytics',
+    action: 'Open Portal'
   }
 ];
 
@@ -76,8 +82,8 @@ export default function ModuleSelectionPage() {
   const { user, loading: authLoading } = useAuth();
   const allPermissions = useAllModulePermissions();
   const { isLoading: permissionsLoading, error } = allPermissions;
-  const [showFallback, setShowFallback] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
   // Pre-calculate display name to prevent layout shifts
@@ -98,19 +104,41 @@ export default function ModuleSelectionPage() {
     return 'User';
   }, [user?.user_metadata?.full_name, user?.email]);
 
-  // Define handleModuleClick at top level so it's accessible everywhere
-  const handleModuleClick = (module: ModuleCard) => {
-    router.push(module.basePath);
-  };
-
-  // Redirect to login if not authenticated
+  // Redirect unauthenticated users
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
+      router.replace('/login');
     }
-  }, [user, authLoading, router]);
+  }, [authLoading, user, router]);
 
-  // Mark as initially loaded when auth completes
+  // Enable fallback mode if permissions fail to load after a delay
+  useEffect(() => {
+    if (!permissionsLoading) return;
+    
+    const fallbackTimer = setTimeout(() => {
+      console.warn('⚠️ Permissions taking too long to load, enabling fallback mode');
+      setShowFallback(true);
+    }, 5000);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [permissionsLoading]);
+
+  // Enable debug mode on triple click
+  useEffect(() => {
+    let clickCount = 0;
+    const handleTripleClick = () => {
+      clickCount++;
+      if (clickCount === 3) {
+        setDebugMode(true);
+        clickCount = 0;
+      }
+      setTimeout(() => clickCount = 0, 1000);
+    };
+    
+    document.addEventListener('click', handleTripleClick);
+    return () => document.removeEventListener('click', handleTripleClick);
+  }, []);
+
   useEffect(() => {
     if (!authLoading && user && !hasInitiallyLoaded) {
       // Remove artificial delay to prevent layout shifts
@@ -118,16 +146,10 @@ export default function ModuleSelectionPage() {
     }
   }, [authLoading, user, hasInitiallyLoaded]);
 
-  // Timeout fallback after 3 seconds - reduced from 5 seconds
-  useEffect(() => {
-    if (hasInitiallyLoaded && permissionsLoading) {
-      const timeout = setTimeout(() => {
-        setShowFallback(true);
-      }, 3000);
-
-      return () => clearTimeout(timeout);
-    }
-  }, [permissionsLoading, hasInitiallyLoaded]);
+  // Handle module navigation
+  const handleModuleClick = (module: ModuleCard) => {
+    router.push(module.basePath);
+  };
 
   // Determine if we should show the loading screen
   const isLoading = authLoading || !hasInitiallyLoaded || (permissionsLoading && !showFallback && !debugMode);
@@ -186,49 +208,48 @@ export default function ModuleSelectionPage() {
             
             {/* Placeholder Module Cards - matching exact structure */}
             <div className="flex justify-center gap-6 max-w-7xl mx-auto">
-                {[1, 2, 3, 4, 5].map((index) => (
-                  <div
-                    key={index}
-                    className="w-52 opacity-30"
-                  >
-                    {/* Placeholder Glass Morphism Card */}
-                    <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden aspect-square">
-                      {/* Placeholder Badge */}
-                      <div className="absolute top-4 right-4">
-                        <span className="px-3 py-1 text-xs font-medium bg-white/10 text-white/50 rounded-full border border-white/20">
-                          Loading...
-                        </span>
-                      </div>
-                      
-                      {/* Placeholder Card Content */}
-                      <div className="p-6 h-full flex flex-col justify-between">
-                        {/* Placeholder Top Section */}
-                        <div>
-                          {/* Placeholder Icon */}
-                          <div className="flex-shrink-0 mb-5">
-                            <div className="relative inline-block">
-                              <div className="w-16 h-16 bg-gradient-to-br from-gray-400 via-gray-300 to-gray-500 rounded-2xl flex items-center justify-center shadow-lg opacity-50">
-                                <div className="w-8 h-8 bg-white/20 rounded animate-pulse"></div>
-                              </div>
+              {[1, 2, 3, 4, 5].map((index) => (
+                <div
+                  key={index}
+                  className="w-52 opacity-30"
+                >
+                  {/* Placeholder Glass Morphism Card */}
+                  <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden aspect-square">
+                    {/* Placeholder Badge */}
+                    <div className="absolute top-4 right-4">
+                      <span className="px-3 py-1 text-xs font-medium bg-white/10 text-white/50 rounded-full border border-white/20">
+                        Loading...
+                      </span>
+                    </div>
+                    
+                    {/* Placeholder Card Content */}
+                    <div className="p-6 h-full flex flex-col justify-between">
+                      {/* Placeholder Top Section */}
+                      <div>
+                        {/* Placeholder Icon */}
+                        <div className="flex-shrink-0 mb-5">
+                          <div className="relative inline-block">
+                            <div className="w-16 h-16 bg-gradient-to-br from-gray-400 via-gray-300 to-gray-500 rounded-2xl flex items-center justify-center shadow-lg opacity-50">
+                              <div className="w-8 h-8 bg-white/20 rounded animate-pulse"></div>
                             </div>
-                          </div>
-                          
-                          {/* Placeholder Heading */}
-                          <div className="space-y-2">
-                            <div className="h-6 bg-white/10 rounded animate-pulse"></div>
-                            <div className="h-4 bg-white/5 rounded animate-pulse w-3/4"></div>
                           </div>
                         </div>
                         
-                        {/* Placeholder Bottom Action */}
-                        <div className="flex-shrink-0 pt-4 border-t border-white/10">
-                          <div className="h-4 bg-white/5 rounded animate-pulse w-24"></div>
+                        {/* Placeholder Heading */}
+                        <div className="space-y-2">
+                          <div className="h-6 bg-white/10 rounded animate-pulse"></div>
+                          <div className="h-4 bg-white/5 rounded animate-pulse w-3/4"></div>
                         </div>
+                      </div>
+                      
+                      {/* Placeholder Bottom Action */}
+                      <div className="flex-shrink-0 pt-4 border-t border-white/10">
+                        <div className="h-4 bg-white/5 rounded animate-pulse w-24"></div>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -340,23 +361,31 @@ export default function ModuleSelectionPage() {
                               </div>
                             </div>
                             
-                            {/* Heading */}
-                            <h3 className="text-xl font-bold text-white leading-tight group-hover:text-gray-100 transition-colors">
-                              {module.name}
-                            </h3>
+                            {/* Heading and Description */}
+                            <div className="space-y-3">
+                              <h3 className="text-lg font-bold text-white group-hover:text-gray-100 transition-colors leading-tight">
+                                {module.name}
+                              </h3>
+                              <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors leading-relaxed">
+                                {module.description}
+                              </p>
+                            </div>
                           </div>
                           
                           {/* Bottom Action */}
-                          <div className="flex-shrink-0 pt-4 border-t border-white/10">
-                            <div className="flex items-center text-gray-500 group-hover:text-gray-300 transition-colors">
-                              <span className="text-sm font-medium">Open Portal</span>
-                              <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-300" />
+                          <div className="flex-shrink-0 pt-4 border-t border-white/10 group-hover:border-white/20 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500 group-hover:text-gray-400 transition-colors">
+                                {module.action}
+                              </span>
+                              <div className="w-6 h-6 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center transition-all duration-300">
+                                <svg className="w-3 h-3 text-gray-400 group-hover:text-white transform group-hover:translate-x-0.5 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        
-                        {/* Glass Reflection */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none" />
                       </div>
                     </div>
                   );
@@ -365,18 +394,29 @@ export default function ModuleSelectionPage() {
             </>
           )}
         </div>
+      </div>
 
-        {/* Debug Mode Section */}
-        {(debugMode || showFallback || error) && (
-          <div className="fixed bottom-6 right-6 p-4 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 text-sm text-gray-400 max-w-xs">
-            <div className="font-semibold text-gray-300 mb-2">Debug Info</div>
-            <div className="space-y-1 text-xs">
-              <div>Debug: {debugMode ? 'ON' : 'OFF'}</div>
-              <div>Fallback: {showFallback ? 'ON' : 'OFF'}</div>
-              <div>Error: {error ? 'YES' : 'NO'}</div>
-            </div>
+      {/* Debug Panel */}
+      {(error || debugMode) && (
+        <div className="fixed bottom-4 right-4 bg-red-900/80 backdrop-blur-md border border-red-500/30 rounded-xl p-4 max-w-md text-sm z-50">
+          <div className="font-bold text-red-200 mb-2">Debug Information</div>
+          <div className="space-y-1 text-red-100">
+            <p>Auth Loading: {authLoading ? 'Yes' : 'No'}</p>
+            <p>User: {user ? 'Authenticated' : 'Not authenticated'}</p>
+            <p>Has Initially Loaded: {hasInitiallyLoaded ? 'Yes' : 'No'}</p>
+            <p>Permissions Loading: {permissionsLoading ? 'Yes' : 'No'}</p>
+            <p>Error: {error || 'None'}</p>
+            <p>Accessible Modules: {accessibleModules.length}</p>
+            {error && (
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-xs rounded-lg transition-colors"
+              >
+                Reload Page
+              </button>
+            )}
             {debugMode && (
-              <button 
+              <button
                 onClick={() => setDebugMode(false)}
                 className="mt-3 px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded-lg transition-colors"
               >
@@ -384,8 +424,8 @@ export default function ModuleSelectionPage() {
               </button>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 } 

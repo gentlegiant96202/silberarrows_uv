@@ -11,6 +11,7 @@ import MarketingNavigation from './modules/marketing/MarketingNavigation';
 import AccountsNavigation from './modules/accounts/AccountsNavigation';
 import ModuleSwitcher from '@/components/shared/ModuleSwitcher';
 import MarketingTicketsDropdown from '@/components/shared/MarketingTicketsDropdown';
+import { useUserRole } from '@/lib/useUserRole';
 
 interface HeaderProps {
   activeTab?: string;
@@ -19,6 +20,7 @@ interface HeaderProps {
 
 export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
   const pathname = usePathname();
+  const { userRole } = useUserRole();
   
   // Check if we're on the module selection page
   const isModuleSelectionPage = pathname === '/module-selection';
@@ -75,8 +77,8 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
 
           {/* Right Side Components */}
           <div className="flex items-center space-x-4">
-            {/* Marketing Tickets Dropdown - Hide on module selection page */}
-            {!isModuleSelectionPage && <MarketingTicketsDropdown />}
+            {/* Marketing Tickets Dropdown - Hide on module selection page and for marketing department users */}
+            {!isModuleSelectionPage && userRole !== 'marketing' && <MarketingTicketsDropdown />}
             
             {/* Finance Calculator for CRM module only - Hide on module selection page */}
             {!isModuleSelectionPage && currentModule === 'uv-crm' && <FinanceCalculator />}

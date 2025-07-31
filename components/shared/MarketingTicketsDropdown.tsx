@@ -13,6 +13,8 @@ interface MarketingTicket {
   due_date?: string;
   assignee?: string;
   task_type?: 'design' | 'photo' | 'video';
+  acknowledged_at?: string;
+  created_by?: string;
 }
 
 export default function MarketingTicketsDropdown() {
@@ -104,9 +106,32 @@ export default function MarketingTicketsDropdown() {
         setTickets(data);
       }
     } catch (error) {
-      console.error('Error fetching my tickets:', error);
+      console.error('Error fetching department tickets:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const acknowledgeTicket = async (ticketId: string) => {
+    try {
+      const headers = {
+        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await fetch(`/api/design-tasks?id=${ticketId}&action=acknowledge`, {
+        method: 'PATCH',
+        headers
+      });
+
+      if (response.ok) {
+        // Remove the acknowledged ticket from the list immediately
+        setTickets(tickets.filter(t => t.id !== ticketId));
+      } else {
+        console.error('Failed to acknowledge ticket');
+      }
+    } catch (error) {
+      console.error('Error acknowledging ticket:', error);
     }
   };
 
@@ -162,12 +187,12 @@ export default function MarketingTicketsDropdown() {
         </button>
 
         {isOpen && (
-          <div className="absolute top-full right-0 mt-2 w-80 bg-black/90 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="absolute top-full right-0 mt-2 w-72 bg-black/90 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl z-50 overflow-hidden">
             {/* Header */}
-            <div className="p-4 border-b border-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-white">My Marketing Requests</h3>
-                <span className="text-xs text-white/60">{tickets.length} total</span>
+            <div className="p-2.5 border-b border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-semibold text-white">Department Marketing Requests</h3>
+                <span className="text-[10px] text-white/60">{tickets.length} total</span>
               </div>
               
               <button
@@ -175,63 +200,84 @@ export default function MarketingTicketsDropdown() {
                   setShowModal(true);
                   setIsOpen(false);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 rounded-lg text-orange-300 text-sm font-medium transition-colors"
+                className="w-full flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 rounded text-orange-300 text-[11px] font-medium transition-colors"
               >
-                <MessageSquarePlus className="w-4 h-4" />
+                <MessageSquarePlus className="w-3.5 h-3.5" />
                 Raise New Ticket
               </button>
             </div>
 
             {/* Tickets List */}
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-48 overflow-y-auto">
               {isLoading ? (
-                <div className="p-4">
-                  <div className="animate-pulse space-y-3">
+                <div className="p-2.5">
+                  <div className="animate-pulse space-y-2">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="h-16 bg-white/5 rounded-lg"></div>
+                      <div key={i} className="h-12 bg-white/5 rounded"></div>
                     ))}
                   </div>
                 </div>
               ) : tickets.length === 0 ? (
-                <div className="p-4 text-center text-white/60 text-sm">
-                  No marketing requests yet
+                <div className="p-2.5 text-center text-white/60 text-[11px]">
+                  No department marketing requests yet
                 </div>
               ) : (
-                <div className="p-4 space-y-3">
+                <div className="p-2.5 space-y-2">
                   {tickets.map((ticket) => (
                     <div 
                       key={ticket.id}
-                      className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors"
+                      className="bg-white/5 border border-white/10 rounded p-2 hover:bg-white/10 transition-colors"
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-medium text-white truncate">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            {/* Creator indicator */}
+                            {ticket.created_by === user?.id ? (
+                              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" title="Created by you" />
+                            ) : (
+                              <div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" title="Created by department colleague" />
+                            )}
+                            <h4 className="text-[11px] font-medium text-white truncate">
                               {ticket.title}
                             </h4>
                             {ticket.task_type && (
-                              <span className="text-xs">
+                              <span className="text-[10px]">
                                 {taskTypeIcons[ticket.task_type]}
                               </span>
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-3 text-xs text-white/60">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
+                          <div className="flex items-center gap-2 text-[10px] text-white/60">
+                            <div className="flex items-center gap-0.5">
+                              <Calendar className="w-2.5 h-2.5" />
                               <span>{formatDate(ticket.created_at)}</span>
                             </div>
                             {ticket.assignee && (
-                              <div className="flex items-center gap-1">
-                                <User className="w-3 h-3" />
-                                <span>{ticket.assignee}</span>
+                              <div className="flex items-center gap-0.5">
+                                <User className="w-2.5 h-2.5" />
+                                <span className="truncate">{ticket.assignee}</span>
                               </div>
                             )}
                           </div>
                         </div>
                         
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium border ${statusColors[ticket.status as keyof typeof statusColors] || 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>
-                          {statusLabels[ticket.status as keyof typeof statusLabels] || ticket.status.toUpperCase()}
+                        <div className="flex items-center gap-1.5">
+                          {/* Acknowledge button for approved tickets created by current user only */}
+                          {ticket.status === 'approved' && ticket.created_by === user?.id && (
+                            <button
+                              onClick={() => acknowledgeTicket(ticket.id)}
+                              className="p-1 hover:bg-green-500/20 rounded text-green-300 hover:text-green-200 transition-colors"
+                              title="Mark as seen"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                          )}
+                          
+                          <div className={`px-1.5 py-0.5 rounded text-[9px] font-medium border ${statusColors[ticket.status as keyof typeof statusColors] || 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>
+                            {statusLabels[ticket.status as keyof typeof statusLabels] || ticket.status.toUpperCase()}
+                          </div>
                         </div>
                       </div>
                     </div>

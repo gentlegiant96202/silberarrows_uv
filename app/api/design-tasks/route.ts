@@ -100,9 +100,36 @@ export async function GET(req: NextRequest) {
       .from('design_tasks')
       .select('*');
 
-    // Filter by current user if user_tickets=true (for "My Marketing Tickets")
+    // Filter by department if user_tickets=true (for "My Department's Marketing Tickets")
     if (userTickets && authResult.user) {
-      query = query.eq('created_by', authResult.user.id);
+      // Get user's role/department
+      const { data: userRole, error: roleError } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authResult.user.id)
+        .single();
+
+      if (roleError || !userRole) {
+        console.error('Error getting user role:', roleError);
+        return NextResponse.json({ error: 'Unable to determine user department' }, { status: 500 });
+      }
+
+      // Get all users in the same department
+      const { data: departmentUsers, error: usersError } = await supabaseAdmin
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', userRole.role);
+
+      if (usersError || !departmentUsers) {
+        console.error('Error getting department users:', usersError);
+        return NextResponse.json({ error: 'Unable to get department users' }, { status: 500 });
+      }
+
+      const departmentUserIds = departmentUsers.map(u => u.user_id);
+
+      query = query
+        .in('created_by', departmentUserIds)
+        .is('acknowledged_at', null); // Only show unacknowledged tickets
     }
 
     // Always order by created_at
@@ -213,10 +240,8 @@ export async function PUT(req: NextRequest) {
     
     const isAdmin = roleData?.role === 'admin';
 
-    // Admin-only field validation
+    // Admin-only field validation (due_date and task_type only)
     const adminOnlyFields = [];
-    if (title !== undefined && title !== currentTask.title) adminOnlyFields.push('title');
-    if (headline !== undefined && headline !== currentTask.title) adminOnlyFields.push('title');
     if (due_date !== undefined && due_date !== currentTask.due_date) adminOnlyFields.push('due_date');
     if (task_type !== undefined && task_type !== currentTask.task_type) adminOnlyFields.push('task_type');
 
@@ -298,6 +323,66 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ message: 'Task deleted successfully' });
   } catch (error: any) {
     console.error('Error in DELETE /api/design-tasks:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PATCH - Acknowledge a ticket (mark as seen)
+export async function PATCH(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const action = searchParams.get('action');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
+    }
+
+    if (action === 'acknowledge') {
+      // Validate user has view permission (they can acknowledge their own tickets)
+      const authResult = await validateUserPermissions(req, 'view');
+      if (authResult.error) {
+        return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+      }
+
+      // Verify this is the user's own ticket
+      const { data: task, error: fetchError } = await supabase
+        .from('design_tasks')
+        .select('created_by, status')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !task) {
+        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      }
+
+      // Check if user owns this ticket and it's approved
+      if (task.created_by !== authResult.user?.id) {
+        return NextResponse.json({ error: 'You can only acknowledge your own tickets' }, { status: 403 });
+      }
+
+      if (task.status !== 'approved') {
+        return NextResponse.json({ error: 'Only approved tickets can be acknowledged' }, { status: 400 });
+      }
+
+      // Acknowledge the ticket
+      const { error } = await supabase
+        .from('design_tasks')
+        .update({ acknowledged_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error acknowledging task:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      console.log('✅ Successfully acknowledged task:', id);
+      return NextResponse.json({ message: 'Task acknowledged successfully' });
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  } catch (error: any) {
+    console.error('Error in PATCH /api/design-tasks:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 } 

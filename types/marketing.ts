@@ -15,6 +15,7 @@ export interface MarketingTask {
   annotations?: any[];
   pinned?: boolean;
   created_by?: string; // User ID who created the task
+  acknowledged_at?: string; // Timestamp when user acknowledged approved ticket
 }
 
 export type MarketingStatus = 'intake' | 'planned' | 'in_progress' | 'in_review' | 'approved' | 'instagram_feed_preview';

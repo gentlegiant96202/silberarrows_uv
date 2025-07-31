@@ -4,6 +4,7 @@ import { MessageSquarePlus, ChevronDown, Calendar, User, Ticket } from 'lucide-r
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 import AddTaskModal from '@/components/modules/marketing/AddTaskModal';
+import { MarketingTask } from '@/types/marketing';
 
 interface MarketingTicket {
   id: string;
@@ -135,7 +136,7 @@ export default function MarketingTicketsDropdown() {
     }
   };
 
-  const handleSaveTask = async (taskData: any): Promise<MarketingTicket | null> => {
+  const handleSaveTask = async (taskData: any): Promise<MarketingTask | null> => {
     try {
       // Task automatically gets created_by from API
       const headers = {

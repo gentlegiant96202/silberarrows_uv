@@ -6,6 +6,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { MessageSquare, CheckCircle, Car, XCircle } from 'lucide-react';
 import NewAppointmentModal from "../modals/NewAppointmentModal";
 import LeadDetailsModal from "../modals/LeadDetailsModal";
+import LostReasonModal from "../modals/LostReasonModal";
 import { useSearchStore } from "@/lib/searchStore";
 
 interface Lead {
@@ -26,6 +27,9 @@ interface Lead {
   created_at: string;
   updated_at: string;
   inventory_car_id?: string; // Also add this field that might be missing
+  lost_reason?: string; // Why the lead was lost
+  lost_reason_notes?: string; // Additional context for lost reason
+  lost_at?: string; // When the lead was marked as lost
 }
 
 const columns = [
@@ -83,6 +87,9 @@ export default function KanbanBoard() {
   const [hovered, setHovered] = useState<ColKey | null>(null);
   const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
   const [selectedInventoryCarId, setSelectedInventoryCarId] = useState<string>("");
+  const [showLostReasonModal, setShowLostReasonModal] = useState(false);
+  const [leadToLose, setLeadToLose] = useState<Lead | null>(null);
+  const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
 
   // Search store
   const { query } = useSearchStore();
@@ -207,6 +214,13 @@ export default function KanbanBoard() {
       return; // Don't update database yet, wait for modal
     }
     
+    // Special case: moving to lost - require reason
+    if (targetCol === 'lost') {
+      setLeadToLose(leadToMove);
+      setShowLostReasonModal(true);
+      return; // Don't update database yet, wait for lost reason modal
+    }
+    
     // Normal drag and drop - update database and let realtime subscription handle UI update
     const { error } = await supabase.from("leads").update({ 
       status: targetCol,
@@ -261,6 +275,39 @@ export default function KanbanBoard() {
 
   const handleConversionCancelled = () => {
     setConvertingLead(null);
+  };
+
+  const handleLostReasonConfirm = async (reason: string, notes?: string) => {
+    if (!leadToLose) return;
+    
+    setIsUpdatingLostLead(true);
+    
+    try {
+      const { error } = await supabase.from("leads").update({
+        status: 'lost',
+        lost_reason: reason,
+        lost_reason_notes: notes || null,
+        lost_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }).eq("id", leadToLose.id);
+      
+      if (error) {
+        console.error("Failed to update lead with lost reason:", error);
+      }
+      
+      // Close modal and reset state
+      setShowLostReasonModal(false);
+      setLeadToLose(null);
+    } catch (error) {
+      console.error("Error updating lost lead:", error);
+    } finally {
+      setIsUpdatingLostLead(false);
+    }
+  };
+
+  const handleLostReasonCancel = () => {
+    setShowLostReasonModal(false);
+    setLeadToLose(null);
   };
 
   const formatBudget = (lead: Lead) => {
@@ -442,6 +489,15 @@ export default function KanbanBoard() {
           onClose={() => setSelectedLead(null)}
           onUpdated={handleLeadUpdated}
           onDeleted={handleLeadDeleted}
+        />
+      )}
+      
+      {showLostReasonModal && leadToLose && (
+        <LostReasonModal
+          lead={leadToLose}
+          onClose={handleLostReasonCancel}
+          onConfirm={handleLostReasonConfirm}
+          isLoading={isUpdatingLostLead}
         />
       )}
     </div>

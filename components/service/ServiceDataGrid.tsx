@@ -505,7 +505,7 @@ export default function ServiceDataGrid({
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 -mx-4 px-4">
       {/* Header Controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -554,10 +554,10 @@ export default function ServiceDataGrid({
       {/* Data Grid */}
       <div className="w-full overflow-hidden rounded-lg border border-gray-600/50 bg-gray-900/50 backdrop-blur-md">
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed">
+          <table className="w-full table-auto" style={{minWidth: '100%'}}>
             <thead>
               <tr className="border-b border-gray-600/50">
-                <th className="w-24 px-2 py-3 text-left">
+                <th className="px-3 py-3 text-left min-w-24">
                   <div className="flex items-center space-x-1 text-xs font-medium text-gray-300">
                     <Calendar className="w-3 h-3" />
                     <span>Date</span>
@@ -574,21 +574,18 @@ export default function ServiceDataGrid({
                   Individual Sales
                 </th>
                 
-                {/* Calculated Metrics */}
-                <th colSpan={CALCULATED_METRICS.length} className="px-2 py-1 text-center text-xs font-medium text-yellow-300 border-b border-gray-600/30">
-                  Calculated Metrics
-                </th>
+
                 
                 {/* Targets */}
                 <th colSpan={3} className="px-2 py-1 text-center text-xs font-medium text-purple-300 border-b border-gray-600/30">
                   Targets
                 </th>
                 
-                <th className="w-20 px-2 py-3 text-left">
+                <th className="px-3 py-3 text-left min-w-32">
                   <span className="text-xs font-medium text-gray-300">Notes</span>
                 </th>
                 
-                <th className="w-20 px-2 py-3 text-center">
+                <th className="px-3 py-3 text-center min-w-20">
                   <span className="text-xs font-medium text-gray-300">Actions</span>
                 </th>
               </tr>
@@ -596,7 +593,7 @@ export default function ServiceDataGrid({
               <tr className="border-b border-gray-600/50">
                 <th></th>
                 {INPUT_METRICS.map(field => (
-                  <th key={field} className="w-20 px-2 py-2 text-left">
+                  <th key={field} className="px-3 py-2 text-left min-w-28">
                     <div className="flex items-center space-x-1 text-xs font-medium text-blue-300">
                       {getFieldIcon(field)}
                       <span className="truncate">{METRIC_DEFINITIONS[field]?.name || field}</span>
@@ -604,7 +601,7 @@ export default function ServiceDataGrid({
                   </th>
                 ))}
                 {INDIVIDUAL_METRICS.map(field => (
-                  <th key={field} className="w-20 px-2 py-2 text-left">
+                  <th key={field} className="px-3 py-2 text-left min-w-24">
                     <div className="flex items-center space-x-1 text-xs font-medium text-green-300">
                       {getFieldIcon(field)}
                       <span className="truncate">{METRIC_DEFINITIONS[field]?.name || field}</span>
@@ -612,26 +609,30 @@ export default function ServiceDataGrid({
                   </th>
                 ))}
 
-                <th className="w-20 px-2 py-2 text-left">
+                <th className="px-3 py-2 text-left min-w-24">
                   <div className="flex items-center space-x-1 text-xs font-medium text-purple-300">
                     <Target className="w-3 h-3" />
                     <span className="truncate">Net Target</span>
                   </div>
                 </th>
-                <th className="w-20 px-2 py-2 text-left">
+                <th className="px-3 py-2 text-left min-w-24">
                   <div className="flex items-center space-x-1 text-xs font-medium text-purple-300">
                     <Target className="w-3 h-3" />
                     <span className="truncate">Labor Target</span>
                   </div>
                 </th>
-                <th className="w-20 px-2 py-2 text-left">
+                <th className="px-3 py-2 text-left min-w-24">
                   <div className="flex items-center space-x-1 text-xs font-medium text-purple-300">
                     <Clock className="w-3 h-3" />
                     <span className="truncate">Work Days</span>
                   </div>
                 </th>
-                <th></th>
-                <th></th>
+                <th className="px-3 py-2 text-left min-w-32">
+                  <span className="text-xs font-medium text-gray-300">Notes</span>
+                </th>
+                <th className="px-3 py-2 text-center min-w-20">
+                  <span className="text-xs font-medium text-gray-300">Actions</span>
+                </th>
               </tr>
             </thead>
             

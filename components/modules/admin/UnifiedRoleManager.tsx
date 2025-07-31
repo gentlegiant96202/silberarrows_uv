@@ -7,7 +7,7 @@ import { User, Shield, Users, Briefcase, Wrench, Key, Settings, ChevronRight, Ch
 interface UserWithRole {
   id: string;
   email: string;
-  role: 'admin' | 'sales' | 'marketing' | 'service' | 'leasing' | 'accounts';
+  role: 'admin' | 'sales' | 'sales_head' | 'marketing' | 'marketing_head' | 'service' | 'service_head' | 'leasing' | 'leasing_head' | 'accounts' | 'accounts_head';
   created_at: string;
 }
 
@@ -31,10 +31,24 @@ interface RolePermission {
 
 const ROLE_CONFIGS = [
   { 
+    id: 'admin', 
+    name: 'Admin', 
+    description: 'System administrators - full access to everything', 
+    color: 'bg-red-600', 
+    icon: Shield 
+  },
+  { 
     id: 'sales', 
     name: 'Sales', 
     description: 'Sales team - UV CRM + limited inventory access', 
     color: 'bg-blue-600', 
+    icon: Users 
+  },
+  { 
+    id: 'sales_head', 
+    name: 'Sales Head', 
+    description: 'Sales department head - permissions set by admin', 
+    color: 'bg-blue-700', 
     icon: Users 
   },
   { 
@@ -45,10 +59,24 @@ const ROLE_CONFIGS = [
     icon: Briefcase 
   },
   { 
+    id: 'marketing_head', 
+    name: 'Marketing Head', 
+    description: 'Marketing department head - permissions set by admin', 
+    color: 'bg-purple-700', 
+    icon: Briefcase 
+  },
+  { 
     id: 'service', 
     name: 'Service', 
     description: 'Workshop team - service department access only', 
     color: 'bg-green-600', 
+    icon: Wrench 
+  },
+  { 
+    id: 'service_head', 
+    name: 'Service Head', 
+    description: 'Service department head - permissions set by admin', 
+    color: 'bg-green-700', 
     icon: Wrench 
   },
   { 
@@ -59,6 +87,13 @@ const ROLE_CONFIGS = [
     icon: Key 
   },
   { 
+    id: 'leasing_head', 
+    name: 'Leasing Head', 
+    description: 'Leasing department head - permissions set by admin', 
+    color: 'bg-yellow-700', 
+    icon: Key 
+  },
+  { 
     id: 'accounts', 
     name: 'Accounts', 
     description: 'Accounts department - financial reporting and business analytics', 
@@ -66,11 +101,11 @@ const ROLE_CONFIGS = [
     icon: Calculator 
   },
   { 
-    id: 'admin', 
-    name: 'Admin', 
-    description: 'System administrators - full access to everything', 
-    color: 'bg-red-600', 
-    icon: Shield 
+    id: 'accounts_head', 
+    name: 'Accounts Head', 
+    description: 'Accounts department head - permissions set by admin', 
+    color: 'bg-indigo-700', 
+    icon: Calculator 
   },
 ] as const;
 

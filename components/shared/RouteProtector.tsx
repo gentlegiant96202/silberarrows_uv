@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useModulePermissions } from '@/lib/useModulePermissions';
+import { useAuth } from '@/components/shared/AuthProvider';
 import { Shield } from 'lucide-react';
 
 interface RouteProtectorProps {
@@ -15,16 +16,24 @@ export default function RouteProtector({
   redirectTo = '/' 
 }: RouteProtectorProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const { canView, isLoading, error } = useModulePermissions(moduleName);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !canView) {
-      router.push(redirectTo);
+    // Wait for both user authentication and permissions to load
+    if (!isLoading && user) {
+      setHasInitialized(true);
+      
+      // Only redirect after we're sure permissions have been checked
+      if (!canView) {
+        router.push(redirectTo);
+      }
     }
-  }, [canView, isLoading, router, redirectTo]);
+  }, [canView, isLoading, user, router, redirectTo]);
 
-  // Show loading while checking permissions
-  if (isLoading) {
+  // Show loading while checking authentication and permissions
+  if (!hasInitialized || isLoading || !user) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
@@ -35,8 +44,8 @@ export default function RouteProtector({
     );
   }
 
-  // Show access denied if no permission
-  if (!canView) {
+  // Show access denied if no permission (only after initialization)
+  if (hasInitialized && !canView) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-8">

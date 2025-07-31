@@ -8,9 +8,10 @@ interface AuthContextValue {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -81,12 +82,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, fullName?: string) => {
     setLoading(true);
     const { error } = await supabase.auth.signUp({ 
       email, 
       password,
       options: {
+        data: {
+          full_name: fullName,
+        },
         emailRedirectTo: `${window.location.origin}/login?confirmed=true`
       }
     });
@@ -103,6 +107,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const refreshUser = async () => {
+    try {
+      // Force refresh the user session to get updated metadata
+      const { data: { user: refreshedUser }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error('Error refreshing user:', error);
+        return;
+      }
+      
+      // Update the user state with fresh data
+      setUser(refreshedUser);
+      console.log('✅ User data refreshed successfully');
+    } catch (error) {
+      console.error('❌ Failed to refresh user data:', error);
+    }
+  };
+
   const value: AuthContextValue = {
     user,
     session,
@@ -111,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     resetPassword,
     signOut,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

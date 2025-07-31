@@ -12,6 +12,12 @@ export default function ProfileDropdown() {
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
+  // Get user's name from metadata
+  const userName = user?.user_metadata?.full_name;
+  const displayName = userName || 
+    (user?.email?.split('@')[0]?.replace(/\./g, ' ')?.replace(/\b\w/g, l => l.toUpperCase())) || 
+    'User';
+
   // close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -40,7 +46,13 @@ export default function ProfileDropdown() {
           <div
             className={`fixed right-4 top-16 w-56 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 z-50 origin-top transition-transform transition-opacity duration-200 ${showProfile ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 pointer-events-none'}`}
           >
-              <p className="text-sm text-white break-all mb-3">{user.email}</p>
+              {/* Personalized Welcome */}
+              <div className="mb-3">
+                <p className="text-sm font-medium text-white">Welcome back,</p>
+                <p className="text-base font-semibold text-white">{displayName}</p>
+              </div>
+              
+              <p className="text-xs text-white/60 truncate mb-3" title={user.email}>{user.email}</p>
               
               {/* Admin Settings Button */}
               {isAdmin && (
@@ -50,7 +62,7 @@ export default function ProfileDropdown() {
                       setShowProfile(false);
                       routerHook.push('/admin/settings');
                     }}
-                    className="flex items-center space-x-2 w-full text-left text-sm text-white hover:text-brand mb-2"
+                    className="flex items-center space-x-2 w-full text-left text-sm text-white hover:text-white hover:bg-gradient-to-r hover:from-gray-300/20 hover:via-gray-500/20 hover:to-gray-700/20 p-2 rounded transition-all mb-2"
                   >
                     <Settings className="w-4 h-4" />
                     <span>Settings</span>
@@ -65,7 +77,7 @@ export default function ProfileDropdown() {
                   await signOut();
                   routerHook.push('/login');
                 }}
-                className="flex items-center space-x-2 w-full text-left text-sm text-white hover:text-brand"
+                className="flex items-center space-x-2 w-full text-left text-sm text-white hover:text-white hover:bg-gradient-to-r hover:from-gray-300/20 hover:via-gray-500/20 hover:to-gray-700/20 p-2 rounded transition-all"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Logout</span>

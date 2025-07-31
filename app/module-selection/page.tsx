@@ -78,6 +78,25 @@ export default function ModuleSelectionPage() {
   const { isLoading: permissionsLoading, error } = allPermissions;
   const [showFallback, setShowFallback] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+
+  // Pre-calculate display name to prevent layout shifts
+  const displayName = React.useMemo(() => {
+    if (!user) return 'User';
+    
+    // First priority: full_name from metadata
+    if (user.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    
+    // Second priority: formatted email prefix
+    if (user.email) {
+      const emailPrefix = user.email.split('@')[0];
+      return emailPrefix.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    return 'User';
+  }, [user?.user_metadata?.full_name, user?.email]);
 
   // Define handleModuleClick at top level so it's accessible everywhere
   const handleModuleClick = (module: ModuleCard) => {
@@ -91,41 +110,128 @@ export default function ModuleSelectionPage() {
     }
   }, [user, authLoading, router]);
 
-  // Timeout fallback after 5 seconds
+  // Mark as initially loaded when auth completes
   useEffect(() => {
-    if (permissionsLoading) {
+    if (!authLoading && user && !hasInitiallyLoaded) {
+      // Remove artificial delay to prevent layout shifts
+      setHasInitiallyLoaded(true);
+    }
+  }, [authLoading, user, hasInitiallyLoaded]);
+
+  // Timeout fallback after 3 seconds - reduced from 5 seconds
+  useEffect(() => {
+    if (hasInitiallyLoaded && permissionsLoading) {
       const timeout = setTimeout(() => {
         setShowFallback(true);
-      }, 5000);
+      }, 3000);
 
       return () => clearTimeout(timeout);
     }
-  }, [permissionsLoading]);
+  }, [permissionsLoading, hasInitiallyLoaded]);
 
-  if (authLoading || (permissionsLoading && !showFallback && !debugMode)) {
+  // Determine if we should show the loading screen
+  const isLoading = authLoading || !hasInitiallyLoaded || (permissionsLoading && !showFallback && !debugMode);
+
+  // Early return for unauthenticated users (redirect happens in useEffect)
+  if (!authLoading && !user) {
+    return null;
+  }
+
+  // Show loading with consistent layout structure
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-black relative overflow-hidden">
         {/* Light Rays Background */}
         <div className="absolute inset-0">
           <LightRays
             raysOrigin="top-center"
-            raysColor="#c0c0c0"
-            raysSpeed={0.8}
-            lightSpread={0.6}
-            rayLength={1.5}
+            raysColor="#ffffff"
+            raysSpeed={1.2}
+            lightSpread={0.8}
+            rayLength={1.8}
             followMouse={true}
-            mouseInfluence={0.05}
-            noiseAmount={0.02}
-            distortion={0.02}
+            mouseInfluence={0.08}
+            noiseAmount={0.03}
+            distortion={0.03}
+            fadeDistance={1.0}
+            saturation={1.0}
           />
         </div>
         
-        <div className="text-center relative z-10">
-          <div className="w-12 h-12 border-4 border-gray-600 border-t-silver-400 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-300 font-medium">Loading your workspace...</p>
-          {permissionsLoading && (
-            <p className="text-gray-500 text-sm mt-2">Initializing departments...</p>
-          )}
+        {/* Header with transparent background */}
+        <div className="relative z-20">
+          <Header />
+        </div>
+
+        {/* Main Content - Centered in Viewport (matching main layout) */}
+        <div className="absolute inset-0 z-10 flex items-center justify-center">
+          <div className="px-6 max-w-7xl mx-auto animate-fadeIn">
+            <div className="text-center">
+              {/* Loading Text with consistent spacing */}
+              <div className="mb-12">
+                <h1 className="text-6xl font-bold text-white mb-6 opacity-50">
+                  SilberArrows
+                </h1>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-medium text-gray-200 opacity-50">
+                    Welcome back, {displayName}
+                  </h2>
+                </div>
+                <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8 opacity-50">
+                  Loading your workspace and department access...
+                </p>
+              </div>
+              
+              {/* Loading Animation */}
+              <div className="w-12 h-12 border-4 border-gray-600 border-t-silver-400 rounded-full animate-spin mx-auto mb-8"></div>
+              
+              {/* Placeholder Module Cards - matching exact structure */}
+              <div className="flex justify-center gap-6 max-w-7xl mx-auto">
+                {[1, 2, 3, 4, 5].map((index) => (
+                  <div
+                    key={index}
+                    className="w-52 opacity-30"
+                  >
+                    {/* Placeholder Glass Morphism Card */}
+                    <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden aspect-square">
+                      {/* Placeholder Badge */}
+                      <div className="absolute top-4 right-4">
+                        <span className="px-3 py-1 text-xs font-medium bg-white/10 text-white/50 rounded-full border border-white/20">
+                          Loading...
+                        </span>
+                      </div>
+                      
+                      {/* Placeholder Card Content */}
+                      <div className="p-6 h-full flex flex-col justify-between">
+                        {/* Placeholder Top Section */}
+                        <div>
+                          {/* Placeholder Icon */}
+                          <div className="flex-shrink-0 mb-5">
+                            <div className="relative inline-block">
+                              <div className="w-16 h-16 bg-gradient-to-br from-gray-400 via-gray-300 to-gray-500 rounded-2xl flex items-center justify-center shadow-lg opacity-50">
+                                <div className="w-8 h-8 bg-white/20 rounded animate-pulse"></div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Placeholder Heading */}
+                          <div className="space-y-2">
+                            <div className="h-6 bg-white/10 rounded animate-pulse"></div>
+                            <div className="h-4 bg-white/5 rounded animate-pulse w-3/4"></div>
+                          </div>
+                        </div>
+                        
+                        {/* Placeholder Bottom Action */}
+                        <div className="flex-shrink-0 pt-4 border-t border-white/10">
+                          <div className="h-4 bg-white/5 rounded animate-pulse w-24"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -165,9 +271,9 @@ export default function ModuleSelectionPage() {
 
       {/* Main Content - Centered in Viewport */}
       <div className="absolute inset-0 z-10 flex items-center justify-center">
-        <div className="px-6 max-w-7xl mx-auto">
+        <div className="px-6 max-w-7xl mx-auto animate-fadeIn text-center">
           {accessibleModules.length === 0 && !debugMode && !showFallback ? (
-            <div className="text-center py-20">
+            <div className="py-20">
               <div className="w-16 h-16 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 flex items-center justify-center mx-auto mb-6">
                 <AlertCircle className="w-8 h-8 text-gray-400" />
               </div>
@@ -177,10 +283,18 @@ export default function ModuleSelectionPage() {
           ) : (
             <>
               {/* Hero Section */}
-              <div className="text-center mb-12">
+              <div className="mb-12">
                 <h1 className="text-6xl font-bold text-white mb-6">
                   SilberArrows
                 </h1>
+                
+                {/* Personalized Welcome Message */}
+                <div className="mb-6">
+                  <h2 className="text-2xl font-medium text-gray-200">
+                    Welcome back, {displayName}
+                  </h2>
+                </div>
+                
                 <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8">
                   Access specialized tools and workflows designed for your department's operations
                 </p>

@@ -9,10 +9,12 @@ import Image from 'next/image';
 export default function SignupPage() {
   const router = useRouter();
   const { signUp, loading, user } = useAuth();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isNameFocused, setIsNameFocused] = useState(false);
   const [isEmailFocused, setIsEmailFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -64,7 +66,7 @@ export default function SignupPage() {
       return;
     }
 
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, fullName);
     if (error) {
       setError(error);
     } else {
@@ -134,6 +136,31 @@ export default function SignupPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
             
             <div className="relative z-10 space-y-6">
+              {/* Name Field */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    onFocus={() => setIsNameFocused(true)}
+                    onBlur={() => setIsNameFocused(false)}
+                    className={`w-full px-4 py-3 bg-black/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-200 focus:outline-none ${
+                      isNameFocused || fullName
+                        ? 'border-gray-300/50 shadow-lg shadow-gray-300/20'
+                        : 'border-white/20 hover:border-white/30'
+                    }`}
+                    placeholder="Enter your full name"
+                    required
+                  />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-gray-300/10 to-white/10 opacity-0 transition-opacity duration-200 pointer-events-none" 
+                       style={{ opacity: isNameFocused ? 1 : 0 }} />
+                </div>
+              </div>
+
               {/* Email Field */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-300">

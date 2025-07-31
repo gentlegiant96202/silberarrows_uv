@@ -2,13 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRole } from '@/lib/useUserRole';
-import { User, Shield, Users, Briefcase, Wrench, Key, Settings, ChevronRight, ChevronDown, Calculator } from 'lucide-react';
+import { User, Shield, Users, Briefcase, Wrench, Key, Settings, ChevronRight, ChevronDown, Calculator, Edit } from 'lucide-react';
+import { useAuth } from '@/components/shared/AuthProvider';
 
 interface UserWithRole {
   id: string;
   email: string;
   role: 'admin' | 'sales' | 'sales_head' | 'marketing' | 'marketing_head' | 'service' | 'service_head' | 'leasing' | 'leasing_head' | 'accounts' | 'accounts_head';
   created_at: string;
+  full_name?: string; // Add optional name field
 }
 
 interface Module {
@@ -111,15 +113,20 @@ const ROLE_CONFIGS = [
 
 export default function UnifiedRoleManager() {
   const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { refreshUser } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
-  const [permissions, setPermissions] = useState<RolePermission[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
+  const [permissions, setPermissions] = useState<RolePermission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [updating, setUpdating] = useState<string | null>(null);
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
+  // Name editing states
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [editedName, setEditedName] = useState<string>('');
+  const [updatingName, setUpdatingName] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAdmin) {
@@ -130,55 +137,135 @@ export default function UnifiedRoleManager() {
   }, [isAdmin]);
 
   const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    
     try {
-      console.log('🔄 Loading real database data...');
-      
-      // Load users with their roles
-      const { data: usersData, error: usersError } = await supabase
-        .rpc('get_all_users_with_roles');
+      setLoading(true);
+      setError(null);
 
+      console.log('🔄 Loading admin data...');
+
+      // Load all users with roles and metadata
+      const { data: usersData, error: usersError } = await supabase.rpc('get_all_users_with_roles');
+      
       if (usersError) {
+        console.error('❌ Failed to load users:', usersError);
         throw new Error(`Failed to load users: ${usersError.message}`);
       }
 
-      console.log('👥 Loaded users:', usersData);
-      setUsers(usersData || []);
-
-      // Load all role permissions
-      const { data: permissionsData, error: permissionsError } = await supabase
-        .rpc('get_all_role_permissions');
-
-      if (permissionsError) {
-        throw new Error(`Failed to load permissions: ${permissionsError.message}`);
+      // Get user metadata for names
+      let authUsers = [];
+      try {
+        const response = await fetch('/api/get-users-metadata');
+        const result = await response.json();
+        
+        if (!response.ok) {
+          console.warn('⚠️ Failed to load user metadata via API:', result.error);
+        } else {
+          authUsers = result.users || [];
+        }
+      } catch (metadataError) {
+        console.warn('⚠️ API not available, names will not be loaded:', metadataError);
       }
 
-      console.log('🔐 Loaded permissions:', permissionsData);
-      setPermissions(permissionsData || []);
+      // Merge user data with metadata
+      const usersWithNames = usersData?.map((user: any) => {
+        const authUser = authUsers.find((au: any) => au.id === user.id);
+        return {
+          ...user,
+          full_name: authUser?.full_name || null
+        };
+      }) || [];
+
+      console.log('✅ Loaded users:', usersWithNames);
 
       // Load modules
-      const { data: modulesData, error: modulesError } = await supabase
-        .from('modules')
-        .select('name, display_name, description')
-        .order('display_name');
-
+      const { data: modulesData, error: modulesError } = await supabase.from('modules').select('*');
       if (modulesError) {
+        console.error('❌ Failed to load modules:', modulesError);
         throw new Error(`Failed to load modules: ${modulesError.message}`);
       }
 
-      console.log('📦 Loaded modules:', modulesData);
-      setModules(modulesData || []);
+      console.log('✅ Loaded modules:', modulesData);
 
-      console.log('✅ All data loaded successfully!');
+      // Load permissions
+      const { data: permissionsData, error: permissionsError } = await supabase.rpc('get_all_role_permissions');
+      if (permissionsError) {
+        console.error('❌ Failed to load permissions:', permissionsError);
+        throw new Error(`Failed to load permissions: ${permissionsError.message}`);
+      }
+
+      console.log('✅ Loaded permissions:', permissionsData);
+
+      setUsers(usersWithNames);
+      setModules(modulesData || []);
+      setPermissions(permissionsData || []);
 
     } catch (err: any) {
       console.error('❌ Error loading data:', err);
-      setError(err.message || 'Failed to load data');
+      setError(err.message || 'Failed to load admin data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateUserName = async (userId: string, newName: string) => {
+    setUpdatingName(userId);
+    setError(null);
+
+    try {
+      console.log(`🔄 Updating user ${userId} name to: ${newName}`);
+
+      // Call the server-side API route
+      const response = await fetch('/api/update-user-name', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          fullName: newName
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update user name');
+      }
+
+      // Update local state
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId 
+            ? { ...user, full_name: newName }
+            : user
+        )
+      );
+
+      console.log(`✅ Successfully updated user ${userId} name to: ${newName}`);
+      setEditingName(null);
+      setEditedName('');
+      setSuccess(`Successfully updated user name to "${newName}"`);
+      setTimeout(() => setSuccess(null), 3000);
+      
+      // Refresh user data to update profile dropdown if this is the current user
+      await refreshUser();
+      
+    } catch (err: any) {
+      console.error('❌ Error updating user name:', err);
+      setError(err.message || 'Failed to update user name. Please try again.');
+    } finally {
+      setUpdatingName(null);
+    }
+  };
+
+  const startEditingName = (userId: string, currentName: string) => {
+    setEditingName(userId);
+    setEditedName(currentName || '');
+  };
+
+  const cancelEditingName = () => {
+    setEditingName(null);
+    setEditedName('');
   };
 
   const updateUserRole = async (userId: string, newRole: UserWithRole['role']) => {
@@ -357,9 +444,9 @@ export default function UnifiedRoleManager() {
   if (roleLoading || loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/20 border-t-white mx-auto mb-4"></div>
-          <p className="text-white/70">Loading role management...</p>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/20 border-t-white"></div>
+          <p className="text-white/70 text-sm">Loading admin panel...</p>
         </div>
       </div>
     );
@@ -456,11 +543,66 @@ export default function UnifiedRoleManager() {
                       <div className="space-y-3">
                         {getUsersForRole(roleConfig.id).map((user) => (
                           <div key={user.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-3 flex-1">
                               <User className="w-5 h-5 text-white/50" />
-                              <div>
-                                <div className="text-white font-medium">{user.email}</div>
-                                <div className="text-white/50 text-sm">
+                              <div className="flex-1">
+                                {/* Name Section */}
+                                <div className="mb-2">
+                                  {editingName === user.id ? (
+                                    <div className="flex items-center space-x-2">
+                                      <input
+                                        type="text"
+                                        value={editedName}
+                                        onChange={(e) => setEditedName(e.target.value)}
+                                        className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 flex-1"
+                                        placeholder="Enter full name"
+                                        autoFocus
+                                        onKeyPress={(e) => {
+                                          if (e.key === 'Enter') {
+                                            updateUserName(user.id, editedName);
+                                          } else if (e.key === 'Escape') {
+                                            cancelEditingName();
+                                          }
+                                        }}
+                                      />
+                                      <button
+                                        onClick={() => updateUserName(user.id, editedName)}
+                                        disabled={updatingName === user.id || !editedName.trim()}
+                                        className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded disabled:opacity-50"
+                                      >
+                                        {updatingName === user.id ? '...' : '✓'}
+                                      </button>
+                                      <button
+                                        onClick={cancelEditingName}
+                                        className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center space-x-2">
+                                      <div>
+                                        <div className="text-white font-medium">
+                                          {user.full_name || 'No name set'}
+                                        </div>
+                                        {!user.full_name && (
+                                          <div className="text-white/40 text-xs">Click edit to add name</div>
+                                        )}
+                                      </div>
+                                      <button
+                                        onClick={() => startEditingName(user.id, user.full_name || '')}
+                                        className="ml-2 p-1 text-white/50 hover:text-white hover:bg-white/10 rounded transition-colors"
+                                        title="Edit name"
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Email and Date */}
+                                <div className="text-white/60 text-sm">{user.email}</div>
+                                <div className="text-white/40 text-xs">
                                   Added {new Date(user.created_at).toLocaleDateString()}
                                 </div>
                               </div>
@@ -470,7 +612,7 @@ export default function UnifiedRoleManager() {
                               value={user.role}
                               onChange={(e) => updateUserRole(user.id, e.target.value as UserWithRole['role'])}
                               disabled={updating === user.id}
-                              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 ml-4"
                             >
                               {ROLE_CONFIGS.map((role) => (
                                 <option key={role.id} value={role.id} className="bg-black">

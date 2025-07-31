@@ -125,8 +125,11 @@ export default function MusicPlayer() {
       {/* Play / Pause toggle */}
       <button
         onClick={togglePlay}
-        className={`w-5 h-5 flex items-center justify-center ${playing ? 'animate-pulse text-emerald-400' : 'text-white/60'} hover:text-white`}
+        className={`w-5 h-5 flex items-center justify-center ${playing ? 'animate-pulse' : ''} ${playing ? 'text-gray-300' : 'text-white/60'} hover:text-white transition-colors`}
         title={playing ? 'Pause Music' : 'Play Music'}
+        style={playing ? {
+          filter: 'drop-shadow(0 0 4px rgba(209, 213, 219, 0.6))'
+        } : undefined}
       >
         <Music2 className="w-4 h-4" />
       </button>
@@ -155,8 +158,15 @@ export default function MusicPlayer() {
                 }}
                 className={`flex items-center justify-between w-full text-left px-2 py-0.5 rounded ${selected ? 'bg-white/10 text-white' : 'text-white/60 hover:bg-white/5'}`}
               >
-                {obj.label}
-                {selected && <Check className="w-3 h-3 text-emerald-400" />}
+                <span className="flex-1">{obj.label}</span>
+                {selected && (
+                  <Check 
+                    className="w-3 h-3 text-gray-300" 
+                    style={{
+                      filter: 'drop-shadow(0 0 2px rgba(209, 213, 219, 0.4))'
+                    }}
+                  />
+                )}
               </button>
             );
           })}

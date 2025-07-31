@@ -166,27 +166,26 @@ export default function ModuleSelectionPage() {
         {/* Main Content - Centered in Viewport (matching main layout) */}
         <div className="absolute inset-0 z-10 flex items-center justify-center">
           <div className="px-6 max-w-7xl mx-auto animate-fadeIn">
-            <div className="text-center">
-              {/* Loading Text with consistent spacing */}
-              <div className="mb-12">
-                <h1 className="text-6xl font-bold text-white mb-6 opacity-50">
-                  SilberArrows
-                </h1>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-medium text-gray-200 opacity-50">
-                    Welcome back, {displayName}
-                  </h2>
-                </div>
-                <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8 opacity-50">
-                  Loading your workspace and department access...
-                </p>
+            {/* Loading Text with consistent spacing */}
+            <div className="mb-12 text-center">
+              <h1 className="text-6xl font-bold text-white mb-6 opacity-50">
+                SilberArrows
+              </h1>
+              <div className="mb-6">
+                <h2 className="text-2xl font-medium text-gray-200 opacity-50">
+                  Welcome back, {displayName}
+                </h2>
+                {permissionsLoading && (
+                  <p className="text-xl text-gray-400 opacity-50">Initializing departments...</p>
+                )}
               </div>
               
               {/* Loading Animation */}
               <div className="w-12 h-12 border-4 border-gray-600 border-t-silver-400 rounded-full animate-spin mx-auto mb-8"></div>
-              
-              {/* Placeholder Module Cards - matching exact structure */}
-              <div className="flex justify-center gap-6 max-w-7xl mx-auto">
+            </div>
+            
+            {/* Placeholder Module Cards - matching exact structure */}
+            <div className="flex justify-center gap-6 max-w-7xl mx-auto">
                 {[1, 2, 3, 4, 5].map((index) => (
                   <div
                     key={index}
@@ -271,9 +270,9 @@ export default function ModuleSelectionPage() {
 
       {/* Main Content - Centered in Viewport */}
       <div className="absolute inset-0 z-10 flex items-center justify-center">
-        <div className="px-6 max-w-7xl mx-auto animate-fadeIn text-center">
+        <div className="px-6 max-w-7xl mx-auto animate-fadeIn">
           {accessibleModules.length === 0 && !debugMode && !showFallback ? (
-            <div className="py-20">
+            <div className="py-20 text-center">
               <div className="w-16 h-16 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 flex items-center justify-center mx-auto mb-6">
                 <AlertCircle className="w-8 h-8 text-gray-400" />
               </div>
@@ -283,7 +282,7 @@ export default function ModuleSelectionPage() {
           ) : (
             <>
               {/* Hero Section */}
-              <div className="mb-12">
+              <div className="mb-12 text-center">
                 <h1 className="text-6xl font-bold text-white mb-6">
                   SilberArrows
                 </h1>

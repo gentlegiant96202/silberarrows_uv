@@ -449,66 +449,75 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
         let contentType = file.type;
         
         if (file.type === 'application/pdf') {
-          console.log('Converting PDF to multiple images:', file.name);
+          console.log('Processing PDF file (Option A - Single Document):', file.name);
           try {
             const pageImages = await convertPdfToImages(file);
             
-            // Upload each page as a separate file
-            for (let pageIndex = 0; pageIndex < pageImages.length; pageIndex++) {
-              const pageImage = pageImages[pageIndex];
-              const pageTimestamp = timestamp + pageIndex; // Ensure unique timestamps
-              const pageRandomId = Math.random().toString(36).substring(2);
-              const pagePath = `media/${taskId}/${pageTimestamp}_${pageRandomId}_${pageImage.name}`;
-              
-              // Update progress for this page
-              const progressPercent = 20 + (pageIndex / pageImages.length) * 60;
-              setSelectedFiles(prev => prev.map((f, idx) => 
-                idx === globalIndex ? { ...f, uploadProgress: progressPercent } : f
-              ));
-              
-              // Upload page image
-              const { error: pageUpErr, data: pageUploadData } = await supabase.storage
-                .from('media-files')
-                .upload(pagePath, pageImage.blob, {
-                  contentType: 'image/jpeg',
-                  cacheControl: '3600',
-                  upsert: false,
-                });
-              
-              if (pageUpErr) {
-                console.error(`Error uploading page ${pageIndex + 1}:`, pageUpErr);
-                continue;
+            // If conversion is enabled and successful, upload page images
+            if (pageImages.length > 0) {
+              console.log('PDF conversion successful, uploading page images');
+              // Upload each page as a separate file
+              for (let pageIndex = 0; pageIndex < pageImages.length; pageIndex++) {
+                const pageImage = pageImages[pageIndex];
+                const pageTimestamp = timestamp + pageIndex; // Ensure unique timestamps
+                const pageRandomId = Math.random().toString(36).substring(2);
+                const pagePath = `media/${taskId}/${pageTimestamp}_${pageRandomId}_${pageImage.name}`;
+                
+                // Update progress for this page
+                const progressPercent = 20 + (pageIndex / pageImages.length) * 60;
+                setSelectedFiles(prev => prev.map((f, idx) => 
+                  idx === globalIndex ? { ...f, uploadProgress: progressPercent } : f
+                ));
+                
+                // Upload page image
+                const { error: pageUpErr, data: pageUploadData } = await supabase.storage
+                  .from('media-files')
+                  .upload(pagePath, pageImage.blob, {
+                    contentType: 'image/jpeg',
+                    cacheControl: '3600',
+                    upsert: false,
+                  });
+                
+                if (pageUpErr) {
+                  console.error(`Error uploading page ${pageIndex + 1}:`, pageUpErr);
+                  continue;
+                }
+                
+                // Get public URL for page
+                const { data: pagePub } = supabase.storage
+                  .from('media-files')
+                  .getPublicUrl(pagePath);
+                
+                // Add page to new media array
+                const pageMediaItem = {
+                  url: pagePub.publicUrl,
+                  name: pageImage.name,
+                  type: 'image/jpeg',
+                  size: pageImage.blob.size,
+                  originalName: file.name, // Track original PDF name
+                  originalType: 'application/pdf', // Track that this was originally a PDF
+                  pageIndex: pageImage.pageIndex, // Track page number
+                };
+                
+                newMedia.push(pageMediaItem);
               }
               
-              // Get public URL for page
-              const { data: pagePub } = supabase.storage
-                .from('media-files')
-                .getPublicUrl(pagePath);
+              // Update progress to 100% and mark as complete
+              setSelectedFiles(prev => prev.map((f, idx) => 
+                idx === globalIndex ? { ...f, uploadProgress: 100, uploaded: true, uploading: false } : f
+              ));
               
-              // Add page to new media array
-              const pageMediaItem = {
-                url: pagePub.publicUrl,
-                name: pageImage.name,
-                type: 'image/jpeg',
-                size: pageImage.blob.size,
-                originalName: file.name, // Track original PDF name
-                originalType: 'application/pdf', // Track that this was originally a PDF
-                pageIndex: pageImage.pageIndex, // Track page number
-              };
-              
-              newMedia.push(pageMediaItem);
+              // Skip the normal upload process for PDFs since we handled it above
+              continue;
+            } else {
+              // Conversion disabled or returned empty array - upload original PDF (Option A)
+              console.log('PDF conversion disabled/failed, uploading original PDF file');
+              // Continue with normal upload process below to upload the original PDF
             }
-            
-            // Update progress to 100% and mark as complete
-            setSelectedFiles(prev => prev.map((f, idx) => 
-              idx === globalIndex ? { ...f, uploadProgress: 100, uploaded: true, uploading: false } : f
-            ));
-            
-            // Skip the normal upload process for PDFs since we handled it above
-            continue;
           } catch (conversionError) {
             console.error('PDF conversion failed:', conversionError);
-            throw new Error('Failed to convert PDF to image');
+            console.log('Uploading original PDF file as fallback');
+            // Continue with normal upload process below to upload the original PDF
           }
         }
         
@@ -916,7 +925,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                     onChange={handleFileChange}
                     className="hidden"
                     id="file-upload"
-                    accept="image/*,video/*,.doc,.docx,.txt,.mp4,.mov,.avi,.webm,.mkv"
+                    accept="image/*,video/*,.pdf,.doc,.docx,.txt,.mp4,.mov,.avi,.webm,.mkv"
                   />
                   <label
                     htmlFor="file-upload"

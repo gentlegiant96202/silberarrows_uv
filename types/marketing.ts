@@ -12,6 +12,7 @@ export interface MarketingTask {
   media_files?: string[];
   content_type?: 'post' | 'story' | 'reel' | 'carousel' | 'ad';
   annotations?: any[];
+  pinned?: boolean;
 }
 
 export type MarketingStatus = 'intake' | 'in_progress' | 'in_review' | 'approved' | 'instagram_feed_preview';

@@ -262,6 +262,15 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
           />
         )}
+
+        {mediaType === 'pdf' && !pdfPages && (
+          <iframe
+            src={mediaUrl}
+            title={fileName}
+            className="w-full h-full rounded-lg shadow-2xl bg-white"
+            style={{ minHeight: '80vh' }}
+          />
+        )}
       </div>
 
       {/* SVG Annotation Layer - Positioned absolutely over any media type */}
@@ -1302,7 +1311,12 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
             const playbackUrl = isVideo ? getOriginalFileUrl(currentFile) : fileUrl;
             const isPdf = typeof currentFile === 'string' ? 
               fileName.match(/\.pdf$/i) :
-              (currentFile.type === 'application/pdf' || fileName.match(/\.pdf$/i)) && !currentFile.originalType;
+              (currentFile.type === 'application/pdf' || fileName.match(/\.pdf$/i));
+            
+            // Check if this is a native PDF file (not converted to images)
+            const isNativePdf = typeof currentFile === 'string' ? 
+              false :
+              currentFile.type === 'application/pdf' && !currentFile.originalType;
             
             // Get all PDF pages for multi-page PDFs
             const allPdfPages = allViewableFiles.filter((file: any) => 
@@ -1324,6 +1338,32 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                   selectedAnnotationId={selectedAnnotationId}
                   setSelectedAnnotationId={setSelectedAnnotationId}
                   onPageChange={(pageNum) => setSelectedImageIndex(pageNum - 1)}
+                  zoom={zoom}
+                  setZoom={setZoom}
+                  resetZoomPan={resetZoomPan}
+                  pan={pan}
+                  setPan={setPan}
+                  showCommentPopup={showCommentPopup}
+                  setShowCommentPopup={setShowCommentPopup}
+                  isAnnotationMode={isAnnotationMode}
+                  setIsAnnotationMode={setIsAnnotationMode}
+                  currentAnnotations={currentAnnotations}
+                />
+              );
+            } else if (isNativePdf) {
+              // Native PDF file - use browser's built-in PDF viewer
+              return (
+                <MediaViewer
+                  key={selectedImageIndex}
+                  mediaUrl={playbackUrl} // Use original URL for PDF
+                  fileName={fileName}
+                  mediaType="pdf"
+                  task={task}
+                  onAnnotationsChange={setCurrentAnnotations}
+                  currentPageNumber={1}
+                  selectedAnnotationId={selectedAnnotationId}
+                  setSelectedAnnotationId={setSelectedAnnotationId}
+                  onPageChange={() => {}} // No page change needed for single PDF
                   zoom={zoom}
                   setZoom={setZoom}
                   resetZoomPan={resetZoomPan}
@@ -1650,7 +1690,10 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                         file.type?.startsWith('video/') || file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
                       const isPdf = typeof file === 'string' ? 
                         file.match(/\.pdf$/i) :
-                        (file.type === 'application/pdf' || file.name?.match(/\.pdf$/i)) && !file.originalType;
+                        (file.type === 'application/pdf' || file.name?.match(/\.pdf$/i));
+                      const isNativePdf = typeof file === 'string' ? 
+                        false :
+                        file.type === 'application/pdf' && !file.originalType;
                       const isConvertedPdf = typeof file === 'string' ? false : file.originalType === 'application/pdf';
                       
                       // Generate stable key for React rendering
@@ -1670,17 +1713,14 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                           onDragLeave={(e) => handleThumbnailDragLeave(e, index)}
                           onDrop={(e) => handleThumbnailDrop(e, index)}
                           onClick={() => {
-                            const mediaIndex = viewableToMediaMapping[index];
-                            if (mediaIndex !== undefined) {
-                              setSelectedImageIndex(mediaIndex);
-                            }
+                            setSelectedImageIndex(index);
                           }}
                           className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-16 h-16 hover:ring-1 hover:ring-white/20 ${
                             draggedIndex === index ? 'opacity-30 scale-95 rotate-3' : ''
                           } ${
                             dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-400 scale-105' : ''
                           } ${
-                            selectedImageIndex === viewableToMediaMapping[index] ? 'ring-2 ring-white scale-105' : ''
+                            selectedImageIndex === index ? 'ring-2 ring-white scale-105' : ''
                           }`}
                           style={{
                             width: '64px',
@@ -1796,6 +1836,17 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                                 const mediaIndex = viewableToMediaMapping[index];
                                 if (mediaIndex !== undefined) {
                                   handleDeleteFile(mediaIndex);
+                                } else {
+                                  // Fallback: Find the media index directly
+                                  const currentFile = allViewableFiles[index];
+                                  const currentUrl = typeof currentFile === 'string' ? currentFile : (currentFile as any).url;
+                                  const fallbackIndex = mediaFiles.findIndex((file: any) => {
+                                    const fileUrl = typeof file === 'string' ? file : file.url;
+                                    return fileUrl === currentUrl;
+                                  });
+                                  if (fallbackIndex !== -1) {
+                                    handleDeleteFile(fallbackIndex);
+                                  }
                                 }
                               }}
                               className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"

@@ -217,7 +217,7 @@ export default function ModuleSelectionPage() {
                   <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden aspect-square">
                     {/* Placeholder Badge */}
                     <div className="absolute top-4 right-4">
-                      <span className="px-3 py-1 text-xs font-medium bg-white/10 text-white/50 rounded-full border border-white/20">
+                      <span className="px-2 py-0.5 text-[10px] font-medium bg-white/10 text-white/50 rounded-full border border-white/20">
                         Loading...
                       </span>
                     </div>
@@ -236,14 +236,13 @@ export default function ModuleSelectionPage() {
                         </div>
                         
                         {/* Placeholder Heading */}
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <div className="h-6 bg-white/10 rounded animate-pulse"></div>
-                          <div className="h-4 bg-white/5 rounded animate-pulse w-3/4"></div>
                         </div>
                       </div>
                       
                       {/* Placeholder Bottom Action */}
-                      <div className="flex-shrink-0 pt-4 border-t border-white/10">
+                      <div className="flex-shrink-0 pt-2 border-t border-white/10">
                         <div className="h-4 bg-white/5 rounded animate-pulse w-24"></div>
                       </div>
                     </div>
@@ -340,7 +339,7 @@ export default function ModuleSelectionPage() {
                         
                         {/* Badge */}
                         <div className="absolute top-4 right-4">
-                          <span className="px-3 py-1 text-xs font-medium bg-white/20 text-white/90 rounded-full border border-white/30">
+                          <span className="px-2 py-0.5 text-[10px] font-medium bg-white/20 text-white/90 rounded-full border border-white/30">
                             {module.badge}
                           </span>
                         </div>
@@ -361,20 +360,17 @@ export default function ModuleSelectionPage() {
                               </div>
                             </div>
                             
-                            {/* Heading and Description */}
+                            {/* Heading */}
                             <div className="space-y-3">
                               <h3 className="text-lg font-bold text-white group-hover:text-gray-100 transition-colors leading-tight">
                                 {module.name}
                               </h3>
-                              <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors leading-relaxed">
-                                {module.description}
-                              </p>
                             </div>
                           </div>
                           
                           {/* Bottom Action */}
-                          <div className="flex-shrink-0 pt-4 border-t border-white/10 group-hover:border-white/20 transition-colors">
-                            <div className="flex items-center justify-between">
+                          <div className="flex-shrink-0 pt-2 border-t border-white/10 group-hover:border-white/20 transition-colors">
+                            <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-500 group-hover:text-gray-400 transition-colors">
                                 {module.action}
                               </span>

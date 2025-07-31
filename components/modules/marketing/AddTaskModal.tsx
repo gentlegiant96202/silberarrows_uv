@@ -18,6 +18,7 @@ interface AddTaskModalProps {
   onSave: (task: Partial<MarketingTask>) => Promise<MarketingTask | null>;
   onClose: () => void;
   onDelete?: (taskId: string) => void;
+  isAdmin?: boolean;
 }
 
 interface FileWithThumbnail {
@@ -31,7 +32,7 @@ interface FileWithThumbnail {
 
 
 
-export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTaskModalProps) {
+export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin = false }: AddTaskModalProps) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
@@ -819,14 +820,24 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                   </svg>
                   Title
+                  {!isAdmin && (
+                    <span className="text-xs text-red-400 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Admin Only
+                    </span>
+                  )}
                 </label>
                 <input
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all uppercase shadow-inner"
+                  disabled={!isAdmin}
+                  readOnly={!isAdmin}
+                  className={`w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all uppercase shadow-inner ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
                   style={{ textTransform: 'uppercase' }}
-                  placeholder="Enter task title"
+                  placeholder={isAdmin ? "Enter task title" : "Only admins can edit title"}
                   required
                 />
               </div>
@@ -879,6 +890,14 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     Due Date
+                    {!isAdmin && (
+                      <span className="text-xs text-red-400 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Admin Only
+                      </span>
+                    )}
                   </label>
                   <DatePicker
                     selected={formData.due_date ? new Date(formData.due_date) : null}
@@ -888,12 +907,14 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                         value: date ? dayjs(date).format('YYYY-MM-DD') : ''
                       }
                     } as any)}
+                    disabled={!isAdmin}
+                    readOnly={!isAdmin}
                     dateFormat="dd/MM/yyyy"
                     popperPlacement="top-start"
-                    className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner"
+                    className={`w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
                     wrapperClassName="w-full"
-                    placeholderText="Select due date"
-                    isClearable
+                    placeholderText={isAdmin ? "Select due date" : "Only admins can edit due date"}
+                    isClearable={isAdmin}
                   />
                 </div>
 
@@ -921,12 +942,21 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete }: AddTas
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                   </svg>
                   Task Type
+                  {!isAdmin && (
+                    <span className="text-xs text-red-400 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Admin Only
+                    </span>
+                  )}
                 </label>
                 <select
                   name="task_type"
                   value={formData.task_type}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner"
+                  disabled={!isAdmin}
+                  className={`w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   <option value="design" className="bg-black text-white">Design Task</option>
                   <option value="photo" className="bg-black text-white">Photo Task</option>

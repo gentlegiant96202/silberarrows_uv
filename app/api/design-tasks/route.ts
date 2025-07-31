@@ -1,10 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
+
+// Create admin client for permission checking
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
+
+// Helper function to validate user permissions
+async function validateUserPermissions(request: NextRequest, requiredPermission: 'view' | 'create' | 'edit' | 'delete', isApprovalAction = false) {
+  try {
+    // Get the Authorization header (sent by frontend)
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { error: 'Authorization header missing', status: 401 };
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Get user from token using admin client
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (userError || !user) {
+      return { error: 'Invalid authorization token', status: 401 };
+    }
+
+    // Get user permissions for marketing module
+    const { data: permissions, error: permError } = await supabaseAdmin
+      .rpc('get_user_module_permissions', {
+        check_user_id: user.id,
+        module_name: 'marketing'
+      });
+
+    if (permError) {
+      console.error('Permission check error:', permError);
+      return { error: 'Permission check failed', status: 500 };
+    }
+
+    const perms = permissions?.[0] || { can_view: false, can_create: false, can_edit: false, can_delete: false };
+    
+    // Check required permission
+    let hasPermission = false;
+    switch (requiredPermission) {
+      case 'view': hasPermission = perms.can_view; break;
+      case 'create': hasPermission = perms.can_create; break;
+      case 'edit': hasPermission = perms.can_edit; break;
+      case 'delete': hasPermission = perms.can_delete; break;
+    }
+
+    if (!hasPermission) {
+      return { error: `Insufficient permissions for ${requiredPermission} operation`, status: 403 };
+    }
+
+    // Special check for approval actions - only admins can approve
+    if (isApprovalAction) {
+      const { data: roleData } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+      
+      const isAdmin = roleData?.role === 'admin';
+      if (!isAdmin) {
+        return { error: 'Only administrators can approve tasks', status: 403 };
+      }
+    }
+
+    return { user, permissions: perms };
+  } catch (error) {
+    console.error('Permission validation error:', error);
+    return { error: 'Permission validation failed', status: 500 };
+  }
+}
 
 // GET - Fetch all design tasks
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     console.log('Fetching design tasks...');
+    
+    // Validate user has view permission
+    const authResult = await validateUserPermissions(req, 'view');
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const { data: tasks, error } = await supabase
       .from('design_tasks')
@@ -16,45 +101,25 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log(`Returning tasks count: ${tasks?.length || 0}`);
-    if (tasks && tasks.length > 0) {
-      console.log('Sample task structure:', Object.keys(tasks[0]));
-    }
-
-    // Transform data to match frontend expectations
-    const transformedTasks = tasks?.map(task => ({
-      id: task.id,
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      assignee: task.requested_by,
-      due_date: task.due_date,
-      created_at: task.created_at,
-      updated_at: task.updated_at,
-      media_files: task.media_files || [],
-      annotations: task.annotations || [], // Include annotations field
-      pinned: task.pinned || false, // Include pinned field
-      task_type: task.task_type || 'design', // Include task_type field
-      priority: 'medium', // Default since we don't store this
-      content_type: 'post', // Default since we don't store this
-      tags: [] // Default since we don't store this
-    })) || [];
-
-    return NextResponse.json(transformedTasks);
-  } catch (error) {
-    console.error('Fetch design tasks error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch design tasks' },
-      { status: 500 }
-    );
+    console.log(`✅ Successfully fetched ${tasks.length} tasks`);
+    return NextResponse.json(tasks);
+  } catch (error: any) {
+    console.error('Error in GET /api/design-tasks:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST - Create new design task
+// POST - Create a new design task
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log('Creating design task:', body);
+
+    // Validate user has create permission
+    const authResult = await validateUserPermissions(req, 'create');
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
 
     const { title, headline, description, status = 'planned', assignee, due_date, task_type = 'design', media_files = [] } = body;
 
@@ -62,11 +127,13 @@ export async function POST(req: NextRequest) {
       title: title || headline, // Handle both title and headline fields
       description,
       status,
-      requested_by: assignee,
-      due_date: due_date || undefined, // Use undefined instead of null for optional dates
-      task_type: task_type || 'design', // Include task_type with default
+      requested_by: assignee, // Map assignee to requested_by
+      due_date,
+      task_type,
       media_files
     };
+
+    console.log('Task data to insert:', taskData);
 
     const { data, error } = await supabase
       .from('design_tasks')
@@ -79,53 +146,78 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Transform response to match frontend expectations
-    const transformedTask = {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      status: data.status,
-      assignee: data.requested_by,
-      due_date: data.due_date,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-      media_files: data.media_files || [],
-      annotations: data.annotations || [], // Include annotations field
-      pinned: data.pinned || false, // Include pinned field
-      task_type: data.task_type || 'design', // Include task_type field
-      priority: 'medium',
-      content_type: 'post',
-      tags: []
-    };
-
-    return NextResponse.json(transformedTask, { status: 201 });
-  } catch (error) {
-    console.error('Create design task error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create design task' },
-      { status: 500 }
-    );
+    console.log('✅ Successfully created task:', data);
+    return NextResponse.json(data, { status: 201 });
+  } catch (error: any) {
+    console.error('Error in POST /api/design-tasks:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// PUT - Update existing design task
+// PUT - Update an existing design task
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     console.log('Updating design task:', body);
 
     const { id, title, headline, description, status, assignee, due_date, task_type, media_files } = body;
-    console.log('Extracted fields:', { id, title, headline, description, status, assignee, due_date, task_type, media_files });
+    
+    // Check if this is an approval action
+    const isApprovalAction = status === 'approved';
+    
+    // Validate user has edit permission (and admin for approval)
+    const authResult = await validateUserPermissions(req, 'edit', isApprovalAction);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
 
+    console.log('Extracted fields:', { id, title, headline, description, status, assignee, due_date, task_type, media_files });
+    
+    // Get current task data to check for admin-only field changes
+    const { data: currentTask, error: fetchError } = await supabase
+      .from('design_tasks')
+      .select('title, due_date, task_type')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching current task:', fetchError);
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    // Check if user is admin for admin-only field restrictions
+    const { data: roleData } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', authResult.user.id)
+      .single();
+    
+    const isAdmin = roleData?.role === 'admin';
+
+    // Admin-only field validation
+    const adminOnlyFields = [];
+    if (title !== undefined && title !== currentTask.title) adminOnlyFields.push('title');
+    if (headline !== undefined && headline !== currentTask.title) adminOnlyFields.push('title');
+    if (due_date !== undefined && due_date !== currentTask.due_date) adminOnlyFields.push('due_date');
+    if (task_type !== undefined && task_type !== currentTask.task_type) adminOnlyFields.push('task_type');
+
+    if (adminOnlyFields.length > 0 && !isAdmin) {
+      return NextResponse.json({ 
+        error: `Only administrators can modify: ${adminOnlyFields.join(', ')}` 
+      }, { status: 403 });
+    }
+    
     const updates: any = {};
-    if (title !== undefined || headline !== undefined) updates.title = title || headline;
+    if (title !== undefined) updates.title = title;
+    if (headline !== undefined) updates.title = headline; // Map headline to title
     if (description !== undefined) updates.description = description;
     if (status !== undefined) updates.status = status;
-    if (assignee !== undefined) updates.requested_by = assignee;
-    if (due_date !== undefined) updates.due_date = due_date || undefined;
+    if (assignee !== undefined) updates.requested_by = assignee; // Map assignee to requested_by
+    if (due_date !== undefined) updates.due_date = due_date;
     if (task_type !== undefined) updates.task_type = task_type;
     if (media_files !== undefined) updates.media_files = media_files;
 
+    // Always update the updated_at timestamp
     updates.updated_at = new Date().toISOString();
     
     console.log('Updates to be applied:', updates);
@@ -142,40 +234,20 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log('Database response after update:', data);
+    if (!data) {
+      console.error('Task not found:', id);
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
 
-    // Transform response to match frontend expectations
-    const transformedTask = {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      status: data.status,
-      assignee: data.requested_by,
-      due_date: data.due_date,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-      media_files: data.media_files || [],
-      annotations: data.annotations || [], // Include annotations field
-      pinned: data.pinned || false, // Include pinned field
-      task_type: data.task_type || 'design', // Include task_type field
-      priority: 'medium',
-      content_type: 'post',
-      tags: []
-    };
-
-    console.log('Transformed response being sent:', transformedTask);
-
-    return NextResponse.json(transformedTask);
-  } catch (error) {
-    console.error('Update design task error:', error);
-    return NextResponse.json(
-      { error: 'Failed to update design task' },
-      { status: 500 }
-    );
+    console.log('✅ Successfully updated task:', data);
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error('Error in PUT /api/design-tasks:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// DELETE - Delete design task
+// DELETE - Delete a design task
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -184,6 +256,14 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
     }
+
+    // Validate user has delete permission
+    const authResult = await validateUserPermissions(req, 'delete');
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    console.log('Deleting design task:', id);
 
     const { error } = await supabase
       .from('design_tasks')
@@ -195,12 +275,10 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Delete design task error:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete design task' },
-      { status: 500 }
-    );
+    console.log('✅ Successfully deleted task:', id);
+    return NextResponse.json({ message: 'Task deleted successfully' });
+  } catch (error: any) {
+    console.error('Error in DELETE /api/design-tasks:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 } 

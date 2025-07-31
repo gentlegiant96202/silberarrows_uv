@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Header from '@/components/Header';
 import MarketingKanbanBoard from '@/components/modules/marketing/MarketingKanbanBoard';
+import RouteProtector from '@/components/shared/RouteProtector';
 
 export default function MarketingDashboard() {
   const [activeTab, setActiveTab] = useState('design');
@@ -26,13 +27,15 @@ export default function MarketingDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="flex h-[calc(100vh-72px)]">
-        <div className="flex-1 overflow-auto">
-          {renderContent()}
+    <RouteProtector moduleName="marketing">
+      <div className="min-h-screen bg-black">
+        <Header activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="flex h-[calc(100vh-72px)]">
+          <div className="flex-1 overflow-auto">
+            {renderContent()}
+          </div>
         </div>
       </div>
-    </div>
+    </RouteProtector>
   );
 } 

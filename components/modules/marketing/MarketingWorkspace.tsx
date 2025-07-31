@@ -56,6 +56,8 @@ interface MarketingWorkspaceProps {
   task: MarketingTask;
   onClose: () => void;
   onSave: (taskData: Partial<MarketingTask>) => Promise<MarketingTask | null>;
+  canEdit?: boolean;
+  isAdmin?: boolean;
 }
 
 // Media Viewer Component with zoom/pan and SVG annotation support
@@ -350,7 +352,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
 
 
 
-export default function MarketingWorkspace({ task, onClose, onSave }: MarketingWorkspaceProps) {
+export default function MarketingWorkspace({ task, onClose, onSave, canEdit = true, isAdmin = false }: MarketingWorkspaceProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [title, setTitle] = useState(task.title || '');
   const [caption, setCaption] = useState(task.description || '');
@@ -1317,14 +1319,16 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
           <div className="text-xs text-white/50">
             {selectedImageIndex + 1} of {allViewableFiles.length}
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 text-black text-sm rounded-lg transition-all font-semibold disabled:opacity-50 shadow-lg"
-          >
-            <Save className="w-3.5 h-3.5" />
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          {canEdit && (
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 text-black text-sm rounded-lg transition-all font-semibold disabled:opacity-50 shadow-lg"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1531,13 +1535,23 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
                 Task Title
+                {!isAdmin && (
+                  <span className="text-xs text-red-400 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Admin Only
+                  </span>
+                )}
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner"
-                placeholder="Enter task title..."
+                readOnly={!isAdmin}
+                disabled={!isAdmin}
+                className={`w-full px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
+                placeholder={isAdmin ? "Enter task title..." : "Only admins can edit title"}
               />
             </div>
 
@@ -1553,7 +1567,9 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 rows={5}
-                className="w-full px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all resize-none shadow-inner"
+                readOnly={!canEdit}
+                disabled={!canEdit}
+                className={`w-full px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all resize-none shadow-inner ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''}`}
                 placeholder="Write your social media caption here..."
               />
             </div>
@@ -1866,65 +1882,69 @@ export default function MarketingWorkspace({ task, onClose, onSave }: MarketingW
                               </div>
                             )}
 
-                            {/* Delete button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const mediaIndex = viewableToMediaMapping[index];
-                                if (mediaIndex !== undefined) {
-                                  handleDeleteFile(mediaIndex);
-                                } else {
-                                  // Fallback: Find the media index directly
-                                  const currentFile = allViewableFiles[index];
-                                  const currentUrl = typeof currentFile === 'string' ? currentFile : (currentFile as any).url;
-                                  const fallbackIndex = mediaFiles.findIndex((file: any) => {
-                                    const fileUrl = typeof file === 'string' ? file : file.url;
-                                    return fileUrl === currentUrl;
-                                  });
-                                  if (fallbackIndex !== -1) {
-                                    handleDeleteFile(fallbackIndex);
+                            {/* Delete button - only show if user has edit permission */}
+                            {canEdit && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const mediaIndex = viewableToMediaMapping[index];
+                                  if (mediaIndex !== undefined) {
+                                    handleDeleteFile(mediaIndex);
+                                  } else {
+                                    // Fallback: Find the media index directly
+                                    const currentFile = allViewableFiles[index];
+                                    const currentUrl = typeof currentFile === 'string' ? currentFile : (currentFile as any).url;
+                                    const fallbackIndex = mediaFiles.findIndex((file: any) => {
+                                      const fileUrl = typeof file === 'string' ? file : file.url;
+                                      return fileUrl === currentUrl;
+                                    });
+                                    if (fallbackIndex !== -1) {
+                                      handleDeleteFile(fallbackIndex);
+                                    }
                                   }
-                                }
-                              }}
-                              className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
-                            >
+                                }}
+                                className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                              >
                               <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                               </svg>
                             </button>
+                            )}
                           </div>
                         </div>
                       );
                     })}
                     
-                    {/* Upload button */}
-                    <div className="aspect-square border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center hover:border-white/40 transition-colors cursor-pointer group relative flex-shrink-0 w-16 h-16">
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*,video/*,.pdf"
-                        onChange={(e) => {
-                          if (e.target.files) {
-                            handleFileUpload(e.target.files);
-                          }
-                          e.target.value = ''; // Reset input
-                        }}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        disabled={uploading}
-                      />
-                      <div className="text-center pointer-events-none">
-                        {uploading ? (
-                          <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin mx-auto mb-1" />
-                        ) : (
-                          <svg className="w-4 h-4 text-white/50 group-hover:text-white/80 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        )}
-                        <div className="text-[10px] text-white/50 group-hover:text-white/80">
-                          {uploading ? 'Uploading...' : 'Upload'}
+                    {/* Upload button - only show if user has edit permission */}
+                    {canEdit && (
+                      <div className="aspect-square border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center hover:border-white/40 transition-colors cursor-pointer group relative flex-shrink-0 w-16 h-16">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,video/*,.pdf"
+                          onChange={(e) => {
+                            if (e.target.files) {
+                              handleFileUpload(e.target.files);
+                            }
+                            e.target.value = ''; // Reset input
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          disabled={uploading}
+                        />
+                        <div className="text-center pointer-events-none">
+                          {uploading ? (
+                            <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin mx-auto mb-1" />
+                          ) : (
+                            <svg className="w-4 h-4 text-white/50 group-hover:text-white/80 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          )}
+                          <div className="text-[10px] text-white/50 group-hover:text-white/80">
+                            {uploading ? 'Uploading...' : 'Upload'}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
               </div>

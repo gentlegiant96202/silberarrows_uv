@@ -4,6 +4,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Archive, CheckCircle, Instagram, Pin } from 'lucide-react';
 import { MarketingTask, MarketingStatus, MarketingColumn } from '@/types/marketing';
 import { supabase } from '@/lib/supabaseClient';
+import { useModulePermissions } from '@/lib/useModulePermissions';
+import { useUserRole } from '@/lib/useUserRole';
+import { useAuth } from '@/components/shared/AuthProvider';
 import AddTaskModal from './AddTaskModal';
 import MarketingWorkspace from './MarketingWorkspace';
 
@@ -122,11 +125,32 @@ export default function MarketingKanbanBoard() {
   const [draggedTask, setDraggedTask] = useState<MarketingTask | null>(null);
   const [hovered, setHovered] = useState<ColKey | null>(null);
   const [pinningTask, setPinningTask] = useState<string | null>(null);
+  
+  // Get permissions and user role
+  const { canView, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModulePermissions('marketing');
+  const { isAdmin } = useUserRole();
+  const { user } = useAuth();
+
+  // Helper function to get authorization headers
+  const getAuthHeaders = async (): Promise<Record<string, string>> => {
+    if (!user) return { 'Content-Type': 'application/json' };
+    
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+    
+    return token ? {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    } : {
+      'Content-Type': 'application/json'
+    };
+  };
 
   // Fetch tasks from API
   const fetchTasks = async () => {
     try {
-      const response = await fetch('/api/design-tasks');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/design-tasks', { headers });
       if (response.ok) {
         const data = await response.json();
         setTasks(data);
@@ -263,13 +287,19 @@ export default function MarketingKanbanBoard() {
   const onDrop = (status: ColKey) => async (e: React.DragEvent) => {
     e.preventDefault();
     if (draggedTask && draggedTask.status !== status) {
+      // Special rule: Only admins can move cards to "approved" status
+      if (status === 'approved' && !isAdmin) {
+        alert('Only administrators can approve tasks');
+        setDraggedTask(null);
+        return;
+      }
+      
       try {
         // Update in database
+        const headers = await getAuthHeaders();
         const response = await fetch('/api/design-tasks', {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
             id: draggedTask.id,
             status,
@@ -323,11 +353,10 @@ export default function MarketingKanbanBoard() {
 
       console.log(`📌 ${newPinned ? 'Pinning' : 'Unpinning'} task ${taskId}`);
 
+      const headers = await getAuthHeaders();
       const response = await fetch('/api/social-media-tasks/pin', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           taskId,
           pinned: newPinned
@@ -365,11 +394,10 @@ export default function MarketingKanbanBoard() {
         };
         console.log('Sending update request:', updatePayload);
         
+        const headers = await getAuthHeaders();
         const response = await fetch('/api/design-tasks', {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify(updatePayload),
         });
 
@@ -383,11 +411,10 @@ export default function MarketingKanbanBoard() {
         }
       } else {
         // Create new task
+        const headers = await getAuthHeaders();
         const response = await fetch('/api/design-tasks', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify(taskData),
         });
 
@@ -421,8 +448,10 @@ export default function MarketingKanbanBoard() {
 
   const handleDeleteTask = async (taskId: string) => {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(`/api/design-tasks?id=${taskId}`, {
         method: 'DELETE',
+        headers,
       });
 
       if (response.ok) {
@@ -472,7 +501,7 @@ export default function MarketingKanbanBoard() {
                 <h3 className="text-xs font-medium text-white whitespace-nowrap">
                   {col.title}
                 </h3>
-                {col.key === 'intake' ? (
+                {col.key === 'intake' && canCreate ? (
                   <button
                     onClick={handleCreateTask}
                     className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
@@ -521,13 +550,14 @@ export default function MarketingKanbanBoard() {
                       )}
                       
                       {/* Pin Icon - Top Right Corner */}
-                      <div className="absolute top-1 right-1 z-30">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent card click
-                            handlePin(task.id, task.pinned || false);
-                          }}
-                          disabled={pinningTask === task.id}
+                      {canEdit && (
+                        <div className="absolute top-1 right-1 z-30">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent card click
+                              handlePin(task.id, task.pinned || false);
+                            }}
+                            disabled={pinningTask === task.id}
                           className={`
                             p-1 rounded-full transition-all duration-200 
                             ${task.pinned 
@@ -544,6 +574,7 @@ export default function MarketingKanbanBoard() {
                           <Pin className="w-3 h-3" />
                         </button>
                       </div>
+                      )}
                       
                       {/* Full image display */}
                       <div className="w-full h-full rounded-lg overflow-hidden">
@@ -762,7 +793,8 @@ export default function MarketingKanbanBoard() {
           task={selectedTask}
           onSave={handleSaveTask}
           onClose={handleCloseModal}
-          onDelete={handleDeleteTask}
+          onDelete={canDelete ? handleDeleteTask : undefined}
+          isAdmin={isAdmin}
         />
       )}
 
@@ -771,6 +803,8 @@ export default function MarketingKanbanBoard() {
           task={selectedTask}
           onClose={handleCloseWorkspace}
           onSave={handleSaveTask}
+          canEdit={canEdit}
+          isAdmin={isAdmin}
         />
       )}
     </div>

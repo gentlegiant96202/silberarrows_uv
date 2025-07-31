@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { ChevronDown, Car, TrendingUp, Wrench, Users, Calculator } from 'lucide-react';
+import { ChevronDown, Car, TrendingUp, Wrench, CreditCard, Calculator } from 'lucide-react';
 import { useAllModulePermissions } from '@/lib/useModulePermissions';
 
 interface Module {
@@ -15,36 +15,36 @@ interface Module {
 const allModules: Module[] = [
   {
     id: 'uv_crm',
-    name: 'UV CRM & Inventory',
-    description: 'Cars, inventory, leads, customer management',
+    name: 'Used Vehicles Department',
+    description: 'Comprehensive vehicle sales, inventory management, and customer relations',
     basePath: '/',
     icon: Car
   },
   {
     id: 'marketing',
-    name: 'Marketing Hub',
-    description: 'Campaigns, leads, social media',
+    name: 'Marketing Department',
+    description: 'Campaign management, content creation, and brand promotion',
     basePath: '/marketing',
     icon: TrendingUp
   },
   {
     id: 'workshop',
-    name: 'Workshop',
-    description: 'Service, maintenance, repairs',
+    name: 'Service Department',
+    description: 'Vehicle maintenance, repairs, and service workflow management',
     basePath: '/workshop',
     icon: Wrench
   },
   {
     id: 'leasing',
     name: 'Leasing Department',
-    description: 'Vehicle leasing and financing',
+    description: 'Vehicle financing, lease agreements, and payment processing',
     basePath: '/leasing',
-    icon: Users
+    icon: CreditCard
   },
   {
     id: 'accounts',
     name: 'Accounts Department',
-    description: 'Financial reporting and analytics',
+    description: 'Financial reporting, accounting, and business analytics',
     basePath: '/accounts',
     icon: Calculator
   }

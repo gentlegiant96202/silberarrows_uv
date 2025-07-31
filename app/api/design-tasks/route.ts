@@ -90,11 +90,25 @@ export async function GET(req: NextRequest) {
     if (authResult.error) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-    
-    const { data: tasks, error } = await supabase
+
+    // Get query parameters for filtering
+    const { searchParams } = new URL(req.url);
+    const userTickets = searchParams.get('user_tickets') === 'true';
+
+    // Build query with optional filters
+    let query = supabase
       .from('design_tasks')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*');
+
+    // Filter by current user if user_tickets=true (for "My Marketing Tickets")
+    if (userTickets && authResult.user) {
+      query = query.eq('created_by', authResult.user.id);
+    }
+
+    // Always order by created_at
+    query = query.order('created_at', { ascending: false });
+
+    const { data: tasks, error } = await query;
 
     if (error) {
       console.error('Error fetching design tasks:', error);
@@ -130,7 +144,8 @@ export async function POST(req: NextRequest) {
       requested_by: assignee, // Map assignee to requested_by
       due_date,
       task_type,
-      media_files
+      media_files,
+      created_by: authResult.user?.id // Track who created the task
     };
 
     console.log('Task data to insert:', taskData);

@@ -10,6 +10,7 @@ import FinanceCalculator from './modules/uv-crm/FinanceCalculator';
 import MarketingNavigation from './modules/marketing/MarketingNavigation';
 import AccountsNavigation from './modules/accounts/AccountsNavigation';
 import ModuleSwitcher from '@/components/shared/ModuleSwitcher';
+import MarketingTicketsDropdown from '@/components/shared/MarketingTicketsDropdown';
 
 interface HeaderProps {
   activeTab?: string;
@@ -76,6 +77,9 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
           <div className="flex items-center space-x-4">
             {/* Module Switcher - Hide on module selection page */}
             {!isModuleSelectionPage && <ModuleSwitcher />}
+            
+            {/* Marketing Tickets Dropdown - Hide on module selection page */}
+            {!isModuleSelectionPage && <MarketingTicketsDropdown />}
             
             {/* Finance Calculator for CRM module only - Hide on module selection page */}
             {!isModuleSelectionPage && currentModule === 'uv-crm' && <FinanceCalculator />}

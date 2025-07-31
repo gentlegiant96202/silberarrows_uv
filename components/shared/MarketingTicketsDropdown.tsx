@@ -1,0 +1,256 @@
+"use client";
+import { useState, useEffect, useRef } from 'react';
+import { MessageSquarePlus, ChevronDown, Calendar, User, Ticket } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/components/shared/AuthProvider';
+import AddTaskModal from '@/components/modules/marketing/AddTaskModal';
+
+interface MarketingTicket {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  due_date?: string;
+  assignee?: string;
+  task_type?: 'design' | 'photo' | 'video';
+}
+
+export default function MarketingTicketsDropdown() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [tickets, setTickets] = useState<MarketingTicket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const statusColors = {
+    planned: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+    intake: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+    in_progress: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+    in_review: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+    approved: 'bg-green-500/20 text-green-300 border-green-500/30',
+    instagram_feed_preview: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+  };
+
+  const statusLabels = {
+    planned: 'PLANNED',
+    intake: 'INTAKE',
+    in_progress: 'IN PROGRESS',
+    in_review: 'IN REVIEW',
+    approved: 'APPROVED',
+    instagram_feed_preview: 'PREVIEW',
+  };
+
+  const taskTypeIcons = {
+    design: '🎨',
+    photo: '📸',
+    video: '🎬',
+  };
+
+  useEffect(() => {
+    fetchMyTickets();
+    
+    // Subscribe to real-time updates
+    const subscription = supabase
+      .channel('my_marketing_tickets')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'design_tasks',
+        },
+        (payload) => {
+          // Refresh tickets when changes occur
+          fetchMyTickets();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const fetchMyTickets = async () => {
+    if (!user?.id) return;
+
+    try {
+      const headers = {
+        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await fetch('/api/design-tasks?user_tickets=true', {
+        headers
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTickets(data);
+      }
+    } catch (error) {
+      console.error('Error fetching my tickets:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveTask = async (taskData: any) => {
+    try {
+      // Task automatically gets created_by from API
+      const headers = {
+        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await fetch('/api/design-tasks', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          ...taskData,
+          status: 'intake', // All tickets start in intake
+        }),
+      });
+
+      if (response.ok) {
+        setShowModal(false);
+        fetchMyTickets(); // Refresh the list
+      } else {
+        throw new Error('Failed to create marketing ticket');
+      }
+    } catch (error) {
+      console.error('Error creating marketing ticket:', error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-GB');
+  };
+
+  const pendingCount = tickets.filter(t => ['planned', 'intake', 'in_progress'].includes(t.status)).length;
+
+  return (
+    <>
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-colors text-sm text-white"
+        >
+          <MessageSquarePlus className="w-4 h-4 text-orange-300" />
+          <span>Marketing Tickets</span>
+          {pendingCount > 0 && (
+            <span className="bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+              {pendingCount}
+            </span>
+          )}
+          <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {isOpen && (
+          <div className="absolute top-full right-0 mt-2 w-80 bg-black/90 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-50 overflow-hidden">
+            {/* Header */}
+            <div className="p-4 border-b border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-white">My Marketing Requests</h3>
+                <span className="text-xs text-white/60">{tickets.length} total</span>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setShowModal(true);
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 rounded-lg text-orange-300 text-sm font-medium transition-colors"
+              >
+                <MessageSquarePlus className="w-4 h-4" />
+                Raise New Ticket
+              </button>
+            </div>
+
+            {/* Tickets List */}
+            <div className="max-h-64 overflow-y-auto">
+              {isLoading ? (
+                <div className="p-4">
+                  <div className="animate-pulse space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-16 bg-white/5 rounded-lg"></div>
+                    ))}
+                  </div>
+                </div>
+              ) : tickets.length === 0 ? (
+                <div className="p-4 text-center text-white/60 text-sm">
+                  No marketing requests yet
+                </div>
+              ) : (
+                <div className="p-4 space-y-3">
+                  {tickets.map((ticket) => (
+                    <div 
+                      key={ticket.id}
+                      className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-sm font-medium text-white truncate">
+                              {ticket.title}
+                            </h4>
+                            {ticket.task_type && (
+                              <span className="text-xs">
+                                {taskTypeIcons[ticket.task_type]}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-3 text-xs text-white/60">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>{formatDate(ticket.created_at)}</span>
+                            </div>
+                            {ticket.assignee && (
+                              <div className="flex items-center gap-1">
+                                <User className="w-3 h-3" />
+                                <span>{ticket.assignee}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium border ${statusColors[ticket.status as keyof typeof statusColors] || 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>
+                          {statusLabels[ticket.status as keyof typeof statusLabels] || ticket.status.toUpperCase()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <AddTaskModal
+          task={null}
+          onSave={handleSaveTask}
+          onClose={() => setShowModal(false)}
+          isAdmin={false} // External users have limited access
+        />
+      )}
+    </>
+  );
+} 

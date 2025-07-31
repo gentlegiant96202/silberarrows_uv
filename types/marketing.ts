@@ -14,6 +14,7 @@ export interface MarketingTask {
   task_type?: 'design' | 'photo' | 'video';
   annotations?: any[];
   pinned?: boolean;
+  created_by?: string; // User ID who created the task
 }
 
 export type MarketingStatus = 'intake' | 'planned' | 'in_progress' | 'in_review' | 'approved' | 'instagram_feed_preview';

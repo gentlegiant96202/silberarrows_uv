@@ -135,7 +135,7 @@ export default function MarketingTicketsDropdown() {
     }
   };
 
-  const handleSaveTask = async (taskData: any) => {
+  const handleSaveTask = async (taskData: any): Promise<MarketingTicket | null> => {
     try {
       // Task automatically gets created_by from API
       const headers = {
@@ -153,13 +153,16 @@ export default function MarketingTicketsDropdown() {
       });
 
       if (response.ok) {
+        const createdTask = await response.json();
         setShowModal(false);
         fetchMyTickets(); // Refresh the list
+        return createdTask;
       } else {
         throw new Error('Failed to create marketing ticket');
       }
     } catch (error) {
       console.error('Error creating marketing ticket:', error);
+      return null;
     }
   };
 

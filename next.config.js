@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Trigger fresh deployment - ensure latest commit is built
 const nextConfig = {
   experimental: {
     esmExternals: true

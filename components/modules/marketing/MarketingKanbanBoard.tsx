@@ -486,7 +486,7 @@ export default function MarketingKanbanBoard() {
             key={col.key}
             className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 flex flex-col transition-shadow min-w-0 ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''} ${
               col.key === 'instagram_feed_preview' 
-                ? 'flex-[1.2] max-w-xs' 
+                ? 'flex-[1.38] max-w-sm' 
                 : 'flex-1'
             }`}
             onDragOver={(e) => { onDragOver(e); setHovered(col.key); }}
@@ -596,7 +596,7 @@ export default function MarketingKanbanBoard() {
                               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
                             />
                           ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-3">
+                            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
                               <img 
                                 src="/MAIN LOGO.png" 
                                 alt="SilberArrows Logo" 
@@ -659,36 +659,36 @@ export default function MarketingKanbanBoard() {
                       {/* Task Type Badge - Top Right */}
                                             <div className="absolute top-0.5 right-0.5 z-20">
                         {task.task_type === 'design' && (
-                          <div className="flex items-center gap-0.5 bg-blue-500/20 text-blue-300 px-1 py-0.5 rounded-full backdrop-blur-sm">
-                            <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 24 24">
+                          <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                             </svg>
-                            <span className="text-[6px] font-medium uppercase">Design</span>
+                            <span className="text-[7px] font-medium uppercase">Design</span>
                           </div>
                         )}
                         {task.task_type === 'photo' && (
-                          <div className="flex items-center gap-0.5 bg-green-500/20 text-green-300 px-1 py-0.5 rounded-full backdrop-blur-sm">
-                            <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 24 24">
+                          <div className="flex items-center gap-1 bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M9 2l1.06 2.06L12 5l-1.94.94L9 8 7.94 5.94 6 5l1.94-.94L9 2zm6.5 6L17 10l-1.5 2L14 10l1.5-2zm2.5 5l-.62 1.38L16 15l1.38.62L18 17l.62-1.38L20 15l-1.38-.62L18 13z"/>
                             </svg>
-                            <span className="text-[6px] font-medium uppercase">Photo</span>
+                            <span className="text-[7px] font-medium uppercase">Photo</span>
                           </div>
                         )}
                                                  {task.task_type === 'video' && (
-                           <div className="flex items-center gap-0.5 bg-cyan-500/20 text-cyan-300 px-1 py-0.5 rounded-full backdrop-blur-sm">
-                             <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 24 24">
+                           <div className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                             <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
                                <path d="M8 5v14l11-7z"/>
                             </svg>
-                            <span className="text-[6px] font-medium uppercase">Video</span>
+                            <span className="text-[7px] font-medium uppercase">Video</span>
                           </div>
                         )}
                       </div>
 
                       
                       {/* Main Content Container */}
-                      <div className="flex px-2 py-2 gap-2 min-h-[75px]">
+                      <div className="flex px-2 py-1 gap-1.5 min-h-[55px]">
                         {/* Left Side - Preview Thumbnail (4:5 ratio) */}
-                        <div className="flex-shrink-0 w-12 h-15 relative">
+                        <div className="flex-shrink-0 w-16 h-20 relative">
                           {previewUrl ? (
                             <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg">
                               <img 
@@ -700,7 +700,7 @@ export default function MarketingKanbanBoard() {
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </div>
                           ) : (
-                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-2">
+                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1">
                               <img 
                                 src="/MAIN LOGO.png" 
                                 alt="SilberArrows Logo" 
@@ -710,23 +710,23 @@ export default function MarketingKanbanBoard() {
                           )}
                           
                           {/* Icons Row - Bottom of Thumbnail */}
-                          <div className="absolute -bottom-2 left-0 right-0 flex items-center justify-between px-1">
+                          <div className="absolute bottom-1 left-0 right-0 flex items-center justify-between px-1">
                             {/* Left Side - Media Count */}
-                            <div className="flex items-center gap-0.5">
+                            <div className="flex items-center gap-1">
                               {task.media_files && task.media_files.length > 0 && (
-                                <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-0.5 py-0.5">
-                                  <ImageIcon className="w-1.5 h-1.5 text-white/80" />
-                                  <span className="text-white font-bold text-[7px]">{task.media_files.length}</span>
+                                <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-1 py-0.5">
+                                  <ImageIcon className="w-2 h-2 text-white/80" />
+                                  <span className="text-white font-bold text-[8px]">{task.media_files.length}</span>
                                 </div>
                               )}
                             </div>
                             
                             {/* Right Side - Annotation Count */}
-                            <div className="flex items-center gap-0.5">
+                            <div className="flex items-center gap-1">
                               {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
-                                <div className="flex items-center gap-0.5 bg-orange-400/90 backdrop-blur-sm border border-orange-300/50 rounded-full px-0.5 py-0.5">
-                                  <div className="w-0.5 h-0.5 bg-white rounded-full animate-pulse"></div>
-                                  <span className="text-white font-bold text-[7px]">{task.annotations.length}</span>
+                                <div className="flex items-center gap-0.5 bg-orange-400/90 backdrop-blur-sm border border-orange-300/50 rounded-full px-1 py-0.5">
+                                  <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+                                  <span className="text-white font-bold text-[8px]">{task.annotations.length}</span>
                                 </div>
                               )}
                             </div>
@@ -734,10 +734,10 @@ export default function MarketingKanbanBoard() {
                         </div>
                         
                         {/* Right Side - Content */}
-                        <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
+                        <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
                           {/* Title Section - Top */}
                           <div className="flex-shrink-0">
-                            <h4 className="text-[10px] font-bold text-white leading-tight line-clamp-1 group-hover:text-gray-100 transition-colors duration-200 uppercase">
+                            <h4 className="text-[11px] font-bold text-white leading-tight line-clamp-1 group-hover:text-gray-100 transition-colors duration-200 uppercase">
                               {task.title}
                             </h4>
                           </div>
@@ -746,14 +746,14 @@ export default function MarketingKanbanBoard() {
                           <div className="flex-shrink-0 space-y-0.5 text-xs">
                             {/* Assigned By */}
                             <div className="flex items-center gap-1 text-white/70">
-                              <User className="w-2 h-2 flex-shrink-0" />
-                              <span className="truncate text-[8px] font-medium">{task.assignee || 'Unassigned'}</span>
+                              <User className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span className="truncate text-[9px] font-medium">{task.assignee || 'Unassigned'}</span>
                             </div>
                             
                             {/* Created Date */}
                             <div className="flex items-center gap-1 text-white/60">
-                              <Calendar className="w-2 h-2 flex-shrink-0" />
-                              <span className="text-[7px]">Created {formatDate(task.created_at)}</span>
+                              <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span className="text-[8px]">Created {formatDate(task.created_at)}</span>
                             </div>
                             
                             {/* Due Date */}
@@ -762,9 +762,9 @@ export default function MarketingKanbanBoard() {
                                 ? 'text-red-400' 
                                 : 'text-white/60'
                             }`}>
-                              <Calendar className="w-2 h-2 flex-shrink-0" />
+                              <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
                               <span 
-                                className="text-[7px] truncate"
+                                className="text-[8px] truncate"
                                 style={
                                   task.due_date && isTaskUrgent(task.due_date) && (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress')
                                     ? { animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }

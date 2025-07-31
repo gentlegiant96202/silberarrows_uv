@@ -479,18 +479,15 @@ export default function MarketingKanbanBoard() {
   }
 
   return (
-    <div className="px-4 max-w-[1600px] mx-auto">
-      <div
-        className="flex gap-3 pb-4 w-full h-full overflow-x-auto overflow-y-hidden"
-        style={{ height: "calc(100vh - 72px)" }}
-      >
+    <div className="px-2" style={{ height: "calc(100vh - 72px)" }}>
+      <div className="flex gap-1.5 pb-2 w-full h-full overflow-hidden">
         {columns.map(col => (
           <div
             key={col.key}
-            className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex-shrink-0 flex flex-col transition-shadow ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''} ${
+            className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 flex flex-col transition-shadow min-w-0 ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''} ${
               col.key === 'instagram_feed_preview' 
-                ? 'w-64 sm:w-72 lg:w-80 max-w-80' 
-                : 'w-56 sm:w-64 lg:w-72 max-w-72'
+                ? 'flex-[1.2] max-w-xs' 
+                : 'flex-1'
             }`}
             onDragOver={(e) => { onDragOver(e); setHovered(col.key); }}
             onDrop={onDrop(col.key)}
@@ -499,30 +496,30 @@ export default function MarketingKanbanBoard() {
               if (!e.currentTarget.contains(e.relatedTarget as Node)) setHovered(null); 
             }}
           >
-            <div className="mb-3 px-1 flex items-center justify-between relative sticky top-0 z-10 bg-black/50 backdrop-blur-sm pb-2 pt-1">
-              <div className="flex items-center gap-2">
+            <div className="mb-2 px-1 flex items-center justify-between relative sticky top-0 z-10 bg-black/50 backdrop-blur-sm pb-1.5 pt-0.5">
+              <div className="flex items-center gap-1.5">
                 {col.icon}
-                <h3 className="text-xs font-medium text-white whitespace-nowrap">
+                <h3 className="text-[10px] font-medium text-white whitespace-nowrap">
                   {col.title}
                 </h3>
                 {col.key === 'intake' && canCreate ? (
                   <button
                     onClick={handleCreateTask}
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
+                    className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
                     title="Add new task"
                   >
                     {grouped[col.key].length}
-                    <span className="ml-1 text-[12px] leading-none">＋</span>
+                    <span className="ml-0.5 text-[10px] leading-none">＋</span>
                   </button>
                 ) : (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-white/10 text-white/70 text-[8px] font-medium">
                     {grouped[col.key].length}
                   </span>
                 )}
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide">
               {col.key === 'instagram_feed_preview' ? (
                 // Instagram feed preview layout
                 <div className="grid grid-cols-3 gap-1">
@@ -555,7 +552,7 @@ export default function MarketingKanbanBoard() {
                       
                       {/* Pin Icon - Top Right Corner */}
                       {canEdit && (
-                        <div className="absolute top-1 right-1 z-30">
+                        <div className="absolute top-0.5 right-0.5 z-30">
                           <button
                             onClick={(e) => {
                               e.stopPropagation(); // Prevent card click
@@ -563,7 +560,7 @@ export default function MarketingKanbanBoard() {
                             }}
                             disabled={pinningTask === task.id}
                           className={`
-                            p-1 rounded-full transition-all duration-200 
+                            p-0.5 rounded-full transition-all duration-200 
                             ${task.pinned 
                               ? 'bg-gradient-to-br from-gray-300 via-gray-500 to-gray-700 text-white shadow-lg opacity-100' 
                               : 'bg-black/50 backdrop-blur-sm text-white/70 opacity-0 group-hover:opacity-100 hover:text-white'
@@ -575,7 +572,7 @@ export default function MarketingKanbanBoard() {
                           `}
                           title={task.pinned ? 'Unpin from top' : 'Pin to top'}
                         >
-                          <Pin className="w-3 h-3" />
+                          <Pin className="w-2 h-2" />
                         </button>
                       </div>
                       )}
@@ -660,38 +657,38 @@ export default function MarketingKanbanBoard() {
                       }}
                     >
                       {/* Task Type Badge - Top Right */}
-                      <div className="absolute top-1 right-1 z-20">
+                                            <div className="absolute top-0.5 right-0.5 z-20">
                         {task.task_type === 'design' && (
-                          <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
-                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                          <div className="flex items-center gap-0.5 bg-blue-500/20 text-blue-300 px-1 py-0.5 rounded-full backdrop-blur-sm">
+                            <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                             </svg>
-                            <span className="text-[7px] font-medium uppercase">Design</span>
+                            <span className="text-[6px] font-medium uppercase">Design</span>
                           </div>
                         )}
                         {task.task_type === 'photo' && (
-                          <div className="flex items-center gap-1 bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
-                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                          <div className="flex items-center gap-0.5 bg-green-500/20 text-green-300 px-1 py-0.5 rounded-full backdrop-blur-sm">
+                            <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M9 2l1.06 2.06L12 5l-1.94.94L9 8 7.94 5.94 6 5l1.94-.94L9 2zm6.5 6L17 10l-1.5 2L14 10l1.5-2zm2.5 5l-.62 1.38L16 15l1.38.62L18 17l.62-1.38L20 15l-1.38-.62L18 13z"/>
                             </svg>
-                            <span className="text-[7px] font-medium uppercase">Photo</span>
+                            <span className="text-[6px] font-medium uppercase">Photo</span>
                           </div>
                         )}
                                                  {task.task_type === 'video' && (
-                           <div className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
-                             <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                           <div className="flex items-center gap-0.5 bg-cyan-500/20 text-cyan-300 px-1 py-0.5 rounded-full backdrop-blur-sm">
+                             <svg className="w-1.5 h-1.5" fill="currentColor" viewBox="0 0 24 24">
                                <path d="M8 5v14l11-7z"/>
-                             </svg>
-                             <span className="text-[7px] font-medium uppercase">Video</span>
-                           </div>
-                         )}
+                            </svg>
+                            <span className="text-[6px] font-medium uppercase">Video</span>
+                          </div>
+                        )}
                       </div>
 
                       
                       {/* Main Content Container */}
-                      <div className="flex px-3 py-3 gap-3 min-h-[100px]">
+                      <div className="flex px-2 py-2 gap-2 min-h-[75px]">
                         {/* Left Side - Preview Thumbnail (4:5 ratio) */}
-                        <div className="flex-shrink-0 w-16 h-20 relative">
+                        <div className="flex-shrink-0 w-12 h-15 relative">
                           {previewUrl ? (
                             <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg">
                               <img 
@@ -715,21 +712,21 @@ export default function MarketingKanbanBoard() {
                           {/* Icons Row - Bottom of Thumbnail */}
                           <div className="absolute -bottom-2 left-0 right-0 flex items-center justify-between px-1">
                             {/* Left Side - Media Count */}
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5">
                               {task.media_files && task.media_files.length > 0 && (
-                                <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-1 py-0.5">
-                                  <ImageIcon className="w-2 h-2 text-white/80" />
-                                  <span className="text-white font-bold text-[8px]">{task.media_files.length}</span>
+                                <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-0.5 py-0.5">
+                                  <ImageIcon className="w-1.5 h-1.5 text-white/80" />
+                                  <span className="text-white font-bold text-[7px]">{task.media_files.length}</span>
                                 </div>
                               )}
                             </div>
                             
                             {/* Right Side - Annotation Count */}
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5">
                               {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
-                                <div className="flex items-center gap-0.5 bg-orange-400/90 backdrop-blur-sm border border-orange-300/50 rounded-full px-1 py-0.5">
-                                  <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
-                                  <span className="text-white font-bold text-[8px]">{task.annotations.length}</span>
+                                <div className="flex items-center gap-0.5 bg-orange-400/90 backdrop-blur-sm border border-orange-300/50 rounded-full px-0.5 py-0.5">
+                                  <div className="w-0.5 h-0.5 bg-white rounded-full animate-pulse"></div>
+                                  <span className="text-white font-bold text-[7px]">{task.annotations.length}</span>
                                 </div>
                               )}
                             </div>
@@ -740,34 +737,34 @@ export default function MarketingKanbanBoard() {
                         <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
                           {/* Title Section - Top */}
                           <div className="flex-shrink-0">
-                            <h4 className="text-xs font-bold text-white leading-tight line-clamp-1 group-hover:text-gray-100 transition-colors duration-200 uppercase">
+                            <h4 className="text-[10px] font-bold text-white leading-tight line-clamp-1 group-hover:text-gray-100 transition-colors duration-200 uppercase">
                               {task.title}
                             </h4>
                           </div>
                           
                           {/* Metadata Section - Bottom */}
-                          <div className="flex-shrink-0 space-y-1 text-xs">
+                          <div className="flex-shrink-0 space-y-0.5 text-xs">
                             {/* Assigned By */}
-                            <div className="flex items-center gap-1.5 text-white/70">
-                              <User className="w-2.5 h-2.5 flex-shrink-0" />
-                              <span className="truncate text-[9px] font-medium">{task.assignee || 'Unassigned'}</span>
+                            <div className="flex items-center gap-1 text-white/70">
+                              <User className="w-2 h-2 flex-shrink-0" />
+                              <span className="truncate text-[8px] font-medium">{task.assignee || 'Unassigned'}</span>
                             </div>
                             
                             {/* Created Date */}
-                            <div className="flex items-center gap-1.5 text-white/60">
-                              <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
-                              <span className="text-[8px]">Created {formatDate(task.created_at)}</span>
+                            <div className="flex items-center gap-1 text-white/60">
+                              <Calendar className="w-2 h-2 flex-shrink-0" />
+                              <span className="text-[7px]">Created {formatDate(task.created_at)}</span>
                             </div>
                             
                             {/* Due Date */}
-                            <div className={`flex items-center gap-1.5 ${
+                            <div className={`flex items-center gap-1 ${
                               task.due_date && isTaskUrgent(task.due_date) && (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') 
                                 ? 'text-red-400' 
                                 : 'text-white/60'
                             }`}>
-                              <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
+                              <Calendar className="w-2 h-2 flex-shrink-0" />
                               <span 
-                                className="text-[8px] truncate"
+                                className="text-[7px] truncate"
                                 style={
                                   task.due_date && isTaskUrgent(task.due_date) && (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress')
                                     ? { animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }

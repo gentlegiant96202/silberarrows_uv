@@ -479,15 +479,19 @@ export default function MarketingKanbanBoard() {
   }
 
   return (
-    <div className="px-4">
+    <div className="px-4 max-w-[1600px] mx-auto">
       <div
-        className="flex gap-3 pb-4 w-full h-full overflow-hidden"
+        className="flex gap-3 pb-4 w-full h-full overflow-x-auto overflow-y-hidden"
         style={{ height: "calc(100vh - 72px)" }}
       >
         {columns.map(col => (
           <div
             key={col.key}
-                          className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 ${col.key === 'instagram_feed_preview' ? 'flex-[1.3]' : 'flex-[0.8]'} min-w-0 flex flex-col transition-shadow ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''}`}
+            className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex-shrink-0 flex flex-col transition-shadow ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''} ${
+              col.key === 'instagram_feed_preview' 
+                ? 'w-64 sm:w-72 lg:w-80 max-w-80' 
+                : 'w-56 sm:w-64 lg:w-72 max-w-72'
+            }`}
             onDragOver={(e) => { onDragOver(e); setHovered(col.key); }}
             onDrop={onDrop(col.key)}
             onDragEnter={() => setHovered(col.key)}

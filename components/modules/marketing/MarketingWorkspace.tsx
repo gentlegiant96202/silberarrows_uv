@@ -1562,7 +1562,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                rows={5}
+                rows={8}
                 readOnly={!canEdit}
                 disabled={!canEdit}
                 className={`w-full px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all resize-none shadow-inner ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''}`}
@@ -1599,14 +1599,14 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
             {/* Bottom Section - Annotations */}
             <div className="flex-1 flex flex-col min-h-0">
             {/* Annotations */}
-            <div className="pt-2 border-t border-white/10 flex flex-col min-h-0" style={{ maxHeight: '300px' }}>
+            <div className="pt-2 border-t border-white/10 flex flex-col flex-1 min-h-0">
               <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-1.5 flex-shrink-0">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
                 Annotations
               </h4>
-              <div className="space-y-2 overflow-y-auto" style={{ maxHeight: '280px' }}>
+              <div className="space-y-2 overflow-y-auto flex-1">
                 {(() => {
                    // Use real annotations from MediaViewer
                    const annotations = currentAnnotations;

@@ -84,4 +84,4 @@ Create a professional luxury car advertisement that highlights the vehicle's pre
       error: e.message 
     }, { status: 500 });
   }
-} Home
+}

@@ -817,7 +817,7 @@ export default function MarketingKanbanBoard() {
                             {/* Assigned By */}
                             <div className="flex items-center gap-1 text-white/70">
                               <User className="w-2.5 h-2.5 flex-shrink-0" />
-                              <span className="truncate text-[9px] font-medium">{task.assignee || 'Unassigned'}</span>
+                              <span className="truncate text-[9px] font-medium uppercase">{task.assignee || 'Unassigned'}</span>
                             </div>
                             
                             {/* Created Date */}

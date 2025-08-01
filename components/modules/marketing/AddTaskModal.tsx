@@ -1068,9 +1068,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
                   <div className="mt-3">
                     <span className="text-[10px] text-white/50 mb-2 block">Media Files ({allViewableFiles.length})</span>
                     
-                    {/* Horizontal Thumbnail Grid */}
+                    {/* Horizontal Thumbnail Grid with Wrapping */}
                     <div 
-                      className="flex gap-3 overflow-x-auto pb-2 mb-4 scrollbar-hide" 
+                      className="flex flex-wrap gap-3 overflow-y-auto pb-2 mb-4 scrollbar-hide max-h-32" 
                       style={{ 
                         scrollbarWidth: 'none', 
                         msOverflowStyle: 'none'

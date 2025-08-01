@@ -138,6 +138,12 @@ export default function MarketingTicketsDropdown() {
 
   const handleSaveTask = async (taskData: any): Promise<MarketingTask | null> => {
     try {
+      // Auto-populate requester name if not provided
+      const userName = user?.user_metadata?.full_name;
+      const autoDisplayName = userName || 
+        (user?.email?.split('@')[0]?.replace(/\./g, ' ')?.replace(/\b\w/g, l => l.toUpperCase())) || 
+        'User';
+
       // Task automatically gets created_by from API
       const headers = {
         'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
@@ -149,6 +155,7 @@ export default function MarketingTicketsDropdown() {
         headers,
         body: JSON.stringify({
           ...taskData,
+          assignee: taskData.assignee || autoDisplayName, // Auto-populate if empty
           status: 'intake', // All tickets start in intake
         }),
       });
@@ -295,7 +302,11 @@ export default function MarketingTicketsDropdown() {
 
       {showModal && (
         <AddTaskModal
-          task={null}
+          task={{
+            assignee: user?.user_metadata?.full_name || 
+              (user?.email?.split('@')[0]?.replace(/\./g, ' ')?.replace(/\b\w/g, l => l.toUpperCase())) || 
+              'User'
+          } as any}
           onSave={handleSaveTask}
           onClose={() => setShowModal(false)}
           isAdmin={false} // External users have limited access

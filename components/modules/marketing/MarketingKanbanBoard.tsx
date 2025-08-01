@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Archive, CheckCircle, Instagram, Pin } from 'lucide-react';
 import { MarketingTask, MarketingStatus, MarketingColumn } from '@/types/marketing';
 import { supabase } from '@/lib/supabaseClient';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
 import { useAuth } from '@/components/shared/AuthProvider';
+import dayjs from 'dayjs';
 import AddTaskModal from './AddTaskModal';
 import MarketingWorkspace from './MarketingWorkspace';
 
@@ -152,8 +153,30 @@ export default function MarketingKanbanBoard() {
       const headers = await getAuthHeaders();
       const response = await fetch('/api/design-tasks', { headers });
       if (response.ok) {
-        const data = await response.json();
-        setTasks(data);
+        const rawData = await response.json();
+        
+        // Transform raw database data to match frontend expectations (same as real-time updates)
+        const transformedTasks = rawData.map((rawTask: any) => ({
+          id: rawTask.id,
+          title: rawTask.title,
+          description: rawTask.description,
+          status: rawTask.status,
+          assignee: rawTask.assignee || rawTask.requested_by, // Handle both field names
+          due_date: rawTask.due_date,
+          created_at: rawTask.created_at,
+          updated_at: rawTask.updated_at,
+          media_files: rawTask.media_files || [],
+          annotations: rawTask.annotations || [], // Ensure annotations is always an array
+          pinned: rawTask.pinned || false,
+          task_type: rawTask.task_type || 'design',
+          priority: rawTask.priority || 'medium',
+          content_type: rawTask.content_type || 'post',
+          tags: rawTask.tags || [],
+          created_by: rawTask.created_by,
+          acknowledged_at: rawTask.acknowledged_at
+        }));
+        
+        setTasks(transformedTasks);
       } else {
         console.error('Failed to fetch tasks:', response.statusText);
       }
@@ -252,39 +275,41 @@ export default function MarketingKanbanBoard() {
     };
   }, []);
 
-  // Group tasks by status with Instagram-style pinning logic
-  const grouped = columns.reduce((acc, col) => {
-    const filteredTasks = tasks.filter(task => task.status === col.key);
-    
-    // Sort tasks with Instagram logic: newest pins go leftmost, then unpinned items
-    acc[col.key] = filteredTasks.sort((a, b) => {
-      // Pinned tasks always come first
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
+  // Group tasks by status with Instagram-style pinning logic (memoized for performance)
+  const grouped = useMemo(() => {
+    return columns.reduce((acc, col) => {
+      const filteredTasks = tasks.filter(task => task.status === col.key);
       
-      // If both pinned: sort by updated_at DESC (newest pin goes leftmost like Instagram)
-      if (a.pinned && b.pinned) {
-        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      }
+      // Sort tasks with Instagram logic: newest pins go leftmost, then unpinned items
+      acc[col.key] = filteredTasks.sort((a, b) => {
+        // Pinned tasks always come first
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        
+        // If both pinned: sort by updated_at DESC (newest pin goes leftmost like Instagram)
+        if (a.pinned && b.pinned) {
+          return dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf();
+        }
+        
+        // If both unpinned: sort by updated_at DESC (newest moved/updated cards go to top)
+        return dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf();
+      });
       
-      // If both unpinned: sort by updated_at DESC (newest moved/updated cards go to top)
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-    });
-    
-    return acc;
-  }, {} as Record<ColKey, MarketingTask[]>);
+      return acc;
+    }, {} as Record<ColKey, MarketingTask[]>);
+  }, [tasks, columns]);
 
-  // Drag and drop handlers
-  const onDragStart = (task: MarketingTask) => {
+  // Drag and drop handlers (memoized for performance)
+  const onDragStart = useCallback((task: MarketingTask) => {
     setDraggedTask(task);
-  };
+  }, []);
 
-  const onDragOver = (e: React.DragEvent) => {
+  const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-  };
+  }, []);
 
-  const onDrop = (status: ColKey) => async (e: React.DragEvent) => {
+  const onDrop = useCallback((status: ColKey) => async (e: React.DragEvent) => {
     e.preventDefault();
     if (draggedTask && draggedTask.status !== status) {
       // Special rule: Only admins can move cards to "approved" status
@@ -323,12 +348,12 @@ export default function MarketingKanbanBoard() {
     }
     setDraggedTask(null);
     setHovered(null);
-  };
+  }, [draggedTask, isAdmin, getAuthHeaders, tasks]);
 
-  const onDragEnd = () => {
+  const onDragEnd = useCallback(() => {
     setDraggedTask(null);
     setHovered(null);
-  };
+  }, []);
 
   const handleCardClick = (task: MarketingTask) => {
     setSelectedTask(task);
@@ -530,20 +555,19 @@ export default function MarketingKanbanBoard() {
                       onDragStart={() => onDragStart(task)}
                       onDragEnd={onDragEnd}
                       onClick={() => handleCardClick(task)}
-                      className={`aspect-[4/5] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm cursor-pointer group relative overflow-hidden ${
+                      className={`aspect-[4/5] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm rounded-lg shadow-sm cursor-pointer group relative overflow-hidden ${
                         draggedTask?.id === task.id 
-                          ? 'z-50 scale-105 rotate-2 shadow-2xl bg-white/20 border-white/30' 
-                          : 'z-10'
+                          ? 'z-50 opacity-80 border-white/40' 
+                          : 'z-10 transition-all duration-200'
                       }`}
-                      style={{
-                        transform: draggedTask?.id === task.id ? 'translateY(-8px)' : 'translateY(0px)',
-                        transition: 'all 0.2s ease-in-out'
-                      }}
                     >
                       {/* Annotation Badge - Subtle */}
                       {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
                         <div className="absolute top-0.5 left-0.5 z-20">
-                          <div className="flex items-center gap-0.5 bg-orange-400/80 text-white text-[6px] font-medium px-0.5 py-0.5 rounded-full shadow-sm">
+                          <div 
+                            className="flex items-center gap-0.5 bg-orange-400/80 text-white text-[6px] font-medium px-0.5 py-0.5 rounded-full shadow-sm"
+                            title={`${task.annotations.length} annotation${task.annotations.length > 1 ? 's' : ''}`}
+                          >
                             <div className="w-0.5 h-0.5 bg-white rounded-full"></div>
                             <span>{task.annotations.length}</span>
                           </div>
@@ -649,10 +673,10 @@ export default function MarketingKanbanBoard() {
                         before:-z-10 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300
                       `}
                       style={{
-                        transform: draggedTask?.id === task.id ? 'translateY(-8px) scale(1.05) rotate(1deg)' : 'translateY(0px)',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        opacity: draggedTask?.id === task.id ? 0.8 : 1,
+                        transition: draggedTask?.id === task.id ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         boxShadow: draggedTask?.id === task.id 
-                          ? '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)' 
+                          ? '0 4px 8px rgba(0, 0, 0, 0.3)' 
                           : '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
                       }}
                     >
@@ -724,7 +748,10 @@ export default function MarketingKanbanBoard() {
                             {/* Right Side - Annotation Count */}
                             <div className="flex items-center gap-1">
                               {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
-                                <div className="flex items-center gap-0.5 bg-orange-400/90 backdrop-blur-sm border border-orange-300/50 rounded-full px-1 py-0.5">
+                                <div 
+                                  className="flex items-center gap-0.5 bg-orange-400/90 backdrop-blur-sm border border-orange-300/50 rounded-full px-1 py-0.5"
+                                  title={`${task.annotations.length} annotation${task.annotations.length > 1 ? 's' : ''}`}
+                                >
                                   <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
                                   <span className="text-white font-bold text-[8px]">{task.annotations.length}</span>
                                 </div>
@@ -758,7 +785,9 @@ export default function MarketingKanbanBoard() {
                             
                             {/* Due Date */}
                             <div className={`flex items-center gap-1 ${
-                              task.due_date && isTaskUrgent(task.due_date) && (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') 
+                              task.due_date && isTaskUrgent(task.due_date) && 
+                              (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') &&
+                              !(task.status === 'in_progress' && task.annotations && task.annotations.length > 0)
                                 ? 'text-red-400' 
                                 : 'text-white/60'
                             }`}>
@@ -766,7 +795,9 @@ export default function MarketingKanbanBoard() {
                               <span 
                                 className="text-[8px] truncate"
                                 style={
-                                  task.due_date && isTaskUrgent(task.due_date) && (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress')
+                                  task.due_date && isTaskUrgent(task.due_date) && 
+                                  (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') &&
+                                  !(task.status === 'in_progress' && task.annotations && task.annotations.length > 0)
                                     ? { animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
                                     : {}
                                 }

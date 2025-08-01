@@ -240,10 +240,9 @@ export async function PUT(req: NextRequest) {
     
     const isAdmin = roleData?.role === 'admin';
 
-    // Admin-only field validation (due_date and task_type only)
+    // Admin-only field validation (due_date only)
     const adminOnlyFields = [];
     if (due_date !== undefined && due_date !== currentTask.due_date) adminOnlyFields.push('due_date');
-    if (task_type !== undefined && task_type !== currentTask.task_type) adminOnlyFields.push('task_type');
 
     if (adminOnlyFields.length > 0 && !isAdmin) {
       return NextResponse.json({ 

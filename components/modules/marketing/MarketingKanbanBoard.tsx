@@ -200,7 +200,6 @@ export default function MarketingKanbanBoard() {
           setTasks(prev => {
             if (payload.eventType === 'INSERT') {
               const rawTask = payload.new;
-              console.log('Real-time INSERT received (raw):', rawTask);
               
               // Transform raw database data to match frontend expectations
               const newTask: MarketingTask = {
@@ -221,8 +220,6 @@ export default function MarketingKanbanBoard() {
                 tags: []
               };
               
-              console.log('Real-time INSERT transformed:', newTask);
-              
               // Check if task already exists to prevent duplicates (local creation + real-time)
               const taskExists = prev.some(task => task.id === newTask.id);
               if (taskExists) {
@@ -233,7 +230,6 @@ export default function MarketingKanbanBoard() {
             }
             if (payload.eventType === 'UPDATE') {
               const rawTask = payload.new;
-              console.log('Real-time UPDATE received (raw):', rawTask);
               
               // Transform raw database data to match frontend expectations
               const updatedTask: MarketingTask = {
@@ -254,8 +250,6 @@ export default function MarketingKanbanBoard() {
                 tags: []
               };
               
-              console.log('Real-time UPDATE transformed:', updatedTask);
-              
               return prev.map(task => 
                 task.id === updatedTask.id ? updatedTask : task
               );
@@ -275,10 +269,26 @@ export default function MarketingKanbanBoard() {
     };
   }, []);
 
+  // Memoize expensive media file processing to prevent regex hell during drag
+  const tasksWithPreviewUrls = useMemo(() => {
+    return tasks.map(task => ({
+      ...task,
+      previewUrl: (() => {
+        const previewImage = task.media_files?.find((f: any) => {
+          if (typeof f === 'string') {
+            return f.match(/\.(jpe?g|png|webp|gif)$/i);
+          }
+          return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
+        });
+        return previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null;
+      })()
+    })) as (MarketingTask & { previewUrl: string | null })[];
+  }, [tasks]);
+
   // Group tasks by status with Instagram-style pinning logic (memoized for performance)
   const grouped = useMemo(() => {
     return columns.reduce((acc, col) => {
-      const filteredTasks = tasks.filter(task => task.status === col.key);
+      const filteredTasks = tasksWithPreviewUrls.filter(task => task.status === col.key);
       
       // Sort tasks with Instagram logic: newest pins go leftmost, then unpinned items
       acc[col.key] = filteredTasks.sort((a, b) => {
@@ -297,7 +307,7 @@ export default function MarketingKanbanBoard() {
       
       return acc;
     }, {} as Record<ColKey, MarketingTask[]>);
-  }, [tasks, columns]);
+  }, [tasksWithPreviewUrls, columns]);
 
   // Drag and drop handlers (memoized for performance)
   const onDragStart = useCallback((task: MarketingTask) => {
@@ -376,8 +386,6 @@ export default function MarketingKanbanBoard() {
       setPinningTask(taskId);
       const newPinned = !currentPinned;
 
-      console.log(`📌 ${newPinned ? 'Pinning' : 'Unpinning'} task ${taskId}`);
-
       const headers = await getAuthHeaders();
       const response = await fetch('/api/social-media-tasks/pin', {
         method: 'POST',
@@ -395,7 +403,6 @@ export default function MarketingKanbanBoard() {
             ? { ...task, pinned: newPinned, updated_at: new Date().toISOString() }
             : task
         ));
-        console.log(`✅ Task ${newPinned ? 'pinned' : 'unpinned'} successfully`);
       } else {
         const error = await response.json();
         console.error('❌ Failed to update pin status:', error);
@@ -603,32 +610,21 @@ export default function MarketingKanbanBoard() {
                       
                       {/* Full image display */}
                       <div className="w-full h-full rounded-lg overflow-hidden">
-                        {(() => {
-                          // Get the first image for preview
-                          const previewImage = task.media_files?.find((f: any) => {
-                            if (typeof f === 'string') {
-                              return f.match(/\.(jpe?g|png|webp|gif)$/i);
-                            }
-                            return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
-                          });
-                          const previewUrl = previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null;
-                          
-                          return previewUrl ? (
+                        {(task as any).previewUrl ? (
+                          <img 
+                            src={(task as any).previewUrl} 
+                            alt={task.title}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
                             <img 
-                              src={previewUrl} 
-                              alt={task.title}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                              src="/MAIN LOGO.png" 
+                              alt="SilberArrows Logo" 
+                              className="w-full h-full object-contain opacity-60 filter brightness-200" 
                             />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
-                              <img 
-                                src="/MAIN LOGO.png" 
-                                alt="SilberArrows Logo" 
-                                className="w-full h-full object-contain opacity-60 filter brightness-200" 
-                              />
-                            </div>
-                          );
-                        })()}
+                          </div>
+                        )}
                       </div>
 
                     </div>
@@ -637,14 +633,8 @@ export default function MarketingKanbanBoard() {
               ) : (
                 // Glassmorphism card layout for other columns
                 grouped[col.key].map(task => {
-                  // Get the first image for preview thumbnail
-                  const previewImage = task.media_files?.find((f: any) => {
-                    if (typeof f === 'string') {
-                      return f.match(/\.(jpe?g|png|webp|gif)$/i);
-                    }
-                    return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
-                  });
-                  const previewUrl = previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null;
+                  // Use pre-computed preview URL to avoid expensive regex operations during render
+                  const previewUrl = (task as any).previewUrl;
 
                   return (
                     <div

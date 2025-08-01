@@ -63,7 +63,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   // Loading states for media operations
   const [mediaLoading, setMediaLoading] = useState(false);
-  const [primaryLoading, setPrimaryLoading] = useState<string | null>(null); // ID of media being set as primary
   const [reorderLoading, setReorderLoading] = useState(false);
 
   // Mercedes-Benz models from appointment modal
@@ -102,8 +101,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [expanded, setExpanded] = useState<{[key:string]:boolean}>({});
   const canEdit = canEditInventory && ['new_listing','marketing','qc_ceo'].includes(car.status);
   const [editing, setEditing] = useState(false);
-  // Remove drag-related state
-  // const [dragIdx, setDragIdx] = useState<number|null>(null);
+  // Drag and drop state for reordering
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const toggleExpand = (label:string)=> setExpanded(p=>({...p,[label]:!p[label]}));
 
@@ -198,19 +198,17 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     }
   };
 
-  // New function to move photos left/right one position at a time
-  const movePhoto = async (currentIndex: number, direction: 'up' | 'down') => {
+  // Function to move photos to specific position (for drag & drop)
+  const movePhotoToPosition = async (fromIndex: number, toIndex: number) => {
     if (!canEditInventory || !editing || reorderLoading) return;
-    
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= gallery.length) return;
+    if (fromIndex === toIndex || toIndex < 0 || toIndex >= gallery.length) return;
     
     setReorderLoading(true);
     
     // Optimistic update: show change immediately
     const newGallery = [...gallery];
-    const [movedItem] = newGallery.splice(currentIndex, 1);
-    newGallery.splice(newIndex, 0, movedItem);
+    const [movedItem] = newGallery.splice(fromIndex, 1);
+    newGallery.splice(toIndex, 0, movedItem);
     
     const docs = media.filter(m => m.kind === 'document');
     const optimisticMedia = [...docs, ...newGallery];
@@ -236,6 +234,37 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     } finally {
       setReorderLoading(false);
     }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!editing || reorderLoading) return;
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || !editing) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || !editing) return;
+    
+    movePhotoToPosition(draggedIndex, dropIndex);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleGeneratePdf = async ()=>{
@@ -398,7 +427,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   const handleDeleteMedia = async (m:any)=>{
     if(!confirm('Delete this media?')) return;
-    if (primaryLoading || reorderLoading || mediaLoading) return;
+    if (reorderLoading || mediaLoading) return;
     
     setMediaLoading(true);
     
@@ -430,36 +459,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     }
   };
 
-  const handleMakePrimary = async (m:any)=>{
-    if (primaryLoading || reorderLoading) return;
-    
-    setPrimaryLoading(m.id);
-    
-    // Optimistic update: show change immediately
-    const previousMedia = [...media];
-    const optimisticMedia = media.map(item => ({
-      ...item,
-      is_primary: item.id === m.id ? true : (item.kind === 'photo' ? false : item.is_primary)
-    }));
-    setMedia(optimisticMedia);
-    
-    try {
-      // Clear existing primary photos
-    await supabase.from('car_media').update({ is_primary:false }).eq('car_id', car.id).eq('kind','photo');
-      // Set new primary
-    await supabase.from('car_media').update({ is_primary:true }).eq('id', m.id);
-      
-      // Refetch to ensure consistency
-      await refetchMedia();
-    } catch (error) {
-      console.error('Failed to set primary media:', error);
-      // Rollback on failure
-      setMedia(previousMedia);
-      alert('Failed to set primary photo. Please try again.');
-    } finally {
-      setPrimaryLoading(null);
-    }
-  };
+
 
   // lightbox state
   const [showGallery, setShowGallery] = useState<number|null>(null); // index in gallery array
@@ -775,12 +775,11 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   <h4 className="text-xs font-semibold text-white/70">
                     Pictures / Videos ({gallery.length})
                     {mediaLoading && <span className="ml-2 text-red-400">Loading...</span>}
-                    {reorderLoading && <span className="ml-2 text-blue-400">Reordering...</span>}
-                    {primaryLoading && <span className="ml-2 text-yellow-400">Setting Primary...</span>}
+                                    {reorderLoading && <span className="ml-2 text-blue-400">Reordering...</span>}
                   </h4>
                   <button 
                     onClick={()=>downloadAll(gallery, 'media.zip')} 
-                    disabled={!!(mediaLoading || reorderLoading || primaryLoading)}
+                    disabled={!!(mediaLoading || reorderLoading)}
                     className="text-[10px] underline text-white/60 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Download All
@@ -790,7 +789,19 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   {gallery.map((m:any, i:number)=>(
                     <div
                       key={m.id}
-                      className="relative group"
+                      className={`relative group transition-all duration-200 ${
+                        editing ? 'cursor-move' : 'cursor-pointer'
+                      } ${
+                        draggedIndex === i ? 'opacity-50 scale-95 rotate-1' : ''
+                      } ${
+                        dragOverIndex === i && draggedIndex !== i ? 'scale-105 ring-2 ring-blue-400' : ''
+                      }`}
+                      draggable={editing && !reorderLoading}
+                      onDragStart={(e) => handleDragStart(e, i)}
+                      onDragOver={(e) => handleDragOver(e, i)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, i)}
+                      onDragEnd={handleDragEnd}
                     >
                       {m.kind==='photo' ? (
                         <img src={m.url} loading="lazy" className="w-full h-24 object-contain rounded bg-black" onClick={()=>setShowGallery(i)} />)
@@ -802,54 +813,28 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                             </div>
                           </div>
                         )}
-                      {/* overlay buttons - for users with edit/delete permissions */}
+                      {/* overlay buttons - delete available to all users */}
                       <>
-                        {canDeleteInventory && (
-                          <button 
-                            onClick={()=>handleDeleteMedia(m)} 
-                            disabled={!!(mediaLoading || primaryLoading || reorderLoading)}
-                            className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            {mediaLoading ? '...' : '×'}
-                          </button>
-                        )}
-                        {canEdit && m.kind==='photo' && !m.is_primary && (
-                          <button 
-                            onClick={()=>handleMakePrimary(m)} 
-                            disabled={!!(primaryLoading !== null || reorderLoading || mediaLoading)}
-                            className="absolute bottom-0 left-0 text-[9px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            {primaryLoading === m.id ? '...' : '1°'}
-                          </button>
-                        )}
+                        <button 
+                          onClick={()=>handleDeleteMedia(m)} 
+                          disabled={!!(mediaLoading || reorderLoading)}
+                          className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {mediaLoading ? '...' : '×'}
+                        </button>
                       </>
                       {m.kind==='photo' && m.is_primary && (
                         <span className="absolute bottom-0 left-0 text-[9px] bg-green-600/80 text-white px-1 font-semibold">
                           PRIMARY
                         </span>
                       )}
-                      {/* Arrow buttons for reordering - only show when editing */}
-                      {editing && (
-                        <>
-                          {/* Left arrow - move photo left (up in order) */}
-                          <button 
-                            onClick={(e) => {e.stopPropagation(); movePhoto(i, 'up');}}
-                            disabled={!!(i === 0 || reorderLoading || primaryLoading || mediaLoading)}
-                            className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
-                            title="Move left"
-                          >
-                            {reorderLoading ? '...' : '←'}
-                          </button>
-                          {/* Right arrow - move photo right (down in order) */}
-                          <button 
-                            onClick={(e) => {e.stopPropagation(); movePhoto(i, 'down');}}
-                            disabled={!!(i === gallery.length - 1 || reorderLoading || primaryLoading || mediaLoading)}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/80 text-white flex items-center justify-center rounded-full text-[12px] hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed hidden group-hover:block"
-                            title="Move right"
-                          >
-                            {reorderLoading ? '...' : '→'}
-                          </button>
-                        </>
+                      {/* Drag indicator when in editing mode */}
+                      {editing && draggedIndex !== i && (
+                        <div className="absolute inset-0 border-2 border-dashed border-white/20 rounded hidden group-hover:block pointer-events-none">
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/50 text-[10px] bg-black/70 px-1.5 py-0.5 rounded">
+                            Drag to reorder
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}

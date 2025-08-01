@@ -60,6 +60,9 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
   const [step, setStep] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [rawEquipmentData, setRawEquipmentData] = useState<any>(null);
+  const [generatingEquipment, setGeneratingEquipment] = useState(false);
 
   // Mercedes-Benz models for dropdown
   const models = [
@@ -191,6 +194,9 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
             const optionDescs = Array.from(new Set(optionDescsArr));
             const optionsText = optionDescs.length ? optionDescs.map(d => `- ${d}`).join('\n') : '';
 
+            // Store raw equipment data for processing
+            setRawEquipmentData(optsObj);
+
             setForm(prev => ({
               ...prev,
               vehicle_model: modelDesc || prev.vehicle_model,
@@ -202,7 +208,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
               description: ''
             }));
 
-            // GPT enrichment
+            // Engine/transmission enrichment (without description)
             try {
               const enr = await fetch('/api/enrich-vin', {
                 method: 'POST',
@@ -212,11 +218,6 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
               const enrJson = await enr.json();
               if (enrJson.success) {
                 const d = enrJson.data;
-                const tidy = (s: string) => {
-                  if (!s) return '';
-                  const lower = s.toLowerCase();
-                  return lower.charAt(0).toUpperCase() + lower.slice(1);
-                };
                 const toNumberStr = (v: any) => {
                   const m = String(v || '').match(/\d+/);
                   return m ? m[0] : '';
@@ -230,8 +231,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                   engine: d.engine || prev.engine,
                   transmission: d.transmission || prev.transmission,
                   horsepower_hp: toNumberStr(hpRaw) || prev.horsepower_hp,
-                  torque_nm: toNumberStr(tqRaw) || prev.torque_nm,
-                  description: d.description ? tidy(d.description) : prev.description
+                  torque_nm: toNumberStr(tqRaw) || prev.torque_nm
                 }));
               }
             } catch (e) {
@@ -277,13 +277,84 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     });
   };
 
+  const generateDescription = async () => {
+    if (generatingDescription) return;
+    setGeneratingDescription(true);
+    
+    try {
+      const carData = {
+        model_year: form.model_year,
+        vehicle_model: form.vehicle_model,
+        model_family: form.model_family,
+        colour: form.colour,
+        interior_colour: form.interior_colour,
+        engine: form.engine,
+        transmission: form.transmission,
+        horsepower_hp: form.horsepower_hp,
+        torque_nm: form.torque_nm,
+        cubic_capacity_cc: form.cubic_capacity_cc,
+        key_equipment: form.key_equipment
+      };
+
+      const response = await fetch('/api/generate-car-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(carData)
+      });
+
+      const result = await response.json();
+      if (result.success && result.description) {
+        setForm(prev => ({
+          ...prev,
+          description: result.description
+        }));
+      } else {
+        alert('Failed to generate description. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error generating description:', error);
+      alert('Failed to generate description. Please try again.');
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
+  const generateKeyEquipment = async () => {
+    if (generatingEquipment || !rawEquipmentData) return;
+    setGeneratingEquipment(true);
+    
+    try {
+      const response = await fetch('/api/process-key-equipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawEquipment: rawEquipmentData })
+      });
+
+      const result = await response.json();
+      if (result.success && result.equipment) {
+        console.log(`Processed equipment: ${result.equipment.length} characters`);
+        setForm(prev => ({
+          ...prev,
+          key_equipment: result.equipment
+        }));
+      } else {
+        alert('Failed to process key equipment. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error processing key equipment:', error);
+      alert('Failed to process key equipment. Please try again.');
+    } finally {
+      setGeneratingEquipment(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.stock_number || !form.model_year || !form.vehicle_model || !form.model_family || !form.colour || !form.chassis_number || !form.advertised_price_aed) return;
     
     // Check character limits
-    if (form.description.length > 1700 || form.key_equipment.length > 1800) {
-      alert('Please check character limits: Description max 1700, Key Equipment max 1800');
+    if (form.description.length > 1500 || form.key_equipment.length > 1800) {
+      alert('Please check character limits: Description max 1500, Key Equipment max 1800');
       return;
     }
     
@@ -680,9 +751,32 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-white/80 text-xs font-semibold">Key Equipment</h3>
-                  <span className={`text-xs ${form.key_equipment.length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
-                    {form.key_equipment.length}/1800
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={generateKeyEquipment}
+                      disabled={generatingEquipment || !rawEquipmentData}
+                      className="px-2 py-1 text-xs bg-green-600/20 hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-300 border border-green-500/30 rounded transition-colors flex items-center gap-1"
+                      title={!rawEquipmentData ? "VIN decode first to get equipment data" : "Process raw equipment data"}
+                    >
+                      {generatingEquipment ? (
+                        <>
+                          <div className="w-3 h-3 border border-green-300/30 border-t-green-300 rounded-full animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                          Process
+                        </>
+                      )}
+                    </button>
+                    <span className={`text-xs ${form.key_equipment.length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
+                      {form.key_equipment.length}/1800
+                    </span>
+                  </div>
                 </div>
                 <textarea
                   name="key_equipment"
@@ -703,22 +797,44 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-white/80 text-xs font-semibold">Description</h3>
-                  <span className={`text-xs ${form.description.length > 1700 ? 'text-red-400' : 'text-white/60'}`}>
-                    {form.description.length}/1700
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={generateDescription}
+                      disabled={generatingDescription || !form.model_year || !form.vehicle_model || !form.colour}
+                      className="px-2 py-1 text-xs bg-blue-600/20 hover:bg-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-300 border border-blue-500/30 rounded transition-colors flex items-center gap-1"
+                    >
+                      {generatingDescription ? (
+                        <>
+                          <div className="w-3 h-3 border border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Generate
+                        </>
+                      )}
+                    </button>
+                    <span className={`text-xs ${form.description.length > 1500 ? 'text-red-400' : 'text-white/60'}`}>
+                      {form.description.length}/1500
+                    </span>
+                  </div>
                 </div>
                 <textarea
                   name="description"
                   value={form.description}
                   onChange={handleChange}
                   className={`w-full px-2 py-1 rounded bg-black/20 border text-white resize-y min-h-[100px] ${
-                    form.description.length > 1700 ? 'border-red-400' : 'border-white/10'
+                    form.description.length > 1500 ? 'border-red-400' : 'border-white/10'
                   }`}
                   rows={3}
-                  maxLength={1700}
+                  maxLength={1500}
                 />
-                {form.description.length > 1700 && (
-                  <p className="text-red-400 text-xs mt-1">Description must be 1700 characters or less</p>
+                {form.description.length > 1500 && (
+                  <p className="text-red-400 text-xs mt-1">Description must be 1500 characters or less</p>
                 )}
               </div>
              </>

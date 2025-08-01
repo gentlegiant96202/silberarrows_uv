@@ -598,44 +598,37 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
       return;
     }
 
+    // Clear drag state immediately for better UX
+    setDraggedIndex(null);
+
     try {
       // Map viewable indices to media file indices
       const draggedMediaIndex = viewableToMediaMapping[draggedIndex];
       const targetMediaIndex = viewableToMediaMapping[targetIndex];
       
       if (draggedMediaIndex === undefined || targetMediaIndex === undefined) {
-        setDraggedIndex(null);
         return;
       }
 
-      // Reorder the original media files array
-    const newMediaFiles = [...mediaFiles];
+      // Optimize reordering with fewer array operations
+      const newMediaFiles = [...mediaFiles];
       const draggedItem = newMediaFiles[draggedMediaIndex];
       
-      // Remove from old position
-      newMediaFiles.splice(draggedMediaIndex, 1);
-      
-      // Calculate correct insertion index after removal
+      // Calculate correct insertion index before removal
       let insertIndex = targetMediaIndex;
       if (draggedMediaIndex < targetMediaIndex) {
-        // When moving forward, target index shifts left by 1 after removal
         insertIndex = targetMediaIndex - 1;
-      } else {
-        // When moving backward, target index stays the same
-        insertIndex = targetMediaIndex;
       }
       
-      // Insert at new position
+      // Remove and insert in one operation
+      newMediaFiles.splice(draggedMediaIndex, 1);
       newMediaFiles.splice(insertIndex, 0, draggedItem);
 
-    // Force immediate state updates
-    setMediaFiles(newMediaFiles);
-    task.media_files = newMediaFiles;
-    
-    // Force refresh of all computed arrays
-    setRefreshKey(prev => prev + 1);
+      // Batch state updates for better performance
+      setMediaFiles(newMediaFiles);
+      task.media_files = newMediaFiles;
       
-      // Adjust selected index if necessary (working with viewable indices)
+      // Update selected index (working with viewable indices)
       if (selectedImageIndex === draggedIndex) {
         setSelectedImageIndex(targetIndex);
       } else if (selectedImageIndex > draggedIndex && selectedImageIndex <= targetIndex) {
@@ -644,22 +637,25 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
         setSelectedImageIndex(selectedImageIndex + 1);
       }
       
-    setDraggedIndex(null);
-    
-    // Update database
-    supabase
-      .from('design_tasks')
-      .update({ media_files: newMediaFiles })
-        .eq('id', task.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Failed to update media files order:', error);
-          }
-        });
+      // Defer refresh key update to next tick to avoid blocking UI
+      setTimeout(() => setRefreshKey(prev => prev + 1), 0);
+      
+      // Defer database update to not block UI
+      setTimeout(() => {
+        supabase
+          .from('design_tasks')
+          .update({ media_files: newMediaFiles })
+          .eq('id', task.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Failed to update media files order:', error);
+            }
+          });
+      }, 0);
         
     } catch (error) {
       console.error('❌ Error during drop:', error);
-      setDraggedIndex(null);
+      // Drag state already cleared above
     }
   };
 

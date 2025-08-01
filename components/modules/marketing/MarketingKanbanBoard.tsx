@@ -156,25 +156,40 @@ export default function MarketingKanbanBoard() {
         const rawData = await response.json();
         
         // Transform raw database data to match frontend expectations (same as real-time updates)
-        const transformedTasks = rawData.map((rawTask: any) => ({
-          id: rawTask.id,
-          title: rawTask.title,
-          description: rawTask.description,
-          status: rawTask.status,
-          assignee: rawTask.assignee || rawTask.requested_by, // Handle both field names
-          due_date: rawTask.due_date,
-          created_at: rawTask.created_at,
-          updated_at: rawTask.updated_at,
-          media_files: rawTask.media_files || [],
-          annotations: rawTask.annotations || [], // Ensure annotations is always an array
-          pinned: rawTask.pinned || false,
-          task_type: rawTask.task_type || 'design',
-          priority: rawTask.priority || 'medium',
-          content_type: rawTask.content_type || 'post',
-          tags: rawTask.tags || [],
-          created_by: rawTask.created_by,
-          acknowledged_at: rawTask.acknowledged_at
-        }));
+        const transformedTasks = rawData.map((rawTask: any) => {
+          const baseTask = {
+            id: rawTask.id,
+            title: rawTask.title,
+            description: rawTask.description,
+            status: rawTask.status,
+            assignee: rawTask.assignee || rawTask.requested_by, // Handle both field names
+            due_date: rawTask.due_date,
+            created_at: rawTask.created_at,
+            updated_at: rawTask.updated_at,
+            media_files: rawTask.media_files || [],
+            annotations: rawTask.annotations || [], // Ensure annotations is always an array
+            pinned: rawTask.pinned || false,
+            task_type: rawTask.task_type || 'design',
+            priority: rawTask.priority || 'medium',
+            content_type: rawTask.content_type || 'post',
+            tags: rawTask.tags || [],
+            created_by: rawTask.created_by,
+            acknowledged_at: rawTask.acknowledged_at
+          };
+          
+          // Pre-compute preview URL to avoid expensive regex during drag
+          const previewImage = baseTask.media_files?.find((f: any) => {
+            if (typeof f === 'string') {
+              return f.match(/\.(jpe?g|png|webp|gif)$/i);
+            }
+            return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
+          });
+          
+          return {
+            ...baseTask,
+            previewUrl: previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null
+          };
+        });
         
         setTasks(transformedTasks);
       } else {
@@ -202,7 +217,7 @@ export default function MarketingKanbanBoard() {
               const rawTask = payload.new;
               
               // Transform raw database data to match frontend expectations
-              const newTask: MarketingTask = {
+              const baseTask: MarketingTask = {
                 id: rawTask.id,
                 title: rawTask.title,
                 description: rawTask.description,
@@ -220,6 +235,19 @@ export default function MarketingKanbanBoard() {
                 tags: []
               };
               
+              // Pre-compute preview URL to avoid expensive regex during drag
+              const previewImage = baseTask.media_files?.find((f: any) => {
+                if (typeof f === 'string') {
+                  return f.match(/\.(jpe?g|png|webp|gif)$/i);
+                }
+                return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
+              });
+              
+              const newTask = {
+                ...baseTask,
+                previewUrl: previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null
+              };
+              
               // Check if task already exists to prevent duplicates (local creation + real-time)
               const taskExists = prev.some(task => task.id === newTask.id);
               if (taskExists) {
@@ -232,7 +260,7 @@ export default function MarketingKanbanBoard() {
               const rawTask = payload.new;
               
               // Transform raw database data to match frontend expectations
-              const updatedTask: MarketingTask = {
+              const baseTask: MarketingTask = {
                 id: rawTask.id,
                 title: rawTask.title,
                 description: rawTask.description,
@@ -248,6 +276,19 @@ export default function MarketingKanbanBoard() {
                 priority: 'medium',
                 content_type: 'post',
                 tags: []
+              };
+              
+              // Pre-compute preview URL to avoid expensive regex during drag
+              const previewImage = baseTask.media_files?.find((f: any) => {
+                if (typeof f === 'string') {
+                  return f.match(/\.(jpe?g|png|webp|gif)$/i);
+                }
+                return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
+              });
+              
+              const updatedTask = {
+                ...baseTask,
+                previewUrl: previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null
               };
               
               return prev.map(task => 
@@ -269,47 +310,32 @@ export default function MarketingKanbanBoard() {
     };
   }, []);
 
-  // Memoize expensive media file processing to prevent regex hell during drag
-  const tasksWithPreviewUrls = useMemo(() => {
-    return tasks.map(task => ({
-      ...task,
-      previewUrl: (() => {
-        const previewImage = task.media_files?.find((f: any) => {
-          if (typeof f === 'string') {
-            return f.match(/\.(jpe?g|png|webp|gif)$/i);
-          }
-          return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
-        });
-        return previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null;
-      })()
-    })) as (MarketingTask & { previewUrl: string | null })[];
-  }, [tasks]);
-
-  // Group tasks by status with Instagram-style pinning logic (memoized for performance)
+  // Group tasks by status with optimized sorting logic (memoized for performance)
   const grouped = useMemo(() => {
     return columns.reduce((acc, col) => {
-      const filteredTasks = tasksWithPreviewUrls.filter(task => task.status === col.key);
+      const filteredTasks = tasks.filter(task => task.status === col.key);
+      
+      // Pre-compute dayjs values to avoid repeated parsing during sort
+      const tasksWithComputedDates = filteredTasks.map(task => ({
+        ...task,
+        updatedAtValue: dayjs(task.updated_at).valueOf()
+      }));
       
       // Sort tasks with Instagram logic: newest pins go leftmost, then unpinned items
-      acc[col.key] = filteredTasks.sort((a, b) => {
+      acc[col.key] = tasksWithComputedDates.sort((a, b) => {
         // Pinned tasks always come first
         if (a.pinned && !b.pinned) return -1;
         if (!a.pinned && b.pinned) return 1;
         
-        // If both pinned: sort by updated_at DESC (newest pin goes leftmost like Instagram)
-        if (a.pinned && b.pinned) {
-          return dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf();
-        }
-        
-        // If both unpinned: sort by updated_at DESC (newest moved/updated cards go to top)
-        return dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf();
+        // If both pinned or both unpinned: sort by pre-computed date value
+        return b.updatedAtValue - a.updatedAtValue;
       });
       
       return acc;
     }, {} as Record<ColKey, MarketingTask[]>);
-  }, [tasksWithPreviewUrls, columns]);
+  }, [tasks, columns]);
 
-  // Drag and drop handlers (memoized for performance)
+  // Optimized drag and drop handlers (memoized for performance)
   const onDragStart = useCallback((task: MarketingTask) => {
     setDraggedTask(task);
   }, []);
@@ -319,46 +345,73 @@ export default function MarketingKanbanBoard() {
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
+  // Optimized onDrop with reduced dependencies and deferred updates
   const onDrop = useCallback((status: ColKey) => async (e: React.DragEvent) => {
     e.preventDefault();
-    if (draggedTask && draggedTask.status !== status) {
-      // Special rule: Only admins can move cards to "approved" status
-      if (status === 'approved' && !isAdmin) {
-        alert('Only administrators can approve tasks');
-        setDraggedTask(null);
-        return;
-      }
-      
-      try {
-        // Update in database
-        const headers = await getAuthHeaders();
-        const response = await fetch('/api/design-tasks', {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({
-            id: draggedTask.id,
-            status,
-          }),
-        });
-
-        if (response.ok) {
-          // Update local state only if API call succeeds
-          const updatedTasks = tasks.map(task =>
-            task.id === draggedTask.id
-              ? { ...task, status, updated_at: new Date().toISOString() }
-              : task
-          );
-          setTasks(updatedTasks);
-        } else {
-          console.error('Failed to update task status');
-        }
-      } catch (error) {
-        console.error('Error updating task:', error);
-      }
+    if (!draggedTask || draggedTask.status === status) {
+      setDraggedTask(null);
+      setHovered(null);
+      return;
     }
+
+    // Special rule: Only admins can move cards to "approved" status
+    if (status === 'approved' && !isAdmin) {
+      alert('Only administrators can approve tasks');
+      setDraggedTask(null);
+      setHovered(null);
+      return;
+    }
+    
+    const taskToUpdate = draggedTask;
+    
+    // Clear drag state immediately for better UX
     setDraggedTask(null);
     setHovered(null);
-  }, [draggedTask, isAdmin, getAuthHeaders, tasks]);
+    
+    // Optimistic update for immediate UI feedback
+    setTasks(prevTasks => 
+      prevTasks.map(task =>
+        task.id === taskToUpdate.id
+          ? { ...task, status, updated_at: new Date().toISOString() }
+          : task
+      )
+    );
+    
+    // Defer database update to not block UI
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/design-tasks', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          id: taskToUpdate.id,
+          status,
+        }),
+      });
+
+      if (!response.ok) {
+        // Revert optimistic update on failure
+        setTasks(prevTasks => 
+          prevTasks.map(task =>
+            task.id === taskToUpdate.id
+              ? { ...task, status: taskToUpdate.status, updated_at: taskToUpdate.updated_at }
+              : task
+          )
+        );
+        console.error('Failed to update task status');
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      setTasks(prevTasks => 
+        prevTasks.map(task =>
+          task.id === taskToUpdate.id
+            ? { ...task, status: taskToUpdate.status, updated_at: taskToUpdate.updated_at }
+            : task
+        )
+      );
+      console.error('Error updating task:', error);
+    }
+  }, [draggedTask, isAdmin, getAuthHeaders]);
 
   const onDragEnd = useCallback(() => {
     setDraggedTask(null);
@@ -610,9 +663,9 @@ export default function MarketingKanbanBoard() {
                       
                       {/* Full image display */}
                       <div className="w-full h-full rounded-lg overflow-hidden">
-                        {(task as any).previewUrl ? (
+                        {task.previewUrl ? (
                           <img 
-                            src={(task as any).previewUrl} 
+                            src={task.previewUrl} 
                             alt={task.title}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
                           />
@@ -634,7 +687,7 @@ export default function MarketingKanbanBoard() {
                 // Glassmorphism card layout for other columns
                 grouped[col.key].map(task => {
                   // Use pre-computed preview URL to avoid expensive regex operations during render
-                  const previewUrl = (task as any).previewUrl;
+                  const previewUrl = task.previewUrl;
 
                   return (
                     <div

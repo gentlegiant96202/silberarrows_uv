@@ -16,6 +16,7 @@ export interface MarketingTask {
   pinned?: boolean;
   created_by?: string; // User ID who created the task
   acknowledged_at?: string; // Timestamp when user acknowledged approved ticket
+  previewUrl?: string | null; // Pre-computed preview URL for performance optimization
 }
 
 export type MarketingStatus = 'intake' | 'planned' | 'in_progress' | 'in_review' | 'approved' | 'instagram_feed_preview';

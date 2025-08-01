@@ -41,7 +41,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
     due_date: task?.due_date || '',
     requested_by: task?.assignee || '',
     caption: task?.description || '', // We'll use description field for caption for now
-    status: (task?.status || 'planned') as MarketingTask['status'],
+    status: (task?.status || 'intake') as MarketingTask['status'],
     task_type: (task?.task_type || 'design') as MarketingTask['task_type'],
   });
 
@@ -257,7 +257,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
         due_date: task.due_date || '',
         requested_by: task.assignee || '',
         caption: task.description || '', // We'll use description field for caption for now
-        status: task.status || 'planned',
+        status: task.status || 'intake',
         task_type: task.task_type || 'design',
       });
       setExistingMedia(task.media_files || []);
@@ -666,7 +666,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           due_date: '',
           requested_by: '',
           caption: '',
-          status: 'planned',
+          status: 'intake',
           task_type: 'design',
         });
         setSelectedFiles([]);
@@ -932,21 +932,12 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                   </svg>
                   Task Type
-                  {!isAdmin && (
-                    <span className="text-xs text-red-400 flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      Admin Only
-                    </span>
-                  )}
                 </label>
                 <select
                   name="task_type"
                   value={formData.task_type}
                   onChange={handleChange}
-                  disabled={!isAdmin}
-                  className={`w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all shadow-inner"
                 >
                   <option value="design" className="bg-black text-white">Design Task</option>
                   <option value="photo" className="bg-black text-white">Photo Task</option>
@@ -991,15 +982,15 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
 
                 {/* Selected files with thumbnails and progress */}
                 {selectedFiles.length > 0 && (
-                  <div className="space-y-2 mt-3">
+                  <div className="flex flex-wrap gap-2 mt-3 max-h-32 overflow-y-auto">
                     {selectedFiles.map((fileWithThumbnail, index) => {
                       const { file, thumbnail, uploadProgress, uploading, uploaded, error } = fileWithThumbnail;
                       const isImage = file.type.startsWith('image/');
                       
                       return (
-                        <div key={index} className="flex items-center gap-3 p-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg shadow-inner ring-1 ring-white/5">
+                        <div key={index} className="flex-shrink-0 w-64 flex items-center gap-2 p-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg shadow-inner ring-1 ring-white/5">
                           {/* Thumbnail or file icon */}
-                          <div className="flex-shrink-0 w-12 h-12 rounded overflow-hidden bg-white/5 flex items-center justify-center">
+                                                      <div className="flex-shrink-0 w-10 h-10 rounded overflow-hidden bg-white/5 flex items-center justify-center">
                             {thumbnail ? (
                               <img 
                                 src={thumbnail} 

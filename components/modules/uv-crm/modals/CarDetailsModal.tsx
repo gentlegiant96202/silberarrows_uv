@@ -44,6 +44,13 @@ interface CarInfo {
   customer_name: string | null;
   customer_email: string | null;
   customer_phone: string | null;
+  // Consignment-specific fields
+  registration_expiry_date: string | null;
+  insurance_expiry_date: string | null;
+  service_records_acquired: boolean | null;
+  owners_manual_acquired: boolean | null;
+  spare_tyre_tools_acquired: boolean | null;
+  fire_extinguisher_acquired: boolean | null;
 }
 
 interface Props {
@@ -59,6 +66,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [pdfUrl, setPdfUrl] = useState<string | null>(car.vehicle_details_pdf_url || null);
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
+  const [generatingAgreement, setGeneratingAgreement] = useState(false);
+  const [agreementStatusMsg, setAgreementStatusMsg] = useState<string>('');
   const { user } = useAuth();
 
   // Loading states for media operations
@@ -349,6 +358,66 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     }
   };
 
+  const handleGenerateConsignmentAgreement = async () => {
+    try {
+      console.log('[Consignment] Agreement generation started');
+      setGeneratingAgreement(true);
+      setAgreementStatusMsg('Generating consignment agreement...');
+      
+      const response = await fetch('/api/generate-consignment-agreement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          car: localCar
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate consignment agreement');
+      }
+      
+      const result = await response.json();
+      
+      // Log generation stats
+      if (result.pdfStats) {
+        console.log('📊 Consignment Agreement Results:', result.pdfStats);
+      }
+      
+      // Convert base64 to blob and trigger download
+      const pdfBlob = new Blob([
+        Uint8Array.from(atob(result.pdfData), c => c.charCodeAt(0))
+      ], { type: 'application/pdf' });
+      
+      // Create download link
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.fileName || `Consignment_Agreement_${localCar.stock_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      setAgreementStatusMsg('Consignment agreement downloaded successfully! Please send to customer for signing.');
+      
+      // Auto-clear status message after 5 seconds
+      setTimeout(() => {
+        setAgreementStatusMsg('');
+      }, 5000);
+      
+    } catch (e: any) {
+      console.error('[Consignment] Error:', e);
+      alert(e.message || 'Failed to generate consignment agreement');
+      setAgreementStatusMsg('Generation failed - please try again');
+    } finally {
+      setGeneratingAgreement(false);
+      console.log('[Consignment] Agreement generation finished');
+    }
+  };
+
   const groups: { heading: string; rows: { label: string; value: any; field?: keyof CarInfo }[] }[] = [
     {
       heading: 'Basic Info',
@@ -393,6 +462,78 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       ],
     },
   ];
+
+  // Add consignment-specific group if it's a consignment car
+  if (localCar.ownership_type === 'consignment') {
+    groups.push({
+      heading: 'Consignment Details',
+      rows: [
+        { 
+          label: 'Customer Name', 
+          value: localCar.customer_name || '—', 
+          field: 'customer_name' 
+        },
+        { 
+          label: 'Customer Email', 
+          value: localCar.customer_email || '—', 
+          field: 'customer_email' 
+        },
+        { 
+          label: 'Customer Phone', 
+          value: localCar.customer_phone || '—', 
+          field: 'customer_phone' 
+        },
+        { 
+          label: 'Registration Expiry', 
+          value: localCar.registration_expiry_date 
+            ? new Date(localCar.registration_expiry_date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric'
+              }) 
+            : '—', 
+          field: 'registration_expiry_date' 
+        },
+        { 
+          label: 'Insurance Expiry', 
+          value: localCar.insurance_expiry_date 
+            ? new Date(localCar.insurance_expiry_date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              }) 
+            : '—', 
+          field: 'insurance_expiry_date' 
+        },
+      ],
+    });
+
+    groups.push({
+      heading: 'Handover Checklist',
+      rows: [
+        { 
+          label: 'Service Records', 
+          value: localCar.service_records_acquired ? '✅ Acquired' : '☐ Not acquired', 
+          field: 'service_records_acquired' 
+        },
+        { 
+          label: 'Owner\'s Manual', 
+          value: localCar.owners_manual_acquired ? '✅ Acquired' : '☐ Not acquired', 
+          field: 'owners_manual_acquired' 
+        },
+        { 
+          label: 'Spare Tyre & Tools', 
+          value: localCar.spare_tyre_tools_acquired ? '✅ Acquired' : '☐ Not acquired', 
+          field: 'spare_tyre_tools_acquired' 
+        },
+        { 
+          label: 'Fire Extinguisher', 
+          value: localCar.fire_extinguisher_acquired ? '✅ Acquired' : '☐ Not acquired', 
+          field: 'fire_extinguisher_acquired' 
+        },
+      ],
+    });
+  }
 
   const locations = ['SHOWROOM','YARD','STONE','CAR PARK','SHOWROOM 2','NOT ON SITE','GARGASH'];
   const fuelOptions = [0,25,50,75,100];
@@ -867,6 +1008,45 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               )}
               {statusMsg && <div className="text-[10px] text-white/50">{statusMsg}</div>}
             </div>
+
+            {/* Consignment Agreement Section - Only for consignment cars in marketing stage */}
+            {localCar.ownership_type === 'consignment' && localCar.status === 'marketing' && (
+              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
+                <h4 className="text-xs font-semibold text-white/70">Consignment Agreement</h4>
+                <div className="space-y-2">
+                  <p className="text-white/60 text-[10px]">
+                    Generate and download the consignment agreement for customer signing.
+                  </p>
+                  <button 
+                    onClick={handleGenerateConsignmentAgreement} 
+                    disabled={generatingAgreement || !localCar.customer_name || !localCar.customer_email || !localCar.customer_phone}
+                    className="px-3 py-2 text-xs bg-gradient-to-r from-gray-600 via-gray-500 to-gray-600 hover:from-gray-500 hover:via-gray-400 hover:to-gray-500 border border-white/20 text-white rounded disabled:opacity-40 flex items-center gap-2 transition-all shadow-lg"
+                  >
+                    {generatingAgreement && (
+                      <span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />
+                    )}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14,2 14,8 20,8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                      <polyline points="10,9 9,9 8,9"/>
+                    </svg>
+                    {generatingAgreement ? 'Generating Agreement...' : 'Send for Signing'}
+                  </button>
+                  {!localCar.customer_name || !localCar.customer_email || !localCar.customer_phone ? (
+                    <p className="text-yellow-400 text-[10px] mt-1">
+                      ⚠️ Customer information required (name, email, phone)
+                    </p>
+                  ) : null}
+                  {agreementStatusMsg && (
+                    <div className="text-[10px] text-white/50 bg-white/5 p-2 rounded border border-white/10">
+                      {agreementStatusMsg}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Lightbox viewer */}
             {showGallery!==null && gallery[showGallery] && createPortal(

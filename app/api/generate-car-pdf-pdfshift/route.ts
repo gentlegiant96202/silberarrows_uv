@@ -736,23 +736,22 @@ export async function POST(request: NextRequest) {
                   <div class="header-top">
                       <div class="company-info">
                           <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="Logo" class="company-logo">
-                                                      <div class="company-text">
-                                <h1>Approved Used Vehicles</h1>
+                          <div class="company-text">
+                                <h1 style="font-size: 20px;">Approved Used Mercedes-Benz</h1>
                                 <p class="company-contact">
                                     +971 4 380 5515<br />
                                     <a href="mailto:sales@silberarrows.com">sales@silberarrows.com</a>
                                 </p>
                             </div>
                       </div>
-                                              <div class="quotation-info">
-                            <h2>VEHICLE QUOTATION</h2>
-                            <!-- Date removed as per requirement -->
-                            <p>Chassis: <span class="chassis-number">${car.chassis_number}</span></p>
-                        </div>
-                    </div>
-                    <div class="vehicle-title">
-                        <h3>${car.vehicle_model || car.model || 'Vehicle Model'}</h3>
-                    </div>
+                      <div class="quotation-info">
+                        <h2>VEHICLE QUOTATION</h2>
+                        <p>Chassis: <span class="chassis-number">${car.chassis_number}</span></p>
+                      </div>
+                  </div>
+                  <div class="vehicle-title">
+                      <h3>${car.vehicle_model || car.model || 'Vehicle Model'}</h3>
+                  </div>
               </div>
 
               <!-- Content Wrapper for First Page -->

@@ -52,6 +52,13 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     service_expiry_date: "",
     warranty_km_limit: "",
     service_km_limit: "",
+    // Consignment-specific fields
+    registration_expiry_date: "",
+    insurance_expiry_date: "",
+    service_records_acquired: false,
+    owners_manual_acquired: false,
+    spare_tyre_tools_acquired: false,
+    fire_extinguisher_acquired: false,
   });
 
   const [saving, setSaving] = useState(false);
@@ -138,6 +145,11 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         add(!!form.customer_phone, 'Customer Phone');
         const emailOk = /.+@.+\..+/.test(form.customer_email);
         if (!emailOk) missing.push('Valid Customer Email');
+        
+        // Consignment-specific fields validation
+        add(!!form.registration_expiry_date, 'Registration Expiry Date');
+        add(!!form.insurance_expiry_date, 'Insurance Expiry Date');
+        // Note: Checkboxes can be true (acquired) or false (not acquired) - no validation needed
       }
 
       if (form.warranty_package_type === 'dealer') {
@@ -149,6 +161,8 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         add(!!form.service_km_limit, 'Service KM Limit');
       }
     }
+
+
 
     if (step === 4) {
       add(!!form.key_equipment, 'Key Equipment');
@@ -251,21 +265,28 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
   const handleBack = () => setStep((s) => s - 1);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     const upperCaseFields = ['chassis_number', 'stock_number', 'vehicle_model', 'model_family', 'colour', 'interior_colour', 'key_equipment'];
     const numericFields = ['cost_price_aed', 'advertised_price_aed', 'warranty_km_limit', 'service_km_limit', 'current_mileage_km', 'number_of_keys'];
+    const dateFields = ['registration_expiry_date', 'insurance_expiry_date', 'warranty_expiry_date', 'service_expiry_date'];
     
-    let processedValue: string = value;
-    if (upperCaseFields.includes(name)) {
+    let processedValue: string | boolean = value;
+    
+    // Handle checkbox inputs
+    if (type === 'checkbox') {
+      processedValue = (e.target as HTMLInputElement).checked;
+    } else if (upperCaseFields.includes(name)) {
       processedValue = value.toUpperCase();
-    }
-    if (numericFields.includes(name)) {
+    } else if (numericFields.includes(name)) {
       processedValue = value.replace(/[^0-9]/g, '');
+    } else if (dateFields.includes(name) && value) {
+      // Ensure date is in yyyy-mm-dd format (HTML date input handles this automatically)
+      processedValue = value;
     }
     
     setForm((prev) => {
       const updated: any = { ...prev, [name]: processedValue };
-      if (name === 'chassis_number') {
+      if (name === 'chassis_number' && typeof processedValue === 'string') {
         const clean = processedValue.trim();
         if (clean.length >= 6) {
           updated.stock_number = clean.slice(-6);
@@ -348,6 +369,34 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     }
   };
 
+  // Helper function to ensure dates are in yyyy-mm-dd format
+  const formatDateForDatabase = (dateString: string): string | null => {
+    if (!dateString) return null;
+    
+    // If it's already in yyyy-mm-dd format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+    
+    // If it's in dd/mm/yyyy format, convert to yyyy-mm-dd
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+      const [day, month, year] = dateString.split('/');
+      return `${year}-${month}-${day}`;
+    }
+    
+    // Try to parse the date and format it
+    try {
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0]; // Returns yyyy-mm-dd
+      }
+    } catch (e) {
+      console.error('Date parsing error:', e);
+    }
+    
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.stock_number || !form.model_year || !form.vehicle_model || !form.model_family || !form.colour || !form.chassis_number || !form.advertised_price_aed) return;
@@ -390,6 +439,15 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         customer_email: form.ownership_type === 'consignment' ? form.customer_email.trim() : null,
         customer_phone: form.ownership_type === 'consignment' ? form.customer_phone.trim() : null,
         ownership_type: form.ownership_type,
+        // Consignment-specific fields  
+        registration_expiry_date: form.ownership_type === 'consignment' 
+          ? formatDateForDatabase(form.registration_expiry_date) : null,
+        insurance_expiry_date: form.ownership_type === 'consignment' 
+          ? formatDateForDatabase(form.insurance_expiry_date) : null,
+        service_records_acquired: form.ownership_type === 'consignment' ? form.service_records_acquired : null,
+        owners_manual_acquired: form.ownership_type === 'consignment' ? form.owners_manual_acquired : null,
+        spare_tyre_tools_acquired: form.ownership_type === 'consignment' ? form.spare_tyre_tools_acquired : null,
+        fire_extinguisher_acquired: form.ownership_type === 'consignment' ? form.fire_extinguisher_acquired : null,
         key_equipment: form.key_equipment.trim(),
         description: form.description.trim(),
         status: "marketing",
@@ -712,6 +770,57 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                         required
                       />
                     </div>
+
+                    {/* Consignment Additional Fields */}
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-white/60 mb-0.5">Registration Expiry</label>
+                      <input
+                        type="date"
+                        name="registration_expiry_date"
+                        value={form.registration_expiry_date}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        required={form.ownership_type === 'consignment'}
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-white/60 mb-0.5">Insurance Expiry</label>
+                      <input
+                        type="date"
+                        name="insurance_expiry_date"
+                        value={form.insurance_expiry_date}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        required={form.ownership_type === 'consignment'}
+                      />
+                    </div>
+
+                                         {/* Handover Checklist */}
+                     <div className="col-span-2">
+                       <label className="block text-white/60 mb-2 text-xs font-semibold">Handover Checklist (Check if acquired)</label>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                         {[
+                           { label: "Service Records Acquired", name: "service_records_acquired" },
+                           { label: "Owner's Manual Acquired", name: "owners_manual_acquired" },
+                           { label: "Spare Tyre & Tools Acquired", name: "spare_tyre_tools_acquired" },
+                           { label: "Fire Extinguisher Acquired", name: "fire_extinguisher_acquired" },
+                         ].map((checkbox) => (
+                           <div key={checkbox.name} className="flex items-center space-x-2">
+                             <input
+                               type="checkbox"
+                               name={checkbox.name}
+                               checked={(form as any)[checkbox.name]}
+                               onChange={(e) => setForm(prev => ({ 
+                                 ...prev, 
+                                 [checkbox.name]: e.target.checked 
+                               }))}
+                               className="w-4 h-4 text-white bg-black/20 border border-white/20 rounded focus:ring-white/40 focus:ring-2"
+                             />
+                             <label className="text-white/70 text-xs">{checkbox.label}</label>
+                           </div>
+                         ))}
+                       </div>
+                     </div>
                   </>
                 )}
               </div>
@@ -720,29 +829,33 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
 
             {/* Step 3: Specifications */}
             {step === 3 && (
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-              <h3 className="text-white/80 text-xs font-semibold mb-2">Specifications</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  { label: "Engine", name: "engine" },
-                  { label: "Transmission", name: "transmission" },
-                  { label: "Horsepower (hp)", name: "horsepower_hp", type: "number" },
-                  { label: "Torque (Nm)", name: "torque_nm", type: "number" },
-                  { label: "Cubic Capacity (cc)", name: "cubic_capacity_cc", type: "number" },
-                ].map((f) => (
-                  <div key={f.name}>
-                    <label className="block text-white/60 mb-0.5">{f.label}</label>
-                    <input
-                      type={f.type || 'text'}
-                      name={f.name}
-                      value={(form as any)[f.name]}
-                      onChange={handleChange}
-                      className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                    />
-                  </div>
-                ))}
+            <>
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
+                <h3 className="text-white/80 text-xs font-semibold mb-2">Specifications</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { label: "Engine", name: "engine" },
+                    { label: "Transmission", name: "transmission" },
+                    { label: "Horsepower (hp)", name: "horsepower_hp", type: "number" },
+                    { label: "Torque (Nm)", name: "torque_nm", type: "number" },
+                    { label: "Cubic Capacity (cc)", name: "cubic_capacity_cc", type: "number" },
+                  ].map((f) => (
+                    <div key={f.name}>
+                      <label className="block text-white/60 mb-0.5">{f.label}</label>
+                      <input
+                        type={f.type || 'text'}
+                        name={f.name}
+                        value={(form as any)[f.name]}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+
+
+            </>
             )}
 
             {/* Step 4: Key Equipment & Description */}

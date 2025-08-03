@@ -691,7 +691,7 @@ export async function POST(request: NextRequest) {
               </div>
 
               <div class="text-content">
-                <strong>Marketing and Sales Efforts:</strong> SilberArrows agrees to: (1) Conduct a professional photo and video shoot of the vehicle. (2) List the vehicle on SilberArrows' website and other appropriate platforms within 5 business days of agreement signing. (3) Market the vehicle effectively to attract potential buyers. (4) Perform an exit inspection and detailing of the vehicle post-sale. <strong>Note:</strong> The vehicle may be road-tested during the consignment period to ensure it meets buyer expectations.
+                <strong>Marketing and Sales Efforts:</strong> SilberArrows agrees to: (1) Conduct a professional photo and video shoot of the vehicle. (2) List the vehicle on SilberArrows' website and other appropriate platforms within 5 business days of agreement signing. (3) Market the vehicle effectively to attract potential buyers. (4) Perform an exit inspection and detailing of the vehicle post-sale.<br /><strong>Note:</strong> The vehicle may be road-tested during the consignment period to ensure it meets buyer expectations.
                 <br />The Owner acknowledges that such tests may result in a slight increase in the odometer reading.
               </div>
             </div>
@@ -724,11 +724,11 @@ export async function POST(request: NextRequest) {
               </div>
 
               <div class="text-content">
-                <strong>Option 2 – SilberArrows Advances the Finance Amount:</strong> The Owner must provide a Liability Letter from the finance company showing the exact outstanding balance, and sign a separate Consignment Vehicle Finance Settlement Agreement with SilberArrows.
+                <strong>Option 2 – SilberArrows Advances the Finance Amount:</strong> The Owner must provide a Liability Letter from the finance company showing the exact outstanding balance, and sign a separate Consignment Vehicle Finance Settlement Agreement with SilberArrows.<br />Once both are received, SilberArrows will transfer the outstanding amount to the Owner, who is solely responsible for settling it with the finance company. SilberArrows will not transfer funds directly to the finance company. Once full payment is received from the buyer, SilberArrows will transfer any remaining balance to the Owner after deducting its selling fees. If the remaining balance is insufficient to cover the fees, the shortfall will be deducted from the initial finance advance.
               </div>
 
               <div class="text-content">
-                <strong>General Conditions:</strong> The entire finance settlement process must be completed within five (5) business days of SilberArrows confirming the sale. SilberArrows is not liable for any delays, penalties, or interest charged by the finance company.
+                <strong>General Conditions:</strong> The entire finance settlement process, under either option, must be completed within five (5) business days of SilberArrows confirming the sale. Failure to meet this timeline may result in sale cancellation, storage fees, or other penalties. SilberArrows is not liable for any delays, penalties, or interest charged by the finance company.
               </div>
               <div class="text-content">
                 <strong>Important:</strong> If the outstanding finance exceeds the vehicle’s selling price, the Owner must first settle the shortfall directly with the finance company and provide an updated Liability Letter showing the reduced balance. SilberArrows will then transfer the agreed sale amount to the Owner, who must settle the remaining finance and submit a Clearance Letter confirming full settlement.
@@ -787,7 +787,6 @@ SilberArrows’ liability is strictly limited to the fees actually paid to Silbe
 The Owner acknowledges that SilberArrows is not responsible for loss or damage due to environmental conditions or accidental events unless caused by SilberArrows’ negligence.
 
 9. GENERAL PROVISIONS
-
 Severability: If any term of this agreement is found unenforceable, the remaining terms remain valid.
 Binding Effect: This agreement is binding on the heirs, legal representatives, and assigns of both parties.
 Entire Agreement: This document constitutes the entire agreement between SilberArrows and the Owner and supersedes all prior communications. Any changes must be agreed to in writing.

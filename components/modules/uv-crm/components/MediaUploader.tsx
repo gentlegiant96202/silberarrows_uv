@@ -12,6 +12,8 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
+  const [failedFiles, setFailedFiles] = useState<{ file: File, error: string }[]>([]);
+  const [retrying, setRetrying] = useState(false);
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -19,21 +21,12 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
     setUploading(true);
     setTotalFiles(files.length);
     setProgress(0);
+    setFailedFiles([]);
 
-    // Get current max sort_order to ensure proper ordering
-    const { data: existingMedia } = await supabase
-      .from('car_media')
-      .select('sort_order')
-      .eq('car_id', carId)
-      .eq('kind', 'photo')
-      .order('sort_order', { ascending: false })
-      .limit(1);
+    let failed: { file: File, error: string }[] = [];
 
-    let currentMaxSortOrder = existingMedia?.[0]?.sort_order ?? -1;
-
-    for (let idx=0; idx<files.length; idx++){
+    for (let idx = 0; idx < files.length; idx++) {
       const file = files[idx];
-      // If this is an image, compress it before upload (max 1600 px, 1 MB)
       let uploadFile: File | Blob = file;
       if (file.type.startsWith('image')) {
         try {
@@ -55,8 +48,7 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
         .from('car_media')
         .select('*', { head: true, count: 'exact' })
         .eq('car_id', carId)
-        .eq('kind','photo');
-
+        .eq('kind', 'photo');
       const isFirstPhoto = file.type.startsWith('image') && (!photoCount || photoCount === 0);
 
       // Upload to Storage bucket 'car-media'
@@ -68,7 +60,9 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
           upsert: false,
         });
       if (upErr) {
-        alert(upErr.message);
+        failed.push({ file, error: upErr.message });
+        setFailedFiles([...failed]);
+        setProgress(Math.round(((idx + 1) / files.length) * 100));
         continue;
       }
 
@@ -77,8 +71,7 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
       const url = pub.publicUrl;
 
       // Increment sort_order for each new upload
-      currentMaxSortOrder++;
-
+      let currentMaxSortOrder = idx; // fallback if not fetched
       // Store the public URL in DB with proper sort_order
       await supabase.from('car_media').insert({
         car_id: carId,
@@ -88,20 +81,27 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
         sort_order: currentMaxSortOrder, // Ensure proper ordering
       });
 
-      // update progress & notify parent immediately
       setProgress(Math.round(((idx + 1) / files.length) * 100));
-      onUploaded?.();
     }
 
-    // Keep 100% bar visible briefly, then hide
     setProgress(100);
     setTimeout(() => {
-    setUploading(false);
+      setUploading(false);
       setProgress(0);
       setTotalFiles(0);
+      if (onUploaded) onUploaded();
     }, 800);
-
     e.target.value = '';
+  };
+
+  const retryFailed = async () => {
+    if (!failedFiles.length) return;
+    setRetrying(true);
+    // Retry only failed files
+    const filesToRetry = failedFiles.map(f => f.file);
+    setFailedFiles([]);
+    await handleFiles({ target: { files: filesToRetry } } as any);
+    setRetrying(false);
   };
 
   return (
@@ -112,7 +112,7 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
         multiple
         accept="image/*,video/*"
         onChange={handleFiles}
-        disabled={uploading}
+        disabled={uploading || retrying}
         className="text-white text-xs"
       />
       {uploading && (
@@ -122,8 +122,25 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
             style={{ width: `${progress}%` }}
           />
           <span className="absolute inset-0 text-[10px] flex items-center justify-center text-white/80">
-            {Math.max(progress,1)}% ({Math.round((progress/100)*totalFiles)}/{totalFiles})
+            {Math.max(progress, 1)}% ({Math.round((progress / 100) * totalFiles)}/{totalFiles})
           </span>
+        </div>
+      )}
+      {failedFiles.length > 0 && (
+        <div className="mt-2 text-xs text-red-400">
+          <div>Failed to upload:</div>
+          <ul className="list-disc ml-4">
+            {failedFiles.map(({ file, error }, idx) => (
+              <li key={idx}>{file.name}: {error}</li>
+            ))}
+          </ul>
+          <button
+            className="mt-1 px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+            onClick={retryFailed}
+            disabled={retrying}
+          >
+            {retrying ? 'Retrying...' : 'Retry Failed Uploads'}
+          </button>
         </div>
       )}
     </div>

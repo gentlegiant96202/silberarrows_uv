@@ -73,6 +73,22 @@ const isTaskUrgent = (dateString: string) => {
   return diffDays <= 1;
 };
 
+// Helper to get preview image (thumbnail or first image)
+function getPreviewUrl(mediaFiles: any[] = []): string | null {
+  if (!mediaFiles || !mediaFiles.length) return null;
+  // Prefer thumbnail if present
+  const withThumbnail = mediaFiles.find((f: any) => f.thumbnail);
+  if (withThumbnail) return withThumbnail.thumbnail;
+  // Otherwise, use first image
+  const imageFile = mediaFiles.find((f: any) => {
+    if (typeof f === 'string') {
+      return f.match(/\.(jpe?g|png|webp|gif)$/i);
+    }
+    return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
+  });
+  return imageFile ? (typeof imageFile === 'string' ? imageFile : imageFile.url) : null;
+}
+
 // Column definitions matching CRM Kanban style
 const columns: MarketingColumn[] = [
   { 
@@ -177,17 +193,9 @@ export default function MarketingKanbanBoard() {
             acknowledged_at: rawTask.acknowledged_at
           };
           
-          // Pre-compute preview URL to avoid expensive regex during drag
-          const previewImage = baseTask.media_files?.find((f: any) => {
-            if (typeof f === 'string') {
-              return f.match(/\.(jpe?g|png|webp|gif)$/i);
-            }
-            return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
-          });
-          
           return {
             ...baseTask,
-            previewUrl: previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null
+            previewUrl: getPreviewUrl(baseTask.media_files)
           };
         });
         
@@ -235,25 +243,15 @@ export default function MarketingKanbanBoard() {
                 tags: []
               };
               
-              // Pre-compute preview URL to avoid expensive regex during drag
-              const previewImage = baseTask.media_files?.find((f: any) => {
-                if (typeof f === 'string') {
-                  return f.match(/\.(jpe?g|png|webp|gif)$/i);
-                }
-                return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
-              });
-              
               const newTask = {
                 ...baseTask,
-                previewUrl: previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null
+                previewUrl: getPreviewUrl(baseTask.media_files)
               };
-              
-              // Check if task already exists to prevent duplicates (local creation + real-time)
+              // Check if task already exists to prevent duplicates
               const taskExists = prev.some(task => task.id === newTask.id);
               if (taskExists) {
-                return prev; // Don't add duplicate
+                return prev;
               }
-              
               return [newTask, ...prev];
             }
             if (payload.eventType === 'UPDATE') {
@@ -278,22 +276,11 @@ export default function MarketingKanbanBoard() {
                 tags: []
               };
               
-              // Pre-compute preview URL to avoid expensive regex during drag
-              const previewImage = baseTask.media_files?.find((f: any) => {
-                if (typeof f === 'string') {
-                  return f.match(/\.(jpe?g|png|webp|gif)$/i);
-                }
-                return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
-              });
-              
               const updatedTask = {
                 ...baseTask,
-                previewUrl: previewImage ? (typeof previewImage === 'string' ? previewImage : (previewImage as any).url) : null
+                previewUrl: getPreviewUrl(baseTask.media_files)
               };
-              
-              return prev.map(task => 
-                task.id === updatedTask.id ? updatedTask : task
-              );
+              return prev.map(task => task.id === updatedTask.id ? updatedTask : task);
             }
             if (payload.eventType === 'DELETE') {
               return prev.filter(task => task.id !== payload.old.id);
@@ -478,17 +465,16 @@ export default function MarketingKanbanBoard() {
           ...taskData,
         };
         console.log('Sending update request:', updatePayload);
-        
         const headers = await getAuthHeaders();
         const response = await fetch('/api/design-tasks', {
           method: 'PUT',
           headers,
           body: JSON.stringify(updatePayload),
         });
-
         if (response.ok) {
           const updatedTask: MarketingTask = await response.json();
-          // Let real-time subscription handle the update
+          setShowModal(false);
+          setSelectedTask(null);
           return updatedTask;
         } else {
           console.error('Failed to update task');
@@ -502,10 +488,10 @@ export default function MarketingKanbanBoard() {
           headers,
           body: JSON.stringify(taskData),
         });
-
         if (response.ok) {
           const newTask: MarketingTask = await response.json();
-          // Let real-time subscription handle the update
+          setShowModal(false);
+          setSelectedTask(null);
           return newTask;
         } else {
           console.error('Failed to create task');
@@ -515,10 +501,8 @@ export default function MarketingKanbanBoard() {
     } catch (error) {
       console.error('Error saving task:', error);
       return null;
-    } finally {
-      setShowModal(false);
-      setSelectedTask(null);
     }
+    // Do NOT close the modal for partial updates like media file deletion
   };
 
   const handleCloseWorkspace = () => {

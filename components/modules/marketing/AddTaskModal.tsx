@@ -438,157 +438,39 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
       const fileWithThumbnail = filesToUpload[i];
       const file = fileWithThumbnail.file;
       const globalIndex = startIndex + i;
-      
       console.log(`Processing file ${i + 1}/${filesToUpload.length}: ${file.name}`);
-      
       try {
-        // Generate unique path
-        const timestamp = Date.now();
-        const randomId = Math.random().toString(36).substring(2);
-        
-        // Handle PDF conversion to image
-        let fileToUpload: File | Blob = file;
-        let fileName = file.name;
-        let contentType = file.type;
-        
-        if (file.type === 'application/pdf') {
-          console.log('Processing PDF file (Option A - Single Document):', file.name);
-          try {
-            const pageImages = await convertPdfToImages(file);
-            
-            // If conversion is enabled and successful, upload page images
-            if (pageImages.length > 0) {
-              console.log('PDF conversion successful, uploading page images');
-              // Upload each page as a separate file
-              for (let pageIndex = 0; pageIndex < pageImages.length; pageIndex++) {
-                const pageImage = pageImages[pageIndex];
-                const pageTimestamp = timestamp + pageIndex; // Ensure unique timestamps
-                const pageRandomId = Math.random().toString(36).substring(2);
-                const pagePath = `media/${taskId}/${pageTimestamp}_${pageRandomId}_${pageImage.name}`;
-                
-                // Update progress for this page
-                const progressPercent = 20 + (pageIndex / pageImages.length) * 60;
-                setSelectedFiles(prev => prev.map((f, idx) => 
-                  idx === globalIndex ? { ...f, uploadProgress: progressPercent } : f
-                ));
-                
-                // Upload page image
-                const { error: pageUpErr, data: pageUploadData } = await supabase.storage
-                  .from('media-files')
-                  .upload(pagePath, pageImage.blob, {
-                    contentType: 'image/jpeg',
-                    cacheControl: '3600',
-                    upsert: false,
-                  });
-                
-                if (pageUpErr) {
-                  console.error(`Error uploading page ${pageIndex + 1}:`, pageUpErr);
-                  continue;
-                }
-                
-                // Get public URL for page
-                const { data: pagePub } = supabase.storage
-                  .from('media-files')
-                  .getPublicUrl(pagePath);
-                
-                // Add page to new media array
-                const pageMediaItem = {
-                  url: pagePub.publicUrl,
-                  name: pageImage.name,
-                  type: 'image/jpeg',
-                  size: pageImage.blob.size,
-                  originalName: file.name, // Track original PDF name
-                  originalType: 'application/pdf', // Track that this was originally a PDF
-                  pageIndex: pageImage.pageIndex, // Track page number
-                };
-                
-                newMedia.push(pageMediaItem);
-              }
-              
-              // Update progress to 100% and mark as complete
-              setSelectedFiles(prev => prev.map((f, idx) => 
-                idx === globalIndex ? { ...f, uploadProgress: 100, uploaded: true, uploading: false } : f
-              ));
-              
-              // Skip the normal upload process for PDFs since we handled it above
-              continue;
-            } else {
-              // Conversion disabled or returned empty array - upload original PDF (Option A)
-              console.log('PDF conversion disabled/failed, uploading original PDF file');
-              // Continue with normal upload process below to upload the original PDF
-            }
-          } catch (conversionError) {
-            console.error('PDF conversion failed:', conversionError);
-            console.log('Uploading original PDF file as fallback');
-            // Continue with normal upload process below to upload the original PDF
-          }
-        }
-        
-        const path = `media/${taskId}/${timestamp}_${randomId}_${fileName}`;
-        console.log('Uploading to path:', path);
-
-        // Update progress to 20%
-        setSelectedFiles(prev => prev.map((f, idx) => 
-          idx === globalIndex ? { ...f, uploadProgress: 20 } : f
-        ));
-
-        // Upload to Supabase storage
-        const { error: upErr, data: uploadData } = await supabase.storage
-          .from('media-files')
-          .upload(path, fileToUpload, {
-            contentType: contentType,
-            cacheControl: '3600',
-            upsert: false,
-          });
-
-        if (upErr) {
-          console.error('Storage upload error:', upErr);
-          setSelectedFiles(prev => prev.map((f, idx) => 
-            idx === globalIndex ? { ...f, error: upErr.message, uploading: false, uploadProgress: 0 } : f
-          ));
+        // Use API route for upload (enables backend thumbnail generation)
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('taskId', taskId);
+        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 20 } : f));
+        const response = await fetch('/api/upload-file', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          console.error('Upload error:', result.error);
+          setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: result.error, uploading: false, uploadProgress: 0 } : f));
           continue;
         }
-
-        console.log('Upload successful:', uploadData);
-
-        // Update progress to 60%
-        setSelectedFiles(prev => prev.map((f, idx) => 
-          idx === globalIndex ? { ...f, uploadProgress: 60 } : f
-        ));
-
-        // Get public URL
-        const { data: pub } = supabase.storage.from('media-files').getPublicUrl(path);
-        console.log('Public URL:', pub.publicUrl);
-
-        // Update progress to 80%
-        setSelectedFiles(prev => prev.map((f, idx) => 
-          idx === globalIndex ? { ...f, uploadProgress: 80 } : f
-        ));
-
+        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 80 } : f));
         const newMediaItem = {
-          url: pub.publicUrl,
-          name: fileName, // Use converted filename
-          type: contentType, // Use converted content type
-          size: fileToUpload instanceof Blob ? fileToUpload.size : file.size,
-          originalName: file.name, // Keep track of original filename
-          originalType: file.type, // Keep track of original type
+          url: result.fileUrl,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          uploadedAt: new Date().toISOString(),
+          ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {})
         };
         newMedia.push(newMediaItem);
-
-        // Mark as completed
-        setSelectedFiles(prev => prev.map((f, idx) => 
-          idx === globalIndex ? { ...f, uploadProgress: 100, uploading: false, uploaded: true } : f
-        ));
-
-        // Add to existing media immediately for instant feedback
+        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 100, uploading: false, uploaded: true } : f));
         setExistingMedia(prev => [...prev, newMediaItem]);
         console.log('File upload completed:', file.name);
-
       } catch (error) {
         console.error('Upload error for file', file.name, ':', error);
-        setSelectedFiles(prev => prev.map((f, idx) => 
-          idx === globalIndex ? { ...f, error: 'Upload failed', uploading: false, uploadProgress: 0 } : f
-        ));
+        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: 'Upload failed', uploading: false, uploadProgress: 0 } : f));
       }
     }
 
@@ -600,20 +482,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
         .from('design_tasks')
         .update({ media_files: updatedArray })
         .eq('id', taskId);
-
       if (updErr) {
         console.error('Error updating media_files:', updErr);
-        // Remove from existing media if database update failed
-        setExistingMedia(prev => prev.slice(0, -newMedia.length));
-      } else {
-        console.log('Database updated successfully');
-        // Clear uploaded files from selected files after successful upload
-        setTimeout(() => {
-          setSelectedFiles(prev => prev.filter(f => !f.uploaded));
-          // Reset file input
-          const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-          if (fileInput) fileInput.value = '';
-        }, 1500); // Slightly longer delay to show completion
       }
     }
   };
@@ -715,23 +585,19 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
 
   const handleDeleteExistingFile = async (file: any, index: number) => {
     if (!task?.id) return;
-    
-    const confirmDelete = confirm('Are you sure you want to delete this file? This action cannot be undone.');
-    if (!confirmDelete) return;
-
+    // Remove confirm dialog if you want instant delete, or keep if you want confirmation
+    // const confirmDelete = confirm('Are you sure you want to delete this file?');
+    // if (!confirmDelete) return;
     try {
       // Get the original file URL (not thumbnail) for proper comparison
       const originalFileUrl = getOriginalFileUrl(file);
-      
       // For videos with thumbnails, we need to delete both files from storage
       const filesToDeleteFromStorage: string[] = [];
-      
       // Extract original file storage path
       const originalUrlParts = originalFileUrl.split('/storage/v1/object/public/media-files/');
       if (originalUrlParts.length > 1) {
         filesToDeleteFromStorage.push(originalUrlParts[1]);
       }
-      
       // If this is a video with a thumbnail, also delete the thumbnail
       if (typeof file !== 'string' && file.thumbnail) {
         const thumbnailUrlParts = file.thumbnail.split('/storage/v1/object/public/media-files/');
@@ -739,41 +605,33 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           filesToDeleteFromStorage.push(thumbnailUrlParts[1]);
         }
       }
-      
       // Delete files from Supabase storage
       if (filesToDeleteFromStorage.length > 0) {
         const { error: storageError } = await supabase.storage
           .from('media-files')
           .remove(filesToDeleteFromStorage);
-
         if (storageError) {
           console.error('Storage deletion error:', storageError);
         }
       }
-
       // Remove from local state using original file URL for comparison
       const updatedMedia = existingMedia.filter((existingFile: any) => {
         const currentOriginalUrl = typeof existingFile === 'string' ? existingFile : existingFile.url;
         return currentOriginalUrl !== originalFileUrl;
       });
-      
       setExistingMedia(updatedMedia);
-      
       // Force refresh of computed arrays
       setRefreshKey(prev => prev + 1);
-
       // Update database
       const { error: dbError } = await supabase
         .from('design_tasks')
         .update({ media_files: updatedMedia })
         .eq('id', task.id);
-
       if (dbError) {
         console.error('Database update error:', dbError);
         // Revert local state if database update failed
         setExistingMedia(existingMedia);
       }
-
     } catch (error) {
       console.error('Delete error:', error);
     }

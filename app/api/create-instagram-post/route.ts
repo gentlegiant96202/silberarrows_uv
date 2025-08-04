@@ -56,14 +56,8 @@ export async function POST(request: NextRequest) {
     console.log('Target ratio:', targetWidth / targetHeight)
     
     // --- GRADIENT FROM ORIGINAL IMAGE ---
-    // 1. Sample top/bottom 10% of original image for gradient colors
-    const sampleBand = Math.max(1, Math.floor(originalHeight * 0.1));
-    const origRaw = await sharp(imageBuffer)
-      .ensureAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    const { data: origData, info: origInfo } = origRaw;
-    function avgColorRowRange(y0, y1) {
+    // Helper: average color in a row range
+    const avgColorRowRange = (y0, y1) => {
       let r = 0, g = 0, b = 0, a = 0, n = 0;
       for (let y = y0; y < y1; y++) {
         for (let x = 0; x < origInfo.width; x++) {
@@ -75,8 +69,20 @@ export async function POST(request: NextRequest) {
           n++;
         }
       }
-      return [Math.round(r / n), Math.round(g / n), Math.round(b / n), Math.round(a / n)];
-    }
+      return [
+        Math.round(r / n),
+        Math.round(g / n),
+        Math.round(b / n),
+        Math.round(a / n)
+      ];
+    };
+    // 1. Sample top/bottom 10% of original image for gradient colors
+    const sampleBand = Math.max(1, Math.floor(originalHeight * 0.1));
+    const origRaw = await sharp(imageBuffer)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const { data: origData, info: origInfo } = origRaw;
     const topColor = avgColorRowRange(0, sampleBand);
     const bottomColor = avgColorRowRange(origInfo.height - sampleBand, origInfo.height);
 

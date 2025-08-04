@@ -566,6 +566,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       return;
     }
     
+    // Before saving, ensure website_url is lowercase
+    if (localCar.website_url) {
+      localCar.website_url = localCar.website_url.toLowerCase();
+    }
     const { error, data } = await supabase.from('cars').update(localCar).eq('id', car.id).select().single();
     if(error){ alert(error.message); return; }
     setEditing(false);
@@ -771,16 +775,18 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                 <input
                   type="url"
                   className="w-full bg-black/40 border border-white/20 rounded px-2 py-1 text-white text-sm focus:outline-none"
-                  value={localCar.website_url || ''}
+                  value={(localCar.website_url || '').toLowerCase()}
                   placeholder="https://yourwebsite.com/car/123"
-                  onChange={e => setLocalCar(prev => ({ ...prev, website_url: e.target.value }))}
+                  onChange={e => setLocalCar(prev => ({ ...prev, website_url: e.target.value.toLowerCase() }))}
                 />
               ) : (
                 <div className="text-white/80 text-sm px-2 py-1 bg-black/20 rounded">
-                  {car.website_url ? (
-                    <span className="text-white/80 text-sm">{car.website_url}</span>
+                  {localCar.website_url ? (
+                    <a href={localCar.website_url} target="_blank" rel="noopener noreferrer" className="no-underline text-white/80 text-sm normal-case">
+                      {localCar.website_url.toLowerCase()}
+                    </a>
                   ) : (
-                    <span className="italic text-white/40">No website URL set</span>
+                    <span className="text-white/40">No website URL set</span>
                   )}
                 </div>
               )}

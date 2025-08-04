@@ -1,169 +1,201 @@
-# Used Car Sales CRM
+# SilberArrows IOPaint Service
 
-A comprehensive Customer Relationship Management system built specifically for used car sales businesses. This application features a modern dark theme interface with a full-page Kanban board for managing leads through your sales pipeline.
+This repository contains the deployment configuration for IOPaint (formerly lama-cleaner) on Railway, specifically designed for SilberArrows' car inventory social media image processing.
 
-## Features
+## 🎯 Purpose
 
-- **Kanban Board Interface**: Visual pipeline management with drag-and-drop functionality
-- **Real-time Updates**: Live synchronization with Supabase for instant data updates
-- **Lead Management**: Complete customer and appointment tracking
-- **Dark Theme**: Modern, professional dark UI optimized for extended use
-- **Mobile Responsive**: Works seamlessly across all device sizes
-- **Pipeline Stages**: 
-  - New Customer
-  - Negotiation
-  - Won
-  - Delivered
-  - Lost
+This service provides **content-aware background extension** for car inventory images, converting them from various aspect ratios to Instagram's preferred 4:5 ratio while intelligently extending the background (showroom, garage, etc.) instead of just adding padding.
 
-## Tech Stack
+## 🚀 Quick Deploy to Railway
 
-- **Frontend**: Next.js 14 with TypeScript
-- **Backend**: Supabase (PostgreSQL)
-- **Styling**: Tailwind CSS
-- **Real-time**: Supabase Realtime subscriptions
-- **Date Management**: Day.js
+### Method 1: One-Click Deploy
 
-## Prerequisites
+1. **Push this repository to GitHub**
+2. **Connect to Railway**:
+   - Go to [Railway.app](https://railway.app)
+   - Click "New Project" → "Deploy from GitHub repo"
+   - Select this repository
+3. **Railway will automatically**:
+   - Detect the Dockerfile
+   - Build and deploy IOPaint
+   - Assign a public URL (e.g., `https://silberarrows-iopaint-production.up.railway.app`)
 
-Before running this application, make sure you have:
+### Method 2: Railway CLI
 
-- Node.js 18+ installed
-- A Supabase account and project set up
-- npm or yarn package manager
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
 
-## Quick Start
+# Login to Railway
+railway login
 
-1. **Clone and Install Dependencies**
-   ```bash
-   npm install
-   ```
-
-2. **Environment Setup**
-   Create a `.env.local` file in the root directory:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-3. **Database Setup**
-   Create the following tables in your Supabase project:
-
-   **leads table:**
-   ```sql
-   CREATE TABLE leads (
-     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-     status TEXT DEFAULT 'new_appointment',
-     customer_name TEXT NOT NULL,
-     mobile_number TEXT NOT NULL,
-     appointment_date DATE NOT NULL,
-     appointment_time TIME,
-     car_url TEXT,
-     model_id INTEGER REFERENCES models(id),
-     year_range INTEGER,
-     budget_type TEXT DEFAULT 'total',
-     budget_amount INTEGER DEFAULT 0,
-     notes TEXT,
-     country_code TEXT DEFAULT '+971',
-     phone_number TEXT,
-     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-   );
-   ```
-
-   **models table:**
-   ```sql
-   CREATE TABLE models (
-     id SERIAL PRIMARY KEY,
-     name TEXT NOT NULL,
-     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-   );
-   ```
-
-4. **Insert Sample Car Models**
-   ```sql
-   INSERT INTO models (name) VALUES
-   ('Toyota Camry'),
-   ('Honda Civic'),
-   ('BMW 3 Series'),
-   ('Mercedes C-Class'),
-   ('Audi A4'),
-   ('Nissan Altima'),
-   ('Hyundai Sonata'),
-   ('Chevrolet Malibu'),
-   ('Ford Fusion'),
-   ('Volkswagen Passat');
-   ```
-
-5. **Enable Realtime**
-   In your Supabase dashboard, go to Database > Replication and enable realtime for the `leads` table.
-
-6. **Run the Development Server**
-   ```bash
-   npm run dev
-   ```
-
-7. **Open Application**
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
-## Usage
-
-### Adding New Leads
-- Click the "+" button in the "NEW CUSTOMER" column
-- Fill in customer details, appointment information, and preferences
-- The lead will automatically appear in the kanban board
-
-### Managing Leads
-- **Drag & Drop**: Move leads between pipeline stages by dragging cards
-- **View Details**: Click on any lead card to view full details
-- **Edit Information**: Use the edit button in the lead details modal
-- **Delete Leads**: Remove leads that are no longer relevant
-
-### Pipeline Stages
-- **NEW CUSTOMER**: Fresh leads requiring initial contact
-- **NEGOTIATION**: Active discussions about pricing and terms
-- **WON**: Successfully closed deals
-- **DELIVERED**: Completed transactions with delivered vehicles
-- **LOST**: Leads that didn't convert
-
-## Customization
-
-### Adding More Car Models
-Insert additional models into the `models` table:
-```sql
-INSERT INTO models (name) VALUES ('Your Car Model');
+# Deploy from this directory
+railway up
 ```
 
-### Modifying Pipeline Stages
-Update the `columns` array in `components/KanbanBoard.tsx` to customize stages.
+## 🔧 Configuration
 
-### Styling Changes
-All styling is handled through Tailwind CSS classes. The color scheme can be modified in `tailwind.config.js`.
+Railway will automatically set the `$PORT` environment variable. The deployment is configured to:
 
-## Database Schema
+- **Model**: LaMa (best for content-aware inpainting)
+- **Device**: CPU (Railway doesn't provide GPU access)
+- **Host**: 0.0.0.0 (accepts external connections)
+- **Port**: Uses Railway's assigned port
 
-The application uses two main tables:
+## 🔄 Integration with SilberArrows CRM
 
-- **leads**: Stores all customer and appointment information
-- **models**: Contains available car models for selection
+Once deployed, update your `create-social-media-task` API route in the main SilberArrows project:
 
-Real-time subscriptions ensure all users see updates instantly when leads are created, updated, or moved between stages.
+```javascript
+// Add this environment variable to your main project
+const IOPAINT_URL = process.env.IOPAINT_URL || 'https://your-iopaint-service.railway.app';
 
-## Deployment
+// Replace the OpenAI section with IOPaint
+async function processImageWithIOPaint(imageBuffer, targetWidth, targetHeight) {
+  try {
+    // Get original image dimensions
+    const { width: originalWidth, height: originalHeight } = await sharp(imageBuffer).metadata();
+    
+    // Calculate padding needed
+    const originalRatio = originalWidth / originalHeight;
+    const targetRatio = targetWidth / targetHeight;
+    
+    if (Math.abs(originalRatio - targetRatio) < 0.1) {
+      // Already close to target ratio, just resize
+      return await sharp(imageBuffer)
+        .resize(targetWidth, targetHeight)
+        .jpeg({ quality: 90 })
+        .toBuffer();
+    }
+    
+    // Create a mask showing areas that need filling
+    const resizedHeight = Math.floor(targetWidth / originalRatio);
+    const paddingTop = Math.floor((targetHeight - resizedHeight) / 2);
+    const paddingBottom = targetHeight - resizedHeight - paddingTop;
+    
+    // Resize the car image to fit width
+    const resizedImage = await sharp(imageBuffer)
+      .resize(targetWidth, resizedHeight)
+      .toBuffer();
+    
+    // Create mask (white areas will be filled by IOPaint)
+    const mask = await sharp({
+      create: {
+        width: targetWidth,
+        height: targetHeight,
+        channels: 3,
+        background: { r: 255, g: 255, b: 255 } // White = areas to fill
+      }
+    })
+    .composite([{
+      input: await sharp({
+        create: {
+          width: targetWidth,
+          height: resizedHeight,
+          channels: 3,
+          background: { r: 0, g: 0, b: 0 } // Black = keep original
+        }
+      }).toBuffer(),
+      top: paddingTop,
+      left: 0
+    }])
+    .png()
+    .toBuffer();
+    
+    // Create canvas with car positioned
+    const canvas = await sharp({
+      create: {
+        width: targetWidth,
+        height: targetHeight,
+        channels: 3,
+        background: { r: 128, g: 128, b: 128 } // Gray background
+      }
+    })
+    .composite([{
+      input: resizedImage,
+      top: paddingTop,
+      left: 0
+    }])
+    .jpeg()
+    .toBuffer();
+    
+    // Call IOPaint service
+    const formData = new FormData();
+    formData.append('image', new Blob([canvas]), 'car.jpg');
+    formData.append('mask', new Blob([mask]), 'mask.png');
+    
+    const response = await fetch(`${IOPAINT_URL}/inpaint`, {
+      method: 'POST',
+      body: formData,
+      timeout: 60000 // 60 second timeout
+    });
+    
+    if (!response.ok) {
+      throw new Error(`IOPaint service error: ${response.status}`);
+    }
+    
+    return Buffer.from(await response.arrayBuffer());
+    
+  } catch (error) {
+    console.error('IOPaint processing failed:', error);
+    // Fallback to simple resize with padding
+    return await sharp(imageBuffer)
+      .resize(targetWidth, targetHeight, {
+        fit: 'contain',
+        background: { r: 240, g: 240, b: 240 }
+      })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+  }
+}
+```
 
-### Vercel (Recommended)
-1. Push your code to GitHub
-2. Import project in Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
+## 📋 How It Works
 
-### Other Platforms
-Ensure Node.js 18+ support and set the required environment variables.
+1. **LaMa Model**: Uses state-of-the-art inpainting to fill masked areas
+2. **Content-Aware**: Intelligently extends backgrounds based on surrounding context
+3. **Car Preservation**: The original car image remains untouched
+4. **Fallback**: If service fails, falls back to simple padding
 
-## Support
+## ⚡ Performance Expectations
 
-For technical support or feature requests, please refer to the project documentation or contact your development team.
+- **Speed**: 15-45 seconds per image (CPU processing)
+- **Quality**: Professional content-aware background extension
+- **Reliability**: Robust error handling with fallbacks
+- **Cost**: Railway hosting (~$5-20/month based on usage)
 
-## License
+## 🛠 Environment Variables
 
-This project is proprietary software developed for used car sales businesses. 
+Set these in your main SilberArrows project:
+
+```
+IOPAINT_URL=https://your-iopaint-service.railway.app
+```
+
+## 🔍 Monitoring & Debugging
+
+Railway provides built-in monitoring. Check the logs for:
+
+- Image processing times
+- Memory usage
+- Error rates
+- Request volumes
+
+## 💡 Tips for Best Results
+
+1. **Image Quality**: Higher quality input = better results
+2. **Background Consistency**: Works best with consistent lighting
+3. **Size Limits**: Recommended max 2048x2048 input images
+4. **Timeout Handling**: Always implement proper timeouts
+5. **Caching**: Consider caching processed images
+
+## 🔧 Troubleshooting
+
+- **Slow Processing**: Normal on CPU, consider image size reduction
+- **Memory Errors**: Railway auto-restarts, implement retry logic
+- **Network Timeouts**: Increase timeout values in your requests
+- **Service Down**: Fallback to simple padding ensures functionality
+
+---
+
+This service enhances SilberArrows' social media workflow by providing professional-quality background extension for car inventory images, making them Instagram-ready with intelligent content-aware processing. 

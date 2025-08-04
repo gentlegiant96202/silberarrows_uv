@@ -1,0 +1,10 @@
+{
+  "/api/funnel-metrics/route": "app/api/funnel-metrics/route.js",
+  "/api/design-tasks/route": "app/api/design-tasks/route.js",
+  "/inventory/page": "app/inventory/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/crm/page": "app/crm/page.js",
+  "/page": "app/page.js",
+  "/module-selection/page": "app/module-selection/page.js",
+  "/marketing/dashboard/page": "app/marketing/dashboard/page.js"
+}

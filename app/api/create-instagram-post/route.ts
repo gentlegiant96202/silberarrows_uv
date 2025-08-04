@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     
     // --- GRADIENT FROM ORIGINAL IMAGE ---
     // Helper: average color in a row range
-    const avgColorRowRange = (y0, y1) => {
+    const avgColorRowRange = (y0: number, y1: number) => {
       let r = 0, g = 0, b = 0, a = 0, n = 0;
       for (let y = y0; y < y1; y++) {
         for (let x = 0; x < origInfo.width; x++) {

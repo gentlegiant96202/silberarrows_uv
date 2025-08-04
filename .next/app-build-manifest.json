@@ -33,16 +33,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/design-tasks/route.js"
     ],
-    "/inventory/page": [
+    "/crm/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/inventory/page.css",
-      "static/chunks/app/inventory/page.js"
-    ],
-    "/api/create-social-media-task/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/create-social-media-task/route.js"
+      "static/css/app/crm/page.css",
+      "static/chunks/app/crm/page.js"
     ],
     "/marketing/dashboard/page": [
       "static/chunks/webpack.js",
@@ -50,16 +45,46 @@
       "static/css/app/marketing/dashboard/page.css",
       "static/chunks/app/marketing/dashboard/page.js"
     ],
-    "/api/generate-consignment-agreement/route": [
+    "/customers/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/generate-consignment-agreement/route.js"
+      "static/css/app/customers/page.css",
+      "static/chunks/app/customers/page.js"
     ],
-    "/crm/page": [
+    "/inventory/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/crm/page.css",
-      "static/chunks/app/crm/page.js"
+      "static/css/app/inventory/page.css",
+      "static/chunks/app/inventory/page.js"
+    ],
+    "/accounts/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/accounts/dashboard/page.css",
+      "static/chunks/app/accounts/dashboard/page.js"
+    ],
+    "/leasing/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/leasing/dashboard/page.css",
+      "static/chunks/app/leasing/dashboard/page.js"
+    ],
+    "/api/create-instagram-post/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/create-instagram-post/route.js"
+    ],
+    "/consignments/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/consignments/page.css",
+      "static/chunks/app/consignments/page.js"
+    ],
+    "/workshop/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/workshop/dashboard/page.css",
+      "static/chunks/app/workshop/dashboard/page.js"
     ]
   }
 }

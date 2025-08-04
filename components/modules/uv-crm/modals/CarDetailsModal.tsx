@@ -9,6 +9,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { createClient } from '@supabase/supabase-js';
 import { createPortal } from 'react-dom';
+import { Instagram, X } from 'lucide-react';
 
 interface CarInfo {
   id: string;
@@ -51,6 +52,7 @@ interface CarInfo {
   owners_manual_acquired: boolean | null;
   spare_tyre_tools_acquired: boolean | null;
   fire_extinguisher_acquired: boolean | null;
+  website_url: string | null;
 }
 
 interface Props {
@@ -73,6 +75,17 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   // Loading states for media operations
   const [mediaLoading, setMediaLoading] = useState(false);
   const [reorderLoading, setReorderLoading] = useState(false);
+  
+  // Function to get original full-resolution image URL
+  const getOriginalImageUrl = (url: string) => {
+    // Remove any Supabase transformations that might crop the image
+    if (url.includes('supabase')) {
+      // Remove any transform parameters to get original
+      const baseUrl = url.split('?')[0];
+      return baseUrl;
+    }
+    return url;
+  };
 
   // Mercedes-Benz models from appointment modal
   const models = [
@@ -653,6 +666,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                 <button onClick={()=>setEditing(true)} className="px-2 py-1 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs rounded transition-all">Edit</button>
               )
             )}
+            
           </div>
 
           {/* Location & Fuel selectors when in inventory */}
@@ -749,6 +763,28 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                 </dl>
               </div>
             ))}
+
+            {/* Website URL section styled like other modal sections */}
+            <div className="border border-white/10 rounded-md p-3 bg-white/5 mb-4">
+              <h3 className="text-white text-[12px] font-bold mb-1 uppercase tracking-wide">Website URL</h3>
+              {editing && canEdit ? (
+                <input
+                  type="url"
+                  className="w-full bg-black/40 border border-white/20 rounded px-2 py-1 text-white text-sm focus:outline-none"
+                  value={localCar.website_url || ''}
+                  placeholder="https://yourwebsite.com/car/123"
+                  onChange={e => setLocalCar(prev => ({ ...prev, website_url: e.target.value }))}
+                />
+              ) : (
+                <div className="text-white/80 text-sm px-2 py-1 bg-black/20 rounded">
+                  {car.website_url ? (
+                    <span className="text-white/80 text-sm">{car.website_url}</span>
+                  ) : (
+                    <span className="italic text-white/40">No website URL set</span>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Vehicle Owner Details - Only for Consignment Cars */}
             {localCar.ownership_type === 'consignment' && (
@@ -1094,6 +1130,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           </div>
         </div>
       </div>
+      
     </div>
   );
 } 

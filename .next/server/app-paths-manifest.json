@@ -1,11 +1,11 @@
 {
   "/api/design-tasks/route": "app/api/design-tasks/route.js",
   "/api/funnel-metrics/route": "app/api/funnel-metrics/route.js",
-  "/inventory/page": "app/inventory/page.js",
-  "/crm/page": "app/crm/page.js",
-  "/workshop/dashboard/page": "app/workshop/dashboard/page.js",
   "/marketing/dashboard/page": "app/marketing/dashboard/page.js",
+  "/inventory/page": "app/inventory/page.js",
   "/module-selection/page": "app/module-selection/page.js",
+  "/crm/page": "app/crm/page.js",
+  "/consignments/page": "app/consignments/page.js",
   "/page": "app/page.js",
   "/dashboard/page": "app/dashboard/page.js"
 }

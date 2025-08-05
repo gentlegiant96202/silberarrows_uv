@@ -462,7 +462,7 @@ export default function CarKanbanBoard() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2 scrollbar-hide">
+              <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
                 {inventoryExpanded && col.key === 'inventory' ? (
                   // Grid layout for expanded inventory view
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">

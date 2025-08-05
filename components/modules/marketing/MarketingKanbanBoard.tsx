@@ -588,7 +588,7 @@ export default function MarketingKanbanBoard() {
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
               {col.key === 'instagram_feed_preview' ? (
                 // Instagram feed preview layout
                 <div className="grid grid-cols-3 gap-1">

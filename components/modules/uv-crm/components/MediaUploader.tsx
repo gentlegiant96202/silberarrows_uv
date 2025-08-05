@@ -1,12 +1,104 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-// @ts-ignore – no types bundled
-import imageCompression from 'browser-image-compression';
 
 interface Props {
   carId: string;
   onUploaded?: () => void;
 }
+
+// Function to add light grey gradient background to transparent PNGs
+const addGradientBackground = async (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      if (!ctx) {
+        resolve(file); // fallback to original if canvas context fails
+        return;
+      }
+      
+      // Create light grey gradient background
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#f8f8f8');  // Very light grey at top
+      gradient.addColorStop(0.5, '#e8e8e8'); // Light grey in middle
+      gradient.addColorStop(1, '#d8d8d8');   // Medium light grey at bottom
+      
+      // Fill background with gradient
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw the original image on top
+      ctx.drawImage(img, 0, 0);
+      
+      // Convert canvas back to file
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const newFile = new File([blob], file.name.replace(/\.png$/i, '_with_bg.png'), {
+            type: 'image/png',
+            lastModified: Date.now()
+          });
+          resolve(newFile);
+        } else {
+          resolve(file); // fallback to original
+        }
+      }, 'image/png', 0.95);
+    };
+    
+    img.onerror = () => {
+      resolve(file); // fallback to original if image loading fails
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+// Function to check if PNG has transparency
+const hasPngTransparency = async (file: File): Promise<boolean> => {
+  if (!file.type.includes('png')) return false;
+  
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      if (!ctx) {
+        resolve(false);
+        return;
+      }
+      
+      ctx.drawImage(img, 0, 0);
+      
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Check for any pixels with alpha < 255 (transparency)
+        for (let i = 3; i < data.length; i += 4) {
+          if (data[i] < 255) {
+            resolve(true);
+            return;
+          }
+        }
+        resolve(false);
+      } catch (error) {
+        // If we can't access image data (CORS, etc.), assume no transparency
+        resolve(false);
+      }
+    };
+    
+    img.onerror = () => resolve(false);
+    img.src = URL.createObjectURL(file);
+  });
+};
 
 export default function MediaUploader({ carId, onUploaded }: Props) {
   const [uploading, setUploading] = useState(false);
@@ -28,15 +120,20 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
     for (let idx = 0; idx < files.length; idx++) {
       const file = files[idx];
       let uploadFile: File | Blob = file;
+      
       if (file.type.startsWith('image')) {
         try {
-          uploadFile = await imageCompression(file, {
-            maxWidthOrHeight: 1600,
-            maxSizeMB: 1,
-            useWebWorker: true,
-          });
+          // Check if PNG has transparency and add background if needed
+          if (file.type.includes('png')) {
+            const hasTransparency = await hasPngTransparency(file);
+            if (hasTransparency) {
+              console.log(`Adding light grey gradient background to transparent PNG: ${file.name}`);
+              uploadFile = await addGradientBackground(file);
+            }
+          }
+          // Note: Image compression removed - uploading original quality
         } catch (err) {
-          console.warn('Image compression failed, falling back to original', err);
+          console.warn('Image processing failed, falling back to original', err);
         }
       }
 

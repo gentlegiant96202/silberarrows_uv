@@ -357,7 +357,7 @@ export default function KanbanBoard() {
             )}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-2 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
             {grouped[col.key as ColKey].map(l => (
               <div
                 key={l.id}

@@ -651,12 +651,6 @@ video {
 .top-full {
   top: 100%;
 }
-.bottom-6 {
-  bottom: 1.5rem;
-}
-.right-6 {
-  right: 1.5rem;
-}
 .-z-10 {
   z-index: -10;
 }
@@ -680,9 +674,6 @@ video {
 }
 .z-\[3\] {
   z-index: 3;
-}
-.z-\[60\] {
-  z-index: 60;
 }
 .col-span-2 {
   grid-column: span 2 / span 2;
@@ -1062,9 +1053,6 @@ video {
 }
 .w-screen {
   width: 100vw;
-}
-.w-48 {
-  width: 12rem;
 }
 .min-w-0 {
   min-width: 0px;
@@ -2035,6 +2023,11 @@ video {
   --tw-gradient-to: rgb(22 163 74 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
+.from-purple-600 {
+  --tw-gradient-from: #9333ea var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(147 51 234 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
 .from-red-400 {
   --tw-gradient-from: #f87171 var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(248 113 113 / 0) var(--tw-gradient-to-position);
@@ -2063,11 +2056,6 @@ video {
 .from-white\/5 {
   --tw-gradient-from: rgb(255 255 255 / 0.05) var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-.from-purple-600 {
-  --tw-gradient-from: #9333ea var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(147 51 234 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 .via-black {
@@ -2177,6 +2165,9 @@ video {
 .to-green-700 {
   --tw-gradient-to: #15803d var(--tw-gradient-to-position);
 }
+.to-pink-600 {
+  --tw-gradient-to: #db2777 var(--tw-gradient-to-position);
+}
 .to-red-500 {
   --tw-gradient-to: #ef4444 var(--tw-gradient-to-position);
 }
@@ -2194,9 +2185,6 @@ video {
 }
 .to-white\/5 {
   --tw-gradient-to: rgb(255 255 255 / 0.05) var(--tw-gradient-to-position);
-}
-.to-pink-600 {
-  --tw-gradient-to: #db2777 var(--tw-gradient-to-position);
 }
 .bg-clip-text {
   -webkit-background-clip: text;
@@ -2445,8 +2433,14 @@ video {
 .uppercase {
   text-transform: uppercase;
 }
+.lowercase {
+  text-transform: lowercase;
+}
 .capitalize {
   text-transform: capitalize;
+}
+.normal-case {
+  text-transform: none;
 }
 .italic {
   font-style: italic;
@@ -2615,6 +2609,9 @@ video {
 }
 .underline {
   text-decoration-line: underline;
+}
+.no-underline {
+  text-decoration-line: none;
 }
 .antialiased {
   -webkit-font-smoothing: antialiased;
@@ -2979,6 +2976,45 @@ html::-webkit-scrollbar, body::-webkit-scrollbar{width:0;background:transparent;
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
+}
+
+/* Custom Black Scrollbar for Marketing Kanban */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #1a1a1a #0a0a0a; /* Firefox: thumb track */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0a0a0a; /* Very dark track */
+  border-radius: 4px;
+  border: 1px solid #1a1a1a;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  border-radius: 4px;
+  border: 1px solid #333;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  border-color: #444;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 50%, #2a2a2a 100%);
+  border-color: #555;
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: #0a0a0a;
 }
 
 /* Glass Morphism Module Selection Styles */
@@ -3693,6 +3729,12 @@ select:focus {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
+.hover\:from-purple-700:hover {
+  --tw-gradient-from: #7e22ce var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(126 34 206 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
 .hover\:from-red-300:hover {
   --tw-gradient-from: #fca5a5 var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(252 165 165 / 0) var(--tw-gradient-to-position);
@@ -3702,12 +3744,6 @@ select:focus {
 .hover\:from-white\/15:hover {
   --tw-gradient-from: rgb(255 255 255 / 0.15) var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-
-.hover\:from-purple-700:hover {
-  --tw-gradient-from: #7e22ce var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(126 34 206 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
@@ -3762,12 +3798,12 @@ select:focus {
   --tw-gradient-to: #166534 var(--tw-gradient-to-position);
 }
 
-.hover\:to-red-400:hover {
-  --tw-gradient-to: #f87171 var(--tw-gradient-to-position);
-}
-
 .hover\:to-pink-700:hover {
   --tw-gradient-to: #be185d var(--tw-gradient-to-position);
+}
+
+.hover\:to-red-400:hover {
+  --tw-gradient-to: #f87171 var(--tw-gradient-to-position);
 }
 
 .hover\:text-blue-300:hover {
@@ -3891,6 +3927,11 @@ select:focus {
   opacity: 1;
 }
 
+.focus\:border-blue-400:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(96 165 250 / var(--tw-border-opacity, 1));
+}
+
 .focus\:border-blue-500:focus {
   --tw-border-opacity: 1;
   border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
@@ -3911,11 +3952,6 @@ select:focus {
 
 .focus\:border-white\/40:focus {
   border-color: rgb(255 255 255 / 0.4);
-}
-
-.focus\:border-blue-400:focus {
-  --tw-border-opacity: 1;
-  border-color: rgb(96 165 250 / var(--tw-border-opacity, 1));
 }
 
 .focus\:outline-none:focus {

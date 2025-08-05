@@ -465,7 +465,7 @@ export default function ConsignmentKanbanBoard() {
 
   return (
     <div className="px-4" style={{ height: "calc(100vh - 72px)" }}>
-      <div className="flex gap-3 pb-4 w-full h-full overflow-x-auto scrollbar-hide">
+      <div className="flex gap-3 pb-4 w-full h-full overflow-x-auto custom-scrollbar">
         {columns.map((col) => (
           <div
             key={col.key}
@@ -523,7 +523,7 @@ export default function ConsignmentKanbanBoard() {
                 </div>
               )}
             </div>
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
               {grouped[col.key as ColKey].map((c) => (
                 <div
                   key={c.id}

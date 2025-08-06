@@ -120,14 +120,14 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
           let imagesLoaded = 0;
           const totalImages = secondImageUrl ? 2 : 1;
           
-          function onImageLoad() {
+          const onImageLoad = () => {
             imagesLoaded++;
             if (imagesLoaded === totalImages) {
               drawCompleteLayout();
             }
-          }
+          };
           
-          function drawCompleteLayout() {
+          const drawCompleteLayout = () => {
             // Layout configuration
             const availableHeight = canvasHeight;
             const topImageHeight = Math.floor(availableHeight * 0.35); // 35% for top image
@@ -241,7 +241,7 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
         drawTwoColumnOverlay();
       }
 
-    function drawTwoColumnOverlay() {
+    const drawTwoColumnOverlay = () => {
       const padding = 30;
       const overlayWidth = canvasWidth - (padding * 2);
       const columnWidth = overlayWidth / 2;
@@ -330,7 +330,7 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
       ctx.fillText('Call or WhatsApp: +971 4 380 5515', centerX, textY);
       // Convert canvas to data URL
       resolve(canvas.toDataURL('image/png', 1.0));
-    }
+    };
   });
 };
 

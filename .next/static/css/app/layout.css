@@ -884,9 +884,6 @@ video {
 .h-96 {
   height: 24rem;
 }
-.h-\[220px\] {
-  height: 220px;
-}
 .h-\[260px\] {
   height: 260px;
 }
@@ -2023,10 +2020,6 @@ video {
 }
 .bg-yellow-500\/35 {
   background-color: rgb(234 179 8 / 0.35);
-}
-.bg-gray-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(107 114 128 / var(--tw-bg-opacity, 1));
 }
 .bg-gradient-to-b {
   background-image: linear-gradient(to bottom, var(--tw-gradient-stops));

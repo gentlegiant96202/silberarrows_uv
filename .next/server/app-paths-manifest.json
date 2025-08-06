@@ -1,7 +1,4 @@
 {
   "/api/design-tasks/route": "app/api/design-tasks/route.js",
-  "/api/sales-metrics/route": "app/api/sales-metrics/route.js",
-  "/accounts/dashboard/page": "app/accounts/dashboard/page.js",
-  "/module-selection/page": "app/module-selection/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/module-selection/page": "app/module-selection/page.js"
 }

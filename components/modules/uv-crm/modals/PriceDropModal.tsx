@@ -434,7 +434,7 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
       ctx.fillText('Call or WhatsApp: +971 4 380 5515', centerX, textY);
       // Convert canvas to data URL
       resolve(canvas.toDataURL('image/png', 1.0));
-    };
+    }
   });
 };
 

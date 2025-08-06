@@ -113,6 +113,7 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
         // Define function that can be used in multiple contexts
         const drawTwoColumnOverlay = () => {
           const padding = 30;
+          const overlayWidth = canvasWidth - (padding * 2);
           // Fixed overlay height and positioning
           const overlayHeight = 280; // Fixed height for text overlay
           const minImageHeight = 180;

@@ -67,6 +67,26 @@ export async function POST(request: NextRequest) {
             flex-direction: column;
             justify-content: space-between;
           }
+
+          .page.first-page {
+            padding: 8px 10px 18px 10px;
+          }
+
+          .page.first-page .section {
+            margin: 0 0 4px 0;
+          }
+
+          .page.first-page .compact-section {
+            margin: 0 0 3px 0;
+          }
+
+          .page.first-page .text-content {
+            margin-bottom: 6px;
+          }
+
+          .page.first-page .header {
+            margin: 0 0 18px 0;
+          }
           
           .page::before {
             content: '';
@@ -86,7 +106,7 @@ export async function POST(request: NextRequest) {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin: 0 0 18px 0;
+            margin: 0 0 25px 0;
             padding: 10px 15px 8px 15px;
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(25px);
@@ -162,12 +182,12 @@ export async function POST(request: NextRequest) {
           }
 
           .section {
-            margin: 0 0 2px 0;
+            margin: 0 0 8px 0;
             background: rgba(255, 255, 255, 0.04);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 12px;
-            padding: 4px 6px;
+            padding: 12px 15px;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
                         inset 0 -1px 0 rgba(255, 255, 255, 0.02),
                         0 4px 16px rgba(0, 0, 0, 0.2);
@@ -231,7 +251,7 @@ export async function POST(request: NextRequest) {
 
           .form-table td {
             border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 3px 5px;
+            padding: 6px 10px;
             vertical-align: middle;
             color: white;
             font-size: 10px;
@@ -275,7 +295,7 @@ export async function POST(request: NextRequest) {
           .checkbox-line {
             display: flex;
             align-items: center;
-            margin: 6px 0;
+            margin: 8px 0;
             color: white;
             font-size: 11px;
             position: relative;
@@ -365,14 +385,14 @@ export async function POST(request: NextRequest) {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 8px;
-            padding: 12px;
-            margin: 8px 0;
+            padding: 15px;
+            margin: 10px 0;
             backdrop-filter: blur(15px);
           }
 
           .fee-option {
-            margin: 6px 0;
-            padding: 6px 0;
+            margin: 8px 0;
+            padding: 8px 0;
             display: flex;
             align-items: center;
           }
@@ -395,7 +415,7 @@ export async function POST(request: NextRequest) {
 
           .text-content {
             line-height: 1.2;
-            margin-bottom: 4px;
+            margin-bottom: 10px;
             color: white;
             font-size: 10px;
             position: relative;
@@ -410,7 +430,7 @@ export async function POST(request: NextRequest) {
           }
 
           .numbered-list li {
-            margin-bottom: 14px;
+            margin-bottom: 10px;
             line-height: 1.55;
             color: white;
             font-size: 10px;
@@ -430,10 +450,10 @@ export async function POST(request: NextRequest) {
           }
 
           .signature-section {
-            margin-top: 8px;
+            margin-top: 12px;
             display: flex;
             justify-content: space-between;
-            gap: 8px;
+            gap: 12px;
             position: relative;
             z-index: 2;
             width: 100%;
@@ -447,7 +467,7 @@ export async function POST(request: NextRequest) {
             backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 8px;
-            padding: 6px;
+            padding: 10px;
             color: white;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
           }
@@ -479,7 +499,7 @@ export async function POST(request: NextRequest) {
           }
 
           .compact-section {
-            margin: 0 0 1px 0;
+            margin: 0 0 6px 0;
             width: 100%;
             box-sizing: border-box;
           }
@@ -489,8 +509,8 @@ export async function POST(request: NextRequest) {
             backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 10px;
-            padding: 8px;
-            margin: 0 0 4px 0;
+            padding: 12px;
+            margin: 0 0 8px 0;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
             position: relative;
             z-index: 2;
@@ -505,7 +525,7 @@ export async function POST(request: NextRequest) {
               rgba(255, 255, 255, 0) 0%, 
               rgba(255, 255, 255, 0.3) 50%, 
               rgba(255, 255, 255, 0) 100%);
-            margin: 8px 0;
+            margin: 12px 0;
           }
 
           .terms-cols {
@@ -521,7 +541,7 @@ export async function POST(request: NextRequest) {
       </head>
       <body>
         <!-- PAGE 1 -->
-        <div class="page">
+        <div class="page first-page">
           <div class="header">
             <div class="title-section">
               <div class="title">VEHICLE CONSIGNMENT AGREEMENT</div>
@@ -532,7 +552,7 @@ export async function POST(request: NextRequest) {
 
           <div class="content-container">
             <!-- OWNER INFORMATION -->
-            <div class="section compact-section" style="margin-bottom: 18px;">
+            <div class="section compact-section" style="margin-bottom: 12px;">
               <div class="section-title">OWNER INFORMATION</div>
               <table class="form-table">
                 <tr>
@@ -547,7 +567,7 @@ export async function POST(request: NextRequest) {
             </div>
 
             <!-- VEHICLE DETAILS -->
-            <div class="section compact-section" style="margin-bottom: 18px;">
+            <div class="section compact-section" style="margin-bottom: 12px;">
               <div class="section-title">VEHICLE DETAILS</div>
               <table class="form-table">
                 <tr>
@@ -649,14 +669,14 @@ export async function POST(request: NextRequest) {
                 </div>
               </div>
 
-              <div class="text-content">
+              <div class="text-content" style="margin-bottom: 4px;">
                 <strong>Condition of Vehicle:</strong> Before the vehicle is listed for sale, it must be free of any major mechanical issues that could affect its safety or performance. SilberArrows will initially inspect the vehicle using a Pre-UVC (Pre-Used Vehicle Check) form, which forms part of this Consignment Agreement. Once the vehicle has been handed over, SilberArrows will conduct a UVC (Used Vehicle Check) to perform a thorough inspection.
                 <br />At this stage, SilberArrows will provide the Owner with an estimate for any necessary repairs to meet their standards. The Owner is under no obligation to authorise these repairs; however, SilberArrows reserves the right to terminate the agreement if the vehicle does not meet the required standards.
               </div>
 
               <div class="text-content">
                 <strong>Handover Checklist:</strong> Upon vehicle handover, the following items will be confirmed and documented:
-                <table style="width: 100%; margin-top: 6px; border-collapse: collapse;">
+                <table style="width: 100%; margin-top: 0px; border-collapse: collapse;">
                   <tr>
                     <td style="width: 70%; padding: 2px 0;"></td>
                     <td style="width: 15%; padding: 2px 0; text-align: center; color: white; font-size: 10px; font-weight: bold;">Yes</td>
@@ -740,34 +760,34 @@ export async function POST(request: NextRequest) {
               <div class="section-title">TERMS & CONDITIONS</div>
               <div class="terms-cols" style="display: flex; gap: 24px;">
                 <div class="terms-col" style="flex: 1; white-space: pre-line;">
-1. FEE DISCLOSURE CONFIRMATION
+<strong>1. FEE DISCLOSURE CONFIRMATION</strong>
 The Owner confirms they have been informed of all applicable fees related to the consignment process.
 
-2. EXCLUSIVE LISTING
+<strong>2. EXCLUSIVE LISTING</strong>
 The Owner agrees that this is an exclusive listing, and the vehicle will not be advertised or offered for sale through any other channels during the consignment period.
 
-3. PAYMENT TERMS FOR SALE
+<strong>3. PAYMENT TERMS FOR SALE</strong>
 If the vehicle is purchased by a buyer under bank finance, the funds will be transferred to the Owner 14 calendar days (excluding public holidays) after the ownership change has taken place.
 
 If the vehicle is purchased with cash, the funds will be transferred to the Owner 7 calendar days (excluding public holidays) after the ownership change has taken place. In the case of a combination of bank finance and cash, the respective payout periods for each method will apply.
 
-4. REPRESENTATIVE OF THE OWNER
+<strong>4. REPRESENTATIVE OF THE OWNER</strong>
 If the Owner authorises a representative to act on their behalf for the consignment process, the following conditions apply:
 
 The Owner must provide written consent authorising the representative.
 A copy of the representative’s Emirates ID must be submitted.
 The representative may act only within the scope of authorisation as outlined by the Owner in the written consent.
 
-5. FINANCE AGREEMENT TERMS
+<strong>5. FINANCE AGREEMENT TERMS</strong>
 If the vehicle is purchased through a finance agreement, the terms of the finance agreement will apply. SilberArrows is not responsible for the finance company’s terms and conditions.
 
-6. TERMINATION OF AGREEMENT
+<strong>6. TERMINATION OF AGREEMENT</strong>
 Either the Owner or SilberArrows may terminate this agreement by providing 7 days’ written notice, provided there is no ongoing or pending sale of the vehicle at the time of termination.
 
 If the Owner requests to terminate the agreement before the end of the 90-calendar day consignment period, any applicable fees outlined in the “Fees Payable for Early Termination” section must be paid to SilberArrows prior to the release of the vehicle.
                 </div>
                 <div class="terms-col" style="flex: 1; white-space: pre-line;">
-7. OWNER’S RESPONSIBILITIES
+<strong>7. OWNER'S RESPONSIBILITIES</strong>
 The Owner authorises SilberArrows to act on their behalf to market and sell the vehicle, including handling all necessary documentation related to the sale. The Owner confirms that they have full legal ownership of the vehicle, and that all information provided to SilberArrows is accurate to the best of their knowledge.
 
 The Owner agrees to provide the following documents:
@@ -781,12 +801,12 @@ The vehicle remains fully registered and insured throughout the consignment peri
 The vehicle is delivered in a clean condition.
 The vehicle is free of any major mechanical or safety issues prior to consignment.
 
-8. LIABILITY LIMITATIONS
+<strong>8. LIABILITY LIMITATIONS</strong>
 SilberArrows’ liability is strictly limited to the fees actually paid to SilberArrows by the Owner. SilberArrows is not liable for any indirect, incidental, or consequential damages.
 
 The Owner acknowledges that SilberArrows is not responsible for loss or damage due to environmental conditions or accidental events unless caused by SilberArrows’ negligence.
 
-9. GENERAL PROVISIONS
+<strong>9. GENERAL PROVISIONS</strong>
 Severability: If any term of this agreement is found unenforceable, the remaining terms remain valid.
 Binding Effect: This agreement is binding on the heirs, legal representatives, and assigns of both parties.
 Entire Agreement: This document constitutes the entire agreement between SilberArrows and the Owner and supersedes all prior communications. Any changes must be agreed to in writing.

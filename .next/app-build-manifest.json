@@ -6,47 +6,21 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/api/process-image-queue/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/process-image-queue/route.js"
-    ],
-    "/api/generate-all-car-images/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/generate-all-car-images/route.js"
-    ],
-    "/api/generate-car-image/[carId]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/generate-car-image/[carId]/route.js"
-    ],
-    "/api/design-tasks/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/design-tasks/route.js"
-    ],
-    "/marketing/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/marketing/dashboard/page.css",
-      "static/chunks/app/marketing/dashboard/page.js"
-    ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
     "/module-selection/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/css/app/module-selection/page.css",
       "static/chunks/app/module-selection/page.js"
     ],
-    "/api/generate-xml-feed/route": [
+    "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/generate-xml-feed/route.js"
+      "static/chunks/app/login/page.js"
+    ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
     ],
     "/dashboard/page": [
       "static/chunks/webpack.js",
@@ -59,11 +33,36 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/funnel-metrics/route.js"
     ],
-    "/inventory/page": [
+    "/api/design-tasks/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/inventory/page.css",
-      "static/chunks/app/inventory/page.js"
+      "static/chunks/app/api/design-tasks/route.js"
+    ],
+    "/service/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/service/page.css",
+      "static/chunks/app/service/page.js"
+    ],
+    "/api/service-contracts/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/service-contracts/route.js"
+    ],
+    "/api/generate-service-agreement/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/generate-service-agreement/route.js"
+    ],
+    "/api/service-contracts/[id]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/service-contracts/[id]/route.js"
+    ],
+    "/api/service-contracts/[id]/pdf/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/service-contracts/[id]/pdf/route.js"
     ],
     "/crm/page": [
       "static/chunks/webpack.js",
@@ -71,10 +70,11 @@
       "static/css/app/crm/page.css",
       "static/chunks/app/crm/page.js"
     ],
-    "/api/generate-car-pdf-pdfshift/route": [
+    "/inventory/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/generate-car-pdf-pdfshift/route.js"
+      "static/css/app/inventory/page.css",
+      "static/chunks/app/inventory/page.js"
     ],
     "/customers/page": [
       "static/chunks/webpack.js",
@@ -87,6 +87,11 @@
       "static/chunks/main-app.js",
       "static/css/app/consignments/page.css",
       "static/chunks/app/consignments/page.js"
+    ],
+    "/api/generate-car-pdf-pdfshift/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/generate-car-pdf-pdfshift/route.js"
     ]
   }
 }

@@ -7,7 +7,6 @@ import DocUploader from '@/components/modules/uv-crm/components/DocUploader';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useUserRole } from '@/lib/useUserRole';
 import { useModulePermissions } from '@/lib/useModulePermissions';
-import { createClient } from '@supabase/supabase-js';
 import { createPortal } from 'react-dom';
 import { Instagram, X } from 'lucide-react';
 

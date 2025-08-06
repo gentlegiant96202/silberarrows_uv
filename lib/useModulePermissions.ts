@@ -19,6 +19,7 @@ interface AllModulePermissions {
   leasing: ModulePermissions;
   accounts: ModulePermissions;
   admin: ModulePermissions;
+  service: ModulePermissions;
   isLoading: boolean;
   error: string | null;
 }
@@ -135,6 +136,7 @@ export function useAllModulePermissions(): AllModulePermissions {
     leasing: { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: true, error: null },
     accounts: { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: true, error: null },
     admin: { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: true, error: null },
+    service: { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: true, error: null },
     isLoading: true,
     error: null,
   });
@@ -150,6 +152,7 @@ export function useAllModulePermissions(): AllModulePermissions {
           leasing: emptyPerms,
           accounts: emptyPerms,
           admin: emptyPerms,
+          service: emptyPerms,
           isLoading: false,
           error: null,
         });
@@ -159,7 +162,7 @@ export function useAllModulePermissions(): AllModulePermissions {
       try {
         setAllPermissions(prev => ({ ...prev, isLoading: true, error: null }));
 
-        const modules = ['uv_crm', 'marketing', 'workshop', 'leasing', 'accounts', 'admin'];
+        const modules = ['uv_crm', 'marketing', 'workshop', 'leasing', 'accounts', 'admin', 'service'];
         const permissionPromises = modules.map(module =>
           supabase.rpc('get_user_module_permissions', {
             check_user_id: user.id,
@@ -172,6 +175,7 @@ export function useAllModulePermissions(): AllModulePermissions {
 
         modules.forEach((module, index) => {
           const result = results[index];
+          
           if (result.error) {
             console.error(`Error fetching permissions for ${module}:`, result.error);
             newPermissions[module] = {
@@ -193,6 +197,7 @@ export function useAllModulePermissions(): AllModulePermissions {
               error: null,
             };
           } else {
+            // No permissions found - default to no access
             newPermissions[module] = {
               canView: false,
               canCreate: false,
@@ -202,11 +207,12 @@ export function useAllModulePermissions(): AllModulePermissions {
               error: null,
             };
           }
+
         });
 
         setAllPermissions(newPermissions);
       } catch (err: any) {
-        console.error('Error fetching all permissions:', err);
+        console.error('Error in useAllModulePermissions:', err);
         const errorPerms = { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: false, error: err.message };
         setAllPermissions({
           uv_crm: errorPerms,
@@ -215,9 +221,11 @@ export function useAllModulePermissions(): AllModulePermissions {
           leasing: errorPerms,
           accounts: errorPerms,
           admin: errorPerms,
+          service: errorPerms,
           isLoading: false,
           error: err.message || 'Failed to fetch permissions',
         });
+
       }
     }
 

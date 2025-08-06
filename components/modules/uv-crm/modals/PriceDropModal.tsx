@@ -110,6 +110,114 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
         const primaryImageUrl = data.primaryImageUrl;
         const secondImageUrl = data.secondImageUrl;
         
+        // Define function that can be used in multiple contexts
+        function drawTwoColumnOverlay() {
+          const padding = 30;
+          const overlayWidth = canvasWidth - (padding * 2);
+          const columnWidth = overlayWidth / 2;
+          // --- COMPLETELY NEW TEXT OVERLAY SYSTEM ---
+          // Fixed overlay height and positioning
+          const overlayHeight = 280; // Fixed height for text overlay
+          const minImageHeight = 180;
+          const remaining = canvasHeight - overlayHeight;
+          const topImageHeight = Math.max(Math.floor(remaining / 2), minImageHeight);
+          const overlayY = topImageHeight;
+          
+          // Draw the black overlay box
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+          ctx.fillRect(padding, overlayY, overlayWidth, overlayHeight);
+          
+          // Add subtle border
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(padding, overlayY, overlayWidth, overlayHeight);
+          
+          // Start text positioning
+          let textY = overlayY + 40;
+          const centerX = canvasWidth / 2;
+          
+          // Title - now in center with better styling
+          ctx.font = 'bold 45px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#E50012'; // Price drop red
+          ctx.textAlign = 'center';
+          ctx.fillText('PRICE DROP ALERT!', centerX, textY);
+          
+          // Car details in two columns
+          textY += 55;
+          const leftX = padding + 25;
+          const rightX = padding + columnWidth + 25;
+          
+          // Left column header
+          ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'left';
+          ctx.fillText('Vehicle Details:', leftX, textY);
+          
+          // Right column header  
+          ctx.textAlign = 'left';
+          ctx.fillText('Price Information:', rightX, textY);
+          
+          // Left column content
+          textY += 35;
+          ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#cccccc';
+          ctx.textAlign = 'left';
+          
+          const leftColumnData = [
+            `${data.year || 'N/A'} ${data.make || 'N/A'} ${data.model || 'N/A'}`,
+            `Mileage: ${data.mileage ? data.mileage.toLocaleString() : 'N/A'} km`,
+            `Body: ${data.body_type || 'N/A'}`,
+            `Transmission: ${data.transmission || 'N/A'}`
+          ];
+          
+          leftColumnData.forEach((text, index) => {
+            ctx.fillText(text, leftX, textY + (index * 25));
+          });
+          
+          // Right column content
+          ctx.textAlign = 'left';
+          
+          // Was price
+          ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#ff6b6b';
+          ctx.fillText(`Was: AED ${parseFloat(wasPrice).toLocaleString()}`, rightX, textY);
+          
+          // Now price  
+          ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#4ecdc4';
+          ctx.fillText(`Now: AED ${parseFloat(nowPrice).toLocaleString()}`, rightX, textY + 30);
+          
+          // Savings
+          const savings = parseFloat(wasPrice) - parseFloat(nowPrice);
+          ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#45b7d1';
+          ctx.fillText(`Save: AED ${savings.toLocaleString()}`, rightX, textY + 60);
+          
+          // Monthly payment savings
+          const oldMonthly = calculateMonthlyPayment(parseFloat(wasPrice));
+          const newMonthly = calculateMonthlyPayment(parseFloat(nowPrice));
+          const monthlySavings = oldMonthly - newMonthly;
+          ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#96CEB4';
+          ctx.fillText(`Monthly Savings: AED ${monthlySavings.toLocaleString()}`, rightX, textY + 85);
+          
+          // 4. Financing call-to-action
+          textY = overlayY + overlayHeight - 70;
+          ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#ffeaa7';
+          ctx.textAlign = 'center';
+          ctx.fillText('Financing Available - No Down Payment!', centerX, textY);
+          
+          // 5. Contact Info at bottom
+          textY = overlayY + overlayHeight - 35;
+          ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'center';
+          ctx.fillText('Call or WhatsApp: +971 4 380 5515', centerX, textY);
+          // Convert canvas to data URL
+          resolve(canvas.toDataURL('image/png', 1.0));
+        }
+        
         if (primaryImageUrl) {
           // Load both images
           const primaryImage = new Image();
@@ -119,122 +227,16 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
           
           let imagesLoaded = 0;
           const totalImages = secondImageUrl ? 2 : 1;
-          
-          const drawTwoColumnOverlay = () => {
-            const padding = 30;
-            const overlayWidth = canvasWidth - (padding * 2);
-            const columnWidth = overlayWidth / 2;
-            // --- COMPLETELY NEW TEXT OVERLAY SYSTEM ---
-            // Fixed overlay height and positioning
-            const overlayHeight = 280; // Fixed height for text overlay
-            const minImageHeight = 180;
-            const remaining = canvasHeight - overlayHeight;
-            const topImageHeight = Math.max(Math.floor(remaining / 2), minImageHeight);
-            const overlayY = topImageHeight;
-            
-            // Draw the black overlay box
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-            ctx.fillRect(padding, overlayY, overlayWidth, overlayHeight);
-            
-            // Add subtle border
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(padding, overlayY, overlayWidth, overlayHeight);
-            
-            // Start text positioning
-            let textY = overlayY + 40;
-            const centerX = canvasWidth / 2;
-            
-            // Title - now in center with better styling
-            ctx.font = 'bold 45px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = '#E50012'; // Price drop red
-            ctx.textAlign = 'center';
-            ctx.fillText('PRICE DROP ALERT!', centerX, textY);
-            
-            // Car details in two columns
-            textY += 55;
-            const leftX = padding + 25;
-            const rightX = padding + columnWidth + 25;
-            
-            // Left column header
-            ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'left';
-            ctx.fillText('Vehicle Details:', leftX, textY);
-            
-            // Right column header  
-            ctx.textAlign = 'left';
-            ctx.fillText('Price Information:', rightX, textY);
-            
-            // Left column content
-            textY += 35;
-            ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = '#cccccc';
-            ctx.textAlign = 'left';
-            
-            const leftColumnData = [
-              `${data.year || 'N/A'} ${data.make || 'N/A'} ${data.model || 'N/A'}`,
-              `Mileage: ${data.mileage ? data.mileage.toLocaleString() : 'N/A'} km`,
-              `Body: ${data.body_type || 'N/A'}`,
-              `Transmission: ${data.transmission || 'N/A'}`
-            ];
-            
-            leftColumnData.forEach((text, index) => {
-              ctx.fillText(text, leftX, textY + (index * 25));
-            });
-            
-            // Right column content
-            ctx.textAlign = 'left';
-            
-            // Was price
-            ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = '#ff6b6b';
-            ctx.fillText(`Was: AED ${parseFloat(wasPrice).toLocaleString()}`, rightX, textY);
-            
-            // Now price  
-            ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = '#4ecdc4';
-            ctx.fillText(`Now: AED ${parseFloat(nowPrice).toLocaleString()}`, rightX, textY + 30);
-            
-            // Savings
-            const savings = parseFloat(wasPrice) - parseFloat(nowPrice);
-            ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = '#45b7d1';
-            ctx.fillText(`Save: AED ${savings.toLocaleString()}`, rightX, textY + 60);
-            
-            // Monthly payment savings
-            const oldMonthly = calculateMonthlyPayment(parseFloat(wasPrice));
-            const newMonthly = calculateMonthlyPayment(parseFloat(nowPrice));
-            const monthlySavings = oldMonthly - newMonthly;
-            ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = '#96CEB4';
-            ctx.fillText(`Monthly Savings: AED ${monthlySavings.toLocaleString()}`, rightX, textY + 85);
-            
-            // 4. Financing call-to-action
-            textY = overlayY + overlayHeight - 70;
-            ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = '#ffeaa7';
-            ctx.textAlign = 'center';
-            ctx.fillText('Financing Available - No Down Payment!', centerX, textY);
-            
-            // 5. Contact Info at bottom
-            textY = overlayY + overlayHeight - 35;
-            ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-            ctx.fillText('Call or WhatsApp: +971 4 380 5515', centerX, textY);
-            // Convert canvas to data URL
-            resolve(canvas.toDataURL('image/png', 1.0));
-          };
 
-          const onImageLoad = () => {
+
+          function onImageLoad() {
             imagesLoaded++;
             if (imagesLoaded === totalImages) {
               drawCompleteLayout();
             }
-          };
+          }
           
-          const drawCompleteLayout = () => {
+          function drawCompleteLayout() {
             // Layout configuration
             const availableHeight = canvasHeight;
             const topImageHeight = Math.floor(availableHeight * 0.35); // 35% for top image
@@ -347,8 +349,96 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
         console.log('Error loading car image:', error);
         drawTwoColumnOverlay();
       }
+      // --- COMPLETELY NEW TEXT OVERLAY SYSTEM ---
+      // Fixed overlay height and positioning
+      const overlayHeight = 280; // Fixed height for text overlay
+      const minImageHeight = 180;
+      const remaining = canvasHeight - overlayHeight;
+      const topImageHeight = Math.max(Math.floor(remaining / 2), minImageHeight);
+      const overlayY = topImageHeight;
+      
+      // Draw the black overlay box
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+      ctx.fillRect(padding, overlayY, overlayWidth, overlayHeight);
+      
+      // Add subtle border
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(padding, overlayY, overlayWidth, overlayHeight);
+      
+      // Text positioning variables
+      const centerX = canvasWidth / 2;
+      const leftColX = padding + 40;
+      const rightColX = centerX + 20;
+      let textY = overlayY + 50; // Start position
+      
+      // 1. PRICE DROP Title
+      ctx.font = 'bold 56px Impact, "Arial Black", sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText('PRICE DROP', centerX, textY);
+      textY += 50;
+      
+      // 2. Car Model
+      ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = '#e0e0e0';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${car.model_year} ${car.vehicle_model}`.toUpperCase(), centerX, textY);
+      textY += 45;
+      
+      // 3. LEFT COLUMN - Pricing
+      ctx.textAlign = 'left';
+      
+      // Was Price (with strikethrough)
+      ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = '#ff6b6b';
+      const wasText = `AED ${parseFloat(wasPrice).toLocaleString()}`;
+      ctx.fillText(wasText, leftColX, textY);
+      // Strikethrough
+      const wasMetrics = ctx.measureText(wasText);
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(leftColX, textY - 8);
+      ctx.lineTo(leftColX + wasMetrics.width, textY - 8);
+      ctx.stroke();
+      
+      // Now Price
+      ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = '#4ade80';
+      ctx.fillText(`AED ${parseFloat(nowPrice).toLocaleString()}`, leftColX, textY + 35);
+      
+      // Save Amount
+      ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = '#10b981';
+      ctx.fillText(`Save AED ${savings.toLocaleString()}`, leftColX, textY + 65);
+      
+      // 4. RIGHT COLUMN - Monthly Payment
+      ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('MONTHLY PAYMENT', rightColX, textY);
+      
+      ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = '#4ade80';
+      ctx.fillText(`AED ${monthlyPayment.toLocaleString()}/mo`, rightColX, textY + 35);
+      
+      ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = '#a0a0a0';
+      ctx.fillText('(20% down, 60 months)', rightColX, textY + 60);
+      
+      // 5. Contact Info at bottom
+      textY = overlayY + overlayHeight - 35;
+      ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText('Call or WhatsApp: +971 4 380 5515', centerX, textY);
+      // Convert canvas to data URL
+      resolve(canvas.toDataURL('image/png', 1.0));
+    };
   });
 };
+
+
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">

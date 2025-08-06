@@ -112,10 +112,6 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
         
         // Define function that can be used in multiple contexts
         function drawTwoColumnOverlay() {
-          const padding = 30;
-          const overlayWidth = canvasWidth - (padding * 2);
-          const columnWidth = overlayWidth / 2;
-          // --- COMPLETELY NEW TEXT OVERLAY SYSTEM ---
           // Fixed overlay height and positioning
           const overlayHeight = 280; // Fixed height for text overlay
           const minImageHeight = 180;
@@ -434,10 +430,8 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
       ctx.fillText('Call or WhatsApp: +971 4 380 5515', centerX, textY);
       // Convert canvas to data URL
       resolve(canvas.toDataURL('image/png', 1.0));
-    }
-  });
-};
-
+    });
+  };
 
 
   return (

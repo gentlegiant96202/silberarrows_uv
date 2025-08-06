@@ -276,7 +276,7 @@ export default function SalesDataGrid({
   const renderEditableCell = (row: GridRow, field: string) => {
     const isEditing = editingCell?.rowId === row.id && editingCell?.field === field;
     const value = (row as any)[field];
-    const definition = METRIC_DEFINITIONS[field];
+    const definition = field in METRIC_DEFINITIONS ? METRIC_DEFINITIONS[field as keyof typeof METRIC_DEFINITIONS] : undefined;
     const isInputField = INPUT_METRICS.includes(field as any) || field === 'metric_date';
     
     if (isEditing && isInputField) {
@@ -387,7 +387,7 @@ export default function SalesDataGrid({
                 {/* Input Column Headers */}
                 {inputColumns.map(col => {
                   const Icon = col.icon;
-                  const definition = METRIC_DEFINITIONS[col.key];
+                  const definition = col.key in METRIC_DEFINITIONS ? METRIC_DEFINITIONS[col.key as keyof typeof METRIC_DEFINITIONS] : undefined;
                   return (
                     <th key={col.key} className={`px-2 py-2 text-xs text-gray-100 font-medium ${col.width} ${col.key === 'working_days_elapsed' ? 'border-l border-gray-400/30' : ''}`}>
                       <div className="flex flex-col items-center gap-1">
@@ -401,7 +401,7 @@ export default function SalesDataGrid({
                 {/* Calculated Column Headers */}
                 {calculatedColumns.map(col => {
                   const Icon = col.icon;
-                  const definition = METRIC_DEFINITIONS[col.key];
+                  const definition = col.key in METRIC_DEFINITIONS ? METRIC_DEFINITIONS[col.key as keyof typeof METRIC_DEFINITIONS] : undefined;
                   return (
                     <th key={col.key} className={`px-2 py-2 text-xs text-gray-100 font-medium ${col.width} ${col.key === 'gross_profit_year_actual' ? 'border-l border-gray-400/30' : ''}`}>
                       <div className="flex flex-col items-center gap-1">

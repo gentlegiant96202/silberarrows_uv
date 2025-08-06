@@ -1,11 +1,54 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Calculator } from 'lucide-react';
 
 export default function FinanceCalculator() {
   const [showFinance, setShowFinance] = useState(false);
   const [finPrice, setFinPrice] = useState('');
   const [finYears, setFinYears] = useState(5);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Close dropdown when clicking outside and handle window resize
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowFinance(false);
+      }
+    }
+
+    function handleResize() {
+      if (showFinance) {
+        updateDropdownPosition();
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [showFinance]);
+
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8, // 8px gap below button
+        right: window.innerWidth - rect.right // Align right edge with button
+      });
+    }
+  };
+
+  const handleToggleDropdown = () => {
+    if (!showFinance) {
+      updateDropdownPosition();
+    }
+    setShowFinance(!showFinance);
+  };
 
   const calcMonthly = () => {
     const p = parseFloat(finPrice || '0');
@@ -17,16 +60,23 @@ export default function FinanceCalculator() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setShowFinance(p => !p)}
+        ref={buttonRef}
+        onClick={handleToggleDropdown}
         className="w-5 h-5 flex items-center justify-center text-white/60 hover:text-white"
         title="Finance Calculator"
       >
         <Calculator className="w-4 h-4" />
       </button>
       {showFinance && (
-        <div className="fixed right-32 top-16 w-60 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 z-50 origin-top transition-transform transition-opacity duration-200">
+        <div 
+          className="fixed w-60 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 z-[9999] origin-top transition-transform transition-opacity duration-200"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            right: `${dropdownPosition.right}px`
+          }}
+        >
           <p className="text-white/70 text-sm mb-2">Finance Calculator</p>
           <label className="block text-white/60 text-xs mb-0.5">Vehicle Price (AED)</label>
           <input

@@ -23,8 +23,10 @@ export default function MarketingTicketsDropdown() {
   const [showModal, setShowModal] = useState(false);
   const [tickets, setTickets] = useState<MarketingTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
   const { user } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const statusColors = {
     planned: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
@@ -75,7 +77,7 @@ export default function MarketingTicketsDropdown() {
     };
   }, [user]);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside and handle window resize
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -83,11 +85,20 @@ export default function MarketingTicketsDropdown() {
       }
     }
 
+    function handleResize() {
+      if (isOpen) {
+        updateDropdownPosition();
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('resize', handleResize);
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [isOpen]);
 
   const fetchMyTickets = async () => {
     if (!user?.id) return;
@@ -178,13 +189,31 @@ export default function MarketingTicketsDropdown() {
     return new Date(dateString).toLocaleDateString('en-GB');
   };
 
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8, // 8px gap below button
+        right: window.innerWidth - rect.right // Align right edge with button
+      });
+    }
+  };
+
+  const handleToggleDropdown = () => {
+    if (!isOpen) {
+      updateDropdownPosition();
+    }
+    setIsOpen(!isOpen);
+  };
+
   const pendingCount = tickets.filter(t => ['planned', 'intake', 'in_progress'].includes(t.status)).length;
 
   return (
     <>
       <div className="relative" ref={dropdownRef}>
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          ref={buttonRef}
+          onClick={handleToggleDropdown}
           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-colors text-sm text-white"
         >
           <MessageSquarePlus className="w-4 h-4 text-orange-300" />
@@ -198,7 +227,13 @@ export default function MarketingTicketsDropdown() {
         </button>
 
         {isOpen && (
-          <div className="absolute top-full right-0 mt-2 w-72 bg-black/90 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl z-50 overflow-hidden">
+          <div 
+            className="fixed w-72 bg-black/90 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl z-[9999] overflow-hidden"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              right: `${dropdownPosition.right}px`
+            }}
+          >
             {/* Header */}
             <div className="p-2.5 border-b border-white/10">
               <div className="flex items-center justify-between mb-2">

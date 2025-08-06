@@ -1,15 +1,11 @@
 {
-  "app/consignments/page.tsx -> @/components/modules/uv-crm/kanban/ConsignmentKanbanBoard": {
-    "id": "app/consignments/page.tsx -> @/components/modules/uv-crm/kanban/ConsignmentKanbanBoard",
-    "files": [
-      "static/chunks/_app-pages-browser_components_modules_uv-crm_kanban_ConsignmentKanbanBoard_tsx.js"
-    ]
+  "components/sales/SalesTargetsManager.tsx -> @/lib/supabaseClient": {
+    "id": "components/sales/SalesTargetsManager.tsx -> @/lib/supabaseClient",
+    "files": []
   },
-  "components/modules/uv-crm/modals/CarDetailsModal.tsx -> jszip": {
-    "id": "components/modules/uv-crm/modals/CarDetailsModal.tsx -> jszip",
-    "files": [
-      "static/chunks/_app-pages-browser_node_modules_jszip_dist_jszip_min_js.js"
-    ]
+  "components/service/ServiceTargetsManager.tsx -> @/lib/supabaseClient": {
+    "id": "components/service/ServiceTargetsManager.tsx -> @/lib/supabaseClient",
+    "files": []
   },
   "node_modules/@supabase/auth-js/dist/module/lib/helpers.js -> @supabase/node-fetch": {
     "id": "node_modules/@supabase/auth-js/dist/module/lib/helpers.js -> @supabase/node-fetch",

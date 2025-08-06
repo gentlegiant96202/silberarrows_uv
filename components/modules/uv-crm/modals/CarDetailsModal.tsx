@@ -132,13 +132,19 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const refetchMedia = async () => {
     setMediaLoading(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('car_media')
         .select('*')
         .eq('car_id', car.id)
         .order('sort_order', { ascending: true })
         .order('created_at');
-      setMedia(data || []);
+      
+      if (error) {
+        console.error('Supabase error fetching media:', error);
+      } else {
+        console.log('Fetched media for car:', car.id, 'Count:', data?.length || 0);
+        setMedia(data || []);
+      }
     } catch (error) {
       console.error('Failed to refetch media:', error);
     } finally {
@@ -156,13 +162,31 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   
   // Primary-first display logic: show primary photo first, then sort by sort_order
   const gallery = media
-    .filter((m:any)=>m.kind!=='document')
+    .filter((m:any)=>m.kind==='photo' || m.kind==='video')
     .sort((a, b) => {
       // Primary photos come first
       if (a.is_primary && !b.is_primary) return -1;
       if (!a.is_primary && b.is_primary) return 1;
       
       // Then sort by sort_order
+      const aOrder = a.sort_order ?? 999999;
+      const bOrder = b.sort_order ?? 999999;
+      return aOrder - bOrder;
+    });
+
+  // Social Media content
+  const socialMedia = media
+    .filter((m:any)=>m.kind==='social_media')
+    .sort((a, b) => {
+      const aOrder = a.sort_order ?? 999999;
+      const bOrder = b.sort_order ?? 999999;
+      return aOrder - bOrder;
+    });
+
+  // Catalog content  
+  const catalog = media
+    .filter((m:any)=>m.kind==='catalog')
+    .sort((a, b) => {
       const aOrder = a.sort_order ?? 999999;
       const bOrder = b.sort_order ?? 999999;
       return aOrder - bOrder;
@@ -1018,6 +1042,98 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                           </div>
                         </div>
                       )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Social Media Section */}
+            {canEdit && car.status === 'marketing' && (
+              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
+                <h4 className="text-xs font-semibold text-white/70">Social Media Images</h4>
+                <MediaUploader 
+                  carId={car.id} 
+                  onUploaded={refetchMedia}
+                  mediaKind="social_media"
+                  acceptedFormats="image/*"
+                  sizeRequirements={{
+                    aspectRatio: "9:16 (Story) or 4:5 (Post)"
+                  }}
+                />
+              </div>
+            )}
+
+            {socialMedia.length > 0 && (
+              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-white/70">
+                    Social Media Images ({socialMedia.length})
+                  </h4>
+                  <button 
+                    onClick={()=>downloadAll(socialMedia, 'social_media.zip')} 
+                    className="text-[10px] underline text-white/60 hover:text-white"
+                  >
+                    Download All
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {socialMedia.map((m:any)=>(
+                    <div key={m.id} className="relative group">
+                      <img src={m.url} loading="lazy" className="w-full h-24 object-contain rounded bg-black" />
+                      <button 
+                        onClick={()=>handleDeleteMedia(m)} 
+                        disabled={mediaLoading}
+                        className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {mediaLoading ? '...' : '×'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Catalog Section */}
+            {canEdit && car.status === 'marketing' && (
+              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
+                <h4 className="text-xs font-semibold text-white/70">Catalog Image</h4>
+                <MediaUploader 
+                  carId={car.id} 
+                  onUploaded={refetchMedia}
+                  mediaKind="catalog"
+                  acceptedFormats="image/*"
+                  sizeRequirements={{
+                    aspectRatio: "1:1 (Square)"
+                  }}
+                />
+              </div>
+            )}
+
+            {catalog.length > 0 && (
+              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-white/70">
+                    Catalog Image ({catalog.length})
+                  </h4>
+                  <button 
+                    onClick={()=>downloadAll(catalog, 'catalog.zip')} 
+                    className="text-[10px] underline text-white/60 hover:text-white"
+                  >
+                    Download All
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {catalog.map((m:any)=>(
+                    <div key={m.id} className="relative group">
+                      <img src={m.url} loading="lazy" className="w-full h-24 object-contain rounded bg-black" />
+                      <button 
+                        onClick={()=>handleDeleteMedia(m)} 
+                        disabled={mediaLoading}
+                        className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {mediaLoading ? '...' : '×'}
+                      </button>
                     </div>
                   ))}
                 </div>

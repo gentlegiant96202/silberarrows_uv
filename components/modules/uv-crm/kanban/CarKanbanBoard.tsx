@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import AddCarModal from '@/components/modules/uv-crm/modals/AddCarModal';
 import CarDetailsModal from '@/components/modules/uv-crm/modals/CarDetailsModal';
+import PriceDropModal from '@/components/modules/uv-crm/modals/PriceDropModal';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useSearchStore } from '@/lib/searchStore';
 import { useUserRole } from '@/lib/useUserRole'; // 🆕 NEW ROLE SYSTEM
 import { useModulePermissions } from '@/lib/useModulePermissions';
-import { Check } from 'lucide-react';
+import { Check, Tag } from 'lucide-react';
 
 interface Car {
   id: string;
@@ -41,6 +42,10 @@ export default function CarKanbanBoard() {
     stockAge: [] as string[], // ['fresh', 'aging', 'old']
     model: '' as string
   });
+
+  // Price Drop modal state
+  const [showPriceDropModal, setShowPriceDropModal] = useState(false);
+  const [selectedCarForPriceDrop, setSelectedCarForPriceDrop] = useState<Car | null>(null);
 
   const columns = [
     { key: 'marketing',   title: 'MARKETING' },
@@ -490,6 +495,21 @@ export default function CarKanbanBoard() {
                           <div className="text-white font-semibold text-[9px] flex items-center gap-0.5">
                             <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
                           </div>
+                          {/* Price Drop Button - Expanded View */}
+                          {col.key === 'inventory' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCarForPriceDrop(c);
+                                setShowPriceDropModal(true);
+                              }}
+                              className="w-full mt-1 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-[8px] px-1.5 py-0.5 rounded transition-all duration-200 flex items-center justify-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
+                              title="Create price drop marketing task"
+                            >
+                              <Tag className="w-2 h-2" />
+                              <span className="font-medium">Price Drop</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -528,6 +548,21 @@ export default function CarKanbanBoard() {
                           <div className="text-white font-semibold text-[9px] flex items-center gap-0.5 mt-0.5 whitespace-nowrap truncate">
                             <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
                           </div>
+                          {/* Price Drop Button - List View */}
+                          {col.key === 'inventory' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCarForPriceDrop(c);
+                                setShowPriceDropModal(true);
+                              }}
+                              className="mt-1 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-[7px] px-1 py-0.5 rounded transition-all duration-200 flex items-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
+                              title="Create price drop marketing task"
+                            >
+                              <Tag className="w-2 h-2" />
+                              <span className="font-medium">Price Drop</span>
+                            </button>
+                          )}
                         </div>
                         <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-white/50">
                           <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -573,6 +608,20 @@ export default function CarKanbanBoard() {
             setCars(prev=>prev.map(c=>c.id===updated.id? updated as any: c));
             setSelected(updated as any);
             setSelectedCarFull(updated);
+          }}
+        />
+      )}
+
+      {showPriceDropModal && selectedCarForPriceDrop && (
+        <PriceDropModal
+          car={selectedCarForPriceDrop}
+          onClose={() => {
+            setShowPriceDropModal(false);
+            setSelectedCarForPriceDrop(null);
+          }}
+          onSuccess={() => {
+            // Optionally refresh data or show success message
+            console.log('Price drop task created successfully');
           }}
         />
       )}

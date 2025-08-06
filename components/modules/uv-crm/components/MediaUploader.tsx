@@ -4,6 +4,13 @@ import { supabase } from '@/lib/supabaseClient';
 interface Props {
   carId: string;
   onUploaded?: () => void;
+  mediaKind?: 'photo' | 'video' | 'social_media' | 'catalog';
+  acceptedFormats?: string;
+  sizeRequirements?: {
+    width?: number;
+    height?: number;
+    aspectRatio?: string;
+  };
 }
 
 // Function to add light grey gradient background to transparent PNGs
@@ -100,7 +107,13 @@ const hasPngTransparency = async (file: File): Promise<boolean> => {
   });
 };
 
-export default function MediaUploader({ carId, onUploaded }: Props) {
+export default function MediaUploader({ 
+  carId, 
+  onUploaded, 
+  mediaKind = 'photo',
+  acceptedFormats = 'image/*,video/*',
+  sizeRequirements 
+}: Props) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
@@ -170,13 +183,26 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
       // Increment sort_order for each new upload
       let currentMaxSortOrder = idx; // fallback if not fetched
       // Store the public URL in DB with proper sort_order
-      await supabase.from('car_media').insert({
+      let kind = mediaKind;
+      if (mediaKind === 'photo' && file.type.startsWith('video')) {
+        kind = 'video';
+      }
+      
+      const { error: dbErr } = await supabase.from('car_media').insert({
         car_id: carId,
-        kind: file.type.startsWith('video') ? 'video' : 'photo',
+        kind: kind,
         url,
-        is_primary: isFirstPhoto,
+        is_primary: isFirstPhoto && (kind === 'photo'),
         sort_order: currentMaxSortOrder, // Ensure proper ordering
       });
+      
+      if (dbErr) {
+        console.error('Database insert error:', dbErr);
+        failed.push({ file, error: `Database error: ${dbErr.message}` });
+        setFailedFiles([...failed]);
+        setProgress(Math.round(((idx + 1) / files.length) * 100));
+        continue;
+      }
 
       setProgress(Math.round(((idx + 1) / files.length) * 100));
     }
@@ -186,7 +212,10 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
       setUploading(false);
       setProgress(0);
       setTotalFiles(0);
-      if (onUploaded) onUploaded();
+      console.log('Upload completed for mediaKind:', mediaKind, 'calling onUploaded...');
+      if (onUploaded) {
+        onUploaded();
+      }
     }, 800);
     e.target.value = '';
   };
@@ -203,11 +232,21 @@ export default function MediaUploader({ carId, onUploaded }: Props) {
 
   return (
     <div className="space-y-1">
-      <label className="block text-white/70 text-xs">Upload Photos / Videos</label>
+      <label className="block text-white/70 text-xs">
+        {mediaKind === 'social_media' ? 'Upload Social Media Images' :
+         mediaKind === 'catalog' ? 'Upload Catalog Image' :
+         'Upload Photos / Videos'}
+        {sizeRequirements && (
+          <span className="block text-white/50 text-[10px] mt-1">
+            {sizeRequirements.aspectRatio ? `Aspect ratio: ${sizeRequirements.aspectRatio}` : 
+             `${sizeRequirements.width}×${sizeRequirements.height}`}
+          </span>
+        )}
+      </label>
       <input
         type="file"
-        multiple
-        accept="image/*,video/*"
+        multiple={mediaKind !== 'catalog'}
+        accept={acceptedFormats}
         onChange={handleFiles}
         disabled={uploading || retrying}
         className="text-white text-xs"

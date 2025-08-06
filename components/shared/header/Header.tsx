@@ -39,13 +39,13 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
   return (
     <header className={`sticky top-0 z-50 ${isModuleSelectionPage ? 'bg-transparent' : 'bg-black'} border-b ${isModuleSelectionPage ? 'border-white/5' : 'border-white/10'} overflow-visible`}>
       <div className="px-4 overflow-visible relative">
-        <div className="flex flex-wrap items-center py-3 overflow-y-visible">
+        <div className="flex flex-nowrap items-center py-3 overflow-x-auto overflow-y-visible custom-scrollbar-black">
           
           {/* Logo - Universal */}
           <Logo />
           
           {/* Module-specific Navigation & Search */}
-          <div className="flex-1 flex items-center space-x-4">
+          <div className="flex-1 flex items-center space-x-4 min-w-fit">
             {/* Module-specific navigation - Hide on module selection page */}
             {!isModuleSelectionPage && (
               <>

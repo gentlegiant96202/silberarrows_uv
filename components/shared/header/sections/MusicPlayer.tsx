@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Music2, Check, ChevronDown } from 'lucide-react';
 
 // -------------------- Global Calm-Mode Audio --------------------
@@ -27,6 +27,9 @@ export default function MusicPlayer() {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(globalAudio);
   const [playing, setPlaying] = useState<boolean>(globalAudio ? !globalAudio.paused : false);
   const [showSelector, setShowSelector] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Auto-close track selector after a few seconds
   useEffect(() => {
@@ -34,6 +37,46 @@ export default function MusicPlayer() {
     const id = setTimeout(() => setShowSelector(false), 4000); // 4s
     return () => clearTimeout(id);
   }, [showSelector]);
+
+  // Close dropdown when clicking outside and handle window resize
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowSelector(false);
+      }
+    }
+
+    function handleResize() {
+      if (showSelector) {
+        updateDropdownPosition();
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [showSelector]);
+
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8, // 8px gap below button
+        right: window.innerWidth - rect.right // Align right edge with button
+      });
+    }
+  };
+
+  const handleToggleDropdown = () => {
+    if (!showSelector) {
+      updateDropdownPosition();
+    }
+    setShowSelector(!showSelector);
+  };
 
   /**
    * Start playing the given track, stopping any existing audio first.
@@ -121,7 +164,7 @@ export default function MusicPlayer() {
   };
 
   return (
-    <div className="relative flex items-center mr-3">
+    <div className="relative flex items-center mr-3" ref={dropdownRef}>
       {/* Play / Pause toggle */}
       <button
         onClick={togglePlay}
@@ -136,7 +179,8 @@ export default function MusicPlayer() {
 
       {/* Track selector toggle */}
       <button
-        onClick={() => setShowSelector(prev => !prev)}
+        ref={buttonRef}
+        onClick={handleToggleDropdown}
         className="ml-1 flex items-center justify-center text-white/40 hover:text-white"
         title="Choose Track"
       >
@@ -145,7 +189,13 @@ export default function MusicPlayer() {
 
       {/* Dropdown */}
       {showSelector && (
-        <div className={`fixed right-24 top-16 w-40 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-3 z-50 origin-top transition-transform transition-opacity duration-200 ${showSelector ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 pointer-events-none'}`}>
+        <div 
+          className="fixed w-40 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-3 z-[9999] origin-top transition-transform transition-opacity duration-200"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            right: `${dropdownPosition.right}px`
+          }}
+        >
           <p className="text-white/60 mb-2">Select Track</p>
           {Object.entries(tracks).map(([k, obj]) => {
             const selected = track === k;

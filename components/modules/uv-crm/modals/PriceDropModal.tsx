@@ -111,7 +111,7 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
         const secondImageUrl = data.secondImageUrl;
         
         // Define function that can be used in multiple contexts
-        function drawTwoColumnOverlay() {
+        const drawTwoColumnOverlay = () => {
           // Fixed overlay height and positioning
           const overlayHeight = 280; // Fixed height for text overlay
           const minImageHeight = 180;
@@ -212,7 +212,7 @@ export default function PriceDropModal({ car, onClose, onSuccess }: Props) {
           ctx.fillText('Call or WhatsApp: +971 4 380 5515', centerX, textY);
           // Convert canvas to data URL
           resolve(canvas.toDataURL('image/png', 1.0));
-        }
+        };
         
         if (primaryImageUrl) {
           // Load both images

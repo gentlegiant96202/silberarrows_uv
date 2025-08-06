@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { carId: string } }
+  { params }: { params: Promise<{ carId: string }> }
 ) {
   try {
     const { carId } = await params;

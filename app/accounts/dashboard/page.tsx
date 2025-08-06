@@ -710,13 +710,13 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
               axisLine={false} 
               tickLine={false} 
               tick={{ fill: '#9CA3AF', fontSize: 11 }}
-              tickFormatter={(value) => `Day ${value}`}
+              tickFormatter={(value: number) => `Day ${value}`}
             />
             <YAxis 
               axisLine={false} 
               tickLine={false} 
               tick={{ fill: '#9CA3AF', fontSize: 11 }}
-              tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+              tickFormatter={(value: number) => `${(value / 1000).toFixed(0)}K`}
               width={40}
             />
             <Tooltip 
@@ -726,7 +726,7 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
                 borderRadius: '8px',
                 color: 'white'
               }}
-              labelFormatter={(label) => `Working Day ${label}`}
+              labelFormatter={(label: string | number) => `Working Day ${label}`}
               formatter={(value: any, name: string) => [
                 value ? `AED ${value.toLocaleString()}` : 'No data',
                 name === 'targetPace' ? 'Cumulative Target' : 'Actual Progress'
@@ -867,7 +867,7 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
               axisLine={false} 
               tickLine={false} 
               tick={{ fill: '#9CA3AF', fontSize: 11 }}
-              tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+              tickFormatter={(value: number) => `${(value / 1000000).toFixed(1)}M`}
               width={50}
             />
             <Tooltip 
@@ -877,7 +877,7 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
                 borderRadius: '8px',
                 color: 'white'
               }}
-              labelFormatter={(label) => `${label} ${new Date().getFullYear()}`}
+              labelFormatter={(label: string | number) => `${label} ${new Date().getFullYear()}`}
               formatter={(value: any, name: string) => [
                 value ? `AED ${value.toLocaleString()}` : 'No data',
                 name === 'cumulativeTarget' ? 'Cumulative Target' : 'Actual Progress'

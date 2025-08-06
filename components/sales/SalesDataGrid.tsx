@@ -29,6 +29,7 @@ interface SalesDataGridProps {
   onRefresh: () => Promise<void>;
   onDelete?: (date: string) => Promise<boolean>;
   loading?: boolean;
+  submitting?: boolean;
   error?: string | null;
 }
 
@@ -264,7 +265,7 @@ export default function SalesDataGrid({
   // Render cell value
   const renderCellValue = (row: GridRow, field: string) => {
     const value = (row as any)[field];
-    const definition = METRIC_DEFINITIONS[field];
+    const definition = field in METRIC_DEFINITIONS ? METRIC_DEFINITIONS[field as keyof typeof METRIC_DEFINITIONS] : undefined;
     
     if (!definition) return value?.toString() || '';
     

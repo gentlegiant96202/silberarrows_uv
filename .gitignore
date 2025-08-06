@@ -12,8 +12,9 @@ yarn-error.log*
 .env.production.local
 
 # Build outputs
-dist/
+.dist/
 build/
+.next/
 
 # Runtime data
 pids

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-// @ts-ignore
-import sharp from 'sharp'
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 import crypto from 'crypto'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -99,6 +100,9 @@ async function processWithClipDrop(
 
 export async function POST(request: NextRequest) {
   try {
+    // @ts-ignore dynamic import to avoid build-time sharp resolution on Vercel
+    const sharpDyn = (await import('sharp')).default
+
     const { carId } = await request.json()
 
     if (!carId) {
@@ -165,7 +169,7 @@ export async function POST(request: NextRequest) {
     const imageBuffer = Buffer.from(buffer)
 
     // Get original image dimensions
-    const { width: imgW, height: imgH } = await sharp(imageBuffer).metadata()
+    const { width: imgW, height: imgH } = await sharpDyn(imageBuffer).metadata()
     if (!imgW || !imgH) {
       throw new Error('Failed to get image dimensions')
     }
@@ -191,12 +195,12 @@ export async function POST(request: NextRequest) {
     console.log('Scaled dimensions:', scaledW, scaledH, 'Padding:', leftPad, topPad)
 
     // Resize the image to fit
-    const resizedImageBuffer = await sharp(imageBuffer)
+    const resizedImageBuffer = await sharpDyn(imageBuffer)
       .resize(scaledW, scaledH, { fit: 'inside', withoutEnlargement: true })
       .toBuffer()
 
     // Build padded canvas (black border) and separate mask (white = fill, black = keep)
-    const canvasBuffer = await sharp({
+    const canvasBuffer = await sharpDyn({
       create: {
         width: targetWidth,
         height: targetHeight,
@@ -215,7 +219,7 @@ export async function POST(request: NextRequest) {
       .toBuffer()
 
     // Generate binary mask: white border to be inpainted, black region for original car
-    const blackRect = await sharp({
+    const blackRect = await sharpDyn({
       create: {
         width: scaledW,
         height: scaledH,
@@ -224,7 +228,7 @@ export async function POST(request: NextRequest) {
       },
     } as any).png().toBuffer()
 
-    const maskBuffer = await sharp({
+    const maskBuffer = await sharpDyn({
       create: {
         width: targetWidth,
         height: targetHeight,
@@ -250,7 +254,7 @@ export async function POST(request: NextRequest) {
     // 4. Create marketing task immediately with fallback image (fast response)
     // Create immediate fallback by smart-cropping to 4:5 (center-crop)
     // This avoids sending a letter-boxed frame with black bars.
-    const fallbackBuffer = await sharp(imageBuffer)
+    const fallbackBuffer = await sharpDyn(imageBuffer)
       .resize(targetWidth, targetHeight, {
         fit: 'cover',          // fills frame, cropping if necessary
         position: 'centre',    // keep car roughly centred

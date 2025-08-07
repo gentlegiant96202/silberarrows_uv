@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-// @ts-ignore
-import sharp from 'sharp'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 interface TextOverlay {
   id: string;
@@ -14,6 +15,8 @@ interface TextOverlay {
 
 export async function POST(request: NextRequest) {
   try {
+    // @ts-ignore dynamic import to avoid build-time sharp resolution on Vercel
+    const sharp = (await import('sharp')).default
     const formData = await request.formData()
     const image = formData.get('image') as File
     const imageUrl = formData.get('imageUrl') as string

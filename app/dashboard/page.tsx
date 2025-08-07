@@ -280,21 +280,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Fourth row: Acquisitions Charts */}
-        <div className="grid gap-4 mt-4 lg:grid-cols-2">
-          {/* Stock Acquisitions Chart */}
-          <div className="lg:col-span-1">
+        {/* Acquisitions Charts Section */}
+        <div className="mt-4">
+          <div className="grid gap-4 lg:grid-cols-2 mb-4">
             <StockAcquisitionsChart year={year} months={months} />
-          </div>
-
-          {/* Consignment Acquisitions Chart */}
-          <div className="lg:col-span-1">
             <ConsignmentAcquisitionsChart year={year} months={months} />
           </div>
-        </div>
-
-        {/* Fifth row: Combined Acquisitions Trend */}
-        <div className="mt-4">
           <AcquisitionsTrendChart year={year} months={months} />
         </div>
 

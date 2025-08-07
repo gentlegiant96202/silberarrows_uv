@@ -347,9 +347,9 @@ async function scrapeWithBrowser(url: string, targetLeads: number = 20, jobId: s
     // Extract car URLs
     const pageSource = await page.content();
     const urlPattern = /\/motors\/used-cars\/[^\/]+\/[^\/]+\/\d{4}\/\d{1,2}\/\d{1,2}\/[^"'\s>]+/g;
-    const matches = pageSource.match(urlPattern) || [];
-    
-    const carUrls = Array.from(new Set(matches.map(match => 
+    const matches = (pageSource.match(urlPattern) ?? []) as string[];
+
+    const carUrls = Array.from(new Set(matches.map((match: string) => 
       match.startsWith('http') ? match : `https://dubai.dubizzle.com${match}`
     )));
 

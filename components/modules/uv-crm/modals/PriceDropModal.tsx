@@ -93,7 +93,9 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
         stockNumber: car.stock_number
       });
 
-      const response = await fetch('/api/generate-price-drop-images', {
+      const rendererBase = process.env.NEXT_PUBLIC_RENDERER_URL as string | undefined;
+      const endpoint = rendererBase ? `${rendererBase.replace(/\/$/, '')}/render` : '/api/generate-price-drop-images';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

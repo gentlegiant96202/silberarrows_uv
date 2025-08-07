@@ -281,7 +281,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Acquisitions Charts Section */}
-        <div className="mt-4">
+        <div className="mb-6">
           <div className="grid gap-4 lg:grid-cols-2 mb-4">
             <StockAcquisitionsChart year={year} months={months} />
             <ConsignmentAcquisitionsChart year={year} months={months} />
@@ -822,12 +822,12 @@ const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year,
   }, [year, months]);
 
   return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-3 border border-white/10 h-[300px]">
+    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[300px]">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-white/80">Stock Acquisitions ({year})</h2>
         <div className="flex items-center gap-4 text-xs text-white/50">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-2 bg-white/80 rounded-sm"></div>
+                        <div className="w-3 h-2 bg-white/80 rounded-sm"></div>
             <span>Count</span>
           </div>
         </div>
@@ -837,9 +837,9 @@ const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year,
         <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
       ) : (
         <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={chartData}>
+          <AreaChart data={chartData} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
             <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#ffffff60' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={50} />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'rgba(0,0,0,0.9)', 
@@ -930,7 +930,7 @@ const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = (
   }, [year, months]);
 
   return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-3 border border-white/10 h-[300px]">
+    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[300px]">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-white/80">Consignment Acquisitions ({year})</h2>
         <div className="flex items-center gap-4 text-xs text-white/50">
@@ -945,9 +945,9 @@ const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = (
         <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
       ) : (
         <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={chartData}>
+          <AreaChart data={chartData} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
             <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#ffffff60' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={50} />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'rgba(0,0,0,0.9)', 
@@ -1022,7 +1022,7 @@ const AcquisitionsTrendChart: React.FC<{year:number; months:number[]}> = ({year,
   }, [year, months]);
 
   return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-3 border border-white/10 h-[320px]">
+    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[320px]">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-white/80">Acquisitions Comparison Trend ({year})</h2>
         <div className="flex items-center gap-6 text-xs text-white/50">
@@ -1041,9 +1041,9 @@ const AcquisitionsTrendChart: React.FC<{year:number; months:number[]}> = ({year,
         <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={chartData}>
+          <AreaChart data={chartData} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
             <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#ffffff60' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={50} />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'rgba(0,0,0,0.9)', 
@@ -1166,9 +1166,9 @@ const ModelDemandChart: React.FC<{year:number; months:number[]}> = ({year, month
         <div className="flex items-center justify-center h-48 text-white/50">Loading...</div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData}>
+          <BarChart data={chartData} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
             <XAxis dataKey="model" tick={{ fontSize: 10, fill: '#ffffff60' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={50} />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'rgba(0,0,0,0.8)', 

@@ -632,12 +632,16 @@ export default function CarKanbanBoard() {
       {showPriceDropModal && selectedCarForPriceDrop && (
         <PriceDropModal
           car={selectedCarForPriceDrop}
+          isOpen={showPriceDropModal}
           onClose={() => {
             setShowPriceDropModal(false);
             setSelectedCarForPriceDrop(null);
           }}
           onSuccess={() => {
-            // Optionally refresh data or show success message
+            setShowPriceDropModal(false);
+            setSelectedCarForPriceDrop(null);
+            // Refresh the car data to show updated price
+            window.dispatchEvent(new CustomEvent('priceUpdated'));
             console.log('Price drop task created successfully');
           }}
         />

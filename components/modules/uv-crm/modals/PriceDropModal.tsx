@@ -61,30 +61,30 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       setIsGenerating(true);
       console.log('🎨 Generating price drop images with Playwright...');
       
-      // Get the first and second main car images [[memory:5456998]]
-      console.log('📸 Fetching first and second car images...');
+      // Get the first catalog image for this car
+      console.log('📸 Fetching catalog image...');
       const { data: carMedia, error } = await supabase
         .from('car_media')
-        .select('url, sort_order')
+        .select('url, sort_order, kind')
         .eq('car_id', car.id)
-        .eq('kind', 'photo') // Only get regular photos, not social_media images
+        .eq('kind', 'catalog')
         .order('sort_order', { ascending: true })
-        .limit(2);
+        .limit(1);
 
       if (error) {
         console.error('❌ Error fetching car images:', error);
         throw new Error('Failed to fetch car images');
       }
 
+      console.log('🔎 car_media results:', (carMedia || []).map(m => ({ kind: m.kind, sort_order: m.sort_order, url: m.url })));
+
       if (!carMedia || carMedia.length === 0) {
-        throw new Error('No car images found');
+        throw new Error('No catalog images found for this car');
       }
 
       const firstImageUrl = carMedia[0]?.url;
-      const secondImageUrl = carMedia[1]?.url || carMedia[0]?.url; // Fallback to first image if second doesn't exist
 
-      console.log('📷 First image URL:', firstImageUrl);
-      console.log('📷 Second image URL:', secondImageUrl);
+      console.log('📷 Catalog image URL:', firstImageUrl);
       console.log('📊 Car details:', {
         id: car.id,
         year: car.model_year,
@@ -104,15 +104,17 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
             model: car.vehicle_model,
             mileage: car.current_mileage_km ? `${car.current_mileage_km.toLocaleString()} KM` : 
                      car.mileage_km ? `${car.mileage_km.toLocaleString()} KM` : 'N/A',
-            stockNumber: car.stock_number
+            stockNumber: car.stock_number,
+            horsepower: car.horsepower_hp ?? null
           },
           pricing: {
             wasPrice: parseFloat(originalPrice),
             nowPrice: parseFloat(newPrice),
-            savings: parseFloat(originalPrice) - parseFloat(newPrice)
+            savings: parseFloat(originalPrice) - parseFloat(newPrice),
+            monthlyPayment: calculateMonthly(parseFloat(newPrice) || 0).twenty
           },
           firstImageUrl,
-          secondImageUrl
+          secondImageUrl: firstImageUrl
         }),
       });
 

@@ -27,12 +27,14 @@ export async function POST(request: NextRequest) {
       .replace(/\{\{year\}\}/g, carDetails.year.toString())
       .replace(/\{\{model\}\}/g, carDetails.model)
       .replace(/\{\{mileage\}\}/g, carDetails.mileage)
+      .replace(/\{\{horsepower\}\}/g, (carDetails.horsepower ?? '').toString())
       .replace(/\{\{stockNumber\}\}/g, carDetails.stockNumber)
       .replace(/\{\{carImageUrl1\}\}/g, firstImageUrl)
       .replace(/\{\{carImageUrl2\}\}/g, secondImageUrl)
       .replace(/\{\{wasPrice\}\}/g, pricing.wasPrice.toLocaleString())
       .replace(/\{\{nowPrice\}\}/g, pricing.nowPrice.toLocaleString())
-      .replace(/\{\{savings\}\}/g, pricing.savings.toLocaleString());
+      .replace(/\{\{savings\}\}/g, pricing.savings.toLocaleString())
+      .replace(/\{\{monthlyPayment\}\}/g, (pricing.monthlyPayment ?? 0).toLocaleString());
     
     console.log('🔍 After replacement - checking for remaining placeholders:');
     console.log('- {{year}} remaining:', populatedHtml.includes('{{year}}'));

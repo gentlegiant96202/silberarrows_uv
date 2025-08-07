@@ -15,13 +15,10 @@
 
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+      background: #000000; /* pitch black */
       color: #ffffff;
       height: 100vh;
       width: 100vw;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       padding: 0;
       margin: 0;
       overflow: hidden;
@@ -33,27 +30,33 @@
       width: 100vw;
       height: 100vh;
       border-radius: 0;
-      overflow: hidden;
       border: none;
-      background: linear-gradient(145deg, #0a0a0a, #1f1f1f);
-      backdrop-filter: blur(20px);
+      overflow: hidden;
+      box-shadow: none;
+      background: #000000; /* pitch black */
+      backdrop-filter: none;
+    }
+
+    .black-banner {
+      display: none !important;
     }
 
     .image-section {
       position: relative;
       width: 100%;
-      flex: 2;
-      display: flex;
-      flex-direction: column;
+      display: block;
       background: #000;
+      padding: 0; /* no extra bars/padding */
+      height: auto; /* let aspect-ratio define height */
     }
 
     .image-wrapper {
       width: 100%;
-      flex: 1;
       position: relative;
       overflow: hidden;
-      background: #111;
+      background: transparent; /* remove grey base */
+      aspect-ratio: 80 / 63; /* 30% less height vs 8:9 */
+      height: auto;
     }
 
     .car-image {
@@ -64,36 +67,47 @@
       height: 100%;
       object-fit: cover; /* Changed back to cover so images fill containers */
       filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.8));
+      object-position: top center; /* Crop from bottom by anchoring image to top */
     }
 
     .price-drop-badge {
       position: absolute;
-      top: 12px;
-      right: 12px; /* Changed from left: 12px to right: 12px */
-      background: linear-gradient(135deg, #dc143c, #8b0000); /* Ferrari red gradient */
-      border: 2px solid rgba(255, 255, 255, 0.3);
+      top: 24px;
+      right: 24px;
+      background: linear-gradient(135deg, #dc143c, #8b0000);
+      border: 3px solid rgba(255, 255, 255, 0.3);
       color: #ffffff;
-      padding: 8px 16px;
-      border-radius: 30px;
-      font-weight: 700;
-      font-size: 0.85rem;
-      box-shadow: 0 6px 15px rgba(220, 20, 60, 0.4); /* Red shadow to match */
+      padding: 20px 32px;
+      border-radius: 50px;
+      font-weight: 800;
+      font-size: 1.8rem;
+      box-shadow: 0 10px 25px rgba(220, 20, 60, 0.5);
       z-index: 2;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 12px;
       font-family: 'Space Grotesk', sans-serif;
       text-transform: uppercase;
+      letter-spacing: 1px;
+      min-width: 220px;
+      justify-content: center;
     }
 
     .content-section {
-      padding: 40px 30px;
-      flex: 1.5;
+      padding: 32px 28px;
+      flex: 1; /* fill remaining space */
+      height: auto; /* prevent clipping */
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      gap: 25px;
-      background: linear-gradient(135deg, #111111, #000000);
+      justify-content: flex-start;
+      gap: 18px;
+      background: transparent; /* keep clear over image */
+      overflow: visible; /* allow full content to show */
+      position: relative;
+      z-index: 3; /* sit above image */
+      margin-top: -64px; /* pull content up to overlay image */
+      padding-top: 72px; /* extra breathing room between image and heading */
+      padding-bottom: 24px; /* ensure no bottom cut */
     }
 
     .header h1 {
@@ -144,19 +158,21 @@
     }
 
     .price-section {
-      background: linear-gradient(145deg, #0a0a0a, #1a1a1a);
-      border-radius: 20px;
-      padding: 35px 30px;
+      background: rgba(255, 255, 255, 0.06); /* glass layer */
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 20px 24px;
       margin: 20px 0;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
     }
 
     .price-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
 
     .price-label {
@@ -192,7 +208,7 @@
       gap: 12px;
       background: rgba(255, 255, 255, 0.1);
       color: #ffffff;
-      padding: 18px 30px;
+      padding: 14px 22px;
       border-radius: 30px;
       margin-top: 15px;
       font-size: 1.8rem;
@@ -200,6 +216,16 @@
       font-family: 'Space Grotesk', sans-serif;
       font-weight: 600;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .monthly-payment {
+      margin-top: 6px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.95);
+      text-shadow: 0 0 14px rgba(255,255,255,0.15);
+      text-align: right;
     }
 
     .cta-button {
@@ -232,27 +258,27 @@
       align-items: center;
       gap: 8px;
     }
+
+    .divider {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
   <div class="campaign-card-portrait">
+    <div class="black-banner"></div>
     <div class="image-section">
-      <!-- Image 1 with PRICE DROP -->
+      <!-- Single image with PRICE DROP -->
       <div class="image-wrapper">
-        <img src="{{carImageUrl1}}" alt="{{year}} {{model}} Front" class="car-image" />
+        <img src="{{carImageUrl1}}" alt="{{year}} {{model}}" class="car-image" />
         <div class="price-drop-badge"><i class="fas fa-tags"></i> PRICE DROP</div>
       </div>
-
-      <!-- Image 2 -->
-      <div class="image-wrapper">
-        <img src="{{carImageUrl2}}" alt="{{year}} {{model}} Rear" class="car-image" />
-      </div>
     </div>
-
+    <div class="divider"></div>
     <div class="content-section">
       <div class="header">
         <h1>{{year}} {{model}}</h1>
-        <p class="subtitle">{{mileage}} • <span class="highlight">Premium Selection</span></p>
+        <p class="subtitle"><span class="highlight">Premium Selection</span></p>
       </div>
 
       <div class="specs-grid">
@@ -265,8 +291,8 @@
           <div class="spec-label">Model Year</div>
         </div>
         <div class="spec-item">
-          <div class="spec-value">Premium</div>
-          <div class="spec-label">Condition</div>
+          <div class="spec-value">{{horsepower}} HP</div>
+          <div class="spec-label">Horsepower (HP)</div>
         </div>
         <div class="spec-item">
           <div class="spec-value">{{stockNumber}}</div>
@@ -283,6 +309,7 @@
           <span class="price-label">Now:</span>
           <span class="new-price">AED {{nowPrice}}</span>
         </div>
+        <div class="monthly-payment">From AED {{monthlyPayment}}/mo</div>
         <div class="savings">
           <i class="fas fa-bolt"></i> SAVE AED {{savings}}
         </div>

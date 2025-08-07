@@ -306,6 +306,31 @@ const SalesPerformanceCards: React.FC<{metrics: any[], targets: any[], selectedY
 /* ---------------- Daily Cumulative Progress Chart ---------------- */
 const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], selectedYear: number, selectedMonth: number}> = ({ metrics, targets, selectedYear, selectedMonth }) => {
   const [chartData, setChartData] = useState<any[]>([]);
+  const [animatedData, setAnimatedData] = useState<any[]>([]);
+  const [currentAnimationIndex, setCurrentAnimationIndex] = useState(0);
+
+  // Animation effect for step-by-step line drawing
+  useEffect(() => {
+    if (chartData.length > 0) {
+      setCurrentAnimationIndex(0);
+      setAnimatedData([]);
+      
+      const animationInterval = setInterval(() => {
+        setCurrentAnimationIndex(prev => {
+          const nextIndex = prev + 1;
+          if (nextIndex <= chartData.length) {
+            setAnimatedData(chartData.slice(0, nextIndex));
+            return nextIndex;
+          } else {
+            clearInterval(animationInterval);
+            return prev;
+          }
+        });
+      }, 200); // 200ms delay between each point
+
+      return () => clearInterval(animationInterval);
+    }
+  }, [chartData]);
 
   useEffect(() => {
     if (metrics.length > 0 && targets.length > 0) {
@@ -383,7 +408,7 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
           <div className="flex items-center justify-center h-full text-white/50">Loading...</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
+          <ComposedChart data={animatedData} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
             <XAxis 
               dataKey="dayNumber" 
               tick={{ fontSize: 10, fill: '#ffffff60' }}
@@ -436,6 +461,8 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
               dot={{ fill: '#10B981', strokeWidth: 1, r: 3 }}
               connectNulls={false}
               name="actual"
+              animationBegin={0}
+              animationDuration={400}
             />
           </ComposedChart>
           </ResponsiveContainer>
@@ -448,6 +475,31 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
 /* ---------------- Cumulative Yearly Target Chart ---------------- */
 const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], selectedYear: number}> = ({ metrics, targets, selectedYear }) => {
   const [chartData, setChartData] = useState<any[]>([]);
+  const [animatedData, setAnimatedData] = useState<any[]>([]);
+  const [currentAnimationIndex, setCurrentAnimationIndex] = useState(0);
+
+  // Animation effect for step-by-step line drawing
+  useEffect(() => {
+    if (chartData.length > 0) {
+      setCurrentAnimationIndex(0);
+      setAnimatedData([]);
+      
+      const animationInterval = setInterval(() => {
+        setCurrentAnimationIndex(prev => {
+          const nextIndex = prev + 1;
+          if (nextIndex <= chartData.length) {
+            setAnimatedData(chartData.slice(0, nextIndex));
+            return nextIndex;
+          } else {
+            clearInterval(animationInterval);
+            return prev;
+          }
+        });
+      }, 300); // 300ms delay between each point for yearly (slower than monthly)
+
+      return () => clearInterval(animationInterval);
+    }
+  }, [chartData]);
 
   useEffect(() => {
     if (targets.length > 0) {
@@ -524,7 +576,7 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
           <div className="flex items-center justify-center h-full text-white/50">Loading...</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
+          <ComposedChart data={animatedData} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
             <XAxis 
               dataKey="month" 
               tick={{ fontSize: 10, fill: '#ffffff60' }}
@@ -576,6 +628,8 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
               dot={{ fill: '#10B981', strokeWidth: 1, r: 3 }}
               connectNulls={false}
               name="cumulativeActual"
+              animationBegin={0}
+              animationDuration={500}
             />
           </ComposedChart>
           </ResponsiveContainer>

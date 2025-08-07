@@ -313,20 +313,26 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
   useEffect(() => {
     if (chartData.length > 0) {
       setCurrentAnimationIndex(0);
-      setAnimatedData([]);
+      setAnimatedData(chartData.map(item => ({ ...item, actual: null })));
       
       const animationInterval = setInterval(() => {
         setCurrentAnimationIndex(prev => {
           const nextIndex = prev + 1;
           if (nextIndex <= chartData.length) {
-            setAnimatedData(chartData.slice(0, nextIndex));
+            setAnimatedData(prevData => 
+              prevData.map((item, index) => 
+                index < nextIndex 
+                  ? { ...item, actual: chartData[index].actual }
+                  : item
+              )
+            );
             return nextIndex;
           } else {
             clearInterval(animationInterval);
             return prev;
           }
         });
-      }, 200); // 200ms delay between each point
+      }, 400); // 400ms delay between each point
 
       return () => clearInterval(animationInterval);
     }
@@ -441,7 +447,7 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
               </linearGradient>
             </defs>
             
-            {/* Target Area - White area under the target line */}
+            {/* Target Area - White area under the target line - Always visible */}
             <Area
               type="monotone"
               dataKey="targetPace"
@@ -452,7 +458,7 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
               name="targetPace"
             />
             
-            {/* Actual Progress Line - Shows where we currently are */}
+            {/* Actual Progress Line - Shows where we currently are - Animated */}
             <Line 
               type="monotone" 
               dataKey="actual" 
@@ -482,20 +488,26 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
   useEffect(() => {
     if (chartData.length > 0) {
       setCurrentAnimationIndex(0);
-      setAnimatedData([]);
+      setAnimatedData(chartData.map(item => ({ ...item, cumulativeActual: null })));
       
       const animationInterval = setInterval(() => {
         setCurrentAnimationIndex(prev => {
           const nextIndex = prev + 1;
           if (nextIndex <= chartData.length) {
-            setAnimatedData(chartData.slice(0, nextIndex));
+            setAnimatedData(prevData => 
+              prevData.map((item, index) => 
+                index < nextIndex 
+                  ? { ...item, cumulativeActual: chartData[index].cumulativeActual }
+                  : item
+              )
+            );
             return nextIndex;
           } else {
             clearInterval(animationInterval);
             return prev;
           }
         });
-      }, 300); // 300ms delay between each point for yearly (slower than monthly)
+      }, 500); // 500ms delay between each point for yearly (slower than monthly)
 
       return () => clearInterval(animationInterval);
     }
@@ -608,7 +620,7 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
               </linearGradient>
             </defs>
             
-            {/* Yearly Target Area - White area under the target line */}
+            {/* Yearly Target Area - White area under the target line - Always visible */}
             <Area
               type="monotone"
               dataKey="cumulativeTarget"
@@ -619,7 +631,7 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
               name="cumulativeTarget"
             />
             
-            {/* Actual Progress Line - Shows where we currently are */}
+            {/* Actual Progress Line - Shows where we currently are - Animated */}
             <Line 
               type="monotone" 
               dataKey="cumulativeActual" 

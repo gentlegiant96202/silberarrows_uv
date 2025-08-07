@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     let browser: any;
     let isPuppeteer = false;
     try {
+      // @ts-ignore - Playwright is optional in production; resolved only when available
       const { chromium } = await import('playwright');
       browser = await chromium.launch({
         headless: true,

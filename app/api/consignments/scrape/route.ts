@@ -319,6 +319,7 @@ async function scrapeWithBrowser(url: string, targetLeads: number = 20, jobId: s
       log: 'Running full scraper with browser automation'
     }).eq('id', jobId);
 
+    // @ts-ignore - Playwright is an optional dev-only dependency; not installed on Vercel
     const playwright = await import('playwright');
     const { chromium } = playwright;
 

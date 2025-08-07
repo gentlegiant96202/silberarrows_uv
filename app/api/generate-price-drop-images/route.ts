@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chromium } from 'playwright';
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -46,17 +48,34 @@ export async function POST(request: NextRequest) {
     console.log('- Second image URL:', secondImageUrl);
     console.log('📝 HTML template populated successfully');
     
-    // Launch browser
-    const browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    
-    const page = await browser.newPage();
+    // Launch browser: try Playwright, fallback to Puppeteer
+    let page: any;
+    let browser: any;
+    let isPuppeteer = false;
+    try {
+      const { chromium } = await import('playwright');
+      browser = await chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      page = await browser.newPage();
+      console.log('✅ Using Playwright');
+    } catch (e) {
+      console.warn('⚠️ Playwright not available, falling back to Puppeteer:', e);
+      const puppeteer = (await import('puppeteer')).default;
+      isPuppeteer = true;
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      const context = await browser.createIncognitoBrowserContext();
+      page = await context.newPage();
+      console.log('✅ Using Puppeteer fallback');
+    }
     
     // Set content and wait for everything to load
     await page.setContent(populatedHtml, { 
-      waitUntil: 'networkidle',
+      waitUntil: isPuppeteer ? 'networkidle0' : 'networkidle',
       timeout: 30000 
     });
     
@@ -71,22 +90,22 @@ export async function POST(request: NextRequest) {
     console.log('📸 Taking screenshots...');
     
     // Generate 4:5 format (1080x1350)
-    await page.setViewportSize({ width: 1080, height: 1350 });
+    if (isPuppeteer) {
+      await page.setViewport({ width: 1080, height: 1350 });
+    } else {
+      await page.setViewportSize({ width: 1080, height: 1350 });
+    }
     await page.waitForTimeout(1000);
-    const image45 = await page.screenshot({
-      type: 'png',
-      fullPage: false,
-      clip: { x: 0, y: 0, width: 1080, height: 1350 }
-    });
+    const image45 = await page.screenshot({ type: 'png', fullPage: false, clip: { x: 0, y: 0, width: 1080, height: 1350 } });
     
     // Generate 9:16 format (1080x1920) 
-    await page.setViewportSize({ width: 1080, height: 1920 });
+    if (isPuppeteer) {
+      await page.setViewport({ width: 1080, height: 1920 });
+    } else {
+      await page.setViewportSize({ width: 1080, height: 1920 });
+    }
     await page.waitForTimeout(1000);
-    const imageStory = await page.screenshot({
-      type: 'png',
-      fullPage: false,
-      clip: { x: 0, y: 0, width: 1080, height: 1920 }
-    });
+    const imageStory = await page.screenshot({ type: 'png', fullPage: false, clip: { x: 0, y: 0, width: 1080, height: 1920 } });
     
     await browser.close();
     

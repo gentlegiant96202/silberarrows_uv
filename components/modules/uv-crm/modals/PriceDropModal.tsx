@@ -55,272 +55,158 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
     }
   }, []);
 
-  // Generate 4:5 image
-  const generate45Image = useCallback(async () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1080;
-    canvas.height = 1350;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas context not available');
-
-    // Get social media images
-    const { data: mediaData, error: mediaError } = await supabase
-      .from('car_media')
-      .select('kind, url, sort_order')
-      .eq('car_id', car.id)
-      .order('sort_order');
-
-    if (mediaError) throw new Error('Failed to fetch media');
-
-    const socialMediaImages = mediaData?.filter((m: any) => m.kind === 'social_media') || [];
-    const imageUrl = socialMediaImages[0]?.url;
-
-    if (!imageUrl) {
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, '#1a1a1a');
-      gradient.addColorStop(1, '#0a0a0a');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
-      });
-
-      const imgAspect = img.width / img.height;
-      const canvasAspect = canvas.width / canvas.height;
-      
-      let drawWidth, drawHeight, offsetX, offsetY;
-      
-      if (imgAspect > canvasAspect) {
-        drawHeight = canvas.height;
-        drawWidth = drawHeight * imgAspect;
-        offsetX = (canvas.width - drawWidth) / 2;
-        offsetY = 0;
-      } else {
-        drawWidth = canvas.width;
-        drawHeight = drawWidth / imgAspect;
-        offsetX = 0;
-        offsetY = (canvas.height - drawHeight) / 2;
-      }
-      
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-    }
-
-    const savings = parseFloat(originalPrice) - parseFloat(newPrice);
-    
-    const textGradient = ctx.createLinearGradient(0, canvas.height - 300, 0, canvas.height);
-    textGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    textGradient.addColorStop(1, 'rgba(0, 0, 0, 0.8)');
-    ctx.fillStyle = textGradient;
-    ctx.fillRect(0, canvas.height - 300, canvas.width, 300);
-
-    await loadAcuminFont();
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
-    
-    ctx.font = 'italic 60px "Acumin Variable Concept", Arial, sans-serif';
-    ctx.fillText('PRICE DROP', canvas.width / 2, canvas.height - 220);
-    
-    ctx.font = 'italic 36px "Acumin Variable Concept", Arial, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.fillText(`WAS AED ${parseInt(originalPrice).toLocaleString()}`, canvas.width / 2, canvas.height - 160);
-    
-    const wasText = ctx.measureText(`WAS AED ${parseInt(originalPrice).toLocaleString()}`);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo((canvas.width - wasText.width) / 2, canvas.height - 170);
-    ctx.lineTo((canvas.width + wasText.width) / 2, canvas.height - 170);
-    ctx.stroke();
-    
-    ctx.fillStyle = 'white';
-    ctx.font = 'italic 54px "Acumin Variable Concept", Arial, sans-serif';
-    ctx.fillText(`NOW AED ${parseInt(newPrice).toLocaleString()}`, canvas.width / 2, canvas.height - 100);
-    
-    ctx.font = 'italic 36px "Acumin Variable Concept", Arial, sans-serif';
-    ctx.fillStyle = '#4ade80';
-    ctx.fillText(`SAVE AED ${savings.toLocaleString()}`, canvas.width / 2, canvas.height - 40);
-
-    return canvas.toDataURL('image/png').split(',')[1];
-  }, [car, originalPrice, newPrice, loadAcuminFont]);
-
-  // Generate story image
-  const generateStoryImage = useCallback(async () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1080;
-    canvas.height = 1920;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas context not available');
-
-    const { data: mediaData, error: mediaError } = await supabase
-      .from('car_media')
-      .select('kind, url, sort_order')
-      .eq('car_id', car.id)
-      .order('sort_order');
-
-    if (mediaError) throw new Error('Failed to fetch media');
-
-    const socialMediaImages = mediaData?.filter((m: any) => m.kind === 'social_media') || [];
-    const imageUrl = socialMediaImages[1]?.url || socialMediaImages[0]?.url;
-
-    if (!imageUrl) {
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, '#1a1a1a');
-      gradient.addColorStop(1, '#0a0a0a');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
-      });
-
-      const imgAspect = img.width / img.height;
-      const canvasAspect = canvas.width / canvas.height;
-      
-      let drawWidth, drawHeight, offsetX, offsetY;
-      
-      if (imgAspect > canvasAspect) {
-        drawHeight = canvas.height;
-        drawWidth = drawHeight * imgAspect;
-        offsetX = (canvas.width - drawWidth) / 2;
-        offsetY = 0;
-      } else {
-        drawWidth = canvas.width;
-        drawHeight = drawWidth / imgAspect;
-        offsetX = 0;
-        offsetY = (canvas.height - drawHeight) / 2;
-      }
-      
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-    }
-
-    const centerY = canvas.height / 2;
-    const savings = parseFloat(originalPrice) - parseFloat(newPrice);
-    
-    const overlayGradient = ctx.createRadialGradient(canvas.width / 2, centerY, 0, canvas.width / 2, centerY, 400);
-    overlayGradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
-    overlayGradient.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
-    ctx.fillStyle = overlayGradient;
-    ctx.fillRect(0, centerY - 200, canvas.width, 400);
-
-    await loadAcuminFont();
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-    
-    const leftX = canvas.width / 2 - 180;
-    const rightX = canvas.width / 2 + 180;
-    
-    ctx.font = 'italic 28px "Acumin Variable Concept", Arial, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.textAlign = 'center';
-    ctx.fillText('WAS', leftX, centerY - 40);
-    ctx.font = 'italic 32px "Acumin Variable Concept", Arial, sans-serif';
-    ctx.fillText(`AED ${parseInt(originalPrice).toLocaleString()}`, leftX, centerY);
-    
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(leftX - 80, centerY - 10);
-    ctx.lineTo(leftX + 80, centerY - 10);
-    ctx.stroke();
-    
-    ctx.fillStyle = 'white';
-    ctx.font = 'italic 28px "Acumin Variable Concept", Arial, sans-serif';
-    ctx.fillText('NOW', rightX, centerY - 40);
-    ctx.font = 'italic 32px "Acumin Variable Concept", Arial, sans-serif';
-    ctx.fillText(`AED ${parseInt(newPrice).toLocaleString()}`, rightX, centerY);
-    
-    ctx.fillStyle = '#4ade80';
-    ctx.font = 'italic 24px "Acumin Variable Concept", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`SAVE AED ${savings.toLocaleString()}`, canvas.width / 2, centerY + 60);
-
-    return canvas.toDataURL('image/png').split(',')[1];
-  }, [car, originalPrice, newPrice, loadAcuminFont]);
-
-  const handleSubmit = async () => {
-    if (!newPrice || parseFloat(newPrice) <= 0) {
-      alert('Please enter a valid new price');
-      return;
-    }
-
-    if (parseFloat(newPrice) >= parseFloat(originalPrice)) {
-      alert('New price must be lower than original price');
-      return;
-    }
-
-    setIsGenerating(true);
-
+  // Server-side HTML template rendering with Playwright
+  const generatePriceDropImages = async () => {
     try {
-      // Update car price in inventory
-      const updatePriceResponse = await fetch('/api/update-car-price', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          carId: car.id,
-          newPrice: parseFloat(newPrice)
-        }),
-      });
+      setIsGenerating(true);
+      console.log('🎨 Generating price drop images with Playwright...');
+      
+      // Get the first and second main car images [[memory:5456998]]
+      console.log('📸 Fetching first and second car images...');
+      const { data: carMedia, error } = await supabase
+        .from('car_media')
+        .select('url, sort_order')
+        .eq('car_id', car.id)
+        .eq('kind', 'photo') // Only get regular photos, not social_media images
+        .order('sort_order', { ascending: true })
+        .limit(2);
 
-      if (!updatePriceResponse.ok) {
-        throw new Error('Failed to update car price');
+      if (error) {
+        console.error('❌ Error fetching car images:', error);
+        throw new Error('Failed to fetch car images');
       }
 
-      // Generate both image formats
-      const [image45, imageStory] = await Promise.all([
-        generate45Image(),
-        generateStoryImage()
-      ]);
+      if (!carMedia || carMedia.length === 0) {
+        throw new Error('No car images found');
+      }
 
-      // Create the price drop marketing task
-      const response = await fetch('/api/create-price-drop-task', {
+      const firstImageUrl = carMedia[0]?.url;
+      const secondImageUrl = carMedia[1]?.url || carMedia[0]?.url; // Fallback to first image if second doesn't exist
+
+      console.log('📷 First image URL:', firstImageUrl);
+      console.log('📷 Second image URL:', secondImageUrl);
+      console.log('📊 Car details:', {
+        id: car.id,
+        year: car.model_year,
+        model: car.vehicle_model,
+        mileage: car.current_mileage_km || car.mileage_km,
+        stockNumber: car.stock_number
+      });
+
+      const response = await fetch('/api/generate-price-drop-images', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          carId: car.id,
           carDetails: {
-            stock_number: car.stock_number,
-            model_year: car.model_year,
-            vehicle_model: car.vehicle_model,
-            colour: car.colour
+            year: car.model_year,
+            model: car.vehicle_model,
+            mileage: car.current_mileage_km ? `${car.current_mileage_km.toLocaleString()} KM` : 
+                     car.mileage_km ? `${car.mileage_km.toLocaleString()} KM` : 'N/A',
+            stockNumber: car.stock_number
           },
           pricing: {
             wasPrice: parseFloat(originalPrice),
             nowPrice: parseFloat(newPrice),
             savings: parseFloat(originalPrice) - parseFloat(newPrice)
           },
-          images: {
-            image45: image45,
-            imageStory: imageStory
-          }
+          firstImageUrl,
+          secondImageUrl
         }),
       });
 
       if (!response.ok) {
+        throw new Error('Failed to generate images');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Image generation failed');
+      }
+
+      console.log('✅ Successfully generated images with Playwright');
+      return {
+        image45: result.image45,
+        imageStory: result.imageStory
+      };
+      
+    } catch (error) {
+      console.error('❌ Error generating images:', error);
+      throw error;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPrice || isGenerating) return;
+    
+    setIsGenerating(true);
+    
+    try {
+      console.log('🚀 Starting price drop process...');
+      
+      // Step 1: Update car price
+      console.log('💰 Updating price:', car.stock_number, '->', `AED ${newPrice}`);
+      const priceResponse = await fetch('/api/update-car-price', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          carId: car.id,
+          newPrice: parseFloat(newPrice),
+        }),
+      });
+
+      if (!priceResponse.ok) {
+        throw new Error('Failed to update car price');
+      }
+
+      // Step 2: Generate images using Playwright
+      const { image45, imageStory } = await generatePriceDropImages();
+
+      // Step 3: Create marketing task
+      const savings = parseFloat(originalPrice) - parseFloat(newPrice);
+      const taskResponse = await fetch('/api/create-price-drop-task', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          carId: car.id,
+          carDetails: {
+            stock_number: car.stock_number,
+            model_year: car.model_year,
+            vehicle_model: car.vehicle_model
+          },
+          pricing: {
+            wasPrice: parseFloat(originalPrice),
+            nowPrice: parseFloat(newPrice),
+            savings: savings
+          },
+          images: {
+            image45,
+            imageStory
+          }
+        }),
+      });
+
+      if (!taskResponse.ok) {
         throw new Error('Failed to create price drop task');
       }
 
-      setIsGenerating(false);
-      onSuccess();
+      console.log('✅ Price drop images generated and task created successfully!');
+      
     } catch (error) {
+      console.error('❌ Price drop generation failed:', error);
+      alert(`Failed to generate price drop: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
       setIsGenerating(false);
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
     }
   };
 

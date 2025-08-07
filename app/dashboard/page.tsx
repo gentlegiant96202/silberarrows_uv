@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import DashboardFilterBar from '@/components/modules/uv-crm/dashboard/DashboardFilterBar';
+import SharedSalesDashboard from '@/components/shared/SalesDashboard';
 import { supabase } from '@/lib/supabaseClient';
 import { useDashboardFilter } from '@/lib/dashboardFilterStore';
+import { useSalesData } from '@/lib/useSalesData';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 
@@ -115,8 +117,61 @@ function CumulativeFunnel() {
 export default function DashboardPage() {
   const { year, months } = useDashboardFilter();
 
+  // Sales data hooks for the shared component
+  const { 
+    loading: salesLoading, 
+    error: salesError, 
+    fetchSalesMetrics, 
+    submitSalesData, 
+    deleteSalesData 
+  } = useSalesData();
+
+  // Sales dashboard state
+  const [allSalesMetrics, setAllSalesMetrics] = useState<any[]>([]);
+  const [allSalesTargets, setAllSalesTargets] = useState<any[]>([]);
+
   // Trend chart data
   const [trendData, setTrendData] = useState<any[]>([]);
+
+  // Sales data fetching
+  const fetchAllSalesTargets = async () => {
+    try {
+      const { data: salesTargets, error } = await supabase
+        .from('sales_monthly_targets')
+        .select('*')
+        .order('year', { ascending: false })
+        .order('month', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching sales targets:', error);
+        return [];
+      }
+      
+      setAllSalesTargets(salesTargets || []);
+      return salesTargets || [];
+    } catch (error) {
+      console.error('Error fetching sales targets:', error);
+      return [];
+    }
+  };
+
+  // Load sales data on component mount
+  useEffect(() => {
+    async function loadSalesData() {
+      try {
+        const [salesMetrics, salesTargets] = await Promise.all([
+          fetchSalesMetrics(),
+          fetchAllSalesTargets()
+        ]);
+        setAllSalesMetrics(salesMetrics);
+        setAllSalesTargets(salesTargets);
+      } catch (error) {
+        console.error('Error loading sales data:', error);
+      }
+    }
+
+    loadSalesData();
+  }, [fetchSalesMetrics]);
 
   // trend effect
   useEffect(() => {
@@ -180,6 +235,17 @@ export default function DashboardPage() {
             <span>Gargash Report</span>
           </a>
         </div>
+        
+        {/* Sales Dashboard Section */}
+        <div className="mb-6">
+          <SharedSalesDashboard 
+            metrics={allSalesMetrics} 
+            targets={allSalesTargets}
+            loading={salesLoading}
+            className="mb-4"
+          />
+        </div>
+        
         <DashboardFilterBar />
         
         {/* Top row: Lead and Inventory KPIs */}

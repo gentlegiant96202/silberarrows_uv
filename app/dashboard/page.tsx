@@ -822,7 +822,7 @@ const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year,
   }, [year, months]);
 
   return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[300px]">
+    <div className="rounded-lg bg-black/70 backdrop-blur p-3 border border-white/10 h-[300px]">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-white/80">Stock Acquisitions ({year})</h2>
         <div className="flex items-center gap-4 text-xs text-white/50">
@@ -930,7 +930,7 @@ const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = (
   }, [year, months]);
 
   return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[300px]">
+    <div className="rounded-lg bg-black/70 backdrop-blur p-3 border border-white/10 h-[300px]">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-white/80">Consignment Acquisitions ({year})</h2>
         <div className="flex items-center gap-4 text-xs text-white/50">
@@ -1022,7 +1022,7 @@ const AcquisitionsTrendChart: React.FC<{year:number; months:number[]}> = ({year,
   }, [year, months]);
 
   return (
-    <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10 h-[320px]">
+    <div className="rounded-lg bg-black/70 backdrop-blur p-3 border border-white/10 h-[320px]">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-white/80">Acquisitions Comparison Trend ({year})</h2>
         <div className="flex items-center gap-6 text-xs text-white/50">

@@ -21,7 +21,7 @@ export default function MatchingCarsList({ model }: { model: string }) {
     if(!model) { setCars([]); return; }
     setLoading(true);
 
-    const fetch = async () => {
+    const fetchCars = async () => {
       // Simple filter by model_family - much cleaner than text matching
       const { data, error } = await supabase
       .from('cars')
@@ -55,7 +55,19 @@ export default function MatchingCarsList({ model }: { model: string }) {
       setLoading(false);
     };
 
-    fetch();
+    fetchCars();
+
+    // Listen for custom primary photo change events
+    const handlePrimaryPhotoChange = () => {
+      console.log('Primary photo changed event received in MatchingCarsList, reloading thumbnails...');
+      fetchCars();
+    };
+    
+    window.addEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
+
+    return () => { 
+      window.removeEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
+    };
   }, [model]);
 
   if(!model){

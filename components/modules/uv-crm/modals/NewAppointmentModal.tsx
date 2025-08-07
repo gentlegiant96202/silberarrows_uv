@@ -107,6 +107,18 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
       }
     }
     loadCars();
+
+    // Listen for custom primary photo change events
+    const handlePrimaryPhotoChange = () => {
+      console.log('Primary photo changed event received in NewAppointmentModal, reloading thumbnails...');
+      loadCars();
+    };
+    
+    window.addEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
+
+    return () => { 
+      window.removeEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
+    };
   },[]);
 
   const timeSlots = generateTimeSlots();

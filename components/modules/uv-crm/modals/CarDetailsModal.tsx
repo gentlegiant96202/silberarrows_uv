@@ -143,6 +143,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         console.error('Supabase error fetching media:', error);
       } else {
         console.log('Fetched media for car:', car.id, 'Count:', data?.length || 0);
+        const primaryPhoto = data?.find(m => m.kind === 'photo' && m.is_primary);
+        console.log('🎯 Primary photo found:', primaryPhoto ? 'Yes' : 'No', primaryPhoto?.id);
         setMedia(data || []);
       }
     } catch (error) {
@@ -278,6 +280,55 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       alert('Failed to reorder media. Please try again.');
     } finally {
       setReorderLoading(false);
+    }
+  };
+
+  // Function to set a photo as primary
+  const handleSetPrimary = async (mediaId: string) => {
+    if (!canEditInventory || mediaLoading || reorderLoading) return;
+    
+    setMediaLoading(true);
+    
+    try {
+      console.log('🔄 Setting photo as primary:', mediaId);
+      
+      const response = await fetch('/api/set-primary-photo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mediaId }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to set primary photo');
+      }
+      
+      console.log('✅ API call successful, refetching media...');
+      
+      // First refetch media to get updated order and primary status
+      await refetchMedia();
+      
+      // Dispatch event to notify other components immediately
+      console.log('🔄 Dispatching primary photo change event for car:', car.id);
+      window.dispatchEvent(new CustomEvent('primaryPhotoChanged', { 
+        detail: { carId: car.id, mediaId } 
+      }));
+      
+      // Also dispatch a delayed event as backup
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('primaryPhotoChanged', { 
+          detail: { carId: car.id, mediaId } 
+        }));
+        console.log('🔄 Backup primary photo change event dispatched');
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Failed to set primary photo:', error);
+      alert('Failed to set primary photo. Please try again.');
+    } finally {
+      setMediaLoading(false);
     }
   };
 
@@ -1028,6 +1079,20 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         >
                           {mediaLoading ? '...' : '×'}
                         </button>
+                        {/* Set as Primary button - only for photos that aren't already primary */}
+                        {canEditInventory && m.kind === 'photo' && !m.is_primary && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetPrimary(m.id);
+                            }}
+                            disabled={!!(mediaLoading || reorderLoading)}
+                            className="absolute top-0 left-0 text-[9px] bg-blue-600/80 hover:bg-blue-600 text-white px-1.5 py-0.5 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed rounded-br"
+                            title="Set as Primary"
+                          >
+                            {mediaLoading ? '...' : 'PRIMARY'}
+                          </button>
+                        )}
                       </>
                       {m.kind==='photo' && m.is_primary && (
                         <span className="absolute bottom-0 left-0 text-[9px] bg-green-600/80 text-white px-1 font-semibold">

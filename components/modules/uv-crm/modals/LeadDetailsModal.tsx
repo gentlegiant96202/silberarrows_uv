@@ -185,6 +185,18 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
       }
     }
     loadCars();
+
+    // Listen for custom primary photo change events
+    const handlePrimaryPhotoChange = () => {
+      console.log('Primary photo changed event received in LeadDetailsModal, reloading thumbnails...');
+      loadCars();
+    };
+    
+    window.addEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
+
+    return () => { 
+      window.removeEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
+    };
   },[]);
 
   const handleUpdate = async (e?: React.FormEvent) => {

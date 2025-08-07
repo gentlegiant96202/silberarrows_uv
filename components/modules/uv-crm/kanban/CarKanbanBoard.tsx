@@ -83,6 +83,7 @@ export default function CarKanbanBoard() {
         .in('car_id', ids);
       const map: Record<string,string> = {};
       (mediaRows||[]).forEach((m:any)=>{ map[m.car_id] = m.url; });
+      console.log('🖼️ CarKanbanBoard: Loaded', mediaRows?.length || 0, 'primary thumbnails');
       setThumbs(map);
     }
   };
@@ -163,7 +164,7 @@ export default function CarKanbanBoard() {
   useEffect(() => {
     load();
 
-    const channel = supabase
+    const carsChannel = supabase
       .channel('cars-stream')
       .on(
         'postgres_changes',
@@ -186,7 +187,23 @@ export default function CarKanbanBoard() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Listen for custom primary photo change events
+    const handlePrimaryPhotoChange = (event: any) => {
+      console.log('🔄 CarKanbanBoard: Primary photo changed event received, reloading thumbnails...', event.detail);
+      
+      // Force immediate reload
+      setTimeout(() => {
+        console.log('🔄 CarKanbanBoard: Force reloading after primary photo change...');
+        load();
+      }, 100);
+    };
+    
+    window.addEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
+
+    return () => { 
+      supabase.removeChannel(carsChannel);
+      window.removeEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
+    };
   }, []);
 
   const { query } = useSearchStore();

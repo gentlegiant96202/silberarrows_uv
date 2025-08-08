@@ -2,7 +2,7 @@ export interface MarketingTask {
   id: string;
   title: string;
   description?: string;
-  status: 'intake' | 'planned' | 'in_progress' | 'in_review' | 'approved' | 'instagram_feed_preview';
+  status: 'intake' | 'planned' | 'in_progress' | 'in_review' | 'approved' | 'instagram_feed_preview' | 'archived';
   priority?: 'low' | 'medium' | 'high';
   assignee?: string;
   due_date?: string;
@@ -19,7 +19,7 @@ export interface MarketingTask {
   previewUrl?: string | null; // Pre-computed preview URL for performance optimization
 }
 
-export type MarketingStatus = 'intake' | 'planned' | 'in_progress' | 'in_review' | 'approved' | 'instagram_feed_preview';
+export type MarketingStatus = 'intake' | 'planned' | 'in_progress' | 'in_review' | 'approved' | 'instagram_feed_preview' | 'archived';
 
 export type TaskType = 'design' | 'photo' | 'video';
 

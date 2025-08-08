@@ -126,6 +126,12 @@ const columns: MarketingColumn[] = [
     title: "INSTAGRAM FEED PREVIEW", 
     icon: <Instagram className="w-4 h-4" />,
     color: "pink"
+  },
+  { 
+    key: "archived", 
+    title: "ARCHIVED", 
+    icon: <Archive className="w-4 h-4" />,
+    color: "gray"
   }
 ];
 
@@ -138,6 +144,7 @@ export default function MarketingKanbanBoard() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showWorkspace, setShowWorkspace] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MarketingTask | null>(null);
   const [draggedTask, setDraggedTask] = useState<MarketingTask | null>(null);
   const [hovered, setHovered] = useState<ColKey | null>(null);
@@ -502,7 +509,36 @@ export default function MarketingKanbanBoard() {
       console.error('Error saving task:', error);
       return null;
     }
-    // Do NOT close the modal for partial updates like media file deletion
+  };
+
+  // Archive task function
+  const handleArchiveTask = async (taskId: string) => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/design-tasks', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          id: taskId,
+          status: 'archived'
+        }),
+      });
+      
+      if (response.ok) {
+        const updatedTask: MarketingTask = await response.json();
+        // Update the tasks state
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === taskId ? updatedTask : task
+          )
+        );
+        console.log('✅ Task archived successfully:', taskId);
+      } else {
+        console.error('❌ Failed to archive task');
+      }
+    } catch (error) {
+      console.error('❌ Error archiving task:', error);
+    }
   };
 
   const handleCloseWorkspace = () => {
@@ -546,8 +582,29 @@ export default function MarketingKanbanBoard() {
 
   return (
     <div className="px-2" style={{ height: "calc(100vh - 72px)" }}>
+      {/* Archive Toggle Button */}
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          className={`
+            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
+            ${showArchived 
+              ? 'bg-gray-600 text-white shadow-lg' 
+              : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+            }
+            backdrop-blur-sm border border-white/20 hover:border-white/30
+          `}
+          title={showArchived ? 'Hide archived tasks' : 'Show archived tasks'}
+        >
+          <Archive className="w-3 h-3" />
+          {showArchived ? 'Hide' : 'Show'} Archive
+        </button>
+      </div>
+      
       <div className="flex gap-1.5 pb-2 w-full h-full overflow-hidden">
-        {columns.map(col => (
+        {columns
+          .filter(col => showArchived || col.key !== 'archived')
+          .map(col => (
           <div
             key={col.key}
             className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 flex flex-col transition-shadow min-w-0 ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''} ${
@@ -832,6 +889,28 @@ export default function MarketingKanbanBoard() {
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Archive Button - Only for approved tasks */}
+                      {task.status === 'approved' && canEdit && (
+                        <div className="absolute bottom-1 right-1 z-20">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent card click
+                              handleArchiveTask(task.id);
+                            }}
+                            className="
+                              p-1 rounded-full transition-all duration-200 
+                              bg-black/50 backdrop-blur-sm text-white/70 opacity-0 group-hover:opacity-100 
+                              hover:text-white hover:bg-gray-700/70
+                              hover:shadow-lg hover:scale-110
+                              focus:outline-none focus:ring-2 focus:ring-gray-400/50
+                            "
+                            title="Archive task"
+                          >
+                            <Archive className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                       
                       {/* Bottom gradient line for visual separation */}
                       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>

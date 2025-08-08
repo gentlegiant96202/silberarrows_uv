@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { MarketingTask } from '@/types/marketing';
+import { Trash2, FileText, Video, Image as ImageIcon, Plus, Play } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import dayjs from 'dayjs';
-import { MarketingTask } from '@/types/marketing';
-import { Trash2, FileText, Video, Image as ImageIcon, Plus, Play } from 'lucide-react';
 
 // PDF conversion is currently disabled (dependency issues). Return empty list.
 const convertPdfToImages = async (_file: File): Promise<Array<{blob: Blob, name: string, pageIndex: number, dataURL: string}>> => {
@@ -274,12 +274,42 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
     }));
   };
 
+  // Check browser WebP support with more robust detection
+  const supportsWebP = (): boolean => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 2;
+      canvas.height = 1;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return false;
+      
+      // Draw a simple pixel to test actual encoding
+      ctx.fillStyle = '#FF0000';
+      ctx.fillRect(0, 0, 1, 1);
+      
+      const webpDataUrl = canvas.toDataURL('image/webp', 0.8);
+      
+      // Check if WebP is actually supported by looking at the data URL format
+      const isWebP = webpDataUrl.indexOf('data:image/webp') === 0 && webpDataUrl.length > 100;
+      
+      return isWebP;
+    } catch (error) {
+      console.warn('WebP detection failed:', error);
+      return false;
+    }
+  };
+
   // Generate thumbnail for different file types
   const generateThumbnail = async (file: File): Promise<string> => {
     if (file.type.startsWith('application/pdf')) {
       const pageImages = await convertPdfToImages(file);
       return pageImages[0].dataURL; // Return the first page's data URL
     }
+
+    const useWebP = supportsWebP();
+    const quality = 0.8;
+    
+    console.log(`📸 Generating thumbnail with ${useWebP ? 'WebP' : 'JPEG'} format for:`, file.name);
 
     return new Promise((resolve, reject) => {
       if (file.type.startsWith('image/')) {
@@ -311,7 +341,34 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
             canvas.height = height;
             
             ctx?.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.8));
+            
+            // Try WebP first if supported, fallback to JPEG if it fails
+            try {
+              if (useWebP) {
+                const webpDataUrl = canvas.toDataURL('image/webp', quality);
+                // Verify WebP was actually generated
+                if (webpDataUrl.indexOf('data:image/webp') === 0 && webpDataUrl.length > 100) {
+                  console.log('✅ WebP thumbnail generated successfully');
+                  resolve(webpDataUrl);
+                  return;
+                } else {
+                  console.warn('⚠️ WebP generation failed, falling back to JPEG');
+                }
+              }
+              
+              // Fallback to JPEG
+              const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
+              console.log('✅ JPEG thumbnail generated successfully');
+              resolve(jpegDataUrl);
+            } catch (error) {
+              console.error('❌ Thumbnail generation failed:', error);
+              // Final fallback to JPEG with lower quality
+              try {
+                resolve(canvas.toDataURL('image/jpeg', 0.6));
+              } catch (finalError) {
+                reject(new Error('Failed to generate thumbnail'));
+              }
+            }
           };
           img.onerror = () => reject(new Error('Failed to load image'));
           img.src = e.target?.result as string;
@@ -325,29 +382,55 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
         const ctx = canvas.getContext('2d');
         
         video.crossOrigin = 'anonymous';
-        video.currentTime = 1; // Get frame at 1 second
-        
+        video.currentTime = 1; // Seek to 1 second to avoid black frame
         video.onloadeddata = () => {
-          const maxSize = 100;
-          let { videoWidth: width, videoHeight: height } = video;
-          
-          if (width > height) {
-            if (width > maxSize) {
-              height = (height * maxSize) / width;
-              width = maxSize;
+          video.onseeked = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set thumbnail size
+            const maxSize = 100;
+            let { videoWidth: width, videoHeight: height } = video;
+            
+            if (width > height) {
+              if (width > maxSize) {
+                height = (height * maxSize) / width;
+                width = maxSize;
+              }
+            } else {
+              if (height > maxSize) {
+                width = (width * maxSize) / height;
+                height = maxSize;
+              }
             }
-          } else {
-            if (height > maxSize) {
-              width = (width * maxSize) / height;
-              height = maxSize;
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            ctx?.drawImage(video, 0, 0, width, height);
+            
+            // Try WebP first if supported, fallback to JPEG
+            try {
+              if (useWebP) {
+                const webpDataUrl = canvas.toDataURL('image/webp', quality);
+                if (webpDataUrl.indexOf('data:image/webp') === 0 && webpDataUrl.length > 100) {
+                  console.log('✅ WebP video thumbnail generated successfully');
+                  resolve(webpDataUrl);
+                  return;
+                } else {
+                  console.warn('⚠️ WebP video thumbnail failed, falling back to JPEG');
+                }
+              }
+              
+              // Fallback to JPEG
+              const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
+              console.log('✅ JPEG video thumbnail generated successfully');
+              resolve(jpegDataUrl);
+            } catch (error) {
+              console.error('❌ Video thumbnail generation failed:', error);
+              resolve(''); // Fallback to no thumbnail
             }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          ctx?.drawImage(video, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
+          };
         };
         
         video.onerror = () => resolve(''); // Fallback to no thumbnail
@@ -640,27 +723,32 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-2">
       <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-xl p-5 w-full max-w-2xl text-xs relative max-h-[90vh] overflow-visible shadow-2xl ring-1 ring-white/10">
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 rounded-full text-white/70 hover:text-white transition-all z-10"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        
-        {/* Header */}
-        <div className="mb-4 pr-10 bg-white/3 backdrop-blur-sm rounded-lg p-3 border border-white/5">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
-                <div className="w-2 h-2 bg-gradient-to-r from-gray-300 to-gray-500 rounded-full"></div>
-                {task ? 'Edit Task' : 'Create New Task'}
-              </h2>
-              <p className="text-xs text-white/70">
-                {task ? 'Update task information and details' : 'Create a new marketing design task'}
-              </p>
-            </div>
+        <div className="flex justify-between items-center mb-6 border-b border-white/20 pb-4">
+          <h2 className="text-2xl font-bold text-white">
+            {task ? 'Edit Task' : 'Add New Task'}
+          </h2>
+          
+          <div className="flex items-center gap-3">
+            {/* Delete Button */}
+            {task && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-medium rounded-lg hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            )}
+            
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-white/60 hover:text-white text-2xl transition-colors duration-200"
+            >
+              ×
+            </button>
           </div>
         </div>
 

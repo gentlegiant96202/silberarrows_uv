@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Archive, CheckCircle, Instagram, Pin, Edit, Trash2 } from 'lucide-react';
+import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Archive, CheckCircle, Instagram, Pin } from 'lucide-react';
 import { MarketingTask, MarketingStatus, MarketingColumn } from '@/types/marketing';
 import { supabase } from '@/lib/supabaseClient';
 import { useModulePermissions } from '@/lib/useModulePermissions';
@@ -536,9 +536,6 @@ export default function MarketingKanbanBoard() {
   };
 
 
-
-
-
   if (loading) {
     return (
       <div className="px-4 flex items-center justify-center h-64">
@@ -580,11 +577,11 @@ export default function MarketingKanbanBoard() {
                     {grouped[col.key].length}
                     <span className="ml-0.5 text-[10px] leading-none">＋</span>
                   </button>
-                ) : (
+                ) : col.key !== 'intake' ? (
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-white/10 text-white/70 text-[8px] font-medium">
                     {grouped[col.key].length}
                   </span>
-                )}
+                ) : null}
               </div>
             </div>
             
@@ -736,103 +733,102 @@ export default function MarketingKanbanBoard() {
                       </div>
 
                       
+                      {/* Main Content Container */}
                       <div className="flex px-2 py-1 gap-1.5 min-h-[55px]">
-                        {/* Full Width Content - No Thumbnail */}
-                        <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
-                          {/* Top Row - Status Badge and Title */}
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <div className="flex-1 min-w-0">
-                              {/* Status Badge */}
-                              <div className={`inline-block px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wide border mb-1 ${
-                                task.status === 'intake' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
-                                task.status === 'planned' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' :
-                                task.status === 'in_progress' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30' :
-                                task.status === 'in_review' ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' :
-                                task.status === 'approved' ? 'bg-green-500/20 text-green-300 border-green-500/30' :
-                                'bg-gray-500/20 text-gray-300 border-gray-500/30'
-                              }`}>
-                                {task.status.replace('_', ' ')}
-                              </div>
-                              
-                              {/* Title */}
-                              <h4 className="text-[11px] font-bold text-white leading-tight line-clamp-2 group-hover:text-gray-100 transition-colors duration-200">
-                                {task.title}
-                              </h4>
+                        {/* Left Side - Preview Thumbnail (4:5 ratio) */}
+                        <div className="flex-shrink-0 w-16 h-20 relative">
+                          {previewUrl ? (
+                            <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg">
+                              <img 
+                                src={previewUrl} 
+                                alt="Preview" 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                              />
+                              {/* Overlay gradient for depth */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </div>
-                            
-                            {/* Action Buttons */}
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCardClick(task);
-                                }}
-                                className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors duration-200"
-                                title="Edit Task"
-                              >
-                                <Edit className="w-3 h-3 text-white/70" />
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteTask(task.id);
-                                }}
-                                className="p-1 rounded bg-red-500/20 hover:bg-red-500/30 transition-colors duration-200"
-                                title="Delete Task"
-                              >
-                                <Trash2 className="w-3 h-3 text-red-300" />
-                              </button>
-                            </div>
-                          </div>
-                          
-                          {/* Description */}
-                          {task.description && (
-                            <div className="mb-1">
-                              <p className="text-[9px] text-white/70 line-clamp-2 leading-tight">
-                                {task.description}
-                              </p>
+                          ) : (
+                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1">
+                              <img 
+                                src="/MAIN LOGO.png" 
+                                alt="SilberArrows Logo" 
+                                className="w-full h-full object-contain opacity-60 filter brightness-200" 
+                              />
                             </div>
                           )}
                           
-                          {/* Media Files Indicator */}
-                          {task.media_files && task.media_files.length > 0 && (
-                            <div className="flex items-center gap-1 mb-1">
-                              <ImageIcon className="w-3 h-3 text-white/60" />
-                              <span className="text-[9px] text-white/60">{task.media_files.length} files</span>
-                            </div>
-                          )}
-                          
-                          {/* Bottom Row - Metadata */}
-                          <div className="flex items-center justify-between text-[8px] text-white/60">
-                            <div className="flex items-center gap-2">
-                              {/* Assignee */}
-                              <div className="flex items-center gap-1">
-                                <User className="w-2.5 h-2.5" />
-                                <span className="font-medium uppercase">{task.assignee || 'Unassigned'}</span>
-                              </div>
-                              
-                              {/* Annotations */}
-                              {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
-                                <div className="flex items-center gap-1 bg-orange-400/20 border border-orange-400/30 rounded-full px-1.5 py-0.5">
-                                  <div className="w-1 h-1 bg-orange-400 rounded-full animate-pulse"></div>
-                                  <span className="text-orange-300 font-bold">{task.annotations.length}</span>
+                          {/* Icons Row - Bottom of Thumbnail */}
+                          <div className="absolute bottom-1 left-0 right-0 flex items-center justify-between px-1">
+                            {/* Left Side - Media Count */}
+                            <div className="flex items-center gap-1">
+                              {task.media_files && task.media_files.length > 0 && (
+                                <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-1 py-0.5">
+                                  <ImageIcon className="w-2 h-2 text-white/80" />
+                                  <span className="text-white font-bold text-[8px]">{task.media_files.length}</span>
                                 </div>
                               )}
                             </div>
                             
+                            {/* Right Side - Annotation Count */}
+                            <div className="flex items-center gap-1">
+                              {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
+                                <div 
+                                  className="flex items-center gap-0.5 bg-orange-400/90 backdrop-blur-sm border border-orange-300/50 rounded-full px-1 py-0.5"
+                                  title={`${task.annotations.length} annotation${task.annotations.length > 1 ? 's' : ''}`}
+                                >
+                                  <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+                                  <span className="text-white font-bold text-[8px]">{task.annotations.length}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Right Side - Content */}
+                        <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
+                          {/* Title Section - Top */}
+                          <div className="flex-shrink-0">
+                            <h4 className="text-[11px] font-bold text-white leading-tight line-clamp-1 group-hover:text-gray-100 transition-colors duration-200 uppercase">
+                              {task.title}
+                            </h4>
+                          </div>
+                          
+                          {/* Metadata Section - Bottom */}
+                          <div className="flex-shrink-0 space-y-0.5 text-xs">
+                            {/* Assigned By */}
+                            <div className="flex items-center gap-1 text-white/70">
+                              <User className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span className="truncate text-[9px] font-medium uppercase">{task.assignee || 'Unassigned'}</span>
+                            </div>
+                            
+                            {/* Created Date */}
+                            <div className="flex items-center gap-1 text-white/60">
+                              <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span className="text-[8px]">Created {formatDate(task.created_at)}</span>
+                            </div>
+                            
                             {/* Due Date */}
-                            {task.due_date && (
-                              <div className={`flex items-center gap-1 ${
-                                isTaskUrgent(task.due_date) && 
-                                (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') &&
-                                !(task.status === 'in_progress' && task.annotations && task.annotations.length > 0)
-                                  ? 'text-red-400' 
-                                  : 'text-white/60'
-                              }`}>
-                                <Calendar className="w-2.5 h-2.5" />
-                                <span>{formatDate(task.due_date)}</span>
-                              </div>
-                            )}
+                            <div className={`flex items-center gap-1 ${
+                              task.due_date && isTaskUrgent(task.due_date) && 
+                              (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') &&
+                              !(task.status === 'in_progress' && task.annotations && task.annotations.length > 0)
+                                ? 'text-red-400' 
+                                : 'text-white/60'
+                            }`}>
+                              <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span 
+                                className="text-[8px] truncate"
+                                style={
+                                  task.due_date && isTaskUrgent(task.due_date) && 
+                                  (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') &&
+                                  !(task.status === 'in_progress' && task.annotations && task.annotations.length > 0)
+                                    ? { animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                                    : {}
+                                }
+                              >
+                                {task.due_date ? formatRelativeDueDate(task.due_date) : 'No deadline'}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>

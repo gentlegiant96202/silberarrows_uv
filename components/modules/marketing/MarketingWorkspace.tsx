@@ -875,7 +875,20 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
               thumbnailType: thumbnailFile.type
             });
             
-            const thumbnailFileName = `${task.id}_${timestamp}_thumbnail.jpg`;
+            // Use WebP if supported, fallback to JPG
+            const supportsWebP = (() => {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1;
+                canvas.height = 1;
+                return canvas.toDataURL('image/webp').indexOf('image/webp') === 5;
+              } catch {
+                return false;
+              }
+            })();
+            
+            const extension = supportsWebP ? '.webp' : '.jpg';
+            const thumbnailFileName = `${task.id}_${timestamp}_thumbnail${extension}`;
             console.log('📤 Uploading thumbnail to storage:', thumbnailFileName);
             
             // Upload thumbnail to storage

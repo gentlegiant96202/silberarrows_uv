@@ -27,11 +27,16 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
   // Auto-close modal after success
   useEffect(() => {
     if (showSuccess) {
+      console.log('🎉 Success state triggered, starting 3-second timer...');
       const timer = setTimeout(() => {
+        console.log('⏰ Timer expired, closing modal...');
         onClose();
       }, 3000); // Close after 3 seconds
 
-      return () => clearTimeout(timer);
+      return () => {
+        console.log('⏹️ Cleaning up timer...');
+        clearTimeout(timer);
+      };
     }
   }, [showSuccess, onClose]);
 
@@ -220,6 +225,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       }
 
       console.log('✅ Price drop images generated and task created successfully!');
+      console.log('🔄 Setting showSuccess to true...');
       setShowSuccess(true);
       onSuccess(); // Call onSuccess prop
       
@@ -301,20 +307,20 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
                     Original Price
                   </label>
                   <div className="relative">
-                    <input
-                      type="number"
+                <input
+                  type="number"
                       value={originalPrice}
                       onChange={(e) => setOriginalPrice(e.target.value)}
                       className="w-full h-14 px-4 bg-black/30 border border-white/20 rounded-xl text-white text-lg font-medium placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all backdrop-blur-sm"
-                      placeholder="0"
-                      disabled={isGenerating}
-                    />
+                  placeholder="0"
+                  disabled={isGenerating}
+                />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
                       <svg className="w-5 h-5 text-white/60" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M7 4V2C7 1.45 7.45 1 8 1S9 1.55 9 2V4H15V2C15 1.45 15.45 1 16 1S17 1.55 17 2V4H20C21.1 4 22 4.9 22 6V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V6C2 4.9 2.9 4 4 4H7ZM20 8H4V20H20V8ZM16 14H8C7.45 14 7 13.55 7 13S7.45 12 8 12H16C16.55 12 17 12.45 17 13S16.55 14 16 14Z"/>
                       </svg>
-                    </div>
-                  </div>
+              </div>
+            </div>
                 </div>
 
                 {/* New Price */}
@@ -323,22 +329,22 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
                     New Price <span className="text-orange-400">*</span>
                   </label>
                   <div className="relative">
-                    <input
-                      type="number"
+                <input
+                  type="number"
                       value={newPrice}
                       onChange={(e) => setNewPrice(e.target.value)}
                       className="w-full h-14 px-4 bg-black/30 border border-white/20 rounded-xl text-white text-lg font-medium placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 transition-all backdrop-blur-sm"
-                      placeholder="Enter new price"
-                      disabled={isGenerating}
+                  placeholder="Enter new price"
+                  disabled={isGenerating}
                       required
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
                       <svg className="w-5 h-5 text-white/60" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M7 4V2C7 1.45 7.45 1 8 1S9 1.55 9 2V4H15V2C15 1.45 15.45 1 16 1S17 1.55 17 2V4H20C21.1 4 22 4.9 22 6V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20V6C2 4.9 2.9 4 4 4H7ZM20 8H4V20H20V8ZM16 14H8C7.45 14 7 13.55 7 13S7.45 12 8 12H16C16.55 12 17 12.45 17 13S16.55 14 16 14Z"/>
                       </svg>
-                    </div>
-                  </div>
-                </div>
+              </div>
+            </div>
+          </div>
               </div>
 
               {/* Monthly Payment Calculations */}
@@ -362,34 +368,34 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
                       <span className="text-green-400 text-sm font-medium">AED {newMonthly.zero.toLocaleString()}/mo</span>
                     </div>
                     <p className="text-xs text-white/40">(20% down, 60 months)</p>
-                  </div>
+                </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-4 pt-4">
-                <button
-                  onClick={onClose}
+            <button
+              onClick={onClose}
                   className="flex-1 h-12 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl font-medium transition-all backdrop-blur-sm"
-                  disabled={isGenerating}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
+              disabled={isGenerating}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
                   className="flex-1 h-12 bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                   disabled={isGenerating || !newPrice || parseFloat(newPrice) >= parseFloat(originalPrice)}
-                >
-                  {isGenerating ? (
+            >
+              {isGenerating ? (
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Generating...
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Generating...
                     </div>
-                  ) : (
+              ) : (
                     'Create Campaign'
-                  )}
-                </button>
-              </div>
+              )}
+            </button>
+          </div>
             </>
           )}
         </div>

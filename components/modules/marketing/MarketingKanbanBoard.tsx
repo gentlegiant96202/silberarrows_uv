@@ -582,25 +582,6 @@ export default function MarketingKanbanBoard() {
 
   return (
     <div className="px-2" style={{ height: "calc(100vh - 72px)" }}>
-      {/* Archive Toggle Button */}
-      <div className="flex justify-end mb-2">
-        <button
-          onClick={() => setShowArchived(!showArchived)}
-          className={`
-            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
-            ${showArchived 
-              ? 'bg-gray-600 text-white shadow-lg' 
-              : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
-            }
-            backdrop-blur-sm border border-white/20 hover:border-white/30
-          `}
-          title={showArchived ? 'Hide archived tasks' : 'Show archived tasks'}
-        >
-          <Archive className="w-3 h-3" />
-          {showArchived ? 'Hide' : 'Show'} Archive
-        </button>
-      </div>
-      
       <div className="flex gap-1.5 pb-2 w-full h-full overflow-hidden">
         {columns
           .filter(col => showArchived || col.key !== 'archived')
@@ -640,6 +621,25 @@ export default function MarketingKanbanBoard() {
                   </span>
                 ) : null}
               </div>
+              
+              {/* Archive Toggle Button - Only show on Instagram Feed Preview column */}
+              {col.key === 'instagram_feed_preview' && (
+                <button
+                  onClick={() => setShowArchived(!showArchived)}
+                  className={`
+                    inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition-all duration-200
+                    ${showArchived 
+                      ? 'bg-gray-600 text-white shadow-lg' 
+                      : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                    }
+                    backdrop-blur-sm border border-white/20 hover:border-white/30
+                  `}
+                  title={showArchived ? 'Hide archived tasks' : 'Show archived tasks'}
+                >
+                  <Archive className="w-2.5 h-2.5" />
+                  {showArchived ? 'Hide' : 'Show'} Archive
+                </button>
+              )}
             </div>
             
             <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">

@@ -17,6 +17,8 @@ export interface MarketingTask {
   created_by?: string; // User ID who created the task
   acknowledged_at?: string; // Timestamp when user acknowledged approved ticket
   previewUrl?: string | null; // Pre-computed preview URL for performance optimization
+  media_count?: number; // Number of media files, for previews without full media payload
+  annotations_count?: number; // Number of annotations, for previews without full annotations payload
 }
 
 export type MarketingStatus = 'intake' | 'planned' | 'in_progress' | 'in_review' | 'approved' | 'instagram_feed_preview' | 'archived';

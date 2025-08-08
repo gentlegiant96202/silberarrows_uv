@@ -160,6 +160,8 @@ export default function MarketingKanbanBoard() {
     in_progress: 0,
     in_review: 0,
     approved: 0,
+    instagram_feed_preview: 0,
+    archived: 0,
   } as Record<ColKey, number>;
   const [offsets, setOffsets] = useState<Record<ColKey, number>>(initialOffsets);
   const [hasMore, setHasMore] = useState<Record<ColKey, boolean>>({
@@ -168,6 +170,7 @@ export default function MarketingKanbanBoard() {
     in_progress: true,
     in_review: true,
     approved: true,
+    instagram_feed_preview: true,
   } as Record<ColKey, boolean>);
 
   // Get permissions and user role
@@ -277,7 +280,7 @@ export default function MarketingKanbanBoard() {
     const loadInitial = async () => {
       setInitialLoading(true);
       try {
-        const visibleStatuses: ColKey[] = ['intake', 'planned', 'in_progress', 'in_review', 'approved'];
+        const visibleStatuses: ColKey[] = ['intake', 'planned', 'in_progress', 'in_review', 'approved', 'instagram_feed_preview'];
         const results = await Promise.all(visibleStatuses.map((s) => fetchStatusTasks(s, 0)));
         const merged = results.flat();
         setTasks(merged);

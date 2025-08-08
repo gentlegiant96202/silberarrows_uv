@@ -487,6 +487,79 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
     console.log('Starting immediate upload for', filesToUpload.length, 'files');
     console.log('Start index provided:', startIndex);
 
+    // Helper: compress image file if large
+    const compressImageIfNeeded = async (file: File): Promise<File> => {
+      try {
+        if (!file.type.startsWith('image/')) return file;
+        const MAX_BYTES = 1.5 * 1024 * 1024; // 1.5MB
+        const MAX_DIMENSION = 2000; // px
+        if (file.size <= MAX_BYTES) return file;
+
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const i = new Image();
+          i.onload = () => resolve(i);
+          i.onerror = reject;
+          i.src = dataUrl;
+        });
+
+        let { width, height } = img;
+        // Maintain aspect ratio while capping the largest dimension
+        if (width > height && width > MAX_DIMENSION) {
+          height = Math.round((height * MAX_DIMENSION) / width);
+          width = MAX_DIMENSION;
+        } else if (height >= width && height > MAX_DIMENSION) {
+          width = Math.round((width * MAX_DIMENSION) / height);
+          height = MAX_DIMENSION;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return file;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const useWebP = supportsWebP();
+        const mime = useWebP ? 'image/webp' : 'image/jpeg';
+        const quality = 0.85;
+        const blob: Blob = await new Promise((resolve, reject) => {
+          if (canvas.toBlob) {
+            canvas.toBlob(
+              (b) => (b ? resolve(b) : reject(new Error('Compression failed'))),
+              mime,
+              quality
+            );
+          } else {
+            try {
+              const d = canvas.toDataURL(mime, quality);
+              const arr = d.split(',');
+              const bstr = atob(arr[1]);
+              let n = bstr.length;
+              const u8arr = new Uint8Array(n);
+              while (n--) u8arr[n] = bstr.charCodeAt(n);
+              resolve(new Blob([u8arr], { type: mime }));
+            } catch (err) {
+              reject(err);
+            }
+          }
+        });
+
+        const newName = file.name.replace(/\.[^.]+$/, useWebP ? '.webp' : '.jpg');
+        const compressed = new File([blob], newName, { type: blob.type, lastModified: Date.now() });
+        console.log(`Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
+        return compressed.size < file.size ? compressed : file;
+      } catch (err) {
+        console.warn('Compression skipped due to error:', err);
+        return file;
+      }
+    };
+
     // Fetch existing media_files array
     const { data: existing, error: fetchErr } = await supabase
       .from('design_tasks')
@@ -519,7 +592,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
     // Process each file individually
     for (let i = 0; i < filesToUpload.length; i++) {
       const fileWithThumbnail = filesToUpload[i];
-      const file = fileWithThumbnail.file;
+      // Compress large images before uploading to reduce 413 errors
+      const file = await compressImageIfNeeded(fileWithThumbnail.file);
       const globalIndex = startIndex + i;
       console.log(`Processing file ${i + 1}/${filesToUpload.length}: ${file.name}`);
       try {

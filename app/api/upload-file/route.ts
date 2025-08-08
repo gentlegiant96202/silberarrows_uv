@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { execFile } from 'child_process';

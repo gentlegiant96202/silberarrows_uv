@@ -729,18 +729,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           </h2>
           
           <div className="flex items-center gap-3">
-            {/* Delete Button */}
-            {task && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-medium rounded-lg hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
-            )}
-            
             {/* Close Button */}
             <button
               type="button"

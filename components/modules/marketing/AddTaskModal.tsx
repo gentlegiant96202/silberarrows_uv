@@ -592,34 +592,99 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
     // Process each file individually
     for (let i = 0; i < filesToUpload.length; i++) {
       const fileWithThumbnail = filesToUpload[i];
-      // Compress large images before uploading to reduce 413 errors
-      const file = await compressImageIfNeeded(fileWithThumbnail.file);
+      const file = fileWithThumbnail.file; // upload original file without conversion
       const globalIndex = startIndex + i;
       console.log(`Processing file ${i + 1}/${filesToUpload.length}: ${file.name}`);
+
+      // Enforce 50MB max upload size
+      const MAX_SIZE = 50 * 1024 * 1024;
+      if (file.size > MAX_SIZE) {
+        const tooLargeMsg = 'File exceeds 50MB limit';
+        console.error(tooLargeMsg, file.name);
+        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: tooLargeMsg, uploading: false, uploadProgress: 0 } : f));
+        continue;
+      }
+
       try {
-        // Use API route for upload (enables backend thumbnail generation)
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('taskId', taskId);
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 20 } : f));
-        const response = await fetch('/api/upload-file', {
-          method: 'POST',
-          body: formData,
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          console.error('Upload error:', result.error);
-          setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: result.error, uploading: false, uploadProgress: 0 } : f));
+
+        // 1) Upload original file directly to Supabase Storage
+        const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+        const id = (globalThis.crypto && 'randomUUID' in globalThis.crypto) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const storagePath = `${taskId}/${id}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('media-files')
+          .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+        if (uploadErr) {
+          console.error('Storage upload error:', uploadErr);
+          setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: uploadErr.message, uploading: false, uploadProgress: 0 } : f));
           continue;
         }
+        const { data: { publicUrl } } = supabase.storage.from('media-files').getPublicUrl(storagePath);
+
+        // 2) Create and upload small WebP thumbnail for display (images only)
+        let thumbnailUrl: string | undefined;
+        if (file.type.startsWith('image/')) {
+          try {
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+            const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+              const i = new Image();
+              i.onload = () => resolve(i);
+              i.onerror = reject;
+              i.src = dataUrl;
+            });
+            const MAX_DIM = 600;
+            let { width, height } = img;
+            if (width > height && width > MAX_DIM) { height = Math.round((height * MAX_DIM) / width); width = MAX_DIM; }
+            else if (height >= width && height > MAX_DIM) { width = Math.round((width * MAX_DIM) / height); height = MAX_DIM; }
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const blob: Blob = await new Promise((resolve, reject) => {
+                if (canvas.toBlob) {
+                  canvas.toBlob(b => b ? resolve(b) : reject(new Error('thumb blob failed')), 'image/webp', 0.8);
+                } else {
+                  try {
+                    const d = canvas.toDataURL('image/webp', 0.8);
+                    const arr = d.split(',');
+                    const bstr = atob(arr[1]);
+                    let n = bstr.length; const u8 = new Uint8Array(n);
+                    while (n--) u8[n] = bstr.charCodeAt(n);
+                    resolve(new Blob([u8], { type: 'image/webp' }));
+                  } catch (e) { reject(e); }
+                }
+              });
+              const thumbPath = `${taskId}/thumbnails/${id}.webp`;
+              const { error: thumbErr } = await supabase.storage.from('media-files').upload(thumbPath, blob, { contentType: 'image/webp', cacheControl: '3600', upsert: false });
+              if (!thumbErr) {
+                const { data: { publicUrl: tUrl } } = supabase.storage.from('media-files').getPublicUrl(thumbPath);
+                thumbnailUrl = tUrl;
+              } else {
+                console.warn('Thumbnail upload failed:', thumbErr.message);
+              }
+            }
+          } catch (e) {
+            console.warn('Thumbnail generation failed:', e);
+          }
+        }
+
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 80 } : f));
-        const newMediaItem = {
-          url: result.fileUrl,
+
+        // 3) Update DB with media file entry
+        const newMediaItem: any = {
+          url: publicUrl,
           name: file.name,
           type: file.type,
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {})
+          ...(thumbnailUrl ? { thumbnail: thumbnailUrl } : {})
         };
         newMedia.push(newMediaItem);
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 100, uploading: false, uploaded: true } : f));

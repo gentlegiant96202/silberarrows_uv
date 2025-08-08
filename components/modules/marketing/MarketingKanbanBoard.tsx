@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Archive, CheckCircle, Instagram, Pin } from 'lucide-react';
+import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Archive, CheckCircle, Instagram, Pin, Edit2, Trash2, Tag } from 'lucide-react';
 import { MarketingTask, MarketingStatus, MarketingColumn } from '@/types/marketing';
 import { supabase } from '@/lib/supabaseClient';
 import { useModulePermissions } from '@/lib/useModulePermissions';
@@ -58,7 +58,9 @@ const formatRelativeDueDate = (dateString: string) => {
 };
 
 // Helper function to check if task is urgent (due in 1 day or overdue)
-const isTaskUrgent = (dateString: string) => {
+const isTaskUrgent = (dateString: string | undefined) => {
+  if (!dateString) return false;
+  
   const dueDate = new Date(dateString);
   const today = new Date();
   
@@ -72,22 +74,6 @@ const isTaskUrgent = (dateString: string) => {
   // Urgent if due today, due in 1 day, or overdue
   return diffDays <= 1;
 };
-
-// Helper to get preview image (thumbnail or first image)
-function getPreviewUrl(mediaFiles: any[] = []): string | null {
-  if (!mediaFiles || !mediaFiles.length) return null;
-  // Prefer thumbnail if present
-  const withThumbnail = mediaFiles.find((f: any) => f.thumbnail);
-  if (withThumbnail) return withThumbnail.thumbnail;
-  // Otherwise, use first image
-  const imageFile = mediaFiles.find((f: any) => {
-    if (typeof f === 'string') {
-      return f.match(/\.(jpe?g|png|webp|gif)$/i);
-    }
-    return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
-  });
-  return imageFile ? (typeof imageFile === 'string' ? imageFile : imageFile.url) : null;
-}
 
 // Column definitions matching CRM Kanban style
 const columns: MarketingColumn[] = [
@@ -194,8 +180,7 @@ export default function MarketingKanbanBoard() {
           };
           
           return {
-            ...baseTask,
-            previewUrl: getPreviewUrl(baseTask.media_files)
+            ...baseTask
           };
         });
         
@@ -244,8 +229,7 @@ export default function MarketingKanbanBoard() {
               };
               
               const newTask = {
-                ...baseTask,
-                previewUrl: getPreviewUrl(baseTask.media_files)
+                ...baseTask
               };
               // Check if task already exists to prevent duplicates
               const taskExists = prev.some(task => task.id === newTask.id);
@@ -277,8 +261,7 @@ export default function MarketingKanbanBoard() {
               };
               
               const updatedTask = {
-                ...baseTask,
-                previewUrl: getPreviewUrl(baseTask.media_files)
+                ...baseTask
               };
               return prev.map(task => task.id === updatedTask.id ? updatedTask : task);
             }
@@ -535,8 +518,37 @@ export default function MarketingKanbanBoard() {
     }
   };
 
+  const handleEditClick = (e: React.MouseEvent, task: MarketingTask) => {
+    e.stopPropagation(); // Prevent card click
+    setSelectedTask(task);
+    setShowModal(true);
+  };
 
+  const handleDeleteClick = (e: React.MouseEvent, task: MarketingTask) => {
+    e.stopPropagation(); // Prevent card click
+    if (window.confirm(`Are you sure you want to delete task "${task.title}"?`)) {
+      handleDeleteTask(task.id);
+    }
+  };
 
+  const getStatusColor = (status: MarketingStatus) => {
+    switch (status) {
+      case 'intake':
+        return 'bg-blue-500/20 text-blue-300';
+      case 'planned':
+        return 'bg-purple-500/20 text-purple-300';
+      case 'in_progress':
+        return 'bg-yellow-500/20 text-yellow-300';
+      case 'in_review':
+        return 'bg-orange-500/20 text-orange-300';
+      case 'approved':
+        return 'bg-green-500/20 text-green-300';
+      case 'instagram_feed_preview':
+        return 'bg-pink-500/20 text-pink-300';
+      default:
+        return 'bg-gray-500/20 text-gray-300';
+    }
+  };
 
 
   if (loading) {
@@ -645,23 +657,19 @@ export default function MarketingKanbanBoard() {
                       </div>
                       )}
                       
-                      {/* Full image display */}
-                      <div className="w-full h-full rounded-lg overflow-hidden">
-                        {task.previewUrl ? (
-                          <img 
-                            src={task.previewUrl} 
-                            alt={task.title}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
-                            <img 
-                              src="/MAIN LOGO.png" 
-                              alt="SilberArrows Logo" 
-                              className="w-full h-full object-contain opacity-60 filter brightness-200" 
-                            />
-                          </div>
-                        )}
+                      {/* Text-only content - No Image */}
+                      <div className="w-full h-full p-2 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-xs font-medium text-white/90 line-clamp-2 mb-1">
+                            {task.title}
+                          </h4>
+                          {task.media_files && task.media_files.length > 0 && (
+                            <span className="text-xs text-white/60">{task.media_files.length} files</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-white/50">
+                          {task.assignee}
+                        </div>
                       </div>
 
                     </div>
@@ -674,170 +682,111 @@ export default function MarketingKanbanBoard() {
                   const previewUrl = task.previewUrl;
 
                   return (
-                    <div
+                    <div 
                       key={task.id}
-                      draggable
-                      onDragStart={() => onDragStart(task)}
-                      onDragEnd={onDragEnd}
+                      className="group relative flex bg-black/40 backdrop-blur-lg rounded-xl border border-white/20 shadow-lg hover:shadow-2xl hover:border-white/30 transition-all duration-300 p-3 cursor-pointer"
                       onClick={() => handleCardClick(task)}
-                      className={`
-                        relative overflow-hidden rounded-xl select-none cursor-pointer group
-                        transition-all duration-300 ease-out
-                        ${draggedTask?.id === task.id 
-                          ? 'z-50 scale-105 rotate-1 shadow-2xl' 
-                          : 'z-10 hover:scale-[1.02] hover:-translate-y-1'
-                        }
-                        
-                        // Glassmorphism styling
-                        bg-gradient-to-br from-white/10 via-white/5 to-white/5
-                        backdrop-blur-xl border border-white/20
-                        hover:bg-gradient-to-br hover:from-white/15 hover:via-white/8 hover:to-white/8
-                        hover:border-white/30 hover:shadow-xl hover:shadow-black/20
-                        
-                        // Silver gradient border enhancement
-                        before:absolute before:inset-0 before:rounded-xl before:p-px
-                        before:bg-gradient-to-br before:from-gray-300/30 before:via-gray-500/20 before:to-gray-300/30
-                        before:-z-10 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300
-                      `}
-                      style={{
-                        opacity: draggedTask?.id === task.id ? 0.8 : 1,
-                        transition: draggedTask?.id === task.id ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        boxShadow: draggedTask?.id === task.id 
-                          ? '0 4px 8px rgba(0, 0, 0, 0.3)' 
-                          : '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
-                      }}
                     >
-                      {/* Task Type Badge - Top Right */}
-                                            <div className="absolute top-0.5 right-0.5 z-20">
-                        {task.task_type === 'design' && (
-                          <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
-                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                            </svg>
-                            <span className="text-[7px] font-medium uppercase">Design</span>
-                          </div>
-                        )}
-                        {task.task_type === 'photo' && (
-                          <div className="flex items-center gap-1 bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
-                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M9 2l1.06 2.06L12 5l-1.94.94L9 8 7.94 5.94 6 5l1.94-.94L9 2zm6.5 6L17 10l-1.5 2L14 10l1.5-2zm2.5 5l-.62 1.38L16 15l1.38.62L18 17l.62-1.38L20 15l-1.38-.62L18 13z"/>
-                            </svg>
-                            <span className="text-[7px] font-medium uppercase">Photo</span>
-                          </div>
-                        )}
-                                                 {task.task_type === 'video' && (
-                           <div className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
-                             <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
-                               <path d="M8 5v14l11-7z"/>
-                            </svg>
-                            <span className="text-[7px] font-medium uppercase">Video</span>
-                          </div>
-                        )}
-                      </div>
-
-                      
-                      {/* Main Content Container */}
-                      <div className="flex px-2 py-1 gap-1.5 min-h-[55px]">
-                        {/* Left Side - Preview Thumbnail (4:5 ratio) */}
-                        <div className="flex-shrink-0 w-16 h-20 relative">
-                          {previewUrl ? (
-                            <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg">
-                              <img 
-                                src={previewUrl} 
-                                alt="Preview" 
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                              />
-                              {/* Overlay gradient for depth */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      {/* Full Width Content - No Thumbnail */}
+                      <div className="flex-1 min-w-0">
+                        {/* Top Row - Status, Title and Actions */}
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            {/* Status Badge */}
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(task.status)} shadow-sm`}>
+                                {task.status}
+                              </span>
+                              {isTaskUrgent(task.due_date) && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-red-500/80 text-white rounded-full shadow-sm animate-pulse">
+                                  URGENT
+                                </span>
+                              )}
                             </div>
-                          ) : (
-                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1">
-                              <img 
-                                src="/MAIN LOGO.png" 
-                                alt="SilberArrows Logo" 
-                                className="w-full h-full object-contain opacity-60 filter brightness-200" 
-                              />
+                            
+                            {/* Title */}
+                            <h3 className="font-semibold text-white/90 text-sm leading-tight mb-1 line-clamp-2">
+                              {task.title}
+                            </h3>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <button 
+                              onClick={(e) => handleEditClick(e, task)}
+                              className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button 
+                              onClick={(e) => handleDeleteClick(e, task)}
+                              className="p-1.5 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        {task.description && (
+                          <p className="text-white/70 text-xs leading-relaxed mb-3 line-clamp-2">
+                            {task.description}
+                          </p>
+                        )}
+
+                        {/* Media Count and File Types */}
+                        {task.media_files && task.media_files.length > 0 && (
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center gap-1">
+                              <ImageIcon size={14} className="text-blue-400" />
+                              <span className="text-xs text-white/60">{task.media_files.length} files</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Bottom Row - Due Date, Assignee, and Additional Info */}
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-3">
+                            {/* Due Date */}
+                            {task.due_date && (
+                              <div className={`flex items-center gap-1 ${
+                                isTaskUrgent(task.due_date) 
+                                  ? 'text-red-400' 
+                                  : 'text-white/60'
+                              }`}>
+                                <Calendar size={12} />
+                                <span>{new Date(task.due_date).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}</span>
+                              </div>
+                            )}
+
+                            {/* Assignee */}
+                            {task.assignee && (
+                              <div className="flex items-center gap-1 text-white/60">
+                                <User size={12} />
+                                <span>{task.assignee}</span>
+                              </div>
+                            )}
+
+                            {/* Task Type */}
+                            {task.task_type && (
+                              <div className="flex items-center gap-1 text-white/60">
+                                <Tag size={12} />
+                                <span className="capitalize">{task.task_type}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Pin Indicator */}
+                          {task.pinned && (
+                            <div className="text-yellow-400">
+                              <Pin size={12} />
                             </div>
                           )}
-                          
-                          {/* Icons Row - Bottom of Thumbnail */}
-                          <div className="absolute bottom-1 left-0 right-0 flex items-center justify-between px-1">
-                            {/* Left Side - Media Count */}
-                            <div className="flex items-center gap-1">
-                              {task.media_files && task.media_files.length > 0 && (
-                                <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-1 py-0.5">
-                                  <ImageIcon className="w-2 h-2 text-white/80" />
-                                  <span className="text-white font-bold text-[8px]">{task.media_files.length}</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Right Side - Annotation Count */}
-                            <div className="flex items-center gap-1">
-                              {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
-                                <div 
-                                  className="flex items-center gap-0.5 bg-orange-400/90 backdrop-blur-sm border border-orange-300/50 rounded-full px-1 py-0.5"
-                                  title={`${task.annotations.length} annotation${task.annotations.length > 1 ? 's' : ''}`}
-                                >
-                                  <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
-                                  <span className="text-white font-bold text-[8px]">{task.annotations.length}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Right Side - Content */}
-                        <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
-                          {/* Title Section - Top */}
-                          <div className="flex-shrink-0">
-                            <h4 className="text-[11px] font-bold text-white leading-tight line-clamp-1 group-hover:text-gray-100 transition-colors duration-200 uppercase">
-                              {task.title}
-                            </h4>
-                          </div>
-                          
-                          {/* Metadata Section - Bottom */}
-                          <div className="flex-shrink-0 space-y-0.5 text-xs">
-                            {/* Assigned By */}
-                            <div className="flex items-center gap-1 text-white/70">
-                              <User className="w-2.5 h-2.5 flex-shrink-0" />
-                              <span className="truncate text-[9px] font-medium uppercase">{task.assignee || 'Unassigned'}</span>
-                            </div>
-                            
-                            {/* Created Date */}
-                            <div className="flex items-center gap-1 text-white/60">
-                              <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
-                              <span className="text-[8px]">Created {formatDate(task.created_at)}</span>
-                            </div>
-                            
-                            {/* Due Date */}
-                            <div className={`flex items-center gap-1 ${
-                              task.due_date && isTaskUrgent(task.due_date) && 
-                              (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') &&
-                              !(task.status === 'in_progress' && task.annotations && task.annotations.length > 0)
-                                ? 'text-red-400' 
-                                : 'text-white/60'
-                            }`}>
-                              <Calendar className="w-2.5 h-2.5 flex-shrink-0" />
-                              <span 
-                                className="text-[8px] truncate"
-                                style={
-                                  task.due_date && isTaskUrgent(task.due_date) && 
-                                  (task.status === 'intake' || task.status === 'planned' || task.status === 'in_progress') &&
-                                  !(task.status === 'in_progress' && task.annotations && task.annotations.length > 0)
-                                    ? { animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
-                                    : {}
-                                }
-                              >
-                                {task.due_date ? formatRelativeDueDate(task.due_date) : 'No deadline'}
-                              </span>
-                            </div>
-                          </div>
                         </div>
                       </div>
-                      
-                      {/* Bottom gradient line for visual separation */}
-                      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                     </div>
                   );
                 })

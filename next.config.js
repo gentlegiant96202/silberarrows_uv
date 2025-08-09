@@ -20,11 +20,6 @@ const nextConfig = {
   
   // Configure webpack to avoid circular dependencies
   webpack: (config, { dev, isServer }) => {
-    // In development, disable filesystem cache to avoid ENOENT vendor-chunk issues on some filesystems
-    if (dev) {
-      config.cache = false;
-    }
-
     // Optimize for production builds
     if (!dev) {
       config.optimization = {

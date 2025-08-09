@@ -362,6 +362,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadFileName, setUploadFileName] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentAnnotations, setCurrentAnnotations] = useState<any[]>([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
@@ -824,101 +826,77 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
     
     setUploading(true);
     try {
-      const uploadedFiles = [];
-      
+      const uploadedFiles = [] as any[];
       for (const file of Array.from(files)) {
-        const timestamp = Date.now();
-        const fileExtension = file.name.split('.').pop();
-        const isVideo = file.type.startsWith('video/') || 
-                       fileExtension?.match(/^(mp4|mov|avi|webm|mkv)$/i);
-        
-        // Create unique filename
-        const fileName = `${task.id}_${timestamp}.${fileExtension}`;
-        
-        // Upload original file to Supabase storage
-        const { data, error } = await supabase.storage
-          .from('media-files')
-          .upload(fileName, file);
-          
-        if (error) {
-          console.error('Upload error:', error);
+        setUploadFileName(file.name);
+        setUploadProgress(0);
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('taskId', task.id);
+
+        const result = await new Promise<any>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(percent);
+            }
+          });
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                resolve(JSON.parse(xhr.responseText));
+              } catch (e) {
+                reject(new Error('Invalid JSON response'));
+              }
+            } else {
+              reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+            }
+          });
+          xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+          xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
+          xhr.open('POST', '/api/upload-file');
+          xhr.timeout = 300000;
+          xhr.send(formData);
+        });
+
+        if (!result?.success) {
+          console.error('Upload error:', result?.error || 'Unknown error');
           continue;
         }
-        
-        // Get public URL for original file
-        const { data: { publicUrl } } = supabase.storage
-          .from('media-files')
-          .getPublicUrl(fileName);
-        
-        let fileObject: any = {
-          url: publicUrl,
+
+        const fileObject: any = {
+          url: result.fileUrl,
           name: file.name,
           type: file.type,
-          originalType: file.type
+          originalType: file.type,
+          ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {})
         };
 
-        // Generate and upload thumbnail for videos
-        if (isVideo) {
-          console.log('🎥 Detected video file, starting thumbnail process...', {
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
-            fileExtension: fileExtension
-          });
-          
+        // Post-upload thumbnail generation if video and no thumbnail in response
+        const isVideoFile = file.type.startsWith('video/');
+        if (isVideoFile && !result.thumbnailUrl) {
           try {
-            console.log('🎬 Calling generateVideoThumbnail...');
-            const thumbnailFile = await generateVideoThumbnail(file);
-            console.log('✅ Thumbnail generation completed:', {
-              thumbnailName: thumbnailFile.name,
-              thumbnailSize: thumbnailFile.size,
-              thumbnailType: thumbnailFile.type
+            const thumbResp = await fetch('/api/generate-thumbnail', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ taskId: task.id, fileUrl: result.fileUrl })
             });
-            
-            // Use WebP if supported, fallback to JPG
-            const supportsWebP = (() => {
-              try {
-                const canvas = document.createElement('canvas');
-                canvas.width = 1;
-                canvas.height = 1;
-                return canvas.toDataURL('image/webp').indexOf('image/webp') === 5;
-              } catch {
-                return false;
+            if (thumbResp.ok) {
+              const { thumbnailUrl } = await thumbResp.json();
+              if (thumbnailUrl) {
+                fileObject.thumbnail = thumbnailUrl;
               }
-            })();
-            
-            const extension = supportsWebP ? '.webp' : '.jpg';
-            const thumbnailFileName = `${task.id}_${timestamp}_thumbnail${extension}`;
-            console.log('📤 Uploading thumbnail to storage:', thumbnailFileName);
-            
-            // Upload thumbnail to storage
-            const { data: thumbData, error: thumbError } = await supabase.storage
-              .from('media-files')
-              .upload(thumbnailFileName, thumbnailFile);
-              
-            if (!thumbError) {
-              console.log('✅ Thumbnail uploaded successfully to storage');
-              const { data: { publicUrl: thumbUrl } } = supabase.storage
-                .from('media-files')
-                .getPublicUrl(thumbnailFileName);
-              
-              fileObject.thumbnail = thumbUrl;
-              console.log('✅ Video thumbnail URL assigned:', thumbUrl);
-              console.log('✅ Final video file object:', fileObject);
-            } else {
-              console.error('❌ Thumbnail upload error:', thumbError);
             }
-          } catch (error) {
-            console.error('❌ Thumbnail generation error:', error);
-            console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-            // Continue without thumbnail if generation fails
+          } catch (e) {
+            console.warn('Deferred thumbnail generation failed:', e);
           }
-        } else {
-          console.log('📁 Non-video file detected, skipping thumbnail generation');
         }
-
         uploadedFiles.push(fileObject);
       }
+      setUploadFileName(null);
+      setUploadProgress(null);
       
       if (uploadedFiles.length > 0) {
         const updatedMediaFiles = [...mediaFiles, ...uploadedFiles];
@@ -945,6 +923,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
       setTimeout(() => setDeleteMessage(null), 3000);
     } finally {
       setUploading(false);
+      setUploadFileName(null);
+      setUploadProgress(null);
     }
   };
 
@@ -2047,14 +2027,22 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                         />
                         <div className="text-center pointer-events-none">
                           {uploading ? (
-                            <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin mx-auto mb-1" />
+                            <div className="w-24">
+                              <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin mx-auto mb-1" />
+                              <div className="text-[9px] text-white/60 text-center truncate max-w-full">
+                                {uploadFileName || 'Uploading...'}
+                              </div>
+                              <div className="w-full h-1 bg-white/10 rounded overflow-hidden mt-1">
+                                <div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300 ease-out" style={{ width: `${uploadProgress ?? 0}%` }} />
+                              </div>
+                            </div>
                           ) : (
                             <svg className="w-4 h-4 text-white/50 group-hover:text-white/80 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
                           )}
                           <div className="text-[10px] text-white/50 group-hover:text-white/80">
-                            {uploading ? 'Uploading...' : 'Upload'}
+                            {uploading ? `${uploadProgress ?? 0}%` : 'Upload'}
                           </div>
                         </div>
                       </div>

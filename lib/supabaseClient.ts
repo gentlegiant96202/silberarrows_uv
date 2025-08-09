@@ -15,5 +15,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     // Detect session in URL
     detectSessionInUrl: true
+  },
+  global: {
+    headers: {
+      'Connection': 'keep-alive'
+    }
+  },
+  db: {
+    schema: 'public'
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
   }
 }) 

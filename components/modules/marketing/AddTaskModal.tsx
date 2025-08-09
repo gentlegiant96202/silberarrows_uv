@@ -35,6 +35,7 @@ interface FileWithThumbnail {
 export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin = false }: AddTaskModalProps) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [hasActiveUpload, setHasActiveUpload] = useState(false);
   const [formData, setFormData] = useState({
     title: task?.title || '',
     description: task?.description || '',
@@ -302,8 +303,14 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
   // Generate thumbnail for different file types
   const generateThumbnail = async (file: File): Promise<string> => {
     if (file.type.startsWith('application/pdf')) {
-      const pageImages = await convertPdfToImages(file);
-      return pageImages[0].dataURL; // Return the first page's data URL
+      try {
+        const pageImages = await convertPdfToImages(file);
+        if (Array.isArray(pageImages) && pageImages.length > 0 && pageImages[0]?.dataURL) {
+          return pageImages[0].dataURL; // First page preview
+        }
+      } catch {}
+      // Fallback: no client-side PDF thumbnail (server generates thumbnail post-upload)
+      return '';
     }
 
     const useWebP = supportsWebP();
@@ -376,22 +383,40 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
         reader.onerror = () => reject(new Error('Failed to read file'));
         reader.readAsDataURL(file);
       } else if (file.type.startsWith('video/')) {
-        // Handle videos - generate thumbnail from first frame
+        // Handle videos - generate thumbnail from first frame (stable flow)
         const video = document.createElement('video');
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        video.crossOrigin = 'anonymous';
-        video.currentTime = 1; // Seek to 1 second to avoid black frame
-        video.onloadeddata = () => {
-          video.onseeked = () => {
+        video.preload = 'metadata';
+        const objectUrl = URL.createObjectURL(file);
+        let timeoutId: number | undefined;
+
+        const cleanup = () => {
+          if (timeoutId) {
+            try { window.clearTimeout(timeoutId as any); } catch {}
+          }
+          try { URL.revokeObjectURL(objectUrl); } catch {}
+          try { video.src = ''; } catch {}
+        };
+
+        video.onloadedmetadata = () => {
+          try {
+            const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 2;
+            // Seek a bit into the video to avoid black frames
+            const targetTime = Math.min(1, duration / 2);
+            video.currentTime = targetTime;
+          } catch (err) {
+            console.warn('Video metadata handling failed, skipping thumbnail:', err);
+            cleanup();
+            resolve('');
+          }
+        };
+
+        video.onseeked = () => {
+          try {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
-            // Set thumbnail size
             const maxSize = 100;
             let { videoWidth: width, videoHeight: height } = video;
-            
+
             if (width > height) {
               if (width > maxSize) {
                 height = (height * maxSize) / width;
@@ -403,38 +428,48 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
                 height = maxSize;
               }
             }
-            
+
             canvas.width = width;
             canvas.height = height;
-            
             ctx?.drawImage(video, 0, 0, width, height);
-            
-            // Try WebP first if supported, fallback to JPEG
+
             try {
               if (useWebP) {
                 const webpDataUrl = canvas.toDataURL('image/webp', quality);
                 if (webpDataUrl.indexOf('data:image/webp') === 0 && webpDataUrl.length > 100) {
-                  console.log('✅ WebP video thumbnail generated successfully');
                   resolve(webpDataUrl);
                   return;
-                } else {
-                  console.warn('⚠️ WebP video thumbnail failed, falling back to JPEG');
                 }
               }
-              
-              // Fallback to JPEG
               const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
-              console.log('✅ JPEG video thumbnail generated successfully');
               resolve(jpegDataUrl);
-            } catch (error) {
-              console.error('❌ Video thumbnail generation failed:', error);
-              resolve(''); // Fallback to no thumbnail
+            } catch (err) {
+              console.warn('Video frame to image failed, skipping thumbnail:', err);
+              resolve('');
+            } finally {
+              cleanup();
             }
-          };
+          } catch (err) {
+            console.warn('Video seek/draw failed:', err);
+            cleanup();
+            resolve('');
+          }
         };
-        
-        video.onerror = () => resolve(''); // Fallback to no thumbnail
-        video.src = URL.createObjectURL(file);
+
+        video.onerror = () => {
+          cleanup();
+          resolve('');
+        };
+
+        // Safety timeout
+        timeoutId = window.setTimeout(() => {
+          console.warn('Video thumbnail generation timed out');
+          cleanup();
+          resolve('');
+        }, 5000);
+
+        // Start loading
+        video.src = objectUrl;
       } else {
         // No thumbnail for PDFs and other files
         resolve('');
@@ -482,93 +517,16 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
 
   // Upload files immediately when selected (for existing tasks)
   const uploadFilesToStorageImmediate = async (taskId: string, filesToUpload: FileWithThumbnail[], startIndex: number) => {
-    if (!filesToUpload.length) return;
-
-    console.log('Starting immediate upload for', filesToUpload.length, 'files');
-    console.log('Start index provided:', startIndex);
-
-    // Helper: compress image file if large
-    const compressImageIfNeeded = async (file: File): Promise<File> => {
-      try {
-        if (!file.type.startsWith('image/')) return file;
-        const MAX_BYTES = 1.5 * 1024 * 1024; // 1.5MB
-        const MAX_DIMENSION = 2000; // px
-        if (file.size <= MAX_BYTES) return file;
-
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-          const i = new Image();
-          i.onload = () => resolve(i);
-          i.onerror = reject;
-          i.src = dataUrl;
-        });
-
-        let { width, height } = img;
-        // Maintain aspect ratio while capping the largest dimension
-        if (width > height && width > MAX_DIMENSION) {
-          height = Math.round((height * MAX_DIMENSION) / width);
-          width = MAX_DIMENSION;
-        } else if (height >= width && height > MAX_DIMENSION) {
-          width = Math.round((width * MAX_DIMENSION) / height);
-          height = MAX_DIMENSION;
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return file;
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const useWebP = supportsWebP();
-        const mime = useWebP ? 'image/webp' : 'image/jpeg';
-        const quality = 0.85;
-        const blob: Blob = await new Promise((resolve, reject) => {
-          if (canvas.toBlob) {
-            canvas.toBlob(
-              (b) => (b ? resolve(b) : reject(new Error('Compression failed'))),
-              mime,
-              quality
-            );
-          } else {
-            try {
-              const d = canvas.toDataURL(mime, quality);
-              const arr = d.split(',');
-              const bstr = atob(arr[1]);
-              let n = bstr.length;
-              const u8arr = new Uint8Array(n);
-              while (n--) u8arr[n] = bstr.charCodeAt(n);
-              resolve(new Blob([u8arr], { type: mime }));
-            } catch (err) {
-              reject(err);
-            }
-          }
-        });
-
-        const newName = file.name.replace(/\.[^.]+$/, useWebP ? '.webp' : '.jpg');
-        const compressed = new File([blob], newName, { type: blob.type, lastModified: Date.now() });
-        console.log(`Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
-        return compressed.size < file.size ? compressed : file;
-      } catch (err) {
-        console.warn('Compression skipped due to error:', err);
-        return file;
-      }
-    };
-
-    // Fetch existing media_files array
-    const { data: existing, error: fetchErr } = await supabase
+    console.log('uploadFilesToStorageImmediate called with:', { taskId, fileCount: filesToUpload.length, startIndex });
+    
+    const { data: existing } = await supabase
       .from('design_tasks')
       .select('media_files')
       .eq('id', taskId)
       .single();
 
-    if (fetchErr) {
-      console.error('Error fetching existing media_files:', fetchErr);
+    if (!existing) {
+      console.error('Task not found:', taskId);
       return;
     }
 
@@ -582,119 +540,120 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
       const updated = prev.map((f, idx) => {
         if (idx >= startIndex) {
           console.log(`Setting file ${idx} (${f.file.name}) to uploading`);
-          return { ...f, uploading: true, uploadProgress: 5 };
+          return { ...f, uploading: true, uploadProgress: 0 };
         }
         return f;
       });
       return updated;
     });
+    setHasActiveUpload(true);
 
-    // Process each file individually
+    // Process each file individually with real progress tracking
     for (let i = 0; i < filesToUpload.length; i++) {
       const fileWithThumbnail = filesToUpload[i];
-      const file = fileWithThumbnail.file; // upload original file without conversion
+      const file = fileWithThumbnail.file;
       const globalIndex = startIndex + i;
-      console.log(`Processing file ${i + 1}/${filesToUpload.length}: ${file.name}`);
-
-      // Enforce 50MB max upload size
-      const MAX_SIZE = 50 * 1024 * 1024;
-      if (file.size > MAX_SIZE) {
-        const tooLargeMsg = 'File exceeds 50MB limit';
-        console.error(tooLargeMsg, file.name);
-        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: tooLargeMsg, uploading: false, uploadProgress: 0 } : f));
-        continue;
-      }
-
+      console.log(`Processing file ${i + 1}/${filesToUpload.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+      
       try {
-        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 20 } : f));
+        // Use XMLHttpRequest for real progress tracking
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('taskId', taskId);
 
-        // 1) Upload original file directly to Supabase Storage
-        const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
-        const id = (globalThis.crypto && 'randomUUID' in globalThis.crypto) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const storagePath = `${taskId}/${id}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from('media-files')
-          .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
-        if (uploadErr) {
-          console.error('Storage upload error:', uploadErr);
-          setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: uploadErr.message, uploading: false, uploadProgress: 0 } : f));
+        const uploadPromise = new Promise<any>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          // Track upload progress
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = Math.round((event.loaded / event.total) * 100);
+              console.log(`Upload progress for ${file.name}: ${percentComplete}%`);
+              setSelectedFiles(prev => prev.map((f, idx) => 
+                idx === globalIndex ? { ...f, uploadProgress: percentComplete } : f
+              ));
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const result = JSON.parse(xhr.responseText);
+                resolve(result);
+              } catch (e) {
+                reject(new Error('Invalid JSON response'));
+              }
+            } else {
+              reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+            }
+          });
+
+          xhr.addEventListener('error', () => {
+            reject(new Error('Network error during upload'));
+          });
+
+          xhr.addEventListener('timeout', () => {
+            reject(new Error('Upload timeout'));
+          });
+
+          xhr.open('POST', '/api/upload-file');
+          xhr.timeout = 300000; // 5 minute timeout for large video files
+          xhr.send(formData);
+        });
+
+        const result = await uploadPromise;
+        
+        if (!result.success) {
+          console.error('Upload error:', result.error);
+          setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: result.error, uploading: false, uploadProgress: 0 } : f));
           continue;
         }
-        const { data: { publicUrl } } = supabase.storage.from('media-files').getPublicUrl(storagePath);
 
-        // 2) Create and upload small WebP thumbnail for display (images only)
-        let thumbnailUrl: string | undefined;
-        if (file.type.startsWith('image/')) {
-          try {
-            const dataUrl = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
-            const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-              const i = new Image();
-              i.onload = () => resolve(i);
-              i.onerror = reject;
-              i.src = dataUrl;
-            });
-            const MAX_DIM = 600;
-            let { width, height } = img;
-            if (width > height && width > MAX_DIM) { height = Math.round((height * MAX_DIM) / width); width = MAX_DIM; }
-            else if (height >= width && height > MAX_DIM) { width = Math.round((width * MAX_DIM) / height); height = MAX_DIM; }
-            const canvas = document.createElement('canvas');
-            canvas.width = width; canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.drawImage(img, 0, 0, width, height);
-              const blob: Blob = await new Promise((resolve, reject) => {
-                if (canvas.toBlob) {
-                  canvas.toBlob(b => b ? resolve(b) : reject(new Error('thumb blob failed')), 'image/webp', 0.8);
-                } else {
-                  try {
-                    const d = canvas.toDataURL('image/webp', 0.8);
-                    const arr = d.split(',');
-                    const bstr = atob(arr[1]);
-                    let n = bstr.length; const u8 = new Uint8Array(n);
-                    while (n--) u8[n] = bstr.charCodeAt(n);
-                    resolve(new Blob([u8], { type: 'image/webp' }));
-                  } catch (e) { reject(e); }
-                }
-              });
-              const thumbPath = `${taskId}/thumbnails/${id}.webp`;
-              const { error: thumbErr } = await supabase.storage.from('media-files').upload(thumbPath, blob, { contentType: 'image/webp', cacheControl: '3600', upsert: false });
-              if (!thumbErr) {
-                const { data: { publicUrl: tUrl } } = supabase.storage.from('media-files').getPublicUrl(thumbPath);
-                thumbnailUrl = tUrl;
-              } else {
-                console.warn('Thumbnail upload failed:', thumbErr.message);
-              }
-            }
-          } catch (e) {
-            console.warn('Thumbnail generation failed:', e);
-          }
-        }
-
-        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 80 } : f));
-
-        // 3) Update DB with media file entry
-        const newMediaItem: any = {
-          url: publicUrl,
+        const newMediaItem = {
+          url: result.fileUrl,
           name: file.name,
           type: file.type,
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          ...(thumbnailUrl ? { thumbnail: thumbnailUrl } : {})
+          ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {})
         };
+        
+        // If this is a video and we have no thumbnail yet, request one after upload
+        const isVideo = file.type.startsWith('video/');
+        if (isVideo && !result.thumbnailUrl) {
+          try {
+            const thumbResp = await fetch('/api/generate-thumbnail', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ taskId, fileUrl: result.fileUrl })
+            });
+            if (thumbResp.ok) {
+              const { thumbnailUrl } = await thumbResp.json();
+              if (thumbnailUrl) {
+                newMediaItem.thumbnail = thumbnailUrl;
+              }
+            }
+          } catch (e) {
+            console.warn('Thumbnail generation deferred failed:', e);
+          }
+        }
+
         newMedia.push(newMediaItem);
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 100, uploading: false, uploaded: true } : f));
         setExistingMedia(prev => [...prev, newMediaItem]);
-        console.log('File upload completed:', file.name);
+        console.log('✅ File upload completed:', file.name);
+        
       } catch (error) {
-        console.error('Upload error for file', file.name, ':', error);
-        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: 'Upload failed', uploading: false, uploadProgress: 0 } : f));
+        console.error('❌ Upload error for file', file.name, ':', error);
+        setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { 
+          ...f, 
+          error: error instanceof Error ? error.message : 'Upload failed', 
+          uploading: false, 
+          uploadProgress: 0 
+        } : f));
       }
     }
+    setHasActiveUpload(false);
 
     // Update database with all new media
     if (newMedia.length) {
@@ -745,9 +704,13 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
 
       const savedTask = await onSave(taskData);
 
-      // If task saved successfully and we have unuploaded files, upload them
-      if (savedTask && selectedFiles.some(f => !f.uploaded)) {
+      // If creating a new task and we have unuploaded files, upload them
+      if (!task && savedTask && selectedFiles.some(f => !f.uploaded)) {
         await uploadFilesToStorage(savedTask.id);
+      }
+      // Close modal on successful save
+      if (savedTask) {
+        onClose();
       }
       
       // Reset form if creating new task
@@ -868,7 +831,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           </h2>
           
           <div className="flex items-center gap-3">
-            {/* Close Button */}
             <button
               type="button"
               onClick={onClose}
@@ -1093,7 +1055,15 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
                               ) : uploaded ? (
                                 <span className="text-green-400">✓ Uploaded</span>
                               ) : uploading ? (
-                                <span className="text-indigo-400">Uploading... {uploadProgress}%</span>
+                                <div className="space-y-1">
+                                  <span className="text-indigo-400">Uploading... {uploadProgress}%</span>
+                                  <div className="w-full h-1 bg-white/10 rounded overflow-hidden">
+                                    <div
+                                      className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300 ease-out"
+                                      style={{ width: `${uploadProgress}%` }}
+                                    />
+                                  </div>
+                                </div>
                               ) : (
                                 <span className="text-white/50">Ready to upload</span>
                               )}
@@ -1295,7 +1265,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
               <button
                 type="submit"
                 className="px-4 py-2 bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 text-black text-xs rounded-lg transition-all font-semibold shadow-lg"
-                disabled={loading || deleting}
+                disabled={loading || deleting || hasActiveUpload}
               >
                 {loading ? 'Saving...' : (task ? 'Update' : 'Create')} Task
               </button>

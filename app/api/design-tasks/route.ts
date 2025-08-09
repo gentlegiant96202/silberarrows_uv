@@ -91,64 +91,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    // Helper to build a safe preview URL from media_files JSON
-    const getPreviewUrlFromMedia = (mediaFiles?: any[]): string | null => {
-      if (!Array.isArray(mediaFiles) || mediaFiles.length === 0) return null;
-      const withThumbnail = mediaFiles.find((f: any) => f?.thumbnail);
-      if (withThumbnail?.thumbnail) return withThumbnail.thumbnail as string;
-      const imageFile = mediaFiles.find((f: any) => {
-        if (typeof f === 'string') return /\.(jpe?g|png|webp|gif)$/i.test(f);
-        const name = f?.name || f?.file_name;
-        const type = f?.type || f?.file_type;
-        const url = f?.url || f?.file_url;
-        return (typeof type === 'string' && type.startsWith('image/')) || (typeof name === 'string' && /\.(jpe?g|png|webp|gif)$/i.test(name)) || (typeof url === 'string' && /\.(jpe?g|png|webp|gif)$/i.test(url));
-      });
-      if (!imageFile) return null;
-      if (typeof imageFile === 'string') return imageFile;
-      return imageFile.url || imageFile.file_url || null;
-    };
-
     // Get query parameters for filtering
     const { searchParams } = new URL(req.url);
     const userTickets = searchParams.get('user_tickets') === 'true';
-    const includeArchived = searchParams.get('include_archived') === 'true';
-    const statusFilter = searchParams.get('status');
-    const id = searchParams.get('id');
-    const fields = (searchParams.get('fields') || 'full').toLowerCase();
-    const limitParam = parseInt(searchParams.get('limit') || '20', 10);
-    const offsetParam = parseInt(searchParams.get('offset') || '0', 10);
-    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 200) : 20;
-    const offset = Number.isFinite(offsetParam) && offsetParam >= 0 ? offsetParam : 0;
-
-    // If id is provided, return a single, full task object
-    if (id) {
-      const { data, error } = await supabase
-        .from('design_tasks')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error || !data) {
-        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
-      }
-
-      return NextResponse.json(data);
-    }
 
     // Build query with optional filters
     let query = supabase
       .from('design_tasks')
       .select('*');
-
-    // Filter out archived by default
-    if (!includeArchived) {
-      query = query.neq('status', 'archived');
-    }
-
-    // Optional status filter (for per-column pagination)
-    if (statusFilter) {
-      query = query.eq('status', statusFilter);
-    }
 
     // Filter by department if user_tickets=true (for "My Department's Marketing Tickets")
     if (userTickets && authResult.user) {
@@ -185,9 +135,6 @@ export async function GET(req: NextRequest) {
     // Always order by created_at
     query = query.order('created_at', { ascending: false });
 
-    // Apply pagination (offset/limit)
-    query = query.range(offset, offset + limit - 1);
-
     const { data: tasks, error } = await query;
 
     if (error) {
@@ -195,35 +142,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log(`✅ Successfully fetched ${tasks?.length || 0} tasks`);
-
-    if (fields === 'preview') {
-      // Return a compact projection for board list
-      const compact = (tasks || []).map((t: any) => {
-        const mediaFiles = t.media_files as any[] | undefined;
-        const annotations = t.annotations as any[] | undefined;
-        return {
-          id: t.id,
-          title: t.title,
-          description: t.description ?? null,
-          status: t.status,
-          assignee: t.requested_by ?? null,
-          due_date: t.due_date ?? null,
-          created_at: t.created_at,
-          updated_at: t.updated_at,
-          pinned: t.pinned ?? false,
-          task_type: t.task_type ?? 'design',
-          priority: t.priority ?? 'medium',
-          content_type: t.content_type ?? 'post',
-          tags: t.tags ?? [],
-          previewUrl: getPreviewUrlFromMedia(mediaFiles),
-          media_count: Array.isArray(mediaFiles) ? mediaFiles.length : 0,
-          annotations_count: Array.isArray(annotations) ? annotations.length : 0,
-        };
-      });
-      return NextResponse.json(compact);
-    }
-
+    console.log(`✅ Successfully fetched ${tasks.length} tasks`);
     return NextResponse.json(tasks);
   } catch (error: any) {
     console.error('Error in GET /api/design-tasks:', error);

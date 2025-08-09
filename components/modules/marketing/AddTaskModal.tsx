@@ -18,6 +18,7 @@ interface AddTaskModalProps {
   onSave: (task: Partial<MarketingTask>) => Promise<MarketingTask | null>;
   onClose: () => void;
   onDelete?: (taskId: string) => void;
+  onTaskUpdate?: (updatedTask: MarketingTask) => void;
   isAdmin?: boolean;
 }
 
@@ -32,7 +33,7 @@ interface FileWithThumbnail {
 
 
 
-export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin = false }: AddTaskModalProps) {
+export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUpdate, isAdmin = false }: AddTaskModalProps) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [hasActiveUpload, setHasActiveUpload] = useState(false);
@@ -740,6 +741,11 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
         .eq('id', taskId);
       if (updErr) {
         console.error('Error updating media_files:', updErr);
+      } else if (onTaskUpdate && task) {
+        // Notify parent component of the updated task
+        const updatedTask = { ...task, media_files: updatedArray };
+        onTaskUpdate(updatedTask);
+        console.log('✅ Notified parent of task update with new media files');
       }
     }
   };

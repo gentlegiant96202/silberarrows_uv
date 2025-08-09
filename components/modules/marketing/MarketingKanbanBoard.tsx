@@ -480,6 +480,12 @@ export default function MarketingKanbanBoard() {
         });
         if (response.ok) {
           const updatedTask: MarketingTask = await response.json();
+          // Update local state with the updated task
+          setTasks(prevTasks => 
+            prevTasks.map(task => 
+              task.id === updatedTask.id ? updatedTask : task
+            )
+          );
           return updatedTask;
         } else {
           console.error('Failed to update task');
@@ -495,6 +501,8 @@ export default function MarketingKanbanBoard() {
         });
         if (response.ok) {
           const newTask: MarketingTask = await response.json();
+          // Add new task to local state
+          setTasks(prevTasks => [...prevTasks, newTask]);
           return newTask;
         } else {
           console.error('Failed to create task');
@@ -925,6 +933,14 @@ export default function MarketingKanbanBoard() {
           onSave={handleSaveTask}
           onClose={handleCloseModal}
           onDelete={canDelete ? handleDeleteTask : undefined}
+          onTaskUpdate={(updatedTask) => {
+            // Update the task in local state when files are uploaded
+            setTasks(prevTasks => 
+              prevTasks.map(task => 
+                task.id === updatedTask.id ? updatedTask : task
+              )
+            );
+          }}
           isAdmin={isAdmin}
         />
       )}

@@ -609,22 +609,45 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
       try {
         // Use XMLHttpRequest for real progress tracking (small/medium files)
         const isVideo = file.type.startsWith('video/');
-        const largeFile = file.size > 20 * 1024 * 1024; // >20MB
+        const largeFile = file.size > 80 * 1024 * 1024; // >80MB
         let result: any;
-        if (isVideo || largeFile) {
+        if (largeFile) {
           // Bypass Next.js route for very large files to avoid 413; upload directly to Supabase
+          console.log('📤 Using direct Supabase upload for large file:', file.name);
+          
+          // Show initial progress
+          setSelectedFiles(prev => prev.map((f, idx) => 
+            idx === globalIndex ? { ...f, uploadProgress: 5 } : f
+          ));
+          
           const ext = file.name.split('.').pop();
           const fileName = `${crypto.randomUUID()}.${ext}`;
           const storagePath = `${taskId}/${fileName}`;
+          
+          // Show progress during upload
+          setSelectedFiles(prev => prev.map((f, idx) => 
+            idx === globalIndex ? { ...f, uploadProgress: 25 } : f
+          ));
+          
           const { error: upErr } = await supabase.storage
             .from('media-files')
             .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+          
           if (upErr) {
+            console.error('📤 Supabase upload error:', upErr);
             throw new Error(upErr.message);
           }
+          
+          // Show progress getting URL
+          setSelectedFiles(prev => prev.map((f, idx) => 
+            idx === globalIndex ? { ...f, uploadProgress: 80 } : f
+          ));
+          
           const { data: { publicUrl } } = supabase.storage
             .from('media-files')
             .getPublicUrl(storagePath);
+          
+          console.log('📤 Direct Supabase upload completed:', publicUrl);
           result = { success: true, fileUrl: publicUrl };
         } else {
           const formData = new FormData();

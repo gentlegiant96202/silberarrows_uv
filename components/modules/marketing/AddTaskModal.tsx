@@ -556,53 +556,72 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
       console.log(`Processing file ${i + 1}/${filesToUpload.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
       
       try {
-        // Use XMLHttpRequest for real progress tracking
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('taskId', taskId);
+        // Use XMLHttpRequest for real progress tracking (small/medium files)
+        const isVideo = file.type.startsWith('video/');
+        const largeFile = file.size > 20 * 1024 * 1024; // >20MB
+        let result: any;
+        if (isVideo || largeFile) {
+          // Bypass Next.js route for very large files to avoid 413; upload directly to Supabase
+          const ext = file.name.split('.').pop();
+          const fileName = `${crypto.randomUUID()}.${ext}`;
+          const storagePath = `${taskId}/${fileName}`;
+          const { error: upErr } = await supabase.storage
+            .from('media-files')
+            .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+          if (upErr) {
+            throw new Error(upErr.message);
+          }
+          const { data: { publicUrl } } = supabase.storage
+            .from('media-files')
+            .getPublicUrl(storagePath);
+          result = { success: true, fileUrl: publicUrl };
+        } else {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('taskId', taskId);
 
-        const uploadPromise = new Promise<any>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          // Track upload progress
-          xhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable) {
-              const percentComplete = Math.round((event.loaded / event.total) * 100);
-              console.log(`Upload progress for ${file.name}: ${percentComplete}%`);
-              setSelectedFiles(prev => prev.map((f, idx) => 
-                idx === globalIndex ? { ...f, uploadProgress: percentComplete } : f
-              ));
-            }
-          });
-
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const result = JSON.parse(xhr.responseText);
-                resolve(result);
-              } catch (e) {
-                reject(new Error('Invalid JSON response'));
+          const uploadPromise = new Promise<any>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            
+            // Track upload progress
+            xhr.upload.addEventListener('progress', (event) => {
+              if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                setSelectedFiles(prev => prev.map((f, idx) => 
+                  idx === globalIndex ? { ...f, uploadProgress: percentComplete } : f
+                ));
               }
-            } else {
-              reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
-            }
+            });
+
+            xhr.addEventListener('load', () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const parsed = JSON.parse(xhr.responseText);
+                  resolve(parsed);
+                } catch (e) {
+                  reject(new Error('Invalid JSON response'));
+                }
+              } else {
+                reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+              }
+            });
+
+            xhr.addEventListener('error', () => {
+              reject(new Error('Network error during upload'));
+            });
+
+            xhr.addEventListener('timeout', () => {
+              reject(new Error('Upload timeout'));
+            });
+
+            xhr.open('POST', '/api/upload-file');
+            xhr.timeout = 300000; // 5 minutes
+            xhr.send(formData);
           });
 
-          xhr.addEventListener('error', () => {
-            reject(new Error('Network error during upload'));
-          });
-
-          xhr.addEventListener('timeout', () => {
-            reject(new Error('Upload timeout'));
-          });
-
-          xhr.open('POST', '/api/upload-file');
-          xhr.timeout = 300000; // 5 minute timeout for large video files
-          xhr.send(formData);
-        });
-
-        const result = await uploadPromise;
-        
+          result = await uploadPromise;
+        }
+         
         if (!result.success) {
           console.error('Upload error:', result.error);
           setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: result.error, uploading: false, uploadProgress: 0 } : f));
@@ -619,7 +638,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
         };
         
         // If this is a video and we have no thumbnail yet, request one after upload
-        const isVideo = file.type.startsWith('video/');
         if (isVideo && !result.thumbnailUrl) {
           try {
             const thumbResp = await fetch('/api/generate-thumbnail', {

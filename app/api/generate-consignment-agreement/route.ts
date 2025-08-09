@@ -671,7 +671,7 @@ export async function POST(request: NextRequest) {
 
               <div class="text-content" style="margin-bottom: 4px;">
                 <strong>Condition of Vehicle:</strong> Before the vehicle is listed for sale, it must be free of any major mechanical issues that could affect its safety or performance. SilberArrows will initially inspect the vehicle using a Pre-UVC (Pre-Used Vehicle Check) form, which forms part of this Consignment Agreement. Once the vehicle has been handed over, SilberArrows will conduct a UVC (Used Vehicle Check) to perform a thorough inspection.
-                <br />At this stage, SilberArrows will provide the Owner with an estimate for any necessary repairs to meet their standards. The Owner is under no obligation to authorise these repairs; however, SilberArrows reserves the right to terminate the agreement if the vehicle does not meet the required standards.
+                At this stage, SilberArrows will provide the Owner with an estimate for any necessary repairs to meet their standards. The Owner is under no obligation to authorise these repairs; however, SilberArrows reserves the right to terminate the agreement if the vehicle does not meet the required standards.
               </div>
 
               <div class="text-content">

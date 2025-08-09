@@ -365,6 +365,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
 
         let timeoutId: NodeJS.Timeout;
         let resolved = false;
+        let seekAttempt = 0;
+        const seekTimes = [0.05, 0.5, 1.0, 2.0]; // Try different times if black frame detected
 
         const cleanup = () => {
           if (timeoutId) clearTimeout(timeoutId);
@@ -386,6 +388,49 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           resolved = true;
           cleanup();
           reject(error);
+        };
+
+        // Function to detect if the canvas contains mostly black pixels
+        const isBlackFrame = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement): boolean => {
+          try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            let totalBrightness = 0;
+            const pixelCount = data.length / 4;
+            
+            for (let i = 0; i < data.length; i += 4) {
+              // Calculate brightness (R + G + B) / 3
+              const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+              totalBrightness += brightness;
+            }
+            
+            const avgBrightness = totalBrightness / pixelCount;
+            console.log('📸 Frame average brightness:', avgBrightness.toFixed(2));
+            
+            // Consider it a black frame if average brightness is very low
+            return avgBrightness < 15;
+          } catch (error) {
+            console.warn('📸 Could not analyze frame brightness:', error);
+            return false;
+          }
+        };
+
+        const tryNextSeekTime = () => {
+          seekAttempt++;
+          if (seekAttempt >= seekTimes.length) {
+            console.warn('📸 All seek times exhausted, using current frame');
+            return false;
+          }
+          
+          const nextSeekTime = seekTimes[seekAttempt];
+          if (nextSeekTime >= video.duration) {
+            console.log('📸 Seek time', nextSeekTime, 'beyond video duration', video.duration);
+            return tryNextSeekTime(); // Try next time
+          }
+          
+          console.log('📸 Trying next seek time:', nextSeekTime);
+          video.currentTime = nextSeekTime;
+          return true;
         };
 
         const onMetadataLoaded = () => {
@@ -417,8 +462,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           canvas.width = width;
           canvas.height = height;
           
-          // Seek to a time that's more likely to have content (avoid potential black frames at the very beginning)
-          const seekTime = video.duration > 2 ? 1.0 : Math.min(0.5, video.duration / 2);
+          // Start with first seek time (0.05 seconds as requested)
+          const seekTime = seekTimes[0];
           console.log('📸 Seeking to time:', seekTime, 'of', video.duration);
           video.currentTime = seekTime;
         };
@@ -429,6 +474,12 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
             // Draw the current video frame to canvas
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
+            // Check if this is a black frame and we should try a different time
+            if (isBlackFrame(ctx, canvas) && tryNextSeekTime()) {
+              console.log('📸 Black frame detected, trying different seek time');
+              return; // Will trigger another seeked event
+            }
+            
             // Convert to data URL
             const format = useWebP ? 'image/webp' : 'image/jpeg';
             const dataURL = canvas.toDataURL(format, quality);
@@ -437,7 +488,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
               dataURLLength: dataURL.length,
               dataURLPreview: dataURL.substring(0, 50) + '...',
               canvasSize: `${canvas.width}x${canvas.height}`,
-              videoSize: `${video.videoWidth}x${video.videoHeight}`
+              videoSize: `${video.videoWidth}x${video.videoHeight}`,
+              seekTime: video.currentTime,
+              attemptNumber: seekAttempt + 1
             });
             resolveOnce(dataURL);
           } catch (error) {

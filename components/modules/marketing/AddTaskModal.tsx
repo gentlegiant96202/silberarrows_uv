@@ -394,6 +394,14 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           const maxSize = 300;
           let { videoWidth: width, videoHeight: height } = video;
           
+          console.log('📸 Video dimensions:', { videoWidth: width, videoHeight: height, duration: video.duration });
+          
+          if (width === 0 || height === 0) {
+            console.error('📸 Invalid video dimensions');
+            rejectOnce(new Error('Invalid video dimensions'));
+            return;
+          }
+          
           if (width > height) {
             if (width > maxSize) {
               height = (height * maxSize) / width;
@@ -409,8 +417,10 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           canvas.width = width;
           canvas.height = height;
           
-          // Seek to first frame (0.1 seconds to ensure we get a frame)
-          video.currentTime = 0.1;
+          // Seek to a time that's more likely to have content (avoid potential black frames at the very beginning)
+          const seekTime = video.duration > 2 ? 1.0 : Math.min(0.5, video.duration / 2);
+          console.log('📸 Seeking to time:', seekTime, 'of', video.duration);
+          video.currentTime = seekTime;
         };
 
         const onSeeked = () => {
@@ -423,7 +433,12 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
             const format = useWebP ? 'image/webp' : 'image/jpeg';
             const dataURL = canvas.toDataURL(format, quality);
             
-            console.log('📸 Video thumbnail generated successfully');
+            console.log('📸 Video thumbnail generated successfully', {
+              dataURLLength: dataURL.length,
+              dataURLPreview: dataURL.substring(0, 50) + '...',
+              canvasSize: `${canvas.width}x${canvas.height}`,
+              videoSize: `${video.videoWidth}x${video.videoHeight}`
+            });
             resolveOnce(dataURL);
           } catch (error) {
             console.error('📸 Error capturing video frame:', error);
@@ -464,7 +479,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
 
       for (const file of files) {
         try {
+          console.log('🎬 Starting thumbnail generation for:', file.name, 'type:', file.type);
           const thumbnail = await generateThumbnail(file);
+          console.log('✅ Thumbnail generated for:', file.name, 'length:', thumbnail.length);
           filesWithThumbnails.push({
             file,
             thumbnail,
@@ -474,6 +491,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           });
         } catch (error) {
           console.error('Error generating thumbnail:', error);
+          console.log('❌ Thumbnail generation failed for:', file.name, 'using empty thumbnail');
           filesWithThumbnails.push({
             file,
             thumbnail: '',
@@ -1006,15 +1024,27 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
                       return (
                         <div key={index} className="flex-shrink-0 w-64 flex items-center gap-2 p-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg shadow-inner ring-1 ring-white/5">
                           {/* Thumbnail or file icon */}
-                                                      <div className="flex-shrink-0 w-10 h-10 rounded overflow-hidden bg-white/5 flex items-center justify-center">
+                          <div className="flex-shrink-0 w-10 h-10 rounded overflow-hidden bg-white/5 flex items-center justify-center">
                             {thumbnail ? (
-                              <img 
-                                src={thumbnail} 
-                                alt={file.name}
-                                className="w-full h-full object-cover"
-                              />
+                              <>
+                                {console.log('🖼️ Displaying thumbnail for', file.name, 'thumbnail length:', thumbnail.length, 'preview:', thumbnail.substring(0, 50))}
+                                <img 
+                                  src={thumbnail} 
+                                  alt={file.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    console.error('🚨 Thumbnail image failed to load for', file.name, 'src:', thumbnail.substring(0, 100));
+                                  }}
+                                  onLoad={() => {
+                                    console.log('✅ Thumbnail image loaded successfully for', file.name);
+                                  }}
+                                />
+                              </>
                             ) : (
-                              getFileIcon(file)
+                              <>
+                                {console.log('❌ No thumbnail for', file.name, 'showing file icon instead')}
+                                {getFileIcon(file)}
+                              </>
                             )}
                           </div>
 

@@ -8,9 +8,6 @@
   "functions": {
     "app/api/upload-file/route.ts": {
       "maxDuration": 300
-    },
-    "app/api/generate-thumbnail/route.ts": {
-      "maxDuration": 300
     }
   }
 } 

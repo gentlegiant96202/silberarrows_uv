@@ -874,25 +874,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
           ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {})
         };
 
-        // Post-upload thumbnail generation if video and no thumbnail in response
-        const isVideoFile = file.type.startsWith('video/');
-        if (isVideoFile && !result.thumbnailUrl) {
-          try {
-            const thumbResp = await fetch('/api/generate-thumbnail', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ taskId: task.id, fileUrl: result.fileUrl })
-            });
-            if (thumbResp.ok) {
-              const { thumbnailUrl } = await thumbResp.json();
-              if (thumbnailUrl) {
-                fileObject.thumbnail = thumbnailUrl;
-              }
-            }
-          } catch (e) {
-            console.warn('Deferred thumbnail generation failed:', e);
-          }
-        }
         uploadedFiles.push(fileObject);
       }
       setUploadFileName(null);

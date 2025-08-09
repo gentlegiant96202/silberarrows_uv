@@ -231,21 +231,18 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
   };
 
   // Helper functions for file URLs and types
-  const getImageUrl = (file: any) => {
-    if (typeof file === 'string') {
-      return file;
-    }
-    
-    const isVideo = file.type?.startsWith('video/') || 
-                   file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
-    
-    if (isVideo && file.thumbnail) {
-      return file.thumbnail;
-    }
-    
-    return file.url;
+  const getImageUrl = (file: any): string => {
+    if (typeof file === 'string') return file;
+    return file.url || (file.file ? URL.createObjectURL(file.file) : '');
   };
 
+  // Helper function to get proper video URL
+  const getVideoUrl = (file: any): string => {
+    if (typeof file === 'string') return file;
+    return file.url || (file.file ? URL.createObjectURL(file.file) : '');
+  };
+
+  // Helper function to get proper file URL for downloads
   const getOriginalFileUrl = (file: any) => {
     return typeof file === 'string' ? file : file.url;
   };
@@ -320,159 +317,142 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
 
     return new Promise((resolve, reject) => {
       if (file.type.startsWith('image/')) {
-        // Handle images
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Set thumbnail size
-            const maxSize = 100;
-            let { width, height } = img;
-            
-            if (width > height) {
-              if (width > maxSize) {
-                height = (height * maxSize) / width;
-                width = maxSize;
-              }
-            } else {
-              if (height > maxSize) {
-                width = (width * maxSize) / height;
-                height = maxSize;
-              }
+        // Handle images - resize and compress
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas context not available'));
+            return;
+          }
+
+          // Calculate thumbnail dimensions (max 300px, maintain aspect ratio)
+          const maxSize = 300;
+          let { width, height } = img;
+          if (width > height) {
+            if (width > maxSize) {
+              height = (height * maxSize) / width;
+              width = maxSize;
             }
-            
-            canvas.width = width;
-            canvas.height = height;
-            
-            ctx?.drawImage(img, 0, 0, width, height);
-            
-            // Try WebP first if supported, fallback to JPEG if it fails
-            try {
-              if (useWebP) {
-                const webpDataUrl = canvas.toDataURL('image/webp', quality);
-                // Verify WebP was actually generated
-                if (webpDataUrl.indexOf('data:image/webp') === 0 && webpDataUrl.length > 100) {
-                  console.log('✅ WebP thumbnail generated successfully');
-                  resolve(webpDataUrl);
-                  return;
-                } else {
-                  console.warn('⚠️ WebP generation failed, falling back to JPEG');
-                }
-              }
-              
-              // Fallback to JPEG
-              const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
-              console.log('✅ JPEG thumbnail generated successfully');
-              resolve(jpegDataUrl);
-            } catch (error) {
-              console.error('❌ Thumbnail generation failed:', error);
-              // Final fallback to JPEG with lower quality
-              try {
-                resolve(canvas.toDataURL('image/jpeg', 0.6));
-              } catch (finalError) {
-                reject(new Error('Failed to generate thumbnail'));
-              }
+          } else {
+            if (height > maxSize) {
+              width = (width * maxSize) / height;
+              height = maxSize;
             }
-          };
-          img.onerror = () => reject(new Error('Failed to load image'));
-          img.src = e.target?.result as string;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const format = useWebP ? 'image/webp' : 'image/jpeg';
+          const dataURL = canvas.toDataURL(format, quality);
+          resolve(dataURL);
         };
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = URL.createObjectURL(file);
       } else if (file.type.startsWith('video/')) {
-        // Handle videos - generate thumbnail from first frame (stable flow)
+        // Handle videos - capture first frame as thumbnail
         const video = document.createElement('video');
-        video.preload = 'metadata';
-        const objectUrl = URL.createObjectURL(file);
-        let timeoutId: number | undefined;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+
+        let timeoutId: NodeJS.Timeout;
+        let resolved = false;
 
         const cleanup = () => {
-          if (timeoutId) {
-            try { window.clearTimeout(timeoutId as any); } catch {}
-          }
-          try { URL.revokeObjectURL(objectUrl); } catch {}
-          try { video.src = ''; } catch {}
+          if (timeoutId) clearTimeout(timeoutId);
+          video.removeEventListener('loadedmetadata', onMetadataLoaded);
+          video.removeEventListener('seeked', onSeeked);
+          video.removeEventListener('error', onError);
+          URL.revokeObjectURL(video.src);
         };
 
-        video.onloadedmetadata = () => {
-          try {
-            const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 2;
-            // Seek a bit into the video to avoid black frames
-            const targetTime = Math.min(1, duration / 2);
-            video.currentTime = targetTime;
-          } catch (err) {
-            console.warn('Video metadata handling failed, skipping thumbnail:', err);
-            cleanup();
-            resolve('');
-          }
-        };
-
-        video.onseeked = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const maxSize = 100;
-            let { videoWidth: width, videoHeight: height } = video;
-
-            if (width > height) {
-              if (width > maxSize) {
-                height = (height * maxSize) / width;
-                width = maxSize;
-              }
-            } else {
-              if (height > maxSize) {
-                width = (width * maxSize) / height;
-                height = maxSize;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            ctx?.drawImage(video, 0, 0, width, height);
-
-            try {
-              if (useWebP) {
-                const webpDataUrl = canvas.toDataURL('image/webp', quality);
-                if (webpDataUrl.indexOf('data:image/webp') === 0 && webpDataUrl.length > 100) {
-                  resolve(webpDataUrl);
-                  return;
-                }
-              }
-              const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
-              resolve(jpegDataUrl);
-            } catch (err) {
-              console.warn('Video frame to image failed, skipping thumbnail:', err);
-              resolve('');
-            } finally {
-              cleanup();
-            }
-          } catch (err) {
-            console.warn('Video seek/draw failed:', err);
-            cleanup();
-            resolve('');
-          }
-        };
-
-        video.onerror = () => {
+        const resolveOnce = (result: string) => {
+          if (resolved) return;
+          resolved = true;
           cleanup();
-          resolve('');
+          resolve(result);
         };
 
-        // Safety timeout
-        timeoutId = window.setTimeout(() => {
-          console.warn('Video thumbnail generation timed out');
+        const rejectOnce = (error: Error) => {
+          if (resolved) return;
+          resolved = true;
           cleanup();
-          resolve('');
-        }, 5000);
+          reject(error);
+        };
 
-        // Start loading
-        video.src = objectUrl;
+        const onMetadataLoaded = () => {
+          console.log('📸 Video metadata loaded, seeking to first frame');
+          // Set canvas size to video dimensions (scaled down)
+          const maxSize = 300;
+          let { videoWidth: width, videoHeight: height } = video;
+          
+          if (width > height) {
+            if (width > maxSize) {
+              height = (height * maxSize) / width;
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width = (width * maxSize) / height;
+              height = maxSize;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Seek to first frame (0.1 seconds to ensure we get a frame)
+          video.currentTime = 0.1;
+        };
+
+        const onSeeked = () => {
+          console.log('📸 Video seeked to first frame, capturing thumbnail');
+          try {
+            // Draw the current video frame to canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to data URL
+            const format = useWebP ? 'image/webp' : 'image/jpeg';
+            const dataURL = canvas.toDataURL(format, quality);
+            
+            console.log('📸 Video thumbnail generated successfully');
+            resolveOnce(dataURL);
+          } catch (error) {
+            console.error('📸 Error capturing video frame:', error);
+            rejectOnce(new Error('Failed to capture video frame'));
+          }
+        };
+
+        const onError = (error: any) => {
+          console.error('📸 Video error:', error);
+          rejectOnce(new Error('Failed to load video for thumbnail'));
+        };
+
+        // Set up event listeners
+        video.addEventListener('loadedmetadata', onMetadataLoaded);
+        video.addEventListener('seeked', onSeeked);
+        video.addEventListener('error', onError);
+
+        // Timeout after 10 seconds
+        timeoutId = setTimeout(() => {
+          console.error('📸 Video thumbnail generation timeout');
+          rejectOnce(new Error('Video thumbnail generation timeout'));
+        }, 10000);
+
+        // Load the video
+        video.preload = 'metadata';
+        video.crossOrigin = 'anonymous';
+        video.src = URL.createObjectURL(file);
       } else {
-        // No thumbnail for PDFs and other files
-        resolve('');
+        reject(new Error('Unsupported file type for thumbnail generation'));
       }
     });
   };
@@ -637,25 +617,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {})
         };
         
-        // If this is a video and we have no thumbnail yet, request one after upload
-        if (isVideo && !result.thumbnailUrl) {
-          try {
-            const thumbResp = await fetch('/api/generate-thumbnail', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ taskId, fileUrl: result.fileUrl })
-            });
-            if (thumbResp.ok) {
-              const { thumbnailUrl } = await thumbResp.json();
-              if (thumbnailUrl) {
-                newMediaItem.thumbnail = thumbnailUrl;
-              }
-            }
-          } catch (e) {
-            console.warn('Thumbnail generation deferred failed:', e);
-          }
-        }
-
         newMedia.push(newMediaItem);
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 100, uploading: false, uploaded: true } : f));
         setExistingMedia(prev => [...prev, newMediaItem]);
@@ -1170,11 +1131,23 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
                           >
                             <div className="w-full h-full bg-white/5 relative">
                               {isVideo ? (
-                                // Show video thumbnail if available, otherwise show video icon
+                                // Show video with first frame as preview
                                 typeof file === 'string' ? (
-                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
-                                    <Video className="w-4 h-4 text-white/60" />
-                                  </div>
+                                  <video
+                                    className="w-full h-full object-cover"
+                                    preload="metadata"
+                                    muted
+                                    playsInline
+                                    onError={() => {
+                                      // Fallback to video icon if video fails to load
+                                      setFailedThumbnails(prev => new Set(prev).add(index));
+                                    }}
+                                  >
+                                    <source src={file} />
+                                    <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                      <Video className="w-4 h-4 text-white/60" />
+                                    </div>
+                                  </video>
                                 ) : file.thumbnail && !failedThumbnails.has(index) ? (
                                   <img
                                     src={file.thumbnail}
@@ -1185,9 +1158,20 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
                                     }}
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
-                                    <Video className="w-4 h-4 text-white/60" />
-                                  </div>
+                                  <video
+                                    className="w-full h-full object-cover"
+                                    src={getVideoUrl(file)}
+                                    preload="metadata"
+                                    muted
+                                    playsInline
+                                    onError={() => {
+                                      setFailedThumbnails(prev => new Set(prev).add(index));
+                                    }}
+                                  >
+                                    <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                      <Video className="w-4 h-4 text-white/60" />
+                                    </div>
+                                  </video>
                                 )
                               ) : isPdf || isConvertedPdf ? (
                                 <div className="w-full h-full flex items-center justify-center bg-white/10">

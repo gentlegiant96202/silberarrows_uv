@@ -614,7 +614,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
           type: file.type,
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {})
+          ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {}),
+          // Include client-generated thumbnail for videos
+          ...(fileWithThumbnail.thumbnail ? { thumbnail: fileWithThumbnail.thumbnail } : {})
         };
         
         newMedia.push(newMediaItem);
@@ -1131,23 +1133,11 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
                           >
                             <div className="w-full h-full bg-white/5 relative">
                               {isVideo ? (
-                                // Show video with first frame as preview
+                                // Show video thumbnail that was generated during file selection
                                 typeof file === 'string' ? (
-                                  <video
-                                    className="w-full h-full object-cover"
-                                    preload="metadata"
-                                    muted
-                                    playsInline
-                                    onError={() => {
-                                      // Fallback to video icon if video fails to load
-                                      setFailedThumbnails(prev => new Set(prev).add(index));
-                                    }}
-                                  >
-                                    <source src={file} />
-                                    <div className="w-full h-full flex items-center justify-center bg-black/50">
-                                      <Video className="w-4 h-4 text-white/60" />
-                                    </div>
-                                  </video>
+                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                    <Video className="w-4 h-4 text-white/60" />
+                                  </div>
                                 ) : file.thumbnail && !failedThumbnails.has(index) ? (
                                   <img
                                     src={file.thumbnail}
@@ -1158,20 +1148,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, isAdmin 
                                     }}
                                   />
                                 ) : (
-                                  <video
-                                    className="w-full h-full object-cover"
-                                    src={getVideoUrl(file)}
-                                    preload="metadata"
-                                    muted
-                                    playsInline
-                                    onError={() => {
-                                      setFailedThumbnails(prev => new Set(prev).add(index));
-                                    }}
-                                  >
-                                    <div className="w-full h-full flex items-center justify-center bg-black/50">
-                                      <Video className="w-4 h-4 text-white/60" />
-                                    </div>
-                                  </video>
+                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                    <Video className="w-4 h-4 text-white/60" />
+                                  </div>
                                 )
                               ) : isPdf || isConvertedPdf ? (
                                 <div className="w-full h-full flex items-center justify-center bg-white/10">

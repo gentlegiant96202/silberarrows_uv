@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
         <style>
           @page {
             margin: 0;
-            size: A4;
             background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 70%, #000000 100%);
           }
           
@@ -54,7 +53,7 @@ export async function POST(request: NextRequest) {
             background: rgba(255, 255, 255, 0.02);
             backdrop-filter: blur(30px);
             border: none;
-            padding: 18px 10px 18px 10px;
+            padding: 15px 10px 15px 10px;
             width: 210mm;
             height: 297mm;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 
@@ -146,7 +145,7 @@ export async function POST(request: NextRequest) {
           }
           
           .title {
-            font-size: 18px;
+            font-size: 21px;
             font-weight: bold;
             color: white;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
@@ -669,9 +668,8 @@ export async function POST(request: NextRequest) {
                 </div>
               </div>
 
-              <div class="text-content" style="margin-bottom: 4px;">
-                <strong>Condition of Vehicle:</strong> Before the vehicle is listed for sale, it must be free of any major mechanical issues that could affect its safety or performance. SilberArrows will initially inspect the vehicle using a Pre-UVC (Pre-Used Vehicle Check) form, which forms part of this Consignment Agreement. Once the vehicle has been handed over, SilberArrows will conduct a UVC (Used Vehicle Check) to perform a thorough inspection.
-                At this stage, SilberArrows will provide the Owner with an estimate for any necessary repairs to meet their standards. The Owner is under no obligation to authorise these repairs; however, SilberArrows reserves the right to terminate the agreement if the vehicle does not meet the required standards.
+              <div class="text-content" style="margin-bottom: 4px; white-space: normal;">
+                <span><strong>Condition of Vehicle:</strong> Before the vehicle is listed for sale, it must be free of any major mechanical issues that could affect its safety or performance. SilberArrows will initially inspect the vehicle using a Pre-UVC (Pre-Used Vehicle Check) form, which forms part of this Consignment Agreement. Once the vehicle has been handed over, SilberArrows will conduct a UVC (Used Vehicle Check) to perform a thorough inspection, at this stage, SilberArrows will provide the Owner with an estimate for any necessary repairs to meet their standards. The Owner is under no obligation to authorise these repairs; however, SilberArrows reserves the right to terminate the agreement if the vehicle does not meet the required standards.</span>
               </div>
 
               <div class="text-content">
@@ -702,16 +700,13 @@ export async function POST(request: NextRequest) {
                     <td style="text-align: center;"><span class="checkbox"></span></td>
                     <td style="text-align: center;"><span class="checkbox"></span></td>
                   </tr>
-                  <tr>
-                    <td style="width: 70%; padding: 2px 0; color: white; font-size: 10px;">• Other accessories: ___________</td>
-                    <td style="text-align: center;"><span class="checkbox"></span></td>
-                    <td style="text-align: center;"><span class="checkbox"></span></td>
-                  </tr>
+
                 </table>
               </div>
 
               <div class="text-content">
-                <strong>Marketing and Sales Efforts:</strong> SilberArrows agrees to: (1) Conduct a professional photo and video shoot of the vehicle. (2) List the vehicle on SilberArrows' website and other appropriate platforms within 5 business days of agreement signing. (3) Market the vehicle effectively to attract potential buyers. (4) Perform an exit inspection and detailing of the vehicle post-sale.<br /><strong>Note:</strong> The vehicle may be road-tested during the consignment period to ensure it meets buyer expectations.
+                <strong>Marketing and Sales Efforts:</strong> SilberArrows agrees to: (1) Conduct a professional photo and video shoot of the vehicle. (2) List the vehicle on SilberArrows' website and other appropriate platforms within 5 business days of agreement signing. (3) Market the vehicle effectively to attract potential buyers. (4) Perform an exit inspection and detailing of the vehicle post-sale.
+                <br /><br /><strong>Note:</strong> The vehicle may be road-tested during the consignment period to ensure it meets buyer expectations.
                 <br />The Owner acknowledges that such tests may result in a slight increase in the odometer reading.
               </div>
             </div>
@@ -744,7 +739,7 @@ export async function POST(request: NextRequest) {
               </div>
 
               <div class="text-content">
-                <strong>Option 2 – SilberArrows Advances the Finance Amount:</strong> The Owner must provide a Liability Letter from the finance company showing the exact outstanding balance, and sign a separate Consignment Vehicle Finance Settlement Agreement with SilberArrows.<br />Once both are received, SilberArrows will transfer the outstanding amount to the Owner, who is solely responsible for settling it with the finance company. SilberArrows will not transfer funds directly to the finance company. Once full payment is received from the buyer, SilberArrows will transfer any remaining balance to the Owner after deducting its selling fees. If the remaining balance is insufficient to cover the fees, the shortfall will be deducted from the initial finance advance.
+                <strong>Option 2 – SilberArrows Advances the Finance Amount:</strong> The Owner must provide a Liability Letter from the finance company showing the exact outstanding balance, and sign a separate Consignment Vehicle Finance Settlement Agreement with SilberArrows. Once both are received, SilberArrows will transfer the outstanding amount to the Owner, who is solely responsible for settling it with the finance company. SilberArrows will not transfer funds directly to the finance company.<br />Once full payment is received from the buyer, SilberArrows will transfer any remaining balance to the Owner after deducting its selling fees. If the remaining balance is insufficient to cover the fees, the shortfall will be deducted from the initial finance advance.
               </div>
 
               <div class="text-content">
@@ -790,16 +785,15 @@ If the Owner requests to terminate the agreement before the end of the 90-calend
 <strong>7. OWNER'S RESPONSIBILITIES</strong>
 The Owner authorises SilberArrows to act on their behalf to market and sell the vehicle, including handling all necessary documentation related to the sale. The Owner confirms that they have full legal ownership of the vehicle, and that all information provided to SilberArrows is accurate to the best of their knowledge.
 
-The Owner agrees to provide the following documents:
+<strong>The Owner agrees to provide the following documents:</strong>
+• A copy of their Emirates ID (with the original required at the time of sale).
+• A copy of their driving license.
+• The vehicle registration card.
 
-A copy of their Emirates ID (with the original required at the time of sale).
-A copy of their driving license.
-The vehicle registration card.
-Additionally, the Owner is responsible for ensuring that:
-
-The vehicle remains fully registered and insured throughout the consignment period.
-The vehicle is delivered in a clean condition.
-The vehicle is free of any major mechanical or safety issues prior to consignment.
+<strong>Additionally, the Owner is responsible for ensuring that:</strong>
+• The vehicle remains fully registered and insured throughout the consignment period.
+• The vehicle is delivered in a clean condition.
+• The vehicle is free of any major mechanical or safety issues prior to consignment.
 
 <strong>8. LIABILITY LIMITATIONS</strong>
 SilberArrows’ liability is strictly limited to the fees actually paid to SilberArrows by the Owner. SilberArrows is not liable for any indirect, incidental, or consequential damages.
@@ -810,7 +804,6 @@ The Owner acknowledges that SilberArrows is not responsible for loss or damage d
 Severability: If any term of this agreement is found unenforceable, the remaining terms remain valid.
 Binding Effect: This agreement is binding on the heirs, legal representatives, and assigns of both parties.
 Entire Agreement: This document constitutes the entire agreement between SilberArrows and the Owner and supersedes all prior communications. Any changes must be agreed to in writing.
-By signing below, both parties confirm that they have read, understood, and agreed to the terms and conditions set out in this Vehicle Consignment Agreement.
                 </div>
               </div>
             </div>

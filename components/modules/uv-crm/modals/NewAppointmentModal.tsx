@@ -257,9 +257,9 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
 
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Lead form */}
-          <form onSubmit={createLead} className="flex-1 space-y-3 overflow-y-auto pr-1">
+          <form onSubmit={createLead} className="flex-1 flex flex-col overflow-y-auto pr-1">
           {/* Customer Information */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
+          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10 mb-3">
             <div className="space-y-2.5">
               {/* Customer Name */}
               <div>
@@ -313,7 +313,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
           </div>
 
           {/* Vehicle & Budget */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
+          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10 mb-3">
             <div className="space-y-2.5">
               {/* Model of Interest */}
               <div>
@@ -515,7 +515,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
 
           {/* Appointment Details - Only show in convert_appointment mode */}
           {mode === 'convert_appointment' && (
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10 mb-3">
               <div className="space-y-2.5">
                 {/* Date and Time */}
                 <div className="grid grid-cols-2 gap-1.5">
@@ -564,6 +564,9 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
               </div>
             </div>
           )}
+
+          {/* Spacer to push button down */}
+          <div className="flex-1"></div>
 
           {/* Submit Button */}
           <button

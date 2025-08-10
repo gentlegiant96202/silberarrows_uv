@@ -355,7 +355,26 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
+    <>
+      <style jsx>{`
+        .chat-button-isolated {
+          all: unset !important;
+          box-sizing: border-box !important;
+          display: inline-block !important;
+          font-family: inherit !important;
+        }
+        .chat-button-isolated:focus,
+        .chat-button-isolated:active,
+        .chat-button-isolated:visited,
+        .chat-button-isolated:target {
+          background-color: ${showWhatsAppChat ? '#16a34a' : 'rgba(255, 255, 255, 0.05)'} !important;
+          color: #ffffff !important;
+          border: ${showWhatsAppChat ? '1px solid transparent' : '1px solid rgba(255, 255, 255, 0.1)'} !important;
+          outline: none !important;
+          box-shadow: none !important;
+        }
+      `}</style>
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
       <div className={`bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full text-xs relative max-h-[90vh] overflow-visible shadow-2xl transition-all duration-300 ${
         showWhatsAppChat ? 'max-w-[98vw] min-w-[98vw]' : 'max-w-3xl'
       }`}>
@@ -382,14 +401,14 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                 <>
                   <button
                     onClick={handleUpdate}
-                    className="px-2 py-1 bg-brand hover:bg-brand/90 text-white text-xs rounded transition-colors"
+                    className="px-2 py-1 bg-brand hover:bg-brand/90 focus:bg-brand/90 active:bg-brand text-white text-xs rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand/50"
                     disabled={loading}
                   >
                     Update
                   </button>
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="px-2 py-1 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-xs rounded transition-all"
+                    className="px-2 py-1 bg-white/5 hover:bg-white/10 focus:bg-white/10 active:bg-white/15 backdrop-blur-sm border border-white/10 text-white text-xs rounded transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
                     disabled={loading}
                   >
                     Cancel
@@ -398,26 +417,58 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
               ) : (
                 <>
                 <button
+                  type="button"
                   onClick={toggleWhatsAppChat}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
-                    showWhatsAppChat 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white hover:text-green-400'
-                  }`}
+                  className="chat-button-isolated"
+                  style={{ 
+                    padding: '4px 8px',
+                    fontSize: '12px',
+                    borderRadius: '4px',
+                    transition: 'all 200ms',
+                    cursor: 'pointer',
+                    backgroundColor: showWhatsAppChat ? '#16a34a !important' : 'rgba(255, 255, 255, 0.05) !important',
+                    color: showWhatsAppChat ? '#ffffff !important' : '#ffffff !important',
+                    border: showWhatsAppChat ? '1px solid transparent !important' : '1px solid rgba(255, 255, 255, 0.1) !important',
+                    backdropFilter: showWhatsAppChat ? 'none' : 'blur(12px)',
+                    WebkitTapHighlightColor: 'transparent',
+                    WebkitAppearance: 'none',
+                    outline: 'none !important',
+                    boxShadow: 'none !important',
+                    position: 'relative',
+                    zIndex: 9999
+                  }}
+                  onMouseEnter={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.backgroundColor = showWhatsAppChat ? '#15803d' : 'rgba(255, 255, 255, 0.1)';
+                    if (!showWhatsAppChat) target.style.color = '#4ade80';
+                  }}
+                  onMouseLeave={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.backgroundColor = showWhatsAppChat ? '#16a34a' : 'rgba(255, 255, 255, 0.05)';
+                    if (!showWhatsAppChat) target.style.color = '#ffffff';
+                  }}
+                  onFocus={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.backgroundColor = showWhatsAppChat ? '#15803d' : 'rgba(255, 255, 255, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.backgroundColor = showWhatsAppChat ? '#16a34a' : 'rgba(255, 255, 255, 0.05)';
+                  }}
                   title={showWhatsAppChat ? 'Hide WhatsApp Chat' : 'Show WhatsApp Chat'}
                 >
                   💬 Chat
                 </button>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-2 py-1 bg-brand hover:bg-brand/90 text-white text-xs rounded transition-colors"
+                  className="px-2 py-1 bg-brand hover:bg-brand/90 focus:bg-brand/90 active:bg-brand text-white text-xs rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand/50"
                   disabled={loading}
                 >
                   Edit
                 </button>
                 <button
                   onClick={handleDelete}
-                    className="px-2 py-1 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white hover:text-white/80 text-xs rounded transition-all"
+                  className="px-2 py-1 bg-white/5 hover:bg-white/10 focus:bg-white/10 active:bg-white/15 backdrop-blur-sm border border-white/10 text-white hover:text-white/80 focus:text-white/80 text-xs rounded transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
                   disabled={loading}
                 >
                   Delete
@@ -433,9 +484,9 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
           {/* Left Panel - Lead Details */}
           <div className={`${showWhatsAppChat ? 'w-[736px] flex-shrink-0' : 'flex-1'} ${showWhatsAppChat ? 'overflow-y-auto' : ''}`}>
             {isEditing ? (
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
             {/* Edit form */}
-            <form onSubmit={handleUpdate} className="flex-1 space-y-3 overflow-y-auto pr-1">
+            <form onSubmit={handleUpdate} className="flex-1 flex flex-col space-y-3 overflow-y-auto pr-1">
             {/* Customer Information */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
               <div className="space-y-2.5">
@@ -780,22 +831,14 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
             {/* Timeline & Matching inventory column */}
             <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1">
               {/* Matching inventory or fallback model chooser (edit mode only) */}
-              {isEditing ? (
-                <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
-                  <div className="h-full overflow-y-auto p-1.5">
-                    <MatchingCarsList model={formData.model_of_interest} />
-                  </div>
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1">
+                <div className="h-full overflow-y-auto p-1.5">
+                  <MatchingCarsList model={isEditing ? formData.model_of_interest : lead.model_of_interest} />
                 </div>
-              ) : (
-                <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
-                  <div className="h-full overflow-y-auto p-1.5">
-                    <MatchingCarsList model={lead.model_of_interest} />
-                  </div>
-                </div>
-              )}
+              </div>
 
               {/* Timeline panel */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1">
                 <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                     Timeline & Notes
@@ -815,9 +858,9 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
             </div>
             </div>
         ) : (
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
             {/* Details Block */}
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 flex flex-col space-y-3 overflow-y-auto">
             {/* Customer Information - View Mode */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
               <div className="space-y-2.5">
@@ -963,14 +1006,14 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
             {/* Timeline & Matching inventory on the right */}
             <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1">
               {/* Matching inventory panel (view mode) */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1">
                 <div className="h-full overflow-y-auto p-1.5">
                   <MatchingCarsList model={lead.model_of_interest} />
                 </div>
               </div>
 
               {/* Timeline panel */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1">
                 <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                     Timeline & Notes
@@ -1043,5 +1086,6 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
         </div>
       </div>
     </div>
+    </>
   );
 } 

@@ -1739,23 +1739,23 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
 
             {/* Tools - Above Annotations */}
             <div className="p-3 bg-white/5 border-b border-white/10 flex-shrink-0">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between flex-col gap-2">
                 <h4 className="text-xs font-medium text-white/80 flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
                   </svg>
                   Tools
                 </h4>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-white/60">Zoom:</span>
+                    <span className="text-xs text-white/60 min-w-[28px]">Zoom:</span>
                     <button onClick={() => setZoom(Math.max(0.5, zoom / 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">−</button>
-                    <div className="px-2 py-1 text-white text-xs rounded bg-black/50 border border-white/10 min-w-[40px] text-center">{Math.round(zoom * 100)}%</div>
+                    <div className="px-2 py-1 text-white text-xs rounded bg-black/50 border border-white/10 min-w-[35px] text-center">{Math.round(zoom * 100)}%</div>
                     <button onClick={() => setZoom(Math.min(3, zoom * 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">+</button>
-                    <button onClick={() => resetZoomPan()} className="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20">Reset</button>
+                    <button onClick={() => resetZoomPan()} className="px-1.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20">Reset</button>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-white/60">Draw:</span>
+                    <span className="text-xs text-white/60 min-w-[28px]">Draw:</span>
                     <button
                       onClick={() => {
                         if (!isAnnotationMode) {
@@ -1767,7 +1767,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                           setSelectedAnnotationId(null);
                         }
                       }}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all ${
+                      className={`flex items-center gap-1 px-1.5 py-1 rounded text-xs font-medium transition-all ${
                         isAnnotationMode
                           ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
                           : 'bg-black/20 text-white/70 border border-white/10 hover:bg-black/30'
@@ -1776,7 +1776,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
-                      Highlighter
+                      Draw
                     </button>
                   </div>
                 </div>

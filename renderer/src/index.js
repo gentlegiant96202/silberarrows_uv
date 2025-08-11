@@ -120,10 +120,19 @@ app.post('/render-catalog', async (req, res) => {
 
     // Square format for catalog (1080x1080)
     await page.setViewportSize({ width: 1080, height: 1080 });
-    await page.setContent(html, { waitUntil: 'networkidle' });
+    
+    // Set shorter timeout and don't wait for network idle for external images
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
-    await page.evaluate(() => document.fonts && document.fonts.ready);
-    await page.waitForTimeout(800);
+    
+    // Wait for fonts but with shorter timeout
+    try {
+      await page.evaluate(() => document.fonts && document.fonts.ready);
+      await page.waitForTimeout(2000); // Wait for image to load
+    } catch (e) {
+      console.log('Font loading timeout, proceeding...');
+    }
+    
     const catalogBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1080 } });
 
     await browser.close();

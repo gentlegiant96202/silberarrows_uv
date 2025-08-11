@@ -30,10 +30,18 @@
       height: 1080px;
       position: relative;
       overflow: hidden;
-      background-image: url('{{catalogImageUrl}}');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+    }
+
+    .catalog-bg-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      z-index: 1;
     }
 
     .price-badge {
@@ -159,6 +167,9 @@
 </head>
 <body>
   <div class="catalog-card-square">
+    <!-- Background Image -->
+    <img src="{{catalogImageUrl}}" alt="Car" class="catalog-bg-image" onerror="this.style.display='none';" />
+    
     <!-- Price Badge -->
     <div class="price-badge">
       <div class="price-text">AED {{price}}</div>

@@ -1569,11 +1569,11 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
         </div>
 
         {/* Right Sidebar - Task Info */}
-        <div className="w-96 bg-white/8 backdrop-blur-xl border-l border-white/20 flex flex-col h-screen shadow-2xl ring-1 ring-white/10">
+        <div className="w-full lg:w-96 bg-white/8 backdrop-blur-xl border-l border-white/20 flex flex-col h-screen shadow-2xl ring-1 ring-white/10">
           <div className="p-4 flex-1 overflow-hidden flex flex-col">
             
             {/* Top Section - Task Info */}
-            <div className="space-y-3 flex-shrink-0">
+            <div className="space-y-3 flex-shrink-0 p-4 bg-white/5 border-b border-white/10 rounded-t-lg">
               {/* Task Title */}
               <div>
               <label className="block text-xs font-medium text-white/80 mb-1 flex items-center gap-2">
@@ -1602,7 +1602,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
             </div>
 
             {/* Caption */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 p-4 bg-white/3 border-b border-white/10">
               <label className="block text-xs font-medium text-white/80 mb-1 flex items-center gap-2">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
@@ -1621,7 +1621,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
             </div>
 
             {/* Task Metadata */}
-            <div className="space-y-2 pt-4 border-t border-white/20 flex-shrink-0 bg-white/3 backdrop-blur-sm rounded-lg p-3 mt-3 ring-1 ring-white/5">
+            <div className="space-y-2 p-4 border-b border-white/10 flex-shrink-0 bg-white/5 rounded-lg ring-1 ring-white/5">
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <div className="text-white/50 mb-0.5">Status</div>
@@ -1649,8 +1649,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
             {/* Bottom Section - Annotations */}
             <div className="flex-1 flex flex-col min-h-0">
             {/* Annotations */}
-            <div className="pt-2 border-t border-white/10 flex flex-col flex-1 min-h-0">
-              <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-1.5 flex-shrink-0">
+            <div className="p-4 border-b border-white/10 bg-white/3 flex flex-col flex-1 min-h-0">
+              <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-1.5 flex-shrink-0">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -1740,8 +1740,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
             {/* Tools and Media Files Section - Scrollable */}
             <div className="overflow-y-auto">
             {/* Tools Section - Moved below Annotations */}
-            <div className="pt-2 pb-2 border-t border-white/10 flex-shrink-0">
-              <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-1.5">
+            <div className="p-4 border-t border-white/10 bg-white/5 flex-shrink-0">
+              <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
                 </svg>
@@ -1846,9 +1846,9 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
             </div>
 
             {/* Bottom Section - Media Files (moved from middle) */}
-            <div className="space-y-3 flex-shrink-0 mt-6 sm:mt-4">
+            <div className="space-y-3 flex-shrink-0 mt-8 sm:mt-6">
             {/* Horizontal Thumbnail Strip */}
-            <div className="pt-3 border-t border-white/10 flex-shrink-0">
+            <div className="p-4 border-t border-white/10 bg-white/3 flex-shrink-0">
               <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />

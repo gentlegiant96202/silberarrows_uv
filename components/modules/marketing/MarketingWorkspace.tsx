@@ -2053,7 +2053,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
             </div>
 
             </div>
-            </div>
 
             {/* Bottom Section - Empty (Tools and Media Files moved above) */}
             <div className="flex-1 flex flex-col min-h-0">

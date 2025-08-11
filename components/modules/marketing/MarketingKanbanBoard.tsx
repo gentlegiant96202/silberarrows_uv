@@ -73,11 +73,15 @@ const isTaskUrgent = (dateString: string) => {
   return diffDays <= 1;
 };
 
-// Helper to get preview image (first image or video)
+// Helper to get preview image (thumbnail or first image)
 function getPreviewUrl(mediaFiles: any[] = []): string | null {
   if (!mediaFiles || !mediaFiles.length) return null;
   
-  // First, try to find an image
+  // Prefer thumbnail if present
+  const withThumbnail = mediaFiles.find((f: any) => f.thumbnail);
+  if (withThumbnail) return withThumbnail.thumbnail;
+  
+  // Try to find an image file
   const imageFile = mediaFiles.find((f: any) => {
     if (typeof f === 'string') {
       return f.match(/\.(jpe?g|png|webp|gif)$/i);
@@ -89,16 +93,16 @@ function getPreviewUrl(mediaFiles: any[] = []): string | null {
     return typeof imageFile === 'string' ? imageFile : imageFile.url;
   }
   
-  // If no image, try to find a video
-  const videoFile = mediaFiles.find((f: any) => {
+  // Fallback: Check for PDF files and return a special indicator
+  const pdfFile = mediaFiles.find((f: any) => {
     if (typeof f === 'string') {
-      return f.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+      return f.match(/\.pdf$/i);
     }
-    return f.type?.startsWith('video/') || f.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+    return f.type === 'application/pdf' || f.name?.match(/\.pdf$/i);
   });
   
-  if (videoFile) {
-    return typeof videoFile === 'string' ? videoFile : videoFile.url;
+  if (pdfFile) {
+    return 'PDF_PREVIEW'; // Special indicator for PDF preview
   }
   
   return null;
@@ -279,30 +283,43 @@ export default function MarketingKanbanBoard() {
             if (payload.eventType === 'UPDATE') {
               const rawTask = payload.new;
               
-              // Transform raw database data to match frontend expectations
-              const baseTask: MarketingTask = {
-                id: rawTask.id,
-                title: rawTask.title,
-                description: rawTask.description,
-                status: rawTask.status,
-                assignee: rawTask.requested_by, // Map database field to frontend field
-                due_date: rawTask.due_date,
-                created_at: rawTask.created_at,
-                updated_at: rawTask.updated_at,
-                media_files: rawTask.media_files || [],
-                annotations: rawTask.annotations || [],
-                pinned: rawTask.pinned || false,
-                task_type: rawTask.task_type || 'design', // Include task_type field
-                priority: 'medium',
-                content_type: 'post',
-                tags: []
-              };
-              
-              const updatedTask = {
-                ...baseTask,
-                previewUrl: getPreviewUrl(baseTask.media_files)
-              };
-              return prev.map(task => task.id === updatedTask.id ? updatedTask : task);
+              return prev.map(task => {
+                if (task.id === rawTask.id) {
+                  console.log('🔄 Real-time update for task:', rawTask.id, {
+                    oldMediaFiles: task.media_files?.length || 0,
+                    newMediaFiles: rawTask.media_files?.length || 0,
+                    statusChange: task.status !== rawTask.status ? `${task.status} → ${rawTask.status}` : 'no change'
+                  });
+                  
+                  // Preserve existing task data and only update the changed fields
+                  const updatedTask = {
+                    ...task, // Preserve all existing data
+                    id: rawTask.id,
+                    title: rawTask.title || task.title,
+                    description: rawTask.description !== undefined ? rawTask.description : task.description,
+                    status: rawTask.status || task.status,
+                    assignee: rawTask.requested_by !== undefined ? rawTask.requested_by : task.assignee,
+                    due_date: rawTask.due_date !== undefined ? rawTask.due_date : task.due_date,
+                    updated_at: rawTask.updated_at || task.updated_at,
+                    // Only update media_files if explicitly provided in the update
+                    media_files: rawTask.media_files !== undefined ? rawTask.media_files : task.media_files,
+                    annotations: rawTask.annotations !== undefined ? rawTask.annotations : task.annotations,
+                    pinned: rawTask.pinned !== undefined ? rawTask.pinned : task.pinned,
+                    task_type: rawTask.task_type || task.task_type,
+                  };
+                  
+                  // Recalculate preview URL with preserved or updated media files
+                  updatedTask.previewUrl = getPreviewUrl(updatedTask.media_files);
+                  
+                  console.log('✅ Updated task with preserved media:', {
+                    finalMediaFiles: updatedTask.media_files?.length || 0,
+                    previewUrl: updatedTask.previewUrl
+                  });
+                  
+                  return updatedTask;
+                }
+                return task;
+              });
             }
             if (payload.eventType === 'DELETE') {
               return prev.filter(task => task.id !== payload.old.id);
@@ -377,7 +394,7 @@ export default function MarketingKanbanBoard() {
     setDraggedTask(null);
     setHovered(null);
     
-    // Optimistic update for immediate UI feedback
+    // Optimistic update for immediate UI feedback - preserve all existing data
     setTasks(prevTasks => 
       prevTasks.map(task =>
         task.id === taskToUpdate.id
@@ -720,7 +737,11 @@ export default function MarketingKanbanBoard() {
                       
                       {/* Full image display */}
                       <div className="w-full h-full rounded-lg overflow-hidden">
-                        {task.previewUrl ? (
+                        {task.previewUrl === 'PDF_PREVIEW' ? (
+                          <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-red-600/10 flex items-center justify-center p-1.5">
+                            <FileText className="w-8 h-8 text-red-400" />
+                          </div>
+                        ) : task.previewUrl ? (
                           <img 
                             src={task.previewUrl} 
                             alt={task.title}
@@ -813,26 +834,17 @@ export default function MarketingKanbanBoard() {
                       <div className="flex px-2 py-1 gap-1.5 min-h-[55px]">
                         {/* Left Side - Preview Thumbnail (4:5 ratio) */}
                         <div className="flex-shrink-0 w-16 h-20 relative">
-                          {previewUrl ? (
+                          {previewUrl === 'PDF_PREVIEW' ? (
+                            <div className="w-full h-full rounded-lg overflow-hidden border border-red-400/40 shadow-lg bg-gradient-to-br from-red-500/20 to-red-600/10 flex items-center justify-center">
+                              <FileText className="w-6 h-6 text-red-400" />
+                            </div>
+                          ) : previewUrl ? (
                             <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg">
-                              {previewUrl.match(/\.(mp4|mov|avi|webm|mkv)$/i) ? (
-                                <video 
-                                  src={previewUrl + '#t=0.1'} 
-                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                  muted
-                                  playsInline
-                                  preload="metadata"
-                                  onLoadedData={(e) => {
-                                    e.currentTarget.currentTime = 0.1;
-                                  }}
-                                />
-                              ) : (
-                                <img 
-                                  src={previewUrl} 
-                                  alt="Preview" 
-                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                                />
-                              )}
+                              <img 
+                                src={previewUrl} 
+                                alt="Preview" 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                              />
                               {/* Overlay gradient for depth */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </div>

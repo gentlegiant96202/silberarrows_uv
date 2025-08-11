@@ -6,6 +6,41 @@ import { MarketingTask } from '@/types/marketing';
 import { supabase } from '@/lib/supabaseClient';
 import AnnotationOverlay from './AnnotationOverlay';
 
+// Helper to get preview image (thumbnail or first image)
+function getPreviewUrl(mediaFiles: any[] = []): string | null {
+  if (!mediaFiles || !mediaFiles.length) return null;
+  
+  // Prefer thumbnail if present
+  const withThumbnail = mediaFiles.find((f: any) => f.thumbnail);
+  if (withThumbnail) return withThumbnail.thumbnail;
+  
+  // Try to find an image file
+  const imageFile = mediaFiles.find((f: any) => {
+    if (typeof f === 'string') {
+      return f.match(/\.(jpe?g|png|webp|gif)$/i);
+    }
+    return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
+  });
+  
+  if (imageFile) {
+    return typeof imageFile === 'string' ? imageFile : imageFile.url;
+  }
+  
+  // Fallback: Check for PDF files and return a special indicator
+  const pdfFile = mediaFiles.find((f: any) => {
+    if (typeof f === 'string') {
+      return f.match(/\.pdf$/i);
+    }
+    return f.type === 'application/pdf' || f.name?.match(/\.pdf$/i);
+  });
+  
+  if (pdfFile) {
+    return 'PDF_PREVIEW'; // Special indicator for PDF preview
+  }
+  
+  return null;
+}
+
 // Helper function to format dates to dd/mm/yyyy
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-GB', {
@@ -828,50 +863,78 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
     try {
       const uploadedFiles = [] as any[];
       for (const file of Array.from(files)) {
+        // Check file size limit (50MB)
+        const maxFileSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxFileSize) {
+          console.error(`File size exceeds 50MB limit: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+          setDeleteMessage(`File "${file.name}" exceeds 50MB limit`);
+          continue;
+        }
+
         setUploadFileName(file.name);
         setUploadProgress(0);
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('taskId', task.id);
-
-        const result = await new Promise<any>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable) {
-              const percent = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress(percent);
+        // Always use direct Supabase upload for all files
+        console.log('📤 Using direct Supabase upload for file:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        
+        const ext = file.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${ext}`;
+        const storagePath = `${task.id}/${fileName}`;
+        
+        // Real-time progress simulation for better UX
+        const simulateProgress = () => {
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += Math.random() * 15 + 5; // Random increment between 5-20%
+            if (progress > 90) {
+              progress = 90; // Cap at 90% until actual upload completes
+              clearInterval(interval);
             }
-          });
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                resolve(JSON.parse(xhr.responseText));
-              } catch (e) {
-                reject(new Error('Invalid JSON response'));
-              }
-            } else {
-              reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
-            }
-          });
-          xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-          xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
-          xhr.open('POST', '/api/upload-file');
-          xhr.timeout = 300000;
-          xhr.send(formData);
-        });
-
-        if (!result?.success) {
-          console.error('Upload error:', result?.error || 'Unknown error');
+            setUploadProgress(Math.min(progress, 90));
+          }, 200); // Update every 200ms for smooth progress
+          
+          return interval;
+        };
+        
+        const progressInterval = simulateProgress();
+        let publicUrl: string;
+        
+        try {
+          const { error: upErr } = await supabase.storage
+            .from('media-files')
+            .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+          
+          clearInterval(progressInterval);
+          
+          if (upErr) {
+            console.error('📤 Supabase upload error:', upErr);
+            setDeleteMessage(`Failed to upload "${file.name}": ${upErr.message}`);
+            continue;
+          }
+          
+          // Final progress updates
+          setUploadProgress(95);
+          
+          const { data: { publicUrl: url } } = supabase.storage
+            .from('media-files')
+            .getPublicUrl(storagePath);
+          
+          publicUrl = url;
+          console.log('📤 Direct Supabase upload completed:', publicUrl);
+          setUploadProgress(100);
+          
+        } catch (error) {
+          clearInterval(progressInterval);
+          console.error('📤 Upload error:', error);
+          setDeleteMessage(`Failed to upload "${file.name}": ${error instanceof Error ? error.message : 'Unknown error'}`);
           continue;
         }
 
         const fileObject: any = {
-          url: result.fileUrl,
+          url: publicUrl,
           name: file.name,
           type: file.type,
-          originalType: file.type,
-          ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {})
+          originalType: file.type
         };
 
         uploadedFiles.push(fileObject);
@@ -885,6 +948,19 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
         
         // Update the task object as well so other components can see the new files
         task.media_files = updatedMediaFiles;
+        
+        // Update task's preview URL immediately using the same logic as kanban board
+        const previewUrl = getPreviewUrl(updatedMediaFiles);
+        if (previewUrl && onSave) {
+          task.previewUrl = previewUrl;
+          // Notify parent component of the preview update
+          onSave({ 
+            ...task, 
+            media_files: updatedMediaFiles,
+            previewUrl 
+          });
+          console.log('✅ Updated task preview in MarketingWorkspace:', previewUrl);
+        }
         
         // Update database
         await supabase
@@ -1862,24 +1938,56 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                             <div className="w-full h-full bg-white/5 relative">
                             {/* Video thumbnail or icon */}
                             {isVideo ? (
-                              <video
-                                src={getImageUrl(file) + '#t=0.1'}
-                                className="w-full h-full object-cover"
-                                muted
-                                playsInline
-                                preload="metadata"
-                                style={{ 
-                                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                                  minWidth: '64px',
-                                  minHeight: '64px'
-                                }}
-                                onLoadedData={(e) => {
-                                  e.currentTarget.currentTime = 0.1;
-                                }}
-                                onError={() => {
-                                  // Fallback to video icon if video fails to load
-                                }}
-                              />
+                              isPdf || isConvertedPdf ? (
+                                <div className="w-full h-full flex items-center justify-center bg-red-500/20">
+                                  <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              ) : file.thumbnail && !failedThumbnails.has(index) ? (
+                                <div className="relative w-full h-full bg-black/50">
+                                  {loadingThumbnails.has(index) && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                                      <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                    </div>
+                                  )}
+                                  <img
+                                    src={file.thumbnail}
+                                    alt={`Video thumbnail ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    style={{ 
+                                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                      minWidth: '64px',
+                                      minHeight: '64px'
+                                    }}
+                                    onLoad={() => {
+                                      setLoadingThumbnails(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(index);
+                                        return newSet;
+                                      });
+                                    }}
+                                    onLoadStart={() => {
+                                      setLoadingThumbnails(prev => new Set(prev).add(index));
+                                    }}
+                                    onError={() => {
+                                      setFailedThumbnails(prev => new Set(prev).add(index));
+                                      setLoadingThumbnails(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(index);
+                                        return newSet;
+                                      });
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                  <svg className="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m15 9-6 6m0 0v-6m0 6h6" />
+                                  </svg>
+                                </div>
+                              )
                             ) : isPdf || isConvertedPdf ? (
                               <div className="w-full h-full flex items-center justify-center bg-red-500/20">
                                 <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

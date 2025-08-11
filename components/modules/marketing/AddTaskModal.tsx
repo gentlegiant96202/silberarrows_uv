@@ -8,6 +8,41 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import dayjs from 'dayjs';
 
+// Helper to get preview image (thumbnail or first image)
+function getPreviewUrl(mediaFiles: any[] = []): string | null {
+  if (!mediaFiles || !mediaFiles.length) return null;
+  
+  // Prefer thumbnail if present
+  const withThumbnail = mediaFiles.find((f: any) => f.thumbnail);
+  if (withThumbnail) return withThumbnail.thumbnail;
+  
+  // Try to find an image file
+  const imageFile = mediaFiles.find((f: any) => {
+    if (typeof f === 'string') {
+      return f.match(/\.(jpe?g|png|webp|gif)$/i);
+    }
+    return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
+  });
+  
+  if (imageFile) {
+    return typeof imageFile === 'string' ? imageFile : imageFile.url;
+  }
+  
+  // Fallback: Check for PDF files and return a special indicator
+  const pdfFile = mediaFiles.find((f: any) => {
+    if (typeof f === 'string') {
+      return f.match(/\.pdf$/i);
+    }
+    return f.type === 'application/pdf' || f.name?.match(/\.pdf$/i);
+  });
+  
+  if (pdfFile) {
+    return 'PDF_PREVIEW'; // Special indicator for PDF preview
+  }
+  
+  return null;
+}
+
 // PDF conversion is currently disabled (dependency issues). Return empty list.
 const convertPdfToImages = async (_file: File): Promise<Array<{blob: Blob, name: string, pageIndex: number, dataURL: string}>> => {
   return [];
@@ -24,6 +59,7 @@ interface AddTaskModalProps {
 
 interface FileWithThumbnail {
   file: File;
+  thumbnail?: string;
   uploadProgress: number;
   uploading: boolean;
   uploaded: boolean;
@@ -528,12 +564,32 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      const filesWithThumbnails: FileWithThumbnail[] = files.map(file => ({
-        file,
-        uploadProgress: 0,
-        uploading: false,
-        uploaded: false
-      }));
+      const filesWithThumbnails: FileWithThumbnail[] = [];
+
+      for (const file of files) {
+        try {
+          console.log('🎬 Starting thumbnail generation for:', file.name, 'type:', file.type);
+          const thumbnail = await generateThumbnail(file);
+          console.log('✅ Thumbnail generated for:', file.name, 'length:', thumbnail.length);
+          filesWithThumbnails.push({
+            file,
+            thumbnail,
+            uploadProgress: 0,
+            uploading: false,
+            uploaded: false
+          });
+        } catch (error) {
+          console.error('Error generating thumbnail:', error);
+          console.log('❌ Thumbnail generation failed for:', file.name, 'using empty thumbnail');
+          filesWithThumbnails.push({
+            file,
+            thumbnail: '',
+            uploadProgress: 0,
+            uploading: false,
+            uploaded: false
+          });
+        }
+      }
 
       // Get the current length before adding new files
       const currentLength = selectedFiles.length;
@@ -587,55 +643,81 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       console.log(`Processing file ${i + 1}/${filesToUpload.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
       
       try {
-        // Always use direct Supabase upload for all files
-        console.log('📤 Using direct Supabase upload for:', file.name);
+        // Check file size limit (50MB)
+        const maxFileSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxFileSize) {
+          throw new Error(`File size exceeds 50MB limit. File: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        }
         
-        // Show initial progress
-        setSelectedFiles(prev => prev.map((f, idx) => 
-          idx === globalIndex ? { ...f, uploadProgress: 5 } : f
-        ));
+        // Always use direct Supabase upload for all files
+        console.log('📤 Using direct Supabase upload for file:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
         
         const ext = file.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${ext}`;
         const storagePath = `${taskId}/${fileName}`;
         
-        // Show progress during upload
-        setSelectedFiles(prev => prev.map((f, idx) => 
-          idx === globalIndex ? { ...f, uploadProgress: 25 } : f
-        ));
+        // Real-time progress simulation for better UX
+        const simulateProgress = () => {
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += Math.random() * 15 + 5; // Random increment between 5-20%
+            if (progress > 90) {
+              progress = 90; // Cap at 90% until actual upload completes
+              clearInterval(interval);
+            }
+            setSelectedFiles(prev => prev.map((f, idx) => 
+              idx === globalIndex ? { ...f, uploadProgress: Math.min(progress, 90) } : f
+            ));
+          }, 200); // Update every 200ms for smooth progress
+          
+          return interval;
+        };
         
-        const { error: upErr } = await supabase.storage
-          .from('media-files')
-          .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+        const progressInterval = simulateProgress();
+        let publicUrl: string;
         
-        if (upErr) {
-          console.error('📤 Supabase upload error:', upErr);
-          throw new Error(upErr.message);
+        try {
+          const { error: upErr } = await supabase.storage
+            .from('media-files')
+            .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+          
+          clearInterval(progressInterval);
+          
+          if (upErr) {
+            console.error('📤 Supabase upload error:', upErr);
+            throw new Error(upErr.message);
+          }
+          
+          // Final progress updates
+          setSelectedFiles(prev => prev.map((f, idx) => 
+            idx === globalIndex ? { ...f, uploadProgress: 95 } : f
+          ));
+          
+          const { data: { publicUrl: url } } = supabase.storage
+            .from('media-files')
+            .getPublicUrl(storagePath);
+          
+          publicUrl = url;
+          console.log('📤 Direct Supabase upload completed:', publicUrl);
+          
+        } catch (error) {
+          clearInterval(progressInterval);
+          throw error;
         }
-        
-        // Show progress getting URL
-        setSelectedFiles(prev => prev.map((f, idx) => 
-          idx === globalIndex ? { ...f, uploadProgress: 80 } : f
-        ));
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('media-files')
-          .getPublicUrl(storagePath);
-        
-        console.log('📤 Direct Supabase upload completed:', publicUrl);
-        const result = { success: true, fileUrl: publicUrl };
 
         const newMediaItem = {
-          url: result.fileUrl,
+          url: publicUrl,
           name: file.name,
           type: file.type,
           size: file.size,
-          uploadedAt: new Date().toISOString()
+          uploadedAt: new Date().toISOString(),
+          // Include client-generated thumbnail for videos
+          ...(fileWithThumbnail.thumbnail ? { thumbnail: fileWithThumbnail.thumbnail } : {})
         };
         
         newMedia.push(newMediaItem);
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 100, uploading: false, uploaded: true } : f));
-        setExistingMedia(prev => [...prev, newMediaItem]);
+        
         console.log('✅ File upload completed:', file.name);
         
       } catch (error) {
@@ -660,11 +742,23 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         .eq('id', taskId);
       if (updErr) {
         console.error('Error updating media_files:', updErr);
-      } else if (onTaskUpdate && task) {
-        // Notify parent component of the updated task
-        const updatedTask = { ...task, media_files: updatedArray };
-        onTaskUpdate(updatedTask);
-        console.log('✅ Notified parent of task update with new media files');
+      } else {
+        // Update existing media in local state to reflect database
+        setExistingMedia(updatedArray);
+        
+        if (onTaskUpdate && task) {
+          // Calculate preview URL for the updated task
+          const previewUrl = getPreviewUrl(updatedArray);
+          
+          // Notify parent component of the updated task with preview
+          const updatedTask = { 
+            ...task, 
+            media_files: updatedArray,
+            previewUrl 
+          };
+          onTaskUpdate(updatedTask);
+          console.log('✅ Notified parent of task update with new media files and preview:', previewUrl);
+        }
       }
     }
   };
@@ -1019,32 +1113,33 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                 {selectedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3 max-h-32 overflow-y-auto">
                     {selectedFiles.map((fileWithThumbnail, index) => {
-                      const { file, uploadProgress, uploading, uploaded, error } = fileWithThumbnail;
+                      const { file, thumbnail, uploadProgress, uploading, uploaded, error } = fileWithThumbnail;
                       const isImage = file.type.startsWith('image/');
                       
                       return (
                         <div key={index} className="flex-shrink-0 w-64 flex items-center gap-2 p-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg shadow-inner ring-1 ring-white/5">
                           {/* Thumbnail or file icon */}
                           <div className="flex-shrink-0 w-10 h-10 rounded overflow-hidden bg-white/5 flex items-center justify-center">
-                            {isImage ? (
-                              <img 
-                                src={URL.createObjectURL(file)} 
-                                alt={file.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : file.type.startsWith('video/') ? (
-                              <video 
-                                src={URL.createObjectURL(file) + '#t=0.1'} 
-                                className="w-full h-full object-cover"
-                                muted
-                                playsInline
-                                preload="metadata"
-                                onLoadedData={(e) => {
-                                  e.currentTarget.currentTime = 0.1;
-                                }}
-                              />
+                            {thumbnail ? (
+                              <>
+                                {console.log('🖼️ Displaying thumbnail for', file.name, 'thumbnail length:', thumbnail.length, 'preview:', thumbnail.substring(0, 50))}
+                                <img 
+                                  src={thumbnail} 
+                                  alt={file.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    console.error('🚨 Thumbnail image failed to load for', file.name, 'src:', thumbnail.substring(0, 100));
+                                  }}
+                                  onLoad={() => {
+                                    console.log('✅ Thumbnail image loaded successfully for', file.name);
+                                  }}
+                                />
+                              </>
                             ) : (
-                              getFileIcon(file)
+                              <>
+                                {console.log('❌ No thumbnail for', file.name, 'showing file icon instead')}
+                                {getFileIcon(file)}
+                              </>
                             )}
                           </div>
 
@@ -1085,10 +1180,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                           {!uploading && (
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeFile(index);
-                              }}
+                              onClick={() => removeFile(index)}
                               className="text-white/70 hover:text-white text-xs leading-none flex-shrink-0 w-6 h-6 flex items-center justify-center"
                             >
                               ×
@@ -1166,20 +1258,25 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                           >
                             <div className="w-full h-full bg-white/5 relative">
                               {isVideo ? (
-                                // Show video with first frame as thumbnail
-                                <video
-                                  src={getImageUrl(file) + '#t=0.1'}
-                                  className="w-full h-full object-cover"
-                                  muted
-                                  playsInline
-                                  preload="metadata"
-                                  onLoadedData={(e) => {
-                                    e.currentTarget.currentTime = 0.1;
-                                  }}
-                                  onError={() => {
-                                    // Fallback to video icon if video fails to load
-                                  }}
-                                />
+                                // Show video thumbnail that was generated during file selection
+                                typeof file === 'string' ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                    <Video className="w-4 h-4 text-white/60" />
+                                  </div>
+                                ) : file.thumbnail && !failedThumbnails.has(index) ? (
+                                  <img
+                                    src={file.thumbnail}
+                                    alt={`Video thumbnail ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    onError={() => {
+                                      setFailedThumbnails(prev => new Set(prev).add(index));
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                    <Video className="w-4 h-4 text-white/60" />
+                                  </div>
+                                )
                               ) : isPdf || isConvertedPdf ? (
                                 <div className="w-full h-full flex items-center justify-center bg-white/10">
                                   <FileText className="w-4 h-4 text-gray-400" />

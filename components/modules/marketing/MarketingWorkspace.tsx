@@ -1646,10 +1646,10 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
             </div>
             </div>
 
-            {/* Bottom Section - Annotations */}
+            {/* Bottom Section - Annotations (Expanded) */}
             <div className="flex-1 flex flex-col min-h-0">
             {/* Annotations */}
-            <div className="p-4 border-b border-white/10 bg-white/3 flex flex-col flex-1 min-h-0">
+            <div className="p-4 border-b border-white/10 bg-white/3 flex flex-col min-h-96">
               <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-1.5 flex-shrink-0">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1739,19 +1739,19 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
 
             {/* Tools and Media Files Section - Scrollable */}
             <div className="overflow-y-auto">
-            {/* Tools Section - Moved below Annotations */}
-            <div className="p-4 border-t border-white/10 bg-white/5 flex-shrink-0">
-              <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-1.5">
+            {/* Tools Section - Compact */}
+            <div className="p-3 border-t border-white/10 bg-white/5 flex-shrink-0">
+              <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
                 </svg>
                 Tools
               </h4>
               
-              {/* Zoom Controls */}
-              <div className="space-y-3 mb-3">
+              {/* Zoom Controls - Compact */}
+              <div className="space-y-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/60 min-w-[40px]">Zoom:</span>
+                  <span className="text-xs text-white/60 min-w-[30px]">Zoom:</span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => {
@@ -1759,7 +1759,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                         setSelectedAnnotationId(null);
                       }} 
                       disabled={isAnnotationMode}
-                      className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold transition-colors ${
+                      className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-colors ${
                         isAnnotationMode
                           ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10' 
                           : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30 border border-white/20'
@@ -1769,7 +1769,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                       −
                     </button>
                     
-                    <div className={`px-2 py-1 text-white text-xs rounded text-center min-w-[50px] border transition-colors ${
+                    <div className={`px-2 py-1 text-white text-xs rounded text-center min-w-[40px] border transition-colors ${
                       isAnnotationMode 
                         ? 'bg-black/20 border-white/10 text-white/30' 
                         : 'bg-black/50 border-white/10 text-white'
@@ -1783,7 +1783,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                         setSelectedAnnotationId(null);
                       }} 
                       disabled={isAnnotationMode}
-                      className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold transition-colors ${
+                      className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-colors ${
                         isAnnotationMode 
                           ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10' 
                           : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30 border border-white/20'
@@ -1847,9 +1847,9 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
 
             {/* Bottom Section - Media Files (moved from middle) */}
             <div className="space-y-3 flex-shrink-0 mt-8 sm:mt-6">
-            {/* Horizontal Thumbnail Strip */}
-            <div className="p-4 border-t border-white/10 bg-white/3 flex-shrink-0">
-              <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-2">
+            {/* Horizontal Thumbnail Strip - Compact */}
+            <div className="p-3 border-t border-white/10 bg-white/3 flex-shrink-0">
+              <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -1870,20 +1870,20 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                 )}
               </h4>
               
-                                           {/* Horizontal Thumbnail Grid */}
+              {/* Horizontal Thumbnail Grid - More Compact */}
               <div 
-                className="flex gap-3 overflow-x-auto pb-2 mb-4 scrollbar-hide" 
+                className="flex gap-2 overflow-x-auto pb-1 mb-2 scrollbar-hide" 
                 style={{ 
                   scrollbarWidth: 'none', 
                   msOverflowStyle: 'none',
-                  minHeight: '72px' // Fixed min-height to prevent initial collapse
+                  minHeight: '48px' // Updated to match smaller thumbnail size
                 }}
               >
                 {!isMounted || allViewableFiles.length === 0 ? (
                   // Loading skeleton to prevent layout shift
                   <div className="flex gap-3 items-center">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 animate-pulse">
+                      <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 animate-pulse">
                         <div className="w-full h-full bg-white/10"></div>
                       </div>
                     ))}
@@ -1921,7 +1921,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                           onClick={() => {
                             setSelectedImageIndex(index);
                           }}
-                          className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-16 h-16 hover:ring-1 hover:ring-white/20 ${
+                          className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-12 h-12 hover:ring-1 hover:ring-white/20 ${
                             draggedIndex === index ? 'opacity-30 scale-95 rotate-3' : ''
                           } ${
                             dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-400 scale-105' : ''
@@ -1929,12 +1929,12 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                             selectedImageIndex === index ? 'ring-2 ring-white scale-105' : ''
                           }`}
                           style={{
-                            width: '64px',
-                            height: '64px',
-                            minWidth: '64px',
-                            minHeight: '64px',
-                            maxWidth: '64px',
-                            maxHeight: '64px'
+                            width: '48px',
+                            height: '48px',
+                            minWidth: '48px',
+                            minHeight: '48px',
+                            maxWidth: '48px',
+                            maxHeight: '48px'
                           }}
                         >
                             <div className="w-full h-full bg-white/5 relative">
@@ -1959,8 +1959,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                                     className="w-full h-full object-cover"
                                     style={{ 
                                       backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                                      minWidth: '64px',
-                                      minHeight: '64px'
+                                      minWidth: '48px',
+                                      minHeight: '48px'
                                     }}
                                     onLoad={() => {
                                       setLoadingThumbnails(prev => {
@@ -2009,8 +2009,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                                   className="w-full h-full object-cover"
                                   style={{ 
                                     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                    minWidth: '64px',
-                                    minHeight: '64px'
+                                    minWidth: '48px',
+                                    minHeight: '48px'
                                   }}
                                   onLoad={() => {
                                     setLoadingThumbnails(prev => {
@@ -2070,7 +2070,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
                     
                     {/* Upload button - only show if user has edit permission */}
                     {canEdit && (
-                      <div className="aspect-square border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center hover:border-white/40 transition-colors cursor-pointer group relative flex-shrink-0 w-16 h-16">
+                      <div className="aspect-square border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center hover:border-white/40 transition-colors cursor-pointer group relative flex-shrink-0 w-12 h-12">
                         <input
                           type="file"
                           multiple

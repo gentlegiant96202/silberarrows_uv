@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MarketingTask } from '@/types/marketing';
-import { Trash2, FileText, Video, Image as ImageIcon, Plus, Play } from 'lucide-react';
+import { Trash2, FileText, Video, Image as ImageIcon, Plus, Play, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -71,6 +71,7 @@ interface FileWithThumbnail {
 export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUpdate, isAdmin = false }: AddTaskModalProps) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [hasActiveUpload, setHasActiveUpload] = useState(false);
   const [formData, setFormData] = useState({
     title: task?.title || '',
@@ -843,6 +844,88 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
     }
   };
 
+  // Download all files as ZIP
+  const handleDownloadAllFiles = async () => {
+    const allFiles = [...existingMedia, ...selectedFiles.filter(f => f.uploaded)];
+    
+    if (allFiles.length === 0) {
+      alert('No files to download');
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      // Dynamic import of JSZip for client-side ZIP creation
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      let processedFiles = 0;
+      const totalFiles = allFiles.length;
+      
+      for (let i = 0; i < allFiles.length; i++) {
+        const file = allFiles[i];
+        let fileUrl: string;
+        let fileName: string;
+        
+        if (typeof file === 'string') {
+          fileUrl = file;
+          fileName = `file_${i + 1}`;
+        } else if (file.file) {
+          // This is a selected file that hasn't been uploaded yet
+          const fileBlob = new Blob([await file.file.arrayBuffer()]);
+          zip.file(file.file.name, fileBlob);
+          processedFiles++;
+          continue;
+        } else {
+          fileUrl = file.url;
+          fileName = file.name || `file_${i + 1}`;
+        }
+        
+        try {
+          // Fetch the file content
+          const response = await fetch(fileUrl);
+          if (!response.ok) throw new Error(`Failed to fetch ${fileName}`);
+          
+          const blob = await response.blob();
+          
+          // Add to zip with proper filename
+          zip.file(fileName, blob);
+          processedFiles++;
+          
+        } catch (error) {
+          console.error(`Error downloading file ${fileName}:`, error);
+          // Continue with other files
+        }
+      }
+      
+      if (processedFiles === 0) {
+        alert('Failed to download any files');
+        return;
+      }
+      
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Create download link
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${task?.title || 'task'}_files.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log(`✅ Successfully created ZIP with ${processedFiles}/${totalFiles} files`);
+      
+    } catch (error) {
+      console.error('Error creating ZIP file:', error);
+      alert('Failed to create ZIP file');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
@@ -1341,11 +1424,12 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
 
           {/* Actions */}
           <div className="flex justify-between items-center pt-2">
-            {/* Delete button (only show for existing tasks) */}
-            <div>
+            {/* Left side actions */}
+            <div className="flex gap-2">
+              {/* Delete button (only show for existing tasks) */}
               {task && onDelete && (
-            <button
-              type="button"
+                <button
+                  type="button"
                   onClick={handleDelete}
                   className="px-2 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 hover:text-red-200 text-xs rounded transition-all flex items-center gap-1.5"
                   disabled={deleting}
@@ -1354,7 +1438,20 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                   {deleting ? 'Deleting...' : 'Delete'}
-            </button>
+                </button>
+              )}
+              
+              {/* Download ZIP button (show if there are files) */}
+              {(existingMedia.length > 0 || selectedFiles.some(f => f.uploaded)) && (
+                <button
+                  type="button"
+                  onClick={handleDownloadAllFiles}
+                  className="px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:text-blue-200 text-xs rounded transition-all flex items-center gap-1.5"
+                  disabled={downloading}
+                >
+                  <Download className="w-3 h-3" />
+                  {downloading ? 'Creating ZIP...' : 'Download ZIP'}
+                </button>
               )}
             </div>
 

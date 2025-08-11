@@ -7,6 +7,7 @@ import { MessageSquare, CheckCircle, Car, XCircle } from 'lucide-react';
 import NewAppointmentModal from "../modals/NewAppointmentModal";
 import LeadDetailsModal from "../modals/LeadDetailsModal";
 import LostReasonModal from "../modals/LostReasonModal";
+import VehicleDocumentModal from "../modals/VehicleDocumentModal";
 import { useSearchStore } from "@/lib/searchStore";
 
 interface Lead {
@@ -90,6 +91,11 @@ export default function KanbanBoard() {
   const [showLostReasonModal, setShowLostReasonModal] = useState(false);
   const [leadToLose, setLeadToLose] = useState<Lead | null>(null);
   const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
+  
+  // Vehicle Document Modal states
+  const [showVehicleDocumentModal, setShowVehicleDocumentModal] = useState(false);
+  const [vehicleDocumentMode, setVehicleDocumentMode] = useState<'reservation' | 'invoice'>('reservation');
+  const [leadForDocument, setLeadForDocument] = useState<Lead | null>(null);
 
   // Search store
   const { query } = useSearchStore();
@@ -221,6 +227,22 @@ export default function KanbanBoard() {
       return; // Don't update database yet, wait for lost reason modal
     }
     
+    // Special case: moving to reserved (won) - trigger reservation form
+    if (targetCol === 'won') {
+      setLeadForDocument(leadToMove);
+      setVehicleDocumentMode('reservation');
+      setShowVehicleDocumentModal(true);
+      return; // Don't update database yet, wait for reservation form
+    }
+    
+    // Special case: moving to delivered - trigger invoice form
+    if (targetCol === 'delivered') {
+      setLeadForDocument(leadToMove);
+      setVehicleDocumentMode('invoice');
+      setShowVehicleDocumentModal(true);
+      return; // Don't update database yet, wait for invoice form
+    }
+    
     // Normal drag and drop - update database and let realtime subscription handle UI update
     const { error } = await supabase.from("leads").update({ 
       status: targetCol,
@@ -234,13 +256,35 @@ export default function KanbanBoard() {
 
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
 
-  const handleCardClick = (lead: Lead, e: React.MouseEvent) => {
+  const handleCardClick = async (lead: Lead, e: React.MouseEvent) => {
     // Don't open modal if we're dragging
     if (isDragging) return;
     
     // Small delay to distinguish between drag and click
-    setTimeout(() => {
+    setTimeout(async () => {
       if (!isDragging) {
+        // Check if lead is in won/delivered status and has a reservation document
+        console.log('Lead clicked:', lead.id, 'status:', lead.status);
+        if (lead.status === 'won' || lead.status === 'delivered') {
+          console.log('Checking for existing reservation for lead:', lead.id);
+          // Check for existing reservation
+          const { data: existingReservation, error } = await supabase
+            .from('vehicle_reservations')
+            .select('*')
+            .eq('lead_id', lead.id)
+            .single();
+            
+          console.log('Existing reservation:', existingReservation, 'error:', error);
+          
+          // Always open vehicle document modal for won/delivered leads
+          console.log('Opening vehicle document modal');
+          setLeadForDocument(lead);
+          setVehicleDocumentMode(lead.status === 'won' ? 'reservation' : 'invoice');
+          setShowVehicleDocumentModal(true);
+          return;
+        }
+        
+        // Default behavior - open lead details modal
         setSelectedLead(lead);
       }
     }, 10);
@@ -308,6 +352,30 @@ export default function KanbanBoard() {
   const handleLostReasonCancel = () => {
     setShowLostReasonModal(false);
     setLeadToLose(null);
+  };
+
+  const handleVehicleDocumentSubmit = async () => {
+    if (!leadForDocument) return;
+    
+    // Update lead status after document generation
+    const newStatus = vehicleDocumentMode === 'reservation' ? 'won' : 'delivered';
+    const { error } = await supabase.from("leads").update({ 
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    }).eq("id", leadForDocument.id);
+    
+    if (error) {
+      console.error("Failed to update lead status:", error);
+    }
+    
+    // Close modal and reset state
+    setShowVehicleDocumentModal(false);
+    setLeadForDocument(null);
+  };
+
+  const handleVehicleDocumentCancel = () => {
+    setShowVehicleDocumentModal(false);
+    setLeadForDocument(null);
   };
 
   const formatBudget = (lead: Lead) => {
@@ -498,6 +566,16 @@ export default function KanbanBoard() {
           onClose={handleLostReasonCancel}
           onConfirm={handleLostReasonConfirm}
           isLoading={isUpdatingLostLead}
+        />
+      )}
+      
+      {showVehicleDocumentModal && leadForDocument && (
+        <VehicleDocumentModal
+          isOpen={showVehicleDocumentModal}
+          mode={vehicleDocumentMode}
+          lead={leadForDocument}
+          onClose={handleVehicleDocumentCancel}
+          onSubmit={handleVehicleDocumentSubmit}
         />
       )}
     </div>

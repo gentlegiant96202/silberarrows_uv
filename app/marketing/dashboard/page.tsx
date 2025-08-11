@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Header from '@/components/Header';
 import MarketingKanbanBoard from '@/components/modules/marketing/MarketingKanbanBoard';
+import UVCatalogBoard from '@/components/modules/marketing/UVCatalogBoard';
 import RouteProtector from '@/components/shared/RouteProtector';
 
 export default function MarketingDashboard() {
@@ -11,6 +12,10 @@ export default function MarketingDashboard() {
   const renderContent = () => {
     if (activeTab === 'design') {
       return <MarketingKanbanBoard />;
+    }
+    
+    if (activeTab === 'uv_catalog') {
+      return <UVCatalogBoard />;
     }
     
     return (

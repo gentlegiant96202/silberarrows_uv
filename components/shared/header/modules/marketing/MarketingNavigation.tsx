@@ -2,6 +2,7 @@
 
 const marketingTabs = [
   { key: 'design', title: 'CREATIVE HUB' },
+  { key: 'uv_catalog', title: 'UV CATALOG' },
   { key: 'blog', title: 'BLOG' },
   { key: 'email', title: 'EMAIL' }
 ];

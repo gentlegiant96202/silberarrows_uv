@@ -12,10 +12,13 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 
 const templatePath = path.resolve(__dirname, '../public/templates/price-drop-template.html');
+const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
 let templateHtml = '';
+let catalogTemplateHtml = '';
 
 async function loadTemplate() {
   templateHtml = await fs.readFile(templatePath, 'utf-8');
+  catalogTemplateHtml = await fs.readFile(catalogTemplatePath, 'utf-8');
 }
 
 function replaceAll(str, find, replace) {
@@ -35,6 +38,22 @@ function fillTemplate({ carDetails, pricing, firstImageUrl }) {
     '{{savings}}': String(pricing.savings ?? ''),
     '{{monthlyPayment}}': String(pricing.monthlyPayment ?? ''),
     '{{carImageUrl1}}': String(firstImageUrl ?? ''),
+  };
+  for (const [key, value] of Object.entries(replacements)) {
+    html = replaceAll(html, key, value);
+  }
+  return html;
+}
+
+function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
+  let html = catalogTemplateHtml;
+  const replacements = {
+    '{{year}}': String(carDetails.year ?? ''),
+    '{{model}}': String(carDetails.model ?? ''),
+    '{{mileage}}': String(carDetails.mileage ?? ''),
+    '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
+    '{{price}}': String(carDetails.price ?? ''),
+    '{{catalogImageUrl}}': String(catalogImageUrl ?? ''),
   };
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);
@@ -81,6 +100,39 @@ app.post('/render', async (req, res) => {
     res.json({ success: true, image45, imageStory });
   } catch (err) {
     console.error('Render error:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+app.post('/render-catalog', async (req, res) => {
+  try {
+    const { carDetails, catalogImageUrl } = req.body || {};
+    if (!carDetails || !catalogImageUrl) {
+      return res.status(400).json({ success: false, error: 'Missing required fields: carDetails and catalogImageUrl' });
+    }
+
+    const html = fillCatalogTemplate({ carDetails, catalogImageUrl });
+
+    // Prefer Playwright; it exists in this image
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+
+    // Square format for catalog (1080x1080)
+    await page.setViewportSize({ width: 1080, height: 1080 });
+    await page.setContent(html, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
+    await page.evaluate(() => document.fonts && document.fonts.ready);
+    await page.waitForTimeout(800);
+    const catalogBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1080 } });
+
+    await browser.close();
+
+    const catalogImage = catalogBuffer.toString('base64');
+
+    res.json({ success: true, catalogImage });
+  } catch (err) {
+    console.error('Catalog render error:', err);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });

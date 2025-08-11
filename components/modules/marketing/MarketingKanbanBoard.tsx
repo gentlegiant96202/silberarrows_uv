@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Archive, CheckCircle, Instagram, Pin } from 'lucide-react';
 import { MarketingTask, MarketingStatus, MarketingColumn } from '@/types/marketing';
 import { supabase } from '@/lib/supabaseClient';
@@ -168,6 +168,7 @@ export default function MarketingKanbanBoard() {
   const [draggedTask, setDraggedTask] = useState<MarketingTask | null>(null);
   const [hovered, setHovered] = useState<ColKey | null>(null);
   const [pinningTask, setPinningTask] = useState<string | null>(null);
+  const hasFetchedTasks = useRef(false);
   
   // Get permissions and user role
   const { canView, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModulePermissions('marketing');
@@ -237,7 +238,10 @@ export default function MarketingKanbanBoard() {
   };
 
   useEffect(() => {
-    fetchTasks();
+    if (!hasFetchedTasks.current) {
+      fetchTasks();
+      hasFetchedTasks.current = true;
+    }
 
     // Real-time subscription for live updates across browsers
     const channel = supabase
@@ -278,52 +282,42 @@ export default function MarketingKanbanBoard() {
               if (taskExists) {
                 return prev;
               }
-              return [newTask, ...prev];
-            }
-            if (payload.eventType === 'UPDATE') {
-              const rawTask = payload.new;
               
-              return prev.map(task => {
-                if (task.id === rawTask.id) {
-                  console.log('🔄 Real-time update for task:', rawTask.id, {
-                    oldMediaFiles: task.media_files?.length || 0,
-                    newMediaFiles: rawTask.media_files?.length || 0,
-                    statusChange: task.status !== rawTask.status ? `${task.status} → ${rawTask.status}` : 'no change'
-                  });
-                  
-                  // Preserve existing task data and only update the changed fields
-                  const updatedTask = {
-                    ...task, // Preserve all existing data
-                    id: rawTask.id,
-                    title: rawTask.title || task.title,
-                    description: rawTask.description !== undefined ? rawTask.description : task.description,
-                    status: rawTask.status || task.status,
-                    assignee: rawTask.requested_by !== undefined ? rawTask.requested_by : task.assignee,
-                    due_date: rawTask.due_date !== undefined ? rawTask.due_date : task.due_date,
-                    updated_at: rawTask.updated_at || task.updated_at,
-                    // Only update media_files if explicitly provided in the update
-                    media_files: rawTask.media_files !== undefined ? rawTask.media_files : task.media_files,
-                    annotations: rawTask.annotations !== undefined ? rawTask.annotations : task.annotations,
-                    pinned: rawTask.pinned !== undefined ? rawTask.pinned : task.pinned,
-                    task_type: rawTask.task_type || task.task_type,
-                  };
-                  
-                  // Recalculate preview URL with preserved or updated media files
-                  updatedTask.previewUrl = getPreviewUrl(updatedTask.media_files);
-                  
-                  console.log('✅ Updated task with preserved media:', {
-                    finalMediaFiles: updatedTask.media_files?.length || 0,
-                    previewUrl: updatedTask.previewUrl
-                  });
-                  
-                  return updatedTask;
-                }
-                return task;
-              });
-            }
-            if (payload.eventType === 'DELETE') {
+              return [...prev, newTask];
+            } 
+            else if (payload.eventType === 'UPDATE') {
+              const rawTask = payload.new;
+              const baseTask: MarketingTask = {
+                id: rawTask.id,
+                title: rawTask.title,
+                description: rawTask.description,
+                status: rawTask.status,
+                assignee: rawTask.requested_by, // Map database field to frontend field
+                due_date: rawTask.due_date,
+                created_at: rawTask.created_at,
+                updated_at: rawTask.updated_at,
+                media_files: rawTask.media_files || [],
+                annotations: rawTask.annotations || [],
+                pinned: rawTask.pinned || false,
+                task_type: rawTask.task_type || 'design', // Include task_type field
+                priority: 'medium',
+                content_type: 'post',
+                tags: []
+              };
+              
+              const updatedTask = {
+                ...baseTask,
+                previewUrl: getPreviewUrl(baseTask.media_files)
+              };
+              
+              return prev.map(task => 
+                task.id === updatedTask.id ? updatedTask : task
+              );
+            } 
+            else if (payload.eventType === 'DELETE') {
               return prev.filter(task => task.id !== payload.old.id);
             }
+            
             return prev;
           });
         }
@@ -412,6 +406,14 @@ export default function MarketingKanbanBoard() {
         body: JSON.stringify({
           id: taskToUpdate.id,
           status,
+          // Preserve all existing task data to prevent data loss
+          title: taskToUpdate.title,
+          description: taskToUpdate.description,
+          assignee: taskToUpdate.assignee,
+          due_date: taskToUpdate.due_date,
+          task_type: taskToUpdate.task_type,
+          media_files: taskToUpdate.media_files,
+          // Don't send annotations in status updates to avoid conflicts
         }),
       });
 

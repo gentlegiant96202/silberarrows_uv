@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import AddCarModal from '@/components/modules/uv-crm/modals/AddCarModal';
 import CarDetailsModal from '@/components/modules/uv-crm/modals/CarDetailsModal';
@@ -33,6 +33,7 @@ export default function CarKanbanBoard() {
   const [selected, setSelected] = useState<Car | null>(null);
   const [selectedCarFull, setSelectedCarFull] = useState<any | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const hasFetchedCars = useRef(false);
   
   // Inventory filter state
   const [showInventoryFilters, setShowInventoryFilters] = useState(false);
@@ -162,7 +163,10 @@ export default function CarKanbanBoard() {
   const cleanModel = (model:string) => model.replace(/^(MERCEDES[\s-]*BENZ\s+)/i, '');
 
   useEffect(() => {
-    load();
+    if (!hasFetchedCars.current) {
+      load();
+      hasFetchedCars.current = true;
+    }
 
     const carsChannel = supabase
       .channel('cars-stream')

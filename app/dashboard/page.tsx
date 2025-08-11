@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Header from '@/components/Header';
 import DashboardFilterBar from '@/components/modules/uv-crm/dashboard/DashboardFilterBar';
 import SharedSalesDashboard from '@/components/shared/SalesDashboard';
@@ -129,6 +129,7 @@ export default function DashboardPage() {
   // Sales dashboard state
   const [allSalesMetrics, setAllSalesMetrics] = useState<any[]>([]);
   const [allSalesTargets, setAllSalesTargets] = useState<any[]>([]);
+  const hasFetchedInitialData = useRef(false);
 
   // Trend chart data
   const [trendData, setTrendData] = useState<any[]>([]);
@@ -141,12 +142,12 @@ export default function DashboardPage() {
         .select('*')
         .order('year', { ascending: false })
         .order('month', { ascending: false });
-      
+
       if (error) {
         console.error('Error fetching sales targets:', error);
         return [];
       }
-      
+
       setAllSalesTargets(salesTargets || []);
       return salesTargets || [];
     } catch (error) {
@@ -157,21 +158,24 @@ export default function DashboardPage() {
 
   // Load sales data on component mount
   useEffect(() => {
-    async function loadSalesData() {
-      try {
-        const [salesMetrics, salesTargets] = await Promise.all([
-          fetchSalesMetrics(),
-          fetchAllSalesTargets()
-        ]);
-        setAllSalesMetrics(salesMetrics);
-        setAllSalesTargets(salesTargets);
-      } catch (error) {
-        console.error('Error loading sales data:', error);
+    if (!hasFetchedInitialData.current) {
+      async function loadSalesData() {
+        try {
+          const [salesMetrics, salesTargets] = await Promise.all([
+            fetchSalesMetrics(),
+            fetchAllSalesTargets()
+          ]);
+          setAllSalesMetrics(salesMetrics);
+          setAllSalesTargets(salesTargets);
+          hasFetchedInitialData.current = true;
+        } catch (error) {
+          console.error('Error loading sales data:', error);
+        }
       }
-    }
 
-    loadSalesData();
-  }, [fetchSalesMetrics]);
+      loadSalesData();
+    }
+  }, []); // Remove fetchSalesMetrics dependency
 
   // trend effect
   useEffect(() => {

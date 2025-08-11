@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -91,6 +91,7 @@ export default function KanbanBoard() {
   const [showLostReasonModal, setShowLostReasonModal] = useState(false);
   const [leadToLose, setLeadToLose] = useState<Lead | null>(null);
   const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
+  const hasFetchedLeads = useRef(false);
   
   // Vehicle Document Modal states
   const [showVehicleDocumentModal, setShowVehicleDocumentModal] = useState(false);
@@ -119,11 +120,14 @@ export default function KanbanBoard() {
 
   // fetch initial data
   useEffect(() => {
-    async function load() {
-      const leadsResult = await supabase.from("leads").select("*").order("updated_at", { ascending: false });
-      if (leadsResult.data) setLeads(leadsResult.data as unknown as Lead[]);
+    if (!hasFetchedLeads.current) {
+      async function load() {
+        const leadsResult = await supabase.from("leads").select("*").order("updated_at", { ascending: false });
+        if (leadsResult.data) setLeads(leadsResult.data as unknown as Lead[]);
+        hasFetchedLeads.current = true;
+      }
+      load();
     }
-    load();
 
     // realtime subscription
     const channel = supabase

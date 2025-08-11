@@ -27,6 +27,8 @@ export default function MarketingTicketsDropdown() {
   const { user } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const lastFetchedUserId = useRef<string | null>(null);
+  const hasFetchedOnce = useRef(false);
 
   const statusColors = {
     planned: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
@@ -53,11 +55,19 @@ export default function MarketingTicketsDropdown() {
   };
 
   useEffect(() => {
-    fetchMyTickets();
+    if (!user?.id) return;
+    
+    // Only fetch if user changed or we haven't fetched yet
+    if (user.id !== lastFetchedUserId.current || !hasFetchedOnce.current) {
+      console.log('Fetching design tasks...');
+      fetchMyTickets();
+      lastFetchedUserId.current = user.id;
+      hasFetchedOnce.current = true;
+    }
     
     // Subscribe to real-time updates
     const subscription = supabase
-      .channel('my_marketing_tickets')
+      .channel(`my_marketing_tickets_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -66,8 +76,10 @@ export default function MarketingTicketsDropdown() {
           table: 'design_tasks',
         },
         (payload) => {
-          // Refresh tickets when changes occur
-          fetchMyTickets();
+          // Only refresh if it affects this user's tickets
+          if (payload.new?.assignee === user.id || payload.old?.assignee === user.id) {
+            fetchMyTickets();
+          }
         }
       )
       .subscribe();
@@ -75,7 +87,7 @@ export default function MarketingTicketsDropdown() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id, not the entire user object
 
   // Close dropdown when clicking outside and handle window resize
   useEffect(() => {

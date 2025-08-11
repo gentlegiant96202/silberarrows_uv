@@ -2060,6 +2060,9 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
           </div>
         </div>
       </div>
+    </div>
+  </div>
   </div>
   );
-  }
+}
+

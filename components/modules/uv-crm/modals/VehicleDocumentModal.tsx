@@ -83,6 +83,9 @@ interface FormData {
   invoiceTotal: number;
   deposit: number;
   amountDue: number;
+  
+  // Additional Notes
+  additionalNotes: string;
 }
 
 export default function VehicleDocumentModal({ 
@@ -163,6 +166,9 @@ export default function VehicleDocumentModal({
     invoiceTotal: 0,
     deposit: 0,
     amountDue: 0,
+    
+    // Additional Notes
+    additionalNotes: '',
   });
 
   const [inventoryCar, setInventoryCar] = useState<InventoryCar | null>(null);
@@ -460,7 +466,8 @@ export default function VehicleDocumentModal({
           addOnsTotal: existingReservation.add_ons_total || 0,
           invoiceTotal: existingReservation.invoice_total || 0,
           deposit: existingReservation.deposit || 0,
-          amountDue: existingReservation.amount_due || 0
+          amountDue: existingReservation.amount_due || 0,
+          additionalNotes: existingReservation.additional_notes || ''
         }));
         console.log('Form data updated with existing reservation');
       }
@@ -560,6 +567,9 @@ export default function VehicleDocumentModal({
         invoice_total: formData.invoiceTotal,
         deposit: formData.deposit,
         amount_due: formData.amountDue,
+        
+        // Additional notes
+        additional_notes: formData.additionalNotes,
         
         // Audit
         created_by: user?.id || null
@@ -1210,6 +1220,26 @@ export default function VehicleDocumentModal({
                       AED {formData.amountDue.toLocaleString()}
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Notes Section */}
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
+              <h3 className="text-sm font-medium text-white mb-3">Additional Notes</h3>
+              <div>
+                <label className="block text-xs font-medium text-white/80 mb-2">
+                  Notes (will appear on the {mode === 'reservation' ? 'reservation form' : 'invoice'})
+                </label>
+                <textarea
+                  value={formData.additionalNotes}
+                  onChange={(e) => handleInputChange('additionalNotes', e.target.value)}
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-xs placeholder-white/40 resize-none"
+                  placeholder={`Enter any additional notes for this ${mode}...`}
+                  rows={3}
+                />
+                <div className="text-xs text-white/60 mt-1">
+                  These notes will be displayed on the first page of the generated document.
                 </div>
               </div>
             </div>

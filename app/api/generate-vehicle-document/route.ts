@@ -30,6 +30,28 @@ function generateReservationHTML(formData: any, mode: string) {
     }
   };
   
+  // Invoice-specific customizations
+  const headerTitle = isInvoice 
+    ? 'NEW AND PRE-OWNED VEHICLE<br>SALES INVOICE'
+    : 'NEW AND PRE-OWNED VEHICLE<br>RESERVATION FORM';
+    
+  const termsTitle = isInvoice
+    ? 'GENERAL TERMS & CONDITIONS FOR<br>NEW & PRE-OWNED VEHICLE SALES'
+    : 'GENERAL TERMS & CONDITIONS FOR<br>NEW & PRE-OWNED VEHICLE SALES';
+    
+  // Different titles for signature section vs terms page
+  const signatureTermsTitle = isInvoice
+    ? 'GENERAL TERMS & CONDITIONS FOR<br>NEW & PRE-OWNED VEHICLE SALES'
+    : ''; // Remove title for reservation signature section
+    
+  const termsContent = isInvoice
+    ? 'Payment has been received in full. Vehicle ownership will be transferred upon completion of RTA procedures. All add-ons and services are confirmed as per this invoice. Vehicle delivery is subject to final inspection and documentation completion.'
+    : 'The final balance must be paid in full before the transfer of ownership. Payments made by credit card will incur a 2% surcharge. The reservation deposit is non-refundable. All prices include VAT unless otherwise specified. Additional terms and conditions apply, please refer to the reverse side for details.';
+  
+  // Status-specific labels
+  const paymentStatusLabel = isInvoice ? 'Payment Status' : 'Amount Due';
+  const paymentStatusValue = isInvoice ? 'PAID IN FULL' : `AED ${safeNumber(formData.amountDue)}`;
+  
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -366,6 +388,20 @@ function generateReservationHTML(formData: any, mode: string) {
           z-index: 2;
           text-align: justify;
         }
+
+        .notes-content {
+          background-color: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 4px;
+          padding: 12px;
+          font-size: 10px;
+          line-height: 1.4;
+          color: white;
+          position: relative;
+          z-index: 2;
+          min-height: 40px;
+          white-space: pre-wrap;
+        }
       </style>
     </head>
     <body>
@@ -373,7 +409,7 @@ function generateReservationHTML(formData: any, mode: string) {
       <div class="page first-page">
         <div class="header">
           <div class="title-section">
-            <div class="title">NEW AND PRE-OWNED VEHICLE<br>RESERVATION FORM</div>
+            <div class="title">${headerTitle}</div>
           </div>
           <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="logo">
         </div>
@@ -519,6 +555,16 @@ function generateReservationHTML(formData: any, mode: string) {
             </table>
           </div>
 
+          <!-- NOTES SECTION -->
+          ${formData.additionalNotes && formData.additionalNotes.trim() ? `
+          <div class="section">
+            <div class="section-title">ADDITIONAL NOTES</div>
+            <div class="notes-content">
+              ${safeString(formData.additionalNotes).replace(/\n/g, '<br/>')}
+            </div>
+          </div>
+          ` : ''}
+
           <!-- PAYMENT SECTION -->
           <div class="section">
             <div class="section-title">PAYMENT</div>
@@ -538,17 +584,19 @@ function generateReservationHTML(formData: any, mode: string) {
               <tr>
                 <td class="label">Vehicle Sale Price:</td>
                 <td class="data">AED ${safeNumber(formData.vehicleSalePrice)}</td>
-                <td class="label">Amount Due:</td>
-                <td class="data">AED ${safeNumber(formData.amountDue)}</td>
+                <td class="label">${paymentStatusLabel}:</td>
+                <td class="data">${paymentStatusValue}</td>
               </tr>
             </table>
           </div>
 
           <!-- RESERVATION TERMS -->
           <div class="section">
-            <div class="text-content">
-              <strong>Reservation Terms:</strong> The final balance must be paid in full before the transfer of ownership. Payments made by credit card will incur a 2% surcharge. The reservation deposit is non-refundable. All prices include VAT unless otherwise specified. Additional terms and conditions apply, please refer to the reverse side for details.
-            </div>
+            ${signatureTermsTitle ? `<div class="text-content">
+              <strong>${signatureTermsTitle}:</strong> ${termsContent}
+            </div>` : `<div class="text-content">
+              ${termsContent}
+            </div>`}
             
             <div class="signature-section">
               <div class="signature-box">
@@ -577,7 +625,7 @@ function generateReservationHTML(formData: any, mode: string) {
       <div class="page page-break">
         <div class="header">
           <div class="title-section">
-            <div class="title">GENERAL TERMS & CONDITIONS FOR<br>NEW & PRE-OWNED VEHICLE SALES</div>
+            <div class="title">${termsTitle}</div>
           </div>
           <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="logo">
         </div>
@@ -589,16 +637,16 @@ function generateReservationHTML(formData: any, mode: string) {
               <div class="terms-col">
 <strong>Silber Arrows 1934 Used Car Trading LLC</strong> (hereinafter referred to as "SilberArrows")
 
-<strong>1. INTRODUCTION</strong> SilberArrows adheres to Federal Law No. 15 of 2020 on Consumer Protection. These terms and conditions govern the reservation of both new and pre-owned vehicles by SilberArrows. By reserving a vehicle with us, you agree to be bound by these terms and conditions.
+<strong>1. INTRODUCTION</strong> SilberArrows adheres to Federal Law No. 15 of 2020 on Consumer Protection. These terms and conditions govern the ${isInvoice ? 'sale' : 'reservation'} of both new and pre-owned vehicles by SilberArrows. By ${isInvoice ? 'purchasing' : 'reserving'} a vehicle ${isInvoice ? 'from' : 'with'} us, you agree to be bound by these terms and conditions.
 
-<strong>2. VEHICLE INFORMATION</strong> All vehicles are reserved as seen and described in the reservation form. We ensure that all descriptions and representations of vehicles are accurate to the best of our knowledge.
+<strong>2. VEHICLE INFORMATION</strong> All vehicles are ${isInvoice ? 'sold' : 'reserved'} as seen and described in the ${isInvoice ? 'invoice' : 'reservation form'}. We ensure that all descriptions and representations of vehicles are accurate to the best of our knowledge.
 
 <strong>3. PRICE AND PAYMENT</strong>
-• The price of the vehicle is as stated in the reservation form. Prices include VAT unless stated otherwise.
+• The price of the vehicle is as stated in the ${isInvoice ? 'invoice' : 'reservation form'}. Prices include VAT unless stated otherwise.
 • Payment can be made via bank transfer, credit/debit card (with a %2 surcharge), cash, cheque, or any other method agreed upon in writing.
-• A deposit must be paid to secure the reservation. Full payment must be received before the vehicle can be released to the buyer.
+${isInvoice ? '• Full payment must be received before the vehicle can be released to the buyer.' : '• A deposit must be paid to secure the reservation. Full payment must be received before the vehicle can be released to the buyer.'}
 
-<strong>4. DEPOSITS</strong> A deposit is required to secure a vehicle. This deposit is non-refundable unless otherwise stated in the reservation form or required by law.
+<strong>4. DEPOSITS</strong> ${isInvoice ? 'A deposit may be required to secure a vehicle. This deposit is non-refundable unless otherwise stated in the invoice or required by law.' : 'A deposit is required to secure a vehicle. This deposit is non-refundable unless otherwise stated in the reservation form or required by law.'}
 
 <strong>5. FINANCE</strong>
 • If the vehicle is purchased through a finance agreement, the terms of the finance agreement will apply.
@@ -610,8 +658,8 @@ function generateReservationHTML(formData: any, mode: string) {
 • Part exchange vehicles must be delivered with all relevant documentation and in the condition described during the valuation.
 
 <strong>7. WARRANTY & DEALER SERVICE PACKAGE</strong>
-• Vehicles may come with a manufacturer's warranty and/or dealer service package as specified in the reservation form. For vehicles that have a manufacturer's warranty and/or dealer service package, the expiry date or mileage will be stated on the reservation form.
-• For vehicles without any manufacturer's warranty and/or dealer service package, SilberArrows offers the Extended Warranty Program and ServiceCare products. If the customer has chosen to purchase one or both products, the prices are detailed in the 'ADD-ONS' section of the reservation form.
+• Vehicles may come with a manufacturer's warranty and/or dealer service package as specified in the ${isInvoice ? 'invoice' : 'reservation form'}. For vehicles that have a manufacturer's warranty and/or dealer service package, the expiry date or mileage will be stated on the ${isInvoice ? 'invoice' : 'reservation form'}.
+• For vehicles without any manufacturer's warranty and/or dealer service package, SilberArrows offers the Extended Warranty Program and ServiceCare products. If the customer has chosen to purchase one or both products, the prices are detailed in the 'ADD-ONS' section of the ${isInvoice ? 'invoice' : 'reservation form'}.
 • Any warranty offered does not affect your statutory rights.
 
 <strong>8. VEHICLE CONDITION AND INSPECTION</strong>
@@ -621,23 +669,23 @@ function generateReservationHTML(formData: any, mode: string) {
               <div class="terms-col">
 <strong>9. RETURNS AND REFUNDS</strong>
 • Returns are only accepted if agreed in writing by SilberArrows.
-• Refunds will be processed in accordance with the terms specified in the reservation form and applicable law.
+• Refunds will be processed in accordance with the terms specified in the ${isInvoice ? 'invoice' : 'reservation form'} and applicable law.
 
 <strong>10. LIMITATION OF LIABILITY</strong>
 • SilberArrows is not liable for any indirect or consequential loss or damage arising out of or in connection with the reservation or sale of the vehicle.
 • Our liability is limited to the purchase price of the vehicle.
 
 <strong>11. DATA PROTECTION</strong>
-• Personal information collected during the reservation process will be used in accordance with our Privacy Policy, which can be viewed at https://www.silberarrows.com/privacy-policy/.
-• We may share your information with third parties involved in the reservation and financing of the vehicle.
+• Personal information collected during the ${isInvoice ? 'sales' : 'reservation'} process will be used in accordance with our Privacy Policy, which can be viewed at https://www.silberarrows.com/privacy-policy/.
+• We may share your information with third parties involved in the ${isInvoice ? 'sale' : 'reservation'} and financing of the vehicle.
 
 <strong>12. GOVERNING LAW</strong>
-These terms and conditions are governed by the laws of the Emirate of Dubai.
-Any disputes arising out of or in connection with these terms and conditions will be subject to the exclusive jurisdiction of the courts of Dubai.
+• These terms and conditions are governed by the laws of the Emirate of Dubai.
+• Any disputes arising out of or in connection with these terms and conditions will be subject to the exclusive jurisdiction of the courts of Dubai.
 
-<strong>13. CHANGES TO TERMS AND CONDITIONS</strong> SilberArrows reserves the right to change these terms and conditions at any time. Any changes will be posted on our website and will apply to reservations made after the date of the change.
+<strong>13. CHANGES TO TERMS AND CONDITIONS</strong> SilberArrows reserves the right to change these terms and conditions at any time. Any changes will be posted on our website and will apply to ${isInvoice ? 'sales' : 'reservations'} made after the date of the change.
 
-<strong>14. DISTANCE SELLING</strong> If the reservation form is completed without face-to-face contact, you may cancel the reservation within 7 days. The cancellation period expires upon the transfer of ownership of the vehicle.
+<strong>14. DISTANCE SELLING</strong> If the ${isInvoice ? 'invoice' : 'reservation form'} is completed without face-to-face contact, you may cancel the ${isInvoice ? 'purchase' : 'reservation'} within 7 days. The cancellation period expires upon the transfer of ownership of the vehicle.
 
 <strong>15. FORCE MAJEURE</strong> SilberArrows shall not be liable for any failure to perform its obligations due to events beyond its control, including but not limited to natural disasters, war, civil commotion, and strikes.
 
@@ -647,7 +695,7 @@ Any disputes arising out of or in connection with these terms and conditions wil
 
 <strong>18. INDEMNITY</strong> The buyer agrees to indemnify and hold SilberArrows harmless from all liabilities, damages, losses, and costs (including legal fees) arising out of the buyer's breach of these terms and conditions.
 
-<strong>19. ENTIRE AGREEMENT</strong> These terms and conditions, together with the reservation form, constitute the entire agreement between the parties and supersede all prior agreements, understandings, or representations.
+<strong>19. ENTIRE AGREEMENT</strong> These terms and conditions, together with the ${isInvoice ? 'invoice' : 'reservation form'}, constitute the entire agreement between the parties and supersede all prior agreements, understandings, or representations.
 
               </div>
             </div>
@@ -656,7 +704,7 @@ Any disputes arising out of or in connection with these terms and conditions wil
           <!-- SIGNATURE SECTION -->
           <div class="section">
             <div class="text-content" style="margin-bottom: 15px; text-align: center; font-weight: bold;">
-              By purchasing a vehicle from SilberArrows, you acknowledge that you have read, understood, and agreed to these terms and conditions.
+              By ${isInvoice ? 'purchasing' : 'reserving'} a vehicle ${isInvoice ? 'from' : 'with'} SilberArrows, you acknowledge that you have read, understood, and agreed to these terms and conditions.
             </div>
             <div class="signature-section">
               <div class="signature-box">

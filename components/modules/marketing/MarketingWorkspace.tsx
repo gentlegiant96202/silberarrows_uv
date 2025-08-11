@@ -1737,113 +1737,54 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
               </div>
             </div>
 
-            {/* Tools and Media Files Section - Scrollable */}
-            <div className="overflow-y-auto">
-            {/* Tools Section - Compact */}
-            <div className="p-3 border-t border-white/10 bg-white/5 flex-shrink-0">
-              <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                </svg>
-                Tools
-              </h4>
-              
-              {/* Zoom Controls - Compact */}
-              <div className="space-y-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/60 min-w-[30px]">Zoom:</span>
+            {/* Tools - Above Annotations */}
+            <div className="p-3 bg-white/5 border-b border-white/10 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-medium text-white/80 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                  </svg>
+                  Tools
+                </h4>
+                <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1">
+                    <span className="text-xs text-white/60">Zoom:</span>
+                    <button onClick={() => setZoom(Math.max(0.5, zoom / 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">−</button>
+                    <div className="px-2 py-1 text-white text-xs rounded bg-black/50 border border-white/10 min-w-[40px] text-center">{Math.round(zoom * 100)}%</div>
+                    <button onClick={() => setZoom(Math.min(3, zoom * 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">+</button>
+                    <button onClick={() => resetZoomPan()} className="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20">Reset</button>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-white/60">Draw:</span>
                     <button
                       onClick={() => {
-                        setZoom(Math.max(0.5, zoom / 1.2));
-                        setSelectedAnnotationId(null);
-                      }} 
-                      disabled={isAnnotationMode}
-                      className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-colors ${
+                        if (!isAnnotationMode) {
+                          resetZoomPan();
+                          setSelectedAnnotationId(null);
+                          setIsAnnotationMode(true);
+                        } else {
+                          setIsAnnotationMode(false);
+                          setSelectedAnnotationId(null);
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all ${
                         isAnnotationMode
-                          ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10' 
-                          : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30 border border-white/20'
+                          ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                          : 'bg-black/20 text-white/70 border border-white/10 hover:bg-black/30'
                       }`}
-                      title={isAnnotationMode ? "Disabled during annotation" : "Zoom Out"}
                     >
-                      −
-                    </button>
-                    
-                    <div className={`px-2 py-1 text-white text-xs rounded text-center min-w-[40px] border transition-colors ${
-                      isAnnotationMode 
-                        ? 'bg-black/20 border-white/10 text-white/30' 
-                        : 'bg-black/50 border-white/10 text-white'
-                    }`}>
-                      {Math.round(zoom * 100)}%
-                    </div>
-                    
-                    <button 
-                      onClick={() => {
-                        setZoom(Math.min(3, zoom * 1.2));
-                        setSelectedAnnotationId(null);
-                      }} 
-                      disabled={isAnnotationMode}
-                      className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-colors ${
-                        isAnnotationMode 
-                          ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10' 
-                          : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30 border border-white/20'
-                      }`}
-                      title={isAnnotationMode ? "Disabled during annotation" : "Zoom In"}
-                    >
-                      +
-                    </button>
-                    
-                    <button 
-                      onClick={() => {
-                        resetZoomPan();
-                        setSelectedAnnotationId(null);
-                      }} 
-                      disabled={isAnnotationMode}
-                      className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                        isAnnotationMode 
-                          ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/10' 
-                          : 'bg-white/10 hover:bg-white/20 text-white hover:bg-white/30 border border-white/20'
-                      }`}
-                      title={isAnnotationMode ? "Disabled during annotation" : "Reset Zoom & Pan"}
-                    >
-                      Reset
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                      Highlighter
                     </button>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Annotation Tool */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-white/60 min-w-[40px]">Draw:</span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => {
-                      if (!isAnnotationMode) {
-                        // When activating annotation mode, reset zoom and pan for better annotation experience
-                        resetZoomPan();
-                        setSelectedAnnotationId(null);
-                        setIsAnnotationMode(true);
-                      } else {
-                        // When deactivating annotation mode, just turn it off
-                        setIsAnnotationMode(false);
-                        setSelectedAnnotationId(null);
-                      }
-                    }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-all ${
-                      isAnnotationMode
-                        ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                        : 'bg-black/20 text-white/70 border border-white/10 hover:bg-black/30'
-                    }`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    Highlighter
-                  </button>
-                </div>
-              </div>
-            </div>
-            </div>
+            {/* Tools and Media Files Section - Scrollable */}
+            <div className="overflow-y-auto">
 
             {/* Bottom Section - Media Files (moved from middle) */}
             <div className="space-y-3 flex-shrink-0 mt-8 sm:mt-6">

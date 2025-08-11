@@ -76,8 +76,17 @@ export default function MarketingTicketsDropdown() {
           table: 'design_tasks',
         },
         (payload) => {
-          // Only refresh if it affects this user's tickets
-          if (payload.new?.assignee === user.id || payload.old?.assignee === user.id) {
+          // Only refresh if it affects this user's tickets - be defensive about field access
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          const isUserRelated = (
+            newRecord?.assignee === user.id || 
+            newRecord?.requested_by === user.id ||
+            oldRecord?.assignee === user.id || 
+            oldRecord?.requested_by === user.id
+          );
+          
+          if (isUserRelated) {
             fetchMyTickets();
           }
         }

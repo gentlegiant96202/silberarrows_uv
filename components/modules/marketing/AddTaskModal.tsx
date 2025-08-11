@@ -24,7 +24,6 @@ interface AddTaskModalProps {
 
 interface FileWithThumbnail {
   file: File;
-  thumbnail?: string;
   uploadProgress: number;
   uploading: boolean;
   uploaded: boolean;
@@ -529,32 +528,12 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      const filesWithThumbnails: FileWithThumbnail[] = [];
-
-      for (const file of files) {
-        try {
-          console.log('🎬 Starting thumbnail generation for:', file.name, 'type:', file.type);
-          const thumbnail = await generateThumbnail(file);
-          console.log('✅ Thumbnail generated for:', file.name, 'length:', thumbnail.length);
-          filesWithThumbnails.push({
-            file,
-            thumbnail,
-            uploadProgress: 0,
-            uploading: false,
-            uploaded: false
-          });
-        } catch (error) {
-          console.error('Error generating thumbnail:', error);
-          console.log('❌ Thumbnail generation failed for:', file.name, 'using empty thumbnail');
-          filesWithThumbnails.push({
-            file,
-            thumbnail: '',
-            uploadProgress: 0,
-            uploading: false,
-            uploaded: false
-          });
-        }
-      }
+      const filesWithThumbnails: FileWithThumbnail[] = files.map(file => ({
+        file,
+        uploadProgress: 0,
+        uploading: false,
+        uploaded: false
+      }));
 
       // Get the current length before adding new files
       const currentLength = selectedFiles.length;
@@ -608,110 +587,50 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       console.log(`Processing file ${i + 1}/${filesToUpload.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
       
       try {
-        // Use XMLHttpRequest for real progress tracking (small/medium files)
-        const isVideo = file.type.startsWith('video/');
-        const largeFile = file.size > 80 * 1024 * 1024; // >80MB
-        let result: any;
-        if (largeFile) {
-          // Bypass Next.js route for very large files to avoid 413; upload directly to Supabase
-          console.log('📤 Using direct Supabase upload for large file:', file.name);
-          
-          // Show initial progress
-          setSelectedFiles(prev => prev.map((f, idx) => 
-            idx === globalIndex ? { ...f, uploadProgress: 5 } : f
-          ));
-          
-          const ext = file.name.split('.').pop();
-          const fileName = `${crypto.randomUUID()}.${ext}`;
-          const storagePath = `${taskId}/${fileName}`;
-          
-          // Show progress during upload
-          setSelectedFiles(prev => prev.map((f, idx) => 
-            idx === globalIndex ? { ...f, uploadProgress: 25 } : f
-          ));
-          
-          const { error: upErr } = await supabase.storage
-            .from('media-files')
-            .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
-          
-          if (upErr) {
-            console.error('📤 Supabase upload error:', upErr);
-            throw new Error(upErr.message);
-          }
-          
-          // Show progress getting URL
-          setSelectedFiles(prev => prev.map((f, idx) => 
-            idx === globalIndex ? { ...f, uploadProgress: 80 } : f
-          ));
-          
-          const { data: { publicUrl } } = supabase.storage
-            .from('media-files')
-            .getPublicUrl(storagePath);
-          
-          console.log('📤 Direct Supabase upload completed:', publicUrl);
-          result = { success: true, fileUrl: publicUrl };
-        } else {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('taskId', taskId);
-
-          const uploadPromise = new Promise<any>((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            
-            // Track upload progress
-            xhr.upload.addEventListener('progress', (event) => {
-              if (event.lengthComputable) {
-                const percentComplete = Math.round((event.loaded / event.total) * 100);
-                setSelectedFiles(prev => prev.map((f, idx) => 
-                  idx === globalIndex ? { ...f, uploadProgress: percentComplete } : f
-                ));
-              }
-            });
-
-            xhr.addEventListener('load', () => {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                  const parsed = JSON.parse(xhr.responseText);
-                  resolve(parsed);
-                } catch (e) {
-                  reject(new Error('Invalid JSON response'));
-                }
-              } else {
-                reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
-              }
-            });
-
-            xhr.addEventListener('error', () => {
-              reject(new Error('Network error during upload'));
-            });
-
-            xhr.addEventListener('timeout', () => {
-              reject(new Error('Upload timeout'));
-            });
-
-            xhr.open('POST', '/api/upload-file');
-            xhr.timeout = 300000; // 5 minutes
-            xhr.send(formData);
-          });
-
-          result = await uploadPromise;
+        // Always use direct Supabase upload for all files
+        console.log('📤 Using direct Supabase upload for:', file.name);
+        
+        // Show initial progress
+        setSelectedFiles(prev => prev.map((f, idx) => 
+          idx === globalIndex ? { ...f, uploadProgress: 5 } : f
+        ));
+        
+        const ext = file.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${ext}`;
+        const storagePath = `${taskId}/${fileName}`;
+        
+        // Show progress during upload
+        setSelectedFiles(prev => prev.map((f, idx) => 
+          idx === globalIndex ? { ...f, uploadProgress: 25 } : f
+        ));
+        
+        const { error: upErr } = await supabase.storage
+          .from('media-files')
+          .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+        
+        if (upErr) {
+          console.error('📤 Supabase upload error:', upErr);
+          throw new Error(upErr.message);
         }
-         
-        if (!result.success) {
-          console.error('Upload error:', result.error);
-          setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, error: result.error, uploading: false, uploadProgress: 0 } : f));
-          continue;
-        }
+        
+        // Show progress getting URL
+        setSelectedFiles(prev => prev.map((f, idx) => 
+          idx === globalIndex ? { ...f, uploadProgress: 80 } : f
+        ));
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('media-files')
+          .getPublicUrl(storagePath);
+        
+        console.log('📤 Direct Supabase upload completed:', publicUrl);
+        const result = { success: true, fileUrl: publicUrl };
 
         const newMediaItem = {
           url: result.fileUrl,
           name: file.name,
           type: file.type,
           size: file.size,
-          uploadedAt: new Date().toISOString(),
-          ...(result.thumbnailUrl ? { thumbnail: result.thumbnailUrl } : {}),
-          // Include client-generated thumbnail for videos
-          ...(fileWithThumbnail.thumbnail ? { thumbnail: fileWithThumbnail.thumbnail } : {})
+          uploadedAt: new Date().toISOString()
         };
         
         newMedia.push(newMediaItem);
@@ -1100,33 +1019,32 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                 {selectedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3 max-h-32 overflow-y-auto">
                     {selectedFiles.map((fileWithThumbnail, index) => {
-                      const { file, thumbnail, uploadProgress, uploading, uploaded, error } = fileWithThumbnail;
+                      const { file, uploadProgress, uploading, uploaded, error } = fileWithThumbnail;
                       const isImage = file.type.startsWith('image/');
                       
                       return (
                         <div key={index} className="flex-shrink-0 w-64 flex items-center gap-2 p-2 bg-black/30 backdrop-blur-sm border border-white/15 rounded-lg shadow-inner ring-1 ring-white/5">
                           {/* Thumbnail or file icon */}
                           <div className="flex-shrink-0 w-10 h-10 rounded overflow-hidden bg-white/5 flex items-center justify-center">
-                            {thumbnail ? (
-                              <>
-                                {console.log('🖼️ Displaying thumbnail for', file.name, 'thumbnail length:', thumbnail.length, 'preview:', thumbnail.substring(0, 50))}
-                                <img 
-                                  src={thumbnail} 
-                                  alt={file.name}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    console.error('🚨 Thumbnail image failed to load for', file.name, 'src:', thumbnail.substring(0, 100));
-                                  }}
-                                  onLoad={() => {
-                                    console.log('✅ Thumbnail image loaded successfully for', file.name);
-                                  }}
-                                />
-                              </>
+                            {isImage ? (
+                              <img 
+                                src={URL.createObjectURL(file)} 
+                                alt={file.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : file.type.startsWith('video/') ? (
+                              <video 
+                                src={URL.createObjectURL(file) + '#t=0.1'} 
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                                preload="metadata"
+                                onLoadedData={(e) => {
+                                  e.currentTarget.currentTime = 0.1;
+                                }}
+                              />
                             ) : (
-                              <>
-                                {console.log('❌ No thumbnail for', file.name, 'showing file icon instead')}
-                                {getFileIcon(file)}
-                              </>
+                              getFileIcon(file)
                             )}
                           </div>
 
@@ -1167,7 +1085,10 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                           {!uploading && (
                             <button
                               type="button"
-                              onClick={() => removeFile(index)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeFile(index);
+                              }}
                               className="text-white/70 hover:text-white text-xs leading-none flex-shrink-0 w-6 h-6 flex items-center justify-center"
                             >
                               ×
@@ -1245,25 +1166,20 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                           >
                             <div className="w-full h-full bg-white/5 relative">
                               {isVideo ? (
-                                // Show video thumbnail that was generated during file selection
-                                typeof file === 'string' ? (
-                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
-                                    <Video className="w-4 h-4 text-white/60" />
-                                  </div>
-                                ) : file.thumbnail && !failedThumbnails.has(index) ? (
-                                  <img
-                                    src={file.thumbnail}
-                                    alt={`Video thumbnail ${index + 1}`}
-                                    className="w-full h-full object-cover"
-                                    onError={() => {
-                                      setFailedThumbnails(prev => new Set(prev).add(index));
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
-                                    <Video className="w-4 h-4 text-white/60" />
-                                  </div>
-                                )
+                                // Show video with first frame as thumbnail
+                                <video
+                                  src={getImageUrl(file) + '#t=0.1'}
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  playsInline
+                                  preload="metadata"
+                                  onLoadedData={(e) => {
+                                    e.currentTarget.currentTime = 0.1;
+                                  }}
+                                  onError={() => {
+                                    // Fallback to video icon if video fails to load
+                                  }}
+                                />
                               ) : isPdf || isConvertedPdf ? (
                                 <div className="w-full h-full flex items-center justify-center bg-white/10">
                                   <FileText className="w-4 h-4 text-gray-400" />

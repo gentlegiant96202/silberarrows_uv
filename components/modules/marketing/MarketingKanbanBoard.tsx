@@ -73,20 +73,35 @@ const isTaskUrgent = (dateString: string) => {
   return diffDays <= 1;
 };
 
-// Helper to get preview image (thumbnail or first image)
+// Helper to get preview image (first image or video)
 function getPreviewUrl(mediaFiles: any[] = []): string | null {
   if (!mediaFiles || !mediaFiles.length) return null;
-  // Prefer thumbnail if present
-  const withThumbnail = mediaFiles.find((f: any) => f.thumbnail);
-  if (withThumbnail) return withThumbnail.thumbnail;
-  // Otherwise, use first image
+  
+  // First, try to find an image
   const imageFile = mediaFiles.find((f: any) => {
     if (typeof f === 'string') {
       return f.match(/\.(jpe?g|png|webp|gif)$/i);
     }
     return f.type?.startsWith('image/') || f.name?.match(/\.(jpe?g|png|webp|gif)$/i);
   });
-  return imageFile ? (typeof imageFile === 'string' ? imageFile : imageFile.url) : null;
+  
+  if (imageFile) {
+    return typeof imageFile === 'string' ? imageFile : imageFile.url;
+  }
+  
+  // If no image, try to find a video
+  const videoFile = mediaFiles.find((f: any) => {
+    if (typeof f === 'string') {
+      return f.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+    }
+    return f.type?.startsWith('video/') || f.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+  });
+  
+  if (videoFile) {
+    return typeof videoFile === 'string' ? videoFile : videoFile.url;
+  }
+  
+  return null;
 }
 
 // Column definitions matching CRM Kanban style
@@ -800,11 +815,24 @@ export default function MarketingKanbanBoard() {
                         <div className="flex-shrink-0 w-16 h-20 relative">
                           {previewUrl ? (
                             <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg">
-                              <img 
-                                src={previewUrl} 
-                                alt="Preview" 
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                              />
+                              {previewUrl.match(/\.(mp4|mov|avi|webm|mkv)$/i) ? (
+                                <video 
+                                  src={previewUrl + '#t=0.1'} 
+                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                  muted
+                                  playsInline
+                                  preload="metadata"
+                                  onLoadedData={(e) => {
+                                    e.currentTarget.currentTime = 0.1;
+                                  }}
+                                />
+                              ) : (
+                                <img 
+                                  src={previewUrl} 
+                                  alt="Preview" 
+                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                                />
+                              )}
                               {/* Overlay gradient for depth */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </div>

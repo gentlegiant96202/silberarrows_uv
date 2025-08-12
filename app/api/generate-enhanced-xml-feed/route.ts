@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
           engine,
           transmission,
           horsepower_hp,
+          website_url,
           status,
           sale_status
         )
@@ -153,7 +154,7 @@ function generateFacebookXML(entries: any[], imageMap: Map<string, string>): str
       </image>
       <vehicle_id>${car.stock_number || car.id}</vehicle_id>
       <description>${cleanDescription}</description>
-      <url>https://silberarrows.ae/inventory/${car.id}</url>
+      <url>${car.website_url || 'https://silberarrows.ae/inventory/' + car.id}</url>
       <title>${car.model_year} ${make} ${model}</title>
       <body_style>${bodyStyle}</body_style>
       <price>${priceUSD}.00 USD</price>

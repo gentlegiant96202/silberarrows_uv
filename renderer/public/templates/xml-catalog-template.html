@@ -45,46 +45,20 @@
       z-index: 1;
     }
 
-    .price-badge {
-      position: absolute;
-      top: 24px;
-      right: 24px;
-      background: linear-gradient(135deg, #2a2a2a, #0a0a0a);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      color: #ffffff;
-      padding: 18px 28px;
-      border-radius: 16px;
-      font-weight: 700;
-      font-size: 1.6rem;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-      z-index: 3;
-      font-family: 'Space Grotesk', sans-serif;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
 
-    .price-text {
-      background: linear-gradient(135deg, #ffffff, #888888);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-    }
 
     .content-section {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
-      height: 380px; /* Fixed height for overlay */
+      height: 400px;
       padding: 32px 28px;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
       gap: 18px;
-      background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.85) 25%, rgba(0, 0, 0, 0.95) 100%);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      background: rgba(0, 0, 0, 0.9); /* Solid black like price drop */
       z-index: 2;
     }
 
@@ -119,19 +93,20 @@
 
     .spec-item {
       background: rgba(255, 255, 255, 0.05);
-      padding: 20px 16px;
+      padding: 25px 20px;
       border-radius: 16px;
       text-align: center;
       border: 1px solid rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
     }
 
     .spec-value {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.8rem;
+      font-size: 2.2rem;
       font-weight: 600;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       color: #ffffff;
     }
 
@@ -143,39 +118,47 @@
       letter-spacing: 0.5px;
     }
 
-    .brand-footer {
+    .price-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-top: auto;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      gap: 16px;
     }
 
-    .brand-name {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 2.2rem;
-      font-weight: 600;
-      color: #ffffff;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    .price-card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 20px 24px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      text-align: center;
+      flex: 1;
     }
 
-    .contact-info {
-      text-align: right;
-      color: #cccccc;
+    .price-label {
       font-size: 1rem;
-      line-height: 1.4;
+      color: #999999;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
     }
 
-    .phone {
+    .price-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .monthly-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.6rem;
       font-weight: 600;
       color: #ffffff;
-      font-size: 1.1rem;
-    }
-
-    .email {
-      font-size: 0.95rem;
-      color: #aaaaaa;
     }
   </style>
 </head>
@@ -184,10 +167,7 @@
     <!-- Full Square Background Image -->
     <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" onerror="this.style.display='none';" />
     
-    <!-- Price Badge (Top Right) -->
-    <div class="price-badge">
-      <div class="price-text">AED {{price}}</div>
-    </div>
+
 
     <!-- Content Overlay (Bottom) -->
     <div class="content-section">
@@ -211,11 +191,14 @@
         </div>
       </div>
 
-      <div class="brand-footer">
-        <div class="brand-name">SilberArrows</div>
-        <div class="contact-info">
-          <div class="phone">+971 4 380 5515</div>
-          <div class="email">sales@silberarrows.com</div>
+      <div class="price-footer">
+        <div class="price-card">
+          <div class="price-label">Monthly Payment</div>
+          <div class="monthly-value">AED {{monthlyPayment}}</div>
+        </div>
+        <div class="price-card">
+          <div class="price-label">Cash Price</div>
+          <div class="price-value">AED {{price}}</div>
         </div>
       </div>
     </div>

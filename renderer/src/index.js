@@ -46,6 +46,13 @@ function fillTemplate({ carDetails, pricing, firstImageUrl }) {
 }
 
 function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
+  // Calculate monthly payment (assuming 5% interest, 60 months, 20% down payment)
+  const price = parseFloat(String(carDetails.price ?? '0').replace(/,/g, ''));
+  const loanAmount = price * 0.8; // 80% financed
+  const monthlyRate = 0.05 / 12; // 5% annual rate
+  const months = 60;
+  const monthlyPayment = loanAmount > 0 ? Math.round(loanAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months))) : 0;
+  
   let html = catalogTemplateHtml;
   const replacements = {
     '{{year}}': String(carDetails.year ?? ''),
@@ -53,6 +60,7 @@ function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
     '{{mileage}}': String(carDetails.mileage ?? ''),
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
     '{{price}}': String(carDetails.price ?? ''),
+    '{{monthlyPayment}}': String(monthlyPayment.toLocaleString()),
     '{{catalogImageUrl}}': String(catalogImageUrl ?? ''),
   };
   for (const [key, value] of Object.entries(replacements)) {

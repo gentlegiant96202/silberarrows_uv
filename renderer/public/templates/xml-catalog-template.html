@@ -52,31 +52,34 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: 400px;
-      padding: 32px 28px;
+      height: 320px; /* Reduced from 400px */
+      padding: 24px 28px; /* Reduced top/bottom padding */
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      gap: 18px;
-      background: rgba(0, 0, 0, 0.9); /* Solid black like price drop */
+      gap: 14px; /* Reduced gap */
+      background: rgba(0, 0, 0, 0.85); /* More transparent for glass effect */
+      backdrop-filter: blur(15px); /* Strong glass morphism */
+      -webkit-backdrop-filter: blur(15px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
       z-index: 2;
     }
 
     .header h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 2.8rem;
+      font-size: 2.2rem; /* Reduced from 2.8rem */
       font-weight: 700;
-      line-height: 1.2;
-      margin-bottom: 8px;
+      line-height: 1.1; /* Tighter line height */
+      margin-bottom: 6px; /* Reduced margin */
       color: #ffffff;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     }
 
     .subtitle {
-      font-size: 1.2rem;
+      font-size: 1rem; /* Reduced from 1.2rem */
       color: #aaaaaa;
       font-weight: 500;
-      margin-bottom: 16px;
+      margin-bottom: 12px; /* Reduced margin */
     }
 
     .highlight {
@@ -92,21 +95,22 @@
     }
 
     .spec-item {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 25px 20px;
-      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.08); /* More glass visibility */
+      padding: 18px 16px; /* Reduced padding */
+      border-radius: 14px;
       text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.15); /* More visible border */
+      backdrop-filter: blur(20px); /* Stronger blur */
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), /* Deeper shadow */
+                  inset 0 1px 0 rgba(255, 255, 255, 0.2); /* Inner highlight */
     }
 
     .spec-value {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 2.2rem;
+      font-size: 1.8rem; /* Reduced from 2.2rem */
       font-weight: 600;
-      margin-bottom: 8px;
+      margin-bottom: 6px; /* Reduced margin */
       color: #ffffff;
     }
 
@@ -127,36 +131,37 @@
     }
 
     .price-card {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 16px;
-      padding: 20px 24px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      background: rgba(255, 255, 255, 0.08); /* More visible glass */
+      border: 1px solid rgba(255, 255, 255, 0.15); /* More visible border */
+      border-radius: 14px;
+      padding: 16px 20px; /* Reduced padding */
+      backdrop-filter: blur(20px); /* Stronger blur */
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), /* Deeper shadow */
+                  inset 0 1px 0 rgba(255, 255, 255, 0.2); /* Inner highlight */
       text-align: center;
       flex: 1;
     }
 
     .price-label {
-      font-size: 1rem;
+      font-size: 0.85rem; /* Reduced from 1rem */
       color: #999999;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 8px;
+      margin-bottom: 6px; /* Reduced margin */
     }
 
     .price-value {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.8rem;
+      font-size: 1.6rem; /* Reduced from 1.8rem */
       font-weight: 700;
       color: #ffffff;
     }
 
     .monthly-value {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.6rem;
+      font-size: 1.4rem; /* Reduced from 1.6rem */
       font-weight: 600;
       color: #ffffff;
     }

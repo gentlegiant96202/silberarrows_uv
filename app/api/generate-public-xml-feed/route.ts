@@ -134,7 +134,7 @@ function generateFacebookXML(entries: any[]): string {
       </image>
       <vehicle_id>${car.stock_number || car.id}</vehicle_id>
       <description>${cleanDescription}</description>
-      <url>${car.website_url || 'https://silberarrows.ae/inventory/' + car.id}</url>
+      <url>${car.website_url || 'https://silberarrows.com/inventory/' + car.id}</url>
       <title>${car.model_year} ${make} ${model}</title>
       <body_style>${bodyStyle}</body_style>
       <price>${priceUSD}.00 USD</price>

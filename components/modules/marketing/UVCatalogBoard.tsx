@@ -250,6 +250,23 @@ export default function UVCatalogBoard() {
     try {
       setGenerating(true);
       
+      // Step 1: Regenerate ALL catalog images to capture any price changes
+      alert('Regenerating all catalog images to capture latest pricing...');
+      
+      let regeneratedCount = 0;
+      for (const entry of entries) {
+        try {
+          await handleGenerateCatalogImage(entry);
+          regeneratedCount++;
+        } catch (error) {
+          console.error(`Failed to regenerate image for ${entry.title}:`, error);
+        }
+      }
+      
+      // Wait a moment for images to be processed
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Step 2: Generate the XML feed with latest data
       const response = await fetch('/api/generate-public-xml-feed', {
         method: 'POST',
         headers: {
@@ -272,16 +289,19 @@ export default function UVCatalogBoard() {
       // The response is XML content, not JSON
       const xmlContent = await response.text();
       
-      // Count cars in XML (simple regex to count <item> tags)
-      const carCount = (xmlContent.match(/<item>/g) || []).length;
+      // Count cars in XML (simple regex to count <listing> tags for Facebook format)
+      const carCount = (xmlContent.match(/<listing>/g) || []).length;
       
       // Set the live XML URL
       setXmlUrl(getFacebookXmlUrl());
       
-      alert(`XML feed generated successfully!\n\nLive URL: ${getFacebookXmlUrl()}\n\nCars included: ${carCount}\n\nThe feed is now available for Facebook integration.`);
+      // Refresh the catalog entries to show updated status
+      await fetchEntries();
+      
+      alert(`✅ Complete update finished!\n\n📸 Regenerated: ${regeneratedCount} catalog images\n📋 XML feed updated with ${carCount} cars\n🔗 Live URL: ${getFacebookXmlUrl()}\n\nThe feed now includes all latest pricing and updates!`);
       
     } catch (error) {
-      console.error('Error generating XML feed:', error);
+      console.error('Error updating XML feed:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGenerating(false);
@@ -370,7 +390,7 @@ export default function UVCatalogBoard() {
             ) : (
               <Download className="w-4 h-4" />
             )}
-            Update XML Feed
+            Regenerate All & Update Feed
           </button>
         </div>
       </div>

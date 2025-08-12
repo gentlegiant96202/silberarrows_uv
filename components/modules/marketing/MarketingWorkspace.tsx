@@ -1425,7 +1425,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
       </div>
 
       {/* Main Content */}
-      <div className="flex w-full pt-16">
+      <div className="flex w-full pt-16 min-h-0">
         
         {/* Main Canvas Area - Now Full Width */}
         <div className="flex-1 relative bg-black/10">
@@ -1615,8 +1615,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         </div>
 
         {/* Right Sidebar - Task Info */}
-        <div className="w-full lg:w-96 bg-white/8 backdrop-blur-xl border-l border-white/20 flex flex-col h-screen shadow-2xl ring-1 ring-white/10">
-          <div className="p-4 flex-1 overflow-hidden flex flex-col">
+        <div className="w-full lg:w-96 bg-white/8 backdrop-blur-xl border-l border-white/20 flex flex-col h-[calc(100dvh-64px)] min-h-0 overflow-y-auto shadow-2xl ring-1 ring-white/10">
+          <div className="p-4 flex flex-col">
             
             {/* Top Section - Task Info */}
             <div className="space-y-3 flex-shrink-0 p-4 bg-white/5 border-b border-white/10 rounded-t-lg">
@@ -1694,258 +1694,308 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
             {/* Bottom Section - Annotations (Expanded) */}
             <div className="flex-1 flex flex-col min-h-0">
-            {/* Annotations */}
-            <div className="p-4 border-b border-white/10 bg-white/3 flex flex-col min-h-96">
-              <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-1.5 flex-shrink-0">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                Annotations
-              </h4>
-              <div className="space-y-2 overflow-y-auto flex-1">
-                {(() => {
-                   // Use real annotations from MediaViewer
-                   const annotations = currentAnnotations;
-                   const currentPage = selectedImageIndex + 1;
-                   
-                   if (annotations.length === 0) {
+              {/* Annotations */}
+              <div className="p-4 border-b border-white/10 bg-white/3 flex flex-col min-h-0">
+                <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-1.5 flex-shrink-0">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Annotations
+                </h4>
+                <div className="space-y-2 overflow-y-auto">
+                  {(() => {
+                     // Use real annotations from MediaViewer
+                     const annotations = currentAnnotations;
+                     const currentPage = selectedImageIndex + 1;
+                     
+                     if (annotations.length === 0) {
+                       return (
+                         <div className="text-xs text-white/40 italic text-center py-3">
+                           No annotations yet. Use the highlighter tool to add annotations.
+                         </div>
+                       );
+                     }
+                     
+                     // Group annotations by page for better organization
+                     const annotationsByPage = annotations.reduce((acc: any, annotation: any) => {
+                       const page = annotation.pageIndex || 1;
+                       if (!acc[page]) acc[page] = [];
+                       acc[page].push(annotation);
+                       return acc;
+                     }, {});
+                     
                      return (
-                       <div className="text-xs text-white/40 italic text-center py-3">
-                         No annotations yet. Use the highlighter tool to add annotations.
+                       <div className="space-y-2">
+                         {Object.entries(annotationsByPage)
+                           .sort(([a], [b]) => Number(a) - Number(b))
+                           .map(([pageNum, pageAnnotations]: [string, any]) => (
+                             <div key={pageNum} className="mb-3">
+                               <div className={`text-xs font-medium mb-1.5 flex items-center gap-1.5 ${
+                                 Number(pageNum) === currentPage ? 'text-white' : 'text-white/50'
+                               }`}>
+                                 <span>Page {pageNum}</span>
+                                 {Number(pageNum) === currentPage && (
+                                                                   <span className="bg-yellow-500/35 backdrop-blur-sm border border-yellow-500/40 text-yellow-300 px-1.5 py-0.5 rounded-lg text-xs shadow-lg ring-1 ring-yellow-500/20">
+                                    Current
+                                  </span>
+                                 )}
+                                 <span className="text-white/40">
+                                   ({pageAnnotations.length})
+                                 </span>
+                               </div>
+                               <div className="space-y-1.5">
+                                 {pageAnnotations.map((annotation: any) => (
+                                   <div 
+                                     key={annotation.id} 
+                                     onClick={() => {
+                                       handleAnnotationClick(annotation);
+                                       setIsAnnotationMode(false);
+                                     }}
+                                                                         className={`rounded-lg p-2.5 border transition-all cursor-pointer backdrop-blur-sm shadow-lg ring-1 ${
+                                      selectedAnnotationId === annotation.id
+                                        ? 'bg-yellow-500/25 border-yellow-500/50 hover:bg-yellow-500/35 ring-yellow-500/25'
+                                        : Number(pageNum) === currentPage
+                                          ? 'bg-black/30 border-white/15 hover:bg-black/40 ring-white/5'
+                                          : 'bg-black/20 border-white/10 hover:bg-black/30 ring-white/5'
+                                    }`}
+                                   >
+                                     <div className={`text-xs mb-0.5 ${
+                                       Number(pageNum) === currentPage ? 'text-white/90' : 'text-white/60'
+                                     }`}>
+                                       {annotation.comment}
+                                     </div>
+                                     <div className="text-xs text-white/40">
+                                       {new Date(annotation.timestamp).toLocaleString()}
+                                     </div>
+                                     {selectedAnnotationId === annotation.id && (
+                                       <div className="text-xs text-yellow-400 mt-0.5 font-medium">
+                                         ● Selected
+                                       </div>
+                                     )}
+                                   </div>
+                                 ))}
+                               </div>
+                             </div>
+                           ))}
                        </div>
                      );
-                   }
-                   
-                   // Group annotations by page for better organization
-                   const annotationsByPage = annotations.reduce((acc: any, annotation: any) => {
-                     const page = annotation.pageIndex || 1;
-                     if (!acc[page]) acc[page] = [];
-                     acc[page].push(annotation);
-                     return acc;
-                   }, {});
-                   
-                   return (
-                     <div className="space-y-2">
-                       {Object.entries(annotationsByPage)
-                         .sort(([a], [b]) => Number(a) - Number(b))
-                         .map(([pageNum, pageAnnotations]: [string, any]) => (
-                           <div key={pageNum} className="mb-3">
-                             <div className={`text-xs font-medium mb-1.5 flex items-center gap-1.5 ${
-                               Number(pageNum) === currentPage ? 'text-white' : 'text-white/50'
-                             }`}>
-                               <span>Page {pageNum}</span>
-                               {Number(pageNum) === currentPage && (
-                                                                 <span className="bg-yellow-500/35 backdrop-blur-sm border border-yellow-500/40 text-yellow-300 px-1.5 py-0.5 rounded-lg text-xs shadow-lg ring-1 ring-yellow-500/20">
-                                  Current
-                                </span>
-                               )}
-                               <span className="text-white/40">
-                                 ({pageAnnotations.length})
-                               </span>
-                             </div>
-                             <div className="space-y-1.5">
-                               {pageAnnotations.map((annotation: any) => (
-                                 <div 
-                                   key={annotation.id} 
-                                   onClick={() => {
-                                     handleAnnotationClick(annotation);
-                                     setIsAnnotationMode(false);
-                                   }}
-                                                                     className={`rounded-lg p-2.5 border transition-all cursor-pointer backdrop-blur-sm shadow-lg ring-1 ${
-                                    selectedAnnotationId === annotation.id
-                                      ? 'bg-yellow-500/25 border-yellow-500/50 hover:bg-yellow-500/35 ring-yellow-500/25'
-                                      : Number(pageNum) === currentPage
-                                        ? 'bg-black/30 border-white/15 hover:bg-black/40 ring-white/5'
-                                        : 'bg-black/20 border-white/10 hover:bg-black/30 ring-white/5'
-                                  }`}
-                                 >
-                                   <div className={`text-xs mb-0.5 ${
-                                     Number(pageNum) === currentPage ? 'text-white/90' : 'text-white/60'
-                                   }`}>
-                                     {annotation.comment}
-                                   </div>
-                                   <div className="text-xs text-white/40">
-                                     {new Date(annotation.timestamp).toLocaleString()}
-                                   </div>
-                                   {selectedAnnotationId === annotation.id && (
-                                     <div className="text-xs text-yellow-400 mt-0.5 font-medium">
-                                       ● Selected
-                                     </div>
-                                   )}
-                                 </div>
-                               ))}
-                             </div>
-                           </div>
-                         ))}
-                     </div>
-                   );
-                 })()}
+                   })()}
+                </div>
               </div>
-            </div>
 
-            {/* Tools - Above Annotations */}
-            <div className="p-3 bg-white/5 border-b border-white/10 flex-shrink-0">
-              <div className="flex items-start justify-between flex-col gap-2">
-                <h4 className="text-xs font-medium text-white/80 flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                  </svg>
-                  Tools
-                </h4>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-white/60 min-w-[28px]">Zoom:</span>
-                    <button onClick={() => setZoom(Math.max(0.5, zoom / 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">−</button>
-                    <div className="px-2 py-1 text-white text-xs rounded bg-black/50 border border-white/10 min-w-[35px] text-center">{Math.round(zoom * 100)}%</div>
-                    <button onClick={() => setZoom(Math.min(3, zoom * 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">+</button>
-                    <button onClick={() => resetZoomPan()} className="px-1.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20">Reset</button>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-white/60 min-w-[28px]">Draw:</span>
-                    <button
-                      onClick={() => {
-                        if (!isAnnotationMode) {
-                          resetZoomPan();
-                          setSelectedAnnotationId(null);
-                          setIsAnnotationMode(true);
-                        } else {
-                          setIsAnnotationMode(false);
-                          setSelectedAnnotationId(null);
-                        }
-                      }}
-                      className={`flex items-center gap-1 px-1.5 py-1 rounded text-xs font-medium transition-all ${
-                        isAnnotationMode
-                          ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                          : 'bg-black/20 text-white/70 border border-white/10 hover:bg-black/30'
-                      }`}
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                      Draw
-                    </button>
+              {/* Tools - Above Annotations */}
+              <div className="p-3 bg-white/5 border-b border-white/10 flex-shrink-0">
+                <div className="flex items-start justify-between flex-col gap-2">
+                  <h4 className="text-xs font-medium text-white/80 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                    </svg>
+                    Tools
+                  </h4>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-white/60 min-w-[28px]">Zoom:</span>
+                      <button onClick={() => setZoom(Math.max(0.5, zoom / 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">−</button>
+                      <div className="px-2 py-1 text-white text-xs rounded bg-black/50 border border-white/10 min-w-[35px] text-center">{Math.round(zoom * 100)}%</div>
+                      <button onClick={() => setZoom(Math.min(3, zoom * 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">+</button>
+                      <button onClick={() => resetZoomPan()} className="px-1.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20">Reset</button>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-white/60 min-w-[28px]">Draw:</span>
+                      <button
+                        onClick={() => {
+                          if (!isAnnotationMode) {
+                            resetZoomPan();
+                            setSelectedAnnotationId(null);
+                            setIsAnnotationMode(true);
+                          } else {
+                            setIsAnnotationMode(false);
+                            setSelectedAnnotationId(null);
+                          }
+                        }}
+                        className={`flex items-center gap-1 px-1.5 py-1 rounded text-xs font-medium transition-all ${
+                          isAnnotationMode
+                            ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                            : 'bg-black/20 text-white/70 border border-white/10 hover:bg-black/30'
+                        }`}
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        Draw
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Tools and Media Files Section - Scrollable */}
-            <div className="overflow-y-auto">
+              {/* Tools and Media Files Section - Scrollable */}
+              <div className="">
 
-            {/* Bottom Section - Media Files (moved from middle) */}
-            <div className="space-y-3 flex-shrink-0 mt-8 sm:mt-6">
-            {/* Horizontal Thumbnail Strip - Compact */}
-            <div className="p-3 border-t border-white/10 bg-white/3 flex-shrink-0">
-              <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Media Files ({allViewableFiles.length})
+              {/* Bottom Section - Media Files (moved from middle) */}
+              <div className="space-y-3 flex-shrink-0 mt-8 sm:mt-6">
+              {/* Horizontal Thumbnail Strip - Compact */}
+              <div className="p-3 border-t border-white/10 bg-white/3 flex-shrink-0">
+                <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Media Files ({allViewableFiles.length})
+                  
+                  {/* Download All Button - Show only for specific statuses */}
+                  {(task.status === 'in_progress' || task.status === 'approved' || task.status === 'in_review') && allViewableFiles.length > 0 && (
+                    <button
+                      onClick={handleDownloadAllMedia}
+                      className="ml-auto px-3 py-2 bg-green-600/25 hover:bg-green-600/35 backdrop-blur-sm border border-green-500/40 rounded-lg text-xs font-medium text-green-300 hover:text-green-200 transition-all flex items-center gap-1 shadow-lg ring-1 ring-green-500/20"
+                      title="Download all media files"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Download All
+                    </button>
+                  )}
+                </h4>
                 
-                {/* Download All Button - Show only for specific statuses */}
-                {(task.status === 'in_progress' || task.status === 'approved' || task.status === 'in_review') && allViewableFiles.length > 0 && (
-                  <button
-                    onClick={handleDownloadAllMedia}
-                    className="ml-auto px-3 py-2 bg-green-600/25 hover:bg-green-600/35 backdrop-blur-sm border border-green-500/40 rounded-lg text-xs font-medium text-green-300 hover:text-green-200 transition-all flex items-center gap-1 shadow-lg ring-1 ring-green-500/20"
-                    title="Download all media files"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download All
-                  </button>
-                )}
-              </h4>
-              
-              {/* Horizontal Thumbnail Grid - More Compact */}
-              <div 
-                className="flex gap-2 overflow-x-auto pb-1 mb-2 scrollbar-hide" 
-                style={{ 
-                  scrollbarWidth: 'none', 
-                  msOverflowStyle: 'none',
-                  minHeight: '48px' // Updated to match smaller thumbnail size
-                }}
-              >
-                {!isMounted || allViewableFiles.length === 0 ? (
-                  // Loading skeleton to prevent layout shift
-                  <div className="flex gap-3 items-center">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 animate-pulse">
-                        <div className="w-full h-full bg-white/10"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <>
-                    {allViewableFiles.map((file: any, index: number) => {
-                      const isVideo = typeof file === 'string' ? 
-                        file.match(/\.(mp4|mov|avi|webm|mkv)$/i) :
-                        file.type?.startsWith('video/') || file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
-                      const isPdf = typeof file === 'string' ? 
-                        file.match(/\.pdf$/i) :
-                        (file.type === 'application/pdf' || file.name?.match(/\.pdf$/i));
-                      const isNativePdf = typeof file === 'string' ? 
-                        false :
-                        file.type === 'application/pdf' && !file.originalType;
-                      const isConvertedPdf = typeof file === 'string' ? false : file.originalType === 'application/pdf';
-                      
-                      // Generate stable key for React rendering
-                      const stableKey = typeof file === 'string' 
-                        ? `${file}-${index}-${refreshKey}` 
-                        : `${file.url || file.name}-${index}-${refreshKey}`;
-                      
-                      return (
-                        <div
-                          key={stableKey}
-                          data-thumbnail-draggable="true"
-                          draggable={true}
-                          onDragStart={(e) => handleThumbnailDragStart(e, index)}
-                          onDragEnd={handleThumbnailDragEnd}
-                          onDragOver={(e) => handleThumbnailDragOver(e, index)}
-                          onDragEnter={(e) => handleThumbnailDragEnter(e, index)}
-                          onDragLeave={(e) => handleThumbnailDragLeave(e, index)}
-                          onDrop={(e) => handleThumbnailDrop(e, index)}
-                          onClick={() => {
-                            setSelectedImageIndex(index);
-                          }}
-                          className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-12 h-12 hover:ring-1 hover:ring-white/20 ${
-                            draggedIndex === index ? 'opacity-30 scale-95 rotate-3' : ''
-                          } ${
-                            dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-400 scale-105' : ''
-                          } ${
-                            selectedImageIndex === index ? 'ring-2 ring-white scale-105' : ''
-                          }`}
-                          style={{
-                            width: '48px',
-                            height: '48px',
-                            minWidth: '48px',
-                            minHeight: '48px',
-                            maxWidth: '48px',
-                            maxHeight: '48px'
-                          }}
-                        >
-                            <div className="w-full h-full bg-white/5 relative">
-                            {/* Video thumbnail or icon */}
-                            {isVideo ? (
-                              isPdf || isConvertedPdf ? (
+                {/* Horizontal Thumbnail Grid - More Compact */}
+                <div 
+                  className="flex gap-2 overflow-x-auto pb-1 mb-2 scrollbar-hide" 
+                  style={{ 
+                    scrollbarWidth: 'none', 
+                    msOverflowStyle: 'none',
+                    minHeight: '48px' // Updated to match smaller thumbnail size
+                  }}
+                >
+                  {!isMounted || allViewableFiles.length === 0 ? (
+                    // Loading skeleton to prevent layout shift
+                    <div className="flex gap-3 items-center">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 animate-pulse">
+                          <div className="w-full h-full bg-white/10"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      {allViewableFiles.map((file: any, index: number) => {
+                        const isVideo = typeof file === 'string' ? 
+                          file.match(/\.(mp4|mov|avi|webm|mkv)$/i) :
+                          file.type?.startsWith('video/') || file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+                        const isPdf = typeof file === 'string' ? 
+                          file.match(/\.pdf$/i) :
+                          (file.type === 'application/pdf' || file.name?.match(/\.pdf$/i));
+                        const isNativePdf = typeof file === 'string' ? 
+                          false :
+                          file.type === 'application/pdf' && !file.originalType;
+                        const isConvertedPdf = typeof file === 'string' ? false : file.originalType === 'application/pdf';
+                        
+                        // Generate stable key for React rendering
+                        const stableKey = typeof file === 'string' 
+                          ? `${file}-${index}-${refreshKey}` 
+                          : `${file.url || file.name}-${index}-${refreshKey}`;
+                        
+                        return (
+                          <div
+                            key={stableKey}
+                            data-thumbnail-draggable="true"
+                            draggable={true}
+                            onDragStart={(e) => handleThumbnailDragStart(e, index)}
+                            onDragEnd={handleThumbnailDragEnd}
+                            onDragOver={(e) => handleThumbnailDragOver(e, index)}
+                            onDragEnter={(e) => handleThumbnailDragEnter(e, index)}
+                            onDragLeave={(e) => handleThumbnailDragLeave(e, index)}
+                            onDrop={(e) => handleThumbnailDrop(e, index)}
+                            onClick={() => {
+                              setSelectedImageIndex(index);
+                            }}
+                            className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-12 h-12 hover:ring-1 hover:ring-white/20 ${
+                              draggedIndex === index ? 'opacity-30 scale-95 rotate-3' : ''
+                            } ${
+                              dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-400 scale-105' : ''
+                            } ${
+                              selectedImageIndex === index ? 'ring-2 ring-white scale-105' : ''
+                            }`}
+                            style={{
+                              width: '48px',
+                              height: '48px',
+                              minWidth: '48px',
+                              minHeight: '48px',
+                              maxWidth: '48px',
+                              maxHeight: '48px'
+                            }}
+                          >
+                              <div className="w-full h-full bg-white/5 relative">
+                              {/* Video thumbnail or icon */}
+                              {isVideo ? (
+                                isPdf || isConvertedPdf ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-red-500/20">
+                                    <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                  </div>
+                                ) : file.thumbnail && !failedThumbnails.has(index) ? (
+                                  <div className="relative w-full h-full bg-black/50">
+                                    {loadingThumbnails.has(index) && (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                                        <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                      </div>
+                                    )}
+                                    <img
+                                      src={file.thumbnail}
+                                      alt={`Video thumbnail ${index + 1}`}
+                                      className="w-full h-full object-cover"
+                                      style={{ 
+                                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                        minWidth: '48px',
+                                        minHeight: '48px'
+                                      }}
+                                      onLoad={() => {
+                                        setLoadingThumbnails(prev => {
+                                          const newSet = new Set(prev);
+                                          newSet.delete(index);
+                                          return newSet;
+                                        });
+                                      }}
+                                      onLoadStart={() => {
+                                        setLoadingThumbnails(prev => new Set(prev).add(index));
+                                      }}
+                                      onError={() => {
+                                        setFailedThumbnails(prev => new Set(prev).add(index));
+                                        setLoadingThumbnails(prev => {
+                                          const newSet = new Set(prev);
+                                          newSet.delete(index);
+                                          return newSet;
+                                        });
+                                      }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-black/50">
+                                    <svg className="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m15 9-6 6m0 0v-6m0 6h6" />
+                                    </svg>
+                                  </div>
+                                )
+                              ) : isPdf || isConvertedPdf ? (
                                 <div className="w-full h-full flex items-center justify-center bg-red-500/20">
                                   <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                   </svg>
                                 </div>
-                              ) : file.thumbnail && !failedThumbnails.has(index) ? (
-                                <div className="relative w-full h-full bg-black/50">
+                              ) : (
+                                <div className="relative w-full h-full bg-white/10">
                                   {loadingThumbnails.has(index) && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
                                       <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
                                     </div>
                                   )}
                                   <img
-                                    src={file.thumbnail}
-                                    alt={`Video thumbnail ${index + 1}`}
+                                    src={getImageUrl(file)}
+                                    alt={`Media ${index + 1}`}
                                     className="w-full h-full object-cover"
                                     style={{ 
-                                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
                                       minWidth: '48px',
                                       minHeight: '48px'
                                     }}
@@ -1959,155 +2009,105 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                                     onLoadStart={() => {
                                       setLoadingThumbnails(prev => new Set(prev).add(index));
                                     }}
-                                    onError={() => {
-                                      setFailedThumbnails(prev => new Set(prev).add(index));
+                                    onError={(e) => {
                                       setLoadingThumbnails(prev => {
                                         const newSet = new Set(prev);
                                         newSet.delete(index);
                                         return newSet;
                                       });
+                                      // Keep the placeholder instead of hiding
+                                      e.currentTarget.style.opacity = '0';
                                     }}
                                   />
                                 </div>
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-black/50">
-                                  <svg className="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m15 9-6 6m0 0v-6m0 6h6" />
-                                  </svg>
-                                </div>
-                              )
-                            ) : isPdf || isConvertedPdf ? (
-                              <div className="w-full h-full flex items-center justify-center bg-red-500/20">
-                                <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              )}
+
+                              {/* Delete button - only show if user has edit permission */}
+                              {canEdit && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const mediaIndex = viewableToMediaMapping[index];
+                                    if (mediaIndex !== undefined) {
+                                      handleDeleteFile(mediaIndex);
+                                    } else {
+                                      // Fallback: Find the media index directly
+                                      const currentFile = allViewableFiles[index];
+                                      const currentUrl = typeof currentFile === 'string' ? currentFile : (currentFile as any).url;
+                                      const fallbackIndex = mediaFiles.findIndex((file: any) => {
+                                        const fileUrl = typeof file === 'string' ? file : file.url;
+                                        return fileUrl === currentUrl;
+                                      });
+                                      if (fallbackIndex !== -1) {
+                                        handleDeleteFile(fallbackIndex);
+                                      }
+                                    }
+                                  }}
+                                  className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                                >
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
+                              </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Upload button - only show if user has edit permission */}
+                      {canEdit && (
+                        <div className="aspect-square border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center hover:border-white/40 transition-colors cursor-pointer group relative flex-shrink-0 w-12 h-12">
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*,video/*,.pdf"
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                handleFileUpload(e.target.files);
+                              }
+                              e.target.value = ''; // Reset input
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            disabled={uploading}
+                          />
+                          <div className="text-center pointer-events-none">
+                            {uploading ? (
+                              <div className="w-24">
+                                <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin mx-auto mb-1" />
+                                <div className="text-[9px] text-white/60 text-center truncate max-w-full">
+                                  {uploadFileName || 'Uploading...'}
+                                </div>
+                                <div className="w-full h-1 bg-white/10 rounded overflow-hidden mt-1">
+                                  <div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300 ease-out" style={{ width: `${uploadProgress ?? 0}%` }} />
+                                </div>
                               </div>
                             ) : (
-                              <div className="relative w-full h-full bg-white/10">
-                                {loadingThumbnails.has(index) && (
-                                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
-                                    <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                                  </div>
-                                )}
-                                <img
-                                  src={getImageUrl(file)}
-                                  alt={`Media ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                  style={{ 
-                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                    minWidth: '48px',
-                                    minHeight: '48px'
-                                  }}
-                                  onLoad={() => {
-                                    setLoadingThumbnails(prev => {
-                                      const newSet = new Set(prev);
-                                      newSet.delete(index);
-                                      return newSet;
-                                    });
-                                  }}
-                                  onLoadStart={() => {
-                                    setLoadingThumbnails(prev => new Set(prev).add(index));
-                                  }}
-                                  onError={(e) => {
-                                    setLoadingThumbnails(prev => {
-                                      const newSet = new Set(prev);
-                                      newSet.delete(index);
-                                      return newSet;
-                                    });
-                                    // Keep the placeholder instead of hiding
-                                    e.currentTarget.style.opacity = '0';
-                                  }}
-                                />
-                              </div>
-                            )}
-
-                            {/* Delete button - only show if user has edit permission */}
-                            {canEdit && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const mediaIndex = viewableToMediaMapping[index];
-                                  if (mediaIndex !== undefined) {
-                                    handleDeleteFile(mediaIndex);
-                                  } else {
-                                    // Fallback: Find the media index directly
-                                    const currentFile = allViewableFiles[index];
-                                    const currentUrl = typeof currentFile === 'string' ? currentFile : (currentFile as any).url;
-                                    const fallbackIndex = mediaFiles.findIndex((file: any) => {
-                                      const fileUrl = typeof file === 'string' ? file : file.url;
-                                      return fileUrl === currentUrl;
-                                    });
-                                    if (fallbackIndex !== -1) {
-                                      handleDeleteFile(fallbackIndex);
-                                    }
-                                  }
-                                }}
-                                className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
-                              >
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              <svg className="w-4 h-4 text-white/50 group-hover:text-white/80 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                               </svg>
-                            </button>
                             )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    
-                    {/* Upload button - only show if user has edit permission */}
-                    {canEdit && (
-                      <div className="aspect-square border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center hover:border-white/40 transition-colors cursor-pointer group relative flex-shrink-0 w-12 h-12">
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*,video/*,.pdf"
-                          onChange={(e) => {
-                            if (e.target.files) {
-                              handleFileUpload(e.target.files);
-                            }
-                            e.target.value = ''; // Reset input
-                          }}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          disabled={uploading}
-                        />
-                        <div className="text-center pointer-events-none">
-                          {uploading ? (
-                            <div className="w-24">
-                              <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin mx-auto mb-1" />
-                              <div className="text-[9px] text-white/60 text-center truncate max-w-full">
-                                {uploadFileName || 'Uploading...'}
-                              </div>
-                              <div className="w-full h-1 bg-white/10 rounded overflow-hidden mt-1">
-                                <div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300 ease-out" style={{ width: `${uploadProgress ?? 0}%` }} />
-                              </div>
+                            <div className="text-[10px] text-white/50 group-hover:text-white/80">
+                              {uploading ? `${uploadProgress ?? 0}%` : 'Upload'}
                             </div>
-                          ) : (
-                            <svg className="w-4 h-4 text-white/50 group-hover:text-white/80 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                          )}
-                          <div className="text-[10px] text-white/50 group-hover:text-white/80">
-                            {uploading ? `${uploadProgress ?? 0}%` : 'Upload'}
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </>
-                )}
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
 
-            </div>
+              </div>
 
-            {/* Bottom Section - Empty (Tools and Media Files moved above) */}
-            <div className="flex-1 flex flex-col min-h-0">
+              {/* Bottom Section - Empty (Tools and Media Files moved above) */}
+              <div className="flex-1 flex flex-col min-h-0">
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
   </div>
   );
 }

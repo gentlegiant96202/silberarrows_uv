@@ -9,6 +9,7 @@ import CRMNavigation from './modules/uv-crm/CRMNavigation';
 import FinanceCalculator from './modules/uv-crm/FinanceCalculator';
 import MarketingNavigation from './modules/marketing/MarketingNavigation';
 import AccountsNavigation from './modules/accounts/AccountsNavigation';
+import WorkshopNavigation from './modules/workshop/WorkshopNavigation';
 import ModuleSwitcher from '@/components/shared/ModuleSwitcher';
 import MarketingTicketsDropdown from '@/components/shared/MarketingTicketsDropdown';
 import { useUserRole } from '@/lib/useUserRole';
@@ -50,8 +51,11 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
             {!isModuleSelectionPage && (
               <>
                 {currentModule === 'uv-crm' && <CRMNavigation />}
-                {currentModule === 'workshop' && (
-                  <div className="text-white/60 text-sm">Workshop Navigation Coming Soon</div>
+                {currentModule === 'workshop' && activeTab && onTabChange && (
+                  <WorkshopNavigation activeTab={activeTab} onTabChange={onTabChange} />
+                )}
+                {currentModule === 'workshop' && (!activeTab || !onTabChange) && (
+                  <WorkshopNavigation activeTab="dashboard" onTabChange={() => {}} />
                 )}
                 {currentModule === 'marketing' && activeTab && onTabChange && (
                   <MarketingNavigation activeTab={activeTab} onTabChange={onTabChange} />

@@ -1,9 +1,10 @@
 "use client";
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { useModulePermissions } from '@/lib/useModulePermissions';
-import { Shield, Wrench } from 'lucide-react';
+import { Shield, Wrench, LayoutDashboard } from 'lucide-react';
+import RouteProtector from '@/components/shared/RouteProtector';
 
 export default function WorkshopDashboard() {
   const router = useRouter();
@@ -49,43 +50,59 @@ export default function WorkshopDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <Header />
-      <div className="p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Workshop Dashboard Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-center mb-6">
+    <RouteProtector moduleName="workshop">
+      <div className="h-screen bg-black flex flex-col overflow-hidden">
+        <Header />
+        
+        {/* Full-height container */}
+        <div className="flex-1 flex flex-col w-full px-2 py-4 overflow-hidden">
+          
+          {/* Page Header with Glass Morphism */}
+          <div className="mb-4 bg-gradient-to-r from-black/40 via-gray-900/30 to-black/40 backdrop-blur-md border border-gray-700/50 rounded-xl p-4 mx-4 flex-shrink-0">
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-400 via-gray-300 to-gray-500 flex items-center justify-center shadow-lg">
-                  <Wrench className="w-6 h-6 text-black" />
+                <div className="p-3 bg-gradient-to-br from-gray-800 to-black rounded-lg border border-gray-600/50">
+                  <LayoutDashboard className="h-8 w-8 text-silver-300" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-white">Workshop Department</h1>
-                  <p className="text-gray-300">Service Management & Analytics</p>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    Workshop Dashboard
+                  </h1>
+                  <p className="text-gray-400">Analytics and Management Overview</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Coming Soon */}
-          <div className="flex items-center justify-center h-[calc(100vh-400px)]">
-            <div className="text-center">
-              <div className="w-32 h-32 mx-auto mb-8 bg-white/5 backdrop-blur border border-white/10 rounded-full flex items-center justify-center">
-                <Wrench className="w-16 h-16 text-white/20" />
+          {/* Dashboard Content - Empty with Coming Soon */}
+          <div className="flex-1 flex flex-col mx-4 overflow-hidden">
+            <div className="flex-1 w-full bg-gradient-to-br from-black/40 via-gray-900/30 to-black/60 backdrop-blur-md border border-gray-700/50 rounded-xl overflow-hidden flex flex-col min-h-0">
+              <div className="flex items-center justify-between p-4 border-b border-gray-700/50 flex-shrink-0">
+                <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent flex items-center space-x-2">
+                  <LayoutDashboard className="h-6 w-6 text-silver-300" />
+                  <span>Dashboard Overview</span>
+                </h2>
               </div>
-              <div className="text-6xl mb-4">🚧</div>
-              <h2 className="text-2xl font-semibold text-white mb-2">Coming Soon</h2>
-              <p className="text-white/70 max-w-md mx-auto">
-                The <span className="text-white font-semibold">WORKSHOP</span> service analytics dashboard is under development.
-              </p>
-              <div className="mt-6 text-sm text-white/50">
-                Available in Accounts → Service Department
+              
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-32 h-32 mx-auto mb-8 bg-white/5 backdrop-blur border border-white/10 rounded-full flex items-center justify-center">
+                    <LayoutDashboard className="w-16 h-16 text-white/20" />
+                  </div>
+                  <div className="text-6xl mb-4">🚧</div>
+                  <h3 className="text-2xl font-semibold text-white mb-2">Coming Soon</h3>
+                  <p className="text-white/70 max-w-md mx-auto">
+                    The <span className="text-white font-semibold">WORKSHOP DASHBOARD</span> analytics and management tools are under development.
+                  </p>
+                  <div className="mt-6 text-sm text-white/50">
+                    Use the <span className="text-white font-medium">Service & Warranty</span> tab above to access service contracts.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </RouteProtector>
   );
 } 

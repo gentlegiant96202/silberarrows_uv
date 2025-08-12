@@ -37,7 +37,10 @@ export default function UVCatalogBoard() {
 
   // Get the live XML feed URLs
   const getFacebookXmlUrls = () => {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    // Use custom environment variable for production URL
+    // Add NEXT_PUBLIC_APP_URL to your Vercel environment variables
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    
     return {
       public: `${baseUrl}/api/generate-public-xml-feed`,
       enhanced: `${baseUrl}/api/generate-enhanced-xml-feed`

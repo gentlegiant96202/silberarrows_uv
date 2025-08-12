@@ -57,9 +57,10 @@ export async function GET(request: NextRequest) {
 
     const validEntries = catalogEntries?.filter(entry => {
       const imageUrl = entry.catalog_image_url || imageMap.get(entry.car_id);
-      return entry.cars && 
+      const car = entry.cars as any; // Type assertion to fix build error
+      return car && 
              imageUrl &&
-             entry.cars.advertised_price_aed > 0;
+             car.advertised_price_aed > 0;
     }) || [];
 
     console.log(`Found ${validEntries.length} catalog entries with images`);

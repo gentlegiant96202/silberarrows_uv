@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const validEntries = catalogEntries?.filter(entry => 
       entry.cars && 
       entry.catalog_image_url &&
-      entry.cars.advertised_price_aed > 0
+      (entry.cars as any).advertised_price_aed > 0
     ) || [];
 
     console.log(`Found ${validEntries.length} ready catalog entries with images`);

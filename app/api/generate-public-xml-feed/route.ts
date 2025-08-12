@@ -60,18 +60,20 @@ export async function GET(request: NextRequest) {
       .from('media-files')
       .upload(fileName, xmlContent, {
         contentType: 'application/xml',
-        upsert: true
+        upsert: true,
+        cacheControl: '0'
       });
 
     if (uploadError) {
       console.error('Error uploading XML to storage:', uploadError);
     } else {
-      // Also update the latest.xml file for permanent URL
+      // Also update the latest.xml file for permanent URL with cache busting
       await supabase.storage
         .from('media-files')
         .upload('xml-feeds/facebook-latest.xml', xmlContent, {
           contentType: 'application/xml',
-          upsert: true
+          upsert: true,
+          cacheControl: '0'
         });
     }
 

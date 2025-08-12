@@ -160,8 +160,11 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
   
   // Mouse down handler for panning
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Only handle panning if we're not over a draggable thumbnail
-    if (e.button === 0 && !isAnnotationMode && !(e.target as Element).closest('[data-thumbnail-draggable]')) {
+    // Only handle panning if we're not over a draggable thumbnail or video element
+    if (e.button === 0 && 
+        !isAnnotationMode && 
+        !(e.target as Element).closest('[data-thumbnail-draggable]') &&
+        !(e.target as Element).closest('video')) {
       setIsDragging(true);
       setLastPos({ x: e.clientX, y: e.clientY });
       e.preventDefault();

@@ -309,17 +309,17 @@ export default function UVCatalogBoard() {
   };
 
   const getStockAgeColor = (days: number) => {
-    if (days <= 30) return 'bg-green-500/20 text-green-400 border-green-500/30';
-    if (days <= 60) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-    return 'bg-red-500/20 text-red-400 border-red-500/30';
+    if (days <= 30) return 'bg-gray-400/20 text-gray-300 border-gray-400/30';
+    if (days <= 60) return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    return 'bg-gray-600/20 text-gray-500 border-gray-600/30';
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ready': return 'text-green-400';
-      case 'generating': return 'text-blue-400';
-      case 'error': return 'text-red-400';
-      default: return 'text-yellow-400';
+      case 'ready': return 'text-gray-300';
+      case 'generating': return 'text-gray-400';
+      case 'error': return 'text-gray-500';
+      default: return 'text-gray-500';
     }
   };
 
@@ -335,12 +335,12 @@ export default function UVCatalogBoard() {
   }
 
   return (
-    <div className="p-6 bg-black min-h-screen">
-      {/* Header with Actions */}
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-6">
+      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">UV Catalog Management</h1>
-          <p className="text-white/60">Generate catalog images and XML feeds for Facebook integration</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 bg-clip-text text-transparent mb-2">UV Catalog Management</h1>
+          <p className="text-gray-400">Generate catalog images and XML feeds for Facebook integration</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -350,7 +350,7 @@ export default function UVCatalogBoard() {
               href={getFacebookXmlUrl()} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-400 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-md hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 transition-all duration-300"
               title="Facebook-ready XML feed with ready catalog entries"
             >
               <Globe className="w-4 h-4" />
@@ -360,7 +360,7 @@ export default function UVCatalogBoard() {
             
             <button
               onClick={copyXmlUrl}
-              className="flex items-center gap-2 px-3 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 rounded-lg text-purple-400 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-white/5 backdrop-blur-md hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 transition-all duration-300"
               title="Copy Facebook XML URL"
             >
               <Copy className="w-4 h-4" />
@@ -370,7 +370,7 @@ export default function UVCatalogBoard() {
           <button
             onClick={handleGenerateAllImages}
             disabled={generating}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-400 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-700/50 to-gray-600/50 backdrop-blur-md hover:from-gray-600/50 hover:to-gray-500/50 border border-white/10 rounded-lg text-gray-300 transition-all duration-300 disabled:opacity-50"
           >
             {generating ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -383,7 +383,7 @@ export default function UVCatalogBoard() {
           <button
             onClick={handleGenerateXMLFeed}
             disabled={generating}
-            className="flex items-center gap-2 px-6 py-2 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg text-green-400 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-gray-600/50 to-gray-500/50 backdrop-blur-md hover:from-gray-500/50 hover:to-gray-400/50 border border-white/10 rounded-lg text-gray-200 transition-all duration-300 disabled:opacity-50"
           >
             {generating ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -397,51 +397,51 @@ export default function UVCatalogBoard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <div className="text-2xl font-bold text-white">{entries.length}</div>
-          <div className="text-white/60 text-sm">Total Cars</div>
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
+          <div className="text-2xl font-bold text-gray-200">{entries.length}</div>
+          <div className="text-gray-400 text-sm">Total Cars</div>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <div className="text-2xl font-bold text-green-400">{entries.filter(e => e.status === 'ready').length}</div>
-          <div className="text-white/60 text-sm">Ready Cards</div>
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
+          <div className="text-2xl font-bold bg-gradient-to-r from-gray-300 to-gray-500 bg-clip-text text-transparent">{entries.filter(e => e.status === 'ready').length}</div>
+          <div className="text-gray-400 text-sm">Ready Cards</div>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <div className="text-2xl font-bold text-yellow-400">{entries.filter(e => e.status === 'pending').length}</div>
-          <div className="text-white/60 text-sm">Pending Cards</div>
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
+          <div className="text-2xl font-bold text-gray-300">{entries.filter(e => e.status === 'pending').length}</div>
+          <div className="text-gray-400 text-sm">Pending Cards</div>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <div className="text-2xl font-bold text-blue-400">{entries.filter(e => e.stock_age_days! <= 30).length}</div>
-          <div className="text-white/60 text-sm">New Stock</div>
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
+          <div className="text-2xl font-bold text-gray-300">{entries.filter(e => e.stock_age_days! <= 30).length}</div>
+          <div className="text-gray-400 text-sm">New Stock</div>
         </div>
       </div>
 
       {/* XML Feed URL Display */}
-      <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl p-6 mb-8">
+      <div className="bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-md border border-white/10 rounded-xl p-6 mb-8">
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
-            <Globe className="w-5 h-5 text-purple-400" />
+          <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-200 to-gray-400 bg-clip-text text-transparent mb-2 flex items-center gap-2">
+            <Globe className="w-5 h-5 text-gray-300" />
             Facebook XML Feed URL
           </h3>
-          <p className="text-white/60 text-sm">
+          <p className="text-gray-400 text-sm">
             Use this URL in Facebook Business Manager for automatic car listing updates
           </p>
         </div>
 
-        <div className="bg-black/20 border border-purple-500/20 rounded-lg p-4">
+        <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
-            <h4 className="font-semibold text-purple-300">Facebook Automotive Catalog Feed</h4>
+            <div className="w-3 h-3 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full"></div>
+            <h4 className="font-semibold text-gray-300">Facebook Automotive Catalog Feed</h4>
           </div>
-          <p className="text-white/60 text-xs mb-3">
+          <p className="text-gray-400 text-xs mb-3">
             Facebook-ready cars with completed catalog images • Perfect for Facebook Business Manager
           </p>
-          <div className="bg-black/30 border border-white/10 rounded-lg p-3 font-mono text-xs mb-3">
-            <span className="text-purple-300 break-all">{getFacebookXmlUrl()}</span>
+          <div className="bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg p-3 font-mono text-xs mb-3">
+            <span className="text-gray-300 break-all">{getFacebookXmlUrl()}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={copyXmlUrl}
-              className="flex items-center gap-1 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded text-purple-400 transition-colors text-xs"
+              className="flex items-center gap-1 px-3 py-1.5 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/10 rounded text-gray-300 transition-all duration-300 text-xs"
             >
               <Copy className="w-3 h-3" />
               Copy
@@ -450,7 +450,7 @@ export default function UVCatalogBoard() {
               href={getFacebookXmlUrl()} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center gap-1 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded text-blue-400 transition-colors text-xs"
+              className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-gray-600/30 to-gray-500/30 backdrop-blur-md hover:from-gray-500/30 hover:to-gray-400/30 border border-white/10 rounded text-gray-300 transition-all duration-300 text-xs"
             >
               <ExternalLink className="w-3 h-3" />
               View
@@ -459,12 +459,12 @@ export default function UVCatalogBoard() {
         </div>
       </div>
 
-      {/* Entries Grid */}
+      {/* Car Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {entries.map((entry) => (
-          <div key={entry.id} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-all duration-300 group">
+          <div key={entry.id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-all duration-300 group">
             {/* Car Image */}
-            <div className="relative aspect-square bg-white/5">
+            <div className="relative aspect-square bg-black/20">
               {entry.catalog_image_url ? (
                 <img 
                   src={entry.catalog_image_url} 
@@ -478,19 +478,19 @@ export default function UVCatalogBoard() {
                   className="w-full h-full object-cover opacity-50"
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-white/40">
+                <div className="flex items-center justify-center h-full text-gray-500">
                   <ImageIcon className="w-12 h-12" />
                 </div>
               )}
               
               {/* Status Badge */}
-              <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-medium border ${getStockAgeColor(entry.stock_age_days!)}`}>
+              <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${getStockAgeColor(entry.stock_age_days!)}`}>
                 {entry.stock_age_days!} days
               </div>
               
               {/* Generation Status */}
               {entry.status === 'ready' && (
-                <div className="absolute top-3 right-3 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                <div className="absolute top-3 right-3 w-6 h-6 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full flex items-center justify-center backdrop-blur-sm">
                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
@@ -498,11 +498,11 @@ export default function UVCatalogBoard() {
               )}
 
               {/* Hover Actions */}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
                 <button
                   onClick={() => handleGenerateCatalogImage(entry)}
                   disabled={generatingCarId === entry.car_id}
-                  className="flex items-center gap-2 px-4 py-3 bg-green-600/80 hover:bg-green-600 rounded-lg transition-colors disabled:opacity-50 text-white font-medium"
+                  className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-600/80 to-gray-500/80 backdrop-blur-md hover:from-gray-500/80 hover:to-gray-400/80 rounded-lg transition-all duration-300 disabled:opacity-50 text-white font-medium border border-white/10"
                   title={entry.status === 'ready' ? "Regenerate Catalog Image" : "Generate Catalog Image"}
                 >
                   {generatingCarId === entry.car_id ? (
@@ -526,10 +526,10 @@ export default function UVCatalogBoard() {
                 {(entry.catalog_image_url || entry.primary_image_url) && (
                   <button
                     onClick={() => window.open(entry.catalog_image_url || entry.primary_image_url, '_blank')}
-                    className="p-3 bg-blue-600/80 hover:bg-blue-600 rounded-lg transition-colors"
+                    className="p-3 bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-lg transition-all duration-300 border border-white/10"
                     title="View Image"
                   >
-                    <Eye className="w-5 h-5" />
+                    <Eye className="w-5 h-5 text-gray-300" />
                   </button>
                 )}
               </div>
@@ -537,39 +537,39 @@ export default function UVCatalogBoard() {
 
             {/* Car Details */}
             <div className="p-4">
-              <h3 className="font-semibold text-white text-lg leading-tight mb-2">
+              <h3 className="font-semibold text-gray-200 text-lg leading-tight mb-2">
                 {entry.title}
               </h3>
               
               <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                 <div>
-                  <span className="text-white/50">Stock #:</span>
-                  <span className="text-white ml-1">{entry.stock_number}</span>
+                  <span className="text-gray-500">Stock #:</span>
+                  <span className="text-gray-300 ml-1">{entry.stock_number}</span>
                 </div>
                 <div>
-                  <span className="text-white/50">Mileage:</span>
-                  <span className="text-white ml-1">{entry.current_mileage_km?.toLocaleString() || 'N/A'} km</span>
+                  <span className="text-gray-500">Mileage:</span>
+                  <span className="text-gray-300 ml-1">{entry.current_mileage_km?.toLocaleString() || 'N/A'} km</span>
                 </div>
                 <div>
-                  <span className="text-white/50">Price:</span>
-                  <span className="text-white ml-1">AED {entry.advertised_price_aed?.toLocaleString()}</span>
+                  <span className="text-gray-500">Price:</span>
+                  <span className="text-gray-200 ml-1">AED {entry.advertised_price_aed?.toLocaleString()}</span>
                 </div>
                 <div>
-                  <span className="text-white/50">Color:</span>
-                  <span className="text-white ml-1">{entry.colour}</span>
+                  <span className="text-gray-500">Color:</span>
+                  <span className="text-gray-300 ml-1">{entry.colour}</span>
                 </div>
               </div>
 
               {/* Status Indicator */}
               <div className="flex items-center justify-between pt-3 border-t border-white/10">
                 <div className={`flex items-center gap-2 text-xs ${getStatusColor(entry.status)}`}>
-                  <div className={`w-2 h-2 rounded-full ${entry.status === 'ready' ? 'bg-green-400' : entry.status === 'error' ? 'bg-red-400' : 'bg-yellow-400'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${entry.status === 'ready' ? 'bg-gray-400' : entry.status === 'error' ? 'bg-gray-600' : 'bg-gray-500'}`}></div>
                   {entry.status === 'ready' ? 'Ready for XML' : 
                    entry.status === 'error' ? 'Generation Error' :
                    entry.status === 'generating' ? 'Generating...' : 'Needs Generation'}
                 </div>
                 
-                <div className="text-xs text-white/50">
+                <div className="text-xs text-gray-500">
                   Added {new Date(entry.created_at).toLocaleDateString()}
                 </div>
               </div>
@@ -580,9 +580,9 @@ export default function UVCatalogBoard() {
 
       {entries.length === 0 && (
         <div className="text-center py-12">
-          <Car className="w-16 h-16 text-white/30 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">No Cars in UV Catalog</h3>
-          <p className="text-white/60">Cars will appear here when added to inventory</p>
+          <Car className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-300 mb-2">No Cars in UV Catalog</h3>
+          <p className="text-gray-500">Cars will appear here when added to inventory</p>
         </div>
       )}
     </div>

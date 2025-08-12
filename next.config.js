@@ -2,14 +2,7 @@
 // Trigger fresh deployment - ensure latest commit is built
 const nextConfig = {
   experimental: {
-    esmExternals: true
-  },
-  // Configure API routes body size limits
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb', // Global limit for API routes
-    },
-    responseLimit: '50mb',
+    esmExternals: true,
   },
   // Turbopack configuration (stable in Next.js 15)
   turbopack: {

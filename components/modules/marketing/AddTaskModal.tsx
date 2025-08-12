@@ -54,6 +54,8 @@ interface AddTaskModalProps {
   onClose: () => void;
   onDelete?: (taskId: string) => void;
   onTaskUpdate?: (updatedTask: MarketingTask) => void;
+  onUploadStart?: (taskId: string) => void;
+  onUploadComplete?: (taskId: string) => void;
   isAdmin?: boolean;
 }
 
@@ -68,7 +70,7 @@ interface FileWithThumbnail {
 
 
 
-export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUpdate, isAdmin = false }: AddTaskModalProps) {
+export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUpdate, onUploadStart, onUploadComplete, isAdmin = false }: AddTaskModalProps) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -284,22 +286,34 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
     return typeof file === 'string' ? file : file.url;
   };
 
+  // Keep track of current task ID to prevent unnecessary resets
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(task?.id || null);
+
   useEffect(() => {
     if (task) {
-      setFormData({
-        title: task.title || '',
-        description: task.description || '',
-        due_date: task.due_date || '',
-        requested_by: task.assignee || '',
-        caption: task.description || '', // We'll use description field for caption for now
-        status: task.status || 'intake',
-        task_type: task.task_type || 'design',
-      });
-      setExistingMedia(task.media_files || []);
+      // Only reset the form and media if this is a different task
+      if (task.id !== currentTaskId) {
+        console.log('🔄 AddTaskModal: Loading new task', task.id);
+        setCurrentTaskId(task.id);
+        setFormData({
+          title: task.title || '',
+          description: task.description || '',
+          due_date: task.due_date || '',
+          requested_by: task.assignee || '',
+          caption: task.description || '', // We'll use description field for caption for now
+          status: task.status || 'intake',
+          task_type: task.task_type || 'design',
+        });
+        setExistingMedia(task.media_files || []);
+      } else {
+        console.log('🔄 AddTaskModal: Same task, keeping local state', task.id);
+      }
     } else {
+      console.log('🔄 AddTaskModal: No task, clearing state');
+      setCurrentTaskId(null);
       setExistingMedia([]);
     }
-  }, [task]);
+  }, [task, currentTaskId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -635,6 +649,11 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       return updated;
     });
     setHasActiveUpload(true);
+    
+    // Notify parent about upload start
+    if (onUploadStart && taskId) {
+      onUploadStart(taskId);
+    }
 
     // Process each file individually with real progress tracking
     for (let i = 0; i < filesToUpload.length; i++) {
@@ -732,6 +751,11 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       }
     }
     setHasActiveUpload(false);
+    
+    // Notify parent about upload completion
+    if (onUploadComplete && taskId) {
+      onUploadComplete(taskId);
+    }
 
     // Update database with all new media
     if (newMedia.length) {
@@ -788,6 +812,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         task_type: formData.task_type,
         // Use caption field for description when visible, otherwise use description
         description: showCaption ? formData.caption : formData.description,
+        // Preserve existing media files when updating a task
+        media_files: task ? existingMedia : undefined,
       };
 
       if (task) {
@@ -947,6 +973,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
 
   const handleDeleteExistingFile = async (file: any, index: number) => {
     if (!task?.id) return;
+    console.log('🗑️ AddTaskModal: Deleting file', file.name, 'at index', index);
     // Remove confirm dialog if you want instant delete, or keep if you want confirmation
     // const confirmDelete = confirm('Are you sure you want to delete this file?');
     // if (!confirmDelete) return;
@@ -982,6 +1009,20 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         return currentOriginalUrl !== originalFileUrl;
       });
       setExistingMedia(updatedMedia);
+      console.log('🗑️ AddTaskModal: Updated media count:', updatedMedia.length);
+
+      // Immediately notify parent component with local optimistic update
+      if (onTaskUpdate && task) {
+        const previewUrlImmediate = getPreviewUrl(updatedMedia);
+        const optimisticTask = {
+          ...task,
+          media_files: updatedMedia,
+          previewUrl: previewUrlImmediate,
+          _optimistic: true,
+        } as any;
+        onTaskUpdate(optimisticTask);
+        console.log('🚀 Sent optimistic task update after local deletion, preview:', previewUrlImmediate);
+      }
       // Force refresh of computed arrays
       setRefreshKey(prev => prev + 1);
       // Update database
@@ -993,6 +1034,23 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         console.error('Database update error:', dbError);
         // Revert local state if database update failed
         setExistingMedia(existingMedia);
+      } else {
+        console.log('🗑️ AddTaskModal: Database updated successfully');
+        
+        // Notify parent component of the updated task with new media files
+        if (onTaskUpdate && task) {
+          // Calculate preview URL for the updated task
+          const previewUrl = getPreviewUrl(updatedMedia);
+          
+          // Notify parent component of the updated task with preview
+          const updatedTask = { 
+            ...task, 
+            media_files: updatedMedia,
+            previewUrl 
+          };
+          onTaskUpdate(updatedTask);
+          console.log('✅ Notified parent of task update after file deletion, new preview:', previewUrl);
+        }
       }
     } catch (error) {
       console.error('Delete error:', error);
@@ -1394,6 +1452,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                               
                               {/* Delete button */}
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const originalIndex = viewableToMediaMapping[index];

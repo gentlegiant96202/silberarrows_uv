@@ -100,12 +100,15 @@ function getPreviewUrl(mediaFiles: any[] = []): string | null {
     }
     return f.type === 'application/pdf' || f.name?.match(/\.pdf$/i);
   });
-  
+
   if (pdfFile) {
     return 'PDF_PREVIEW'; // Special indicator for PDF preview
   }
-  
-  return null;
+
+  // Ultimate fallback: return the URL of the first media item (image / video / whatever)
+  const first = mediaFiles[0];
+  if (typeof first === 'string') return first;
+  return first.url || null;
 }
 
 // Column definitions matching CRM Kanban style
@@ -168,6 +171,7 @@ export default function MarketingKanbanBoard() {
   const [draggedTask, setDraggedTask] = useState<MarketingTask | null>(null);
   const [hovered, setHovered] = useState<ColKey | null>(null);
   const [pinningTask, setPinningTask] = useState<string | null>(null);
+  const [tasksWithActiveUploads, setTasksWithActiveUploads] = useState<Set<string>>(new Set());
   const hasFetchedTasks = useRef(false);
   
   // Get permissions and user role
@@ -205,7 +209,7 @@ export default function MarketingKanbanBoard() {
             title: rawTask.title,
             description: rawTask.description,
             status: rawTask.status,
-            assignee: rawTask.assignee || rawTask.requested_by, // Handle both field names
+            assignee: rawTask.requested_by || rawTask.assignee, // Always prioritize requested_by (database field)
             due_date: rawTask.due_date,
             created_at: rawTask.created_at,
             updated_at: rawTask.updated_at,
@@ -310,9 +314,56 @@ export default function MarketingKanbanBoard() {
                 previewUrl: getPreviewUrl(baseTask.media_files)
               };
               
-              return prev.map(task => 
-                task.id === updatedTask.id ? updatedTask : task
-              );
+              return prev.map(task => {
+                if (task.id === updatedTask.id) {
+                  // Smart merging: If the local task has more recent updates than the incoming update,
+                  // preserve local data. This prevents overwrites during active file uploads.
+                  const localUpdateTime = new Date(task.updated_at).getTime();
+                  const incomingUpdateTime = new Date(updatedTask.updated_at).getTime();
+                  
+                  // If this is a local update from AddTaskModal, ignore real-time updates for a short period
+                  if ((task as any)._localUpdate) {
+                    const timeSinceLocalUpdate = Date.now() - localUpdateTime;
+                    if (timeSinceLocalUpdate < 2000) { // 2 second grace period
+                      console.log('Ignoring real-time update - recent local update detected:', task.id);
+                      return task;
+                    }
+                    // Remove the local update flag after grace period
+                    const { _localUpdate, ...cleanTask } = task as any;
+                    task = cleanTask;
+                  }
+                  
+                  // If local task is newer, preserve local media_files and other critical fields
+                  if (localUpdateTime > incomingUpdateTime) {
+                    console.log('Preserving local task state (newer than incoming update):', task.id);
+                    return {
+                      ...updatedTask,
+                      media_files: task.media_files, // Preserve local media files
+                      updated_at: task.updated_at,   // Keep local timestamp
+                      previewUrl: task.previewUrl    // Keep local preview
+                    };
+                  }
+                  
+                  // If incoming update has more media files than local, merge them intelligently
+                  const incomingMediaCount = updatedTask.media_files?.length || 0;
+                  const localMediaCount = task.media_files?.length || 0;
+                  if (incomingMediaCount > localMediaCount) {
+                    console.log('Merging media files (incoming has more):', task.id);
+                    return {
+                      ...updatedTask,
+                      media_files: updatedTask.media_files || [], // Use incoming media (likely from successful upload)
+                      previewUrl: getPreviewUrl(updatedTask.media_files || [])
+                    };
+                  }
+                  
+                  // Default: use incoming update and recalculate preview URL
+                  return {
+                    ...updatedTask,
+                    previewUrl: getPreviewUrl(updatedTask.media_files || []) || task.previewUrl
+                  };
+                }
+                return task;
+              });
             } 
             else if (payload.eventType === 'DELETE') {
               return prev.filter(task => task.id !== payload.old.id);
@@ -365,10 +416,18 @@ export default function MarketingKanbanBoard() {
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // Optimized onDrop with reduced dependencies and deferred updates
+  // Fixed onDrop with fresh data fetching to prevent media loss
   const onDrop = useCallback((status: ColKey) => async (e: React.DragEvent) => {
     e.preventDefault();
     if (!draggedTask || draggedTask.status === status) {
+      setDraggedTask(null);
+      setHovered(null);
+      return;
+    }
+
+    // Prevent moving cards that have active uploads to avoid media loss
+    if (tasksWithActiveUploads.has(draggedTask.id)) {
+      alert('Please wait for file uploads to complete before moving this card.');
       setDraggedTask(null);
       setHovered(null);
       return;
@@ -397,37 +456,71 @@ export default function MarketingKanbanBoard() {
       )
     );
     
-    // Defer database update to not block UI
+    // Fetch fresh task data from database to ensure we have the latest media_files
     try {
       const headers = await getAuthHeaders();
+      
+      // Step 1: Get current task state from database to preserve any recent uploads
+      const fetchResponse = await fetch(`/api/design-tasks?id=${taskToUpdate.id}`, { headers });
+      if (!fetchResponse.ok) {
+        throw new Error('Failed to fetch current task state');
+      }
+      
+      const freshTaskData = await fetchResponse.json();
+      const currentTask = Array.isArray(freshTaskData) ? freshTaskData[0] : freshTaskData;
+      
+      if (!currentTask) {
+        throw new Error('Task not found in database');
+      }
+      
+      // Step 2: Update with only the status change, preserving fresh media_files
       const response = await fetch('/api/design-tasks', {
         method: 'PUT',
         headers,
         body: JSON.stringify({
           id: taskToUpdate.id,
           status,
-          // Preserve all existing task data to prevent data loss
-          title: taskToUpdate.title,
-          description: taskToUpdate.description,
-          assignee: taskToUpdate.assignee,
-          due_date: taskToUpdate.due_date,
-          task_type: taskToUpdate.task_type,
-          media_files: taskToUpdate.media_files,
+          // Use fresh data from database to preserve recent uploads
+          title: currentTask.title,
+          description: currentTask.description,
+          assignee: currentTask.requested_by || currentTask.assignee, // Handle field mapping
+          due_date: currentTask.due_date,
+          task_type: currentTask.task_type,
+          media_files: currentTask.media_files, // This is the critical fix - use fresh data
           // Don't send annotations in status updates to avoid conflicts
         }),
       });
 
       if (!response.ok) {
-        // Revert optimistic update on failure
-        setTasks(prevTasks => 
-          prevTasks.map(task =>
-            task.id === taskToUpdate.id
-              ? { ...task, status: taskToUpdate.status, updated_at: taskToUpdate.updated_at }
-              : task
-          )
-        );
-        console.error('Failed to update task status');
+        throw new Error(`Server error: ${response.status}`);
       }
+      
+      // Update local state with the response to ensure consistency
+      const updatedTask: MarketingTask = await response.json();
+
+      // Ensure we keep media_files if backend omitted them
+      const existingMedia = selectedTask?.media_files || [];
+      const mergedMedia = (updatedTask.media_files && updatedTask.media_files.length)
+        ? updatedTask.media_files
+        : existingMedia;
+
+      const previewUrl = getPreviewUrl(mergedMedia || []);
+
+      const taskWithPreview = {
+        ...updatedTask,
+        media_files: mergedMedia,
+        previewUrl: previewUrl || selectedTask?.previewUrl || null,
+        _localUpdate: true,
+      } as MarketingTask;
+
+      // Update local state with preview-aware task
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskWithPreview.id ? taskWithPreview : task
+        )
+      );
+      return taskWithPreview;
+      
     } catch (error) {
       // Revert optimistic update on error
       setTasks(prevTasks => 
@@ -437,9 +530,12 @@ export default function MarketingKanbanBoard() {
             : task
         )
       );
-      console.error('Error updating task:', error);
+      console.error('Error updating task status:', error);
+      
+      // Show user-friendly error message
+      alert('Failed to move card. Your media files are safe. Please try again.');
     }
-  }, [draggedTask, isAdmin, getAuthHeaders]);
+  }, [draggedTask, isAdmin, getAuthHeaders, tasksWithActiveUploads]);
 
   const onDragEnd = useCallback(() => {
     setDraggedTask(null);
@@ -514,13 +610,20 @@ export default function MarketingKanbanBoard() {
         });
         if (response.ok) {
           const updatedTask: MarketingTask = await response.json();
-          // Update local state with the updated task
+          
+          // Ensure preview URL is recalculated since API response doesn't include it
+          const taskWithPreview = {
+            ...updatedTask,
+            previewUrl: getPreviewUrl(updatedTask.media_files || [])
+          };
+          
+          // Update local state with the updated task including preview
           setTasks(prevTasks => 
             prevTasks.map(task => 
-              task.id === updatedTask.id ? updatedTask : task
+              task.id === updatedTask.id ? taskWithPreview : task
             )
           );
-          return updatedTask;
+          return taskWithPreview;
         } else {
           console.error('Failed to update task');
           return null;
@@ -535,9 +638,16 @@ export default function MarketingKanbanBoard() {
         });
         if (response.ok) {
           const newTask: MarketingTask = await response.json();
-          // Add new task to local state
-          setTasks(prevTasks => [...prevTasks, newTask]);
-          return newTask;
+          
+          // Ensure preview URL is calculated for new tasks
+          const taskWithPreview = {
+            ...newTask,
+            previewUrl: getPreviewUrl(newTask.media_files || [])
+          };
+          
+          // Add new task to local state with preview
+          setTasks(prevTasks => [...prevTasks, taskWithPreview]);
+          return taskWithPreview;
         } else {
           console.error('Failed to create task');
           return null;
@@ -891,9 +1001,17 @@ export default function MarketingKanbanBoard() {
                         <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
                           {/* Title Section - Top */}
                           <div className="flex-shrink-0">
-                            <h4 className="text-[11px] font-bold text-white leading-tight line-clamp-1 group-hover:text-gray-100 transition-colors duration-200 uppercase">
-                              {task.title}
-                            </h4>
+                            <div className="flex items-center gap-1">
+                              <h4 className="text-[11px] font-bold text-white leading-tight line-clamp-1 group-hover:text-gray-100 transition-colors duration-200 uppercase flex-1">
+                                {task.title}
+                              </h4>
+                              {tasksWithActiveUploads.has(task.id) && (
+                                <div className="flex items-center gap-0.5 bg-blue-500/20 text-blue-300 px-1 py-0.5 rounded-full backdrop-blur-sm animate-pulse">
+                                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-ping"></div>
+                                  <span className="text-[7px] font-medium uppercase">Uploading</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                           
                           {/* Metadata Section - Bottom */}
@@ -977,11 +1095,32 @@ export default function MarketingKanbanBoard() {
           onDelete={canDelete ? handleDeleteTask : undefined}
           onTaskUpdate={(updatedTask) => {
             // Update the task in local state when files are uploaded
+            // Add timestamp to help with race condition resolution
+            const taskWithTimestamp = {
+              ...updatedTask,
+              updated_at: new Date().toISOString(),
+              _localUpdate: true, // Flag to indicate this is a local update
+              // Ensure preview URL is maintained or recalculated if missing
+              previewUrl: updatedTask.previewUrl || getPreviewUrl(updatedTask.media_files || [])
+            };
+            
             setTasks(prevTasks => 
               prevTasks.map(task => 
-                task.id === updatedTask.id ? updatedTask : task
+                task.id === updatedTask.id ? taskWithTimestamp : task
               )
             );
+          }}
+          onUploadStart={(taskId) => {
+            // Track upload start to prevent card moves during upload
+            setTasksWithActiveUploads(prev => new Set(prev).add(taskId));
+          }}
+          onUploadComplete={(taskId) => {
+            // Remove from active uploads when complete
+            setTasksWithActiveUploads(prev => {
+              const next = new Set(prev);
+              next.delete(taskId);
+              return next;
+            });
           }}
           isAdmin={isAdmin}
         />
@@ -992,6 +1131,18 @@ export default function MarketingKanbanBoard() {
           task={selectedTask}
           onClose={handleCloseWorkspace}
           onSave={handleSaveTask}
+          onUploadStart={(taskId) => {
+            // Track upload start to prevent card moves during upload
+            setTasksWithActiveUploads(prev => new Set(prev).add(taskId));
+          }}
+          onUploadComplete={(taskId) => {
+            // Remove from active uploads when complete
+            setTasksWithActiveUploads(prev => {
+              const next = new Set(prev);
+              next.delete(taskId);
+              return next;
+            });
+          }}
           canEdit={canEdit}
           isAdmin={isAdmin}
         />

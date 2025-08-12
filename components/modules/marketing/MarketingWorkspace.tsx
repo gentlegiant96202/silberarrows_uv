@@ -91,6 +91,8 @@ interface MarketingWorkspaceProps {
   task: MarketingTask;
   onClose: () => void;
   onSave: (taskData: Partial<MarketingTask>) => Promise<MarketingTask | null>;
+  onUploadStart?: (taskId: string) => void;
+  onUploadComplete?: (taskId: string) => void;
   canEdit?: boolean;
   isAdmin?: boolean;
 }
@@ -387,7 +389,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
 
 
 
-export default function MarketingWorkspace({ task, onClose, onSave, canEdit = true, isAdmin = false }: MarketingWorkspaceProps) {
+export default function MarketingWorkspace({ task, onClose, onSave, onUploadStart, onUploadComplete, canEdit = true, isAdmin = false }: MarketingWorkspaceProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [title, setTitle] = useState(task.title || '');
   const [caption, setCaption] = useState(task.description || '');
@@ -414,6 +416,11 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
   const [mediaFiles, setMediaFiles] = useState(() => {
     return (task.media_files || []);
   });
+
+  // Keep mediaFiles in sync with task prop changes
+  useEffect(() => {
+    setMediaFiles(task.media_files || []);
+  }, [task.media_files]);
 
   // Filter for different file types  
   const imageFiles = useMemo(() => {
@@ -860,6 +867,11 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
     if (files.length === 0) return;
     
     setUploading(true);
+    
+    // Notify parent about upload start
+    if (onUploadStart) {
+      onUploadStart(task.id);
+    }
     try {
       const uploadedFiles = [] as any[];
       for (const file of Array.from(files)) {
@@ -982,10 +994,33 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
       setUploading(false);
       setUploadFileName(null);
       setUploadProgress(null);
+      
+      // Notify parent about upload completion
+      if (onUploadComplete) {
+        onUploadComplete(task.id);
+      }
     }
   };
 
-  // Handle save
+  // Handle save (for internal use, doesn't close modal)
+  const handleSaveInternal = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        id: task.id,
+        title,
+        description: caption,
+        // Include current media files to preserve preview URL
+        media_files: mediaFiles,
+      });
+    } catch (error) {
+      console.error('Save error:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle explicit save (for user actions, closes modal)
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -993,7 +1028,11 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
         id: task.id,
         title,
         description: caption,
+        // Include current media files to preserve preview URL
+        media_files: mediaFiles,
       });
+      // Close the workspace after successful explicit save
+      onClose();
     } catch (error) {
       console.error('Save error:', error);
     } finally {
@@ -1086,6 +1125,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
       })];
 
       console.log('📊 Viewable files after deletion:', newViewableFiles.length);
+      console.log('📊 Should close workspace?', newViewableFiles.length === 0);
 
       // Adjust selected index if necessary
       if (selectedImageIndex >= newViewableFiles.length) {
@@ -1100,9 +1140,12 @@ export default function MarketingWorkspace({ task, onClose, onSave, canEdit = tr
 
       // If no viewable files left, close the workspace after a brief delay
       if (newViewableFiles.length === 0) {
+        console.log('🚪 Closing workspace - no viewable files remaining');
         setTimeout(() => {
           onClose();
         }, 1000);
+      } else {
+        console.log('🔄 Keeping workspace open - still have', newViewableFiles.length, 'viewable files');
       }
 
     } catch (error) {

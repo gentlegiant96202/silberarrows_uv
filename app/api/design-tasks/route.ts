@@ -94,6 +94,28 @@ export async function GET(req: NextRequest) {
     // Get query parameters for filtering
     const { searchParams } = new URL(req.url);
     const userTickets = searchParams.get('user_tickets') === 'true';
+    const taskId = searchParams.get('id');
+
+    // If fetching a single task by ID
+    if (taskId) {
+      const { data: task, error } = await supabase
+        .from('design_tasks')
+        .select('*')
+        .eq('id', taskId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching task by ID:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      if (!task) {
+        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      }
+
+      console.log(`✅ Successfully fetched task ${taskId}`);
+      return NextResponse.json(task);
+    }
 
     // Build query with optional filters
     let query = supabase
@@ -258,7 +280,12 @@ export async function PUT(req: NextRequest) {
     if (assignee !== undefined) updates.requested_by = assignee; // Map assignee to requested_by
     if (due_date !== undefined) updates.due_date = due_date;
     if (task_type !== undefined) updates.task_type = task_type;
-    if (media_files !== undefined) updates.media_files = media_files;
+    if (media_files !== undefined) {
+      // Defensive programming: Ensure media_files is an array and validate structure
+      const validatedMediaFiles = Array.isArray(media_files) ? media_files : [];
+      updates.media_files = validatedMediaFiles;
+      console.log(`Updating media_files: ${validatedMediaFiles.length} files`);
+    }
 
     // Always update the updated_at timestamp
     updates.updated_at = new Date().toISOString();

@@ -25,23 +25,13 @@
     }
 
     .catalog-card-square {
-      display: flex;
-      flex-direction: column;
+      position: relative;
       width: 1080px;
       height: 1080px;
-      position: relative;
       overflow: hidden;
-      background: #000000; /* pitch black background */
+      background: #000000;
       border-radius: 0;
       border: none;
-    }
-
-    .image-section {
-      position: relative;
-      width: 100%;
-      height: 65%; /* Take up 65% of the square */
-      background: #000;
-      overflow: hidden;
     }
 
     .catalog-bg-image {
@@ -52,7 +42,7 @@
       height: 100%;
       object-fit: cover;
       object-position: center;
-      filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.8));
+      z-index: 1;
     }
 
     .price-badge {
@@ -82,17 +72,20 @@
     }
 
     .content-section {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 380px; /* Fixed height for overlay */
       padding: 32px 28px;
-      height: 35%; /* Bottom 35% for content */
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
       gap: 18px;
-      background: transparent;
-      position: relative;
-      z-index: 3;
-      margin-top: -64px; /* Pull content up to overlay image */
-      padding-top: 72px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.85) 25%, rgba(0, 0, 0, 0.95) 100%);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 2;
     }
 
     .header h1 {
@@ -188,15 +181,15 @@
 </head>
 <body>
   <div class="catalog-card-square">
-    <!-- Image Section (65% height) -->
-    <div class="image-section">
-      <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" onerror="this.style.display='none';" />
-      <div class="price-badge">
-        <div class="price-text">AED {{price}}</div>
-      </div>
+    <!-- Full Square Background Image -->
+    <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" onerror="this.style.display='none';" />
+    
+    <!-- Price Badge (Top Right) -->
+    <div class="price-badge">
+      <div class="price-text">AED {{price}}</div>
     </div>
 
-    <!-- Content Section (35% height) -->
+    <!-- Content Overlay (Bottom) -->
     <div class="content-section">
       <div class="header">
         <h1>{{year}} {{model}}</h1>

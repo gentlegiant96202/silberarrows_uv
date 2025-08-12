@@ -1,157 +1,165 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Car, Download, Eye, Edit, FileText, Image as ImageIcon, RefreshCw } from 'lucide-react';
+import { Car, Download, Eye, Edit, FileText, Image as ImageIcon, RefreshCw, Plus, Zap, Globe, ExternalLink, Copy } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 
-
-interface InventoryCar {
+interface CatalogEntry {
   id: string;
+  car_id: string;
+  title: string;
+  description: string | null;
+  catalog_image_url: string | null;
+  status: 'pending' | 'generating' | 'ready' | 'error';
+  error_message: string | null;
+  last_generated_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Car data
   stock_number: string;
   model_year: number;
   vehicle_model: string;
-  model_family: string | null;
   colour: string;
-  interior_colour: string | null;
-  chassis_number: string;
   advertised_price_aed: number;
-  cost_price_aed: number | null;
   current_mileage_km: number | null;
-  current_warranty: string | null;
-  current_service: string | null;
-  regional_specification: string | null;
-  engine: string | null;
-  transmission: string | null;
-  horsepower_hp: number | null;
-  torque_nm: number | null;
-  cubic_capacity_cc: number | null;
-  number_of_keys: number | null;
-  ownership_type: string;
-  status: string;
-  sale_status: string;
-  description: string | null;
-  key_equipment: string | null;
-  fuel_level: number | null;
-  car_location: string | null;
-  stock_age_days: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface CarMedia {
-  id: string;
-  car_id: string;
-  url: string;
-  kind: string;
-  is_primary: boolean;
-  sort_order: number;
+  primary_image_url?: string;
+  stock_age_days?: number;
 }
 
 export default function UVCatalogBoard() {
-  const [cars, setCars] = useState<InventoryCar[]>([]);
-  const [carImages, setCarImages] = useState<Record<string, string>>({});
+  const [entries, setEntries] = useState<CatalogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generatingXML, setGeneratingXML] = useState(false);
-  const [selectedCar, setSelectedCar] = useState<InventoryCar | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generatingCarId, setGeneratingCarId] = useState<string | null>(null);
+  const [xmlUrl, setXmlUrl] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const fetchCars = useCallback(async () => {
+  // Get the permanent XML feed URL
+  const getLiveXmlUrl = () => {
+    return 'https://rrxfvdtubynlsanplbta.supabase.co/storage/v1/object/public/media-files/xml-feeds/latest.xml';
+  };
+  
+  const copyXmlUrl = async () => {
+    const url = getLiveXmlUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('XML feed URL copied to clipboard!');
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert('XML feed URL copied to clipboard!');
+    }
+  };
+
+  const fetchEntries = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Fetch all UV inventory cars
-      const { data: carsData, error: carsError } = await supabase
-        .from('cars')
-        .select('*')
-        .eq('status', 'inventory')
-        .eq('sale_status', 'available')
+
+      // Fetch UV catalog entries with car data and primary images
+      const { data: catalogData, error: catalogError } = await supabase
+        .from('uv_catalog')
+        .select(`
+          id,
+          car_id,
+          title,
+          description,
+          catalog_image_url,
+          status,
+          error_message,
+          last_generated_at,
+          created_at,
+          updated_at,
+          cars!inner (
+            stock_number,
+            model_year,
+            vehicle_model,
+            colour,
+            advertised_price_aed,
+            current_mileage_km,
+            created_at
+          )
+        `)
         .order('created_at', { ascending: false });
 
-      if (carsError) {
-        console.error('Error fetching cars:', carsError);
+      if (catalogError) {
+        console.error('Error fetching catalog data:', catalogError);
         return;
       }
 
-      setCars(carsData || []);
+      // Fetch primary images for all cars
+      const carIds = catalogData?.map(entry => entry.car_id) || [];
+      const { data: mediaData } = await supabase
+        .from('car_media')
+        .select('car_id, url')
+        .eq('kind', 'photo')
+        .eq('is_primary', true)
+        .in('car_id', carIds);
 
-      // Fetch primary images for all cars [[memory:5456998]]
-      if (carsData && carsData.length > 0) {
-        const carIds = carsData.map(car => car.id);
-        const { data: mediaData, error: mediaError } = await supabase
-          .from('car_media')
-          .select('car_id, url')
-          .eq('kind', 'photo')
-          .eq('is_primary', true)
-          .in('car_id', carIds);
+      // Process catalog entries with media info
+      const processedEntries = catalogData?.map(entry => {
+        const car = Array.isArray(entry.cars) ? entry.cars[0] : entry.cars;
+        const primaryPhoto = mediaData?.find(m => m.car_id === entry.car_id);
 
-        if (mediaError) {
-          console.error('Error fetching car images:', mediaError);
-        } else {
-          const imageMap: Record<string, string> = {};
-          mediaData?.forEach(media => {
-            imageMap[media.car_id] = media.url;
-          });
-          setCarImages(imageMap);
-        }
-      }
+        // Calculate stock age
+        const stockAgeMs = Date.now() - new Date(car.created_at).getTime();
+        const stockAgeDays = Math.floor(stockAgeMs / (1000 * 60 * 60 * 24));
+
+        return {
+          id: entry.id,
+          car_id: entry.car_id,
+          title: entry.title,
+          description: entry.description,
+          catalog_image_url: entry.catalog_image_url,
+          status: entry.status,
+          error_message: entry.error_message,
+          last_generated_at: entry.last_generated_at,
+          created_at: entry.created_at,
+          updated_at: entry.updated_at,
+          stock_number: car.stock_number,
+          model_year: car.model_year,
+          vehicle_model: car.vehicle_model,
+          colour: car.colour,
+          advertised_price_aed: car.advertised_price_aed,
+          current_mileage_km: car.current_mileage_km,
+          primary_image_url: primaryPhoto?.url,
+          stock_age_days: stockAgeDays
+        };
+      }) || [];
+
+      setEntries(processedEntries);
     } catch (error) {
-      console.error('Error in fetchCars:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const refreshData = async () => {
-    setRefreshing(true);
-    await fetchCars();
-    setRefreshing(false);
-  };
+  const refreshData = useCallback(() => {
+    fetchEntries();
+  }, [fetchEntries]);
 
   useEffect(() => {
-    fetchCars();
-  }, [fetchCars]);
+    fetchEntries();
+  }, [fetchEntries]);
 
-  const generateXMLFeed = async () => {
+  const handleGenerateCatalogImage = async (entry: CatalogEntry) => {
     try {
-      setGeneratingXML(true);
+      setGeneratingCarId(entry.car_id);
       
-      const response = await fetch('/api/generate-public-xml-feed', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate XML feed');
-      }
-
-      // Get the JSON response with URLs
-      const result = await response.json();
+      // Update status to generating in UI immediately
+      setEntries(prev => prev.map(e => 
+        e.car_id === entry.car_id 
+          ? { ...e, status: 'generating' as const }
+          : e
+      ));
       
-      if (result.success) {
-        // Show success message with public URL
-        alert(`XML feed generated successfully!\n\nPublic URL for Facebook: ${result.latestUrl}\n\nDirect URL: ${result.publicUrl}\n\nCars included: ${result.carsCount}`);
-        console.log('✅ Public XML feed generated:', result);
-      } else {
-        throw new Error(result.error || 'Unknown error');
-      }
-    } catch (error) {
-      console.error('Error generating XML feed:', error);
-      alert('Failed to generate XML feed. Please try again.');
-    } finally {
-      setGeneratingXML(false);
-    }
-  };
-
-  const handleEditImage = async (car: InventoryCar) => {
-    try {
-      setSelectedCar(car);
-      
-      // Call the catalog image generation API
-      const response = await fetch(`/api/generate-catalog-image/${car.id}`, {
+      const response = await fetch(`/api/generate-catalog-image/${entry.car_id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,184 +174,347 @@ export default function UVCatalogBoard() {
       const result = await response.json();
       console.log('✅ Catalog image generated:', result.imageUrl);
       
-      // Refresh the car data to show the new image
       await refreshData();
       
-      alert('Catalog image generated successfully!');
     } catch (error) {
       console.error('Error generating catalog image:', error);
-      alert(`Failed to generate catalog image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setGeneratingCarId(null);
     }
   };
 
+  const handleGenerateAllImages = async () => {
+    try {
+      setGenerating(true);
+      
+      // Generate images for entries that don't have ready status
+      const entriesNeedingImages = entries.filter(entry => entry.status !== 'ready');
+      
+      for (const entry of entriesNeedingImages) {
+        await handleGenerateCatalogImage(entry);
+      }
+      
+      alert(`Generated catalog images for ${entriesNeedingImages.length} cars!`);
+    } catch (error) {
+      console.error('Error generating all images:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
+  const handleGenerateXMLFeed = async () => {
+    try {
+      setGenerating(true);
+      
+      const response = await fetch('/api/generate-public-xml-feed', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate XML feed');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setXmlUrl(result.publicUrl);
+        alert(`XML feed generated successfully!\\n\\nPublic URL: ${result.latestUrl}\\n\\nCars included: ${result.carsCount}`);
+      }
+    } catch (error) {
+      console.error('Error generating XML feed:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const getStockAgeColor = (days: number) => {
+    if (days <= 30) return 'bg-green-500/20 text-green-400 border-green-500/30';
+    if (days <= 60) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    return 'bg-red-500/20 text-red-400 border-red-500/30';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ready': return 'text-green-400';
+      case 'generating': return 'text-blue-400';
+      case 'error': return 'text-red-400';
+      default: return 'text-yellow-400';
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <div className="text-center">
-          <Car className="w-12 h-12 text-white/50 mx-auto mb-4 animate-pulse" />
-          <p className="text-white/70">Loading UV inventory...</p>
+          <RefreshCw className="w-8 h-8 text-white/50 animate-spin mx-auto mb-4" />
+          <p className="text-white/70">Loading UV Catalog...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full bg-black text-white overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-white/10">
+    <div className="p-6 bg-black min-h-screen">
+      {/* Header with Actions */}
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-2">UV Catalog</h1>
-          <p className="text-white/70">
-            Manage and export inventory for XML feeds • {cars.length} cars available
-          </p>
+          <h1 className="text-3xl font-bold text-white mb-2">UV Catalog Management</h1>
+          <p className="text-white/60">Generate catalog images and XML feeds for Facebook integration</p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          {/* Live XML Feed URL - Always visible */}
+          <div className="flex items-center gap-2">
+            <a 
+              href={getLiveXmlUrl()} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-400 transition-colors"
+            >
+              <Globe className="w-4 h-4" />
+              Live XML Feed
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            
+            <button
+              onClick={copyXmlUrl}
+              className="flex items-center gap-2 px-3 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 rounded-lg text-purple-400 transition-colors"
+              title="Copy XML URL"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
+          
+          {xmlUrl && xmlUrl !== getLiveXmlUrl() && (
+            <a 
+              href={xmlUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg text-green-400 transition-colors"
+            >
+              <Globe className="w-4 h-4" />
+              Latest Generated
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+          
           <button
-            onClick={refreshData}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/20 transition-all duration-200 disabled:opacity-50"
+            onClick={handleGenerateAllImages}
+            disabled={generating}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-400 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            {generating ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Zap className="w-4 h-4" />
+            )}
+            Generate All Images
           </button>
           
           <button
-            onClick={generateXMLFeed}
-            disabled={generatingXML || cars.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleGenerateXMLFeed}
+            disabled={generating}
+            className="flex items-center gap-2 px-6 py-2 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg text-green-400 transition-colors disabled:opacity-50"
           >
-            {generatingXML ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Generating...
-              </>
+            {generating ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Export XML Feed
-              </>
+              <Download className="w-4 h-4" />
             )}
+            Update XML Feed
           </button>
         </div>
       </div>
 
-      {/* Cars Grid */}
-      <div className="flex-1 overflow-auto p-6">
-        {cars.length === 0 ? (
-          <div className="flex items-center justify-center h-[calc(100vh-300px)]">
-            <div className="text-center">
-              <Car className="w-16 h-16 text-white/30 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-white mb-2">No Inventory Cars</h3>
-              <p className="text-white/50">There are no cars available in inventory</p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {cars.map((car) => (
-              <div
-                key={car.id}
-                className="bg-white/5 rounded-xl border border-white/10 overflow-hidden hover:bg-white/10 transition-all duration-200 group"
-              >
-                {/* Car Image */}
-                <div className="relative h-48 bg-white/5">
-                  {carImages[car.id] ? (
-                    <img
-                      src={carImages[car.id]}
-                      alt={`${car.model_year} ${car.vehicle_model}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Car className="w-12 h-12 text-white/30" />
-                    </div>
-                  )}
-                  
-                  {/* Image Actions Overlay */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
-                    {carImages[car.id] && (
-                      <button
-                        onClick={() => window.open(carImages[car.id], '_blank')}
-                        className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                        title="View Image"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleEditImage(car)}
-                      className="p-2 bg-green-600/80 hover:bg-green-600 rounded-lg transition-colors"
-                      title="Generate Catalog Image"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                  </div>
-                  
-                  {/* Stock Age Indicator */}
-                  {car.stock_age_days && (
-                    <div className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${
-                      car.stock_age_days >= 90 
-                        ? 'bg-red-500/90 text-white' 
-                        : car.stock_age_days >= 60 
-                        ? 'bg-orange-500/90 text-white'
-                        : 'bg-green-500/90 text-white'
-                    }`}>
-                      {car.stock_age_days}d
-                    </div>
-                  )}
-                </div>
-
-                {/* Car Details */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">
-                        {car.model_year} {car.vehicle_model}
-                      </h3>
-                      <p className="text-sm text-white/60">
-                        Stock: {car.stock_number}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1 text-sm text-white/70 mb-3">
-                    <div className="flex justify-between">
-                      <span>Color:</span>
-                      <span className="text-white">{car.colour}</span>
-                    </div>
-                    {car.current_mileage_km && (
-                      <div className="flex justify-between">
-                        <span>Mileage:</span>
-                        <span className="text-white">{car.current_mileage_km.toLocaleString()} km</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span>Type:</span>
-                      <span className="text-white capitalize">{car.ownership_type}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-3 border-t border-white/10">
-                    <div>
-                      <p className="text-xl font-bold text-green-400">
-                        AED {car.advertised_price_aed.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <ImageIcon className="w-4 h-4 text-white/50" />
-                      <FileText className="w-4 h-4 text-white/50" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <div className="text-2xl font-bold text-white">{entries.length}</div>
+          <div className="text-white/60 text-sm">Total Cars</div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <div className="text-2xl font-bold text-green-400">{entries.filter(e => e.status === 'ready').length}</div>
+          <div className="text-white/60 text-sm">Ready Cards</div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <div className="text-2xl font-bold text-yellow-400">{entries.filter(e => e.status === 'pending').length}</div>
+          <div className="text-white/60 text-sm">Pending Cards</div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <div className="text-2xl font-bold text-blue-400">{entries.filter(e => e.stock_age_days! <= 30).length}</div>
+          <div className="text-white/60 text-sm">New Stock</div>
+        </div>
       </div>
 
+      {/* XML Feed URL Display */}
+      <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl p-6 mb-8">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-purple-400" />
+              Facebook XML Feed URL
+            </h3>
+            <p className="text-white/60 text-sm mb-3">
+              Use this URL in Facebook Business Manager for automatic car listing updates
+            </p>
+            <div className="bg-black/30 border border-white/10 rounded-lg p-3 font-mono text-sm">
+              <span className="text-purple-300 break-all">{getLiveXmlUrl()}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 ml-6">
+            <button
+              onClick={copyXmlUrl}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-400 transition-colors"
+            >
+              <Copy className="w-4 h-4" />
+              Copy URL
+            </button>
+            <a 
+              href={getLiveXmlUrl()} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-400 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open Feed
+            </a>
+          </div>
+        </div>
+      </div>
 
+      {/* Entries Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {entries.map((entry) => (
+          <div key={entry.id} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-all duration-300 group">
+            {/* Car Image */}
+            <div className="relative aspect-square bg-white/5">
+              {entry.catalog_image_url ? (
+                <img 
+                  src={entry.catalog_image_url} 
+                  alt={entry.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : entry.primary_image_url ? (
+                <img 
+                  src={entry.primary_image_url} 
+                  alt={entry.title}
+                  className="w-full h-full object-cover opacity-50"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-white/40">
+                  <ImageIcon className="w-12 h-12" />
+                </div>
+              )}
+              
+              {/* Status Badge */}
+              <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-medium border ${getStockAgeColor(entry.stock_age_days!)}`}>
+                {entry.stock_age_days!} days
+              </div>
+              
+              {/* Generation Status */}
+              {entry.status === 'ready' && (
+                <div className="absolute top-3 right-3 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+
+              {/* Hover Actions */}
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
+                <button
+                  onClick={() => handleGenerateCatalogImage(entry)}
+                  disabled={generatingCarId === entry.car_id}
+                  className="flex items-center gap-2 px-4 py-3 bg-green-600/80 hover:bg-green-600 rounded-lg transition-colors disabled:opacity-50 text-white font-medium"
+                  title={entry.status === 'ready' ? "Regenerate Catalog Image" : "Generate Catalog Image"}
+                >
+                  {generatingCarId === entry.car_id ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : entry.status === 'ready' ? (
+                    <>
+                      <RefreshCw className="w-5 h-5" />
+                      <span>Regenerate</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5" />
+                      <span>Generate</span>
+                    </>
+                  )}
+                </button>
+                
+                {(entry.catalog_image_url || entry.primary_image_url) && (
+                  <button
+                    onClick={() => window.open(entry.catalog_image_url || entry.primary_image_url, '_blank')}
+                    className="p-3 bg-blue-600/80 hover:bg-blue-600 rounded-lg transition-colors"
+                    title="View Image"
+                  >
+                    <Eye className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Car Details */}
+            <div className="p-4">
+              <h3 className="font-semibold text-white text-lg leading-tight mb-2">
+                {entry.title}
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                <div>
+                  <span className="text-white/50">Stock #:</span>
+                  <span className="text-white ml-1">{entry.stock_number}</span>
+                </div>
+                <div>
+                  <span className="text-white/50">Mileage:</span>
+                  <span className="text-white ml-1">{entry.current_mileage_km?.toLocaleString() || 'N/A'} km</span>
+                </div>
+                <div>
+                  <span className="text-white/50">Price:</span>
+                  <span className="text-white ml-1">AED {entry.advertised_price_aed?.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-white/50">Color:</span>
+                  <span className="text-white ml-1">{entry.colour}</span>
+                </div>
+              </div>
+
+              {/* Status Indicator */}
+              <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                <div className={`flex items-center gap-2 text-xs ${getStatusColor(entry.status)}`}>
+                  <div className={`w-2 h-2 rounded-full ${entry.status === 'ready' ? 'bg-green-400' : entry.status === 'error' ? 'bg-red-400' : 'bg-yellow-400'}`}></div>
+                  {entry.status === 'ready' ? 'Ready for XML' : 
+                   entry.status === 'error' ? 'Generation Error' :
+                   entry.status === 'generating' ? 'Generating...' : 'Needs Generation'}
+                </div>
+                
+                <div className="text-xs text-white/50">
+                  Added {new Date(entry.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {entries.length === 0 && (
+        <div className="text-center py-12">
+          <Car className="w-16 h-16 text-white/30 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-white mb-2">No Cars in UV Catalog</h3>
+          <p className="text-white/60">Cars will appear here when added to inventory</p>
+        </div>
+      )}
     </div>
   );
 } 

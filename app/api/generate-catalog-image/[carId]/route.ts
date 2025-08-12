@@ -228,18 +228,31 @@ export async function POST(
       return NextResponse.json({ error: 'Car not found' }, { status: 404 });
     }
 
-    // Fetch catalog image (kind = 'catalog') [[memory:5456998]]
-    const { data: catalogMedia, error: catalogError } = await supabase
+    // Fetch catalog image (kind = 'catalog') or fall back to primary photo [[memory:5456998]]
+    let { data: catalogMedia, error: catalogError } = await supabase
       .from('car_media')
       .select('url')
       .eq('car_id', carId)
       .eq('kind', 'catalog')
       .single();
 
+    // If no catalog image, fall back to primary photo
     if (catalogError || !catalogMedia) {
-      return NextResponse.json({ 
-        error: 'Catalog image not found. Please upload a catalog image for this car.' 
-      }, { status: 404 });
+      const { data: photoMedia, error: photoError } = await supabase
+        .from('car_media')
+        .select('url')
+        .eq('car_id', carId)
+        .eq('kind', 'photo')
+        .eq('is_primary', true)
+        .single();
+
+      if (photoError || !photoMedia) {
+        return NextResponse.json({ 
+          error: 'No suitable image found. Please upload a catalog image or primary photo for this car.' 
+        }, { status: 404 });
+      }
+      
+      catalogMedia = photoMedia;
     }
 
     // Prepare car details for renderer
@@ -318,48 +331,25 @@ export async function POST(
       .from('media-files')
       .getPublicUrl(`catalog-cards/${fileName}`);
 
-    // Remove old catalog card media if exists
-    const { data: existingCards } = await supabase
-      .from('car_media')
-      .select('id')
-      .eq('car_id', carId)
-      .eq('kind', 'catalog_card');
+    // Update UV catalog table with generated image and mark as ready
+    const { error: catalogUpdateError } = await supabase
+      .from('uv_catalog')
+      .update({
+        catalog_image_url: publicUrl,
+        status: 'ready',
+        last_generated_at: new Date().toISOString(),
+        error_message: null
+      })
+      .eq('car_id', carId);
 
-    if (existingCards && existingCards.length > 0) {
-      await supabase
-        .from('car_media')
-        .delete()
-        .in('id', existingCards.map(card => card.id));
-    }
-
-    // Save new catalog card to car_media table
-    const { error: mediaError } = await supabase
-      .from('car_media')
-      .insert({
-        car_id: carId,
-        url: publicUrl,
-        kind: 'catalog_card',
-        is_primary: false,
-        sort_order: 1000
-      });
-
-    if (mediaError) {
-      console.error('Media table error:', mediaError);
+    if (catalogUpdateError) {
+      console.error('UV catalog table error:', catalogUpdateError);
+      console.error('Full error details:', JSON.stringify(catalogUpdateError, null, 2));
       return NextResponse.json({ 
-        error: 'Failed to save media record',
-        details: mediaError.message 
+        error: 'Failed to update catalog record',
+        details: catalogUpdateError.message || catalogUpdateError,
+        fullError: catalogUpdateError
       }, { status: 500 });
-    }
-
-    // Update car's xml_image_url field for XML feed
-    const { error: carUpdateError } = await supabase
-      .from('cars')
-      .update({ xml_image_url: publicUrl })
-      .eq('id', carId);
-
-    if (carUpdateError) {
-      console.error('Car update error:', carUpdateError);
-      // Don't fail the request, just log the error
     }
 
     return NextResponse.json({

@@ -3,7 +3,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
 export async function POST(request: NextRequest) {
   try {
-    // Fetch all available inventory cars with XML image URLs
+    // Fetch all available inventory cars
     const { data: cars, error } = await supabase
       .from('cars')
       .select(`
@@ -34,8 +34,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No inventory cars found' }, { status: 404 });
     }
 
+    // Get primary images for cars that don't have xml_image_url
+    const carIds = cars.map(car => car.id);
+    const { data: primaryImages } = await supabase
+      .from('car_media')
+      .select('car_id, url')
+      .eq('kind', 'photo')
+      .eq('is_primary', true)
+      .in('car_id', carIds);
+
+    // Create image lookup map
+    const imageMap = new Map();
+    primaryImages?.forEach(img => {
+      imageMap.set(img.car_id, img.url);
+    });
+
     // Generate XML feed
-    const xmlContent = generateXMLFeed(cars);
+    const xmlContent = generateXMLFeed(cars, imageMap);
 
     return new NextResponse(xmlContent, {
       status: 200,
@@ -56,7 +71,7 @@ export async function GET(request: NextRequest) {
   return POST(request);
 }
 
-function generateXMLFeed(cars: any[]): string {
+function generateXMLFeed(cars: any[], imageMap: Map<string, string>): string {
   const currentDate = new Date().toISOString();
   
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -74,6 +89,9 @@ function generateXMLFeed(cars: any[]): string {
     const make = modelParts[0] || '';
     const model = modelParts.slice(1).join(' ') || '';
 
+    // Get image URL (prefer xml_image_url, fallback to primary image)
+    const imageUrl = car.xml_image_url || imageMap.get(car.id) || '';
+
     xml += `
     <car>
       <id>${car.id}</id>
@@ -85,7 +103,7 @@ function generateXMLFeed(cars: any[]): string {
       <monthly_payment currency="AED">${car.monthly_20_down_aed || 0}</monthly_payment>
       <color>${escapeXml(car.colour || '')}</color>
       <mileage_km>${car.current_mileage_km || 0}</mileage_km>
-      <image_url>${escapeXml(car.xml_image_url || '')}</image_url>
+      <image_url>${escapeXml(imageUrl)}</image_url>
       <created_at>${car.created_at || ''}</created_at>
       <updated_at>${car.updated_at || ''}</updated_at>
     </car>`;
@@ -99,14 +117,11 @@ function generateXMLFeed(cars: any[]): string {
 }
 
 function escapeXml(unsafe: string): string {
-  return unsafe.replace(/[<>&'"]/g, function (c) {
-    switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '\'': return '&apos;';
-      case '"': return '&quot;';
-      default: return c;
-    }
-  });
+  if (!unsafe) return '';
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 } 

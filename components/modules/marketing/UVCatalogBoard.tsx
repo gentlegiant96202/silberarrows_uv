@@ -35,16 +35,19 @@ export default function UVCatalogBoard() {
   const [xmlUrl, setXmlUrl] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Get the permanent XML feed URL
-  const getLiveXmlUrl = () => {
-    return 'https://rrxfvdtubynlsanplbta.supabase.co/storage/v1/object/public/media-files/xml-feeds/latest.xml';
+  // Get the live XML feed URLs
+  const getFacebookXmlUrls = () => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    return {
+      public: `${baseUrl}/api/generate-public-xml-feed`,
+      enhanced: `${baseUrl}/api/generate-enhanced-xml-feed`
+    };
   };
   
-  const copyXmlUrl = async () => {
-    const url = getLiveXmlUrl();
+  const copyXmlUrl = async (url: string, feedType: string) => {
     try {
       await navigator.clipboard.writeText(url);
-      alert('XML feed URL copied to clipboard!');
+      alert(`${feedType} XML feed URL copied to clipboard!`);
     } catch (err) {
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
@@ -53,7 +56,7 @@ export default function UVCatalogBoard() {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      alert('XML feed URL copied to clipboard!');
+      alert(`${feedType} XML feed URL copied to clipboard!`);
     }
   };
 
@@ -146,6 +149,46 @@ export default function UVCatalogBoard() {
 
   useEffect(() => {
     fetchEntries();
+    
+    // Set up real-time subscriptions for inventory changes
+    const carsSubscription = supabase
+      .channel('cars_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'cars',
+          filter: 'status=eq.inventory'
+        },
+        (payload) => {
+          console.log('🔄 Car inventory change detected:', payload);
+          // Refresh catalog when inventory changes
+          fetchEntries();
+        }
+      )
+      .subscribe();
+
+    // Also listen for UV catalog changes
+    const catalogSubscription = supabase
+      .channel('uv_catalog_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'uv_catalog'
+        },
+        (payload) => {
+          console.log('🔄 UV Catalog change detected:', payload);
+          // Refresh catalog when entries are added/removed
+          fetchEntries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(carsSubscription);
+      supabase.removeChannel(catalogSubscription);
+    };
   }, [fetchEntries]);
 
   const handleGenerateCatalogImage = async (entry: CatalogEntry) => {
@@ -216,16 +259,28 @@ export default function UVCatalogBoard() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate XML feed');
+        // Try to get error as JSON, but fallback to text if that fails
+        let errorMessage = 'Failed to generate XML feed';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch {
+          errorMessage = await response.text() || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      const result = await response.json();
+      // The response is XML content, not JSON
+      const xmlContent = await response.text();
       
-      if (result.success) {
-        setXmlUrl(result.publicUrl);
-        alert(`XML feed generated successfully!\\n\\nPublic URL: ${result.latestUrl}\\n\\nCars included: ${result.carsCount}`);
-      }
+      // Count cars in XML (simple regex to count <item> tags)
+      const carCount = (xmlContent.match(/<item>/g) || []).length;
+      
+      // Set the live XML URL
+      setXmlUrl(getFacebookXmlUrls().public);
+      
+      alert(`XML feed generated successfully!\n\nLive URL: ${getFacebookXmlUrls().public}\n\nCars included: ${carCount}\n\nThe feed is now available for Facebook integration.`);
+      
     } catch (error) {
       console.error('Error generating XML feed:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -270,40 +325,50 @@ export default function UVCatalogBoard() {
         </div>
         
         <div className="flex items-center gap-4">
-          {/* Live XML Feed URL - Always visible */}
+          {/* Live XML Feed URLs */}
           <div className="flex items-center gap-2">
             <a 
-              href={getLiveXmlUrl()} 
+              href={getFacebookXmlUrls().public} 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-400 transition-colors"
+              title="Facebook-ready XML feed with only ready catalog entries"
             >
               <Globe className="w-4 h-4" />
-              Live XML Feed
+              Public XML Feed
               <ExternalLink className="w-3 h-3" />
             </a>
             
             <button
-              onClick={copyXmlUrl}
+              onClick={() => copyXmlUrl(getFacebookXmlUrls().public, 'Public')}
               className="flex items-center gap-2 px-3 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 rounded-lg text-purple-400 transition-colors"
-              title="Copy XML URL"
+              title="Copy Public XML URL (Facebook-ready, only completed catalog entries)"
             >
               <Copy className="w-4 h-4" />
             </button>
           </div>
           
-          {xmlUrl && xmlUrl !== getLiveXmlUrl() && (
+          <div className="flex items-center gap-2">
             <a 
-              href={xmlUrl} 
+              href={getFacebookXmlUrls().enhanced} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg text-green-400 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-400 transition-colors"
+              title="Enhanced XML feed with all UV catalog entries (including drafts)"
             >
               <Globe className="w-4 h-4" />
-              Latest Generated
+              Enhanced XML Feed
               <ExternalLink className="w-3 h-3" />
             </a>
-          )}
+            
+            <button
+              onClick={() => copyXmlUrl(getFacebookXmlUrls().enhanced, 'Enhanced')}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 rounded-lg text-blue-400 transition-colors"
+              title="Copy Enhanced XML URL (includes all catalog entries)"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
           
           <button
             onClick={handleGenerateAllImages}
@@ -353,38 +418,81 @@ export default function UVCatalogBoard() {
         </div>
       </div>
 
-      {/* XML Feed URL Display */}
+      {/* XML Feed URLs Display */}
       <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl p-6 mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
-              <Globe className="w-5 h-5 text-purple-400" />
-              Facebook XML Feed URL
-            </h3>
-            <p className="text-white/60 text-sm mb-3">
-              Use this URL in Facebook Business Manager for automatic car listing updates
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+            <Globe className="w-5 h-5 text-purple-400" />
+            Facebook XML Feed URLs
+          </h3>
+          <p className="text-white/60 text-sm">
+            Use these URLs in Facebook Business Manager for automatic car listing updates
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Public Feed */}
+          <div className="bg-black/20 border border-purple-500/20 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+              <h4 className="font-semibold text-purple-300">Public Feed (Recommended)</h4>
+            </div>
+            <p className="text-white/60 text-xs mb-3">
+              Facebook-ready cars with completed catalog images • Best for production use
             </p>
-            <div className="bg-black/30 border border-white/10 rounded-lg p-3 font-mono text-sm">
-              <span className="text-purple-300 break-all">{getLiveXmlUrl()}</span>
+            <div className="bg-black/30 border border-white/10 rounded-lg p-3 font-mono text-xs mb-3">
+              <span className="text-purple-300 break-all">{getFacebookXmlUrls().public}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => copyXmlUrl(getFacebookXmlUrls().public, 'Public')}
+                className="flex items-center gap-1 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded text-purple-400 transition-colors text-xs"
+              >
+                <Copy className="w-3 h-3" />
+                Copy
+              </button>
+              <a 
+                href={getFacebookXmlUrls().public} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded text-blue-400 transition-colors text-xs"
+              >
+                <ExternalLink className="w-3 h-3" />
+                View
+              </a>
             </div>
           </div>
-          <div className="flex items-center gap-3 ml-6">
-            <button
-              onClick={copyXmlUrl}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-400 transition-colors"
-            >
-              <Copy className="w-4 h-4" />
-              Copy URL
-            </button>
-            <a 
-              href={getLiveXmlUrl()} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-400 transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open Feed
-            </a>
+
+          {/* Enhanced Feed */}
+          <div className="bg-black/20 border border-blue-500/20 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+              <h4 className="font-semibold text-blue-300">Enhanced Feed (All Cars)</h4>
+            </div>
+            <p className="text-white/60 text-xs mb-3">
+              All UV catalog entries including drafts • Best for development and testing
+            </p>
+            <div className="bg-black/30 border border-white/10 rounded-lg p-3 font-mono text-xs mb-3">
+              <span className="text-blue-300 break-all">{getFacebookXmlUrls().enhanced}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => copyXmlUrl(getFacebookXmlUrls().enhanced, 'Enhanced')}
+                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded text-blue-400 transition-colors text-xs"
+              >
+                <Copy className="w-3 h-3" />
+                Copy
+              </button>
+              <a 
+                href={getFacebookXmlUrls().enhanced} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded text-purple-400 transition-colors text-xs"
+              >
+                <ExternalLink className="w-3 h-3" />
+                View
+              </a>
+            </div>
           </div>
         </div>
       </div>

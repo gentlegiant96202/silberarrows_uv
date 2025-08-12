@@ -37,13 +37,12 @@ export default function UVCatalogBoard() {
 
   // Get the live XML feed URLs
   const getFacebookXmlUrls = () => {
-    // Use custom environment variable for production URL
-    // Add NEXT_PUBLIC_APP_URL to your Vercel environment variables
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    // Use permanent Supabase storage URLs - always publicly accessible
+    const supabaseStorageBaseUrl = 'https://rrxfvdtubynlsanplbta.supabase.co/storage/v1/object/public/media-files';
     
     return {
-      public: `${baseUrl}/api/generate-public-xml-feed`,
-      enhanced: `${baseUrl}/api/generate-enhanced-xml-feed`
+      public: `${supabaseStorageBaseUrl}/xml-feeds/facebook-latest.xml`,
+      enhanced: `${supabaseStorageBaseUrl}/xml-feeds/facebook-enhanced-latest.xml`
     };
   };
   

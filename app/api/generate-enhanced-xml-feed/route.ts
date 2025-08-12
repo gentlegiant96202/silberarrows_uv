@@ -66,6 +66,28 @@ export async function GET(request: NextRequest) {
     // Generate Facebook automotive XML format
     const xmlContent = generateFacebookXML(validEntries, imageMap);
 
+    // Upload to Supabase storage for permanent public URL
+    const fileName = `xml-feeds/facebook-enhanced-${new Date().toISOString().slice(0, 10)}.xml`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('media-files')
+      .upload(fileName, xmlContent, {
+        contentType: 'application/xml',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Error uploading enhanced XML to storage:', uploadError);
+    } else {
+      // Also update the latest.xml file for permanent URL
+      await supabase.storage
+        .from('media-files')
+        .upload('xml-feeds/facebook-enhanced-latest.xml', xmlContent, {
+          contentType: 'application/xml',
+          upsert: true
+        });
+    }
+
     return new NextResponse(xmlContent, {
       status: 200,
       headers: {

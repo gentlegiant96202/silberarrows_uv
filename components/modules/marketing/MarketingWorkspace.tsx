@@ -1772,7 +1772,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         </div>
 
         {/* Right Sidebar - Task Info */}
-        <div className={`w-full lg:w-96 bg-white/8 ${performanceMode ? '' : 'backdrop-blur-xl'} border-l border-white/20 flex flex-col h-[calc(100dvh-64px)] min-h-0 overflow-y-auto ${performanceMode ? '' : 'shadow-2xl ring-1 ring-white/10'}`}>
+        <div className="w-full lg:w-96 bg-black border-l border-white/20 flex flex-col h-[calc(100dvh-64px)] min-h-0 overflow-y-auto">
           <div className="p-4 flex flex-col">
             
             {/* Top Section - Task Info */}

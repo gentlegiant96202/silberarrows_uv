@@ -1,12 +1,14 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 interface AnnotationOverlayProps {
   width: number | string;
   height: number | string;
   isActive: boolean;
-  onSave: (path: string, comment: string) => void;
+  onSave: (data: { path: string; comment: string; svgWidth: number; svgHeight: number }) => void;
   onCancel?: () => void;
-  existingPaths?: Array<{ d: string; color?: string }>;
+  existingPaths?: Array<{ d: string; color?: string; svgWidth?: number; svgHeight?: number }>;
+  viewBoxWidth?: number;
+  viewBoxHeight?: number;
 }
 
 const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
@@ -16,12 +18,35 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
   onSave,
   onCancel,
   existingPaths = [],
+  viewBoxWidth,
+  viewBoxHeight,
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPath, setCurrentPath] = useState('');
   const [showComment, setShowComment] = useState(false);
   const [comment, setComment] = useState('');
   const svgRef = useRef<SVGSVGElement>(null);
+  const [svgSize, setSvgSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+
+  // Observe size changes to keep scaling accurate
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const update = () => setSvgSize({ width: el.clientWidth, height: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Local helper to scale simple M/L paths
+  const scaleSvgPath = (d: string, scaleX: number, scaleY: number): string => {
+    return d.replace(/([ML])\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)/g, (_m, cmd, x, y) => {
+      const nx = Number(x) * scaleX;
+      const ny = Number(y) * scaleY;
+      return `${cmd} ${nx} ${ny}`;
+    });
+  };
 
   // Mouse events
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -50,16 +75,30 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
     const rect = svg.getBoundingClientRect();
+
+    // If a viewBox is provided, convert screen px to viewBox coordinates
+    const vbW = viewBoxWidth ?? rect.width;
+    const vbH = viewBoxHeight ?? rect.height;
+    const scaleX = vbW / rect.width;
+    const scaleY = vbH / rect.height;
+
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
     };
   };
 
   // Save annotation
   const handleSave = () => {
     if (currentPath && comment.trim()) {
-      onSave(currentPath, comment.trim());
+      const rect = svgRef.current?.getBoundingClientRect();
+      const payload = {
+        path: currentPath,
+        comment: comment.trim(),
+        svgWidth: (viewBoxWidth ?? rect?.width ?? 0),
+        svgHeight: (viewBoxHeight ?? rect?.height ?? 0),
+      };
+      onSave(payload);
       // Clear everything immediately to prevent glitches
       setCurrentPath('');
       setComment('');
@@ -90,25 +129,34 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
           zIndex: 20,
           pointerEvents: isActive ? 'auto' : 'none',
         }}
+        viewBox={viewBoxWidth && viewBoxHeight ? `0 0 ${viewBoxWidth} ${viewBoxHeight}` : undefined}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
       >
         {/* Existing annotations */}
-        {existingPaths.map((p, i) => (
-          <path
-            key={i}
-            d={p.d}
-            stroke={p.color || '#FFD700'}
-            strokeWidth={4}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.8}
-            style={{ pointerEvents: 'none' }}
-          />
-        ))}
+        {existingPaths.map((p, i) => {
+          let d = p.d;
+          if (p.svgWidth && p.svgHeight && svgSize.width > 0 && svgSize.height > 0) {
+            const scaleX = svgSize.width / p.svgWidth;
+            const scaleY = svgSize.height / p.svgHeight;
+            d = scaleSvgPath(d, scaleX, scaleY);
+          }
+          return (
+            <path
+              key={i}
+              d={d}
+              stroke={p.color || '#FFD700'}
+              strokeWidth={4}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.8}
+              style={{ pointerEvents: 'none' }}
+            />
+          );
+        })}
         {/* Current drawing path */}
         {currentPath && (
           <path

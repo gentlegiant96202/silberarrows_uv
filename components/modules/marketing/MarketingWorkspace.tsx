@@ -262,37 +262,49 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
         
         {/* SVG Annotation Layer - Over the entire area */}
         {(isAnnotationMode || selectedAnnotationId) && (
-          <AnnotationOverlay
-            width="100%"
-            height="100%"
-            isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
-            onSave={(path, comment) => {
-              const newAnnotation = {
-                id: Date.now().toString(),
-                path,
-                comment,
-                pageIndex: getCurrentPageNumber(),
-                timestamp: new Date().toISOString(),
-                mediaType,
-                zoom,
-                pan
-              };
-              const updatedAnnotations = [...currentAnnotations, newAnnotation];
-              onAnnotationsChange?.(updatedAnnotations);
-              // Save to DB
-              supabase.from('design_tasks')
-                .update({ annotations: updatedAnnotations })
-                .eq('id', task.id)
-                .then(({ error }) => {
-                  if (error) {
-                    console.error('Error saving annotation:', error);
-                  }
-                });
+          <div
+            className="absolute inset-0"
+            style={{
+              transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
+              transformOrigin: 'center center',
+              transition: isDragging ? 'none' : 'transform 0.1s ease',
+              pointerEvents: (isAnnotationMode && !showCommentPopup && selectedAnnotationId == null) ? 'auto' : 'none'
             }}
-            existingPaths={selectedAnnotationId
-              ? currentAnnotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700' }))
-              : []}
-          />
+          >
+            <AnnotationOverlay
+              width="100%"
+              height="100%"
+              isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
+              onSave={({ path, comment, svgWidth, svgHeight }) => {
+                const newAnnotation = {
+                  id: Date.now().toString(),
+                  path,
+                  comment,
+                  svgWidth,
+                  svgHeight,
+                  pageIndex: getCurrentPageNumber(),
+                  timestamp: new Date().toISOString(),
+                  mediaType,
+                  zoom,
+                  pan
+                };
+                const updatedAnnotations = [...currentAnnotations, newAnnotation];
+                onAnnotationsChange?.(updatedAnnotations);
+                // Save to DB
+                supabase.from('design_tasks')
+                  .update({ annotations: updatedAnnotations })
+                  .eq('id', task.id)
+                  .then(({ error }) => {
+                    if (error) {
+                      console.error('Error saving annotation:', error);
+                    }
+                  });
+              }}
+              existingPaths={selectedAnnotationId
+                ? currentAnnotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700', svgWidth: a.svgWidth, svgHeight: a.svgHeight }))
+                : []}
+            />
+          </div>
         )}
         
         {/* Comment Popup */}
@@ -353,44 +365,63 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
       </div>
 
       {/* SVG Annotation Layer - Positioned absolutely over any media type */}
-      <AnnotationOverlay
-        width="100%"
-        height="100%"
-        isActive={isAnnotationMode}
-        onSave={(path, comment) => {
-          const newAnnotation = {
-            id: Date.now().toString(),
-            path,
-            comment,
-            pageIndex: getCurrentPageNumber(),
-            timestamp: new Date().toISOString(),
-            mediaType,
-            zoom,
-            pan
-          };
-          const updatedAnnotations = [...currentAnnotations, newAnnotation];
-          onAnnotationsChange?.(updatedAnnotations);
-          // Save to DB
-          supabase.from('design_tasks')
-            .update({ annotations: updatedAnnotations })
-            .eq('id', task.id)
-            .then(({ error }) => {
-              if (error) {
-                console.error('Error saving annotation:', error);
-              }
-            });
+      <div
+        className="absolute inset-0"
+        style={{
+          transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
+          transformOrigin: 'center center',
+          transition: isDragging ? 'none' : 'transform 0.1s ease',
+          pointerEvents: isAnnotationMode ? 'auto' : 'none'
         }}
-        existingPaths={selectedAnnotationId
-          ? currentAnnotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700' }))
-          : []}
-      />
+      >
+        <AnnotationOverlay
+          width="100%"
+          height="100%"
+          isActive={isAnnotationMode}
+          onSave={({ path, comment, svgWidth, svgHeight }) => {
+            const newAnnotation = {
+              id: Date.now().toString(),
+              path,
+              comment,
+              svgWidth,
+              svgHeight,
+              pageIndex: getCurrentPageNumber(),
+              timestamp: new Date().toISOString(),
+              mediaType,
+              zoom,
+              pan
+            };
+            const updatedAnnotations = [...currentAnnotations, newAnnotation];
+            onAnnotationsChange?.(updatedAnnotations);
+            // Save to DB
+            supabase.from('design_tasks')
+              .update({ annotations: updatedAnnotations })
+              .eq('id', task.id)
+              .then(({ error }) => {
+                if (error) {
+                  console.error('Error saving annotation:', error);
+                }
+              });
+          }}
+          existingPaths={selectedAnnotationId
+            ? currentAnnotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700', svgWidth: a.svgWidth, svgHeight: a.svgHeight }))
+            : []}
+        />
+      </div>
       
 
     </div>
   );
 }
 
-
+// Helper to scale SVG path coordinates (supports absolute M and L commands)
+function scaleSvgPath(d: string, scaleX: number, scaleY: number): string {
+  return d.replace(/([ML])\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)/g, (_match, cmd, x, y) => {
+    const nx = Number(x) * scaleX;
+    const ny = Number(y) * scaleY;
+    return `${cmd} ${nx} ${ny}`;
+  });
+}
 
 export default function MarketingWorkspace({ task, onClose, onSave, onUploadStart, onUploadComplete, canEdit = true, isAdmin = false }: MarketingWorkspaceProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);

@@ -13,6 +13,26 @@ export default function SharedSalesDashboard({ metrics, targets, loading = false
   const [salesYear, setSalesYear] = useState(new Date().getFullYear());
   const [salesMonth, setSalesMonth] = useState(new Date().getMonth() + 1);
 
+  // If there is no metric matching the current selection, default to the latest available metric
+  useEffect(() => {
+    if (!metrics || metrics.length === 0) return;
+
+    const hasMatch = metrics.some(m => {
+      const d = new Date(m.metric_date);
+      return d.getFullYear() === salesYear && (d.getMonth() + 1) === salesMonth;
+    });
+
+    if (!hasMatch) {
+      // pick the latest metric by date
+      const latest = [...metrics].sort((a, b) => new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime())[0];
+      if (latest) {
+        const d = new Date(latest.metric_date);
+        setSalesYear(d.getFullYear());
+        setSalesMonth(d.getMonth() + 1);
+      }
+    }
+  }, [metrics, salesYear, salesMonth]);
+
   if (loading) {
     return (
       <div className={`mb-6 p-4 backdrop-blur-md bg-gradient-to-r from-white/10 via-white/5 to-white/10 border border-white/20 rounded-lg flex items-center space-x-3 shadow-lg ${className}`}>
@@ -156,7 +176,7 @@ const SalesKPICards: React.FC<{metrics: any[], targets?: any[], selectedYear: nu
         monthlyTarget: selectedMonthTarget?.gross_profit_month_target || 0,
         yearlyGrossProfit: yearlyGrossProfit,
         yearlyTarget: yearlyTarget,
-        totalUnitsSold: selectedMetric?.total_units_sold_month || 0,
+        totalUnitsSold: (selectedMetric?.total_units_sold_month ?? 0) || (selectedMetric?.units_disposed_month ?? 0) || 0,
         stockUnitsSold: selectedMetric?.units_sold_stock_month || 0,
         consignmentUnitsSold: selectedMetric?.units_sold_consignment_month || 0
       });
@@ -244,13 +264,9 @@ const SalesPerformanceCards: React.FC<{metrics: any[], targets: any[], selectedY
       const yearlyTarget = yearlyTargets.length > 0 ? 
         (yearlyTargets[0].gross_profit_year_target || 0) : 0;
       
-      // Monthly calculations
-      const monthlyActual = selectedMetric?.gross_profit_month_actual || 0;
-      const monthlyTarget = selectedMonthTarget?.gross_profit_month_target || 0;
-      const targetAchievement = monthlyTarget > 0 ? (monthlyActual / monthlyTarget) * 100 : 0;
-      
-      // Yearly calculations  
-      const yearlyAchievement = yearlyTarget > 0 ? (yearlyGrossProfit / yearlyTarget) * 100 : 0;
+      // Use auto-computed percentages from database instead of manual calculation
+      const targetAchievement = selectedMetric?.gross_profit_month_achieved_percentage || 0;
+      const yearlyAchievement = selectedMetric?.gross_profit_year_achieved_percentage || 0;
       
       // Marketing data for selected month
       const marketingSpend = selectedMetric?.marketing_spend_month || 0;
@@ -260,10 +276,10 @@ const SalesPerformanceCards: React.FC<{metrics: any[], targets: any[], selectedY
       const avgProfitPerCar = selectedMetric?.average_gross_profit_per_car_month || 0;
       
       setPerformance({
-        targetAchievement: Math.round(targetAchievement),
+        targetAchievement,
         marketingSpend,
         marketingRate,
-        yearlyAchievement: Math.round(yearlyAchievement),
+        yearlyAchievement,
         avgProfitPerCar
       });
     }

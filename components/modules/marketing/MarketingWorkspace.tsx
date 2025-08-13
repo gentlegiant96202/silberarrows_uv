@@ -5,6 +5,7 @@ import { X, ChevronUp, ChevronDown, Save, ArrowLeft, Trash2, FileText, Video, Im
 import { MarketingTask } from '@/types/marketing';
 import { supabase } from '@/lib/supabaseClient';
 import AnnotationOverlay from './AnnotationOverlay';
+import Head from 'next/head';
 
 // Helper to get preview image (thumbnail or first image)
 function getPreviewUrl(mediaFiles: any[] = []): string | null {
@@ -457,6 +458,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
   const [failedThumbnails, setFailedThumbnails] = useState<Set<number>>(new Set());
   const [loadingThumbnails, setLoadingThumbnails] = useState<Set<number>>(new Set());
   const [isMounted, setIsMounted] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   // Local state for media files that can be modified
   const [mediaFiles, setMediaFiles] = useState(() => {
@@ -1435,6 +1437,20 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
     }
   };
 
+  // Compute if current media is a video (for performance mode)
+  const isCurrentVideo = useMemo(() => {
+    const currentFile: any = allViewableFiles[selectedImageIndex];
+    if (!currentFile) return false;
+    const fileName = typeof currentFile === 'string'
+      ? currentFile.split('/').pop() || ''
+      : currentFile.name || '';
+    return typeof currentFile === 'string'
+      ? !!fileName.match(/\.(mp4|mov|avi|webm|mkv)$/i)
+      : (currentFile.type?.startsWith('video/') || !!fileName.match(/\.(mp4|mov|avi|webm|mkv)$/i));
+  }, [allViewableFiles, selectedImageIndex]);
+
+  const performanceMode = isCurrentVideo && isVideoPlaying;
+
   if (!allViewableFiles.length) {
     return (
       <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50">
@@ -1467,9 +1483,9 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
   // --- Main return ---
   return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-2xl z-50 flex">
+    <div className={`fixed inset-0 bg-black/85 ${performanceMode ? '' : 'backdrop-blur-2xl'} z-50 flex`}>
       {/* Header Bar */}
-      <div className="absolute top-0 left-0 right-0 h-16 bg-white/8 backdrop-blur-xl border-b border-white/20 flex items-center justify-between px-6 z-10 shadow-lg ring-1 ring-white/10">
+      <div className={`absolute top-0 left-0 right-0 h-16 bg-white/8 ${performanceMode ? '' : 'backdrop-blur-xl'} border-b border-white/20 flex items-center justify-between px-6 z-10 ${performanceMode ? '' : 'shadow-lg ring-1 ring-white/10'}`}>
         <div className="flex items-center gap-4">
           <button
             onClick={onClose}
@@ -1547,6 +1563,12 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
               // Video - Optimized rendering without zoom/pan for better performance
               return (
                 <div className="relative w-full h-full flex items-center justify-center bg-black/10">
+                  {/* Preload poster for faster first paint */}
+                  {typeof currentFile !== 'string' && (currentFile as any)?.thumbnail && (
+                    <Head>
+                      <link rel="preload" as="image" href={(currentFile as any).thumbnail} />
+                    </Head>
+                  )}
                   {/* Video container - no transforms for optimal performance */}
                   <video
                     src={playbackUrl}
@@ -1556,21 +1578,26 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                     poster={typeof currentFile === 'string' ? undefined : (currentFile as any)?.thumbnail}
                     width={1280}
                     height={720}
-                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
+                    className={`max-w-full max-h-full object-contain rounded-lg ${performanceMode ? 'shadow-none' : 'shadow-2xl'} bg-black`}
                     style={{
                       // Force hardware acceleration for smooth playback
                       willChange: 'transform',
                       transform: 'translate3d(0,0,0)'
                     }}
+                    onPlay={() => setIsVideoPlaying(true)}
+                    onPause={() => setIsVideoPlaying(false)}
+                    onEnded={() => setIsVideoPlaying(false)}
                   />
                   
                   {/* Performance mode notice */}
-                  <div className="absolute top-4 left-4 bg-blue-500/25 backdrop-blur-sm border border-blue-500/40 text-blue-300 px-3 py-1 rounded-lg text-xs font-medium shadow-lg ring-1 ring-blue-500/20">
-                    Video Mode - Zoom/Pan disabled for performance
-                  </div>
+                  {!isVideoPlaying && (
+                    <div className="absolute top-4 left-4 bg-blue-500/25 backdrop-blur-sm border border-blue-500/40 text-blue-300 px-3 py-1 rounded-lg text-xs font-medium shadow-lg ring-1 ring-blue-500/20">
+                      Video Mode - Zoom/Pan disabled for performance
+                    </div>
+                  )}
                   
                   {/* Annotation overlay for videos - positioned absolutely */}
-                  {(isAnnotationMode || selectedAnnotationId) && (
+                  {(isAnnotationMode || selectedAnnotationId) && !isVideoPlaying && (
                     <div className="absolute inset-0" style={{ pointerEvents: (isAnnotationMode || showCommentPopup) ? 'auto' : 'none' }}>
                       <AnnotationOverlay
                         width="100%"
@@ -1745,7 +1772,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         </div>
 
         {/* Right Sidebar - Task Info */}
-        <div className="w-full lg:w-96 bg-white/8 backdrop-blur-xl border-l border-white/20 flex flex-col h-[calc(100dvh-64px)] min-h-0 overflow-y-auto shadow-2xl ring-1 ring-white/10">
+        <div className={`w-full lg:w-96 bg-white/8 ${performanceMode ? '' : 'backdrop-blur-xl'} border-l border-white/20 flex flex-col h-[calc(100dvh-64px)] min-h-0 overflow-y-auto ${performanceMode ? '' : 'shadow-2xl ring-1 ring-white/10'}`}>
           <div className="p-4 flex flex-col">
             
             {/* Top Section - Task Info */}

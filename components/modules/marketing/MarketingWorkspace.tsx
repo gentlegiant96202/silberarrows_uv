@@ -119,12 +119,14 @@ interface MediaViewerProps {
   isAnnotationMode: boolean; // Annotation mode state from parent
   setIsAnnotationMode: (mode: boolean) => void; // Set annotation mode handler from parent
   currentAnnotations: any[]; // Pass current annotations from parent
+  posterUrl?: string; // Optional video poster thumbnail
 }
 
-function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotationsChange, currentPageNumber, selectedAnnotationId, onPageChange, setSelectedAnnotationId, zoom, setZoom, resetZoomPan, pan, setPan, showCommentPopup, setShowCommentPopup, isAnnotationMode, setIsAnnotationMode, currentAnnotations }: MediaViewerProps) {
+function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotationsChange, currentPageNumber, selectedAnnotationId, onPageChange, setSelectedAnnotationId, zoom, setZoom, resetZoomPan, pan, setPan, showCommentPopup, setShowCommentPopup, isAnnotationMode, setIsAnnotationMode, currentAnnotations, posterUrl }: MediaViewerProps) {
   // Zoom and Pan state
   const [isDragging, setIsDragging] = useState(false);
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   
   // Use annotations from parent workspace instead of local state
   // const [annotations, setAnnotations] = useState<any[]>([]);  // REMOVED - causes state sync issues
@@ -352,6 +354,9 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
             controls
             playsInline
             preload="metadata"
+            poster={posterUrl}
+            width={1280}
+            height={720}
             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
             style={{
               // Force hardware acceleration for smooth playback
@@ -953,9 +958,16 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         let publicUrl: string;
         
         try {
+          // Enforce MP4 uploads for videos for maximum compatibility
+          if (file.type.startsWith('video/') && file.type !== 'video/mp4') {
+            clearInterval(progressInterval);
+            setDeleteMessage(`Unsupported video format for "${file.name}". Please upload MP4 (H.264).`);
+            continue;
+          }
+
           const { error: upErr } = await supabase.storage
             .from('media-files')
-            .upload(storagePath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+            .upload(storagePath, file, { contentType: file.type, cacheControl: '31536000', upsert: false });
           
           clearInterval(progressInterval);
           
@@ -989,6 +1001,29 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           type: file.type,
           originalType: file.type
         };
+
+        // Generate and upload a poster thumbnail for MP4 videos
+        if (file.type === 'video/mp4') {
+          try {
+            const thumbFile = await generateVideoThumbnail(file);
+            const thumbExt = 'jpg';
+            const thumbName = `${crypto.randomUUID()}.${thumbExt}`;
+            const thumbPath = `${task.id}/thumbnails/${thumbName}`;
+            const { error: thumbErr } = await supabase.storage
+              .from('media-files')
+              .upload(thumbPath, thumbFile, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+            if (!thumbErr) {
+              const { data: { publicUrl: thumbUrl } } = supabase.storage
+                .from('media-files')
+                .getPublicUrl(thumbPath);
+              fileObject.thumbnail = thumbUrl;
+            } else {
+              console.warn('Thumbnail upload error:', thumbErr);
+            }
+          } catch (thumbGenErr) {
+            console.warn('Thumbnail generation failed:', thumbGenErr);
+          }
+        }
 
         uploadedFiles.push(fileObject);
       }
@@ -1505,6 +1540,9 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                     controls
                     playsInline
                     preload="metadata"
+                    poster={typeof currentFile === 'string' ? undefined : (currentFile as any)?.thumbnail}
+                    width={1280}
+                    height={720}
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
                     style={{
                       // Force hardware acceleration for smooth playback
@@ -1582,6 +1620,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                   isAnnotationMode={isAnnotationMode}
                   setIsAnnotationMode={setIsAnnotationMode}
                   currentAnnotations={currentAnnotations}
+                  posterUrl={typeof currentFile === 'string' ? undefined : (currentFile as any)?.thumbnail}
                 />
               );
             } else if (isPdf) {
@@ -1612,6 +1651,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                     isAnnotationMode={isAnnotationMode}
                     setIsAnnotationMode={setIsAnnotationMode}
                     currentAnnotations={currentAnnotations}
+                    posterUrl={typeof currentFile === 'string' ? undefined : (currentFile as any)?.thumbnail}
                   />
                 );
               } else {
@@ -1638,6 +1678,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                     isAnnotationMode={isAnnotationMode}
                     setIsAnnotationMode={setIsAnnotationMode}
                     currentAnnotations={currentAnnotations}
+                    posterUrl={typeof currentFile === 'string' ? undefined : (currentFile as any)?.thumbnail}
                   />
                 );
               }
@@ -1665,6 +1706,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                   isAnnotationMode={isAnnotationMode}
                   setIsAnnotationMode={setIsAnnotationMode}
                   currentAnnotations={currentAnnotations}
+                  posterUrl={typeof currentFile === 'string' ? undefined : (currentFile as any)?.thumbnail}
                 />
               );
             }

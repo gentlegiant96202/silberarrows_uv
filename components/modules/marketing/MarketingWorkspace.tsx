@@ -133,8 +133,8 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
   
   // Mouse wheel zoom handler
   const handleWheel = (e: React.WheelEvent) => {
-    // Disable zoom during annotation mode
-    if (isAnnotationMode) {
+    // Disable zoom during annotation mode or for videos
+    if (isAnnotationMode || mediaType === 'video') {
       e.preventDefault();
       return;
     }
@@ -175,7 +175,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
   
   // Mouse move handler for panning
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging && !isAnnotationMode) {
+    if (isDragging && !isAnnotationMode && mediaType !== 'video') {
       // Continue panning
       const deltaX = e.clientX - lastPos.x;
       const deltaY = e.clientY - lastPos.y;
@@ -270,7 +270,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
               transformOrigin: 'center center',
               transition: isDragging ? 'none' : 'transform 0.1s ease',
-              pointerEvents: (isAnnotationMode && !showCommentPopup && selectedAnnotationId == null) ? 'auto' : 'none'
+              pointerEvents: (isAnnotationMode || selectedAnnotationId != null) ? 'auto' : 'none'
             }}
           >
             <AnnotationOverlay
@@ -624,6 +624,19 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
       e.preventDefault();
       return;
     }
+    
+    // Block dragging for video items to reduce event work during playback
+    try {
+      const candidate = allViewableFiles[index];
+      const fileName = typeof candidate === 'string' ? candidate : (candidate as any)?.name || '';
+      const isVideoFile = typeof candidate === 'string'
+        ? !!candidate.match(/\.(mp4|mov|avi|webm|mkv)$/i)
+        : ((candidate as any)?.type?.startsWith('video/') || !!fileName.match(/\.(mp4|mov|avi|webm|mkv)$/i));
+      if (isVideoFile) {
+        e.preventDefault();
+        return;
+      }
+    } catch {}
     
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -1558,7 +1571,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                   
                   {/* Annotation overlay for videos - positioned absolutely */}
                   {(isAnnotationMode || selectedAnnotationId) && (
-                    <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-0" style={{ pointerEvents: (isAnnotationMode || showCommentPopup) ? 'auto' : 'none' }}>
                       <AnnotationOverlay
                         width="100%"
                         height="100%"

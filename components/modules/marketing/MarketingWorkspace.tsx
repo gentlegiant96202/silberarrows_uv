@@ -1496,30 +1496,67 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
             );
 
             if (isVideo) {
-              // Video
+              // Video - Optimized rendering without zoom/pan for better performance
               return (
-                <MediaViewer
-                  key={selectedImageIndex}
-                  mediaUrl={playbackUrl}
-                  fileName={fileName}
-                  mediaType="video"
-                  task={task}
-                  onAnnotationsChange={setCurrentAnnotations}
-                  currentPageNumber={selectedImageIndex + 1}
-                  selectedAnnotationId={selectedAnnotationId}
-                  setSelectedAnnotationId={setSelectedAnnotationId}
-                  onPageChange={(pageNum) => setSelectedImageIndex(pageNum - 1)}
-                  zoom={zoom}
-                  setZoom={setZoom}
-                  resetZoomPan={resetZoomPan}
-                  pan={pan}
-                  setPan={setPan}
-                  showCommentPopup={showCommentPopup}
-                  setShowCommentPopup={setShowCommentPopup}
-                  isAnnotationMode={isAnnotationMode}
-                  setIsAnnotationMode={setIsAnnotationMode}
-                  currentAnnotations={currentAnnotations}
-                />
+                <div className="relative w-full h-full flex items-center justify-center bg-black/10">
+                  {/* Video container - no transforms for optimal performance */}
+                  <video
+                    src={playbackUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
+                    style={{
+                      // Force hardware acceleration for smooth playback
+                      willChange: 'transform',
+                      transform: 'translate3d(0,0,0)'
+                    }}
+                  />
+                  
+                  {/* Performance mode notice */}
+                  <div className="absolute top-4 left-4 bg-blue-500/25 backdrop-blur-sm border border-blue-500/40 text-blue-300 px-3 py-1 rounded-lg text-xs font-medium shadow-lg ring-1 ring-blue-500/20">
+                    Video Mode - Zoom/Pan disabled for performance
+                  </div>
+                  
+                  {/* Annotation overlay for videos - positioned absolutely */}
+                  {(isAnnotationMode || selectedAnnotationId) && (
+                    <div className="absolute inset-0 pointer-events-none">
+                      <AnnotationOverlay
+                        width="100%"
+                        height="100%"
+                        isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
+                        onSave={({ path, comment, svgWidth, svgHeight }) => {
+                          const newAnnotation = {
+                            id: Date.now().toString(),
+                            path,
+                            comment,
+                            svgWidth,
+                            svgHeight,
+                            pageIndex: selectedImageIndex + 1,
+                            timestamp: new Date().toISOString(),
+                            mediaType: 'video',
+                            zoom: 1, // Always 1 for videos
+                            pan: { x: 0, y: 0 } // Always centered for videos
+                          };
+                          const updatedAnnotations = [...currentAnnotations, newAnnotation];
+                          setCurrentAnnotations(updatedAnnotations);
+                          // Save to DB
+                          supabase.from('design_tasks')
+                            .update({ annotations: updatedAnnotations })
+                            .eq('id', task.id)
+                            .then(({ error }) => {
+                              if (error) {
+                                console.error('Error saving annotation:', error);
+                              }
+                            });
+                        }}
+                        existingPaths={selectedAnnotationId
+                          ? currentAnnotations.filter(a => a.id === selectedAnnotationId).map(a => ({ d: a.path, color: '#FFD700', svgWidth: a.svgWidth, svgHeight: a.svgHeight }))
+                          : []}
+                      />
+                    </div>
+                  )}
+                </div>
               );
             } else if (isNativePdf) {
               // Native PDF file - use browser's built-in PDF viewer
@@ -1633,7 +1670,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
             }
           })()}
            
-          {/* Navigation Overlay */}
+          {/* Navigation Overlay - Always show for non-video media, conditional for videos */}
           {allViewableFiles.length > 1 && !isAnnotationMode && (
             <>
               <button
@@ -1831,13 +1868,34 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                     Tools
                   </h4>
                   <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-white/60 min-w-[28px]">Zoom:</span>
-                      <button onClick={() => setZoom(Math.max(0.5, zoom / 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">−</button>
-                      <div className="px-2 py-1 text-white text-xs rounded bg-black/50 border border-white/10 min-w-[35px] text-center">{Math.round(zoom * 100)}%</div>
-                      <button onClick={() => setZoom(Math.min(3, zoom * 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">+</button>
-                      <button onClick={() => resetZoomPan()} className="px-1.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20">Reset</button>
-                    </div>
+                                         {/* Only show zoom controls for non-video media */}
+                     {(() => {
+                       const currentFile: any = allViewableFiles[selectedImageIndex];
+                       const fileName = typeof currentFile === 'string' 
+                         ? currentFile.split('/').pop() || 'Unknown file'
+                         : (currentFile as any)?.name || 'Unknown file';
+                       const isCurrentVideo = typeof currentFile === 'string' ? 
+                         fileName.match(/\.(mp4|mov|avi|webm|mkv)$/i) :
+                         (currentFile as any)?.type?.startsWith('video/') || fileName.match(/\.(mp4|mov|avi|webm|mkv)$/i);
+                      
+                      if (isCurrentVideo) {
+                        return (
+                          <div className="text-xs text-white/50 italic">
+                            Zoom/Pan disabled for video performance
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-white/60 min-w-[28px]">Zoom:</span>
+                          <button onClick={() => setZoom(Math.max(0.5, zoom / 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">−</button>
+                          <div className="px-2 py-1 text-white text-xs rounded bg-black/50 border border-white/10 min-w-[35px] text-center">{Math.round(zoom * 100)}%</div>
+                          <button onClick={() => setZoom(Math.min(3, zoom * 1.2))} className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20">+</button>
+                          <button onClick={() => resetZoomPan()} className="px-1.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20">Reset</button>
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-white/60 min-w-[28px]">Draw:</span>
                       <button

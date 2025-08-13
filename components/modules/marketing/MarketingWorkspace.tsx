@@ -331,7 +331,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
       <div 
         className="w-full h-full flex items-center justify-center"
         style={{
-          transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
+                      transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
           transformOrigin: 'center center',
           transition: isDragging ? 'none' : 'transform 0.1s ease'
         }}
@@ -350,7 +350,14 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
           <video
             src={mediaUrl}
             controls
+            playsInline
+            preload="metadata"
             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
+            style={{
+              // Force hardware acceleration for smooth playback
+              willChange: 'transform',
+              transform: 'translate3d(0,0,0)'
+            }}
           />
         )}
 

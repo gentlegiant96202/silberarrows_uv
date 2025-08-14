@@ -492,19 +492,6 @@ export default function CallLogBoard() {
   const BAR_CANVAS_PX = 240;
   
   // Form states
-  const [newEntryForm, setNewEntryForm] = useState({
-    date: new Date().toISOString().split('T')[0],
-    time: new Date().toTimeString().slice(0, 5),
-    customer_name: '',
-    phone_number: '',
-    reach_out_method: 'Cold Call',
-    person_in_charge: '',
-    answered_yn: 'Yes',
-    action_taken: '',
-    person_in_charge_2: '',
-    answered_yn_2: '',
-    notes: ''
-  });
   
   const [staffForm, setStaffForm] = useState<{
     name: string;
@@ -2175,15 +2162,90 @@ export default function CallLogBoard() {
                     {isEditing ? (
                       <div className="flex gap-1 items-center">
                         <button
-                          onClick={() => {
-                            // Save the entry
-                            if (editingRow) {
-                              setCallLogs(prev => prev.map((entry): CallLogEntry => 
-                                entry.id === editingRow.id ? editingRow : entry
-                              ));
+                          onClick={async () => {
+                            if (!editingRow) return;
+                            
+                            try {
+                              // Check if this is a new entry (starts with 'new-')
+                              const isNewEntry = editingRow.id.startsWith('new-');
+                              
+                              if (isNewEntry) {
+                                // Create new entry via API
+                                const apiData = {
+                                  call_date: editingRow.date,
+                                  call_time: editingRow.time,
+                                  customer_name: editingRow.customer_name,
+                                  phone_number: editingRow.phone_number,
+                                  reach_out_method: editingRow.reach_out_method,
+                                  person_in_charge: editingRow.person_in_charge,
+                                  answered_yn: editingRow.answered_yn,
+                                  action_taken: editingRow.action_taken,
+                                  person_in_charge_2: editingRow.person_in_charge_2 || null,
+                                  answered_yn_2: editingRow.answered_yn_2 || null,
+                                  notes: editingRow.notes || null
+                                };
+
+                                const response = await fetch('/api/call-logs', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(apiData),
+                                });
+
+                                if (!response.ok) {
+                                  throw new Error(`Failed to save: ${response.statusText}`);
+                                }
+
+                                const savedEntry = await response.json();
+                                
+                                // Replace the temporary entry with the saved one
+                                setCallLogs(prev => prev.map((entry): CallLogEntry => 
+                                  entry.id === editingRow.id ? savedEntry : entry
+                                ));
+                                
+                                alert('Call log entry saved successfully!');
+                              } else {
+                                // Update existing entry via API
+                                const apiData = {
+                                  call_date: editingRow.date,
+                                  call_time: editingRow.time,
+                                  customer_name: editingRow.customer_name,
+                                  phone_number: editingRow.phone_number,
+                                  reach_out_method: editingRow.reach_out_method,
+                                  person_in_charge: editingRow.person_in_charge,
+                                  answered_yn: editingRow.answered_yn,
+                                  action_taken: editingRow.action_taken,
+                                  person_in_charge_2: editingRow.person_in_charge_2 || null,
+                                  answered_yn_2: editingRow.answered_yn_2 || null,
+                                  notes: editingRow.notes || null
+                                };
+
+                                const response = await fetch(`/api/call-logs/${editingRow.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(apiData),
+                                });
+
+                                if (!response.ok) {
+                                  throw new Error(`Failed to update: ${response.statusText}`);
+                                }
+
+                                const updatedEntry = await response.json();
+                                
+                                // Update the entry in local state
+                                setCallLogs(prev => prev.map((entry): CallLogEntry => 
+                                  entry.id === editingRow.id ? updatedEntry : entry
+                                ));
+                                
+                                alert('Call log entry updated successfully!');
+                              }
+                              
+                              setEditingRowId(null);
+                              setEditingRow(null);
+                              
+                            } catch (error) {
+                              console.error('Error saving call log:', error);
+                              alert(`Failed to save call log entry: ${error instanceof Error ? error.message : 'Unknown error'}`);
                             }
-                            setEditingRowId(null);
-                            setEditingRow(null);
                           }}
                           className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
                         >
@@ -2706,33 +2768,7 @@ export default function CallLogBoard() {
     );
   };
 
-  // Handle form submissions
-  const handleNewEntrySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Add new entry to the call logs
-    const newEntry = {
-      id: Date.now().toString(),
-      ...newEntryForm
-    };
-    setCallLogs(prev => [newEntry, ...prev]);
-    
-    // Reset form and close modal
-    setNewEntryForm({
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toTimeString().slice(0, 5),
-      customer_name: '',
-      phone_number: '',
-      reach_out_method: 'Cold Call',
-      person_in_charge: '',
-      answered_yn: 'Yes',
-      action_taken: '',
-      person_in_charge_2: '',
-      answered_yn_2: '',
-      notes: ''
-    });
-    // Fixed: Use correct modal state
-    setIsNewStaffModalOpen(false);
-  };
+
 
   const handleStaffSubmit = (e: React.FormEvent) => {
     e.preventDefault();

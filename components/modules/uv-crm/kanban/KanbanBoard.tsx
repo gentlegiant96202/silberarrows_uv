@@ -3,12 +3,13 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { MessageSquare, CheckCircle, Car, XCircle } from 'lucide-react';
+import { MessageSquare, CheckCircle, Car, XCircle, Archive } from 'lucide-react';
 import NewAppointmentModal from "../modals/NewAppointmentModal";
 import LeadDetailsModal from "../modals/LeadDetailsModal";
 import LostReasonModal from "../modals/LostReasonModal";
 import VehicleDocumentModal from "../modals/VehicleDocumentModal";
 import { useSearchStore } from "@/lib/searchStore";
+import { useModulePermissions } from "@/lib/useModulePermissions";
 
 interface Lead {
   id: string;
@@ -31,6 +32,7 @@ interface Lead {
   lost_reason?: string; // Why the lead was lost
   lost_reason_notes?: string; // Additional context for lost reason
   lost_at?: string; // When the lead was marked as lost
+  archived_at?: string; // When the lead was archived
 }
 
 const columns = [
@@ -55,6 +57,11 @@ const columns = [
     key: "lost", 
     title: "LOST",
     icon: <XCircle className="w-4 h-4" />
+  },
+  { 
+    key: "archived", 
+    title: "ARCHIVED", 
+    icon: <Archive className="w-4 h-4" />
   },
 ] as const;
 
@@ -91,7 +98,11 @@ export default function KanbanBoard() {
   const [showLostReasonModal, setShowLostReasonModal] = useState(false);
   const [leadToLose, setLeadToLose] = useState<Lead | null>(null);
   const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const hasFetchedLeads = useRef(false);
+
+  // Get permissions for archive functionality
+  const { canEdit } = useModulePermissions('uv_crm');
   
   // Vehicle Document Modal states
   const [showVehicleDocumentModal, setShowVehicleDocumentModal] = useState(false);
@@ -169,6 +180,7 @@ export default function KanbanBoard() {
     won: [],
     delivered: [],
     lost: [],
+    archived: [],
   } as const;
   
   // Normalise status values so variations like "New Customer" or "NEW_CUSTOMER"
@@ -245,6 +257,20 @@ export default function KanbanBoard() {
       setVehicleDocumentMode('invoice');
       setShowVehicleDocumentModal(true);
       return; // Don't update database yet, wait for invoice form
+    }
+    
+    // Special case: moving to archived - add archived timestamp
+    if (targetCol === 'archived') {
+      const { error } = await supabase.from("leads").update({ 
+        status: targetCol,
+        archived_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }).eq("id", id);
+      
+      if (error) {
+        console.error("Failed to archive lead:", error);
+      }
+      return;
     }
     
     // Normal drag and drop - update database and let realtime subscription handle UI update
@@ -382,6 +408,25 @@ export default function KanbanBoard() {
     setLeadForDocument(null);
   };
 
+  // Archive lead function
+  const handleArchiveLead = async (leadId: string) => {
+    try {
+      const { error } = await supabase.from("leads").update({
+        status: 'archived',
+        archived_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }).eq("id", leadId);
+      
+      if (error) {
+        console.error("❌ Failed to archive lead:", error);
+      } else {
+        console.log("✅ Lead archived successfully:", leadId);
+      }
+    } catch (error) {
+      console.error("❌ Error archiving lead:", error);
+    }
+  };
+
   const formatBudget = (lead: Lead) => {
     if (lead.payment_type === 'monthly') {
       if (!lead.monthly_budget || lead.monthly_budget === 0) return "No monthly budget set";
@@ -398,7 +443,9 @@ export default function KanbanBoard() {
         className="flex gap-3 pb-4 w-full h-full overflow-hidden"
         style={{ height: "calc(100vh - 72px)" }}
       >
-        {columns.map(col => (
+        {columns
+          .filter(col => showArchived || col.key !== 'archived')
+          .map(col => (
         <div
           key={col.key}
           className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex-1 min-w-0 flex flex-col transition-shadow ${hovered===col.key ? 'ring-2 ring-gray-300/60' : ''}`}
@@ -428,6 +475,25 @@ export default function KanbanBoard() {
                 </span>
             )}
             </div>
+            
+            {/* Archive Toggle Button - Only show on LOST column */}
+            {col.key === 'lost' && (
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className={`
+                  inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition-all duration-200
+                  ${showArchived 
+                    ? 'bg-gray-600 text-white shadow-lg' 
+                    : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                  }
+                  backdrop-blur-sm border border-white/20 hover:border-white/30
+                `}
+                title={showArchived ? 'Hide archived leads' : 'Show archived leads'}
+              >
+                <Archive className="w-2.5 h-2.5" />
+                {showArchived ? 'Hide' : 'Show'} Archive
+              </button>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
             {grouped[col.key as ColKey].map(l => (
@@ -467,7 +533,25 @@ export default function KanbanBoard() {
                   <div className="text-xs font-medium text-white group-hover:text-white/90 transition-colors">
                     {highlight(l.full_name)}
                   </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Archive Button - For delivered and lost leads */}
+                    {(l.status === 'delivered' || l.status === 'lost') && canEdit && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click
+                          handleArchiveLead(l.id);
+                        }}
+                        className="
+                          p-0.5 rounded-full transition-all duration-200 
+                          bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-gray-700/70
+                          hover:shadow-lg hover:scale-110
+                          focus:outline-none focus:ring-2 focus:ring-gray-400/50
+                        "
+                        title="Archive lead"
+                      >
+                        <Archive className="w-2.5 h-2.5" />
+                      </button>
+                    )}
                     <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>

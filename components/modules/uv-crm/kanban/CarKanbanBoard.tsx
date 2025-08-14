@@ -8,7 +8,7 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { useSearchStore } from '@/lib/searchStore';
 import { useUserRole } from '@/lib/useUserRole'; // 🆕 NEW ROLE SYSTEM
 import { useModulePermissions } from '@/lib/useModulePermissions';
-import { Check, Tag } from 'lucide-react';
+import { Check, Tag, Archive } from 'lucide-react';
 
 interface Car {
   id: string;
@@ -25,6 +25,7 @@ interface Car {
   customer_email?: string | null;
   customer_phone?: string | null;
   vehicle_details_pdf_url?: string | null;
+  archived_at?: string | null; // When the car was archived
 }
 
 export default function CarKanbanBoard() {
@@ -48,6 +49,9 @@ export default function CarKanbanBoard() {
   const [showPriceDropModal, setShowPriceDropModal] = useState(false);
   const [selectedCarForPriceDrop, setSelectedCarForPriceDrop] = useState<Car | null>(null);
 
+  // Archive state
+  const [showArchived, setShowArchived] = useState(false);
+
   const columns = [
     { key: 'marketing',   title: 'MARKETING' },
     { key: 'qc_ceo',      title: 'QC CHECK CEO' },
@@ -55,6 +59,7 @@ export default function CarKanbanBoard() {
     { key: 'reserved',    title: 'RESERVED' },
     { key: 'sold',        title: 'SOLD' },
     { key: 'returned',    title: 'RETURNED' },
+    { key: 'archived',    title: 'ARCHIVED' },
   ] as const;
 
   type ColKey = (typeof columns)[number]['key'];
@@ -136,6 +141,9 @@ export default function CarKanbanBoard() {
       } else if (col === 'sold' || col === 'returned') {
         moved.sale_status = col as any;
         moved.status = 'inventory';
+      } else if (col === 'archived') {
+        moved.sale_status = 'archived';
+        moved.status = 'inventory';
       } else {
         moved.status = col;
         moved.sale_status = 'available';
@@ -150,12 +158,40 @@ export default function CarKanbanBoard() {
       await supabase.from('cars').update({ sale_status: 'reserved', status: 'inventory' }).eq('id', id);
     } else if (col === 'sold' || col === 'returned') {
       await supabase.from('cars').update({ sale_status: col, status: 'inventory' }).eq('id', id);
+    } else if (col === 'archived') {
+      await supabase.from('cars').update({ 
+        sale_status: 'archived', 
+        status: 'inventory',
+        archived_at: new Date().toISOString()
+      }).eq('id', id);
     } else {
       await supabase.from('cars').update({ status: col, sale_status: 'available' }).eq('id', id);
     }
 
     // reload cars to refresh thumbnails
     load();
+  };
+
+  // Archive car function
+  const handleArchiveCar = async (carId: string) => {
+    try {
+      const { error } = await supabase.from('cars').update({
+        sale_status: 'archived',
+        archived_at: new Date().toISOString(),
+        // Keep status as 'inventory' since archived cars are still inventory items
+        status: 'inventory'
+      }).eq('id', carId);
+      
+      if (error) {
+        console.error("❌ Failed to archive car:", error);
+      } else {
+        console.log("✅ Car archived successfully:", carId);
+        // Reload cars to refresh the display
+        load();
+      }
+    } catch (error) {
+      console.error("❌ Error archiving car:", error);
+    }
   };
 
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
@@ -302,7 +338,9 @@ export default function CarKanbanBoard() {
   return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
       <div className={`flex gap-3 pb-4 w-full h-full ${inventoryExpanded ? 'overflow-hidden' : ''}`}>
-        {columns.map(col => {
+        {columns
+          .filter(col => showArchived || col.key !== 'archived')
+          .map(col => {
           const listAll = cars.filter(c=> match(c.stock_number) || match(c.vehicle_model));
           let list = listAll.filter(c => {
             if (col.key === 'marketing' || col.key === 'qc_ceo') {
@@ -319,6 +357,9 @@ export default function CarKanbanBoard() {
             }
             if (col.key === 'returned') {
               return c.status === 'inventory' && c.sale_status === 'returned';
+            }
+            if (col.key === 'archived') {
+              return c.status === 'inventory' && c.sale_status === 'archived';
             }
             return false;
           });
@@ -387,9 +428,29 @@ export default function CarKanbanBoard() {
                       <span className="ml-1 text-[12px] leading-none">＋</span>
                     </button>
                   ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
-                      {list.length}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
+                        {list.length}
+                      </span>
+                      {/* Archive Toggle Button - Only show on RETURNED column */}
+                      {col.key === 'returned' && (
+                        <button
+                          onClick={() => setShowArchived(!showArchived)}
+                          className={`
+                            inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition-all duration-200
+                            ${showArchived 
+                              ? 'bg-gray-600 text-white shadow-lg' 
+                              : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                            }
+                            backdrop-blur-sm border border-white/20 hover:border-white/30
+                          `}
+                          title={showArchived ? 'Hide archived cars' : 'Show archived cars'}
+                        >
+                          <Archive className="w-2.5 h-2.5" />
+                          {showArchived ? 'Hide' : 'Show'} Archive
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -531,6 +592,20 @@ export default function CarKanbanBoard() {
                               <span className="font-medium">Price Drop</span>
                             </button>
                           )}
+                          {/* Archive Button - Expanded View */}
+                          {(c.sale_status === 'sold' || c.sale_status === 'returned') && canEditCars && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleArchiveCar(c.id);
+                              }}
+                              className="w-full mt-1 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-[8px] px-1.5 py-0.5 rounded transition-all duration-200 flex items-center justify-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
+                              title="Archive car"
+                            >
+                              <Archive className="w-2 h-2" />
+                              <span className="font-medium">Archive</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -585,8 +660,26 @@ export default function CarKanbanBoard() {
                             </button>
                           )}
                         </div>
-                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-white/50">
-                          <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Archive Button - For sold and returned cars */}
+                          {(c.sale_status === 'sold' || c.sale_status === 'returned') && canEditCars && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent card click
+                                handleArchiveCar(c.id);
+                              }}
+                              className="
+                                p-0.5 rounded-full transition-all duration-200 
+                                bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-gray-700/70
+                                hover:shadow-lg hover:scale-110
+                                focus:outline-none focus:ring-2 focus:ring-gray-400/50
+                              "
+                              title="Archive car"
+                            >
+                              <Archive className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                          <svg className="w-2 h-2 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </div>

@@ -401,24 +401,24 @@ const LeadKPICards: React.FC<{year:number; months:number[]}> = ({year, months}) 
     <div className="space-y-4">
       <div className="grid gap-3 grid-cols-2">
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-          <p className="text-[11px] text-white/60">New Leads</p>
+          <p className="text-sm text-white/60">New Leads</p>
           <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.newLeads}</p>
-          <p className="text-[8px] text-white/40">vs last year: {getGrowthIndicator()}</p>
+          <p className="text-xs text-white/40">vs last year: {getGrowthIndicator()}</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-          <p className="text-[11px] text-white/60">Active Pipeline</p>
+          <p className="text-sm text-white/60">Active Pipeline</p>
           <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.activePipeline}</p>
-          <p className="text-[8px] text-white/40">In progress</p>
+          <p className="text-xs text-white/40">In progress</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-          <p className="text-[11px] text-white/60">Conversions</p>
+          <p className="text-sm text-white/60">Conversions</p>
           <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.conversions}</p>
-          <p className="text-[8px] text-white/40">Won + delivered</p>
+          <p className="text-xs text-white/40">Won + delivered</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-          <p className="text-[11px] text-white/60">Conversion Rate</p>
+          <p className="text-sm text-white/60">Conversion Rate</p>
           <p className="text-xl font-semibold text-white">{loading ? '—' : `${kpi.conversionRate}%`}</p>
-          <p className="text-[8px] text-white/40">Success rate</p>
+          <p className="text-xs text-white/40">Success rate</p>
         </div>
       </div>
     </div>
@@ -521,26 +521,26 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
   return (
     <div className="grid gap-3 grid-cols-2">
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Stock Cars</p>
+        <p className="text-sm text-white/60">Stock Cars</p>
         <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.stockCars}</p>
-        <p className="text-[8px] text-white/40">Reserved: {kpiData.stockReserved}</p>
+        <p className="text-xs text-white/40">Reserved: {kpiData.stockReserved}</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Consignment Cars</p>
+        <p className="text-sm text-white/60">Consignment Cars</p>
         <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.consignmentCars}</p>
-        <p className="text-[8px] text-white/40">Reserved: {kpiData.consignmentReserved}</p>
+        <p className="text-xs text-white/40">Reserved: {kpiData.consignmentReserved}</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Total Cars</p>
+        <p className="text-sm text-white/60">Total Cars</p>
         <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.totalCars}</p>
-        <p className="text-[8px] text-white/40">In inventory</p>
+        <p className="text-xs text-white/40">In inventory</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Added This Period</p>
+        <p className="text-sm text-white/60">Added This Period</p>
         <p className="text-xl font-semibold text-white">
           {loading ? '—' : kpiData.stockBoughtPeriod + kpiData.consignmentBoughtPeriod}
         </p>
-        <p className="text-[8px] text-white/40">
+        <p className="text-xs text-white/40">
           S:{kpiData.stockBoughtPeriod} C:{kpiData.consignmentBoughtPeriod}
         </p>
       </div>
@@ -688,14 +688,14 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
         <div className="grid gap-3 grid-cols-5">
           {/* Average Ages */}
           <div className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner">
-            <p className="text-[11px] text-white/60">Stock Avg Age</p>
+            <p className="text-sm text-white/60">Stock Avg Age</p>
             <p className="text-lg font-semibold text-white">{loading ? '—' : `${ageData.stockAvgAge}`}</p>
-            <p className="text-[8px] text-white/40">days</p>
+            <p className="text-xs text-white/40">days</p>
           </div>
           <div className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner">
-            <p className="text-[11px] text-white/60">Consignment Avg</p>
+            <p className="text-sm text-white/60">Consignment Avg</p>
             <p className="text-lg font-semibold text-white">{loading ? '—' : `${ageData.consignmentAvgAge}`}</p>
-            <p className="text-[8px] text-white/40">days</p>
+            <p className="text-xs text-white/40">days</p>
           </div>
           
           {/* Age Categories - Clickable */}
@@ -703,25 +703,25 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
             className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner cursor-pointer hover:bg-white/20 transition-colors"
             onClick={() => handleCategoryClick('fresh')}
           >
-            <p className="text-[11px] text-white/60">Fresh (0-59d)</p>
+            <p className="text-sm text-white/60">Fresh (0-59d)</p>
             <p className="text-lg font-semibold text-white">{loading ? '—' : ageData.freshCars}</p>
-            <p className="text-[8px] text-white/40">S:{ageData.stockFresh} C:{ageData.consignmentFresh}</p>
+            <p className="text-xs text-white/40">S:{ageData.stockFresh} C:{ageData.consignmentFresh}</p>
           </div>
           <div 
             className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner cursor-pointer hover:bg-white/20 transition-colors"
             onClick={() => handleCategoryClick('aging')}
           >
-            <p className="text-[11px] text-white/60">Aging (60-89d)</p>
+            <p className="text-sm text-white/60">Aging (60-89d)</p>
             <p className="text-lg font-semibold text-white">{loading ? '—' : ageData.agingCars}</p>
-            <p className="text-[8px] text-white/40">S:{ageData.stockAging} C:{ageData.consignmentAging}</p>
+            <p className="text-xs text-white/40">S:{ageData.stockAging} C:{ageData.consignmentAging}</p>
           </div>
           <div 
             className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner cursor-pointer hover:bg-white/20 transition-colors"
             onClick={() => handleCategoryClick('old')}
           >
-            <p className="text-[11px] text-white/60">Old (90+ days)</p>
+            <p className="text-sm text-white/60">Old (90+ days)</p>
             <p className="text-lg font-semibold text-white">{loading ? '—' : ageData.oldCars}</p>
-            <p className="text-[8px] text-white/40">S:{ageData.stockOld} C:{ageData.consignmentOld}</p>
+            <p className="text-xs text-white/40">S:{ageData.stockOld} C:{ageData.consignmentOld}</p>
           </div>
         </div>
       </div>

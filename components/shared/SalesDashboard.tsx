@@ -197,31 +197,31 @@ const SalesKPICards: React.FC<{metrics: any[], targets?: any[], selectedYear: nu
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-white/60">Monthly Gross Profit</p>
+              <p className="text-sm text-white/60">Monthly Gross Profit</p>
               <p className="text-xl font-semibold text-white">{formatCurrency(kpi.monthlyGrossProfit)}</p>
-              <p className="text-[8px] text-white/40">Month to date</p>
+              <p className="text-xs text-white/40">Month to date</p>
             </div>
             <div className="text-right">
-              <p className="text-[11px] text-white/60">Units Sold</p>
+              <p className="text-sm text-white/60">Units Sold</p>
               <p className="text-lg font-semibold text-white">{kpi.totalUnitsSold}</p>
-              <p className="text-[8px] text-white/40">S:{kpi.stockUnitsSold} C:{kpi.consignmentUnitsSold}</p>
+              <p className="text-xs text-white/40">S:{kpi.stockUnitsSold} C:{kpi.consignmentUnitsSold}</p>
             </div>
           </div>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-          <p className="text-[11px] text-white/60">Monthly Target</p>
+          <p className="text-sm text-white/60">Monthly Target</p>
           <p className="text-xl font-semibold text-white">{formatCurrency(kpi.monthlyTarget)}</p>
-          <p className="text-[8px] text-white/40">Current month goal</p>
+          <p className="text-xs text-white/40">Current month goal</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-          <p className="text-[11px] text-white/60">Yearly Profit</p>
+          <p className="text-sm text-white/60">Yearly Profit</p>
           <p className="text-xl font-semibold text-white">{formatCurrency(kpi.yearlyGrossProfit)}</p>
-          <p className="text-[8px] text-white/40">Year to date</p>
+          <p className="text-xs text-white/40">Year to date</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-          <p className="text-[11px] text-white/60">Yearly Target</p>
+          <p className="text-sm text-white/60">Yearly Target</p>
           <p className="text-xl font-semibold text-white">{formatCurrency(kpi.yearlyTarget)}</p>
-          <p className="text-[8px] text-white/40">Full year goal</p>
+          <p className="text-xs text-white/40">Full year goal</p>
         </div>
       </div>
     </div>
@@ -296,24 +296,24 @@ const SalesPerformanceCards: React.FC<{metrics: any[], targets: any[], selectedY
   return (
     <div className="grid gap-3 grid-cols-2">
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Target Achievement</p>
+        <p className="text-sm text-white/60">Target Achievement</p>
         <p className="text-xl font-semibold text-white">{performance.targetAchievement.toFixed(1)}%</p>
-        <p className="text-[8px] text-white/40">vs monthly target</p>
+        <p className="text-xs text-white/40">vs monthly target</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Marketing</p>
+        <p className="text-sm text-white/60">Marketing</p>
         <p className="text-xl font-semibold text-white">{formatCurrency(performance.marketingSpend)}</p>
-        <p className="text-[8px] text-white/40">Rate: {performance.marketingRate.toFixed(1)}%</p>
+        <p className="text-xs text-white/40">Rate: {performance.marketingRate.toFixed(1)}%</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Yearly Achievement</p>
+        <p className="text-sm text-white/60">Yearly Achievement</p>
         <p className="text-xl font-semibold text-white">{performance.yearlyAchievement.toFixed(1)}%</p>
-        <p className="text-[8px] text-white/40">vs yearly target</p>
+        <p className="text-xs text-white/40">vs yearly target</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-        <p className="text-[11px] text-white/60">Avg Profit/Car</p>
+        <p className="text-sm text-white/60">Avg Profit/Car</p>
         <p className="text-xl font-semibold text-white">{formatCurrency(performance.avgProfitPerCar)}</p>
-        <p className="text-[8px] text-white/40">Per unit sold</p>
+        <p className="text-xs text-white/40">Per unit sold</p>
       </div>
     </div>
   );

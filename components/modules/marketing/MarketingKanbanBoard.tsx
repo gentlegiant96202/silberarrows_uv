@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
 import { useAuth } from '@/components/shared/AuthProvider';
+import { useSearchStore } from '@/lib/searchStore';
 import dayjs from 'dayjs';
 import AddTaskModal from './AddTaskModal';
 import MarketingWorkspace from './MarketingWorkspace';
@@ -178,6 +179,9 @@ export default function MarketingKanbanBoard() {
   const { canView, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModulePermissions('marketing');
   const { isAdmin } = useUserRole();
   const { user } = useAuth();
+  
+  // Get search query from global store
+  const { query: searchQuery } = useSearchStore();
 
   // Helper function to get authorization headers
   const getAuthHeaders = async (): Promise<Record<string, string>> => {
@@ -381,10 +385,22 @@ export default function MarketingKanbanBoard() {
     };
   }, []);
 
-  // Group tasks by status with optimized sorting logic (memoized for performance)
+  // Group tasks by status with search filtering and optimized sorting logic (memoized for performance)
   const grouped = useMemo(() => {
     return columns.reduce((acc, col) => {
-      const filteredTasks = tasks.filter(task => task.status === col.key);
+      let filteredTasks = tasks.filter(task => task.status === col.key);
+      
+      // Apply search filter if search query exists
+      if (searchQuery && searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        filteredTasks = filteredTasks.filter(task => 
+          task.title?.toLowerCase().includes(query) ||
+          task.description?.toLowerCase().includes(query) ||
+          task.assignee?.toLowerCase().includes(query) ||
+          task.task_type?.toLowerCase().includes(query) ||
+          (task.tags && task.tags.some(tag => tag.toLowerCase().includes(query)))
+        );
+      }
       
       // Pre-compute dayjs values to avoid repeated parsing during sort
       const tasksWithComputedDates = filteredTasks.map(task => ({
@@ -404,7 +420,7 @@ export default function MarketingKanbanBoard() {
       
       return acc;
     }, {} as Record<ColKey, MarketingTask[]>);
-  }, [tasks, columns]);
+  }, [tasks, columns, searchQuery]);
 
   // Optimized drag and drop handlers (memoized for performance)
   const onDragStart = useCallback((task: MarketingTask) => {
@@ -769,6 +785,13 @@ export default function MarketingKanbanBoard() {
                   </span>
                 ) : null}
               </div>
+              
+              {/* Search Results Indicator - Show when search is active */}
+              {searchQuery && searchQuery.trim() && (
+                <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30">
+                  <span>{grouped[col.key].length} found</span>
+                </div>
+              )}
               
               {/* Archive Toggle Button - Only show on Instagram Feed Preview column */}
               {col.key === 'instagram_feed_preview' && (

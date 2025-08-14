@@ -2787,20 +2787,19 @@ export default function CallLogBoard() {
     setIsNewStaffModalOpen(false);
   };
 
-  // Show loading state while data is being fetched
-  if (loading && safeCallLogs.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-          <div className="text-white/70">Loading call logs...</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full overflow-hidden">
+    <div className="h-full overflow-hidden relative">
+      {/* Loading Overlay - Similar to Creative Hub */}
+      {loading && (
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-gray-600 border-t-silver-400 rounded-full animate-spin mx-auto mb-6"></div>
+            <h2 className="text-xl font-medium text-gray-200 mb-2">Loading Call Data</h2>
+            <p className="text-gray-400">Processing call logs and analytics...</p>
+          </div>
+        </div>
+      )}
+
       {/* Content based on active sub-tab */}
       <div className="h-full">
         {activeSubTab === 'dashboard' ? renderDashboard() : 

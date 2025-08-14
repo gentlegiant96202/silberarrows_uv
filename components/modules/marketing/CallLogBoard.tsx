@@ -1540,14 +1540,7 @@ export default function CallLogBoard() {
                 const unansweredHeight = totalBarHeight * unansweredRatio;
                 
                 return (
-                  <div key={day.date} className="flex flex-col items-center justify-end gap-2 group cursor-pointer" style={{ width: '100%', maxWidth: '60px', height: '100%' }}>
-                    {/* Tooltip on hover */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute -top-16 bg-black/90 text-white text-xs px-3 py-2 rounded-lg border border-white/20 z-10 pointer-events-none">
-                      <div className="font-medium">{day.date}</div>
-                      <div className="text-green-300">✓ {day.answered} answered</div>
-                      <div className="text-red-300">✗ {day.unanswered} unanswered</div>
-                      <div className="text-white/70">Total: {day.total}</div>
-                    </div>
+                  <div key={day.date} className="flex flex-col items-center justify-end gap-2" style={{ width: '100%', maxWidth: '60px', height: '100%' }}>
                     
                     <div className="flex flex-col justify-end items-center relative" style={{ height: `${totalHeight + 30}px` }}>
                       {/* Total count above bar - positioned at fixed height */}
@@ -1667,20 +1660,7 @@ export default function CallLogBoard() {
                                      'from-gray-500/20 to-gray-600/10';
                 
                 return (
-                  <div key={staff.name} className="flex flex-col items-center justify-end gap-2 group cursor-pointer" style={{ minWidth: '80px', maxWidth: '100px', height: '100%' }}>
-                    {/* Enhanced tooltip */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute -top-20 bg-black/90 text-white text-xs px-4 py-3 rounded-lg border border-white/20 z-10 pointer-events-none min-w-[140px]">
-                      <div className="font-semibold text-center mb-1">{staff.name}</div>
-                      {staffMember && (
-                        <div className="text-center text-white/60 text-[10px] mb-2">{staffMember.department}</div>
-                      )}
-                      <div className="text-green-300">✓ {staff.answered} answered</div>
-                      <div className="text-red-300">✗ {staff.unanswered} unanswered</div>
-                      <div className="text-white/70 font-medium">Total: {staff.total}</div>
-                      <div className="text-white/50 text-[10px] mt-1">
-                        {staff.total > 0 ? `${((staff.answered / staff.total) * 100).toFixed(1)}% success rate` : ''}
-                      </div>
-                    </div>
+                  <div key={staff.name} className="flex flex-col items-center justify-end gap-2" style={{ minWidth: '80px', maxWidth: '100px', height: '100%' }}>
                     
                     <div className="flex flex-col justify-end items-center relative" style={{ height: `${totalHeight + 50}px` }}>
                       {/* Total count above bar */}

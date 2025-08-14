@@ -696,21 +696,21 @@ select[name="country_code"] option {
 
 /* Base responsive font sizing using clamp for fluid scaling */
 html {
-  font-size: clamp(14px, 1.25vw, 18px);
-  /* Ensures smooth scaling across all screen sizes */
+  font-size: clamp(13px, 1.1vw, 17px);
+  /* Ensures smooth scaling across all screen sizes - moderate scaling */
 }
 
 /* High-DPI Windows Display Detection and Adjustment */
 @media screen and (min-resolution: 150dpi) and (max-resolution: 300dpi) {
   :root {
     --base-font-size: 15px;
-    --scale-factor: 0.95;
-    --spacing-unit: 0.9rem;
+    --scale-factor: 0.92;
+    --spacing-unit: 0.85rem;
   }
   
   /* Adjust container max-widths for better fit */
   .container, .max-w-7xl, .max-w-6xl {
-    max-width: 95% !important;
+    max-width: 92% !important;
   }
 }
 
@@ -718,19 +718,19 @@ html {
 @media screen and (min-resolution: 200dpi) {
   :root {
     --base-font-size: 14px;
-    --scale-factor: 0.9;
-    --spacing-unit: 0.85rem;
+    --scale-factor: 0.88;
+    --spacing-unit: 0.8rem;
   }
   
   /* Further container adjustments */
   .container, .max-w-7xl, .max-w-6xl {
-    max-width: 90% !important;
+    max-width: 88% !important;
   }
   
   /* Reduce padding/margins for better space utilization */
-  .p-4 { padding: calc(var(--spacing-unit) * 0.75) !important; }
-  .p-6 { padding: calc(var(--spacing-unit) * 1) !important; }
-  .p-8 { padding: calc(var(--spacing-unit) * 1.25) !important; }
+  .p-4 { padding: calc(var(--spacing-unit) * 0.8) !important; }
+  .p-6 { padding: calc(var(--spacing-unit) * 0.9) !important; }
+  .p-8 { padding: calc(var(--spacing-unit) * 1.1) !important; }
 }
 
 /* Windows-specific responsive breakpoints */
@@ -837,26 +837,26 @@ select {
 /* JavaScript-detected Windows scaling classes */
 .windows-high-dpi {
   --base-font-size: 15px;
-  --scale-factor: 0.95;
-  --spacing-unit: 0.9rem;
+  --scale-factor: 0.92;
+  --spacing-unit: 0.85rem;
 }
 
 .windows-very-high-dpi {
   --base-font-size: 14px;
-  --scale-factor: 0.9;
-  --spacing-unit: 0.85rem;
+  --scale-factor: 0.88;
+  --spacing-unit: 0.8rem;
 }
 
 .windows-high-dpi .container,
 .windows-high-dpi .max-w-7xl,
 .windows-high-dpi .max-w-6xl {
-  max-width: 95% !important;
+  max-width: 92% !important;
 }
 
 .windows-very-high-dpi .container,
 .windows-very-high-dpi .max-w-7xl,
 .windows-very-high-dpi .max-w-6xl {
-  max-width: 90% !important;
+  max-width: 88% !important;
 }
 
 /* Windows-specific component adjustments */

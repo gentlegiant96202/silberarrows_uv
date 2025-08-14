@@ -588,4 +588,210 @@ select:focus {
   transform: translateY(-8px) translateZ(20px);
 } 
 
+/* ============================
+   WINDOWS DROPDOWN FIX
+   ============================ */
+
+/* Fix for Windows browsers: Force proper styling on dropdown options
+   Problem: On Windows, <option> elements default to white background with white text
+   Solution: Force dark background and light text for all option elements */
+
+/* Universal select option styling - Windows compatibility */
+select option {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  padding: 8px 12px !important;
+  border: none !important;
+}
+
+/* Enhanced Windows dropdown fixes */
+select option:hover {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+select option:checked {
+  background-color: #555555 !important;
+  color: #ffffff !important;
+}
+
+select option:focus {
+  background-color: #444444 !important;
+  color: #ffffff !important;
+  outline: none !important;
+}
+
+/* Ensure select element itself maintains proper styling */
+select {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Firefox-specific dropdown styling */
+@-moz-document url-prefix() {
+  select option {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+  }
+}
+
+/* Edge/IE specific dropdown styling */
+select::-ms-expand {
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) dropdown arrow styling */
+select::-webkit-appearance {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Ensure dropdown arrows are visible on dark backgrounds */
+select[style*="background-image: none"] {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 8px center !important;
+  background-size: 16px !important;
+  padding-right: 32px !important;
+}
+
+/* Target specific UV CRM and Inventory dropdowns */
+.bg-black\/20 option,
+.bg-black\/50 option, 
+.bg-black\/70 option {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Country code dropdown specific styling */
+select[name="country_code"] option {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  font-family: monospace !important;
+}
+
+/* Modal dropdown styling */
+.modal select option,
+.fixed select option {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* ================================== */ 
+
+/* ============================
+   WINDOWS SCALING FIX
+   ============================ */
+
+/* CSS custom properties for Windows scaling */
+:root {
+  --windows-scale: 1;
+  --windows-font-scale: 1;
+}
+
+/* Windows OS specific scaling adjustments */
+.windows-os {
+  font-size: calc(16px * var(--windows-scale));
+}
+
+.windows-os body {
+  transform: scale(var(--windows-scale));
+  transform-origin: top left;
+  width: calc(100% / var(--windows-scale));
+  height: calc(100% / var(--windows-scale));
+}
+
+/* High DPI Windows displays */
+.windows-high-dpi {
+  --windows-scale: 0.9;
+  --windows-font-scale: 0.95;
+}
+
+/* Windows-specific component adjustments */
+.windows-os .glass-morph-card,
+.windows-os .module-card {
+  transform: scale(var(--windows-scale));
+  margin: calc(8px * var(--windows-scale));
+}
+
+/* Windows modal scaling */
+.windows-os .fixed.inset-0 > div,
+.windows-os .modal {
+  transform: scale(var(--windows-scale));
+  transform-origin: center center;
+}
+
+/* Windows kanban board scaling */
+.windows-os .kanban-board,
+.windows-os .kanban-column {
+  font-size: calc(1rem * var(--windows-font-scale));
+}
+
+/* Windows dropdown and form element scaling */
+.windows-os select,
+.windows-os input,
+.windows-os button {
+  font-size: calc(1em * var(--windows-font-scale));
+  padding: calc(0.5rem * var(--windows-scale)) calc(0.75rem * var(--windows-scale));
+}
+
+/* Windows table scaling */
+.windows-os table,
+.windows-os .data-grid {
+  font-size: calc(0.875rem * var(--windows-font-scale));
+}
+
+/* Windows header navigation scaling */
+.windows-os header,
+.windows-os nav {
+  font-size: calc(1rem * var(--windows-font-scale));
+}
+
+/* Responsive Windows adjustments */
+@media screen and (max-width: 1920px) {
+  .windows-high-dpi {
+    --windows-scale: 0.85;
+    --windows-font-scale: 0.9;
+  }
+}
+
+@media screen and (max-width: 1600px) {
+  .windows-high-dpi {
+    --windows-scale: 0.8;
+    --windows-font-scale: 0.85;
+  }
+}
+
+@media screen and (max-width: 1366px) {
+  .windows-os {
+    --windows-scale: 0.95;
+    --windows-font-scale: 0.95;
+  }
+  
+  .windows-high-dpi {
+    --windows-scale: 0.85;
+    --windows-font-scale: 0.9;
+  }
+}
+
+/* Disable Windows scaling on mobile devices */
+@media screen and (max-width: 768px) {
+  .windows-os,
+  .windows-high-dpi {
+    --windows-scale: 1;
+    --windows-font-scale: 1;
+  }
+  
+  .windows-os body {
+    transform: none;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* ================================== */ 
+
  

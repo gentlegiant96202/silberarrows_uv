@@ -13,6 +13,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover'
 }
 
 export default function RootLayout({
@@ -26,21 +27,35 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Windows detection and scaling adjustment
+              // Windows responsive scaling detection
               (function() {
                 const isWindows = navigator.platform.indexOf('Win') > -1;
-                const isHighDPI = window.devicePixelRatio > 1.5;
+                const devicePixelRatio = window.devicePixelRatio || 1;
+                const isHighDPI = devicePixelRatio >= 1.5;
                 
-                if (isWindows) {
-                  document.documentElement.classList.add('windows-os');
+                if (isWindows && isHighDPI) {
+                  document.documentElement.style.setProperty('--windows-scale-detected', '1');
+                  document.documentElement.classList.add('windows-high-dpi');
                   
-                  // Apply scaling based on DPI
-                  if (isHighDPI) {
-                    document.documentElement.classList.add('windows-high-dpi');
+                  // Adjust for extreme scaling (200%+)
+                  if (devicePixelRatio >= 2) {
+                    document.documentElement.classList.add('windows-very-high-dpi');
                   }
+                }
+                
+                // Prevent zoom on Windows
+                if (isWindows) {
+                  document.addEventListener('wheel', function(e) {
+                    if (e.ctrlKey) {
+                      e.preventDefault();
+                    }
+                  }, { passive: false });
                   
-                  // Set CSS custom properties for dynamic scaling
-                  document.documentElement.style.setProperty('--windows-scale', isHighDPI ? '0.9' : '0.95');
+                  document.addEventListener('keydown', function(e) {
+                    if (e.ctrlKey && (e.key === '=' || e.key === '-' || e.key === '0')) {
+                      e.preventDefault();
+                    }
+                  });
                 }
               })();
             `,

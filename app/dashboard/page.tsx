@@ -454,7 +454,7 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
           to = new Date(year, 11, 31);
         }
 
-        // Fetch all cars with ownership type
+        // Fetch only cars with status = 'inventory'
         const { data: allCars } = await supabase
           .from('cars')
           .select('ownership_type, sale_status, status, created_at')
@@ -478,11 +478,12 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
             c.ownership_type === 'consignment' && c.sale_status === 'reserved'
           ).length;
 
-          const totalCars = allCars.length;
+          // Total cars - only counting inventory status cars that are available
+          const totalCars = allCars.filter(c => c.sale_status === 'available').length;
 
-          // Cars bought/added in selected period
+          // Cars bought/added in selected period (only available ones)
           const stockBoughtPeriod = allCars.filter(c => {
-            if (c.ownership_type === 'stock' && c.created_at) {
+            if (c.ownership_type === 'stock' && c.sale_status === 'available' && c.created_at) {
               const addedDate = new Date(c.created_at);
               return addedDate >= from && addedDate <= to;
             }
@@ -490,7 +491,7 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
           }).length;
 
           const consignmentBoughtPeriod = allCars.filter(c => {
-            if (c.ownership_type === 'consignment' && c.created_at) {
+            if (c.ownership_type === 'consignment' && c.sale_status === 'available' && c.created_at) {
               const addedDate = new Date(c.created_at);
               return addedDate >= from && addedDate <= to;
             }
@@ -532,7 +533,7 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
         <p className="text-[11px] text-white/60">Total Cars</p>
         <p className="text-xl font-semibold text-white">{loading ? '—' : kpiData.totalCars}</p>
-        <p className="text-[8px] text-white/40">All inventory</p>
+        <p className="text-[8px] text-white/40">In inventory</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
         <p className="text-[11px] text-white/60">Added This Period</p>

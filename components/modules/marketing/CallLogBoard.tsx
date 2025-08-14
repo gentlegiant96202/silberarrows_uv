@@ -33,7 +33,13 @@ import {
   X,
   Save,
   Edit,
-  FileDown
+  FileDown,
+  Trash2,
+  Printer,
+  PhoneCall,
+  CheckSquare,
+  AlertCircle,
+  Calculator
 } from 'lucide-react';
 
 // Interface matching the exact data structure from the spreadsheet
@@ -307,12 +313,138 @@ const mockCallLogEntries: CallLogEntry[] = [
 ];
 
 export default function CallLogBoard() {
+  // Add print styles
+  React.useEffect(() => {
+    const printStyles = `
+      @media print {
+        * { 
+          -webkit-print-color-adjust: exact !important; 
+          color-adjust: exact !important; 
+        }
+        
+        body { 
+          background: white !important;
+          color: black !important;
+        }
+        
+        @page { 
+          margin: 0.5cm; 
+          size: A4;
+        }
+        
+        /* Hide ALL navigation elements */
+        nav, header, [data-testid*="nav"], [class*="nav"], [class*="Nav"], 
+        [class*="header"], [class*="Header"], [class*="toolbar"], [class*="menu"] {
+          display: none !important;
+        }
+        
+        /* Hide specific elements that appear in print */
+        .print\\:hidden {
+          display: none !important;
+        }
+        
+        /* Show only our dashboard content */
+        body.printing * {
+          background: transparent !important;
+        }
+        
+        /* Force print layout */
+        body.printing {
+          overflow: visible !important;
+        }
+        
+        /* Simple chart representation for print */
+        body.printing [class*="h-[450px]"], 
+        body.printing [class*="h-[650px]"] {
+          height: 300px !important;
+          background: white !important;
+          border: 1px solid #ccc !important;
+        }
+        
+        /* Make chart bars visible in print */
+        body.printing [style*="height"]:not([class*="text"]) {
+          background: #333 !important;
+          border: 1px solid #666 !important;
+        }
+        
+        .print\\:page-break-inside-avoid {
+          page-break-inside: avoid !important;
+        }
+        
+        .print\\:page-break-after {
+          page-break-after: always !important;
+        }
+      }
+    `;
+    
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = printStyles;
+    document.head.appendChild(styleSheet);
+
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
   const [callLogs, setCallLogs] = useState<CallLogEntry[]>(mockCallLogEntries);
   const [loading, setLoading] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('dashboard'); // Internal tab state
   const [searchTerm, setSearchTerm] = useState('');
 
   const [filterPerson, setFilterPerson] = useState<string>('all');
+
+  // Screenshot functionality - Prompts user to take screenshot
+  const handlePrintReport = async () => {
+    try {
+      // Use the Screen Capture API to let user select what to capture
+      if ('getDisplayMedia' in navigator.mediaDevices) {
+        // Request screen capture permission
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            cursor: 'never'
+          } as MediaTrackConstraints
+        });
+        
+        // Create video element to capture frame
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+        
+        video.addEventListener('loadedmetadata', () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(video, 0, 0);
+            
+            // Stop the stream
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Download the screenshot
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `call-log-dashboard-${new Date().toISOString().split('T')[0]}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }
+            });
+          }
+        });
+      } else {
+        // Show instructions for manual screenshot
+        alert('To take a screenshot:\n\n• Mac: Press Cmd + Shift + 4, then select the dashboard area\n• Windows: Press Windows + Shift + S, then select the dashboard area\n• Or use your browser\'s built-in screenshot feature');
+      }
+    } catch (error) {
+      console.log('Screenshot permission denied');
+      // Show manual screenshot instructions
+      alert('To take a screenshot:\n\n• Mac: Press Cmd + Shift + 4, then select the dashboard area\n• Windows: Press Windows + Shift + S, then select the dashboard area\n• Or use your browser\'s built-in screenshot feature');
+    }
+  };
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const currentMonth = new Date().getMonth() + 1;
     return currentMonth.toString().padStart(2, '0');
@@ -993,7 +1125,7 @@ export default function CallLogBoard() {
       (log.person_in_charge_2 && log.person_in_charge_2.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (log.notes && log.notes.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Date filtering is now handled by month/year filters above
+    // Filter by person
     const matchesPerson = filterPerson === 'all' || 
       log.person_in_charge === filterPerson || 
       log.person_in_charge_2 === filterPerson;
@@ -1148,12 +1280,28 @@ export default function CallLogBoard() {
 
   // Dashboard Content
   const renderDashboard = () => (
-    <div className="px-4 py-6 h-full overflow-y-auto">
+    <div className="px-6 py-8 h-full overflow-y-auto min-h-0 print:px-0 print:py-0 print:h-auto print:overflow-visible">
+      {/* Print-only header */}
+      <div className="hidden print:block mb-8 text-center border-b-2 border-gray-300 pb-4">
+        <h1 className="text-3xl font-bold text-black mb-2">Call Log Dashboard Report</h1>
+        <p className="text-lg text-gray-600">
+          Generated on {new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}
+        </p>
+        <p className="text-sm text-gray-500 mt-2">
+          Period: {selectedMonth !== 'all' ? new Date(2000, parseInt(selectedMonth) - 1).toLocaleDateString('en-US', { month: 'long' }) : 'All Months'} 
+          {selectedYear !== 'all' ? ` ${selectedYear}` : ' - All Years'}
+        </p>
+      </div>
       {/* Header with tabs and controls */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 print:mb-4">
           {/* Internal Tab Navigation */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 print:hidden">
             <button
               onClick={() => setActiveSubTab('dashboard')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
@@ -1189,12 +1337,19 @@ export default function CallLogBoard() {
             </button>
           </div>
 
-          {/* Month/Year Filter on Dashboard */}
+          {/* Print Button and Month/Year Filter on Dashboard */}
           <div className="flex gap-2">
+            <button
+              onClick={handlePrintReport}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-300 border border-blue-500/30 rounded-lg font-medium text-sm hover:bg-blue-600/30 transition-all duration-200 print:hidden"
+            >
+              <Printer className="w-4 h-4" />
+              Screenshot Report
+            </button>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 print:hidden"
             >
               <option value="all">All Months</option>
               <option value="01">January</option>
@@ -1213,7 +1368,7 @@ export default function CallLogBoard() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 print:hidden"
             >
               <option value="all">All Years</option>
               {Array.from({ length: (new Date().getFullYear() + 3) - 2020 + 1 }, (_, i) => 2020 + i)
@@ -1227,34 +1382,74 @@ export default function CallLogBoard() {
       </div>
 
       {/* Top row: Call KPI Cards matching UV style */}
-      <div className="grid gap-4 lg:grid-cols-2 mb-6">
+      <div className="grid gap-6 lg:grid-cols-2 mb-8 print:gap-4 print:mb-6">
         <div className="space-y-4">
           <div className="grid gap-3 grid-cols-2">
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-              <p className="text-[11px] text-white/60">Total Calls</p>
-              <p className="text-xl font-semibold text-white">{dashboardLogs.length}</p>
-              <p className="text-[8px] text-white/40">All periods</p>
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner print:bg-gray-100 print:border-gray-300 print:shadow-none">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-white/70 print:text-gray-700">Total Calls</p>
+                <PhoneCall className="w-5 h-5 text-white/60" />
+              </div>
+              <p className="text-3xl font-bold text-white print:text-black mb-2">{dashboardLogs.length}</p>
+              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+                <div className="bg-gradient-to-r from-white/80 to-white/60 h-2 rounded-full transition-all duration-500" style={{ width: '100%' }}></div>
+              </div>
+              <p className="text-xs text-white/50 print:text-gray-600">All periods</p>
             </div>
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-              <p className="text-[11px] text-white/60">Answered</p>
-              <p className="text-xl font-semibold text-white">{dashboardAgg.yearlyAnswered}</p>
-              <p className="text-[8px] text-white/40">{dashboardLogs.length ? ((dashboardAgg.yearlyAnswered / dashboardLogs.length) * 100).toFixed(1) : '0.0'}% rate</p>
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner print:bg-gray-100 print:border-gray-300 print:shadow-none">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-white/70 print:text-gray-700">Answered</p>
+                <CheckSquare className="w-5 h-5 text-white/60" />
+              </div>
+              <p className="text-3xl font-bold text-white print:text-black mb-2">{dashboardAgg.yearlyAnswered}</p>
+              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-gradient-to-r from-white/80 to-white/60 h-2 rounded-full transition-all duration-500" 
+                  style={{ width: `${dashboardLogs.length ? ((dashboardAgg.yearlyAnswered / dashboardLogs.length) * 100) : 0}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-white/50 print:text-gray-600">{dashboardLogs.length ? ((dashboardAgg.yearlyAnswered / dashboardLogs.length) * 100).toFixed(1) : '0.0'}% rate</p>
             </div>
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-              <p className="text-[11px] text-white/60">Unanswered</p>
-              <p className="text-xl font-semibold text-white">{dashboardAgg.yearlyUnanswered}</p>
-              <p className="text-[8px] text-white/40">{dashboardLogs.length ? ((dashboardAgg.yearlyUnanswered / dashboardLogs.length) * 100).toFixed(1) : '0.0'}% rate</p>
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner print:bg-gray-100 print:border-gray-300 print:shadow-none">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-white/70 print:text-gray-700">Unanswered</p>
+                <AlertCircle className="w-5 h-5 text-white/60" />
+              </div>
+              <p className="text-3xl font-bold text-white print:text-black mb-2">{dashboardAgg.yearlyUnanswered}</p>
+              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-gradient-to-r from-white/80 to-white/60 h-2 rounded-full transition-all duration-500" 
+                  style={{ width: `${dashboardLogs.length ? ((dashboardAgg.yearlyUnanswered / dashboardLogs.length) * 100) : 0}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-white/50 print:text-gray-600">{dashboardLogs.length ? ((dashboardAgg.yearlyUnanswered / dashboardLogs.length) * 100).toFixed(1) : '0.0'}% rate</p>
             </div>
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-              <p className="text-[11px] text-white/60">Avg Calls/Day</p>
-              <p className="text-xl font-semibold text-white">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner print:bg-gray-100 print:border-gray-300 print:shadow-none">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-white/70 print:text-gray-700">Avg Calls/Day</p>
+                <Calculator className="w-5 h-5 text-white/60" />
+              </div>
+              <p className="text-3xl font-bold text-white print:text-black mb-2">
                 {(() => {
                   // Count unique days when call entries were actually made
                   const uniqueDaysWithCalls = new Set(dashboardLogs.map(log => log.date)).size;
                   return uniqueDaysWithCalls > 0 ? (dashboardLogs.length / uniqueDaysWithCalls).toFixed(1) : '0.0';
                 })()}
               </p>
-              <p className="text-[8px] text-white/40">Based on days with entries</p>
+              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-gradient-to-r from-white/80 to-white/60 h-2 rounded-full transition-all duration-500" 
+                  style={{ 
+                    width: `${(() => {
+                      const uniqueDaysWithCalls = new Set(dashboardLogs.map(log => log.date)).size;
+                      const avgCalls = uniqueDaysWithCalls > 0 ? (dashboardLogs.length / uniqueDaysWithCalls) : 0;
+                      const maxExpected = 50; // Assume max 50 calls per day as 100%
+                      return Math.min((avgCalls / maxExpected) * 100, 100);
+                    })()}%` 
+                  }}
+                ></div>
+              </div>
+              <p className="text-xs text-white/50 print:text-gray-600">Based on days with entries</p>
             </div>
           </div>
         </div>
@@ -1262,39 +1457,69 @@ export default function CallLogBoard() {
         {/* Department breakdown matching UV style */}
         <div className="space-y-4">
           <div className="grid gap-3 grid-cols-2">
-            {dashboardAgg.dept.slice(0, 4).map((dept, index) => (
-              <div key={dept.name} className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-                <p className="text-[11px] text-white/60">{dept.name}</p>
-                <p className="text-xl font-semibold text-white">{dept.total}</p>
-                <p className="text-[8px] text-white/40">{dept.total ? ((dept.answered / dept.total) * 100).toFixed(1) : '0.0'}% answered</p>
-              </div>
-            ))}
+            {dashboardAgg.dept.slice(0, 4).map((dept, index) => {
+              const icons = [Building, Users, Award, Target];
+              const IconComponent = icons[index % icons.length];
+              
+              return (
+                <div key={dept.name} className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner print:bg-gray-100 print:border-gray-300 print:shadow-none">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium text-white/70 print:text-gray-700">{dept.name}</p>
+                    <IconComponent className="w-5 h-5 text-white/60" />
+                  </div>
+                  <p className="text-3xl font-bold text-white print:text-black mb-2">{dept.total}</p>
+                  <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+                    <div 
+                      className="bg-gradient-to-r from-white/80 to-white/60 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${dept.total ? ((dept.answered / dept.total) * 100) : 0}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-white/50 print:text-gray-600">{dept.total ? ((dept.answered / dept.total) * 100).toFixed(1) : '0.0'}% answered</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* Charts Section - Enhanced visualization matching UV layout */}
-      <div className="grid gap-4 lg:grid-cols-2 mb-6">
+      <div className="grid gap-6 lg:grid-cols-2 mb-8 print:gap-4 print:mb-6 print:grid-cols-1">
         {/* Daily Call Activity - Enhanced Vertical Bars */}
-        <div className="rounded-lg bg-black/70 backdrop-blur p-6 border border-white/10 h-[420px] flex flex-col">
-          <div className="flex items-center justify-between mb-6">
+        <div className="rounded-lg bg-black/70 backdrop-blur p-6 border border-white/10 h-[650px] flex flex-col print:bg-white print:border-gray-300 print:h-auto print:mb-6 print:page-break-inside-avoid">
+          <div className="flex items-center justify-between mb-6 print:mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-white mb-1">Daily Call Activity</h2>
-              <p className="text-xs text-white/50">Last 10 days with call entries</p>
+              <h2 className="text-lg font-semibold text-white mb-1 print:text-black print:text-xl">Daily Call Activity</h2>
+              <p className="text-xs text-white/50 print:text-gray-600">Last 10 days with call entries</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-white rounded-sm"></div>
-                <span className="text-white/70">Answered</span>
+                <div className="w-3 h-3 bg-white rounded-sm print:bg-gray-800"></div>
+                <span className="text-white/70 print:text-gray-700">Answered</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-white/40 rounded-sm"></div>
-                <span className="text-white/70">Unanswered</span>
+                <div className="w-3 h-3 bg-white/40 rounded-sm print:bg-gray-400"></div>
+                <span className="text-white/70 print:text-gray-700">Unanswered</span>
               </div>
             </div>
           </div>
           
-          <div className="h-[240px] flex items-end justify-end gap-3 px-6">
+          {/* Print-friendly chart summary */}
+          <div className="hidden print:block bg-gray-50 p-4 border border-gray-300 rounded">
+            <h3 className="font-semibold text-black mb-3">Daily Call Summary (Last 10 Days)</h3>
+            <div className="grid grid-cols-5 gap-2 text-xs">
+              {dashboardAgg.daily.slice(-10).map((day, index) => (
+                <div key={index} className="text-center p-2 border border-gray-200 rounded">
+                  <div className="font-medium text-black">{day.date}</div>
+                  <div className="text-green-600">✓ {day.answered}</div>
+                  <div className="text-red-600">✗ {day.unanswered}</div>
+                  <div className="font-bold text-black">Total: {day.total}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Interactive chart (hidden in print) */}
+          <div className="h-[450px] flex items-end justify-end gap-3 px-6 print:hidden">
             {dashboardAgg.daily.length === 0 ? (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
@@ -1307,7 +1532,7 @@ export default function CallLogBoard() {
             ) : (
               dashboardAgg.daily.slice(-10).map((day, index) => {
                 const maxValue = Math.max(...dashboardAgg.daily.map(d => d.total), 1);
-                const totalHeight = 260; // Taller height for better visibility
+                const totalHeight = 320; // Reduced height to make room for total numbers
                 const totalBarHeight = Math.max((day.total / maxValue) * totalHeight, day.total > 0 ? 24 : 0);
                 const answeredRatio = day.total > 0 ? day.answered / day.total : 0;
                 const unansweredRatio = day.total > 0 ? day.unanswered / day.total : 0;
@@ -1325,9 +1550,9 @@ export default function CallLogBoard() {
                     </div>
                     
                     <div className="flex flex-col justify-end items-center relative" style={{ height: `${totalHeight + 30}px` }}>
-                      {/* Total count above bar */}
+                      {/* Total count above bar - positioned at fixed height */}
                       {day.total > 0 && (
-                        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-bold text-white bg-white/10 px-2 py-1 rounded-full border border-white/20">
+                        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 text-xs font-bold text-white bg-white/10 px-2 py-1 rounded-full border border-white/20">
                           {day.total}
                         </div>
                       )}
@@ -1380,25 +1605,41 @@ export default function CallLogBoard() {
         </div>
 
         {/* Staff Performance - Enhanced Vertical Bars with Full Names */}
-        <div className="rounded-lg bg-black/70 backdrop-blur p-6 border border-white/10 h-[420px] flex flex-col">
-          <div className="flex items-center justify-between mb-6">
+        <div className="rounded-lg bg-black/70 backdrop-blur p-6 border border-white/10 h-[650px] flex flex-col print:bg-white print:border-gray-300 print:h-auto print:mb-6 print:page-break-inside-avoid">
+          <div className="flex items-center justify-between mb-6 print:mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-white mb-1">Staff Performance</h2>
-              <p className="text-xs text-white/50">Calls handled by team members</p>
+              <h2 className="text-lg font-semibold text-white mb-1 print:text-black print:text-xl">Staff Performance</h2>
+              <p className="text-xs text-white/50 print:text-gray-600">Calls handled by team members</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-white rounded-sm"></div>
-                <span className="text-white/70">Answered</span>
+                <div className="w-3 h-3 bg-white rounded-sm print:bg-gray-800"></div>
+                <span className="text-white/70 print:text-gray-700">Answered</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-white/40 rounded-sm"></div>
-                <span className="text-white/70">Unanswered</span>
+                <div className="w-3 h-3 bg-white/40 rounded-sm print:bg-gray-400"></div>
+                <span className="text-white/70 print:text-gray-700">Unanswered</span>
               </div>
             </div>
           </div>
           
-          <div className="h-[240px] flex items-end justify-end gap-3 px-6 overflow-x-auto">
+          {/* Print-friendly staff summary */}
+          <div className="hidden print:block bg-gray-50 p-4 border border-gray-300 rounded">
+            <h3 className="font-semibold text-black mb-3">Staff Performance Summary</h3>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              {dashboardAgg.staff.slice(0, 9).map((staff, index) => (
+                <div key={index} className="text-center p-2 border border-gray-200 rounded">
+                  <div className="font-medium text-black">{staff.name}</div>
+                  <div className="text-green-600">✓ {staff.answered}</div>
+                  <div className="text-red-600">✗ {staff.unanswered}</div>
+                  <div className="font-bold text-black">Total: {staff.total}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Interactive chart (hidden in print) */}
+          <div className="h-[450px] flex items-end justify-end gap-3 px-6 pt-16 overflow-x-auto print:hidden">
             {dashboardAgg.staff.length === 0 ? (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
@@ -1411,7 +1652,7 @@ export default function CallLogBoard() {
             ) : (
               dashboardAgg.staff.map((staff, index) => {
                 const maxValue = Math.max(...dashboardAgg.staff.map(s => s.total), 1);
-                const totalHeight = 260; // Taller height for better visibility
+                const totalHeight = 320; // Reduced height to make room for total numbers
                 const totalBarHeight = Math.max((staff.total / maxValue) * totalHeight, staff.total > 0 ? 24 : 0);
                 const answeredRatio = staff.total > 0 ? staff.answered / staff.total : 0;
                 const unansweredRatio = staff.total > 0 ? staff.unanswered / staff.total : 0;
@@ -1441,10 +1682,10 @@ export default function CallLogBoard() {
                       </div>
                     </div>
                     
-                    <div className="flex flex-col justify-end items-center relative" style={{ height: `${totalHeight + 30}px` }}>
+                    <div className="flex flex-col justify-end items-center relative" style={{ height: `${totalHeight + 50}px` }}>
                       {/* Total count above bar */}
                       {staff.total > 0 && (
-                        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-bold text-white bg-white/10 px-2 py-1 rounded-full border border-white/20">
+                        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 text-xs font-bold text-white bg-white/10 px-2 py-1 rounded-full border border-white/20">
                           {staff.total}
                         </div>
                       )}
@@ -1491,7 +1732,7 @@ export default function CallLogBoard() {
       </div>
 
       {/* Bottom section with additional insights matching UV style */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 mt-8">
         {/* Monthly Summary */}
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10">
           <h3 className="text-sm font-semibold text-white/80 mb-3">Monthly Summary</h3>
@@ -1515,10 +1756,13 @@ export default function CallLogBoard() {
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10">
           <h3 className="text-sm font-semibold text-white/80 mb-3">Top Performers</h3>
           <div className="space-y-2">
-            {dashboardAgg.staff.slice(0, 3).map((staff, index) => (
+            {dashboardAgg.staff
+              .sort((a, b) => b.answered - a.answered)
+              .slice(0, 3)
+              .map((staff, index) => (
               <div key={staff.name} className="flex justify-between text-sm">
                 <span className="text-white/60">{staff.name}</span>
-                <span className="text-white font-medium">{staff.total} calls</span>
+                <span className="text-white font-medium">{staff.answered} answered</span>
               </div>
             ))}
           </div>
@@ -1542,7 +1786,7 @@ export default function CallLogBoard() {
 
   // Data Content
   const renderDataEntry = () => (
-    <div className="px-4 py-6 h-full overflow-y-auto">
+    <div className="px-6 py-8 h-full overflow-y-auto min-h-0">
       {/* Header with tabs and controls */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -1583,40 +1827,7 @@ export default function CallLogBoard() {
             </button>
           </div>
           
-          {/* Month/Year Filter */}
-          <div className="flex gap-2">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            >
-              <option value="all">All Months</option>
-              <option value="01">January</option>
-              <option value="02">February</option>
-              <option value="03">March</option>
-              <option value="04">April</option>
-              <option value="05">May</option>
-              <option value="06">June</option>
-              <option value="07">July</option>
-              <option value="08">August</option>
-              <option value="09">September</option>
-              <option value="10">October</option>
-              <option value="11">November</option>
-              <option value="12">December</option>
-            </select>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            >
-              <option value="all">All Years</option>
-              {Array.from({ length: (new Date().getFullYear() + 3) - 2020 + 1 }, (_, i) => 2020 + i)
-                .reverse()
-                .map(y => (
-                  <option key={y} value={String(y)}>{y}</option>
-                ))}
-            </select>
-          </div>
+
           
           <div className="flex items-center gap-3">
             <input
@@ -1679,19 +1890,38 @@ export default function CallLogBoard() {
 
         {/* Search and Filters */}
         <div className="flex flex-wrap gap-4 items-center">
-          {/* Search Bar */}
-          <div className="relative flex-1 min-w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
-            <input
-              type="text"
-              placeholder="Search by customer, phone, person, or notes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
-            />
-          </div>
+          {/* Month Filter */}
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          >
+            <option value="all">All Months</option>
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
 
-
+          {/* Year Filter */}
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          >
+            <option value="all">All Years</option>
+            {Array.from({length: 10}, (_, i) => new Date().getFullYear() - i).map(year => (
+              <option key={year} value={String(year)}>{year}</option>
+            ))}
+          </select>
 
           {/* Person Filter */}
           <select
@@ -1704,6 +1934,18 @@ export default function CallLogBoard() {
               <option key={person} value={person}>{person}</option>
             ))}
           </select>
+
+          {/* Search Bar - Made shorter */}
+          <div className="relative w-80">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+            <input
+              type="text"
+              placeholder="Search by customer, phone, person, or notes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+            />
+          </div>
         </div>
       </div>
 
@@ -1723,7 +1965,8 @@ export default function CallLogBoard() {
               <div className="col-span-1">Action</div>
               <div className="col-span-1">Staff 2</div>
               <div className="col-span-1">Answered</div>
-              <div className="col-span-2">Notes</div>
+              <div className="col-span-1">Notes</div>
+              <div className="col-span-1">Actions</div>
             </div>
           </div>
 
@@ -1919,16 +2162,38 @@ export default function CallLogBoard() {
                   </div>
                   
                   {/* Notes */}
-                  <div className="col-span-2">
+                  <div className="col-span-1">
                     {isEditing ? (
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="text"
-                          value={currentRow?.notes ?? ''}
-                          onChange={(e) => updateEditingRow({ notes: e.target.value })}
-                          placeholder="Notes..."
-                          className="flex-1 px-2 py-1 bg-white/10 border border-white/20 rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
+                      <input
+                        type="text"
+                        value={currentRow?.notes ?? ''}
+                        onChange={(e) => updateEditingRow({ notes: e.target.value })}
+                        placeholder="Notes..."
+                        className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <div 
+                        className="text-sm text-white/80 cursor-pointer hover:bg-white/5 p-1 rounded"
+                        onClick={() => {
+                          setEditingRowId(log.id);
+                          setEditingRow(log);
+                        }}
+                      >
+                        {log.notes ? (
+                          <div className="truncate" title={log.notes}>
+                            {log.notes}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">Click to edit...</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="col-span-1">
+                    {isEditing ? (
+                      <div className="flex gap-1 items-center">
                         <button
                           onClick={() => {
                             // Save the entry
@@ -1959,20 +2224,44 @@ export default function CallLogBoard() {
                         </button>
                       </div>
                     ) : (
-                      <div 
-                        className="text-sm text-white/80 cursor-pointer hover:bg-white/5 p-1 rounded"
-                        onClick={() => {
-                          setEditingRowId(log.id);
-                          setEditingRow(log);
-                        }}
-                      >
-                        {log.notes ? (
-                          <div className="truncate" title={log.notes}>
-                            {log.notes}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">Click to edit...</span>
-                        )}
+                      <div className="flex gap-1 items-center">
+                        <button
+                          onClick={() => {
+                            setEditingRowId(log.id);
+                            setEditingRow(log);
+                          }}
+                          className="px-2 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/30 rounded text-xs hover:bg-blue-600/30"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (confirm('Are you sure you want to delete this call log entry?')) {
+                              try {
+                                // Only try to delete from database if it's not a mock/local entry
+                                if (!log.id.startsWith('new-') && !mockCallLogEntries.some(mock => mock.id === log.id)) {
+                                  const response = await fetch(`/api/call-logs/${log.id}`, {
+                                    method: 'DELETE',
+                                  });
+                                  
+                                  if (!response.ok) {
+                                    const error = await response.json();
+                                    throw new Error(error.message || 'Failed to delete from database');
+                                  }
+                                }
+                                
+                                // Remove from local state
+                                setCallLogs(prev => prev.filter(entry => entry.id !== log.id));
+                              } catch (error) {
+                                console.error('Delete failed:', error);
+                                alert('Failed to delete entry from database. Please try again.');
+                              }
+                            }
+                          }}
+                          className="px-2 py-1 bg-red-600/20 text-red-300 border border-red-500/30 rounded text-xs hover:bg-red-600/30"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2079,8 +2368,11 @@ export default function CallLogBoard() {
       const currentMonth = today.getMonth() + 1;
       const rangeWorkingDays = getWorkingDaysForMonth(currentYear, currentMonth);
     
-    // Use all call logs since we now have month/year filtering in the data tab
-    const filteredCallsForRange = callLogs;
+    // Filter calls for current month only to get accurate calls per working day
+    const filteredCallsForRange = callLogs.filter(call => {
+      const callDate = new Date(call.date);
+      return callDate.getFullYear() === currentYear && callDate.getMonth() + 1 === currentMonth;
+    });
     
     // Current month stats
     const currentDate = new Date();
@@ -2090,9 +2382,9 @@ export default function CallLogBoard() {
     );
 
     return (
-      <div className="px-4 py-6 h-full overflow-hidden">
+      <div className="px-6 py-8 h-full overflow-y-auto min-h-0">
         {/* Header with tabs and controls */}
-        <div className="mb-6">
+        <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             {/* Internal Tab Navigation */}
             <div className="flex gap-2">
@@ -2200,7 +2492,7 @@ export default function CallLogBoard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100%-200px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
           {/* Staff Directory */}
           <div className="lg:col-span-2">
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg h-full overflow-hidden">
@@ -2359,11 +2651,6 @@ export default function CallLogBoard() {
                 <div>
                   <div className="text-2xl font-bold text-green-300">{currentMonthConfig ? ((currentMonthWorkingDays / currentMonthConfig.totalDays) * 100).toFixed(1) : '0.0'}%</div>
                   <div className="text-white/60 text-sm">Monthly Efficiency Rate</div>
-                </div>
-                
-                <div>
-                  <div className="text-2xl font-bold text-blue-300">{(filteredCallsForRange.length / Math.max(rangeWorkingDays, 1)).toFixed(1)}</div>
-                  <div className="text-white/60 text-sm">Calls per Working Day</div>
                 </div>
                 
                 <div>

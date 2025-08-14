@@ -3,12 +3,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, User, ChevronDown, Settings } from 'lucide-react';
 import { useAuth } from '@/components/shared/AuthProvider';
-import { useIsAdminSimple } from '@/lib/useIsAdminSimple';
+import { useUserRole } from '@/lib/useUserRole';
 
 export default function ProfileDropdown() {
   const routerHook = useRouter();
   const { user, signOut } = useAuth();
-  const { isAdmin } = useIsAdminSimple();
+  const { isAdmin } = useUserRole();
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 

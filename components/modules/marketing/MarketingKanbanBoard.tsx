@@ -625,11 +625,12 @@ export default function MarketingKanbanBoard() {
           body: JSON.stringify(updatePayload),
         });
         if (response.ok) {
-          const updatedTask: MarketingTask = await response.json();
+          const updatedTask: any = await response.json(); // API returns database format
           
-          // Ensure preview URL is recalculated since API response doesn't include it
-          const taskWithPreview = {
+          // Map database fields back to frontend format and recalculate preview URL
+          const taskWithPreview: MarketingTask = {
             ...updatedTask,
+            assignee: updatedTask.requested_by, // Map database field back to frontend
             previewUrl: getPreviewUrl(updatedTask.media_files || [])
           };
           
@@ -653,11 +654,12 @@ export default function MarketingKanbanBoard() {
           body: JSON.stringify(taskData),
         });
         if (response.ok) {
-          const newTask: MarketingTask = await response.json();
+          const newTask: any = await response.json(); // API returns database format
           
-          // Ensure preview URL is calculated for new tasks
-          const taskWithPreview = {
+          // Map database fields back to frontend format and calculate preview URL
+          const taskWithPreview: MarketingTask = {
             ...newTask,
+            assignee: newTask.requested_by, // Map database field back to frontend
             previewUrl: getPreviewUrl(newTask.media_files || [])
           };
           

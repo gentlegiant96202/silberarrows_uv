@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabaseClient';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import dayjs from 'dayjs';
+import { useAuth } from '@/components/shared/AuthProvider';
 
 // Helper to get preview image (thumbnail or first image)
 function getPreviewUrl(mediaFiles: any[] = []): string | null {
@@ -71,6 +72,13 @@ interface FileWithThumbnail {
 
 
 export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUpdate, onUploadStart, onUploadComplete, isAdmin = false }: AddTaskModalProps) {
+  const { user } = useAuth();
+  
+  // Get user's display name (same logic as ProfileDropdown)
+  const userName = user?.user_metadata?.full_name;
+  const displayName = userName || 
+    (user?.email?.split('@')[0]?.replace(/\./g, ' ')?.replace(/\b\w/g, l => l.toUpperCase())) || 
+    'User';
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -79,7 +87,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
     title: task?.title || '',
     description: task?.description || '',
     due_date: task?.due_date || '',
-    requested_by: task?.assignee || '',
+    requested_by: task?.assignee || displayName, // Auto-populate with current user's name for new tasks
     caption: task?.description || '', // We'll use description field for caption for now
     status: (task?.status || 'intake') as MarketingTask['status'],
     task_type: (task?.task_type || 'design') as MarketingTask['task_type'],
@@ -610,29 +618,41 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       const currentLength = selectedFiles.length;
       setSelectedFiles(prev => [...prev, ...filesWithThumbnails]);
 
-      // If editing existing task, upload immediately
-      if (task?.id) {
-        await uploadFilesToStorageImmediate(task.id, filesWithThumbnails, currentLength);
+      // If we have a task ID (existing task or draft task), upload immediately
+      if (currentTaskId) {
+        await uploadFilesToStorageImmediate(currentTaskId, filesWithThumbnails, currentLength, null);
+      } else {
+        // For new tasks, create a draft task first so we can upload files immediately
+        console.log('🆕 Creating draft task for immediate file upload...');
+        await createDraftTaskForUpload(filesWithThumbnails, currentLength);
       }
     }
   };
 
   // Upload files immediately when selected (for existing tasks)
-  const uploadFilesToStorageImmediate = async (taskId: string, filesToUpload: FileWithThumbnail[], startIndex: number) => {
+  const uploadFilesToStorageImmediate = async (taskId: string, filesToUpload: FileWithThumbnail[], startIndex: number, savedTaskData?: any) => {
     console.log('uploadFilesToStorageImmediate called with:', { taskId, fileCount: filesToUpload.length, startIndex });
     
-    const { data: existing } = await supabase
-      .from('design_tasks')
-      .select('media_files')
-      .eq('id', taskId)
-      .single();
+    let currentMedia: any[] = [];
+    
+    if (savedTaskData) {
+      // Use saved task data for newly created tasks (avoid database timing issues)
+      console.log('Using saved task data for media_files:', savedTaskData.media_files);
+      currentMedia = savedTaskData.media_files || [];
+    } else {
+      // Query database for existing tasks
+      const { data: existing } = await supabase
+        .from('design_tasks')
+        .select('media_files')
+        .eq('id', taskId)
+        .single();
 
-    if (!existing) {
-      console.error('Task not found:', taskId);
-      return;
+      if (!existing) {
+        console.error('Task not found:', taskId);
+        return;
+      }
+      currentMedia = existing?.media_files || [];
     }
-
-    const currentMedia: any[] = existing?.media_files || [];
     const newMedia: any[] = [];
 
     console.log('Setting uploading state for files starting at index', startIndex);
@@ -788,18 +808,60 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
     }
   };
 
+  // Create a draft task so files can be uploaded immediately (like editing existing tasks)
+  const createDraftTaskForUpload = async (filesWithThumbnails: FileWithThumbnail[], startIndex: number) => {
+    if (!filesWithThumbnails.length) return;
+    
+    try {
+      // Create minimal draft task data
+      const draftTaskData: Partial<MarketingTask> = {
+        title: formData.title || 'Draft Task',
+        status: 'intake',
+        due_date: formData.due_date || dayjs().add(1, 'day').format('YYYY-MM-DD'),
+        assignee: formData.requested_by || displayName, // Use current user's name
+        task_type: formData.task_type || 'design',
+        description: formData.description || '',
+      };
+
+      console.log('📝 Creating draft task with data:', draftTaskData);
+      const savedTask = await onSave(draftTaskData);
+      
+      if (savedTask?.id) {
+        console.log('✅ Draft task created:', savedTask.id, 'now uploading files...');
+        
+        // Update local state to treat this as an existing task
+        setCurrentTaskId(savedTask.id);
+        
+        // Upload files immediately to the new task
+        await uploadFilesToStorageImmediate(savedTask.id, filesWithThumbnails, startIndex, savedTask);
+        console.log('🎉 Files uploaded to draft task successfully!');
+      }
+    } catch (error) {
+      console.error('❌ Error creating draft task for upload:', error);
+    }
+  };
+
   // Upload remaining files when creating new task
-  const uploadFilesToStorage = async (taskId: string) => {
+  const uploadFilesToStorage = async (taskId: string, savedTaskData?: any) => {
+    console.log('📤 uploadFilesToStorage called with taskId:', taskId);
+    console.log('📁 Total selectedFiles:', selectedFiles.length);
     const filesToUpload = selectedFiles.filter(f => !f.uploaded);
-    if (!filesToUpload.length) return;
+    console.log('📋 Files to upload:', filesToUpload.length);
+    
+    if (!filesToUpload.length) {
+      console.log('⚠️ No files to upload, returning early');
+      return;
+    }
 
     // Find the start index of unuploaded files
     const startIndex = selectedFiles.findIndex(f => !f.uploaded);
-    await uploadFilesToStorageImmediate(taskId, filesToUpload, startIndex >= 0 ? startIndex : 0);
+    console.log('🎯 Start index for upload:', startIndex);
+    await uploadFilesToStorageImmediate(taskId, filesToUpload, startIndex >= 0 ? startIndex : 0, savedTaskData);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 handleSubmit called with selectedFiles:', selectedFiles.length);
     setLoading(true);
 
     try {
@@ -825,11 +887,10 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
 
       const savedTask = await onSave(taskData);
 
-      // If creating a new task and we have unuploaded files, upload them
-      if (!task && savedTask && selectedFiles.some(f => !f.uploaded)) {
-        await uploadFilesToStorage(savedTask.id);
-      }
-      // Close modal on successful save
+      // Files are already uploaded via the draft task creation process
+      console.log('✅ Task saved successfully:', savedTask?.id);
+      console.log('📁 Final media files:', savedTask?.media_files?.length || 0);
+      // Close modal on successful save (after upload completes)
       if (savedTask) {
         onClose();
       }

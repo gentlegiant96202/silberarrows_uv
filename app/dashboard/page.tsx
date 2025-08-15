@@ -1129,18 +1129,16 @@ const ModelDemandChart: React.FC<{year:number; months:number[]}> = ({year, month
             .sort(([,a], [,b]) => b - a)
             .slice(0, 5)
             .map(([demandedModel, demand]) => {
-              // Match based on model_family from inventory
+              // Match based on model_family from inventory - EXACT MATCH ONLY
               const matchingSupply = cars.filter(car => {
                 if (!car.model_family) return false;
                 
-                // Case-insensitive matching - check if model_family matches the demanded model
+                // Case-insensitive exact matching only
                 const modelFamily = car.model_family.toUpperCase();
                 const requestedModel = demandedModel.toUpperCase();
                 
-                // Direct match or contains match
-                return modelFamily === requestedModel || 
-                       modelFamily.includes(requestedModel) ||
-                       requestedModel.includes(modelFamily);
+                // Only exact matches (removed problematic includes logic)
+                return modelFamily === requestedModel;
               }).length;
 
               return {

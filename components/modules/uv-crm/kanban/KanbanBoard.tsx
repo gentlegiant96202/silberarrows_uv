@@ -4,6 +4,88 @@ import { supabase } from "@/lib/supabaseClient";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { MessageSquare, CheckCircle, Car, XCircle, Archive } from 'lucide-react';
+
+// Skeleton Components
+const SkeletonLeadCard = () => (
+  <div className="backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs bg-white/5 border border-white/10 animate-pulse">
+    <div className="flex items-start justify-between mb-1">
+      <div className="h-3 bg-white/10 rounded w-3/4"></div>
+      <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+    </div>
+    
+    <div className="space-y-0.5">
+      {/* Phone */}
+      <div className="flex items-center gap-1">
+        <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+        <div className="h-2 bg-white/10 rounded w-1/2"></div>
+      </div>
+      
+      {/* Model of interest */}
+      <div className="flex items-center gap-1">
+        <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+        <div className="h-2 bg-white/10 rounded w-2/3"></div>
+      </div>
+      
+      {/* Budget */}
+      <div className="flex items-center gap-1">
+        <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+        <div className="h-2 bg-white/10 rounded w-1/3"></div>
+      </div>
+      
+      {/* Appointment (sometimes) */}
+      {Math.random() > 0.5 && (
+        <div className="flex items-center gap-1">
+          <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+          <div className="h-2 bg-white/10 rounded w-1/2"></div>
+        </div>
+      )}
+      
+      {/* Notes (sometimes) */}
+      {Math.random() > 0.7 && (
+        <div className="h-2 bg-white/10 rounded w-full mt-1"></div>
+      )}
+      
+      {/* Timeline */}
+      <div className="h-2 bg-white/10 rounded w-1/4 mt-1"></div>
+    </div>
+  </div>
+);
+
+const SkeletonCRMColumn = ({ title, icon, canCreate = false }: { 
+  title: string; 
+  icon: React.ReactNode; 
+  canCreate?: boolean;
+}) => (
+  <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex-1 min-w-0 flex flex-col">
+    <div className="mb-3 px-1 flex items-center justify-between relative sticky top-0 z-10 bg-black/50 backdrop-blur-sm pb-2 pt-1">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h3 className="text-xs font-medium text-white whitespace-nowrap">
+          {title}
+        </h3>
+        {canCreate ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium animate-pulse">
+            --
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium animate-pulse">
+            --
+          </span>
+        )}
+      </div>
+      
+      {title === 'LOST' && (
+        <div className="h-6 w-20 bg-white/10 rounded animate-pulse"></div>
+      )}
+    </div>
+    
+    <div className="flex-1 overflow-y-auto space-y-2">
+      {Array.from({ length: Math.floor(Math.random() * 4) + 2 }).map((_, i) => (
+        <SkeletonLeadCard key={i} />
+      ))}
+    </div>
+  </div>
+);
 import NewAppointmentModal from "../modals/NewAppointmentModal";
 import LeadDetailsModal from "../modals/LeadDetailsModal";
 import LostReasonModal from "../modals/LostReasonModal";
@@ -89,6 +171,7 @@ dayjs.extend(relativeTime);
 
 export default function KanbanBoard() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -133,9 +216,13 @@ export default function KanbanBoard() {
   useEffect(() => {
     if (!hasFetchedLeads.current) {
       async function load() {
-        const leadsResult = await supabase.from("leads").select("*").order("updated_at", { ascending: false });
-        if (leadsResult.data) setLeads(leadsResult.data as unknown as Lead[]);
-        hasFetchedLeads.current = true;
+        try {
+          const leadsResult = await supabase.from("leads").select("*").order("updated_at", { ascending: false });
+          if (leadsResult.data) setLeads(leadsResult.data as unknown as Lead[]);
+          hasFetchedLeads.current = true;
+        } finally {
+          setLoading(false);
+        }
       }
       load();
     }
@@ -436,6 +523,28 @@ export default function KanbanBoard() {
       return `AED ${lead.total_budget.toLocaleString()}`;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="px-4">
+        <div
+          className="flex gap-3 pb-4 w-full h-full overflow-hidden"
+          style={{ height: "calc(100vh - 72px)" }}
+        >
+          {columns
+            .filter(col => showArchived || col.key !== 'archived')
+            .map(col => (
+            <SkeletonCRMColumn 
+              key={col.key} 
+              title={col.title}
+              icon={col.icon}
+              canCreate={col.key === 'new_lead' || col.key === 'new_customer'}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4">

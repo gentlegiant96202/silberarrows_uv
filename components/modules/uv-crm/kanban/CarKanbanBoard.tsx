@@ -10,6 +10,93 @@ import { useUserRole } from '@/lib/useUserRole'; // 🆕 NEW ROLE SYSTEM
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { Check, Tag, Archive } from 'lucide-react';
 
+// Skeleton Components
+const SkeletonCarCard = ({ isExpanded = false }: { isExpanded?: boolean }) => {
+  if (isExpanded) {
+    // Grid layout skeleton (expanded inventory view)
+    return (
+      <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-lg shadow-sm p-2 text-xs animate-pulse">
+        {/* Thumbnail skeleton */}
+        <div className="w-full h-20 bg-white/10 rounded mb-2"></div>
+        <div className="space-y-1">
+          {/* Stock number */}
+          <div className="h-3 bg-white/10 rounded w-3/4"></div>
+          {/* Model year + model */}
+          <div className="h-2 bg-white/10 rounded w-full"></div>
+          <div className="h-2 bg-white/10 rounded w-2/3"></div>
+          {/* Price */}
+          <div className="h-2 bg-white/10 rounded w-1/2"></div>
+          {/* Button */}
+          <div className="h-5 bg-white/10 rounded w-full mt-1"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal vertical list layout skeleton
+  return (
+    <div className="w-full bg-white/5 border border-white/10 backdrop-blur-sm rounded-lg shadow-sm p-1.5 text-xs animate-pulse">
+      <div className="flex items-center gap-2 min-w-0">
+        {/* Thumbnail skeleton */}
+        <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded"></div>
+        <div className="min-w-0 flex-1">
+          {/* Stock number */}
+          <div className="h-3 bg-white/10 rounded w-2/3 mb-1"></div>
+          {/* Model info */}
+          <div className="h-2 bg-white/10 rounded w-full mb-1"></div>
+          {/* Price */}
+          <div className="h-2 bg-white/10 rounded w-1/2"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SkeletonColumn = ({ title, isInventory = false, isExpanded = false }: { 
+  title: string; 
+  isInventory?: boolean; 
+  isExpanded?: boolean; 
+}) => (
+  <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col flex-1 min-w-0">
+    <div className="mb-3 px-1">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1">
+          <h3 className="text-xs font-medium text-white">{title}</h3>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium animate-pulse">
+            --
+          </span>
+        </div>
+        {isInventory && (
+          <div className="h-4 w-16 bg-white/10 rounded animate-pulse"></div>
+        )}
+      </div>
+      
+      {isInventory && (
+        <div className="space-y-2">
+          <div className="h-4 bg-white/10 rounded w-20 animate-pulse"></div>
+          <div className="h-6 bg-white/10 rounded w-full animate-pulse"></div>
+        </div>
+      )}
+    </div>
+    
+    <div className="flex-1 overflow-y-auto space-y-2">
+      {isExpanded && isInventory ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <SkeletonCarCard key={i} isExpanded={true} />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {Array.from({ length: Math.floor(Math.random() * 4) + 3 }).map((_, i) => (
+            <SkeletonCarCard key={i} isExpanded={false} />
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
 interface Car {
   id: string;
   stock_number: string;
@@ -30,6 +117,7 @@ interface Car {
 
 export default function CarKanbanBoard() {
   const [cars, setCars] = useState<Car[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<Car | null>(null);
   const [selectedCarFull, setSelectedCarFull] = useState<any | null>(null);
@@ -71,26 +159,30 @@ export default function CarKanbanBoard() {
   
 
   const load = async () => {
-    const { data } = await supabase
-      .from('cars')
-      .select('*')
-      .order('updated_at', { ascending: false });
-    const carRows = (data as any[] || []) as Car[];
-    setCars(carRows);
+    try {
+      const { data } = await supabase
+        .from('cars')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      const carRows = (data as any[] || []) as Car[];
+      setCars(carRows);
 
-    // fetch primary thumbnails for these cars
-    const ids = carRows.map(c=>c.id);
-    if(ids.length){
-      const { data: mediaRows } = await supabase
-        .from('car_media')
-        .select('car_id,url')
-        .eq('is_primary', true)
-        .eq('kind', 'photo')
-        .in('car_id', ids);
-      const map: Record<string,string> = {};
-      (mediaRows||[]).forEach((m:any)=>{ map[m.car_id] = m.url; });
-      console.log('🖼️ CarKanbanBoard: Loaded', mediaRows?.length || 0, 'primary thumbnails');
-      setThumbs(map);
+      // fetch primary thumbnails for these cars
+      const ids = carRows.map(c=>c.id);
+      if(ids.length){
+        const { data: mediaRows } = await supabase
+          .from('car_media')
+          .select('car_id,url')
+          .eq('is_primary', true)
+          .eq('kind', 'photo')
+          .in('car_id', ids);
+        const map: Record<string,string> = {};
+        (mediaRows||[]).forEach((m:any)=>{ map[m.car_id] = m.url; });
+        console.log('🖼️ CarKanbanBoard: Loaded', mediaRows?.length || 0, 'primary thumbnails');
+        setThumbs(map);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -334,6 +426,25 @@ export default function CarKanbanBoard() {
       model: ''
     });
   };
+
+  if (loading) {
+    return (
+      <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
+        <div className="flex gap-3 pb-4 w-full h-full">
+          {columns
+            .filter(col => showArchived || col.key !== 'archived')
+            .map(col => (
+            <SkeletonColumn 
+              key={col.key} 
+              title={col.title}
+              isInventory={col.key === 'inventory'}
+              isExpanded={inventoryExpanded && col.key === 'inventory'}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>

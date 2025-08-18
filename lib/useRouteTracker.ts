@@ -30,7 +30,8 @@ export function useRouteTracker() {
       pathname.startsWith('/consignments') ||
       pathname.startsWith('/customers') ||
       pathname.startsWith('/sales') ||
-      pathname.startsWith('/service')
+      pathname.startsWith('/service') ||
+      pathname.startsWith('/mobile')  // Add mobile page
     );
 
     if (isModulePath) {

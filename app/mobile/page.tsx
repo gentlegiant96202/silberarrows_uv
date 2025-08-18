@@ -13,7 +13,8 @@ export default function MobilePage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      // Pass the current URL as return destination
+      router.push('/login?returnTo=/mobile');
     }
   }, [user, loading, router]);
 

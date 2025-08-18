@@ -29,12 +29,17 @@ function LoginContent() {
     }
   }, [searchParams, router]);
 
-  // Redirect authenticated users to the home page
+  // Redirect authenticated users to the return URL or home page
   useEffect(() => {
     if (user) {
-      router.replace("/");
+      const returnTo = searchParams.get('returnTo');
+      if (returnTo) {
+        router.replace(returnTo);
+      } else {
+        router.replace("/");
+      }
     }
-  }, [user, router]);
+  }, [user, router, searchParams]);
 
   // While we are redirecting (or waiting for the auth state), render nothing
   if (user || loading) {
@@ -56,7 +61,12 @@ function LoginContent() {
     if (error) {
       setError(error);
     } else {
-      router.push("/");
+      const returnTo = searchParams.get('returnTo');
+      if (returnTo) {
+        router.push(returnTo);
+      } else {
+        router.push("/");
+      }
     }
   };
 

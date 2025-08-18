@@ -480,11 +480,11 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
         </div>
 
         {/* Main Content Area */}
-        <div className={`flex gap-4 ${showWhatsAppChat ? 'h-[calc(90vh-120px)]' : ''}`}>
+        <div className={`flex gap-4 ${showWhatsAppChat ? 'h-[calc(90vh-120px)]' : 'h-[calc(90vh-120px)]'}`}>
           {/* Left Panel - Lead Details */}
-          <div className={`${showWhatsAppChat ? 'w-[736px] flex-shrink-0' : 'flex-1'} ${showWhatsAppChat ? 'overflow-y-auto' : ''}`}>
+          <div className={`${showWhatsAppChat ? 'w-[736px] flex-shrink-0' : 'flex-1'} ${showWhatsAppChat ? 'overflow-y-auto' : 'flex flex-col'}`}>
             {isEditing ? (
-              <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
+              <div className="flex flex-col sm:flex-row gap-4 h-full">
             {/* Edit form */}
             <form onSubmit={handleUpdate} className="flex-1 flex flex-col space-y-3 overflow-y-auto pr-1">
             {/* Customer Information */}
@@ -829,16 +829,19 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
             </form>
 
             {/* Timeline & Matching inventory column */}
-            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1">
+            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 h-full">
               {/* Matching inventory or fallback model chooser (edit mode only) */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1">
-                <div className="h-full overflow-y-auto p-1.5">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1 min-h-0">
+                <div className="p-2.5 border-b border-white/10 flex-shrink-0">
+                  <h3 className="text-xs font-semibold text-white">MATCHING INVENTORY</h3>
+                </div>
+                <div className="h-[calc(100%-40px)] overflow-y-auto p-1.5">
                   <MatchingCarsList model={isEditing ? formData.model_of_interest : lead.model_of_interest} />
                 </div>
               </div>
 
               {/* Timeline panel */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1 min-h-0">
                 <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                     Timeline & Notes
@@ -847,7 +850,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                     )}
                   </h3>
                 </div>
-                <div className="p-2.5 overflow-y-auto scrollbar-hide" style={{ height: 'calc(100% - 40px)' }}>
+                <div className="p-2.5 h-[calc(100%-40px)] overflow-y-auto scrollbar-hide">
                   <NotesTimeline 
                     notes={notesArray} 
                     canEdit={true} 
@@ -858,9 +861,9 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
             </div>
             </div>
         ) : (
-          <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
+          <div className="flex flex-col sm:flex-row gap-4 h-full">
             {/* Details Block */}
-            <div className="flex-1 flex flex-col space-y-3 overflow-y-auto">
+            <div className="flex-1 flex flex-col space-y-3 overflow-y-auto pr-1">
             {/* Customer Information - View Mode */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
               <div className="space-y-2.5">
@@ -1004,16 +1007,19 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                   </div>
 
             {/* Timeline & Matching inventory on the right */}
-            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 pr-1">
+            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 h-full">
               {/* Matching inventory panel (view mode) */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1">
-                <div className="h-full overflow-y-auto p-1.5">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1 min-h-0">
+                <div className="p-2.5 border-b border-white/10 flex-shrink-0">
+                  <h3 className="text-xs font-semibold text-white">MATCHING INVENTORY</h3>
+                </div>
+                <div className="h-[calc(100%-40px)] overflow-y-auto p-1.5">
                   <MatchingCarsList model={lead.model_of_interest} />
                 </div>
               </div>
 
               {/* Timeline panel */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1 min-h-0">
                 <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                     Timeline & Notes
@@ -1022,7 +1028,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                     )}
                   </h3>
                 </div>
-                <div className="p-2.5 overflow-y-auto scrollbar-hide" style={{ height: 'calc(100% - 40px)' }}>
+                <div className="p-2.5 h-[calc(100%-40px)] overflow-y-auto scrollbar-hide">
                   <NotesTimeline 
                     notes={notesArray} 
                     canEdit={true} 

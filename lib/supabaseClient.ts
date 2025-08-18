@@ -7,14 +7,18 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 // to avoid multiple GoTrueClient warnings
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Ensure consistent storage key
-    storageKey: 'supabase.auth.token',
+    // Ensure consistent storage key for PWA
+    storageKey: 'silberarrows.auth.token',
     // Enable auto refresh for better UX
     autoRefreshToken: true,
-    // Persist session across browser sessions
+    // Persist session across browser sessions and PWA launches
     persistSession: true,
     // Detect session in URL
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    // Enhanced PWA session handling
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    // Longer session refresh for PWA stability
+    debug: false
   },
   global: {
     headers: {

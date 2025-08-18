@@ -26,18 +26,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useRouteTracker();
 
   useEffect(() => {
-    // Get current session on mount
+    // Enhanced session restoration for PWA
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session ?? null);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
+      try {
+        // Force session refresh for PWA context
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.warn('PWA Auth: Session restoration error:', error);
+          setSession(null);
+          setUser(null);
+        } else {
+          setSession(data.session ?? null);
+          setUser(data.session?.user ?? null);
+          
+          // Log for PWA debugging
+          if (data.session) {
+            console.log('✅ PWA Auth: Session restored successfully');
+          } else {
+            console.log('ℹ️ PWA Auth: No existing session found');
+          }
+        }
+      } catch (error) {
+        console.error('PWA Auth: Session restoration failed:', error);
+        setSession(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     })();
 
-    // Listen for changes
+    // Listen for auth state changes with PWA-specific handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, updatedSession) => {
+      console.log('PWA Auth: State change event:', _event, !!updatedSession);
       setSession(updatedSession);
       setUser(updatedSession?.user ?? null);
+      
+      // Store session info for PWA debugging
+      if (typeof window !== 'undefined') {
+        if (updatedSession) {
+          localStorage.setItem('pwa_last_auth', new Date().toISOString());
+        } else {
+          localStorage.removeItem('pwa_last_auth');
+        }
+      }
     });
 
     return () => {

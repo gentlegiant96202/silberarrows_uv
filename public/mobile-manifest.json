@@ -7,18 +7,31 @@
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait",
-  "scope": "/mobile",
+  "scope": "/",
   "icons": [
     {
-      "src": "https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png",
+      "src": "/MAIN LOGO.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png",
+      "src": "/MAIN LOGO.png",
+      "sizes": "512x512", 
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/MAIN LOGO.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/MAIN LOGO.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png", 
+      "purpose": "maskable"
     }
   ],
   "categories": ["business", "productivity"],

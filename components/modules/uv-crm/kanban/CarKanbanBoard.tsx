@@ -88,7 +88,7 @@ const SkeletonColumn = ({ title, isInventory = false, isExpanded = false }: {
         </div>
       ) : (
         <div className="space-y-2">
-          {Array.from({ length: Math.floor(Math.random() * 4) + 3 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <SkeletonCarCard key={i} isExpanded={false} />
           ))}
         </div>

@@ -236,7 +236,7 @@ const SkeletonColumn = ({ title, icon }: { title: string; icon: React.ReactNode 
         </div>
       ) : (
         <div className="space-y-1">
-          {Array.from({ length: Math.floor(Math.random() * 4) + 2 }).map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
         </div>

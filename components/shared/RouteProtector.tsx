@@ -62,7 +62,7 @@ const InventorySkeleton = () => {
         )}
       </div>
       <div className="flex-1 overflow-y-auto space-y-2">
-        {Array.from({ length: Math.floor(Math.random() * 4) + 3 }).map((_, i) => (
+        {Array.from({ length: 4 }).map((_, i) => (
           <SkeletonCarCard key={i} isExpanded={false} />
         ))}
       </div>
@@ -134,7 +134,7 @@ const CRMSkeleton = () => {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto space-y-2">
-        {Array.from({ length: Math.floor(Math.random() * 4) + 2 }).map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <SkeletonLeadCard key={i} />
         ))}
       </div>

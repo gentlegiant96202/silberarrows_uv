@@ -32,18 +32,11 @@ const SkeletonLeadCard = () => (
         <div className="h-2 bg-white/10 rounded w-1/3"></div>
       </div>
       
-      {/* Appointment (sometimes) */}
-      {Math.random() > 0.5 && (
-        <div className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
-          <div className="h-2 bg-white/10 rounded w-1/2"></div>
-        </div>
-      )}
-      
-      {/* Notes (sometimes) */}
-      {Math.random() > 0.7 && (
-        <div className="h-2 bg-white/10 rounded w-full mt-1"></div>
-      )}
+      {/* Appointment */}
+      <div className="flex items-center gap-1">
+        <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+        <div className="h-2 bg-white/10 rounded w-1/2"></div>
+      </div>
       
       {/* Timeline */}
       <div className="h-2 bg-white/10 rounded w-1/4 mt-1"></div>
@@ -80,7 +73,7 @@ const SkeletonCRMColumn = ({ title, icon, canCreate = false }: {
     </div>
     
     <div className="flex-1 overflow-y-auto space-y-2">
-      {Array.from({ length: Math.floor(Math.random() * 4) + 2 }).map((_, i) => (
+      {Array.from({ length: 3 }).map((_, i) => (
         <SkeletonLeadCard key={i} />
       ))}
     </div>

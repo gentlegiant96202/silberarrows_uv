@@ -387,9 +387,22 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                   
                   {/* Drop zone */}
                   <div
-                    onDragOver={(e)=>e.preventDefault()}
-                    onDrop={(e)=>{ const id=e.dataTransfer.getData('text/plain'); if(id) handleCarSelection(id);} }
-                    className={`relative w-full h-12 flex items-center justify-start px-2 gap-2 rounded-lg border-2 border-dashed ${selectedCarId? 'border-green-500':'border-white/20'} bg-black/20 text-[10px] text-white/60 cursor-pointer transition-colors hover:border-white/30`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const id = e.dataTransfer.getData('text/plain');
+                      if (id) handleCarSelection(id);
+                    }}
+                    onTouchEnd={(e) => {
+                      // Prevent default touch behaviors that might interfere
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    className={`relative w-full h-12 flex items-center justify-start px-2 gap-2 rounded-lg border-2 border-dashed ${selectedCarId? 'border-green-500':'border-white/20'} bg-black/20 text-[10px] text-white/60 cursor-pointer transition-colors hover:border-white/30 touch-manipulation`}
                     onClick={()=>{
                       if(selectedCarId) return;
                       setShowCarPicker(!showCarPicker);

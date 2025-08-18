@@ -427,24 +427,8 @@ export default function CarKanbanBoard() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
-        <div className="flex gap-3 pb-4 w-full h-full">
-          {columns
-            .filter(col => showArchived || col.key !== 'archived')
-            .map(col => (
-            <SkeletonColumn 
-              key={col.key} 
-              title={col.title}
-              isInventory={col.key === 'inventory'}
-              isExpanded={inventoryExpanded && col.key === 'inventory'}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Remove individual loading state - RouteProtector handles skeleton loading
+  // if (loading) { ... }
 
   return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>

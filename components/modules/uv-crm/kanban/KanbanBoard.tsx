@@ -524,27 +524,8 @@ export default function KanbanBoard() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="px-4">
-        <div
-          className="flex gap-3 pb-4 w-full h-full overflow-hidden"
-          style={{ height: "calc(100vh - 72px)" }}
-        >
-          {columns
-            .filter(col => showArchived || col.key !== 'archived')
-            .map(col => (
-            <SkeletonCRMColumn 
-              key={col.key} 
-              title={col.title}
-              icon={col.icon}
-              canCreate={col.key === 'new_lead' || col.key === 'new_customer'}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Remove individual loading state - RouteProtector handles skeleton loading
+  // if (loading) { ... }
 
   return (
     <div className="px-4">

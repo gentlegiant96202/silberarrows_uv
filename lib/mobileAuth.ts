@@ -12,7 +12,8 @@ export const isPWAStandalone = (): boolean => {
   if (typeof window === 'undefined') return false;
   
   // Check for PWA standalone mode
-  const isStandalone = window.navigator.standalone || 
+  // Cast navigator to any to access iOS-specific standalone property
+  const isStandalone = (window.navigator as any).standalone || 
                       window.matchMedia('(display-mode: standalone)').matches ||
                       window.matchMedia('(display-mode: fullscreen)').matches;
   

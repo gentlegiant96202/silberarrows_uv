@@ -192,6 +192,16 @@ html::-webkit-scrollbar, body::-webkit-scrollbar{width:0;background:transparent;
   background: #000000;
 }
 
+/* Hide scrollbars for Instagram Grid virtualization */
+.instagram-grid-no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.instagram-grid-no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 /* Glass Morphism Module Selection Styles */
 @keyframes slideInUp {
   from {

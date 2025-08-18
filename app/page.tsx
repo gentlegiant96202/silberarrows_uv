@@ -11,10 +11,17 @@ export default function Home() {
     if (!loading) {
       if (!user) {
         // Not authenticated, go to login
-      router.replace('/login');
+        router.replace('/login');
       } else {
-        // Authenticated, go to module selection
-        router.replace('/module-selection');
+        // Authenticated, check for last visited module
+        const lastModule = localStorage.getItem('lastVisitedModule');
+        if (lastModule) {
+          // Redirect to the last visited module
+          router.replace(lastModule);
+        } else {
+          // No previous module, go to module selection
+          router.replace('/module-selection');
+        }
       }
     }
   }, [loading, user, router]);

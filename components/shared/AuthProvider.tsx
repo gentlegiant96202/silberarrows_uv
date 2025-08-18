@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useRouteTracker } from "@/lib/useRouteTracker";
 import type { Session, User } from "@supabase/supabase-js";
 
 interface AuthContextValue {
@@ -20,6 +21,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Track route changes to store last visited module
+  useRouteTracker();
 
   useEffect(() => {
     // Get current session on mount

@@ -8,6 +8,7 @@ import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useSearchStore } from '@/lib/searchStore';
+import { FixedSizeGrid as Grid } from 'react-window';
 import dayjs from 'dayjs';
 import AddTaskModal from './AddTaskModal';
 import MarketingWorkspace from './MarketingWorkspace';
@@ -160,7 +161,203 @@ const columns: MarketingColumn[] = [
 
 type ColKey = MarketingStatus;
 
+// Skeleton Loading Components
+const SkeletonCard = () => (
+  <div className="relative overflow-hidden rounded-xl select-none animate-pulse bg-gradient-to-br from-white/5 via-white/3 to-white/5 backdrop-blur-xl border border-white/10">
+    {/* Main Content Container */}
+    <div className="flex px-2 py-1 gap-1.5 min-h-[55px]">
+      {/* Left Side - Preview Thumbnail Skeleton */}
+      <div className="flex-shrink-0 w-16 h-20 relative">
+        <div className="w-full h-full rounded-lg bg-white/10 animate-pulse"></div>
+        {/* Icons Row Skeleton */}
+        <div className="absolute bottom-1 left-0 right-0 flex items-center justify-between px-1">
+          <div className="w-6 h-3 bg-white/10 rounded-full"></div>
+          <div className="w-4 h-3 bg-white/10 rounded-full"></div>
+        </div>
+      </div>
+      
+      {/* Right Side - Content Skeleton */}
+      <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
+        {/* Title Section */}
+        <div className="flex-shrink-0">
+          <div className="h-3 bg-white/10 rounded w-3/4 mb-1"></div>
+        </div>
+        
+        {/* Metadata Section */}
+        <div className="flex-shrink-0 space-y-1">
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+            <div className="h-2 bg-white/10 rounded w-16"></div>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+            <div className="h-2 bg-white/10 rounded w-20"></div>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+            <div className="h-2 bg-white/10 rounded w-14"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
+const SkeletonInstagramCard = () => (
+  <div className="aspect-[4/5] bg-white/5 border border-white/10 backdrop-blur-sm rounded-lg animate-pulse">
+    <div className="w-full h-full rounded-lg bg-white/10"></div>
+  </div>
+);
+
+const SkeletonColumn = ({ title, icon }: { title: string; icon: React.ReactNode }) => (
+  <div className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 flex flex-col min-w-0 ${
+    title === 'INSTAGRAM FEED PREVIEW' 
+      ? 'flex-[1.38] max-w-sm' 
+      : 'flex-1'
+  }`}>
+    <div className="mb-2 px-1 flex items-center justify-between relative sticky top-0 z-10 bg-black/50 backdrop-blur-sm pb-1.5 pt-0.5">
+      <div className="flex items-center gap-1.5">
+        {icon}
+        <h3 className="text-[10px] font-medium text-white whitespace-nowrap">
+          {title}
+        </h3>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-white/10 text-white/70 text-[8px] font-medium animate-pulse">
+          --
+        </span>
+      </div>
+    </div>
+    
+    <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+      {title === 'INSTAGRAM FEED PREVIEW' ? (
+        <div className="grid grid-cols-3 gap-1">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <SkeletonInstagramCard key={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {Array.from({ length: Math.floor(Math.random() * 4) + 2 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// Instagram Feed Virtualized Grid Component
+interface InstagramGridItemProps {
+  columnIndex: number;
+  rowIndex: number;
+  style: React.CSSProperties;
+  data: {
+    tasks: MarketingTask[];
+    columnCount: number;
+    onDragStart: (task: MarketingTask) => void;
+    onDragEnd: () => void;
+    handleCardClick: (task: MarketingTask) => void;
+    draggedTask: MarketingTask | null;
+    canEdit: boolean;
+    handlePin: (taskId: string, currentPinned: boolean) => Promise<void>;
+    pinningTask: string | null;
+  };
+}
+
+const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
+  columnIndex,
+  rowIndex,
+  style,
+  data
+}) => {
+  const { tasks, columnCount, onDragStart, onDragEnd, handleCardClick, draggedTask, canEdit, handlePin, pinningTask } = data;
+  const taskIndex = rowIndex * columnCount + columnIndex;
+  const task = tasks[taskIndex];
+
+  if (!task) {
+    return <div style={style} />;
+  }
+
+  return (
+    <div style={{ ...style, padding: '2px' }}>
+      <div
+        key={task.id}
+        draggable
+        onDragStart={() => onDragStart(task)}
+        onDragEnd={onDragEnd}
+        onClick={() => handleCardClick(task)}
+        className={`aspect-[4/5] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm rounded-lg shadow-sm cursor-pointer group relative overflow-hidden ${
+          draggedTask?.id === task.id 
+            ? 'z-50 opacity-80 border-white/40' 
+            : 'z-10 transition-all duration-200'
+        }`}
+      >
+        {/* Annotation Badge */}
+        {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
+          <div className="absolute top-0.5 left-0.5 z-20">
+            <div 
+              className="flex items-center gap-0.5 bg-orange-400/80 text-white text-[6px] font-medium px-0.5 py-0.5 rounded-full shadow-sm"
+              title={`${task.annotations.length} annotation${task.annotations.length > 1 ? 's' : ''}`}
+            >
+              <div className="w-0.5 h-0.5 bg-white rounded-full"></div>
+              <span>{task.annotations.length}</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Pin Icon */}
+        {canEdit && (
+          <div className="absolute top-0.5 right-0.5 z-30">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePin(task.id, task.pinned || false);
+              }}
+              disabled={pinningTask === task.id}
+              className={`
+                p-0.5 rounded-full transition-all duration-200 
+                ${task.pinned 
+                  ? 'bg-gradient-to-br from-gray-300 via-gray-500 to-gray-700 text-white shadow-lg opacity-100' 
+                  : 'bg-black/50 backdrop-blur-sm text-white/70 opacity-0 group-hover:opacity-100 hover:text-white'
+                }
+                ${pinningTask === task.id ? 'animate-pulse' : ''}
+                hover:bg-gradient-to-br hover:from-gray-300 hover:via-gray-500 hover:to-gray-700
+                hover:shadow-lg hover:scale-110
+                focus:outline-none focus:ring-2 focus:ring-gray-400/50
+              `}
+              title={task.pinned ? 'Unpin from top' : 'Pin to top'}
+            >
+              <Pin className="w-2 h-2" />
+            </button>
+          </div>
+        )}
+        
+        {/* Image Display */}
+        <div className="w-full h-full rounded-lg overflow-hidden">
+          {task.previewUrl === 'PDF_PREVIEW' ? (
+            <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-red-600/10 flex items-center justify-center p-1.5">
+              <FileText className="w-8 h-8 text-red-400" />
+            </div>
+          ) : task.previewUrl ? (
+            <img 
+              src={task.previewUrl} 
+              alt={task.title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
+              <img 
+                src="/MAIN LOGO.png" 
+                alt="SilberArrows Logo" 
+                className="w-full h-full object-contain opacity-60 filter brightness-200" 
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function MarketingKanbanBoard() {
   const [tasks, setTasks] = useState<MarketingTask[]>([]);
@@ -174,6 +371,8 @@ export default function MarketingKanbanBoard() {
   const [pinningTask, setPinningTask] = useState<string | null>(null);
   const [tasksWithActiveUploads, setTasksWithActiveUploads] = useState<Set<string>>(new Set());
   const hasFetchedTasks = useRef(false);
+  const instagramColumnRef = useRef<HTMLDivElement>(null);
+  const [columnWidth, setColumnWidth] = useState(360);
   
   // Get permissions and user role
   const { canView, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModulePermissions('marketing');
@@ -244,6 +443,20 @@ export default function MarketingKanbanBoard() {
       setLoading(false);
     }
   };
+
+  // Measure column width for responsive Instagram grid
+  useEffect(() => {
+    const updateColumnWidth = () => {
+      if (instagramColumnRef.current) {
+        const width = instagramColumnRef.current.offsetWidth - 16; // Account for padding
+        setColumnWidth(Math.max(width, 300)); // Minimum width of 300px
+      }
+    };
+
+    updateColumnWidth();
+    window.addEventListener('resize', updateColumnWidth);
+    return () => window.removeEventListener('resize', updateColumnWidth);
+  }, []);
 
   useEffect(() => {
     if (!hasFetchedTasks.current) {
@@ -740,8 +953,18 @@ export default function MarketingKanbanBoard() {
 
   if (loading) {
     return (
-      <div className="px-4 flex items-center justify-center h-64">
-        <div className="text-white/70">Loading tasks...</div>
+      <div className="px-2" style={{ height: "calc(100vh - 72px)" }}>
+        <div className="flex gap-1.5 pb-2 w-full h-full overflow-hidden">
+          {columns
+            .filter(col => showArchived || col.key !== 'archived')
+            .map(col => (
+            <SkeletonColumn 
+              key={col.key} 
+              title={col.title} 
+              icon={col.icon}
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -754,6 +977,7 @@ export default function MarketingKanbanBoard() {
           .map(col => (
           <div
             key={col.key}
+            ref={col.key === 'instagram_feed_preview' ? instagramColumnRef : undefined}
             className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 flex flex-col transition-shadow min-w-0 ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''} ${
               col.key === 'instagram_feed_preview' 
                 ? 'flex-[1.38] max-w-sm' 
@@ -817,86 +1041,45 @@ export default function MarketingKanbanBoard() {
             
             <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
               {col.key === 'instagram_feed_preview' ? (
-                // Instagram feed preview layout
-                <div className="grid grid-cols-3 gap-1">
-                  {grouped[col.key].map(task => (
-                    <div
-                      key={task.id}
-                      draggable
-                      onDragStart={() => onDragStart(task)}
-                      onDragEnd={onDragEnd}
-                      onClick={() => handleCardClick(task)}
-                      className={`aspect-[4/5] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm rounded-lg shadow-sm cursor-pointer group relative overflow-hidden ${
-                        draggedTask?.id === task.id 
-                          ? 'z-50 opacity-80 border-white/40' 
-                          : 'z-10 transition-all duration-200'
-                      }`}
+                // Virtualized Instagram feed preview layout
+                <div className="h-full">
+                  {grouped[col.key].length > 0 ? (
+                    <Grid
+                      columnCount={3}
+                      columnWidth={columnWidth / 3} // Dynamic width based on measured column
+                      width={columnWidth} // Take full measured column width
+                      height={Math.max(
+                        Math.ceil(25 / 3) * 150, // Height for at least 25 cards (9 rows * 150px)
+                        Math.min(window.innerHeight - 200, 1200) // Max height with higher limit
+                      )}
+                      rowCount={Math.ceil(grouped[col.key].length / 3)}
+                      rowHeight={150}
+                      itemData={{
+                        tasks: grouped[col.key],
+                        columnCount: 3,
+                        onDragStart,
+                        onDragEnd,
+                        handleCardClick,
+                        draggedTask,
+                        canEdit,
+                        handlePin,
+                        pinningTask
+                      }}
+                      style={{ 
+                        outline: 'none',
+                        // Hide scrollbars to match the column design
+                        scrollbarWidth: 'none', // Firefox
+                        msOverflowStyle: 'none', // IE/Edge
+                      }}
+                      className="instagram-grid-no-scrollbar"
                     >
-                      {/* Annotation Badge - Subtle */}
-                      {task.status === 'in_progress' && task.annotations && task.annotations.length > 0 && (
-                        <div className="absolute top-0.5 left-0.5 z-20">
-                          <div 
-                            className="flex items-center gap-0.5 bg-orange-400/80 text-white text-[6px] font-medium px-0.5 py-0.5 rounded-full shadow-sm"
-                            title={`${task.annotations.length} annotation${task.annotations.length > 1 ? 's' : ''}`}
-                          >
-                            <div className="w-0.5 h-0.5 bg-white rounded-full"></div>
-                            <span>{task.annotations.length}</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Pin Icon - Top Right Corner */}
-                      {canEdit && (
-                        <div className="absolute top-0.5 right-0.5 z-30">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent card click
-                              handlePin(task.id, task.pinned || false);
-                            }}
-                            disabled={pinningTask === task.id}
-                          className={`
-                            p-0.5 rounded-full transition-all duration-200 
-                            ${task.pinned 
-                              ? 'bg-gradient-to-br from-gray-300 via-gray-500 to-gray-700 text-white shadow-lg opacity-100' 
-                              : 'bg-black/50 backdrop-blur-sm text-white/70 opacity-0 group-hover:opacity-100 hover:text-white'
-                            }
-                            ${pinningTask === task.id ? 'animate-pulse' : ''}
-                            hover:bg-gradient-to-br hover:from-gray-300 hover:via-gray-500 hover:to-gray-700
-                            hover:shadow-lg hover:scale-110
-                            focus:outline-none focus:ring-2 focus:ring-gray-400/50
-                          `}
-                          title={task.pinned ? 'Unpin from top' : 'Pin to top'}
-                        >
-                          <Pin className="w-2 h-2" />
-                        </button>
-                      </div>
-                      )}
-                      
-                      {/* Full image display */}
-                      <div className="w-full h-full rounded-lg overflow-hidden">
-                        {task.previewUrl === 'PDF_PREVIEW' ? (
-                          <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-red-600/10 flex items-center justify-center p-1.5">
-                            <FileText className="w-8 h-8 text-red-400" />
-                          </div>
-                        ) : task.previewUrl ? (
-                          <img 
-                            src={task.previewUrl} 
-                            alt={task.title}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
-                            <img 
-                              src="/MAIN LOGO.png" 
-                              alt="SilberArrows Logo" 
-                              className="w-full h-full object-contain opacity-60 filter brightness-200" 
-                            />
+                      {InstagramGridItem}
+                    </Grid>
+                  ) : (
+                    <div className="flex items-center justify-center h-32 text-white/50 text-sm">
+                      No approved tasks yet
                           </div>
                         )}
-                      </div>
-
-                    </div>
-                  ))}
                 </div>
               ) : (
                 // Glassmorphism card layout for other columns
@@ -981,6 +1164,7 @@ export default function MarketingKanbanBoard() {
                                 src={previewUrl} 
                                 alt="Preview" 
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                              loading="lazy"
                               />
                               {/* Overlay gradient for depth */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

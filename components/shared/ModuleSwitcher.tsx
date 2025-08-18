@@ -78,12 +78,12 @@ export default function ModuleSwitcher() {
 
   const handleModuleSwitch = (module: Module) => {
     setIsOpen(false);
-    if (module.basePath === '/') {
-      // UV CRM & Inventory - go to main dashboard by default
-      router.push('/dashboard');
-    } else {
-      router.push(`${module.basePath}/dashboard`);
-    }
+    const targetPath = module.basePath === '/' ? '/dashboard' : `${module.basePath}/dashboard`;
+    
+    // Store the selected module path in localStorage
+    localStorage.setItem('lastVisitedModule', targetPath);
+    
+    router.push(targetPath);
   };
 
   // Show loading state while permissions are being fetched

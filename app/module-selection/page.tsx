@@ -148,6 +148,8 @@ export default function ModuleSelectionPage() {
 
   // Handle module navigation
   const handleModuleClick = (module: ModuleCard) => {
+    // Store the selected module path in localStorage
+    localStorage.setItem('lastVisitedModule', module.basePath);
     router.push(module.basePath);
   };
 

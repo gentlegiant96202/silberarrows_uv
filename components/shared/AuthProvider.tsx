@@ -100,6 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         });
         
+        // Clear the last visited module to ensure users go to module selection on next login
+        localStorage.removeItem('lastVisitedModule');
+        
         // Clear sessionStorage items
         Object.keys(sessionStorage).forEach(key => {
           if (key.includes('supabase')) {

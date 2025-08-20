@@ -374,8 +374,8 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
           box-shadow: none !important;
         }
       `}</style>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className={`bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full text-xs relative max-h-[90vh] overflow-visible shadow-2xl transition-all duration-300 ${
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className={`bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-3 sm:p-4 w-full text-xs relative max-h-[98vh] sm:max-h-[90vh] overflow-visible shadow-2xl transition-all duration-300 ${
         showWhatsAppChat ? 'max-w-[98vw] min-w-[98vw]' : 'max-w-3xl'
       }`}>
         <button
@@ -480,13 +480,13 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
         </div>
 
         {/* Main Content Area */}
-        <div className={`flex gap-4 ${showWhatsAppChat ? 'h-[calc(90vh-120px)]' : 'h-[calc(90vh-120px)]'}`}>
+        <div className={`flex gap-4 ${showWhatsAppChat ? 'max-h-[calc(100vh-140px)] min-h-[400px]' : 'max-h-[calc(100vh-140px)] min-h-[400px]'} overflow-hidden`}>
           {/* Left Panel - Lead Details */}
           <div className={`${showWhatsAppChat ? 'w-[736px] flex-shrink-0' : 'flex-1'} ${showWhatsAppChat ? 'overflow-y-auto' : 'flex flex-col'}`}>
             {isEditing ? (
               <div className="flex flex-col sm:flex-row gap-4 h-full">
             {/* Edit form */}
-            <form onSubmit={handleUpdate} className="flex-1 flex flex-col space-y-3 overflow-y-auto pr-1">
+            <form onSubmit={handleUpdate} className="flex-1 flex flex-col space-y-3 overflow-y-auto pr-1 max-h-full">
             {/* Customer Information */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2.5 border border-white/10">
               <div className="space-y-2.5">
@@ -502,7 +502,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                     name="full_name"
                     value={formData.full_name}
                     onChange={handleChange}
-                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
+                      className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
                     placeholder="Enter customer's full name"
                     required
                   />
@@ -535,7 +535,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                       name="phone_number"
                       value={formData.phone_number}
                       onChange={handleChange}
-                        className="flex-1 px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
+                        className="flex-1 px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
                       placeholder="Phone number"
                       required
                     />
@@ -554,7 +554,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                    className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                     style={{ backgroundImage: 'none' }}
                   >
                     {statusOptions.map(option => (
@@ -582,7 +582,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                     name="model_of_interest"
                     value={formData.model_of_interest}
                     onChange={handleChange}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                    className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                     style={{ backgroundImage: 'none' }}
                     required
                   >
@@ -718,7 +718,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                       name="max_age"
                       value={formData.max_age}
                       onChange={handleChange}
-                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                      className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                       style={{ backgroundImage: 'none' }}
                       required
                     >
@@ -741,7 +741,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                       name="payment_type"
                       value={formData.payment_type}
                       onChange={handleChange}
-                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                      className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                       style={{ backgroundImage: 'none' }}
                     >
                       <option value="monthly">Monthly</option>
@@ -763,7 +763,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                       min={1}
                       value={formData.monthly_budget}
                       onChange={handleChange}
-                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
+                      className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
                       placeholder="Enter monthly budget in AED"
                       required
                     />
@@ -780,7 +780,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                       min={1}
                       value={formData.total_budget}
                       onChange={handleChange}
-                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
+                      className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
                       placeholder="Enter total budget in AED"
                       required
                     />
@@ -806,7 +806,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                       onChange={(d)=>handleChange({target:{name:'appointment_date',value:dayjs(d as Date).format('YYYY-MM-DD')}} as any)}
                       dateFormat="dd/MM/yyyy"
                       popperPlacement="top-start"
-                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
+                      className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
                       wrapperClassName="w-full"
                       required={formData.status === 'new_appointment'}
                     />
@@ -822,7 +822,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                       name="time_slot"
                       value={formData.time_slot}
                       onChange={handleChange}
-                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                      className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                       style={{ backgroundImage: 'none' }}
                       required={formData.status === 'new_appointment'}
                     >

@@ -723,7 +723,14 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         </button>
         <div className="flex items-start justify-between mb-3 pr-6 gap-4 flex-wrap">
           <div className="flex flex-col">
-            <h2 className="text-base font-semibold text-white">Vehicle Details</h2>
+            <h2 className="text-base font-semibold text-white">
+              Vehicle Details
+              {localCar.chassis_number && (
+                <span className="text-sm font-normal text-white/70 ml-2">
+                  - Chassis: {localCar.chassis_number}
+                </span>
+              )}
+            </h2>
             {localCar.stock_age_days !== null && (
               <div className="text-white/70 text-xs mt-1">
                 <span className="text-white/50">Stock Age:</span> {localCar.stock_age_days} days

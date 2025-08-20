@@ -20,28 +20,28 @@ export default function MobileActions() {
 
   return (
     <>
-      {/* Fixed Bottom Action Bar */}
-      <div className="flex-shrink-0 bg-black border-t border-white/10 p-4 safe-area-padding-bottom">
-        <div className="flex gap-3">
+      {/* Top Action Bar */}
+      <div className="flex-shrink-0 bg-black border-b border-white/10 p-3">
+        <div className="flex gap-2">
           <button
             onClick={() => setShowCreateLead(true)}
-            className="flex-1 h-14 bg-white/20 hover:bg-white/30 active:bg-white/40 
-                       text-white rounded-xl font-semibold text-lg
+            className="flex-1 h-12 bg-white/20 hover:bg-white/30 active:bg-white/40 
+                       text-white rounded-lg font-medium text-sm
                        flex items-center justify-center space-x-2
                        transition-colors touch-manipulation border border-white/30"
           >
-            <Plus className="w-6 h-6" />
+            <Plus className="w-5 h-5" />
             <span>New Lead</span>
           </button>
 
           <button
             onClick={() => setShowCreateAppointment(true)}
-            className="flex-1 h-14 bg-white/20 hover:bg-white/30 active:bg-white/40 
-                       text-white rounded-xl font-semibold text-lg
+            className="flex-1 h-12 bg-white/20 hover:bg-white/30 active:bg-white/40 
+                       text-white rounded-lg font-medium text-sm
                        flex items-center justify-center space-x-2
                        transition-colors touch-manipulation border border-white/30"
           >
-            <Calendar className="w-6 h-6" />
+            <Calendar className="w-5 h-5" />
             <span>New Appointment</span>
           </button>
         </div>

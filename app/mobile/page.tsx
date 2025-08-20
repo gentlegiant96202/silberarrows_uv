@@ -70,8 +70,8 @@ export default function MobilePage() {
   return (
     <div className="h-screen flex flex-col bg-black text-white">
       <MobileHeader />
-      <TwoColumnKanban />
       <MobileActions />
+      <TwoColumnKanban />
     </div>
   );
 } 

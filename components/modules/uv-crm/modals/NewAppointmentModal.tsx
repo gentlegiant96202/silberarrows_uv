@@ -272,7 +272,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                 <input
                   value={fullName}
                     onChange={e => setFullName(e.target.value.toUpperCase())}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
+                    className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
                   placeholder="Enter customer's full name"
                   required
                 />
@@ -290,7 +290,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                   <select
                     value={countryCode}
                     onChange={e => setCountryCode(e.target.value)}
-                    className="px-1.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all font-mono w-14 appearance-none"
+                    className="px-1.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all font-mono w-16 appearance-none"
                     style={{ backgroundImage: 'none' }}
                   >
                     {[
@@ -303,7 +303,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                   <input
                     value={phoneNumber}
                       onChange={e => setPhoneNumber(e.target.value.toUpperCase())}
-                      className="flex-1 px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
+                      className="flex-1 px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all uppercase"
                     placeholder="Phone number"
                     required
                   />
@@ -326,7 +326,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                 <select
                   value={modelOfInterest}
                   onChange={e => setModelOfInterest(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                  className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                   style={{ backgroundImage: 'none' }}
                   required
                 >
@@ -461,7 +461,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                   <select
                     value={maxAge}
                     onChange={e => setMaxAge(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                    className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                     style={{ backgroundImage: 'none' }}
                     required
                   >
@@ -480,7 +480,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                   <select
                     value={paymentType}
                     onChange={e => setPaymentType(e.target.value as "monthly" | "cash")}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                    className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                     style={{ backgroundImage: 'none' }}
                   >
                     <option value="monthly">Monthly</option>
@@ -501,7 +501,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                     min={0}
                     value={monthlyBudget}
                     onChange={e => setMonthlyBudget(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
+                    className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
                     placeholder="Enter monthly budget in AED"
                     required
                   />
@@ -517,7 +517,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                     min={0}
                     value={totalBudget}
                     onChange={e => setTotalBudget(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
+                    className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all"
                     placeholder="Enter total budget in AED"
                     required
                   />
@@ -559,7 +559,7 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
                     <select
                       value={timeSlot}
                       onChange={e => setTimeSlot(e.target.value)}
-                      className="w-full px-2.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
+                      className="w-full px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all appearance-none"
                       style={{ backgroundImage: 'none' }}
                       required
                     >

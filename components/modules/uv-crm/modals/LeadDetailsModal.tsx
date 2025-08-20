@@ -842,9 +842,9 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
             </form>
 
             {/* Timeline & Matching inventory column */}
-            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 h-full">
+            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3">
               {/* Matching inventory or fallback model chooser (edit mode only) */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1 min-h-0">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
                 <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white">MATCHING INVENTORY</h3>
                 </div>
@@ -854,7 +854,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
               </div>
 
               {/* Timeline panel */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1 min-h-0">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
                 <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                     Timeline & Notes
@@ -1020,9 +1020,9 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                   </div>
 
             {/* Timeline & Matching inventory on the right */}
-            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3 h-full">
+            <div className="w-full sm:w-72 flex-shrink-0 flex flex-col gap-3">
               {/* Matching inventory panel (view mode) */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1 min-h-0">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
                 <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white">MATCHING INVENTORY</h3>
                 </div>
@@ -1032,7 +1032,7 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
               </div>
 
               {/* Timeline panel */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden flex-1 min-h-0">
+              <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden h-[260px]">
                 <div className="p-2.5 border-b border-white/10 flex-shrink-0">
                   <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                     Timeline & Notes

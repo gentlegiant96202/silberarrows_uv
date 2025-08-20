@@ -517,20 +517,14 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                     Phone Number
                   </label>
                   <div className="flex gap-1.5">
-                    <select
+                    <input
                       name="country_code"
                       value={formData.country_code}
                       onChange={handleChange}
-                      className="px-1.5 py-1.5 text-xs rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all font-mono w-14 appearance-none"
-                      style={{ backgroundImage: 'none' }}
-                    >
-                      {[
-                        "+971","+91","+1","+44","+60","+61","+81","+49","+33","+966",
-                        "+974","+973","+968","+965","+962","+63","+52","+7","+86","+82"
-                      ].map(code => (
-                        <option key={code} value={code}>{code}</option>
-                      ))}
-                    </select>
+                      className="px-2.5 py-1.5 text-base rounded bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all font-mono w-20"
+                      placeholder="+971"
+                      required
+                    />
                     <input
                       name="phone_number"
                       value={formData.phone_number}

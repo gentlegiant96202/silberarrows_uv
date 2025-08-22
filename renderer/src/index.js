@@ -12,13 +12,41 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 
 const templatePath = path.resolve(__dirname, '../public/templates/price-drop-template.html');
+const template45Path = path.resolve(__dirname, '../public/templates/price-drop-template-45.html');
 const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
 let templateHtml = '';
+let template45Html = '';
 let catalogTemplateHtml = '';
 
 async function loadTemplate() {
-  templateHtml = await fs.readFile(templatePath, 'utf-8');
-  catalogTemplateHtml = await fs.readFile(catalogTemplatePath, 'utf-8');
+  console.log('📁 Loading templates...');
+  console.log('📄 Story template path:', templatePath);
+  console.log('📄 4:5 template path:', template45Path);
+  console.log('📄 Catalog template path:', catalogTemplatePath);
+  
+  try {
+    templateHtml = await fs.readFile(templatePath, 'utf-8');
+    console.log('✅ Story template loaded, length:', templateHtml.length);
+  } catch (err) {
+    console.error('❌ Error loading story template:', err);
+    throw err;
+  }
+  
+  try {
+    template45Html = await fs.readFile(template45Path, 'utf-8');
+    console.log('✅ 4:5 template loaded, length:', template45Html.length);
+  } catch (err) {
+    console.error('❌ Error loading 4:5 template:', err);
+    throw err;
+  }
+  
+  try {
+    catalogTemplateHtml = await fs.readFile(catalogTemplatePath, 'utf-8');
+    console.log('✅ Catalog template loaded, length:', catalogTemplateHtml.length);
+  } catch (err) {
+    console.error('❌ Error loading catalog template:', err);
+    throw err;
+  }
 }
 
 function replaceAll(str, find, replace) {
@@ -33,10 +61,30 @@ function fillTemplate({ carDetails, pricing, firstImageUrl }) {
     '{{mileage}}': String(carDetails.mileage ?? ''),
     '{{horsepower}}': String(carDetails.horsepower ?? ''),
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
-    '{{wasPrice}}': String(pricing.wasPrice ?? ''),
-    '{{nowPrice}}': String(pricing.nowPrice ?? ''),
-    '{{savings}}': String(pricing.savings ?? ''),
-    '{{monthlyPayment}}': String(pricing.monthlyPayment ?? ''),
+    '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
+    '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
+    '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),
+    '{{monthlyPayment}}': Number(pricing.monthlyPayment ?? 0).toLocaleString(),
+    '{{carImageUrl1}}': String(firstImageUrl ?? ''),
+  };
+  for (const [key, value] of Object.entries(replacements)) {
+    html = replaceAll(html, key, value);
+  }
+  return html;
+}
+
+function fillTemplate45({ carDetails, pricing, firstImageUrl }) {
+  let html = template45Html;
+  const replacements = {
+    '{{year}}': String(carDetails.year ?? ''),
+    '{{model}}': String(carDetails.model ?? ''),
+    '{{mileage}}': String(carDetails.mileage ?? ''),
+    '{{horsepower}}': String(carDetails.horsepower ?? ''),
+    '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
+    '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
+    '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
+    '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),
+    '{{monthlyPayment}}': Number(pricing.monthlyPayment ?? 0).toLocaleString(),
     '{{carImageUrl1}}': String(firstImageUrl ?? ''),
   };
   for (const [key, value] of Object.entries(replacements)) {
@@ -75,39 +123,69 @@ app.get('/health', (_req, res) => {
 
 app.post('/render', async (req, res) => {
   try {
+    console.log('🚀 Render request received');
+    console.log('📊 Request body keys:', Object.keys(req.body || {}));
+    
     const { carDetails, pricing, firstImageUrl, secondImageUrl } = req.body || {};
+    
+    console.log('🚗 Car details:', carDetails);
+    console.log('💰 Pricing:', pricing);
+    console.log('🖼️ Image URL:', firstImageUrl ? 'Present' : 'Missing');
+    
     if (!carDetails || !pricing || !firstImageUrl) {
+      console.error('❌ Missing required fields:', { carDetails: !!carDetails, pricing: !!pricing, firstImageUrl: !!firstImageUrl });
       return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
 
-    const html = fillTemplate({ carDetails, pricing, firstImageUrl, secondImageUrl });
+    console.log('🎨 Filling templates...');
+    const storyHtml = fillTemplate({ carDetails, pricing, firstImageUrl, secondImageUrl });
+    const postHtml = fillTemplate45({ carDetails, pricing, firstImageUrl, secondImageUrl });
+    console.log('✅ Templates filled - Story:', storyHtml.length, 'Post:', postHtml.length);
 
     // Prefer Playwright; it exists in this image
+    console.log('🎭 Launching Playwright...');
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
+    console.log('✅ Browser launched');
 
     // Story 9:16
+    console.log('📱 Setting up Story format (9:16)...');
     await page.setViewportSize({ width: 1080, height: 1920 });
-    await page.setContent(html, { waitUntil: 'networkidle' });
+    await page.setContent(storyHtml, { waitUntil: 'networkidle' });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     await page.evaluate(() => document.fonts && document.fonts.ready);
     await page.waitForTimeout(800);
+    console.log('📸 Taking story screenshot...');
     const storyBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1920 } });
+    console.log('✅ Story screenshot taken');
 
     // 4:5
+    console.log('📐 Setting up Post format (4:5)...');
     await page.setViewportSize({ width: 1080, height: 1350 });
-    await page.waitForTimeout(200);
+    await page.setContent(postHtml, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
+    await page.evaluate(() => document.fonts && document.fonts.ready);
+    await page.waitForTimeout(400);
+    console.log('📸 Taking post screenshot...');
     const postBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1350 } });
+    console.log('✅ Post screenshot taken');
 
     await browser.close();
+    console.log('🔒 Browser closed');
 
     const image45 = postBuffer.toString('base64');
     const imageStory = storyBuffer.toString('base64');
 
     res.json({ success: true, image45, imageStory });
   } catch (err) {
-    console.error('Render error:', err);
+    console.error('❌ Render error:', err);
+    console.error('❌ Error stack:', err.stack);
+    console.error('❌ Error details:', {
+      message: err.message,
+      name: err.name,
+      code: err.code
+    });
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });

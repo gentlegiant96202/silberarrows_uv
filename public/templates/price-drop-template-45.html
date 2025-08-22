@@ -26,7 +26,7 @@
 
     .campaign-card-portrait {
       display: grid;
-      grid-template-rows: auto 1fr; /* image section, content section */
+      grid-template-rows: 1fr auto; /* image section takes remaining space, content section auto */
       width: 100vw;
       height: 100vh;
       border-radius: 0;
@@ -46,17 +46,16 @@
       width: 100%;
       display: block;
       background: #000;
-      padding: 0; /* no extra bars/padding */
-      height: auto; /* let aspect-ratio define height */
+      padding: 0;
+      overflow: hidden;
     }
 
     .image-wrapper {
       width: 100%;
+      height: 100%;
       position: relative;
       overflow: hidden;
-      background: transparent; /* remove grey base */
-      aspect-ratio: 80 / 63; /* 30% less height vs 8:9 */
-      height: auto;
+      background: transparent;
     }
 
     .car-image {
@@ -65,65 +64,62 @@
       left: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Changed back to cover so images fill containers */
+      object-fit: cover;
       filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.8));
-      object-position: top center; /* Crop from bottom by anchoring image to top */
+      object-position: center top; /* align to top to show the arrow logo */
     }
 
     .price-drop-badge {
       position: absolute;
-      top: 24px;
-      right: 24px;
+      top: 20px;
+      right: 20px;
       background: linear-gradient(135deg, #dc143c, #8b0000);
       border: 3px solid rgba(255, 255, 255, 0.3);
       color: #ffffff;
-      padding: 20px 32px;
-      border-radius: 50px;
+      padding: 16px 24px;
+      border-radius: 40px;
       font-weight: 800;
-      font-size: 1.8rem;
+      font-size: 1.4rem;
       box-shadow: 0 10px 25px rgba(220, 20, 60, 0.5);
       z-index: 2;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       font-family: 'Space Grotesk', sans-serif;
       text-transform: uppercase;
       letter-spacing: 1px;
-      min-width: 220px;
+      min-width: 180px;
       justify-content: center;
     }
 
     .content-section {
-      padding: 32px 28px 24px 28px;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0.3) 100%);
+      padding: 20px;
       display: grid;
-      grid-template-rows: 140px auto auto auto auto; /* header, specs, pricing, savings, cta */
-      gap: 18px;
-      background: transparent; /* keep clear over image */
-      overflow: visible; /* allow full content to show */
+      grid-template-rows: auto auto auto auto auto; /* header, specs, pricing, savings, cta */
+      gap: 10px;
       position: relative;
-      z-index: 3; /* sit above image */
-      margin-top: -64px; /* pull content up to overlay image */
-      padding-top: 72px; /* extra breathing room between image and heading */
+      z-index: 3;
+      min-height: 600px; /* ensure enough space for all content */
     }
 
     .header {
-      height: 140px; /* Increased height for better spacing */
+      height: auto;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      margin-bottom: 8px; /* Add bottom margin for separation */
     }
 
     .header h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 3.2rem;
+      font-size: 2.0rem;
       font-weight: 700;
-      line-height: 1.2;
-      margin-bottom: 10px;
+      line-height: 1.1;
+      margin-bottom: 4px;
     }
 
     .subtitle {
-      font-size: 1.4rem;
+      font-size: 1.1rem;
       color: #aaaaaa;
       font-weight: 500;
     }
@@ -136,37 +132,36 @@
     .specs-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
+      gap: 12px;
     }
 
     .spec-item {
       background: rgba(255, 255, 255, 0.05);
-      padding: 25px 20px;
-      border-radius: 16px;
+      padding: 12px 10px;
+      border-radius: 12px;
       text-align: center;
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .spec-value {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 2.2rem;
+      font-size: 1.6rem;
       font-weight: 600;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .spec-label {
-      font-size: 1rem;
+      font-size: 0.8rem;
       color: #888888;
       text-transform: uppercase;
       font-weight: 500;
     }
 
     .price-section {
-      background: rgba(255, 255, 255, 0.06); /* glass layer */
+      background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 16px;
-      padding: 20px 24px;
-      margin: 20px 0;
+      border-radius: 12px;
+      padding: 14px 16px;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
@@ -176,18 +171,18 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .price-label {
-      font-size: 1.6rem;
+      font-size: 1.2rem;
       color: #999999;
       font-family: 'Inter', sans-serif;
       font-weight: 500;
     }
 
     .old-price {
-      font-size: 2.4rem;
+      font-size: 1.8rem;
       color: #666666;
       text-decoration: line-through;
       font-weight: 400;
@@ -196,7 +191,7 @@
 
     .new-price {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 4.5rem;
+      font-size: 3.2rem;
       color: #ffffff;
       font-weight: 700;
       text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
@@ -206,47 +201,46 @@
       background-clip: text;
     }
 
-    .savings {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-      padding: 14px 22px;
-      border-radius: 30px;
-      margin-top: 15px;
-      font-size: 1.8rem;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 600;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    }
-
     .monthly-payment {
-      margin-top: 6px;
+      margin-top: 4px;
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.8rem;
+      font-size: 1.4rem;
       font-weight: 600;
       color: rgba(255,255,255,0.95);
       text-shadow: 0 0 14px rgba(255,255,255,0.15);
       text-align: right;
     }
 
+    .savings {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 20px;
+      font-size: 1.3rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      justify-self: start;
+    }
+
     .cta-button {
       background: linear-gradient(135deg, #2a2a2a, #0a0a0a);
       border: 2px solid rgba(255, 255, 255, 0.2);
       color: #ffffff;
-      padding: 22px 35px;
-      font-size: 1.6rem;
-      border-radius: 16px;
+      padding: 16px 24px;
+      font-size: 1.2rem;
+      border-radius: 12px;
       cursor: pointer;
       width: 100%;
-      margin-top: 25px;
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 15px;
+      gap: 10px;
       letter-spacing: 0.5px;
       font-family: 'Space Grotesk', sans-serif;
       font-weight: 600;
@@ -254,29 +248,17 @@
     }
 
     .cta-button i {
-      font-size: 1rem;
+      font-size: 0.9rem;
     }
 
     .cta-button span {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .divider {
       display: none !important;
-    }
-
-    /* 4:5 format adjustments - when height is shorter */
-    @media (max-height: 1400px) {
-      .content-section {
-        margin-top: -140px; /* pull content higher for 4:5 format */
-        padding-top: 90px; /* adjust padding accordingly */
-      }
-      
-      .image-wrapper {
-        aspect-ratio: 80 / 50; /* reduce image height more for 4:5 */
-      }
     }
   </style>
 </head>
@@ -338,4 +320,4 @@
     </div>
   </div>
 </body>
-</html> 
+</html>

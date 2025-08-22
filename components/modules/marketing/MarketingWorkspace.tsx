@@ -2037,10 +2037,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                 
                 {/* Horizontal Thumbnail Grid - More Compact */}
                 <div 
-                  className="flex gap-2 overflow-x-auto pb-1 mb-2 scrollbar-hide" 
+                  className="flex gap-2 overflow-x-auto pb-1 mb-2 custom-scrollbar" 
                   style={{ 
-                    scrollbarWidth: 'none', 
-                    msOverflowStyle: 'none',
                     minHeight: '48px' // Updated to match smaller thumbnail size
                   }}
                 >

@@ -712,7 +712,7 @@ export default function MarketingKanbanBoard() {
           // Use fresh data from database to preserve recent uploads
           title: currentTask.title,
           description: currentTask.description,
-          assignee: currentTask.requested_by || currentTask.assignee, // Handle field mapping
+          assignee: currentTask.requested_by, // Use only the authoritative database field
           due_date: currentTask.due_date,
           task_type: currentTask.task_type,
           media_files: currentTask.media_files, // This is the critical fix - use fresh data
@@ -737,6 +737,7 @@ export default function MarketingKanbanBoard() {
 
       const taskWithPreview = {
         ...updatedTask,
+        assignee: (updatedTask as any).requested_by, // Map database field back to frontend
         media_files: mergedMedia,
         previewUrl: previewUrl || selectedTask?.previewUrl || null,
         _localUpdate: true,

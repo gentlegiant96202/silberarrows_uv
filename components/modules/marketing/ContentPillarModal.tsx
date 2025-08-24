@@ -910,11 +910,11 @@ export default function ContentPillarModal({
             <div className="flex-1 bg-white/5 rounded-xl border border-white/10 overflow-hidden p-2">
               {formData.title || formData.description ? (
                 <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                  <div style={{ width: '360px', height: '640px', transform: 'scale(0.333)', transformOrigin: 'center' }}>
+                  <div style={{ position: 'relative', width: '360px', height: '640px' }}>
                     <iframe
                       srcDoc={generateLivePreviewHTML()}
                       className="border-0 rounded-lg shadow-lg"
-                      style={{ width: '1080px', height: '1920px' }}
+                      style={{ position: 'absolute', top: 0, left: 0, width: '1080px', height: '1920px', transform: 'scale(0.333)', transformOrigin: 'top left' }}
                       title="Live Template Preview"
                     />
                   </div>

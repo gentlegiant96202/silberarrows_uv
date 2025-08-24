@@ -873,7 +873,7 @@ export default function ContentPillarsBoard() {
         isEditing={!!editingPillar}
         editingItem={editingPillar}
         onRegenerate={aiGeneratedContent && !editingPillar ? handleAIRegenerate : undefined}
-        aiGeneratedContent={aiGeneratedContent}
+        aiGeneratedContent={aiGeneratedContent || undefined}
         generatedImageBase64={generatedImages[editingPillar ? editingPillar.id : `new_${selectedDay}`] || null}
         onGeneratedImageChange={(imageBase64) => {
           const pillarKey = editingPillar ? editingPillar.id : `new_${selectedDay}`;

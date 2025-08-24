@@ -4,6 +4,7 @@ const marketingTabs = [
   { key: 'design', title: 'CREATIVE HUB' },
   { key: 'call_log', title: 'CALL LOG' },
   { key: 'uv_catalog', title: 'UV CATALOG' },
+  { key: 'content_pillars', title: 'CONTENT PILLARS' },
   { key: 'blog', title: 'BLOG' },
   { key: 'email', title: 'EMAIL' }
 ];

@@ -14,9 +14,22 @@ app.use(express.json({ limit: '20mb' }));
 const templatePath = path.resolve(__dirname, '../public/templates/price-drop-template.html');
 const template45Path = path.resolve(__dirname, '../public/templates/price-drop-template-45.html');
 const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
+
+// Content pillar templates
+const contentPillarTemplates = {
+  monday: path.resolve(__dirname, '../public/templates/content-pillar-monday.html'),
+  tuesday: path.resolve(__dirname, '../public/templates/content-pillar-tuesday.html'),
+  wednesday: path.resolve(__dirname, '../public/templates/content-pillar-wednesday.html'),
+  thursday: path.resolve(__dirname, '../public/templates/content-pillar-thursday.html'),
+  friday: path.resolve(__dirname, '../public/templates/content-pillar-friday.html'),
+  saturday: path.resolve(__dirname, '../public/templates/content-pillar-saturday.html'),
+  sunday: path.resolve(__dirname, '../public/templates/content-pillar-sunday.html')
+};
+
 let templateHtml = '';
 let template45Html = '';
 let catalogTemplateHtml = '';
+let contentPillarHtmls = {};
 
 async function loadTemplate() {
   console.log('📁 Loading templates...');
@@ -47,7 +60,18 @@ async function loadTemplate() {
     console.error('❌ Error loading catalog template:', err);
     throw err;
   }
-}
+  
+  // Load content pillar templates
+  for (const [day, templatePath] of Object.entries(contentPillarTemplates)) {
+    try {
+      contentPillarHtmls[day] = await fs.readFile(templatePath, 'utf-8');
+      console.log(`✅ Content pillar template loaded for ${day}, length:`, contentPillarHtmls[day].length);
+    } catch (err) {
+      console.error(`❌ Error loading ${day} content pillar template:`, err);
+      throw err;
+    }
+  }
+  }
 
 function replaceAll(str, find, replace) {
   return str.split(find).join(replace);
@@ -111,6 +135,27 @@ function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
     '{{monthlyPayment}}': String(monthlyPayment.toLocaleString()),
     '{{catalogImageUrl}}': String(catalogImageUrl ?? ''),
   };
+  for (const [key, value] of Object.entries(replacements)) {
+    html = replaceAll(html, key, value);
+  }
+  return html;
+}
+
+function fillContentPillarTemplate({ title, description, imageUrl, dayOfWeek, badgeText, subtitle }) {
+  const day = dayOfWeek.toLowerCase();
+  if (!contentPillarHtmls[day]) {
+    throw new Error(`Template not found for day: ${day}`);
+  }
+  
+  let html = contentPillarHtmls[day];
+  const replacements = {
+    '{{title}}': String(title ?? ''),
+    '{{description}}': String(description ?? ''),
+    '{{imageUrl}}': String(imageUrl ?? ''),
+    '{{badgeText}}': String(badgeText ?? dayOfWeek.toUpperCase()),
+    '{{subtitle}}': String(subtitle ?? 'Premium Selection'),
+  };
+  
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);
   }
@@ -228,6 +273,54 @@ app.post('/render-catalog', async (req, res) => {
     res.json({ success: true, catalogImage });
   } catch (err) {
     console.error('Catalog render error:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+app.post('/render-content-pillar', async (req, res) => {
+  try {
+    console.log('🚀 Content pillar render request received');
+    console.log('📊 Request body keys:', Object.keys(req.body || {}));
+    
+    const { title, description, imageUrl, dayOfWeek, badgeText, subtitle } = req.body || {};
+    
+    console.log('📝 Content pillar details:', { title, description, imageUrl: imageUrl ? 'Present' : 'Missing', dayOfWeek, badgeText, subtitle });
+    
+    if (!title || !description || !imageUrl || !dayOfWeek) {
+      console.error('❌ Missing required fields:', { title: !!title, description: !!description, imageUrl: !!imageUrl, dayOfWeek: !!dayOfWeek });
+      return res.status(400).json({ success: false, error: 'Missing required fields: title, description, imageUrl, dayOfWeek' });
+    }
+
+    console.log('🎨 Filling content pillar template...');
+    const html = fillContentPillarTemplate({ title, description, imageUrl, dayOfWeek, badgeText, subtitle });
+    console.log('✅ Template filled, length:', html.length);
+
+            console.log('🎭 Launching Playwright...');
+        const { chromium } = await import('playwright');
+        const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        console.log('✅ Browser launched');
+
+        // Instagram story format (1080x1920)
+        console.log('📐 Setting up Instagram story format (1080x1920)...');
+        await page.setViewportSize({ width: 1080, height: 1920 });
+        await page.setContent(html, { waitUntil: 'networkidle' });
+        await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
+        await page.evaluate(() => document.fonts && document.fonts.ready);
+        await page.waitForTimeout(1000);
+        console.log('📸 Taking screenshot...');
+        const imageBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1920 } });
+        console.log('✅ Screenshot taken');
+
+    await browser.close();
+    console.log('🔒 Browser closed');
+
+    const contentPillarImage = imageBuffer.toString('base64');
+
+    res.json({ success: true, contentPillarImage });
+  } catch (err) {
+    console.error('❌ Content pillar render error:', err);
+    console.error('❌ Error stack:', err.stack);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });

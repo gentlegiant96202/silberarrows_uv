@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{title}} | Tuesday Tutorial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      color: #ffffff;
+      height: 100vh;
+      width: 100vw;
+      padding: 0;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .content-card {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+    }
+
+    .header-section {
+      padding: 32px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .tuesday-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .main-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 3.2rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .content-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      height: 100%;
+      gap: 0;
+    }
+
+    .image-panel {
+      position: relative;
+      background: #000;
+      overflow: hidden;
+    }
+
+    .content-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.9;
+    }
+
+    .image-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        45deg,
+        rgba(30, 58, 138, 0.3) 0%,
+        rgba(59, 130, 246, 0.2) 100%
+      );
+    }
+
+    .info-panel {
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(15px);
+    }
+
+    .tutorial-steps {
+      margin-bottom: 32px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      border-left: 4px solid #f59e0b;
+    }
+
+    .step-number {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-title {
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+
+    .step-description {
+      font-size: 1rem;
+      color: #cccccc;
+      line-height: 1.5;
+    }
+
+    .description-text {
+      font-size: 1.3rem;
+      color: #e5e7eb;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .learn-more {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1.2rem;
+      text-align: center;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .brand-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .brand-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .contact-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .contact-info i {
+      color: #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <div class="content-card">
+    <div class="header-section">
+      <div class="tuesday-badge">
+        <i class="fas fa-graduation-cap"></i> TUESDAY TUTORIAL
+      </div>
+      <h1 class="main-title">{{title}}</h1>
+    </div>
+    
+    <div class="content-section">
+      <div class="image-panel">
+        <img src="{{imageUrl}}" alt="{{title}}" class="content-image" />
+        <div class="image-overlay"></div>
+      </div>
+      
+      <div class="info-panel">
+        <p class="description-text">{{description}}</p>
+        
+        <div class="tutorial-steps">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <div class="step-title">Learn the Basics</div>
+              <div class="step-description">Understanding fundamental concepts and features</div>
+            </div>
+          </div>
+          
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <div class="step-title">Hands-on Practice</div>
+              <div class="step-description">Apply knowledge with practical examples</div>
+            </div>
+          </div>
+          
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <div class="step-title">Master the Details</div>
+              <div class="step-description">Advanced tips and expert techniques</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="learn-more">
+          <i class="fas fa-play-circle"></i>
+          Learn More
+        </div>
+        
+        <div class="brand-footer">
+          <div class="brand-logo">SilberArrows</div>
+          <div class="contact-info">
+            <i class="fas fa-phone"></i>
+            <i class="fab fa-whatsapp"></i>
+            +971 4 380 5515
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

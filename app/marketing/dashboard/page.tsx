@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import MarketingKanbanBoard from '@/components/modules/marketing/MarketingKanbanBoard';
 import UVCatalogBoard from '@/components/modules/marketing/UVCatalogBoard';
 import CallLogBoard from '@/components/modules/marketing/CallLogBoard';
+import ContentPillarsBoard from '@/components/modules/marketing/ContentPillarsBoard';
 import RouteProtector from '@/components/shared/RouteProtector';
 
 export default function MarketingDashboard() {
@@ -21,6 +22,10 @@ export default function MarketingDashboard() {
     
     if (activeTab === 'uv_catalog') {
       return <UVCatalogBoard />;
+    }
+    
+    if (activeTab === 'content_pillars') {
+      return <ContentPillarsBoard />;
     }
     
     return (

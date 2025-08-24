@@ -417,7 +417,7 @@ export default function ContentPillarsBoard() {
       ]
     };
 
-    const descriptionVariations: Record<string, string[]> = [
+    const descriptionVariations: string[] = [
       'Showcase premium features and luxury details with professional photography',
       'Highlight advanced technology and innovative Mercedes engineering',
       'Demonstrate expert service and customer satisfaction excellence',

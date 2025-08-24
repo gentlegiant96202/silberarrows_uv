@@ -464,6 +464,8 @@ export default function ContentPillarModal({
         title: '',
         description: '',
         content_type: 'image',
+        badgeText: dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase(),
+        subtitle: dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection',
       });
     } catch (error) {
       console.error('Error saving content pillar:', error);

@@ -12,6 +12,8 @@ interface ContentExample {
   day_of_week: string;
 }
 
+type ContentType = ContentExample['content_type'];
+
 interface ContentExamplesModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,10 +48,10 @@ export default function ContentExamplesModal({
   const [localExamples, setLocalExamples] = useState<ContentExample[]>([]);
   const [editingExample, setEditingExample] = useState<ContentExample | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{ title: string; description: string; content_type: ContentType }>({
     title: '',
     description: '',
-    content_type: 'image' as const,
+    content_type: 'image',
   });
 
   // Initialize local examples when modal opens
@@ -61,10 +63,11 @@ export default function ContentExamplesModal({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'content_type') {
+      setFormData(prev => ({ ...prev, content_type: value as ContentType }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value } as any));
+    }
   };
 
   const handleAddExample = () => {

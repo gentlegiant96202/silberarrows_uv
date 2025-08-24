@@ -100,6 +100,40 @@ export default function ContentPillarModal({
     setSelectedFiles([]);
   }, [editingItem, aiGeneratedContent]);
 
+  // Compress base64 image to reduce payload size
+  const compressBase64Image = async (base64: string, quality: number = 0.7, maxWidth: number = 800): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+        
+        // Calculate new dimensions while maintaining aspect ratio
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = base64;
+    });
+  };
+
   // Generate thumbnail for uploaded files
   const generateThumbnail = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -189,9 +223,20 @@ export default function ContentPillarModal({
     }
 
     // Get the first uploaded image or existing media file
-    const imageUrl = selectedFiles[0]?.thumbnail || 
-                    existingMedia[0]?.url || 
-                    'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png'; // Fallback to logo
+    // Use existing media URL first, or compress thumbnail to avoid 413 payload size errors
+    let imageUrl = existingMedia[0]?.url || 
+                   'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png'; // Fallback to logo
+    
+    // If we have a selected file but no existing media, compress the thumbnail
+    if (selectedFiles[0]?.thumbnail && !existingMedia[0]?.url) {
+      try {
+        // Compress the base64 image to reduce payload size
+        imageUrl = await compressBase64Image(selectedFiles[0].thumbnail, 0.7, 800); // 70% quality, max 800px width
+      } catch (error) {
+        console.warn('Failed to compress image, using fallback:', error);
+        // Keep the fallback URL
+      }
+    }
 
     setGeneratingTemplate(true);
     

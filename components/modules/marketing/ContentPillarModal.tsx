@@ -343,14 +343,14 @@ export default function ContentPillarModal({
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
           body { font-family: 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
           .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
-          .image-section { position: relative; width: 100%; height: 50%; }
+          .image-section { position: relative; width: 100%; height: 65%; }
           .background-image { width: 100%; height: 100%; object-fit: cover; }
           .badge { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #e5e7eb, #9ca3af, #6b7280); color: #000; padding: 12px 22px; border-radius: 22px; font-weight: 800; font-size: 1rem; z-index: 2; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; min-width: 70%; white-space: nowrap; display: inline-flex; justify-content: center; align-items: center; }
-          .content { padding: 15px; height: 50%; display: flex; flex-direction: column; justify-content: flex-start; overflow: visible; }
+          .content { padding: 24px; height: 35%; display: flex; flex-direction: column; justify-content: flex-start; gap: 10px; overflow: visible; }
           .title-row { display: flex; align-items: flex-start; gap: 8px; }
-          .title { font-size: 2.2rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.15; }
-          .subtitle { font-size: 1.1rem; color: #d1d5db; margin-bottom: 12px; }
-          .description { font-size: 1rem; color: #e5e7eb; line-height: 1.6; text-align: left; margin: 12px 0; }
+          .title { font-size: 2.4rem; font-weight: 800; margin-bottom: 10px; background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.15; }
+          .subtitle { font-size: 1.2rem; color: #d1d5db; margin-bottom: 12px; }
+          .description { font-size: 1.1rem; color: #e5e7eb; line-height: 1.7; text-align: left; margin: 12px 0; max-width: 92%; }
           .company-logo-inline { height: 40px; width: auto; filter: brightness(1.2); margin-top: 2px; }
           .contact { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 5; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 10px 14px; border-radius: 12px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); font-weight: 700; white-space: nowrap; font-size: 1rem; }
           .contact i { color: #ffffff; }

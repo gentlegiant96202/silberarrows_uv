@@ -16,6 +16,7 @@ interface ContentPillarItem {
   day_of_week: string;
   created_at: string;
   updated_at: string;
+  media_files?: any[];
 }
 
 // Define content example type

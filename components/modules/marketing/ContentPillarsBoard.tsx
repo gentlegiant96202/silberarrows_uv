@@ -451,6 +451,9 @@ export default function ContentPillarsBoard() {
         user.email?.split('@')[0]?.replace(/\./g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 
         'Marketing Team';
 
+      // Prepare media files - include all media from the content pillar
+      const mediaFiles = item.media_files?.map(media => media.url || media) || [];
+      
       // Create task data for the Marketing Kanban
       const taskData = {
         title: item.title,
@@ -459,7 +462,7 @@ export default function ContentPillarsBoard() {
         assignee: userName,
         task_type: item.content_type === 'video' ? 'video' : 'design',
         due_date: null, // No due date initially
-        media_files: []
+        media_files: mediaFiles
       };
 
       // Get auth headers and call the design-tasks API
@@ -478,11 +481,11 @@ export default function ContentPillarsBoard() {
       const newTask = await response.json();
       console.log('✅ Task created in Creative Hub:', newTask);
       
-      // Remove the item from Content Pillars since it's now in Creative Hub
-      setContentItems(prev => prev.filter(pillar => pillar.id !== item.id));
+      // Keep the item in Content Pillars - don't delete it
+      // This allows the same content pillar to be sent to kanban multiple times if needed
       
       // Show success feedback
-      alert(`"${item.title}" has been pushed to Creative Hub and is now in the Intake column!`);
+      alert(`"${item.title}" has been pushed to Creative Hub with ${mediaFiles.length} media file(s) and is now in the Intake column!`);
     } catch (error) {
       console.error('Error pushing to Creative Hub:', error);
       alert(`Failed to push to Creative Hub: ${error instanceof Error ? error.message : 'Unknown error'}`);

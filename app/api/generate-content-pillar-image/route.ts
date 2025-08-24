@@ -2,65 +2,208 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, description, imageUrl, dayOfWeek, badgeText, subtitle } = await req.json();
+    const body = await req.json();
     
-    console.log('🎨 Generating content pillar image:', { title, dayOfWeek, hasImage: !!imageUrl });
-    
-    if (!title || !description || !imageUrl || !dayOfWeek) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing required fields: title, description, imageUrl, dayOfWeek' 
-      }, { status: 400 });
+    // Check if we're using the new HTML-based approach or the old template-based approach
+    if (body.html) {
+      // New approach: use provided HTML directly
+      const { html, dayOfWeek } = body;
+      
+      console.log('🎨 Generating content pillar image from HTML:', { dayOfWeek, htmlLength: html?.length });
+      
+      if (!html || !dayOfWeek) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Missing required fields: html, dayOfWeek' 
+        }, { status: 400 });
+      }
+      
+      // Call renderer with HTML
+      return await generateFromHTML(html, dayOfWeek);
+      
+    } else {
+      // Old approach: use template variables (for backward compatibility)
+      const { title, description, imageUrl, dayOfWeek, badgeText, subtitle } = body;
+      
+      console.log('🎨 Generating content pillar image:', { title, dayOfWeek, hasImage: !!imageUrl });
+      
+      if (!title || !description || !imageUrl || !dayOfWeek) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Missing required fields: title, description, imageUrl, dayOfWeek' 
+        }, { status: 400 });
+      }
+      
+      // Call renderer with template variables
+      return await generateFromTemplate(title, description, imageUrl, dayOfWeek, badgeText, subtitle);
     }
-
-    // Call the renderer service
-    const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3000';
-    
-    console.log('📡 Calling renderer service at:', rendererUrl);
-    
-    const response = await fetch(`${rendererUrl}/render-content-pillar`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title,
-        description,
-        imageUrl,
-        dayOfWeek,
-        badgeText,
-        subtitle
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Renderer service error:', errorText);
-      throw new Error(`Renderer service failed: ${response.status} ${errorText}`);
-    }
-
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Renderer service returned failure');
-    }
-
-    console.log('✅ Content pillar image generated successfully');
-    
-    return NextResponse.json({
-      success: true,
-      imageBase64: result.contentPillarImage,
-      format: 'png',
-      dimensions: { width: 1080, height: 1080 }
-    });
-
   } catch (error) {
-    console.error('❌ Error generating content pillar image:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to generate content pillar image',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    console.error('❌ Error in generate-content-pillar-image:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 });
   }
+}
+
+// New function to generate from HTML
+async function generateFromHTML(html: string, dayOfWeek: string) {
+  // Call the renderer service with retry logic
+  const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3000';
+  
+  console.log('📡 Calling renderer service at:', rendererUrl);
+  
+  // First, check if renderer is healthy
+  try {
+    const healthCheck = await fetch(`${rendererUrl}/health`, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
+    });
+    if (healthCheck.ok) {
+      console.log('✅ Renderer health check passed');
+    } else {
+      console.warn('⚠️ Renderer health check failed, but continuing...');
+    }
+  } catch (error) {
+    console.warn('⚠️ Renderer health check error:', error instanceof Error ? error.message : error);
+  }
+  
+  let response;
+  let lastError;
+  
+  // Try 3 times with increasing delays
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log(`🔄 Attempt ${attempt}/3 to reach renderer...`);
+      
+      response = await fetch(`${rendererUrl}/render-html`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          html,
+          dayOfWeek
+        }),
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Connected to renderer on attempt ${attempt}`);
+        break;
+      } else {
+        throw new Error(`Renderer responded with status: ${response.status}`);
+      }
+      
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ Attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
+      
+      if (attempt < 3) {
+        const delay = attempt * 2000; // 2s, 4s
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  if (!response || !response.ok) {
+    throw new Error(`Failed to connect to renderer after 3 attempts. Last error: ${lastError instanceof Error ? lastError.message : lastError}`);
+  }
+
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Renderer failed to generate image');
+  }
+
+  console.log('✅ Content pillar image generated successfully');
+  
+  return NextResponse.json({
+    success: true,
+    imageBase64: result.contentPillarImage
+  });
+}
+
+// Old function to generate from template variables (for backward compatibility)
+async function generateFromTemplate(title: string, description: string, imageUrl: string, dayOfWeek: string, badgeText?: string, subtitle?: string) {
+  // Call the renderer service with retry logic
+  const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3000';
+  
+  console.log('📡 Calling renderer service at:', rendererUrl);
+  
+  // First, check if renderer is healthy
+  try {
+    const healthCheck = await fetch(`${rendererUrl}/health`, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
+    });
+    if (healthCheck.ok) {
+      console.log('✅ Renderer health check passed');
+    } else {
+      console.warn('⚠️ Renderer health check failed, but continuing...');
+    }
+  } catch (error) {
+    console.warn('⚠️ Renderer health check error:', error instanceof Error ? error.message : error);
+  }
+  
+  let response;
+  let lastError;
+  
+  // Try 3 times with increasing delays
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log(`🔄 Attempt ${attempt}/3 to reach renderer...`);
+      
+      response = await fetch(`${rendererUrl}/render-content-pillar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          description,
+          imageUrl,
+          dayOfWeek,
+          badgeText,
+          subtitle
+        }),
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Connected to renderer on attempt ${attempt}`);
+        break;
+      } else {
+        throw new Error(`Renderer responded with status: ${response.status}`);
+      }
+      
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ Attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
+      
+      if (attempt < 3) {
+        const delay = attempt * 2000; // 2s, 4s
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  if (!response || !response.ok) {
+    throw new Error(`Failed to connect to renderer after 3 attempts. Last error: ${lastError instanceof Error ? lastError.message : lastError}`);
+  }
+
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Renderer failed to generate image');
+  }
+
+  console.log('✅ Content pillar image generated successfully');
+  
+  return NextResponse.json({
+    success: true,
+    imageBase64: result.contentPillarImage
+  });
 }

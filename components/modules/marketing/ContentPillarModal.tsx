@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Video, Image as ImageIcon, Sparkles, Upload, X, Download, Eye } from 'lucide-react';
 
 // Define the content pillar item type (matching the main component)
@@ -85,7 +85,12 @@ export default function ContentPillarModal({
     content_type: editingItem?.content_type || aiGeneratedContent?.content_type || 'image' as const,
     badgeText: editingItem?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase()),
     subtitle: editingItem?.subtitle || (dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+    imageAlignment: 'center' as 'left' | 'center' | 'right',
+    imageFit: 'cover' as 'cover' | 'contain' | 'fill',
   });
+
+  // Create ref for the live preview iframe
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Update form data when editingItem or aiGeneratedContent changes
   useEffect(() => {
@@ -95,6 +100,8 @@ export default function ContentPillarModal({
       content_type: editingItem?.content_type || aiGeneratedContent?.content_type || 'image' as const,
       badgeText: editingItem?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase()),
       subtitle: editingItem?.subtitle || (dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+      imageAlignment: 'center' as 'left' | 'center' | 'right',
+      imageFit: 'cover' as 'cover' | 'contain' | 'fill',
     });
     setExistingMedia(editingItem?.media_files || []);
     setSelectedFiles([]);
@@ -204,6 +211,33 @@ export default function ContentPillarModal({
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Remove existing media file
+  const removeExistingMedia = async (indexToRemove: number) => {
+    const mediaToRemove = existingMedia[indexToRemove];
+    if (!mediaToRemove) return;
+
+    try {
+      // Remove from local state immediately for better UX
+      setExistingMedia(prev => prev.filter((_, index) => index !== indexToRemove));
+
+      // If we have an editingItem, we should update it to remove this media
+      if (editingItem && onSave) {
+        const updatedMediaFiles = existingMedia.filter((_, index) => index !== indexToRemove);
+        const updatedItem = {
+          ...editingItem,
+          media_files: updatedMediaFiles
+        };
+        
+        // Save the updated item
+        await onSave(updatedItem);
+      }
+    } catch (error) {
+      console.error('Error removing media:', error);
+      // Restore the media item if there was an error
+      setExistingMedia(prev => [...prev.slice(0, indexToRemove), mediaToRemove, ...prev.slice(indexToRemove)]);
+    }
+  };
+
   // Get file type icon
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) {
@@ -215,44 +249,34 @@ export default function ContentPillarModal({
     }
   };
 
-  // Generate template image
+  // Generate template image using live preview HTML
   const generateTemplateImage = async () => {
     if (!formData.title || !formData.description || !dayKey) {
       alert('Please fill in title and description first');
       return;
     }
 
-    // Get the first uploaded image or existing media file
-    // Use existing media URL first, or compress thumbnail to avoid 413 payload size errors
-    let imageUrl = existingMedia[0]?.url || 
-                   'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png'; // Fallback to logo
-    
-    // If we have a selected file but no existing media, compress the thumbnail
-    if (selectedFiles[0]?.thumbnail && !existingMedia[0]?.url) {
-      try {
-        // Compress the base64 image to reduce payload size
-        imageUrl = await compressBase64Image(selectedFiles[0].thumbnail, 0.7, 800); // 70% quality, max 800px width
-      } catch (error) {
-        console.warn('Failed to compress image, using fallback:', error);
-        // Keep the fallback URL
-      }
-    }
+    // No need to check iframe since we're generating HTML directly
 
     setGeneratingTemplate(true);
     
     try {
+      console.log('🎨 Generating template image from live preview...');
+      
+      // Instead of capturing from iframe, generate the HTML directly
+      // This avoids any browser duplication issues
+      const htmlContent = generateLivePreviewHTML();
+      
+      console.log('📄 Generated HTML directly, length:', htmlContent.length);
+
       const response = await fetch('/api/generate-content-pillar-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          imageUrl: imageUrl,
-          dayOfWeek: dayKey,
-          badgeText: formData.badgeText,
-          subtitle: formData.subtitle
+          html: htmlContent,
+          dayOfWeek: dayKey
         })
       });
 
@@ -271,7 +295,7 @@ export default function ContentPillarModal({
       // Auto-save the generated image as a media file
       await saveGeneratedImageAsFile(result.imageBase64);
       
-      console.log('✅ Template image generated successfully');
+      console.log('✅ Template image generated successfully from live preview');
       
     } catch (error) {
       console.error('❌ Error generating template:', error);
@@ -343,29 +367,29 @@ export default function ContentPillarModal({
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
           body { font-family: 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
           .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
-          .image-section { position: relative; width: 100%; height: 72%; }
-          .background-image { width: 100%; height: 100%; object-fit: cover; }
-          .badge { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #e5e7eb, #9ca3af, #6b7280); color: #000; padding: 14px 26px; border-radius: 24px; font-weight: 900; font-size: 22px; z-index: 2; text-transform: uppercase; letter-spacing: 0.6px; text-align: center; min-width: 80%; white-space: nowrap; display: inline-flex; justify-content: center; align-items: center; }
-          .content { padding: 24px; height: 28%; display: flex; flex-direction: column; justify-content: flex-start; gap: 10px; overflow: visible; }
-          .title-row { display: flex; align-items: center; gap: 10px; }
-          .title { font-size: 72px; font-weight: 900; margin-bottom: 12px; background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.15; }
-          .subtitle { font-size: 32px; color: #d1d5db; margin-bottom: 14px; }
-          .description { font-size: 26px; color: #e5e7eb; line-height: 1.7; text-align: left; margin: 14px 0; max-width: 96%; }
-          .company-logo-inline { height: 56px; width: auto; filter: brightness(1.2); margin-top: 0; }
-          .contact { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 5; display: inline-flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 14px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); font-weight: 800; white-space: nowrap; font-size: 20px; }
-          .contact i { color: #ffffff; }
+          .image-section { position: relative; width: 100%; height: 50%; }
+          .background-image { width: 100%; height: 100%; object-fit: ${formData.imageFit}; object-position: ${formData.imageAlignment}; }
+          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+          .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
+          .content { padding: 40px; height: 50%; display: flex; flex-direction: column; justify-content: flex-start; gap: 16px; overflow: visible; }
+          .title { font-size: 68px; font-weight: 900; color: #ffffff; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+          .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+          .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
+          .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
+          .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+          .contact i { color: #ffffff; font-size: 26px; }
         </style>
         <div class="content-card">
           <div class="image-section">
             <img src="${imageUrl}" class="background-image" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1619767886558-efdc259cde1f?auto=format&fit=crop&w=1080&h=720&q=80';" />
-            <div class="badge"><i class="fas fa-star" style="margin-right:6px;"></i> ${formData.badgeText}</div>
           </div>
           <div class="content">
+            <div class="badge-row">
+              <div class="badge"><i class="fas fa-star" style="margin-right:6px;"></i> ${formData.badgeText}</div>
+              <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.style.display='none';" />
+            </div>
             <div>
-              <div class="title-row">
-                <h1 class="title">${formData.title || 'Your Title Here'}</h1>
-                <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.style.display='none';" />
-              </div>
+              <h1 class="title">${formData.title || 'Your Title Here'}</h1>
               <p class="subtitle">${formData.subtitle}</p>
               <div class="description">${formData.description || 'Your description will appear here...'}</div>
             </div>
@@ -549,11 +573,11 @@ export default function ContentPillarModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-xl p-6 w-full max-w-6xl text-xs relative max-h-[95vh] overflow-hidden shadow-2xl ring-1 ring-white/10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+      <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-xl p-6 w-full max-w-7xl text-xs relative h-[95vh] overflow-hidden shadow-2xl ring-1 ring-white/10">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-full">
           
           {/* Left Panel - Form */}
-          <div className="overflow-y-auto">
+          <div className="overflow-y-auto lg:col-span-2">
         <div className="flex justify-between items-center mb-6 border-b border-white/20 pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30">
@@ -679,6 +703,49 @@ export default function ContentPillarModal({
                   <option value="text">Text Post</option>
                 </select>
               </div>
+
+              {/* Image Positioning Options */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Image Alignment */}
+                <div>
+                  <label className="block text-xs font-medium text-white mb-2 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    Image Alignment
+                  </label>
+                  <select
+                    name="imageAlignment"
+                    value={formData.imageAlignment}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-inner"
+                  >
+                    <option value="left">Left Align</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right Align</option>
+                  </select>
+                </div>
+
+                {/* Image Fit */}
+                <div>
+                  <label className="block text-xs font-medium text-white mb-2 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4a1 1 0 011-1h4m0 0l-3 3m3-3v4M20 8V4a1 1 0 00-1-1h-4m0 0l3 3m-3-3v4M4 16v4a1 1 0 001 1h4m0 0l-3-3m3 3h-4M20 16v4a1 1 0 01-1 1h-4m0 0l3-3m-3 3h-4" />
+                    </svg>
+                    Image Fit
+                  </label>
+                  <select
+                    name="imageFit"
+                    value={formData.imageFit}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-inner"
+                  >
+                    <option value="cover">Cover (crop to fill)</option>
+                    <option value="contain">Contain (fit within)</option>
+                    <option value="fill">Fill (stretch to fit)</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -771,6 +838,16 @@ export default function ContentPillarModal({
                         <div className="flex-1 min-w-0">
                           <div className="text-xs text-white/80 truncate">{media.name}</div>
                         </div>
+                        
+                        {/* Delete button */}
+                        <button
+                          type="button"
+                          onClick={() => removeExistingMedia(index)}
+                          className="flex-shrink-0 p-1 text-white/50 hover:text-red-400 transition-colors"
+                          title="Delete this image"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -901,7 +978,7 @@ export default function ContentPillarModal({
           </div>
 
           {/* Right Panel - Full Size Live Preview */}
-          <div className="hidden lg:flex flex-col">
+          <div className="hidden lg:flex flex-col lg:col-span-3">
             <div className="flex items-center justify-between mb-3 border-b border-white/20 pb-3">
               <h3 className="text-lg font-semibold text-white">Live Preview</h3>
               <div className="text-xs text-white/60 capitalize">{dayKey} Template • 1080×1920</div>
@@ -910,11 +987,12 @@ export default function ContentPillarModal({
             <div className="flex-1 bg-white/5 rounded-xl border border-white/10 overflow-hidden p-2">
               {formData.title || formData.description ? (
                 <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                  <div style={{ position: 'relative', width: '360px', height: '640px' }}>
+                  <div style={{ position: 'relative', width: '810px', height: '1440px' }}>
                     <iframe
+                      ref={iframeRef}
                       srcDoc={generateLivePreviewHTML()}
                       className="border-0 rounded-lg shadow-lg"
-                      style={{ position: 'absolute', top: 0, left: 0, width: '1080px', height: '1920px', transform: 'scale(0.333)', transformOrigin: 'top left' }}
+                      style={{ position: 'absolute', top: 0, left: 0, width: '1080px', height: '1920px', transform: 'scale(0.75)', transformOrigin: 'top left' }}
                       title="Live Template Preview"
                     />
                   </div>

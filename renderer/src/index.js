@@ -325,6 +325,60 @@ app.post('/render-content-pillar', async (req, res) => {
   }
 });
 
+// New endpoint to render from provided HTML directly
+app.post('/render-html', async (req, res) => {
+  try {
+    const { html, dayOfWeek } = req.body;
+    
+    console.log('🎨 Rendering from provided HTML:', { dayOfWeek, htmlLength: html?.length });
+    
+    if (!html || !dayOfWeek) {
+      return res.status(400).json({ success: false, error: 'Missing html or dayOfWeek' });
+    }
+
+    console.log('🚀 Launching browser...');
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    console.log('✅ Browser launched');
+
+    // Instagram story format (1080x1920)
+    console.log('📐 Setting up Instagram story format (1080x1920)...');
+    await page.setViewportSize({ width: 1080, height: 1920 });
+    await page.setContent(html, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
+    
+    // Wait for fonts and images to load
+    await page.evaluate(() => document.fonts && document.fonts.ready);
+    await page.waitForTimeout(2000); // Give extra time for everything to load
+    
+    console.log('📸 Taking screenshot...');
+    const imageBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1920 } });
+    console.log('✅ Screenshot taken');
+
+    await browser.close();
+    console.log('🔒 Browser closed');
+
+    const contentPillarImage = imageBuffer.toString('base64');
+
+    res.json({ success: true, contentPillarImage });
+  } catch (err) {
+    console.error('❌ HTML render error:', err);
+    console.error('❌ Error stack:', err.stack);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT || 3000,
+    templatesLoaded: Object.keys(contentPillarTemplates).length
+  });
+});
+
 const port = process.env.PORT || 3000;
 
 loadTemplate().then(() => {

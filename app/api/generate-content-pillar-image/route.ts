@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import puppeteer from 'puppeteer';
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,8 +19,12 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
       
-      // Call renderer with HTML
-      return await generateFromHTML(html, dayOfWeek);
+      // Use Puppeteer in production, renderer service in development
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        return await generateFromHTMLPuppeteer(html, dayOfWeek);
+      } else {
+        return await generateFromHTML(html, dayOfWeek);
+      }
       
     } else {
       // Old approach: use template variables (for backward compatibility)
@@ -34,8 +39,17 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
       
-      // Call renderer with template variables
-      return await generateFromTemplate(title, description, imageUrl, dayOfWeek, badgeText, subtitle);
+      // Use Puppeteer in production, renderer service in development
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        // For template-based approach in production, we'd need to generate HTML first
+        // For now, return an error suggesting to use the new HTML-based approach
+        return NextResponse.json({
+          success: false,
+          error: 'Template-based generation not supported in production. Please use the HTML-based approach.'
+        }, { status: 400 });
+      } else {
+        return await generateFromTemplate(title, description, imageUrl, dayOfWeek, badgeText, subtitle);
+      }
     }
   } catch (error) {
     console.error('❌ Error in generate-content-pillar-image:', error);
@@ -46,7 +60,63 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// New function to generate from HTML
+// Generate from HTML using Puppeteer (for production)
+async function generateFromHTMLPuppeteer(html: string, dayOfWeek: string) {
+  console.log('🎨 Using Puppeteer for image generation (production mode)');
+  
+  let browser;
+  try {
+    // Launch Puppeteer with production-friendly settings
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ]
+    });
+
+    const page = await browser.newPage();
+    
+    // Set viewport to Instagram story dimensions
+    await page.setViewport({ width: 1080, height: 1920 });
+    
+    // Set content and wait for fonts to load
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    
+    // Take screenshot
+    const screenshot = await page.screenshot({
+      type: 'png',
+      fullPage: false,
+      clip: { x: 0, y: 0, width: 1080, height: 1920 }
+    });
+
+    await browser.close();
+
+    // Return the image as base64
+    const base64Image = Buffer.from(screenshot).toString('base64');
+    
+    return NextResponse.json({
+      success: true,
+      image: `data:image/png;base64,${base64Image}`,
+      method: 'puppeteer'
+    });
+
+  } catch (error) {
+    if (browser) {
+      await browser.close();
+    }
+    console.error('Puppeteer error:', error);
+    throw error;
+  }
+}
+
+// Generate from HTML using renderer service (for development)
 async function generateFromHTML(html: string, dayOfWeek: string) {
   // Call the renderer service with retry logic
   const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3000';

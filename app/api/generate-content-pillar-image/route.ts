@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,9 +18,9 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
       
-      // Use Puppeteer in production, renderer service in development
+      // Use PDFShift in production, renderer service in development
       if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-        return await generateFromHTMLPuppeteer(html, dayOfWeek);
+        return await generateFromHTMLPDFShift(html, dayOfWeek);
       } else {
         return await generateFromHTML(html, dayOfWeek);
       }
@@ -39,7 +38,7 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
       
-      // Use Puppeteer in production, renderer service in development
+      // Use PDFShift in production, renderer service in development
       if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
         // For template-based approach in production, we'd need to generate HTML first
         // For now, return an error suggesting to use the new HTML-based approach
@@ -60,58 +59,56 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Generate from HTML using Puppeteer (for production)
-async function generateFromHTMLPuppeteer(html: string, dayOfWeek: string) {
-  console.log('🎨 Using Puppeteer for image generation (production mode)');
+// Generate from HTML using PDFShift (for production)
+async function generateFromHTMLPDFShift(html: string, dayOfWeek: string) {
+  console.log('🎨 Using PDFShift for image generation (production mode)');
   
-  let browser;
+  if (!process.env.PDFSHIFT_API_KEY) {
+    throw new Error('PDFShift API key not configured');
+  }
+
   try {
-    // Launch Puppeteer with production-friendly settings
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ]
+    // Call PDFShift API to convert HTML to image
+    console.log('📄 Generating image with PDFShift...');
+    const response = await fetch('https://api.pdfshift.io/v3/convert/png', {
+      method: 'POST',
+      headers: {
+        'X-API-Key': process.env.PDFSHIFT_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        source: html,
+        format: 'png',
+        width: 1080,
+        height: 1920,
+        use_print: false,
+        margin: {
+          top: '0px',
+          bottom: '0px',
+          left: '0px',
+          right: '0px'
+        }
+      }),
     });
 
-    const page = await browser.newPage();
-    
-    // Set viewport to Instagram story dimensions
-    await page.setViewport({ width: 1080, height: 1920 });
-    
-    // Set content and wait for fonts to load
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    
-    // Take screenshot
-    const screenshot = await page.screenshot({
-      type: 'png',
-      fullPage: false,
-      clip: { x: 0, y: 0, width: 1080, height: 1920 }
-    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`PDFShift API error: ${error}`);
+    }
 
-    await browser.close();
-
-    // Return the image as base64
-    const base64Image = Buffer.from(screenshot).toString('base64');
+    const imageBuffer = await response.arrayBuffer();
+    const base64Image = Buffer.from(imageBuffer).toString('base64');
+    
+    console.log('✅ Image generated successfully with PDFShift');
     
     return NextResponse.json({
       success: true,
       image: `data:image/png;base64,${base64Image}`,
-      method: 'puppeteer'
+      method: 'pdfshift'
     });
 
   } catch (error) {
-    if (browser) {
-      await browser.close();
-    }
-    console.error('Puppeteer error:', error);
+    console.error('PDFShift error:', error);
     throw error;
   }
 }

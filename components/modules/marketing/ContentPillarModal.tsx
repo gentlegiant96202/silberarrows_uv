@@ -13,6 +13,8 @@ interface ContentPillarItem {
   media_files?: any[];
   created_at: string;
   updated_at: string;
+  badge_text?: string;
+  subtitle?: string;
 }
 
 // File handling types

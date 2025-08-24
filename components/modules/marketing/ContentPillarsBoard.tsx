@@ -182,7 +182,7 @@ export default function ContentPillarsBoard() {
       if (response.ok) {
         const data = await response.json();
         console.log('📦 Fetched content pillars:', data.length, 'items');
-        console.log('📋 First few titles:', data.slice(0, 5).map(p => p.title));
+        console.log('📋 First few titles:', data.slice(0, 5).map((p: any) => p.title));
         setContentItems(data);
         console.log('✅ Successfully fetched content pillars:', data.length);
       } else {

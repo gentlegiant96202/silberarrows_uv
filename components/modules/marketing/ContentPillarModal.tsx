@@ -330,10 +330,18 @@ export default function ContentPillarModal({
     // Get the template based on day
     const templates = {
       monday: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+        </head>
+        <body>
         <style>
-          @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; }
+          * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+          body { font-family: 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
           .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
           .image-section { position: relative; width: 100%; height: 50%; }
           .background-image { width: 100%; height: 100%; object-fit: cover; }
@@ -363,7 +371,9 @@ export default function ContentPillarModal({
             </div>
             <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
           </div>
-        </div>`,
+        </div>
+        </body>
+        </html>`,
       
       tuesday: `
         <style>
@@ -899,13 +909,15 @@ export default function ContentPillarModal({
             
             <div className="flex-1 bg-white/5 rounded-xl border border-white/10 overflow-hidden p-2">
               {formData.title || formData.description ? (
-                <div className="w-full h-full flex items-center justify-center">
-                  <iframe
-                    srcDoc={generateLivePreviewHTML()}
-                    className="border-0 rounded-lg shadow-lg"
-                    style={{ width: '360px', height: '640px' }}
-                    title="Live Template Preview"
-                  />
+                <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                  <div style={{ width: '360px', height: '640px', transform: 'scale(0.333)', transformOrigin: 'center' }}>
+                    <iframe
+                      srcDoc={generateLivePreviewHTML()}
+                      className="border-0 rounded-lg shadow-lg"
+                      style={{ width: '1080px', height: '1920px' }}
+                      title="Live Template Preview"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-center text-white/60 p-6">

@@ -165,7 +165,7 @@ const SalesKPICards: React.FC<{metrics: any[], targets?: any[], selectedYear: nu
         return metricDate.getFullYear() === selectedYear;
       });
       
-      const yearlyGrossProfit = yearlyMetrics.reduce((sum, m) => sum + (m.gross_profit_month_actual || 0), 0);
+      const yearlyGrossProfit = selectedMetric?.gross_profit_year_actual || 0;
       
       // Get yearly target from any target record for the selected year (should be consistent)
       const yearlyTarget = selectedYearTargets.length > 0 ? 
@@ -257,7 +257,7 @@ const SalesPerformanceCards: React.FC<{metrics: any[], targets: any[], selectedY
         return metricDate.getFullYear() === selectedYear;
       });
       
-      const yearlyGrossProfit = yearlyMetrics.reduce((sum, m) => sum + (m.gross_profit_month_actual || 0), 0);
+      const yearlyGrossProfit = selectedMetric?.gross_profit_year_actual || 0;
       
       // Get yearly target from any target record for the selected year (should be consistent)
       const yearlyTargets = targets.filter(t => t.year === selectedYear);
@@ -389,8 +389,7 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
         
         // Find the daily entry for this working day (if it exists)
         const dayEntry = monthlyMetrics.find(m => {
-          const metricDate = new Date(m.metric_date);
-          return metricDate.getDate() === day || m.working_days_elapsed === day;
+          return m.working_days_elapsed === day;
         });
         
         // Use the actual recorded value for this day

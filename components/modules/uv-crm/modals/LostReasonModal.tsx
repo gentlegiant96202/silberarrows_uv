@@ -23,7 +23,8 @@ const LOST_REASONS = [
   'Availability', 
   'Timeline',
   'Finance Approval',
-  'Customer Service'
+  'Customer Service',
+  'No Response'
 ] as const;
 
 export default function LostReasonModal({ lead, onClose, onConfirm, isLoading = false }: LostReasonModalProps) {

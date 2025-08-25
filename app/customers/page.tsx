@@ -36,7 +36,8 @@ const lostReasonOptions = [
   'Availability', 
   'Timeline',
   'Finance Approval',
-  'Customer Service'
+  'Customer Service',
+  'No Response'
 ];
 
 // Dynamic model list will be fetched from DB

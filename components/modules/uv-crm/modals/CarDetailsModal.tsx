@@ -622,7 +622,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     });
   }
 
-  const locations = ['SHOWROOM','YARD','STONE','CAR PARK','SHOWROOM 2','NOT ON SITE','GARGASH'];
+  const locations = ['SHOWROOM','YARD','STONE','CAR PARK','SHOWROOM 2','NOT ON SITE','GARGASH','IN SERVICE'];
   const fuelOptions = [0,25,50,75,100];
 
   const handleFieldChange = (field:keyof CarInfo,value:any)=>{

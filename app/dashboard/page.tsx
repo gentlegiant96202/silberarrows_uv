@@ -1213,7 +1213,7 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
 
         if (cars) {
           // Define all possible locations
-          const locations = ['SHOWROOM','YARD','STONE','CAR PARK','SHOWROOM 2','NOT ON SITE','GARGASH'];
+          const locations = ['SHOWROOM','YARD','STONE','CAR PARK','SHOWROOM 2','NOT ON SITE','GARGASH','IN SERVICE'];
           
           // Group cars by location
           const locationGroups: Record<string, any[]> = {};
@@ -1240,10 +1240,10 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
             }
           });
 
-          // Create data for cards - ALWAYS show all 8 cards (7 locations + unaccounted)
+          // Create data for cards - ALWAYS show all 9 cards (8 locations + unaccounted)
           const locationCards = [];
           
-          // Add cards for each location (always show all 7 locations)
+          // Add cards for each location (always show all 8 locations)
           locations.forEach(location => {
             const cars = locationGroups[location] || [];
             locationCards.push({

@@ -15,11 +15,18 @@ export default function Home() {
       } else {
         // Authenticated, check for last visited module
         const lastModule = localStorage.getItem('lastVisitedModule');
-        if (lastModule) {
-          // Redirect to the last visited module
+        
+        // Check if user came from module selection or explicitly wants to stay there
+        const referrer = document.referrer;
+        const isFromModuleSelection = referrer.includes('/module-selection');
+        const hasModuleSelectionIntent = sessionStorage.getItem('stayOnModuleSelection');
+        
+        if (lastModule && !isFromModuleSelection && !hasModuleSelectionIntent) {
+          // Redirect to the last visited module only if not coming from module selection
           router.replace(lastModule);
         } else {
-          // No previous module, go to module selection
+          // No previous module or user wants to stay on module selection
+          sessionStorage.removeItem('stayOnModuleSelection'); // Clean up flag
           router.replace('/module-selection');
         }
       }

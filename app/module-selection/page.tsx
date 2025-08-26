@@ -108,6 +108,9 @@ export default function ModuleSelectionPage() {
   useEffect(() => {
     if (!authLoading && !user) {
       router.replace('/login');
+    } else if (!authLoading && user) {
+      // Set flag to indicate user wants to stay on module selection
+      sessionStorage.setItem('stayOnModuleSelection', 'true');
     }
   }, [authLoading, user, router]);
 
@@ -148,6 +151,8 @@ export default function ModuleSelectionPage() {
 
   // Handle module navigation
   const handleModuleClick = (module: ModuleCard) => {
+    // Clear the stay on module selection flag since user is navigating away
+    sessionStorage.removeItem('stayOnModuleSelection');
     // Store the selected module path in localStorage
     localStorage.setItem('lastVisitedModule', module.basePath);
     router.push(module.basePath);

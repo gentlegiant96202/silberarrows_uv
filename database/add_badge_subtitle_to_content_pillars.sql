@@ -2,11 +2,19 @@
 
 -- Add badge_text column
 ALTER TABLE content_pillars 
-ADD COLUMN badge_text TEXT;
+ADD COLUMN IF NOT EXISTS badge_text TEXT;
 
 -- Add subtitle column  
 ALTER TABLE content_pillars 
-ADD COLUMN subtitle TEXT;
+ADD COLUMN IF NOT EXISTS subtitle TEXT;
+
+-- Add myth column for Monday Myth-Buster format
+ALTER TABLE content_pillars 
+ADD COLUMN IF NOT EXISTS myth TEXT;
+
+-- Add fact column for Monday Myth-Buster format
+ALTER TABLE content_pillars 
+ADD COLUMN IF NOT EXISTS fact TEXT;
 
 -- Set default values for existing Monday records
 UPDATE content_pillars 

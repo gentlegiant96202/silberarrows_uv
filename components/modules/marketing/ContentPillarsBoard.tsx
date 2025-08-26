@@ -17,6 +17,10 @@ interface ContentPillarItem {
   created_at: string;
   updated_at: string;
   media_files?: any[];
+  badge_text?: string;
+  subtitle?: string;
+  myth?: string;
+  fact?: string;
 }
 
 // Define content example type
@@ -32,7 +36,7 @@ interface ContentExample {
 const dayColumns = [
   { 
     key: "monday", 
-    title: "MERCEDES MONDAY", 
+    title: "MYTH BUSTER MONDAY", 
     icon: <Calendar className="w-4 h-4" />,
     color: "blue"
   },
@@ -139,6 +143,10 @@ export default function ContentPillarsBoard() {
     title: string;
     description: string;
     content_type: 'image' | 'video' | 'text' | 'carousel';
+    badge_text?: string;
+    subtitle?: string;
+    myth?: string;
+    fact?: string;
   } | null>(null);
   const [contentExamples, setContentExamples] = useState<ContentExample[]>([]);
   const [editingPillar, setEditingPillar] = useState<ContentPillarItem | null>(null);
@@ -311,24 +319,35 @@ export default function ContentPillarsBoard() {
     try {
       console.log('✨ Starting AI generation process for:', dayKey);
       
-      // CRITICAL DEBUG: Check what data we have at generation time
-      console.log('🔍 CRITICAL DEBUG - AI Generation Data Check:');
-      console.log('📦 contentItems.length:', contentItems.length);
-      console.log('📋 contentItems titles:', contentItems.map(p => p.title));
-      console.log('📅 contentItems Monday filter:', contentItems.filter(p => p.day_of_week === 'monday').map(p => p.title));
+      // 🔄 FRESH DATA FETCH: Ensure we have the latest content pillars before AI generation
+      console.log('🔄 Fetching fresh content pillars to avoid repetition...');
+      await fetchContentPillars();
       
-      // Get existing pillars for this day
-      const existingPillarsForDay = groupedContent[dayKey] || [];
+      // Wait a moment for state to update with fresh data
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      console.log(`📊 Existing pillars for ${dayKey}:`, existingPillarsForDay.length);
-      console.log('📋 Pillar titles:', existingPillarsForDay.map(p => p.title));
-      console.log('📝 Full pillar details:', existingPillarsForDay.map(p => ({
+      // Get existing pillars for this day from the most current data
+      const currentGroupedContent = dayColumns.reduce((acc, col) => {
+        acc[col.key] = contentItems.filter(item => item.day_of_week === col.key);
+        return acc;
+      }, {} as Record<string, ContentPillarItem[]>);
+      
+      const existingPillarsForDay = currentGroupedContent[dayKey] || [];
+      
+      console.log(`📊 FRESH DATA - Existing pillars for ${dayKey}:`, existingPillarsForDay.length);
+      console.log('📋 Current pillar titles:', existingPillarsForDay.map(p => p.title));
+      console.log('📝 Full pillar details for AI context:', existingPillarsForDay.map(p => ({
         id: p.id,
         title: p.title,
-        description: p.description,
+        description: p.description?.substring(0, 200) + '...',
         content_type: p.content_type
       })));
-      console.log('🗂️ Full grouped content keys:', Object.keys(groupedContent));
+      
+      if (existingPillarsForDay.length > 0) {
+        console.log('🚨 ANTI-REPETITION: Sending existing pillars to AI to avoid duplication');
+      } else {
+        console.log('✨ FRESH START: No existing pillars found, AI will create original content');
+      }
       
       // Call OpenAI API to generate content
       const headers = await getAuthHeaders();
@@ -540,7 +559,11 @@ export default function ContentPillarsBoard() {
     setAiGeneratedContent({
       title: item.title,
       description: item.description || '',
-      content_type: item.content_type
+      content_type: item.content_type,
+      badge_text: item.badge_text,
+      subtitle: item.subtitle,
+      myth: item.myth,
+      fact: item.fact
     });
     
     setShowAIModal(true);
@@ -633,6 +656,10 @@ export default function ContentPillarsBoard() {
           content_type: pillarData.content_type || editingPillar.content_type,
           day_of_week: editingPillar.day_of_week,
           media_files: finalMediaFiles,
+          badge_text: pillarData.badge_text,
+          subtitle: pillarData.subtitle,
+          myth: pillarData.myth,
+          fact: pillarData.fact,
         };
 
         const response = await fetch('/api/content-pillars', {
@@ -658,6 +685,10 @@ export default function ContentPillarsBoard() {
           content_type: pillarData.content_type || 'image',
           day_of_week: pillarData.day_of_week || selectedDay,
           media_files: finalMediaFiles,
+          badge_text: pillarData.badge_text,
+          subtitle: pillarData.subtitle,
+          myth: pillarData.myth,
+          fact: pillarData.fact,
         };
 
         const response = await fetch('/api/content-pillars', {

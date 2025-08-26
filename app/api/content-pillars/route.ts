@@ -134,7 +134,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    const { title, description, content_type, day_of_week, media_files, badge_text, subtitle } = body;
+    const { title, description, content_type, day_of_week, media_files, badge_text, subtitle, myth, fact } = body;
+    
+    console.log('📝 Extracted fields:', { title, subtitle, myth, fact, badge_text });
 
     const pillarData = {
       title,
@@ -142,8 +144,10 @@ export async function POST(req: NextRequest) {
       content_type,
       day_of_week,
       media_files: media_files || [],
-      badge_text: badge_text || (day_of_week === 'monday' ? 'MYTH BUSTER MONDAY' : day_of_week?.toUpperCase()),
-      subtitle: subtitle || (day_of_week === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+      badge_text: badge_text ?? (day_of_week === 'monday' ? 'MYTH BUSTER MONDAY' : day_of_week?.toUpperCase()),
+      subtitle: subtitle ?? (day_of_week === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+      myth: myth ?? null,
+      fact: fact ?? null,
       created_by: authResult.user?.id
     };
 
@@ -174,7 +178,10 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     console.log('Updating content pillar:', body);
 
-    const { id, title, description, content_type, day_of_week, media_files, badge_text, subtitle } = body;
+    const { id, title, description, content_type, day_of_week, media_files, badge_text, subtitle, myth, fact } = body;
+    
+    console.log('📝 PUT - Raw body received:', body);
+    console.log('📝 PUT - Extracted fields:', { title, subtitle, myth, fact, badge_text });
     
     // Validate user has edit permission
     const authResult = await validateUserPermissions(req, 'edit');
@@ -188,8 +195,10 @@ export async function PUT(req: NextRequest) {
       content_type,
       day_of_week,
       media_files: media_files || [],
-      badge_text: badge_text || (day_of_week === 'monday' ? 'MYTH BUSTER MONDAY' : day_of_week?.toUpperCase()),
-      subtitle: subtitle || (day_of_week === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+      badge_text: badge_text ?? (day_of_week === 'monday' ? 'MYTH BUSTER MONDAY' : day_of_week?.toUpperCase()),
+      subtitle: subtitle ?? (day_of_week === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+      myth: myth ?? null,
+      fact: fact ?? null,
       updated_at: new Date().toISOString()
     };
 

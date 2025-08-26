@@ -21,7 +21,7 @@ const supabaseAdmin = createClient(
 const lastSelectedThemeByDay: Record<string, string> = {};
 
 // Helper functions for variety
-const getRandomVisual = (contentType: string): string => {
+const getRandomVisual = (contentType: string, existingPillars?: any[]): string => {
   const visuals = {
     image: [
       'Close-up of Mercedes diagnostic screen showing technical readings',
@@ -31,7 +31,15 @@ const getRandomVisual = (contentType: string): string => {
       'AMG engine components during precision maintenance',
       'Mercedes transmission fluid analysis with laboratory equipment',
       'EQS electric system diagnostics with advanced testing tools',
-      'Mercedes suspension components under detailed inspection'
+      'Mercedes suspension components under detailed inspection',
+      'Mercedes air conditioning system service with specialized tools',
+      'Mercedes steering system alignment and calibration process',
+      'Mercedes hybrid battery diagnostics and testing equipment',
+      'Mercedes exhaust system inspection with emissions testing',
+      'Mercedes wheel alignment and tire pressure monitoring setup',
+      'Mercedes interior electronics diagnostic with multimeter readings',
+      'Mercedes fuel injection system cleaning and testing procedure',
+      'Mercedes cooling system pressure test with diagnostic equipment'
     ],
     video: [
       'Time-lapse of Mercedes service procedure with technical overlay',
@@ -40,7 +48,12 @@ const getRandomVisual = (contentType: string): string => {
       'Mercedes quality inspection process from start to finish',
       'Behind-the-scenes Mercedes technical training session',
       'Mercedes component replacement with precision tools',
-      'Live Mercedes performance testing and calibration'
+      'Live Mercedes performance testing and calibration',
+      'Mercedes road test with diagnostic equipment monitoring',
+      'Mercedes service advisor explaining diagnostic results to customer',
+      'Mercedes technician performing precision adjustments',
+      'Mercedes software update and programming procedure',
+      'Mercedes safety system calibration and testing'
     ],
     carousel: [
       'Multi-frame breakdown of Mercedes component inspection',
@@ -48,17 +61,39 @@ const getRandomVisual = (contentType: string): string => {
       'Before/after comparison of Mercedes service results',
       'Mercedes technical specifications and measurement data',
       'Comparison of genuine vs aftermarket Mercedes parts',
-      'Mercedes service timeline and quality checkpoints'
+      'Mercedes service timeline and quality checkpoints',
+      'Mercedes model-specific service requirements comparison',
+      'Mercedes seasonal maintenance checklist breakdown',
+      'Mercedes technology evolution across model years',
+      'Mercedes service cost transparency breakdown'
     ],
     text: [
       'Mercedes technical diagram with measurement callouts',
       'Mercedes service documentation and certification process',
       'Mercedes technical bulletin and service advisory',
-      'Mercedes performance data and analysis charts'
+      'Mercedes performance data and analysis charts',
+      'Mercedes service interval recommendations by model',
+      'Mercedes diagnostic trouble code explanations',
+      'Mercedes maintenance cost comparison analysis',
+      'Mercedes technical specifications reference guide'
     ]
   };
   
   const options = visuals[contentType as keyof typeof visuals] || visuals.image;
+  
+  // If we have existing pillars, try to avoid similar visual concepts
+  if (existingPillars && existingPillars.length > 0) {
+    const usedConcepts = existingPillars.map((p: any) => p.description?.toLowerCase() || '').join(' ');
+    const availableOptions = options.filter(visual => {
+      const visualWords = visual.toLowerCase().split(' ');
+      return !visualWords.some(word => usedConcepts.includes(word) && word.length > 4);
+    });
+    
+    if (availableOptions.length > 0) {
+      return availableOptions[Math.floor(Math.random() * availableOptions.length)];
+    }
+  }
+  
   return options[Math.floor(Math.random() * options.length)];
 };
 
@@ -82,11 +117,28 @@ export async function POST(req: NextRequest) {
     const { dayOfWeek, contentType, businessContext, existingPillars } = await req.json();
     
     // Debug logging
-    console.log(`Generating content for ${dayOfWeek}, type: ${contentType}`);
-    console.log(`Existing pillars count: ${existingPillars?.length || 0}`);
-    try {
-      console.log('Existing pillar titles:', (existingPillars || []).map((p: any) => p.title));
-    } catch {}
+    console.log(`🎯 Generating content for ${dayOfWeek}, type: ${contentType}`);
+    console.log(`📊 Existing pillars count: ${existingPillars?.length || 0}`);
+    
+    if (existingPillars && existingPillars.length > 0) {
+      console.log('🚨 ANTI-REPETITION MODE: Existing pillar titles:', existingPillars.map((p: any) => p.title));
+      
+      // Analyze existing content for variety tracking
+      const allContent = existingPillars.map((p: any) => `${p.title} ${p.description}`).join(' ').toLowerCase();
+      const models = ['s-class', 'e-class', 'c-class', 'amg', 'eqs', 'gle', 'gls', 'cla'];
+      const systems = ['engine', 'transmission', 'brake', 'diagnostic', 'suspension', 'electrical'];
+      const services = ['maintenance', 'repair', 'inspection', 'calibration', 'testing', 'replacement'];
+      
+      const usedModels = models.filter(model => allContent.includes(model));
+      const usedSystems = systems.filter(system => allContent.includes(system));
+      const usedServices = services.filter(service => allContent.includes(service));
+      
+      console.log('📈 Content analysis - Used models:', usedModels);
+      console.log('🔧 Content analysis - Used systems:', usedSystems);
+      console.log('⚙️ Content analysis - Used services:', usedServices);
+    } else {
+      console.log('✨ FRESH START: No existing pillars, generating original content');
+    }
     
     // Define content types and their characteristics
     const contentTypePrompts = {
@@ -137,11 +189,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Build existing pillars context
+    // Build existing pillars context with anti-repetition focus
     const existingPillarsContext = existingPillars && existingPillars.length > 0 
-      ? `\nEXISTING CONTENT PILLARS FOR ${dayOfWeek.toUpperCase()}:\n${existingPillars.map((pillar: any, index: number) => 
+      ? `\nEXISTING CONTENT PILLARS FOR ${dayOfWeek.toUpperCase()} (${existingPillars.length} total):\n${existingPillars.map((pillar: any, index: number) => 
           `${index + 1}. TITLE: "${pillar.title}"\n   DESCRIPTION: ${pillar.description}\n   TYPE: ${pillar.content_type}`
-        ).join('\n\n')}\n\nCRITICAL ANALYSIS: Look at the themes, style, tone, and business focus of these existing pillars. Generate NEW content that EXACTLY matches this established style and business focus. Do NOT deviate from the pattern shown above.`
+        ).join('\n\n')}\n\n🚨 CRITICAL ANTI-REPETITION REQUIREMENTS:\n- DO NOT repeat any of the above titles or similar variations\n- DO NOT use the same Mercedes models, systems, or technical focus areas mentioned above\n- DO NOT repeat the same service aspects, themes, or messaging\n- CREATE COMPLETELY DIFFERENT and ORIGINAL content that covers NEW topics\n- AVOID similar wording, phrases, or concepts from existing pillars\n- Generate content that fills gaps NOT covered by existing pillars\n- Match the established style and business focus but with FRESH, UNIQUE topics`
       : `\nNo existing content pillars found for ${dayOfWeek}. Create original automotive content based on business context.`;
 
     // Build examples context
@@ -201,90 +253,244 @@ export async function POST(req: NextRequest) {
     // Use the content example prompt as the system prompt
     const systemPrompt = contentExamplesContext;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      temperature: 0.7,
-      max_tokens: 1500,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Based on the theme "${selectedThemeTitle || 'Mercedes service'}" and content type "${contentType}", provide the structured input for the content example prompt:
+    // Special handling for Monday "Myth-Buster Monday" format
+    if (dayOfWeek === 'monday') {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        temperature: 0.7,
+        max_tokens: 1000,
+        messages: [
+          { 
+            role: 'system', 
+            content: `OUTPUT RULES — TEXT ONLY
+- Return plain text with exactly four labeled lines/blocks in this order:
+  1) TITLE:
+  2) SUBTITLE:
+  3) MYTH:
+  4) FACT:
+- No emojis, no hashtags, no links, no extra sections. British English only.
 
-VISUAL: ${getRandomVisual(contentType)}
+ROLE & BRAND CONTEXT
+You are a senior social media creative + technical service writer for **SilberArrows**, an independent Mercedes-Benz specialist in Dubai (sales, service, leasing).
+Voice: premium, precise, reasons-first, non-salesy. Positioning: Independent ≠ corner-cutting. We follow factory procedures, use STAR/XENTRY diagnostics, torque-to-spec, and Mercedes-approved parts/fluids. Visual vibe (for writer context only): black primary, accent #d85050.
+
+TASK
+Write a "Myth-Buster Monday" post about the given topic. Make it authoritative and useful for UAE conditions (heat, dust, stop-go traffic).
+
+${existingPillarsContext}
+
+CONTENT REQUIREMENTS
+- TITLE: "Myth-Buster Monday: {short topic}"
+- SUBTITLE: One crisp line that reinforces SilberArrows' positioning (e.g., "Independent Mercedes-Benz Service • Factory Precision Without the Dealer").
+- MYTH: One to two sentences stating the common misconception plainly.
+- FACT: Three to five sentences that correct the myth using factory-accurate reasoning. Where relevant, include 1–3 specific, plausible Mercedes-relevant figures or specs (e.g., disc minimum thickness in mm, wheel bolt torque around ~130 Nm where appropriate, A/C centre-vent target ≤9°C at idle after 5 min in ~40–45°C ambient, MB 229.52 oil spec, XENTRY guided test names). Tie at least one point to UAE conditions. Mention at least one factory tool/standard by name (e.g., STAR/XENTRY, MB 229.x oils, DOT 4/4+).
+
+STYLE GUARDRAILS
+- Reasons first, then outcome. Keep it confident and helpful. No hype.
+- Avoid placeholders like "X%" or "{value}"; state plausible figures when used.
+- Do not add any sections beyond the four required.` 
+          },
+          { 
+            role: 'user', 
+            content: `Generate a unique Myth-Buster Monday post. Choose from these topics but make it completely different from existing content:
+
+TOPIC OPTIONS (choose one that hasn't been covered):
+- XENTRY vs generic scanners for Mercedes diagnostics
+- A/C performance at 45°C UAE temperatures  
+- Brake disc thickness & pad wear indicators
+- EQS high voltage safety checks
+- Coolant scale build-up in UAE heat
+- Turbo care and maintenance
+- Battery SOH vs SOC differences
+- Independent service vs dealer service myths
+- Oil change intervals in extreme heat
+- Transmission service requirements
+- Suspension component wear in UAE conditions
+- Fuel system cleaning necessity
+
+${existingPillars && existingPillars.length > 0 ? `
+🚨 AVOID THESE ALREADY COVERED TOPICS:
+${existingPillars.map((pillar: any, index: number) => `${index + 1}. "${pillar.title}" - Topic: ${pillar.description?.substring(0, 80)}...`).join('\n')}
+
+Choose a COMPLETELY DIFFERENT topic from the list above that hasn't been covered.
+` : ''}
+
+FORMAT TO RETURN (exactly this structure):
+TITLE: Myth-Buster Monday: {your short topic}
+SUBTITLE: {one line reinforcing Independent + Factory Precision, Dubai context welcome}
+MYTH: {1–2 sentences}
+FACT: {3–5 sentences with factory tools/standards, 1–3 concrete figures if relevant, and a UAE heat/dust note}` 
+          }
+        ]
+      });
+
+      const responseText = completion.choices[0]?.message?.content;
+      
+      if (!responseText) {
+        throw new Error('No response from OpenAI');
+      }
+
+      // Parse the Myth-Buster Monday format
+      const lines = responseText.split('\n').filter(line => line.trim());
+      let title = '', subtitle = '', myth = '', fact = '';
+      
+      for (const line of lines) {
+        if (line.startsWith('TITLE:')) {
+          title = line.replace('TITLE:', '').trim();
+        } else if (line.startsWith('SUBTITLE:')) {
+          subtitle = line.replace('SUBTITLE:', '').trim();
+        } else if (line.startsWith('MYTH:')) {
+          myth = line.replace('MYTH:', '').trim();
+        } else if (line.startsWith('FACT:')) {
+          fact = line.replace('FACT:', '').trim();
+        }
+      }
+
+      // Create the final content structure for Monday
+      const finalContent = {
+        title: title || 'Myth-Buster Monday: Mercedes Service',
+        description: `${myth} ${fact}`.trim(),
+        content_type: contentType,
+        badge_text: 'MYTH BUSTER MONDAY',
+        subtitle: subtitle || 'Independent Mercedes-Benz Service • Factory Precision Without the Dealer',
+        myth: myth,
+        fact: fact,
+        ai_response: { title, subtitle, myth, fact, raw_response: responseText }
+      };
+
+      console.log('✅ Successfully generated Myth-Buster Monday content:', finalContent.title);
+
+      return NextResponse.json({
+        success: true,
+        data: finalContent
+      });
+
+    } else {
+      // Original logic for other days
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        temperature: 0.7,
+        max_tokens: 1500,
+        messages: [
+          { role: 'system', content: `${systemPrompt}\n\n${existingPillarsContext}` },
+          { role: 'user', content: `Based on the theme "${selectedThemeTitle || 'Mercedes service'}" and content type "${contentType}", provide the structured input for the content example prompt:
+
+VISUAL: ${getRandomVisual(contentType, existingPillars)}
 
 STARTER_CAPTION: ${getRandomCaption(selectedThemeTitle)}
 
 CTA: DM QUOTE for your next service.
 
-CRITICAL VARIETY REQUIREMENTS:
+🚨 CRITICAL ANTI-REPETITION REQUIREMENTS FOR ${dayOfWeek.toUpperCase()}:
+${existingPillars && existingPillars.length > 0 ? `
+EXISTING CONTENT ANALYSIS (${existingPillars.length} pillars):
+${existingPillars.map((pillar: any, index: number) => `${index + 1}. "${pillar.title}" - ${pillar.description.substring(0, 100)}...`).join('\n')}
+
+TOPICS/SYSTEMS ALREADY COVERED:
+${(() => {
+  const allContent = existingPillars.map((p: any) => `${p.title} ${p.description}`).join(' ').toLowerCase();
+  const coveredTopics: string[] = [];
+  
+  // Check for Mercedes models
+  const models = ['s-class', 'e-class', 'c-class', 'amg', 'eqs', 'gle', 'gls', 'cla', 'cls', 'slc', 'sl'];
+  models.forEach(model => {
+    if (allContent.includes(model)) coveredTopics.push(`${model.toUpperCase()} model`);
+  });
+  
+  // Check for technical systems
+  const systems = ['engine', 'transmission', 'brake', 'diagnostic', 'suspension', 'electrical', 'air conditioning', 'steering', 'fuel', 'cooling', 'exhaust'];
+  systems.forEach(system => {
+    if (allContent.includes(system)) coveredTopics.push(`${system} system`);
+  });
+  
+  // Check for service types
+  const services = ['maintenance', 'repair', 'inspection', 'calibration', 'testing', 'replacement', 'cleaning', 'alignment'];
+  services.forEach(service => {
+    if (allContent.includes(service)) coveredTopics.push(`${service} service`);
+  });
+  
+  return coveredTopics.length > 0 ? coveredTopics.join(', ') : 'None identified';
+})()}
+
+🎯 GENERATE COMPLETELY NEW CONTENT THAT:
+- Uses DIFFERENT Mercedes models/systems than those mentioned above
+- Covers DIFFERENT technical aspects (if above covers engine, do brakes; if above covers diagnostics, do maintenance, etc.)
+- Has DIFFERENT messaging and tone variations
+- Focuses on DIFFERENT service benefits or customer pain points
+- Uses DIFFERENT technical terminology and expertise areas
+- Explores UNCOVERED topics from the analysis above
+` : ''}
 - Generate DIFFERENT topics each time (rotate between: diagnostics, maintenance, parts, customer service, technology, etc.)
-- Use DIFFERENT Mercedes models/systems (S-Class, E-Class, AMG, EQS, C-Class, etc.)
-- Vary the technical focus (engine, transmission, brakes, electronics, suspension, etc.)
+- Use DIFFERENT Mercedes models/systems (S-Class, E-Class, AMG, EQS, C-Class, GLE, GLS, CLA, etc.)
+- Vary the technical focus (engine, transmission, brakes, electronics, suspension, air conditioning, etc.)
 - Create UNIQUE titles and descriptions that don't repeat existing ones
 - Avoid repeating the same service aspects or technical details
-- Each generation should cover a completely different aspect of Mercedes expertise` }
-      ]
-    });
+- Each generation should cover a completely different aspect of Mercedes expertise
+- Be creative with new angles: seasonal maintenance, technology updates, customer education, etc.` }
+        ]
+      });
 
-    const responseText = completion.choices[0]?.message?.content;
-    
-    if (!responseText) {
-      throw new Error('No response from OpenAI');
-    }
-
-    // Parse the JSON response
-    let generatedContent;
-    try {
-      // Remove markdown code blocks if present
-      let cleanedResponse = responseText;
-      if (responseText.includes('```json')) {
-        cleanedResponse = responseText.replace(/```json\s*/, '').replace(/\s*```$/, '');
-      } else if (responseText.includes('```')) {
-        cleanedResponse = responseText.replace(/```\s*/, '').replace(/\s*```$/, '');
+      const responseText = completion.choices[0]?.message?.content;
+      
+      if (!responseText) {
+        throw new Error('No response from OpenAI');
       }
+
+      // Parse the JSON response for non-Monday days
+      let generatedContent;
+      try {
+        // Remove markdown code blocks if present
+        let cleanedResponse = responseText;
+        if (responseText.includes('```json')) {
+          cleanedResponse = responseText.replace(/```json\s*/, '').replace(/\s*```$/, '');
+        } else if (responseText.includes('```')) {
+          cleanedResponse = responseText.replace(/```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        generatedContent = JSON.parse(cleanedResponse);
+      } catch (parseError) {
+        // If JSON parsing fails, try to extract content manually
+        console.error('Failed to parse OpenAI response as JSON:', responseText);
+        
+        // Fallback: create a basic structure
+        generatedContent = {
+          title: `${dayOfWeek} ${contentType} Content`,
+          description: responseText.substring(0, 300) + '...',
+          content_type: contentType
+        };
+      }
+
+      // Extract title and description from the complex JSON structure
+      let title, description;
       
-      generatedContent = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      // If JSON parsing fails, try to extract content manually
-      console.error('Failed to parse OpenAI response as JSON:', responseText);
-      
-      // Fallback: create a basic structure
-      generatedContent = {
-        title: `${dayOfWeek} ${contentType} Content`,
-        description: responseText.substring(0, 300) + '...',
-        content_type: contentType
+      if (generatedContent.hook && generatedContent.caption_final) {
+        // New format from content example prompt
+        title = generatedContent.hook;
+        description = generatedContent.caption_final;
+      } else if (generatedContent.title && generatedContent.description) {
+        // Old format
+        title = generatedContent.title;
+        description = generatedContent.description;
+      } else {
+        throw new Error('Invalid response structure from OpenAI');
+      }
+
+      // Create the final content structure for non-Monday days
+      const finalContent = {
+        title: title,
+        description: description,
+        content_type: contentType,
+        // Include the full AI response for debugging/future use
+        ai_response: generatedContent
       };
+
+      console.log('✅ Successfully generated content pillar:', finalContent.title);
+
+      return NextResponse.json({
+        success: true,
+        data: finalContent
+      });
     }
-
-    // Extract title and description from the complex JSON structure
-    let title, description;
-    
-    if (generatedContent.hook && generatedContent.caption_final) {
-      // New format from content example prompt
-      title = generatedContent.hook;
-      description = generatedContent.caption_final;
-    } else if (generatedContent.title && generatedContent.description) {
-      // Old format
-      title = generatedContent.title;
-      description = generatedContent.description;
-    } else {
-      throw new Error('Invalid response structure from OpenAI');
-    }
-
-    // Create the final content structure
-    const finalContent = {
-      title: title,
-      description: description,
-      content_type: contentType,
-      // Include the full AI response for debugging/future use
-      ai_response: generatedContent
-    };
-
-    console.log('✅ Successfully generated content pillar:', finalContent.title);
-
-    return NextResponse.json({
-      success: true,
-      data: finalContent
-    });
 
   } catch (error) {
     console.error('Error generating content pillar:', error);

@@ -15,6 +15,8 @@ interface ContentPillarItem {
   updated_at: string;
   badge_text?: string;
   subtitle?: string;
+  myth?: string;
+  fact?: string;
 }
 
 // File handling types
@@ -41,6 +43,10 @@ interface ContentPillarModalProps {
     title: string;
     description: string;
     content_type: 'image' | 'video' | 'text' | 'carousel';
+    badge_text?: string;
+    subtitle?: string;
+    myth?: string;
+    fact?: string;
   };
   generatedImageBase64?: string | null;
   onGeneratedImageChange?: (imageBase64: string | null) => void;
@@ -83,8 +89,10 @@ export default function ContentPillarModal({
     title: editingItem?.title || aiGeneratedContent?.title || '',
     description: editingItem?.description || aiGeneratedContent?.description || '',
     content_type: editingItem?.content_type || aiGeneratedContent?.content_type || 'image' as const,
-    badgeText: editingItem?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase()),
-    subtitle: editingItem?.subtitle || (dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+    badgeText: editingItem?.badge_text || aiGeneratedContent?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase()),
+    subtitle: editingItem?.subtitle || aiGeneratedContent?.subtitle || (dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+    myth: editingItem?.myth ?? aiGeneratedContent?.myth ?? '',
+    fact: editingItem?.fact ?? aiGeneratedContent?.fact ?? '',
     imageAlignment: 'center' as 'left' | 'center' | 'right',
     imageFit: 'cover' as 'cover' | 'contain' | 'fill',
   });
@@ -98,8 +106,10 @@ export default function ContentPillarModal({
       title: editingItem?.title || aiGeneratedContent?.title || '',
       description: editingItem?.description || aiGeneratedContent?.description || '',
       content_type: editingItem?.content_type || aiGeneratedContent?.content_type || 'image' as const,
-      badgeText: editingItem?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase()),
-      subtitle: editingItem?.subtitle || (dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+      badgeText: editingItem?.badge_text || aiGeneratedContent?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase()),
+      subtitle: editingItem?.subtitle || aiGeneratedContent?.subtitle || (dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
+      myth: editingItem?.myth ?? aiGeneratedContent?.myth ?? '',
+      fact: editingItem?.fact ?? aiGeneratedContent?.fact ?? '',
       imageAlignment: 'center' as 'left' | 'center' | 'right',
       imageFit: 'cover' as 'cover' | 'contain' | 'fill',
     });
@@ -290,12 +300,15 @@ export default function ContentPillarModal({
         throw new Error(result.error || 'Failed to generate template');
       }
 
-      onGeneratedImageChange?.(result.imageBase64);
-      
       // Auto-save the generated image as a media file
       await saveGeneratedImageAsFile(result.imageBase64);
       
-      console.log('✅ Template image generated successfully from live preview');
+      // Auto-download the image
+      downloadGeneratedImage(result.imageBase64);
+      
+      console.log('✅ Template image generated, saved to files, and downloaded successfully');
+      
+      // Don't set generated image state - keep showing live preview with uploaded media
       
     } catch (error) {
       console.error('❌ Error generating template:', error);
@@ -319,7 +332,7 @@ export default function ContentPillarModal({
       // Generate thumbnail for the file
       const thumbnail = await generateThumbnail(file);
       
-      // Add to selected files
+      // Replace all existing files with the generated image
       const fileWithThumbnail: FileWithThumbnail = {
         file,
         thumbnail,
@@ -328,18 +341,10 @@ export default function ContentPillarModal({
         uploaded: true
       };
       
+      // Add the generated image to existing files (don't replace)
       setSelectedFiles(prev => [...prev, fileWithThumbnail]);
       
-      console.log('✅ Generated image added to task files');
-      
-      // Show a brief success message
-      const successMsg = document.createElement('div');
-      successMsg.textContent = '✅ Template image added to files';
-      successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      document.body.appendChild(successMsg);
-      setTimeout(() => {
-        document.body.removeChild(successMsg);
-      }, 3000);
+      console.log('✅ Generated image added to task files alongside existing media');
     } catch (error) {
       console.error('❌ Error saving generated image as file:', error);
     }
@@ -375,6 +380,11 @@ export default function ContentPillarModal({
           .title { font-size: 68px; font-weight: 900; color: #ffffff; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
           .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
+          .myth-fact-section { margin: 20px 0; }
+          .myth { font-size: 28px; color: #ffffff; margin-bottom: 16px; font-weight: 600; }
+          .fact { font-size: 28px; color: #ffffff; font-weight: 600; }
+          .myth-label { color: #ef4444; font-weight: 800; }
+          .fact-label { color: #22c55e; font-weight: 800; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
           .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
           .contact i { color: #ffffff; font-size: 26px; }
@@ -391,7 +401,14 @@ export default function ContentPillarModal({
             <div>
               <h1 class="title">${formData.title || 'Your Title Here'}</h1>
               <p class="subtitle">${formData.subtitle}</p>
-              <div class="description">${formData.description || 'Your description will appear here...'}</div>
+              ${formData.myth && formData.fact ? `
+                <div class="myth-fact-section">
+                  <div class="myth"><span class="myth-label">MYTH:</span> ${formData.myth}</div>
+                  <div class="fact"><span class="fact-label">FACT:</span> ${formData.fact}</div>
+                </div>
+              ` : `
+                <div class="description">${formData.description || 'Your description will appear here...'}</div>
+              `}
             </div>
             <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
           </div>
@@ -490,11 +507,12 @@ export default function ContentPillarModal({
   };
 
   // Download generated image
-  const downloadGeneratedImage = () => {
-    if (!generatedImageBase64) return;
+  const downloadGeneratedImage = (imageBase64?: string) => {
+    const imageToDownload = imageBase64 || generatedImageBase64;
+    if (!imageToDownload) return;
     
     const link = document.createElement('a');
-    link.href = `data:image/png;base64,${generatedImageBase64}`;
+    link.href = `data:image/png;base64,${imageToDownload}`;
     link.download = `${formData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${dayKey}.png`;
     document.body.appendChild(link);
     link.click();
@@ -523,6 +541,16 @@ export default function ContentPillarModal({
         file: f.file // Pass the actual file for upload
       }));
 
+      console.log('🔍 Frontend formData before save:', {
+        title: formData.title,
+        subtitle: formData.subtitle,
+        myth: formData.myth,
+        fact: formData.fact,
+        badgeText: formData.badgeText
+      });
+
+      console.log('🔍 Raw formData object:', formData);
+
       const contentPillarData: Partial<ContentPillarItem> = {
         title: formData.title,
         description: formData.description,
@@ -531,9 +559,19 @@ export default function ContentPillarModal({
         media_files: [...existingMedia, ...mediaFiles],
         badge_text: formData.badgeText,
         subtitle: formData.subtitle,
+        myth: formData.myth,
+        fact: formData.fact,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+
+      console.log('📤 Sending to API:', contentPillarData);
+      console.log('📤 Sending to API - specific fields:', {
+        badge_text: contentPillarData.badge_text,
+        subtitle: contentPillarData.subtitle,
+        myth: contentPillarData.myth,
+        fact: contentPillarData.fact
+      });
 
       await onSave(contentPillarData);
       onClose();
@@ -545,6 +583,8 @@ export default function ContentPillarModal({
         content_type: 'image',
         badgeText: dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase(),
         subtitle: dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection',
+        myth: '',
+        fact: '',
         imageAlignment: 'center' as 'left' | 'center' | 'right',
         imageFit: 'cover' as 'cover' | 'contain' | 'fill',
       });
@@ -579,7 +619,7 @@ export default function ContentPillarModal({
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-full">
           
           {/* Left Panel - Form */}
-          <div className="overflow-y-auto lg:col-span-2">
+          <div className="overflow-y-auto lg:col-span-2 h-full flex flex-col">
         <div className="flex justify-between items-center mb-6 border-b border-white/20 pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30">
@@ -605,7 +645,10 @@ export default function ContentPillarModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+          
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           
           {/* Content Information */}
           <div className="bg-white/8 backdrop-blur-md rounded-xl p-4 border border-white/15 shadow-lg ring-1 ring-white/5">
@@ -665,6 +708,46 @@ export default function ContentPillarModal({
                     onChange={handleChange}
                     className="w-full px-3 py-2 text-sm rounded-lg bg-black/30 backdrop-blur-sm border border-white/15 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all shadow-inner"
                     placeholder="Independent Mercedes Service"
+                  />
+                </div>
+              )}
+
+              {/* Myth Field (Monday only) */}
+              {dayKey === 'monday' && (
+                <div>
+                  <label className="block text-xs font-medium text-white mb-2 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <span className="text-red-400">Myth</span>
+                  </label>
+                  <textarea
+                    name="myth"
+                    value={formData.myth}
+                    onChange={handleChange}
+                    rows={2}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-red-500/10 backdrop-blur-sm border border-red-500/30 text-white placeholder-red-300/50 focus:outline-none focus:ring-2 focus:ring-red-400/50 focus:border-red-400/50 transition-all resize-none shadow-inner"
+                    placeholder="State the common misconception plainly (1-2 sentences)"
+                  />
+                </div>
+              )}
+
+              {/* Fact Field (Monday only) */}
+              {dayKey === 'monday' && (
+                <div>
+                  <label className="block text-xs font-medium text-white mb-2 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-green-400">Fact</span>
+                  </label>
+                  <textarea
+                    name="fact"
+                    value={formData.fact}
+                    onChange={handleChange}
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-green-500/10 backdrop-blur-sm border border-green-500/30 text-white placeholder-green-300/50 focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all resize-none shadow-inner"
+                    placeholder="Correct the myth with factory-accurate reasoning, include specific Mercedes specs/tools, and tie to UAE conditions (3-5 sentences)"
                   />
                 </div>
               )}
@@ -883,9 +966,19 @@ export default function ContentPillarModal({
                   </div>
                 )}
               </div>
-              <p className="text-xs text-white/70">
+              <p className="text-xs text-white/70 mb-3">
                 This content was automatically generated for {dayTitle}. You can edit the title and description above before saving.
               </p>
+              
+              {/* Generate Another Version Button */}
+              <button
+                type="button"
+                onClick={() => onRegenerate?.('image')}
+                className="w-full px-3 py-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 text-purple-300 hover:text-purple-200 text-xs rounded-lg transition-all font-medium flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-3 h-3" />
+                Generate Another AI Version
+              </button>
             </div>
           )}
 
@@ -905,37 +998,20 @@ export default function ContentPillarModal({
                 {generatingTemplate ? (
                   <>
                     <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Saving Image...
+                    Generating & Downloading...
                   </>
                 ) : (
                   <>
                     <Download className="w-3 h-3" />
-                    Save as Image
+                    Generate & Download Image
                   </>
                 )}
               </button>
             </div>
-            <p className="text-xs text-white/60 mb-2">
-              Generate a high-quality 1080×1920 image and save it to your task files. See live preview on the right.
-            </p>
+
             
-            {generatedImageBase64 && (
-              <div className="mt-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
-                <div className="text-sm text-green-400 font-medium text-center mb-2">
-                  ✅ High-quality image saved to task files
-                </div>
-                <div className="text-xs text-white/60 text-center mb-2">
-                  1080 × 1920 • Instagram Story Format
-                </div>
-                <button
-                  onClick={downloadGeneratedImage}
-                  className="w-full px-3 py-1.5 bg-gradient-to-br from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-xs rounded-lg transition-all font-semibold shadow-lg flex items-center justify-center gap-2"
-                >
-                  <Download className="w-3 h-3" />
-                  Download Copy
-                </button>
-              </div>
-            )}
+
+          </div>
           </div>
 
           {/* Actions */}
@@ -980,7 +1056,7 @@ export default function ContentPillarModal({
           </div>
 
           {/* Right Panel - Full Size Live Preview */}
-          <div className="hidden lg:flex flex-col lg:col-span-3">
+          <div className="hidden lg:flex flex-col lg:col-span-3 h-full">
             <div className="flex items-center justify-between mb-3 border-b border-white/20 pb-3">
               <h3 className="text-lg font-semibold text-white">Live Preview</h3>
               <div className="text-xs text-white/60 capitalize">{dayKey} Template • 1080×1920</div>
@@ -988,6 +1064,7 @@ export default function ContentPillarModal({
             
             <div className="flex-1 bg-white/5 rounded-xl border border-white/10 overflow-hidden p-2">
               {formData.title || formData.description ? (
+                // Show Live Preview with uploaded media
                 <div className="w-full h-full flex items-center justify-center overflow-hidden">
                   <div style={{ position: 'relative', width: '810px', height: '1440px' }}>
                     <iframe
@@ -1000,6 +1077,7 @@ export default function ContentPillarModal({
                   </div>
                 </div>
               ) : (
+                // Show Empty State
                 <div className="flex items-center justify-center h-full text-center text-white/60 p-6">
                   <div>
                     <Eye className="w-20 h-20 mx-auto mb-4 text-white/20" />
@@ -1015,20 +1093,7 @@ export default function ContentPillarModal({
               )}
             </div>
             
-            {generatedImageBase64 && (
-              <div className="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <div className="text-sm text-green-400 font-medium text-center mb-2">
-                  ✅ Generated image saved to task files
-                </div>
-                <button
-                  onClick={downloadGeneratedImage}
-                  className="w-full px-3 py-2 bg-gradient-to-br from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-sm rounded-lg transition-all font-semibold shadow-lg flex items-center justify-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Copy
-                </button>
-              </div>
-            )}
+
           </div>
 
         </div>

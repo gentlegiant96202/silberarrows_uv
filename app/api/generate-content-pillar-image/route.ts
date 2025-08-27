@@ -116,7 +116,7 @@ async function generateFromHTMLPDFShift(html: string, dayOfWeek: string) {
 // Generate from HTML using renderer service (for development)
 async function generateFromHTML(html: string, dayOfWeek: string) {
   // Call the renderer service with retry logic
-  const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3000';
+  const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3001';
   
   console.log('📡 Calling renderer service at:', rendererUrl);
   
@@ -195,7 +195,7 @@ async function generateFromHTML(html: string, dayOfWeek: string) {
 // Old function to generate from template variables (for backward compatibility)
 async function generateFromTemplate(title: string, description: string, imageUrl: string, dayOfWeek: string, badgeText?: string, subtitle?: string) {
   // Call the renderer service with retry logic
-  const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3000';
+  const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3001';
   
   console.log('📡 Calling renderer service at:', rendererUrl);
   

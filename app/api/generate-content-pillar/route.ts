@@ -365,6 +365,150 @@ FACT: {3–5 sentences with factory tools/standards, 1–3 concrete figures if r
         data: finalContent
       });
 
+    } else if (dayOfWeek === 'tuesday') {
+      // Special handling for Tuesday "Tech Tips Tuesday" format
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        temperature: 0.7,
+        max_tokens: 1000,
+        messages: [
+          { 
+            role: 'system', 
+            content: `OUTPUT RULES — TEXT ONLY
+- Return plain text with exactly six labeled lines/blocks in this order:
+  1) TITLE:
+  2) SUBTITLE:
+  3) PROBLEM:
+  4) SOLUTION:
+  5) DIFFICULTY:
+  6) TOOLS_NEEDED:
+  7) WARNING: (optional)
+- No emojis, no hashtags, no links, no extra sections. British English only.
+
+ROLE & BRAND CONTEXT
+You are a senior technical service writer for **SilberArrows**, an independent Mercedes-Benz specialist in Dubai (sales, service, leasing).
+Voice: educational, precise, helpful, non-condescending. Positioning: Independent expertise with factory-level knowledge. We use STAR/XENTRY diagnostics, follow Mercedes procedures, and provide transparent customer education.
+
+IMPORTANT: Always use "Mercedes-Benz" (with hyphen) instead of just "Mercedes" when referring to the brand.
+
+TASK
+Write a "Tech Tips Tuesday" post that educates Mercedes-Benz owners about a specific technical topic. Make it practical and relevant for UAE conditions (heat, dust, stop-go traffic).
+
+${existingPillarsContext}
+
+CONTENT REQUIREMENTS
+- TITLE: "Tech Tips Tuesday: {clear, specific topic}"
+- SUBTITLE: One crisp line that reinforces SilberArrows' expertise (e.g., "Expert Mercedes Knowledge • Independent Service Excellence").
+- PROBLEM: What issue or challenge does this tip address? (1-2 sentences)
+- SOLUTION: Step-by-step explanation with Mercedes-specific details (3-4 sentences, include specific procedures, tools, or specs where relevant)
+- DIFFICULTY: Choose one: "DIY", "Professional Required", or "Inspection Only"
+- TOOLS_NEEDED: What's required (e.g., "XENTRY diagnostic system", "Basic tools", "None - visual inspection only")
+- WARNING: Safety considerations or warranty warnings (optional, 1 sentence if needed)
+
+STYLE GUARDRAILS
+- Educational first, not promotional. Focus on helping customers understand their Mercedes-Benz.
+- Include specific Mercedes-Benz procedures, part numbers, or specifications where relevant.
+- Tie to UAE conditions (heat, dust, traffic) when applicable.
+- Mention factory tools/standards by name (STAR/XENTRY, MB specifications, etc.).
+- Avoid overly technical jargon - explain in accessible terms.` 
+          },
+          { 
+            role: 'user', 
+            content: `Generate a unique Tech Tips Tuesday post. Choose from these topics but make it completely different from existing content:
+
+TOPIC OPTIONS (choose one that hasn't been covered):
+- Reading Mercedes-Benz dashboard warning lights correctly
+- Understanding XENTRY diagnostic reports
+- Checking brake fluid condition and color indicators
+- Mercedes-Benz air filter inspection and replacement timing
+- Understanding Mercedes-Benz service indicator reset procedures
+- Checking tire pressure monitoring system (TPMS) alerts
+- Mercedes-Benz battery health indicators and testing
+- Understanding Mercedes-Benz oil life monitoring system
+- Checking coolant levels and condition in UAE heat
+- Mercedes-Benz transmission fluid service indicators
+- Understanding Mercedes-Benz suspension warning signs
+- Checking Mercedes-Benz A/C system performance
+- Understanding Mercedes-Benz fuel system maintenance
+- Mercedes-Benz brake pad wear indicator interpretation
+- Understanding Mercedes-Benz steering system maintenance
+
+${existingPillars && existingPillars.length > 0 ? `
+🚨 AVOID THESE ALREADY COVERED TOPICS:
+${existingPillars.map((pillar: any, index: number) => `${index + 1}. "${pillar.title}" - Topic: ${pillar.description?.substring(0, 80)}...`).join('\n')}
+
+Choose a COMPLETELY DIFFERENT topic from the list above that hasn't been covered.
+` : ''}
+
+FORMAT TO RETURN (exactly this structure):
+TITLE: Tech Tips Tuesday: {your specific topic}
+SUBTITLE: {one line reinforcing Expert Knowledge + Independent Excellence}
+PROBLEM: {1-2 sentences describing the issue/challenge}
+SOLUTION: {3-4 sentences with Mercedes-specific procedures and details}
+DIFFICULTY: {DIY, Professional Required, or Inspection Only}
+TOOLS_NEEDED: {specific tools or "None" for visual inspection}
+WARNING: {optional safety/warranty warning if needed, otherwise omit this line}` 
+          }
+        ]
+      });
+
+      const responseText = completion.choices[0]?.message?.content;
+      
+      if (!responseText) {
+        throw new Error('No response from OpenAI');
+      }
+
+      // Parse the Tuesday response format
+      let title = '';
+      let subtitle = '';
+      let problem = '';
+      let solution = '';
+      let difficulty = '';
+      let tools_needed = '';
+      let warning = '';
+
+      const lines = responseText.split('\n').filter(line => line.trim());
+      
+      for (const line of lines) {
+        if (line.startsWith('TITLE:')) {
+          title = line.replace('TITLE:', '').trim();
+        } else if (line.startsWith('SUBTITLE:')) {
+          subtitle = line.replace('SUBTITLE:', '').trim();
+        } else if (line.startsWith('PROBLEM:')) {
+          problem = line.replace('PROBLEM:', '').trim();
+        } else if (line.startsWith('SOLUTION:')) {
+          solution = line.replace('SOLUTION:', '').trim();
+        } else if (line.startsWith('DIFFICULTY:')) {
+          difficulty = line.replace('DIFFICULTY:', '').trim();
+        } else if (line.startsWith('TOOLS_NEEDED:')) {
+          tools_needed = line.replace('TOOLS_NEEDED:', '').trim();
+        } else if (line.startsWith('WARNING:')) {
+          warning = line.replace('WARNING:', '').trim();
+        }
+      }
+
+      // Create the final content structure for Tuesday
+      const finalContent = {
+        title: title || 'Tech Tips Tuesday: Mercedes Knowledge',
+        description: `${problem} ${solution}`.trim(),
+        content_type: contentType,
+        badge_text: 'TECH TIPS TUESDAY',
+        subtitle: subtitle || 'Expert Mercedes Knowledge • Independent Service Excellence',
+        problem: problem,
+        solution: solution,
+        difficulty: difficulty,
+        tools_needed: tools_needed,
+        warning: warning || null,
+        ai_response: { title, subtitle, problem, solution, difficulty, tools_needed, warning, raw_response: responseText }
+      };
+
+      console.log('✅ Successfully generated Tech Tips Tuesday content:', finalContent.title);
+
+      return NextResponse.json({
+        success: true,
+        data: finalContent
+      });
+
     } else {
       // Original logic for other days
       const completion = await openai.chat.completions.create({

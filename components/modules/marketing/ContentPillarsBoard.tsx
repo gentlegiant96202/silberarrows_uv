@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, FileText, Image as ImageIcon, Video, Clock, Sparkles, ArrowRight, BookOpen, Trash2 } from 'lucide-react';
+import { Calendar, FileText, Image as ImageIcon, Video, Clock, Sparkles, ArrowRight, BookOpen, Trash2, Plus } from 'lucide-react';
 import ContentPillarModal from './ContentPillarModal';
 import ContentExamplesModal from './ContentExamplesModal';
 import { useAuth } from '@/components/shared/AuthProvider';
@@ -21,6 +21,11 @@ interface ContentPillarItem {
   subtitle?: string;
   myth?: string;
   fact?: string;
+  problem?: string;
+  solution?: string;
+  difficulty?: string;
+  tools_needed?: string;
+  warning?: string;
 }
 
 // Define content example type
@@ -42,14 +47,14 @@ const dayColumns = [
   },
   { 
     key: "tuesday", 
-    title: "TECH TUESDAY", 
+    title: "TECH TIPS TUESDAY", 
     icon: <Calendar className="w-4 h-4" />,
     color: "green"
   },
   { 
     key: "wednesday", 
-    title: "WISDOM WEDNESDAY", 
-    icon: <Calendar className="w-4 h-4" />,
+    title: "WEEKLY WEDNESDAY SPOTLIGHT", 
+    icon: <Plus className="w-4 h-4" />, 
     color: "purple"
   },
   { 
@@ -147,6 +152,11 @@ export default function ContentPillarsBoard() {
     subtitle?: string;
     myth?: string;
     fact?: string;
+    problem?: string;
+    solution?: string;
+    difficulty?: string;
+    tools_needed?: string;
+    warning?: string;
   } | null>(null);
   const [contentExamples, setContentExamples] = useState<ContentExample[]>([]);
   const [editingPillar, setEditingPillar] = useState<ContentPillarItem | null>(null);
@@ -660,6 +670,11 @@ export default function ContentPillarsBoard() {
           subtitle: pillarData.subtitle,
           myth: pillarData.myth,
           fact: pillarData.fact,
+          problem: pillarData.problem,
+          solution: pillarData.solution,
+          difficulty: pillarData.difficulty,
+          tools_needed: pillarData.tools_needed,
+          warning: pillarData.warning,
         };
 
         const response = await fetch('/api/content-pillars', {
@@ -689,6 +704,11 @@ export default function ContentPillarsBoard() {
           subtitle: pillarData.subtitle,
           myth: pillarData.myth,
           fact: pillarData.fact,
+          problem: pillarData.problem,
+          solution: pillarData.solution,
+          difficulty: pillarData.difficulty,
+          tools_needed: pillarData.tools_needed,
+          warning: pillarData.warning,
         };
 
         const response = await fetch('/api/content-pillars', {
@@ -778,13 +798,25 @@ export default function ContentPillarsBoard() {
                   <BookOpen className="w-3 h-3" />
                 </button>
                 <button 
-                  onClick={() => handleAIGenerate(col.key)}
-                  disabled={aiGenerating}
+                  onClick={() => {
+                    if (col.key === 'wednesday') {
+                      setSelectedDay(col.key);
+                      setSelectedDayTitle(col.title);
+                      setAiGeneratedContent(null);
+                      setEditingPillar(null);
+                      setShowAIModal(true);
+                    } else {
+                      handleAIGenerate(col.key);
+                    }
+                  }}
+                  disabled={col.key !== 'wednesday' && aiGenerating}
                   className="p-1 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-300 hover:text-purple-200 hover:from-purple-500/30 hover:to-pink-500/30 transition-all duration-200 border border-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={`AI Generate content for ${col.title}`}
+                  title={col.key === 'wednesday' ? `Add new ${col.title}` : `AI Generate content for ${col.title}`}
                 >
-                  {aiGenerating && selectedDay === col.key ? (
+                  {aiGenerating && selectedDay === col.key && col.key !== 'wednesday' ? (
                     <div className="w-3 h-3 border border-purple-300 border-t-transparent rounded-full animate-spin" />
+                  ) : col.key === 'wednesday' ? (
+                    <Plus className="w-3 h-3" />
                   ) : (
                     <Sparkles className="w-3 h-3" />
                   )}

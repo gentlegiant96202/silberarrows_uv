@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 interface Props {
   carId: string;
   onUploaded?: () => void;
+  variant?: 'default' | 'button';
+  buttonLabel?: string;
 }
 
-export default function DocUploader({ carId, onUploaded }: Props) {
+export default function DocUploader({ carId, onUploaded, variant = 'default', buttonLabel = 'Upload' }: Props) {
   const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -39,9 +42,33 @@ export default function DocUploader({ carId, onUploaded }: Props) {
     }
 
     setUploading(false);
-    e.target.value = '';
+    if (e.target) e.target.value = '';
     onUploaded?.();
   };
+
+  if (variant === 'button') {
+    return (
+      <div className="flex items-center">
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          accept="application/pdf"
+          onChange={handleFiles}
+          disabled={uploading}
+          className="hidden"
+        />
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+        >
+          {uploading ? 'Uploading…' : buttonLabel}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-1">

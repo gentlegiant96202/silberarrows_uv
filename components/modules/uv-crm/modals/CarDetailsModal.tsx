@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import MediaUploader from '@/components/modules/uv-crm/components/MediaUploader';
 import DocUploader from '@/components/modules/uv-crm/components/DocUploader';
@@ -10,7 +10,7 @@ import { useModulePermissions } from '@/lib/useModulePermissions';
 import { createPortal } from 'react-dom';
 import { Instagram, X } from 'lucide-react';
 
-interface CarInfo {
+export interface CarInfo {
   id: string;
   stock_number: string;
   model_year: number;
@@ -20,6 +20,8 @@ interface CarInfo {
   interior_colour: string | null;
   chassis_number: string;
   advertised_price_aed: number;
+  monthly_0_down_aed?: number | null;
+  monthly_20_down_aed?: number | null;
   cost_price_aed: number | null;
   current_mileage_km: number | null;
   current_warranty: string | null;
@@ -61,15 +63,61 @@ interface Props {
   onSaved?: (updated: CarInfo) => void;
 }
 
+interface MediaItem {
+  id: string;
+  url: string;
+  kind: string;
+  sort_order: number;
+  is_primary: boolean;
+}
+
 export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Props) {
-  const [media, setMedia] = useState<any[]>([]);
+  const [media, setMedia] = useState<MediaItem[]>([]);
   const [localCar, setLocalCar] = useState<CarInfo>(car);
   const [pdfUrl, setPdfUrl] = useState<string | null>(car.vehicle_details_pdf_url || null);
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
   const [generatingAgreement, setGeneratingAgreement] = useState(false);
   const [agreementStatusMsg, setAgreementStatusMsg] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('basic');
   const { user } = useAuth();
+  // Monthly payment (UI-only) state with override flags
+  const [monthlyZero, setMonthlyZero] = useState<string>('');
+  const [monthlyTwenty, setMonthlyTwenty] = useState<string>('');
+  const [monthlyZeroOverridden, setMonthlyZeroOverridden] = useState<boolean>(false);
+  const [monthlyTwentyOverridden, setMonthlyTwentyOverridden] = useState<boolean>(false);
+
+  const computeMonthly = (advertisedPrice: number, downPercent: number): number => {
+    const price = (advertisedPrice || 0) * (1 - downPercent);
+    if (!price) return 0;
+    const monthlyRate = 0.03 / 12;
+    const months = 60;
+    const payment = Math.round(price * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months)));
+    return payment;
+  };
+
+  const formatMonthly = (amount: number): string => `AED ${amount.toLocaleString()}/MO`;
+
+  useEffect(() => {
+    const p = localCar.advertised_price_aed || 0;
+    if (!monthlyZeroOverridden) setMonthlyZero(formatMonthly(computeMonthly(p, 0)));
+    if (!monthlyTwentyOverridden) setMonthlyTwenty(formatMonthly(computeMonthly(p, 0.2)));
+  }, [localCar.advertised_price_aed, monthlyZeroOverridden, monthlyTwentyOverridden]);
+
+  // Auto-resize helpers for large textareas so the whole tab scrolls instead of each field
+  const descRef = useRef<HTMLTextAreaElement | null>(null);
+  const keyEqRef = useRef<HTMLTextAreaElement | null>(null);
+  const applyAutoResize = (el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  };
+  // Defer auto-resize effect until after 'editing' is declared below
+  useEffect(() => {
+    if (activeTab !== 'description') return;
+    applyAutoResize(descRef.current);
+    applyAutoResize(keyEqRef.current);
+  }, [activeTab, localCar.description, localCar.key_equipment]);
 
   // Loading states for media operations
   const [mediaLoading, setMediaLoading] = useState(false);
@@ -160,6 +208,26 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   useEffect(()=>{ setLocalCar(car); },[car]);
 
+  // Initialize monthly values from DB when car changes
+  useEffect(()=>{
+    const zero = typeof car.monthly_0_down_aed === 'number' ? car.monthly_0_down_aed : 0;
+    const twenty = typeof car.monthly_20_down_aed === 'number' ? car.monthly_20_down_aed : 0;
+    if (zero) {
+      setMonthlyZero(formatMonthly(zero));
+      setMonthlyZeroOverridden(true);
+    } else {
+      setMonthlyZero('');
+      setMonthlyZeroOverridden(false);
+    }
+    if (twenty) {
+      setMonthlyTwenty(formatMonthly(twenty));
+      setMonthlyTwentyOverridden(true);
+    } else {
+      setMonthlyTwenty('');
+      setMonthlyTwentyOverridden(false);
+    }
+  },[car.monthly_0_down_aed, car.monthly_20_down_aed]);
+
   const docs = media.filter((m:any)=>m.kind==='document');
   
   // Primary-first display logic: show primary photo first, then sort by sort_order
@@ -243,6 +311,40 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       console.error(err);
       alert('Failed to prepare ZIP file');
     }
+  };
+
+  // Display formatting helper for Basic Info rows
+  const renderDisplayValue = (row: { label: string; field?: keyof CarInfo }, rawValue: any) => {
+    const value = rawValue ?? '—';
+    const enumFields = new Set<keyof CarInfo>([
+      'ownership_type',
+      'regional_specification',
+      'sale_status',
+      'status',
+    ]);
+
+    if (row.field && enumFields.has(row.field) && value !== '—') {
+      return (
+        <span className="inline-block px-2 py-0.5 rounded-full border border-white/20 bg-white/10 text-white/90 text-[12px]">
+          {String(value).toUpperCase()}
+        </span>
+      );
+    }
+
+    if (row.label === 'Mileage' && typeof localCar.current_mileage_km === 'number') {
+      return <span>{localCar.current_mileage_km.toLocaleString()} km</span>;
+    }
+
+    if (row.label === 'Advertised' || row.label === 'Cost') {
+      const numeric = Number(String(value).replace(/[^0-9.]/g, '') || 0);
+      return <span>AED {numeric.toLocaleString()}</span>;
+    }
+
+    if (row.label === 'Stock #') {
+      return <span className="font-mono tracking-wide">{String(value).toUpperCase()}</span>;
+    }
+
+    return <span>{typeof value === 'number' ? String(value) : String(value).toUpperCase()}</span>;
   };
 
   // Function to move photos to specific position (for drag & drop)
@@ -542,8 +644,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       rows: [
         { label: 'Advertised', value: `AED ${localCar.advertised_price_aed?.toLocaleString()}`, field:'advertised_price_aed' },
         { label: 'Cost', value: localCar.cost_price_aed ? `AED ${localCar.cost_price_aed.toLocaleString()}` : '—', field:'cost_price_aed' },
-        { label: 'Monthly (0% Down)', value: (()=>{ const p=localCar.advertised_price_aed||0; if(!p) return '—'; const r=0.03/12; const n=60; const m=Math.round(p*r/(1-Math.pow(1+r,-n))); return `AED ${m.toLocaleString()}/mo`;})() },
-        { label: 'Monthly (20% Down)', value: (()=>{ const p=localCar.advertised_price_aed||0; if(!p) return '—'; const principal=p*0.8; const r=0.03/12; const n=60; const m=Math.round(principal*r/(1-Math.pow(1+r,-n))); return `AED ${m.toLocaleString()}/mo`;})() },
+        { label: 'Monthly (0% Down)', value: monthlyZero || '—', field: undefined },
+        { label: 'Monthly (20% Down)', value: monthlyTwenty || '—', field: undefined },
         { label: 'Status', value: localCar.status, field:'status' },
         { label: 'Sale', value: localCar.sale_status, field:'sale_status' },
       ],
@@ -644,7 +746,23 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     if (localCar.website_url) {
       localCar.website_url = localCar.website_url.toLowerCase();
     }
-    const { error, data } = await supabase.from('cars').update(localCar).eq('id', car.id).select().single();
+
+    // Parse monthly strings -> integers (AED)
+    const parseMonthly = (s: string): number | null => {
+      if (!s) return null;
+      const n = Number(String(s).replace(/[^0-9]/g, ''));
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+
+    const monthly0 = monthlyZeroOverridden ? parseMonthly(monthlyZero) : null;
+    const monthly20 = monthlyTwentyOverridden ? parseMonthly(monthlyTwenty) : null;
+    const payload = {
+      ...localCar,
+      monthly_0_down_aed: monthly0,
+      monthly_20_down_aed: monthly20,
+    } as Partial<CarInfo>;
+ 
+    const { error, data } = await supabase.from('cars').update(payload).eq('id', car.id).select().single();
     if(error){ alert(error.message); return; }
     setEditing(false);
     if(data && onSaved){ onSaved(data as CarInfo); }
@@ -694,15 +812,16 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
 
   // lightbox state
-  const [showGallery, setShowGallery] = useState<number|null>(null); // index in gallery array
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryIdx, setGalleryIdx] = useState(0);
 
   // close on Esc
   const escListener = useCallback((e:KeyboardEvent)=>{
-    if(e.key==='Escape') setShowGallery(null);
+    if(e.key==='Escape') setShowGallery(false);
   },[]);
 
   useEffect(()=>{
-    if(showGallery!==null){
+    if(showGallery){
       window.addEventListener('keydown', escListener);
     } else {
       window.removeEventListener('keydown', escListener);
@@ -713,26 +832,35 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   // Removed moveItem helper function - no longer needed with arrow buttons
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-xl md:max-w-3xl lg:max-w-5xl text-xs relative max-h-[95vh] overflow-y-auto shadow-2xl">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="car-details-title"
+    >
+      <div 
+        className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-6 w-[1280px] max-w-[98vw] h-[85vh] flex flex-col text-sm relative overflow-hidden shadow-2xl focus:outline-none focus:ring-2 focus:ring-gray-400/50"
+        tabIndex={-1}
+      >
         <button
           onClick={onClose}
           className="absolute top-2 right-2 text-xl leading-none text-white/70 hover:text-white"
+          aria-label="Close car details modal"
         >
           ×
         </button>
-        <div className="flex items-start justify-between mb-3 pr-6 gap-4 flex-wrap">
+        <div className="flex items-start justify-between mb-4 pr-6 gap-4 flex-wrap">
           <div className="flex flex-col">
-            <h2 className="text-base font-semibold text-white">
-              Vehicle Details
+            <h2 id="car-details-title" className="text-lg font-semibold text-white flex items-center gap-2">
+              <span className="text-2xl md:text-3xl font-bold uppercase tracking-wide">Vehicle Details</span>
               {localCar.chassis_number && (
-                <span className="text-sm font-normal text-white/70 ml-2">
-                  - Chassis: {localCar.chassis_number}
+                <span className="text-base md:text-lg font-medium text-white/70 ml-2 flex items-center gap-2 uppercase">
+                  – Chassis: <span className="font-mono tracking-wide text-white/80">{localCar.chassis_number}</span>
                 </span>
               )}
             </h2>
             {localCar.stock_age_days !== null && (
-              <div className="text-white/70 text-xs mt-1">
+              <div className="text-white/70 text-sm mt-1">
                 <span className="text-white/50">Stock Age:</span> {localCar.stock_age_days} days
               </div>
             )}
@@ -792,39 +920,77 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
-          {/* SPECS */}
-          <div className="space-y-4 uppercase">
-            {groups.map(g=> (
-              <div key={g.heading} className="border border-white/15 rounded-md p-3 bg-white/5">
-                <h3 className="text-white text-[12px] font-bold mb-1 uppercase tracking-wide">{g.heading}</h3>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+
+        {/* Tab Navigation */}
+        <div className="border-b border-white/20 mb-6">
+          <nav className="flex space-x-3" aria-label="Tabs">
+            {[
+              { id: 'basic', label: 'Basic Info', step: 1 },
+              { id: 'description', label: 'Description', step: 2 },
+              { id: 'media', label: 'Media', step: 3 },
+              { id: 'documents', label: 'Vehicle Documents', step: 4 }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative whitespace-nowrap py-2.5 px-4 font-semibold text-[13px] md:text-sm uppercase tracking-wide rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:ring-offset-2 focus:ring-offset-black/40 ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-b from-white/15 to-white/5 text-white border border-white/20'
+                    : 'text-white/70 hover:text-white/90 hover:bg-white/5 border border-transparent'
+                }`}
+                aria-current={activeTab === tab.id ? 'page' : undefined}
+              >
+                <span className="mr-2 inline-flex items-center justify-center w-5 h-5 text-[11px] rounded-full bg-gradient-to-b from-white/60 to-white/20 text-black/80 font-semibold">{tab.step}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          
+          {/* Basic Info Tab (includes Mechanical/Condition/Pricing) */}
+          {activeTab === 'basic' && (
+            <div className="space-y-6 text-base">
+              {groups.filter(g => ['Basic Info','Mechanical','Condition','Pricing'].includes(g.heading)).map(g=> (
+                <div key={g.heading} className="border border-white/15 rounded-md p-5 bg-white/5">
+                  <h3 className="text-white text-sm font-bold mb-4 uppercase tracking-wide">{g.heading}</h3>
+                  <dl className={'grid grid-cols-1 gap-y-4'}>
                   {g.rows.map(r=> {
                     const val = r.value ?? '—';
-                    const stringVal = String(val);
-                    const needsToggle = (r.label==='Warranty' || r.label==='Service') && stringVal.length>40;
-                    const isOpen = expanded[r.label];
-                    const display = needsToggle?
-                      (isOpen? (
-                        <span>
-                          {stringVal}
-                          <button onClick={()=>toggleExpand(r.label)} className="ml-1 underline text-brand text-[10px]">Show less</button>
-                        </span>
-                      ) : (
-                        <span>
-                          {stringVal.slice(0,40)}…
-                          <button onClick={()=>toggleExpand(r.label)} className="ml-1 underline text-brand text-[10px]">Read more</button>
-                        </span>
-                      ))
-                    : val;
                     return (
-                      <div key={r.label} className="flex items-start justify-between">
-                        <dt className="text-white/60 text-[11px]">{r.label}</dt>
-                        <dd className="text-white text-[11px] max-w-[60%] text-right whitespace-normal break-words">
-                          {editing && r.field ? (
+                        <div key={r.label} className={'grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4'}>
+                          <dt className={'text-white/80 text-[14px] md:text-[15px] tracking-wide self-center'}>
+                            {r.label}
+                          </dt>
+                          <dd className={'text-white text-[16px] leading-[1.35] text-left whitespace-normal break-words'}>
+                          {r.label === 'Monthly (0% Down)' ? (
+                            editing ? (
+                              <input
+                                type="text"
+                                className="bg-black/40 border border-white/20 px-3 py-2 text-left w-full text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50"
+                                value={monthlyZero}
+                                onChange={e=>{ setMonthlyZero(e.target.value); setMonthlyZeroOverridden(true); }}
+                              />
+                            ) : (
+                              <span>{monthlyZero}</span>
+                            )
+                          ) : r.label === 'Monthly (20% Down)' ? (
+                            editing ? (
+                              <input
+                                type="text"
+                                className="bg-black/40 border border-white/20 px-3 py-2 text-left w-full text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50"
+                                value={monthlyTwenty}
+                                onChange={e=>{ setMonthlyTwenty(e.target.value); setMonthlyTwentyOverridden(true); }}
+                              />
+                            ) : (
+                              <span>{monthlyTwenty}</span>
+                            )
+                          ) : editing && r.field ? (
                             r.field === 'model_family' ? (
                               <select 
-                                className="bg-black/40 border border-white/20 px-1 text-right w-full text-white text-[11px]" 
+                                  className={'bg-black/40 border border-white/20 px-3 py-2 text-left w-full text-white text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50'} 
                                 value={(localCar[r.field]??'') as any} 
                                 onChange={e=>handleFieldChange(r.field!, e.target.value)}
                               >
@@ -836,10 +1002,15 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                 ))}
                               </select>
                             ) : (
-                            <input type="text" className="bg-black/40 border border-white/20 px-1 text-right w-full uppercase" value={(localCar[r.field]??'') as any} onChange={e=>handleFieldChange(r.field!, e.target.value.toUpperCase())} />
-                            )
+                              <input 
+                                type="text" 
+                                className={'bg-black/40 border border-white/20 px-3 py-2 text-left w-full uppercase text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50'} 
+                                value={(localCar[r.field]??'') as any} 
+                                onChange={e=>handleFieldChange(r.field!, e.target.value.toUpperCase())} 
+                              />
+                              )
                           ) : (
-                            display
+                            renderDisplayValue({ label: r.label, field: r.field as any }, val)
                           )}
                         </dd>
                       </div>
@@ -849,269 +1020,218 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               </div>
             ))}
 
-            {/* Website URL section styled like other modal sections */}
-            <div className="border border-white/10 rounded-md p-3 bg-white/5 mb-4">
-              <h3 className="text-white text-[12px] font-bold mb-1 uppercase tracking-wide">Website URL</h3>
-              {editing && canEdit ? (
-                <input
-                  type="url"
-                  className="w-full bg-black/40 border border-white/20 rounded px-2 py-1 text-white text-sm focus:outline-none"
-                  value={(localCar.website_url || '').toLowerCase()}
-                  placeholder="https://yourwebsite.com/car/123"
-                  onChange={e => setLocalCar(prev => ({ ...prev, website_url: e.target.value.toLowerCase() }))}
-                />
-              ) : (
-                <div className="text-white/80 text-sm px-2 py-1 bg-black/20 rounded">
-                  {localCar.website_url ? (
-                    <a href={localCar.website_url} target="_blank" rel="noopener noreferrer" className="no-underline text-white/80 text-sm normal-case">
-                      {localCar.website_url.toLowerCase()}
-                    </a>
-                  ) : (
-                    <span className="text-white/40">No website URL set</span>
-                  )}
+              {/* Consignment Details - Only for consignment cars */}
+            {localCar.ownership_type === 'consignment' && (
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <h3 className="text-white text-sm font-bold mb-3 uppercase tracking-wide">Consignment Details</h3>
+                  <dl className="grid grid-cols-1 gap-y-4">
+                    <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
+                      <dt className="text-white/70 text-[13px] tracking-wide self-center">Customer Name</dt>
+                      <dd className="text-white text-[16px] leading-[1.35] text-left whitespace-normal break-words">
+                        {editing && canEdit ? (
+                          <input
+                            type="text"
+                            className="bg-black/40 border border-white/20 px-3 py-2 text-left w-full text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50"
+                            value={localCar.customer_name ?? ''}
+                            onChange={e=>handleFieldChange('customer_name', e.target.value)}
+                          />
+                        ) : (
+                          localCar.customer_name ?? '—'
+                        )}
+                      </dd>
+                    </div>
+                    <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
+                      <dt className="text-white/70 text-[13px] tracking-wide self-center">Customer Phone</dt>
+                      <dd className="text-white text-[16px] leading-[1.35] text-left whitespace-normal break-words">
+                        {editing && canEdit ? (
+                          <input
+                            type="text"
+                            className="bg-black/40 border border-white/20 px-3 py-2 text-left w-full text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50"
+                            value={localCar.customer_phone ?? ''}
+                            onChange={e=>handleFieldChange('customer_phone', e.target.value)}
+                          />
+                        ) : (
+                          localCar.customer_phone ?? '—'
+                        )}
+                      </dd>
+                    </div>
+                    <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
+                      <dt className="text-white/70 text-[13px] tracking-wide self-center">Customer Email</dt>
+                      <dd className="text-white text-[16px] leading-[1.35] text-left whitespace-normal break-words">
+                        {editing && canEdit ? (
+                          <input
+                            type="email"
+                            className="bg-black/40 border border-white/20 px-3 py-2 text-left w-full text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50"
+                            value={localCar.customer_email ?? ''}
+                            onChange={e=>handleFieldChange('customer_email', e.target.value)}
+                          />
+                        ) : (
+                          localCar.customer_email ?? '—'
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
               )}
-            </div>
-
-            {/* Vehicle Owner Details - Only for Consignment Cars */}
-            {localCar.ownership_type === 'consignment' && (
-              <div className="border border-white/15 rounded-md p-3 bg-white/5">
-                <h3 className="text-white text-[12px] font-bold mb-1 uppercase tracking-wide">Vehicle Owner Details</h3>
-                <dl className="grid grid-cols-1 gap-x-4 gap-y-2">
-                  <div className="flex items-start justify-between">
-                    <dt className="text-white/60 text-[11px]">Owner Name</dt>
-                    <dd className="text-white text-[11px] max-w-[60%] text-right whitespace-normal break-words">
-                      {editing ? (
-                        <input 
-                          type="text" 
-                          className="bg-black/40 border border-white/20 px-1 text-right w-full" 
-                          value={localCar.customer_name ?? ''} 
-                          onChange={e=>handleFieldChange('customer_name', e.target.value)} 
-                        />
-                      ) : (
-                        localCar.customer_name || '—'
-                      )}
-                    </dd>
-                  </div>
-                  <div className="flex items-start justify-between">
-                    <dt className="text-white/60 text-[11px]">Phone Number</dt>
-                    <dd className="text-white text-[11px] max-w-[60%] text-right whitespace-normal break-words">
-                      {editing ? (
-                        <input 
-                          type="text" 
-                          className="bg-black/40 border border-white/20 px-1 text-right w-full" 
-                          value={localCar.customer_phone ?? ''} 
-                          onChange={e=>handleFieldChange('customer_phone', e.target.value)} 
-                        />
-                      ) : (
-                        localCar.customer_phone || '—'
-                      )}
-                    </dd>
-                  </div>
-                  <div className="flex items-start justify-between">
-                    <dt className="text-white/60 text-[11px]">Email Address</dt>
-                    <dd className="text-white text-[11px] max-w-[60%] text-right whitespace-normal break-words">
-                      {editing ? (
-                        <input 
-                          type="email" 
-                          className="bg-black/40 border border-white/20 px-1 text-right w-full" 
-                          value={localCar.customer_email ?? ''} 
-                          onChange={e=>handleFieldChange('customer_email', e.target.value)} 
-                        />
-                      ) : (
-                        localCar.customer_email || '—'
-                      )}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            )}
-
-            {/* Removed description block from left column */}
           </div>
+          )}
 
-          {/* DESCRIPTION & KEY EQUIPMENT */}
-          <div className="flex flex-col gap-2">
+          {/* Description Tab */}
+          {activeTab === 'description' && (
+            <div className="space-y-6">
             {/* Description */}
-            <div className="border border-white/15 rounded-md p-3 bg-white/5 flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="flex justify-between items-center mb-1 flex-shrink-0">
-                <h3 className="text-white text-[12px] font-bold uppercase tracking-wide">Description</h3>
+              <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-white text-sm font-bold uppercase tracking-wide">Description</h3>
                 {editing && (
-                  <span className={`text-[10px] ${(localCar.description || '').length > 1700 ? 'text-red-400' : 'text-white/60'}`}>
+                    <span className={`text-sm ${(localCar.description || '').length > 1700 ? 'text-red-400' : 'text-white/60'}`}>
                     {(localCar.description || '').length}/1700
                   </span>
                 )}
               </div>
-              {editing? (
+                {editing && canEdit ? (
                 <>
                   <textarea 
-                    className={`w-full bg-black/40 border p-1 text-[11px] leading-normal text-white resize-y min-h-[100px] ${
-                      (localCar.description || '').length > 1700 ? 'border-red-400' : 'border-white/20'
+                      ref={descRef}
+                      onInput={(e)=>applyAutoResize(e.currentTarget)}
+                      className={`w-full bg-black/40 border p-3 text-sm leading-normal text-white resize-none focus:outline-none focus:ring-2 focus:ring-gray-400/50 ${
+                        (localCar.description || '').length > 1700 ? 'border-red-400 focus:border-red-400' : 'border-white/20 focus:border-gray-400/50'
                     }`} 
                     value={localCar.description||''} 
-                    onChange={e=>handleFieldChange('description',e.target.value)} 
-                    maxLength={1700}
+                      onChange={e=>handleFieldChange('description', e.target.value)}
+                      placeholder="Enter vehicle description..."
+                      style={{height: 'auto'}}
                   />
                   {(localCar.description || '').length > 1700 && (
-                    <p className="text-red-400 text-[10px] mt-1">Description must be 1700 characters or less</p>
+                      <p className="text-red-400 text-sm mt-2">Description must be 1700 characters or less</p>
                   )}
                 </>
-              ): (
-                <div className="flex-1 overflow-y-auto">
-                  <p className="text-white text-[11px] leading-normal whitespace-pre-wrap break-words">{localCar.description||'—'}</p>
+                ) : (
+                  <div className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">
+                    {localCar.description || 'No description available'}
                 </div>
               )}
             </div>
 
             {/* Key Equipment */}
-            <div className="border border-white/15 rounded-md p-3 bg-white/5 flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="flex justify-between items-center mb-1 flex-shrink-0">
-                <h3 className="text-white text-[12px] font-bold uppercase tracking-wide">Key Equipment</h3>
+              <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-white text-sm font-bold uppercase tracking-wide">Key Equipment</h3>
                 {editing && (
-                  <span className={`text-[10px] ${(localCar.key_equipment || '').length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
+                    <span className={`text-sm ${(localCar.key_equipment || '').length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
                     {(localCar.key_equipment || '').length}/1800
                   </span>
                 )}
               </div>
-              {editing? (
+                {editing && canEdit ? (
                 <>
                   <textarea 
-                    className={`w-full bg-black/40 border p-1 text-[10px] text-white resize-y min-h-[100px] ${
-                      (localCar.key_equipment || '').length > 1800 ? 'border-red-400' : 'border-white/20'
+                      ref={keyEqRef}
+                      onInput={(e)=>applyAutoResize(e.currentTarget)}
+                      className={`w-full bg-black/40 border p-3 text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-gray-400/50 ${
+                        (localCar.key_equipment || '').length > 1800 ? 'border-red-400 focus:border-red-400' : 'border-white/20 focus:border-gray-400/50'
                     }`} 
                     value={localCar.key_equipment||''} 
-                    onChange={e=>handleFieldChange('key_equipment',e.target.value)} 
-                    placeholder="Comma or newline separated" 
-                    maxLength={1800}
+                      onChange={e=>handleFieldChange('key_equipment', e.target.value)}
+                      placeholder="Enter key equipment and features..."
+                      style={{height:'auto'}}
                   />
                   {(localCar.key_equipment || '').length > 1800 && (
-                    <p className="text-red-400 text-[10px] mt-1">Key equipment must be 1800 characters or less</p>
+                      <p className="text-red-400 text-sm mt-2">Key equipment must be 1800 characters or less</p>
                   )}
                 </>
-              ): (
-                <div className="flex-1 overflow-y-auto">
-                  {localCar.key_equipment? (
-                     <ul className="list-disc list-inside columns-2 text-white text-[11px] leading-normal whitespace-pre-wrap">
-                       {localCar.key_equipment.split(/[\n,]+/).map((it,i)=><li key={i} className="break-inside-avoid">{it.trim()}</li>)}
-                     </ul>
-                   ) : '—'}
+                ) : (
+                  <div className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">
+                    {localCar.key_equipment || 'No key equipment listed'}
                 </div>
               )}
               </div>
 
-          </div>
-
-          {/* DOCUMENTS & MEDIA */}
-          <div className="space-y-4">
-            {/* Documents Section */}
-            <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-              <DocUploader carId={car.id} onUploaded={async ()=>{
-                const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('created_at');
-                setMedia(docRows||[]);
-              }} />
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-white/70">Documents ({docs.length})</h4>
-                  {docs.length>0 && (
-                    <button onClick={()=>downloadAll(docs, 'documents.zip')} className="text-[10px] underline text-white/60 hover:text-white">Download All</button>
+              {/* Website URL */}
+              <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                <h3 className="text-white text-sm font-bold mb-3 uppercase tracking-wide">Website URL</h3>
+                {editing && canEdit ? (
+                  <input
+                    type="url"
+                    className="w-full bg-black/40 border border-white/20 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50"
+                    value={(localCar.website_url || '').toLowerCase()}
+                    placeholder="https://yourwebsite.com/car/123"
+                    onChange={e=>handleFieldChange('website_url', e.target.value.toLowerCase())}
+                  />
+                ) : (
+                  <div className="text-white/80 text-sm">
+                    {localCar.website_url ? (
+                      <a href={localCar.website_url} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white underline">
+                        {localCar.website_url}
+                      </a>
+                    ) : (
+                      'No website URL set'
                   )}
                 </div>
-                {docs.length>0 ? (
-                  <ul className="list-disc list-inside text-white/80 text-xs max-h-24 overflow-y-auto pr-1">
-                    {docs.map((d:any)=> (
-                      <li key={d.id}><a href={d.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-brand">{d.url.split('/').pop()}</a></li>
-                    ))}
-                  </ul>
-                ): (
-                  <p className="text-white/50 text-[11px]">No documents uploaded yet.</p>
                 )}
               </div>
             </div>
+          )}
 
-            {canEdit && car.status === 'marketing' && (
-              <MediaUploader carId={car.id} onUploaded={refetchMedia} />
-            )}
-
-            {/* Media Section */}
-            {gallery.length>0 && (
-              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-white/70">
-                    Pictures / Videos ({gallery.length})
-                    {mediaLoading && <span className="ml-2 text-red-400">Loading...</span>}
-                                    {reorderLoading && <span className="ml-2 text-blue-400">Reordering...</span>}
+          {/* Media Tab */}
+          {activeTab === 'media' && (
+            <div className="space-y-6">
+              {/* Photo Gallery */}
+              {gallery.length > 0 && (
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">
+                      Photo Gallery ({gallery.length})
                   </h4>
-                  <button 
-                    onClick={()=>downloadAll(gallery, 'media.zip')} 
-                    disabled={!!(mediaLoading || reorderLoading)}
-                    className="text-[10px] underline text-white/60 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Download All
-                  </button>
+                    {editing && (
+                      <span className="text-sm text-white/60">Drag to reorder</span>
+                    )}
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {gallery.map((m:any, i:number)=>(
-                    <div
-                      key={m.id}
-                      className={`relative group transition-all duration-200 ${
-                        editing ? 'cursor-move' : 'cursor-pointer'
-                      } ${
-                        draggedIndex === i ? 'opacity-50 scale-95 rotate-1' : ''
-                      } ${
-                        dragOverIndex === i && draggedIndex !== i ? 'scale-105 ring-2 ring-blue-400' : ''
-                      }`}
-                      draggable={editing && !reorderLoading}
-                      onDragStart={(e) => handleDragStart(e, i)}
-                      onDragOver={(e) => handleDragOver(e, i)}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {gallery.map((item, i) => (
+                      <div
+                        key={item.id}
+                        className={`relative group ${editing ? 'cursor-move' : 'cursor-pointer'}`}
+                        draggable={editing}
+                        onDragStart={(e)=>handleDragStart(e,i)}
+                        onDragOver={(e)=>handleDragOver(e,i)}
                       onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, i)}
+                        onDrop={(e)=>handleDrop(e,i)}
                       onDragEnd={handleDragEnd}
                     >
-                      {m.kind==='photo' ? (
-                        <img src={m.url} loading="lazy" className="w-full h-24 object-contain rounded bg-black" onClick={()=>setShowGallery(i)} />)
-                        : (
-                          <div className="relative" onClick={()=>setShowGallery(i)}>
-                            <video src={m.url} preload="metadata" className="w-full h-24 object-contain rounded pointer-events-none bg-black" />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xl rounded">
-                              ▶
+                        <div className="aspect-square bg-white/10 rounded overflow-hidden">
+                          <img 
+                            src={item.url} 
+                            className="w-full h-full object-contain bg-black/40 cursor-pointer hover:opacity-80 transition-opacity" 
+                            onClick={() => {setShowGallery(true); setGalleryIdx(i);}}
+                            loading="lazy"
+                          />
                             </div>
+                        {item.is_primary && (
+                          <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded">
+                            Primary
                           </div>
                         )}
-                      {/* overlay buttons - delete available to all users */}
-                      <>
+                        {editing && (
+                          <div className="absolute inset-0 hidden group-hover:flex items-start justify-between p-1">
+                            <div>
+                              {!item.is_primary && (
                         <button 
-                          onClick={()=>handleDeleteMedia(m)} 
-                          disabled={!!(mediaLoading || reorderLoading)}
-                          className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          {mediaLoading ? '...' : '×'}
+                                  onClick={() => handleSetPrimary(item.id)}
+                                  className="bg-black/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-black/90"
+                                  title="Set as primary"
+                                >
+                                  ★
                         </button>
-                        {/* Set as Primary button - only for photos that aren't already primary */}
-                        {canEditInventory && m.kind === 'photo' && !m.is_primary && (
+                              )}
+                            </div>
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSetPrimary(m.id);
-                            }}
-                            disabled={!!(mediaLoading || reorderLoading)}
-                            className="absolute top-0 left-0 text-[9px] bg-blue-600/80 hover:bg-blue-600 text-white px-1.5 py-0.5 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed rounded-br"
-                            title="Set as Primary"
-                          >
-                            {mediaLoading ? '...' : 'PRIMARY'}
+                              onClick={() => handleDeleteMedia(item.id)}
+                              className="bg-red-500/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-red-500/90"
+                              title="Delete"
+                            >
+                              ×
                           </button>
-                        )}
-                      </>
-                      {m.kind==='photo' && m.is_primary && (
-                        <span className="absolute bottom-0 left-0 text-[9px] bg-green-600/80 text-white px-1 font-semibold">
-                          PRIMARY
-                        </span>
-                      )}
-                      {/* Drag indicator when in editing mode */}
-                      {editing && draggedIndex !== i && (
-                        <div className="absolute inset-0 border-2 border-dashed border-white/20 rounded hidden group-hover:block pointer-events-none">
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/50 text-[10px] bg-black/70 px-1.5 py-0.5 rounded">
-                            Drag to reorder
-                          </div>
                         </div>
                       )}
                     </div>
@@ -1120,210 +1240,285 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               </div>
             )}
 
-            {/* Social Media Section */}
-            {canEdit && car.status === 'marketing' && (
-              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-                <h4 className="text-xs font-semibold text-white/70">Social Media Images</h4>
-                <MediaUploader 
-                  carId={car.id} 
-                  onUploaded={refetchMedia}
-                  mediaKind="social_media"
-                  acceptedFormats="image/*"
-                  sizeRequirements={{
-                    aspectRatio: "9:16 (Story) or 4:5 (Post)"
-                  }}
-                />
-              </div>
-            )}
-
+              {/* Social Media Images */}
             {socialMedia.length > 0 && (
-              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-white/70">
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <h4 className="text-sm font-semibold text-white mb-4">
                     Social Media Images ({socialMedia.length})
                   </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {socialMedia.map((item) => (
+                      <div key={item.id} className="relative group">
+                        <div className="aspect-square bg-white/10 rounded overflow-hidden">
+                          <img 
+                            src={item.url} 
+                            className="w-full h-full object-cover" 
+                            loading="lazy"
+                          />
+                        </div>
+                        {editing && (
                   <button 
-                    onClick={()=>downloadAll(socialMedia, 'social_media.zip')} 
-                    className="text-[10px] underline text-white/60 hover:text-white"
+                            onClick={() => handleDeleteMedia(item.id)}
+                            className="absolute top-1 right-1 bg-red-500/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-red-500/90"
+                            title="Delete"
                   >
-                    Download All
+                            ×
                   </button>
+                        )}
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {socialMedia.map((m:any)=>(
-                    <div key={m.id} className="relative group">
-                      <img src={m.url} loading="lazy" className="w-full h-24 object-contain rounded bg-black" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Catalog Images */}
+              {catalog.length > 0 && (
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <h4 className="text-sm font-semibold text-white mb-4">
+                    Catalog Images ({catalog.length})
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {catalog.map((item) => (
+                      <div key={item.id} className="relative group">
+                        <div className="aspect-square bg-white/10 rounded overflow-hidden">
+                          <img 
+                            src={item.url} 
+                            className="w-full h-full object-cover" 
+                            loading="lazy"
+                          />
+                        </div>
+                        {editing && (
                       <button 
-                        onClick={()=>handleDeleteMedia(m)} 
-                        disabled={mediaLoading}
-                        className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        {mediaLoading ? '...' : '×'}
+                            onClick={() => handleDeleteMedia(item.id)}
+                            className="absolute top-1 right-1 bg-red-500/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-red-500/90"
+                            title="Delete"
+                          >
+                            ×
                       </button>
+                        )}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Catalog Section */}
-            {canEdit && car.status === 'marketing' && (
-              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-                <h4 className="text-xs font-semibold text-white/70">Catalog Image</h4>
+              {/* Media Upload Sections - Only show in edit mode */}
+              {editing && canEdit && (
+                <div className="space-y-4">
+                  <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                    <h4 className="text-sm font-semibold text-white/70 mb-3">Upload Photo Gallery</h4>
                 <MediaUploader 
                   carId={car.id} 
-                  onUploaded={refetchMedia}
+                      onUploaded={()=>refetchMedia()}
+                      mediaKind="photo"
+                      acceptedFormats="image/*"
+                    />
+                  </div>
+                  
+                  <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                    <h4 className="text-sm font-semibold text-white/70 mb-3">Upload Social Media Images</h4>
+                    <MediaUploader 
+                      carId={car.id} 
+                      onUploaded={()=>refetchMedia()}
+                      mediaKind="social_media"
+                      acceptedFormats="image/*"
+                    />
+                  </div>
+                  
+                  <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                    <h4 className="text-sm font-semibold text-white/70 mb-3">Upload Catalog Image</h4>
+                    <MediaUploader 
+                      carId={car.id} 
+                      onUploaded={()=>refetchMedia()}
                   mediaKind="catalog"
                   acceptedFormats="image/*"
-                  sizeRequirements={{
-                    aspectRatio: "1:1 (Square)"
-                  }}
                 />
+                  </div>
+                </div>
+              )}
               </div>
             )}
 
-            {catalog.length > 0 && (
-              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-white/70">
-                    Catalog Image ({catalog.length})
-                  </h4>
-                  <button 
-                    onClick={()=>downloadAll(catalog, 'catalog.zip')} 
-                    className="text-[10px] underline text-white/60 hover:text-white"
-                  >
-                    Download All
-                  </button>
+          {/* Documents Tab */}
+          {activeTab === 'documents' && (
+            <div className="space-y-6">
+              {/* Document Upload */}
+              <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-white">Vehicle Documents</h4>
+                  <DocUploader
+                    carId={car.id}
+                    variant="button"
+                    buttonLabel="Upload"
+                    onUploaded={async ()=>{
+                      const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('created_at');
+                      if(docRows) setMedia(docRows);
+                    }}
+                  />
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {catalog.map((m:any)=>(
-                    <div key={m.id} className="relative group">
-                      <img src={m.url} loading="lazy" className="w-full h-24 object-contain rounded bg-black" />
+                
+                {docs.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <h5 className="text-sm font-medium text-white/80">Uploaded Documents</h5>
+                    {docs.map(doc => (
+                      <div key={doc.id} className="flex items-center justify-between p-2 bg-black/30 rounded">
+                        <span className="text-sm text-white/80">Document</span>
+                        <div className="flex gap-2">
+                          <a 
+                            href={doc.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-gray-400 hover:text-white underline"
+                          >
+                            View
+                          </a>
+                          <a
+                            href={`${doc.url}${doc.url.includes('?') ? '&' : '?'}download`}
+                            download
+                            className="text-sm text-gray-400 hover:text-white underline"
+                          >
+                            Download
+                          </a>
+                          {editing && (
                       <button 
-                        onClick={()=>handleDeleteMedia(m)} 
-                        disabled={mediaLoading}
-                        className="absolute top-0 right-0 text-[10px] bg-black/60 text-white px-1 hidden group-hover:block disabled:opacity-40 disabled:cursor-not-allowed"
+                              onClick={() => handleDeleteMedia(doc.id)}
+                              className="text-sm text-red-400 hover:text-red-300"
                       >
-                        {mediaLoading ? '...' : '×'}
+                              Delete
                       </button>
+                          )}
+                        </div>
                     </div>
                   ))}
-                </div>
               </div>
             )}
+              </div>
 
-            {/* Vehicle Details PDF Section */}
-            <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-              <h4 className="text-xs font-semibold text-white/70">Vehicle Details PDF</h4>
-              {pdfUrl ? (
-                <div className="flex items-center gap-2">
-                  <a href={pdfUrl + '?download'} download className="underline text-brand text-xs">Download PDF</a>
+              {/* Vehicle PDF */}
+              <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-white">Vehicle PDF</h4>
                   {canEdit && (car.status==='marketing' || car.status==='qc_ceo') && (
-                    <button onClick={handleGeneratePdf} disabled={generating} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded disabled:opacity-40 flex items-center gap-1">
-                      {generating && (<span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />)}
-                      {generating ? 'Regenerating…' : 'Regenerate'}
+                    <button 
+                      onClick={handleGeneratePdf} 
+                      disabled={generating}
+                      className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                    >
+                      {generating ? (pdfUrl ? 'Regenerating…' : 'Generating…') : (pdfUrl ? 'Regenerate' : 'Generate')}
                     </button>
                   )}
                 </div>
-              ) : (
-                canEdit && (car.status==='marketing' || car.status==='qc_ceo') ? (
-                  <button onClick={handleGeneratePdf} disabled={generating} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded disabled:opacity-40 flex items-center gap-1">
-                    {generating && (<span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />)}
-                    {generating ? 'Generating…' : 'Generate PDF'}
-                  </button>
-                ) : (
-                  <p className="text-white/50 text-[11px]">PDF available only to admins in Marketing or QC stages.</p>
-                )
-              )}
-              {statusMsg && <div className="text-[10px] text-white/50">{statusMsg}</div>}
-            </div>
-
-            {/* Consignment Agreement Section - Only for consignment cars in marketing stage */}
-            {localCar.ownership_type === 'consignment' && localCar.status === 'marketing' && (
-              <div className="space-y-2 border border-white/15 rounded-md p-3 bg-white/5">
-                <h4 className="text-xs font-semibold text-white/70">Consignment Agreement</h4>
                 <div className="space-y-2">
-                  <p className="text-white/60 text-[10px]">
-                    Generate and download the consignment agreement for customer signing.
-                  </p>
-                  <button 
-                    onClick={handleGenerateConsignmentAgreement} 
-                    disabled={generatingAgreement || !localCar.customer_name || !localCar.customer_email || !localCar.customer_phone}
-                    className="px-3 py-2 text-xs bg-gradient-to-r from-gray-600 via-gray-500 to-gray-600 hover:from-gray-500 hover:via-gray-400 hover:to-gray-500 border border-white/20 text-white rounded disabled:opacity-40 flex items-center gap-2 transition-all shadow-lg"
-                  >
-                    {generatingAgreement && (
-                      <span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white" />
-                    )}
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14,2 14,8 20,8"/>
-                      <line x1="16" y1="13" x2="8" y2="13"/>
-                      <line x1="16" y1="17" x2="8" y2="17"/>
-                      <polyline points="10,9 9,9 8,9"/>
-                    </svg>
-                    {generatingAgreement ? 'Generating Agreement...' : 'Send for Signing'}
-                  </button>
-                  {!localCar.customer_name || !localCar.customer_email || !localCar.customer_phone ? (
-                    <p className="text-yellow-400 text-[10px] mt-1">
-                      ⚠️ Customer information required (name, email, phone)
-                    </p>
-                  ) : null}
-                  {agreementStatusMsg && (
-                    <div className="text-[10px] text-white/50 bg-white/5 p-2 rounded border border-white/10">
-                      {agreementStatusMsg}
+                  <div className="flex items-center justify-between p-2 bg-black/30 rounded">
+                    <span className="text-sm text-white/80">Vehicle Details PDF</span>
+                    <div className="flex gap-2">
+                      {pdfUrl && (
+                        <>
+                          <a
+                            href={pdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-gray-400 hover:text-white underline"
+                          >
+                            View
+                          </a>
+                          <a
+                            href={`${pdfUrl}${pdfUrl.includes('?') ? '&' : '?'}download`}
+                            download
+                            className="text-sm text-gray-400 hover:text-white underline"
+                          >
+                            Download
+                          </a>
+                        </>
+                      )}
                     </div>
+                  </div>
+                  {!pdfUrl && (
+                    <p className="text-white/60 text-sm">No PDF generated yet</p>
+                  )}
+                  {statusMsg && (
+                    <p className="text-sm text-white/70">{statusMsg}</p>
                   )}
                 </div>
+            </div>
+
+              {/* Consignment Agreement - Only for consignment cars */}
+              {localCar.ownership_type === 'consignment' && (
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">Consignment Agreement</h4>
+                  <button 
+                    onClick={handleGenerateConsignmentAgreement} 
+                      disabled={generatingAgreement}
+                      className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                    >
+                      {generatingAgreement ? 'Generating…' : 'Generate Agreement'}
+                  </button>
+                  </div>
+                  {agreementStatusMsg && (
+                    <p className="text-sm text-white/70">{agreementStatusMsg}</p>
+                  )}
+                    </div>
+                  )}
               </div>
             )}
 
-            {/* Lightbox viewer */}
-            {showGallery!==null && gallery[showGallery] && createPortal(
-              <div
-                className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 select-none"
-                onClick={(e)=>{ if(e.target===e.currentTarget) setShowGallery(null); }}
-              >
+        </div>
+
+        {/* Gallery Modal */}
+        {showGallery && gallery.length > 0 && (
+          createPortal(
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-6">
+              <div className="relative w-[90vw] h-[90vh] max-w-[1600px] max-h-[90vh] flex items-center justify-center">
                 {/* Close */}
                 <button
-                  className="absolute top-3 right-4 w-8 h-8 flex items-center justify-center bg-white text-black rounded-full text-2xl font-bold hover:bg-white/90"
-                  onClick={()=>setShowGallery(null)}
+                  onClick={() => setShowGallery(false)}
+                  className="absolute top-4 right-4 text-white/90 hover:text-white bg-white/10 rounded-full px-3 py-1"
                   aria-label="Close"
                 >
-                  ×
+                  Close
                 </button>
-
-                {/* Prev */}
-                {showGallery>0 && (
-                  <button className="absolute left-2 md:left-6 text-white text-5xl md:text-6xl hover:text-brand transition" onClick={()=>setShowGallery(showGallery-1)} aria-label="Previous">‹</button>
-                )}
-
+                {/* Download current */}
+                <a
+                  href={`${getOriginalImageUrl(gallery[galleryIdx].url)}?download`}
+                  className="absolute top-4 left-4 text-white/90 hover:text-white bg-white/10 rounded-full px-3 py-1"
+                >
+                  Download
+                </a>
                 {/* Media */}
-                <div className="w-screen h-screen flex items-center justify-center">
-                  {gallery[showGallery].kind==='photo'? (
-                    <img
-                      src={gallery[showGallery].url}
-                      className="object-contain"
-                      style={{ maxHeight: '100vh', maxWidth: '100vw', width: 'auto', height: 'auto' }}
-                    />
-                  ):(
-                    <video
-                      src={gallery[showGallery].url}
-                      controls
-                      className="object-contain"
-                      style={{ maxHeight: '100vh', maxWidth: '100vw', width: 'auto', height: 'auto' }}
-                    />
-                  )}
-                </div>
-
-                {/* Next */}
-                {showGallery<gallery.length-1 && (
-                  <button className="absolute right-2 md:right-6 text-white text-5xl md:text-6xl hover:text-brand transition" onClick={()=>setShowGallery(showGallery+1)} aria-label="Next">›</button>
+                {gallery[galleryIdx] && (
+                  <img 
+                    src={getOriginalImageUrl(gallery[galleryIdx].url)} 
+                    className="max-w-full max-h-full object-contain"
+                    alt="Gallery image"
+                  />
                 )}
-              </div>, document.body)}
+                {/* Arrows */}
+                {gallery.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setGalleryIdx(prev => prev > 0 ? prev - 1 : gallery.length - 1)}
+                      className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/20 hover:bg-white/30 rounded-full px-3 py-2 text-xl"
+                      aria-label="Prev"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      onClick={() => setGalleryIdx(prev => prev < gallery.length - 1 ? prev + 1 : 0)}
+                      className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/20 hover:bg-white/30 rounded-full px-3 py-2 text-xl"
+                      aria-label="Next"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-sm">
+                  {galleryIdx + 1} / {gallery.length}
           </div>
         </div>
+            </div>, document.body)
+        )}
       </div>
-      
     </div>
   );
 } 

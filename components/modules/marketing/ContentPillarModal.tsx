@@ -488,8 +488,10 @@ export default function ContentPillarModal({
       
       // Save and download both images
       for (const { template, imageBase64 } of generatedImages) {
+        console.log(`💾 Saving and downloading Template ${template}...`);
         await saveGeneratedImageAsFile(imageBase64, template);
         downloadGeneratedImage(imageBase64, template);
+        console.log(`✅ Template ${template} saved and downloaded successfully`);
       }
       
       console.log('✅ Both template images generated, saved to files, and downloaded successfully');
@@ -505,13 +507,15 @@ export default function ContentPillarModal({
   // Save generated image as a file in the task
   const saveGeneratedImageAsFile = async (imageBase64: string, template?: string) => {
     try {
+      console.log(`💾 Starting save process for Template ${template}...`);
       // Convert base64 to blob
       const response = await fetch(`data:image/png;base64,${imageBase64}`);
       const blob = await response.blob();
       
       // Create a File object
       const templateSuffix = template ? `_template_${template}` : '';
-      const fileName = `template_${formData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${dayKey}${templateSuffix}_${Date.now()}.png`;
+      const titleForFilename = dayKey === 'wednesday' ? (formData.car_model || 'car') : formData.title;
+      const fileName = `template_${titleForFilename.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${dayKey}${templateSuffix}_${Date.now()}.png`;
       const file = new File([blob], fileName, { type: 'image/png' });
       
       // Generate thumbnail for the file
@@ -529,9 +533,9 @@ export default function ContentPillarModal({
       // Add the generated image to existing files (don't replace)
       setSelectedFiles(prev => [...prev, fileWithThumbnail]);
       
-      console.log('✅ Generated image added to task files alongside existing media');
+      console.log(`✅ Template ${template} added to task files: ${fileName}`);
     } catch (error) {
-      console.error('❌ Error saving generated image as file:', error);
+      console.error(`❌ Error saving Template ${template} as file:`, error);
     }
   };
 
@@ -861,7 +865,7 @@ export default function ContentPillarModal({
           .badge-row { display: flex; align-items: center; justify-content: center; margin-bottom: 24px; gap: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
           .content { padding: 40px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; overflow: visible; position: absolute; top: 2%; left: 0; right: 0; z-index: 10; text-align: center; }
-          .title { font-size: 68px; font-weight: 950; color: #6a6a6a; line-height: 1.1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); margin-bottom: 12px; font-stretch: ultra-condensed; -webkit-text-stroke: 1px #4a4a4a; text-stroke: 1px #4a4a4a; font-style: italic; padding: 0 80px; }
+          .title { font-size: 68px; font-weight: 950; color: #555555; line-height: 1.1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); margin-bottom: 12px; font-stretch: ultra-condensed; font-style: italic; padding: 0 80px; }
           .subtitle { font-size: 42px; color: #6a6a6a; margin-bottom: 16px; font-weight: 800; text-shadow: none; font-style: italic; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
           .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #000000; }
@@ -1794,15 +1798,22 @@ export default function ContentPillarModal({
   // Download generated image
   const downloadGeneratedImage = (imageBase64?: string, template?: string) => {
     const imageToDownload = imageBase64 || generatedImageBase64;
-    if (!imageToDownload) return;
+    if (!imageToDownload) {
+      console.error(`❌ No image data to download for Template ${template}`);
+      return;
+    }
     
+    console.log(`⬇️ Starting download for Template ${template}...`);
     const link = document.createElement('a');
     link.href = `data:image/png;base64,${imageToDownload}`;
     const templateSuffix = template ? `_template_${template}` : '';
-    link.download = `${formData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${dayKey}${templateSuffix}.png`;
+    const titleForDownload = dayKey === 'wednesday' ? (formData.car_model || 'car') : formData.title;
+    const downloadFileName = `${titleForDownload.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${dayKey}${templateSuffix}.png`;
+    link.download = downloadFileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    console.log(`✅ Template ${template} download initiated: ${downloadFileName}`);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

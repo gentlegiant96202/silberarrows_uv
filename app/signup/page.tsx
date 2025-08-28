@@ -19,35 +19,25 @@ export default function SignupPage() {
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Domain restriction settings
-  const ALLOWED_DOMAINS = ['@silberarrows.com'];
-  const [emailDomainError, setEmailDomainError] = useState<string | null>(null);
-
-  // Check if email domain is allowed
-  const isValidDomain = (email: string): boolean => {
-    return ALLOWED_DOMAINS.some(domain => email.toLowerCase().endsWith(domain.toLowerCase()));
-  };
-
-  // Handle email change with real-time domain validation
+  // Handle email change
   const handleEmailChange = (value: string) => {
     setEmail(value);
-    setEmailDomainError(null);
-    
-    // Only validate if email contains @ and appears complete
-    if (value.includes('@') && value.length > 3) {
-      if (!isValidDomain(value)) {
-        setEmailDomainError(`Only ${ALLOWED_DOMAINS.join(' or ')} email addresses are allowed`);
-      }
-    }
   };
 
   if (user) {
     router.replace("/");
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/20 border-t-white"></div>
-          <p className="text-white/70 text-sm">Loading...</p>
+        <div className="flex flex-col items-center space-y-6">
+          <div className="relative">
+            {/* Outer ring */}
+            <div className="animate-spin rounded-full h-16 w-16 border-2 border-gray-300/20"></div>
+            {/* Inner spinning ring */}
+            <div className="animate-spin rounded-full h-16 w-16 border-2 border-transparent border-t-gray-300 border-r-gray-300 absolute top-0 left-0" style={{ animationDuration: '1s' }}></div>
+            {/* Center glow */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gradient-to-r from-gray-300/30 to-white/30 rounded-full blur-sm animate-pulse"></div>
+          </div>
+          <p className="text-white/70 text-sm animate-pulse">Loading...</p>
         </div>
       </div>
     );
@@ -57,14 +47,6 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setEmailDomainError(null);
-
-    // Validate domain before attempting signup
-    if (!isValidDomain(email)) {
-      setEmailDomainError(`Only ${ALLOWED_DOMAINS.join(' or ')} email addresses are allowed`);
-      setError('Please use a valid company email address.');
-      return;
-    }
 
     const { error } = await signUp(email, password, fullName);
     if (error) {
@@ -75,7 +57,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <div className="min-h-screen grid lg:grid-cols-2 bg-black">
       {/* Hero Section */}
       <div className="relative hidden lg:flex items-center justify-center p-8">
         <div className="absolute inset-0">
@@ -87,34 +69,46 @@ export default function SignupPage() {
             sizes="(max-width: 1024px) 0vw, 50vw"
             className="object-cover" 
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
+          {/* Multiple gradient layers for depth - lighter overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-gray-900/20 via-transparent to-gray-800/15" />
         </div>
         
         {/* Hero Content */}
         <div className="relative z-10 text-center max-w-lg">
           <div className="mb-8">
             <div className="mb-6">
-              <img
-                src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png"
-                alt="Logo"
-                className="w-20 h-20 object-contain mx-auto mb-4"
-              />
+              <div className="relative inline-block animate-fadeIn">
+                <Image
+                  src="/MAIN LOGO.png"
+                  alt="SilberArrows Logo"
+                  width={120}
+                  height={120}
+                  className="object-contain mx-auto mb-4 relative z-10"
+                />
+                {/* Logo glow effect */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-gray-300/20 to-white/20 blur-xl scale-110 opacity-60"></div>
+              </div>
             </div>
-            <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
-              Join the<br />
+            <h1 className="text-6xl font-bold text-white mb-4 leading-tight">
               <span className="bg-gradient-to-r from-gray-300 to-white bg-clip-text text-transparent">
-                Team
+                SilberArrows
               </span>
             </h1>
             <p className="text-xl text-gray-300 leading-relaxed">
-              Create your account to access the internal CRM system and start managing leads and inventory.
+              Your integrated portal for coordinating business operations across Service, Sales, Leasing, and Marketing.
             </p>
           </div>
         </div>
       </div>
 
       {/* Signup Form Section */}
-      <div className="flex items-center justify-center p-6 lg:p-12">
+      <div className="flex items-center justify-center p-6 lg:p-12 bg-black relative">
+        {/* Top silver glow - subtle and natural */}
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-gray-400/8 via-gray-400/4 to-transparent pointer-events-none"></div>
+        {/* Bottom silver glow - subtle and natural */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-400/8 via-gray-400/4 to-transparent pointer-events-none"></div>
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8">
@@ -123,17 +117,20 @@ export default function SignupPage() {
 
           {/* Desktop Welcome */}
           <div className="hidden lg:block mb-8 text-center">
-            <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
-            <p className="text-gray-400">Get access to the internal system</p>
+            <h2 className="text-4xl font-bold text-white mb-2 animate-fadeIn">Create Account</h2>
+            <p className="text-gray-400 animate-fadeIn">Get access to your department</p>
           </div>
 
           {/* Signup Form */}
           <form
             onSubmit={handleSubmit}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl relative overflow-hidden"
+            className="bg-black/80 backdrop-blur-xl border border-gray-300/30 p-8 rounded-3xl shadow-2xl relative overflow-hidden"
+            style={{
+              boxShadow: '0 0 60px rgba(209, 213, 219, 0.25), 0 0 120px rgba(209, 213, 219, 0.15), 0 0 180px rgba(209, 213, 219, 0.08)'
+            }}
           >
-            {/* Background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+            {/* Background gradient with silver glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-300/5 to-transparent pointer-events-none" />
             
             <div className="relative z-10 space-y-6">
               {/* Name Field */}
@@ -148,10 +145,10 @@ export default function SignupPage() {
                     onChange={(e) => setFullName(e.target.value)}
                     onFocus={() => setIsNameFocused(true)}
                     onBlur={() => setIsNameFocused(false)}
-                    className={`w-full px-4 py-3 bg-black/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-200 focus:outline-none ${
+                    className={`w-full px-4 py-3 bg-black/50 border-2 rounded-xl text-white placeholder-gray-500 transition-all duration-300 focus:outline-none ${
                       isNameFocused || fullName
-                        ? 'border-gray-300/50 shadow-lg shadow-gray-300/20'
-                        : 'border-white/20 hover:border-white/30'
+                        ? 'border-gray-300/60 shadow-lg shadow-gray-300/30 bg-black/60'
+                        : 'border-gray-500/30 hover:border-gray-400/50 hover:bg-black/60'
                     }`}
                     placeholder="Enter your full name"
                     required
@@ -173,36 +170,18 @@ export default function SignupPage() {
                     onChange={(e) => handleEmailChange(e.target.value)}
                     onFocus={() => setIsEmailFocused(true)}
                     onBlur={() => setIsEmailFocused(false)}
-                    className={`w-full px-4 py-3 bg-black/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-200 focus:outline-none ${
-                      emailDomainError
-                        ? 'border-red-400/50 shadow-lg shadow-red-400/20'
-                        : isEmailFocused || email
-                        ? 'border-gray-300/50 shadow-lg shadow-gray-300/20'
-                        : 'border-white/20 hover:border-white/30'
+                    className={`w-full px-4 py-3 bg-black/50 border-2 rounded-xl text-white placeholder-gray-500 transition-all duration-300 focus:outline-none ${
+                      isEmailFocused || email
+                        ? 'border-gray-300/60 shadow-lg shadow-gray-300/30 bg-black/60'
+                        : 'border-gray-500/30 hover:border-gray-400/50 hover:bg-black/60'
                     }`}
-                    placeholder="Enter your company email"
+                    placeholder="Enter your email address"
                     required
                   />
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-gray-300/10 to-white/10 opacity-0 transition-opacity duration-200 pointer-events-none" 
                        style={{ opacity: isEmailFocused ? 1 : 0 }} />
                 </div>
-                
-                {/* Domain validation message */}
-                {emailDomainError && (
-                  <div className="flex items-center space-x-2 text-red-400 text-sm mt-1">
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{emailDomainError}</span>
-                  </div>
-                )}
-                
-                {/* Helpful hint for valid domains */}
-                {!emailDomainError && !email && (
-                  <div className="text-gray-500 text-xs mt-1">
-                    Use your company email ({ALLOWED_DOMAINS.join(' or ')})
-                  </div>
-                )}
+
               </div>
 
               {/* Password Field */}
@@ -217,10 +196,10 @@ export default function SignupPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setIsPasswordFocused(true)}
                     onBlur={() => setIsPasswordFocused(false)}
-                    className={`w-full px-4 py-3 pr-12 bg-black/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-200 focus:outline-none ${
+                    className={`w-full px-4 py-3 pr-12 bg-black/50 border-2 rounded-xl text-white placeholder-gray-500 transition-all duration-300 focus:outline-none ${
                       isPasswordFocused || password
-                        ? 'border-gray-300/50 shadow-lg shadow-gray-300/20'
-                        : 'border-white/20 hover:border-white/30'
+                        ? 'border-gray-300/60 shadow-lg shadow-gray-300/30 bg-black/60'
+                        : 'border-gray-500/30 hover:border-gray-400/50 hover:bg-black/60'
                     }`}
                     placeholder="Create a password"
                     required
@@ -269,23 +248,27 @@ export default function SignupPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || !!emailDomainError}
-                className="w-full py-3 px-4 rounded-xl font-semibold text-black transition-all duration-200 transform relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                disabled={loading}
+                className="w-full py-4 px-4 rounded-xl font-semibold text-black transition-all duration-300 transform relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none hover:scale-105 active:scale-95"
                 style={{
-                  background: 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 50%, #9ca3af 100%)',
+                  background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 25%, #d1d5db 50%, #9ca3af 75%, #6b7280 100%)',
+                  boxShadow: '0 8px 32px rgba(209, 213, 219, 0.3), 0 4px 16px rgba(156, 163, 175, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
                 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                 <span className="relative z-10 flex items-center justify-center space-x-2">
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/20 border-t-black"></div>
-                      <span>Creating...</span>
+                      <div className="relative">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-black/20"></div>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-transparent border-t-black absolute top-0 left-0 animate-pulse"></div>
+                      </div>
+                      <span className="animate-pulse">Creating...</span>
                     </>
                   ) : (
                     <>
                       <span>Create Account</span>
-                      <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                       </svg>
                     </>
@@ -334,7 +317,7 @@ export default function SignupPage() {
                 <span>Secure Signup</span>
               </div>
               <div className="flex items-center space-x-1">
-                <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" clipRule="evenodd" />
                 </svg>
                 <span>SSL Protected</span>

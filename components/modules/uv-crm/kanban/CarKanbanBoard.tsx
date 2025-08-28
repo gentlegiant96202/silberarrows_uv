@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import AddCarModal from '@/components/modules/uv-crm/modals/AddCarModal';
-import CarDetailsModal from '@/components/modules/uv-crm/modals/CarDetailsModal';
+import CarDetailsModal, { type CarInfo } from '@/components/modules/uv-crm/modals/CarDetailsModal';
 import PriceDropModal from '@/components/modules/uv-crm/modals/PriceDropModal';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useSearchStore } from '@/lib/searchStore';
@@ -66,8 +66,13 @@ const SkeletonColumn = ({ title, isInventory = false, isExpanded = false }: {
             --
           </span>
         </div>
-        {isInventory && (
-          <div className="h-4 w-16 bg-white/10 rounded animate-pulse"></div>
+        {isInventory ? (
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 bg-white/10 rounded animate-pulse"></div>
+            <div className="h-4 w-4 bg-white/10 rounded animate-pulse"></div>
+          </div>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">0</span>
         )}
       </div>
       
@@ -120,7 +125,7 @@ export default function CarKanbanBoard() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<Car | null>(null);
-  const [selectedCarFull, setSelectedCarFull] = useState<any | null>(null);
+  const [selectedCarFull, setSelectedCarFull] = useState<CarInfo | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const hasFetchedCars = useRef(false);
   
@@ -323,11 +328,16 @@ export default function CarKanbanBoard() {
     const handlePrimaryPhotoChange = (event: any) => {
       console.log('🔄 CarKanbanBoard: Primary photo changed event received, reloading thumbnails...', event.detail);
       
-      // Force immediate reload
-      setTimeout(() => {
-        console.log('🔄 CarKanbanBoard: Force reloading after primary photo change...');
-        load();
-      }, 100);
+      // Use a ref to track if component is still mounted
+      if (hasFetchedCars.current) {
+        // Debounce the reload to prevent multiple rapid calls
+        setTimeout(() => {
+          if (hasFetchedCars.current) { // Check again after timeout
+            console.log('🔄 CarKanbanBoard: Force reloading after primary photo change...');
+            load();
+          }
+        }, 100);
+      }
     };
     
     window.addEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
@@ -335,6 +345,7 @@ export default function CarKanbanBoard() {
     return () => { 
       supabase.removeChannel(carsChannel);
       window.removeEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
+      hasFetchedCars.current = false; // Mark component as unmounted
     };
   }, []);
 
@@ -427,8 +438,25 @@ export default function CarKanbanBoard() {
     });
   };
 
-  // Remove individual loading state - RouteProtector handles skeleton loading
-  // if (loading) { ... }
+  // Show loading skeleton while data is being fetched
+  if (loading) {
+    return (
+      <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
+        <div className="flex gap-3 pb-4 w-full h-full">
+          {columns
+            .filter(col => showArchived || col.key !== 'archived')
+            .map(col => (
+            <SkeletonColumn 
+              key={col.key} 
+              title={col.title} 
+              isInventory={col.key === 'inventory'}
+              isExpanded={inventoryExpanded && col.key === 'inventory'}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
@@ -574,7 +602,7 @@ export default function CarKanbanBoard() {
                                   }));
                                 }
                               }}
-                              className="w-3 h-3 rounded text-blue-500 focus:ring-1 focus:ring-blue-500"
+                              className="w-3 h-3 rounded text-gray-400 focus:ring-1 focus:ring-gray-400 accent-gray-400"
                             />
                             {type.charAt(0).toUpperCase() + type.slice(1)}
                           </label>
@@ -608,7 +636,7 @@ export default function CarKanbanBoard() {
                                   }));
                                 }
                               }}
-                              className="w-3 h-3 rounded text-blue-500 focus:ring-1 focus:ring-blue-500"
+                              className="w-3 h-3 rounded text-gray-400 focus:ring-1 focus:ring-gray-400 accent-gray-400"
                             />
                             {age.label}
                           </label>

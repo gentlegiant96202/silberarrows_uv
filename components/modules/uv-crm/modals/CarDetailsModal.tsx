@@ -839,7 +839,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       aria-labelledby="car-details-title"
     >
       <div 
-        className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-6 w-[1280px] max-w-[98vw] h-[85vh] flex flex-col text-sm relative overflow-hidden shadow-2xl focus:outline-none focus:ring-2 focus:ring-gray-400/50"
+        className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-6 w-[896px] max-w-[98vw] h-[85vh] flex flex-col text-sm relative overflow-hidden shadow-2xl focus:outline-none focus:ring-2 focus:ring-gray-400/50"
         tabIndex={-1}
       >
         <button

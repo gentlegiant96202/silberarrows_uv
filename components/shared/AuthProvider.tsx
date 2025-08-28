@@ -123,6 +123,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     setLoading(true);
+    
+    // Determine the correct redirect domain
+    const getRedirectDomain = () => {
+      if (typeof window === 'undefined') return 'https://portal.silberarrows.com';
+      
+      const hostname = window.location.hostname;
+      
+      // If on localhost, use localhost
+      if (hostname === 'localhost') {
+        return `${window.location.protocol}//${window.location.host}`;
+      }
+      
+      // Always redirect to portal domain for production
+      return 'https://portal.silberarrows.com';
+    };
+    
     const { error } = await supabase.auth.signUp({ 
       email, 
       password,
@@ -130,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           full_name: fullName,
         },
-        emailRedirectTo: `${window.location.origin}/login?confirmed=true`
+        emailRedirectTo: `${getRedirectDomain()}/login?confirmed=true`
       }
     });
     setLoading(false);
@@ -139,8 +155,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     setLoading(true);
+    
+    // Determine the correct redirect domain
+    const getRedirectDomain = () => {
+      if (typeof window === 'undefined') return 'https://portal.silberarrows.com';
+      
+      const hostname = window.location.hostname;
+      
+      // If on localhost, use localhost
+      if (hostname === 'localhost') {
+        return `${window.location.protocol}//${window.location.host}`;
+      }
+      
+      // Always redirect to portal domain for production
+      return 'https://portal.silberarrows.com';
+    };
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
+      redirectTo: `${getRedirectDomain()}/update-password`,
     });
     setLoading(false);
     return { error: error?.message ?? null };

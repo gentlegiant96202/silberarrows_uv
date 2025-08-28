@@ -86,6 +86,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [monthlyTwenty, setMonthlyTwenty] = useState<string>('');
   const [monthlyZeroOverridden, setMonthlyZeroOverridden] = useState<boolean>(false);
   const [monthlyTwentyOverridden, setMonthlyTwentyOverridden] = useState<boolean>(false);
+  const [isCashOnly, setIsCashOnly] = useState<boolean>(false);
 
   const computeMonthly = (advertisedPrice: number, downPercent: number): number => {
     const price = (advertisedPrice || 0) * (1 - downPercent);
@@ -100,9 +101,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   useEffect(() => {
     const p = localCar.advertised_price_aed || 0;
-    if (!monthlyZeroOverridden) setMonthlyZero(formatMonthly(computeMonthly(p, 0)));
-    if (!monthlyTwentyOverridden) setMonthlyTwenty(formatMonthly(computeMonthly(p, 0.2)));
-  }, [localCar.advertised_price_aed, monthlyZeroOverridden, monthlyTwentyOverridden]);
+    if (!isCashOnly && !monthlyZeroOverridden) setMonthlyZero(formatMonthly(computeMonthly(p, 0)));
+    if (!isCashOnly && !monthlyTwentyOverridden) setMonthlyTwenty(formatMonthly(computeMonthly(p, 0.2)));
+  }, [localCar.advertised_price_aed, monthlyZeroOverridden, monthlyTwentyOverridden, isCashOnly]);
 
   // Auto-resize helpers for large textareas so the whole tab scrolls instead of each field
   const descRef = useRef<HTMLTextAreaElement | null>(null);
@@ -210,21 +211,33 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   // Initialize monthly values from DB when car changes
   useEffect(()=>{
-    const zero = typeof car.monthly_0_down_aed === 'number' ? car.monthly_0_down_aed : 0;
-    const twenty = typeof car.monthly_20_down_aed === 'number' ? car.monthly_20_down_aed : 0;
-    if (zero) {
-      setMonthlyZero(formatMonthly(zero));
-      setMonthlyZeroOverridden(true);
-    } else {
+    const zero = car.monthly_0_down_aed;
+    const twenty = car.monthly_20_down_aed;
+    
+    // Check if both are null (cash only)
+    const cashOnly = zero === null && twenty === null;
+    setIsCashOnly(cashOnly);
+    
+    if (cashOnly) {
       setMonthlyZero('');
-      setMonthlyZeroOverridden(false);
-    }
-    if (twenty) {
-      setMonthlyTwenty(formatMonthly(twenty));
-      setMonthlyTwentyOverridden(true);
-    } else {
       setMonthlyTwenty('');
+      setMonthlyZeroOverridden(false);
       setMonthlyTwentyOverridden(false);
+    } else {
+      if (typeof zero === 'number' && zero > 0) {
+        setMonthlyZero(formatMonthly(zero));
+        setMonthlyZeroOverridden(true);
+      } else {
+        setMonthlyZero('');
+        setMonthlyZeroOverridden(false);
+      }
+      if (typeof twenty === 'number' && twenty > 0) {
+        setMonthlyTwenty(formatMonthly(twenty));
+        setMonthlyTwentyOverridden(true);
+      } else {
+        setMonthlyTwenty('');
+        setMonthlyTwentyOverridden(false);
+      }
     }
   },[car.monthly_0_down_aed, car.monthly_20_down_aed]);
 
@@ -644,8 +657,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       rows: [
         { label: 'Advertised', value: `AED ${localCar.advertised_price_aed?.toLocaleString()}`, field:'advertised_price_aed' },
         { label: 'Cost', value: localCar.cost_price_aed ? `AED ${localCar.cost_price_aed.toLocaleString()}` : '—', field:'cost_price_aed' },
-        { label: 'Monthly (0% Down)', value: monthlyZero || '—', field: undefined },
-        { label: 'Monthly (20% Down)', value: monthlyTwenty || '—', field: undefined },
+        { label: 'Payment Options', value: isCashOnly ? 'CASH ONLY' : 'FINANCING AVAILABLE', field: undefined },
+        { label: 'Monthly (0% Down)', value: isCashOnly ? '—' : (monthlyZero || '—'), field: undefined },
+        { label: 'Monthly (20% Down)', value: isCashOnly ? '—' : (monthlyTwenty || '—'), field: undefined },
         { label: 'Status', value: localCar.status, field:'status' },
         { label: 'Sale', value: localCar.sale_status, field:'sale_status' },
       ],
@@ -731,6 +745,24 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     setLocalCar(prev=>({...prev,[field]:value}));
   };
 
+  const handleCashOnlyToggle = (cashOnly: boolean) => {
+    setIsCashOnly(cashOnly);
+    if (cashOnly) {
+      // Clear monthly payments when switching to cash only
+      setMonthlyZero('');
+      setMonthlyTwenty('');
+      setMonthlyZeroOverridden(false);
+      setMonthlyTwentyOverridden(false);
+    } else {
+      // Recalculate when switching back to financing
+      const p = localCar.advertised_price_aed || 0;
+      setMonthlyZero(formatMonthly(computeMonthly(p, 0)));
+      setMonthlyTwenty(formatMonthly(computeMonthly(p, 0.2)));
+      setMonthlyZeroOverridden(false);
+      setMonthlyTwentyOverridden(false);
+    }
+  };
+
   const handleSaveEdit = async ()=>{
     // Check character limits before saving
     if ((localCar.description || '').length > 1700) {
@@ -754,8 +786,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       return Number.isFinite(n) && n > 0 ? n : null;
     };
 
-    const monthly0 = monthlyZeroOverridden ? parseMonthly(monthlyZero) : null;
-    const monthly20 = monthlyTwentyOverridden ? parseMonthly(monthlyTwenty) : null;
+    const monthly0 = isCashOnly ? null : (monthlyZeroOverridden ? parseMonthly(monthlyZero) : null);
+    const monthly20 = isCashOnly ? null : (monthlyTwentyOverridden ? parseMonthly(monthlyTwenty) : null);
     const payload = {
       ...localCar,
       monthly_0_down_aed: monthly0,
@@ -965,8 +997,46 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                             {r.label}
                           </dt>
                           <dd className={'text-white text-[16px] leading-[1.35] text-left whitespace-normal break-words'}>
-                          {r.label === 'Monthly (0% Down)' ? (
+                          {r.label === 'Payment Options' ? (
                             editing ? (
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleCashOnlyToggle(false)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
+                                      !isCashOnly 
+                                        ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-black border-gray-400 shadow-lg' 
+                                        : 'bg-black/40 text-white/70 border-white/20 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                  >
+                                    💳 Financing
+                                  </button>
+                                  <button
+                                    onClick={() => handleCashOnlyToggle(true)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
+                                      isCashOnly 
+                                        ? 'bg-gradient-to-r from-gray-300 to-gray-500 text-black border-gray-400 shadow-lg' 
+                                        : 'bg-black/40 text-white/70 border-white/20 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                  >
+                                    💰 Cash Only
+                                  </button>
+                                </div>
+                                <div className="text-xs text-white/60">
+                                  {isCashOnly ? 'No financing available' : 'Financing options available'}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium text-[15px] ${
+                                isCashOnly 
+                                  ? 'bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-300 border border-orange-500/30' 
+                                  : 'bg-gradient-to-r from-green-500/20 to-blue-500/20 text-green-300 border border-green-500/30'
+                              }`}>
+                                {isCashOnly ? '💰 CASH ONLY' : '💳 FINANCING AVAILABLE'}
+                              </span>
+                            )
+                          ) : r.label === 'Monthly (0% Down)' ? (
+                            editing && !isCashOnly ? (
                               <input
                                 type="text"
                                 className="bg-black/40 border border-white/20 px-3 py-2 text-left w-full text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50"
@@ -974,10 +1044,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                 onChange={e=>{ setMonthlyZero(e.target.value); setMonthlyZeroOverridden(true); }}
                               />
                             ) : (
-                              <span>{monthlyZero}</span>
+                              <span className={isCashOnly ? "text-white/40" : ""}>{isCashOnly ? '—' : monthlyZero}</span>
                             )
                           ) : r.label === 'Monthly (20% Down)' ? (
-                            editing ? (
+                            editing && !isCashOnly ? (
                               <input
                                 type="text"
                                 className="bg-black/40 border border-white/20 px-3 py-2 text-left w-full text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50"
@@ -985,7 +1055,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                 onChange={e=>{ setMonthlyTwenty(e.target.value); setMonthlyTwentyOverridden(true); }}
                               />
                             ) : (
-                              <span>{monthlyTwenty}</span>
+                              <span className={isCashOnly ? "text-white/40" : ""}>{isCashOnly ? '—' : monthlyTwenty}</span>
                             )
                           ) : editing && r.field ? (
                             r.field === 'model_family' ? (

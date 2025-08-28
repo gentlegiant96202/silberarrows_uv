@@ -11,6 +11,8 @@ interface Car {
   current_mileage_km?: number;
   mileage_km?: number;
   horsepower_hp?: number;
+  monthly_0_down_aed?: number | null;
+  monthly_20_down_aed?: number | null;
 }
 
 interface PriceDropModalProps {
@@ -56,9 +58,22 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
     return undefined;
   }, [showSuccess, onClose]);
 
-  // Calculate monthly payments
-  const calculateMonthly = (price: number) => {
-    if (!price || price <= 0) return { zero: 0, twenty: 0 };
+  // Calculate monthly payments with cash-only support
+  const calculateMonthly = (price: number, useDbValues = false, dbMonthly0?: number | null, dbMonthly20?: number | null) => {
+    // Check if car is cash-only (both monthly fields are null)
+    const isCashOnly = dbMonthly0 === null && dbMonthly20 === null;
+    
+    if (isCashOnly) {
+      return { zero: null, twenty: null, isCashOnly: true };
+    }
+    
+    // Use database values when available
+    if (useDbValues && typeof dbMonthly0 === 'number' && typeof dbMonthly20 === 'number') {
+      return { zero: dbMonthly0, twenty: dbMonthly20, isCashOnly: false };
+    }
+    
+    // Fallback calculation
+    if (!price || price <= 0) return { zero: 0, twenty: 0, isCashOnly: false };
     const r = 0.03 / 12; // 3% annual rate
     const n = 60; // 60 months
     const principal0 = price; // 0% down
@@ -67,12 +82,23 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
     const calc = (p: number) => Math.round(p * r / (1 - Math.pow(1 + r, -n)));
     return {
       zero: calc(principal0),
-      twenty: calc(principal20)
+      twenty: calc(principal20),
+      isCashOnly: false
     };
   };
 
-  const originalMonthly = calculateMonthly(parseFloat(originalPrice) || 0);
-  const newMonthly = calculateMonthly(parseFloat(newPrice) || 0);
+  // Use database values for original price, calculate for new price
+  const originalMonthly = calculateMonthly(
+    parseFloat(originalPrice) || 0, 
+    true, 
+    car.monthly_0_down_aed, 
+    car.monthly_20_down_aed
+  );
+  
+  // If original car is cash-only, new price should also be cash-only
+  const newMonthly = originalMonthly.isCashOnly 
+    ? { zero: null, twenty: null, isCashOnly: true }
+    : calculateMonthly(parseFloat(newPrice) || 0);
 
   // Load Acumin font
   const loadAcuminFont = useCallback(async (): Promise<boolean> => {
@@ -160,7 +186,8 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
             wasPrice: parseFloat(originalPrice),
             nowPrice: parseFloat(newPrice),
             savings: parseFloat(originalPrice) - parseFloat(newPrice),
-            monthlyPayment: calculateMonthly(parseFloat(newPrice) || 0).twenty
+            monthlyPayment: newMonthly.isCashOnly ? null : newMonthly.twenty,
+            isCashOnly: newMonthly.isCashOnly
           },
           firstImageUrl,
           secondImageUrl: firstImageUrl
@@ -437,9 +464,15 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
                   <h3 className="text-sm font-medium text-white/60 mb-3">Current Monthly Payment</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-white/80 text-sm">AED {originalMonthly.zero.toLocaleString()}/mo</span>
+                      {originalMonthly.isCashOnly ? (
+                        <span className="text-orange-400 text-sm font-medium">CASH ONLY</span>
+                      ) : (
+                        <span className="text-white/80 text-sm">AED {originalMonthly.twenty?.toLocaleString()}/mo</span>
+                      )}
                     </div>
-                    <p className="text-xs text-white/40">(20% down, 60 months)</p>
+                    {!originalMonthly.isCashOnly && (
+                      <p className="text-xs text-white/40">(20% down, 60 months)</p>
+                    )}
                   </div>
                 </div>
 
@@ -448,9 +481,15 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
                   <h3 className="text-sm font-medium text-white/60 mb-3">New Monthly Payment</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-green-400 text-sm font-medium">AED {newMonthly.zero.toLocaleString()}/mo</span>
+                      {newMonthly.isCashOnly ? (
+                        <span className="text-orange-400 text-sm font-medium">CASH ONLY</span>
+                      ) : (
+                        <span className="text-green-400 text-sm font-medium">AED {newMonthly.twenty?.toLocaleString()}/mo</span>
+                      )}
                     </div>
-                    <p className="text-xs text-white/40">(20% down, 60 months)</p>
+                    {!newMonthly.isCashOnly && (
+                      <p className="text-xs text-white/40">(20% down, 60 months)</p>
+                    )}
                 </div>
                 </div>
               </div>

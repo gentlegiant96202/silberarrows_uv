@@ -4,7 +4,7 @@ import Providers from '@/components/shared/Providers'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 export const metadata: Metadata = {
-  title: 'Used Car Sales CRM',
+  title: 'SilberArrows',
   description: 'Comprehensive CRM system for used car sales management',
 }
 

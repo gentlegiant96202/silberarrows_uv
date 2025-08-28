@@ -88,7 +88,7 @@ function fillTemplate({ carDetails, pricing, firstImageUrl }) {
     '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
     '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),
-    '{{monthlyPayment}}': Number(pricing.monthlyPayment ?? 0).toLocaleString(),
+    '{{monthlyPayment}}': pricing.isCashOnly ? 'CASH ONLY' : `From AED ${Number(pricing.monthlyPayment ?? 0).toLocaleString()}/mo`,
     '{{carImageUrl1}}': String(firstImageUrl ?? ''),
   };
   for (const [key, value] of Object.entries(replacements)) {
@@ -108,7 +108,7 @@ function fillTemplate45({ carDetails, pricing, firstImageUrl }) {
     '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
     '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),
-    '{{monthlyPayment}}': Number(pricing.monthlyPayment ?? 0).toLocaleString(),
+    '{{monthlyPayment}}': pricing.isCashOnly ? 'CASH ONLY' : `From AED ${Number(pricing.monthlyPayment ?? 0).toLocaleString()}/mo`,
     '{{carImageUrl1}}': String(firstImageUrl ?? ''),
   };
   for (const [key, value] of Object.entries(replacements)) {

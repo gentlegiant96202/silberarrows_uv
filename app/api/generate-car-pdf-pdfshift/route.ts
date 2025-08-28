@@ -3,6 +3,70 @@ import { NextRequest, NextResponse } from 'next/server';
 // Force this API route to use Node.js runtime (not Edge)
 export const runtime = 'nodejs';
 
+// Helper function to generate payment options HTML
+function generatePaymentOptionsHTML(car: any): string {
+  // Check if car is cash-only (both monthly fields are null)
+  const isCashOnly = car.monthly_0_down_aed === null && car.monthly_20_down_aed === null;
+  
+  if (isCashOnly) {
+    return `
+    <div class="main-price" style="text-align: center;">
+        <div class="main-price-label">Payment Method</div>
+        <div class="main-price-value">
+            CASH ONLY
+        </div>
+    </div>`;
+  }
+  
+  // Use database values when available, calculate as fallback
+  const p = car.advertised_price_aed || 0;
+  if (!p) return '';
+  
+  // Get monthly payments from database or calculate
+  let m0, m20;
+  
+  if (typeof car.monthly_0_down_aed === 'number' && car.monthly_0_down_aed > 0) {
+    m0 = car.monthly_0_down_aed.toLocaleString();
+  } else {
+    // Fallback calculation
+    const r = 0.03 / 12;
+    const n = 60;
+    m0 = Math.round(p * r / (1 - Math.pow(1 + r, -n))).toLocaleString();
+  }
+  
+  if (typeof car.monthly_20_down_aed === 'number' && car.monthly_20_down_aed > 0) {
+    m20 = car.monthly_20_down_aed.toLocaleString();
+  } else {
+    // Fallback calculation
+    const r = 0.03 / 12;
+    const n = 60;
+    const principal20 = p * 0.8;
+    m20 = Math.round(principal20 * r / (1 - Math.pow(1 + r, -n))).toLocaleString();
+  }
+  
+  return `
+  <div class="payment-options">
+      <div class="payment-option">
+          <div class="payment-option-label">Monthly (0% Down)</div>
+          <div class="payment-option-value">
+              <svg class="dirham-symbol" viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34 14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
+              </svg>
+              ${m0}/mo
+          </div>
+      </div>
+      <div class="payment-option">
+          <div class="payment-option-label">Monthly (20% Down)</div>
+          <div class="payment-option-value">
+              <svg class="dirham-symbol" viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34 14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
+              </svg>
+              ${m20}/mo
+          </div>
+      </div>
+  </div>`;
+}
+
 // Actual image optimization - resize and compress images before PDF generation
 async function optimizeImageForPdf(imageUrl: string): Promise<string> {
   try {
@@ -847,36 +911,7 @@ export async function POST(request: NextRequest) {
                               ${car.advertised_price_aed?.toLocaleString() || '—'}
                           </div>
                       </div>
-                      ${(() => {
-                        const p = car.advertised_price_aed || 0;
-                        if (!p) return '';
-                        const r = 0.03 / 12;
-                        const n = 60;
-                        const calc = (pr: number) => Math.round(pr * r / (1 - Math.pow(1 + r, -n))).toLocaleString();
-                        const m0 = calc(p);
-                        const m20 = calc(p * 0.8);
-                        return `
-                        <div class="payment-options">
-                            <div class="payment-option">
-                                <div class="payment-option-label">Monthly (0% Down)</div>
-                                <div class="payment-option-value">
-                                    <svg class="dirham-symbol" viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34 14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
-                                    </svg>
-                                    ${m0}/mo
-                                </div>
-                            </div>
-                            <div class="payment-option">
-                                <div class="payment-option-label">Monthly (20% Down)</div>
-                                <div class="payment-option-value">
-                                    <svg class="dirham-symbol" viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34 14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
-                                    </svg>
-                                    ${m20}/mo
-                                </div>
-                            </div>
-                        </div>`;
-                      })()}
+                      ${generatePaymentOptionsHTML(car)}
                   </div>
                   
                   <!-- Spacer between sections -->
@@ -902,36 +937,7 @@ export async function POST(request: NextRequest) {
                               ${car.advertised_price_aed?.toLocaleString() || '—'}
                           </div>
                       </div>
-                      ${(() => {
-                        const p = car.advertised_price_aed || 0;
-                        if (!p) return '';
-                        const r = 0.03 / 12;
-                        const n = 60;
-                        const calc = (pr: number) => Math.round(pr * r / (1 - Math.pow(1 + r, -n))).toLocaleString();
-                        const m0 = calc(p);
-                        const m20 = calc(p * 0.8);
-                        return `
-                        <div class="payment-options">
-                            <div class="payment-option">
-                                <div class="payment-option-label">Monthly (0% Down)</div>
-                                <div class="payment-option-value">
-                                    <svg class="dirham-symbol" viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34 14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
-                                    </svg>
-                                    ${m0}/mo
-                                </div>
-                            </div>
-                            <div class="payment-option">
-                                <div class="payment-option-label">Monthly (20% Down)</div>
-                                <div class="payment-option-value">
-                                    <svg class="dirham-symbol" viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34 14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
-                                    </svg>
-                                    ${m20}/mo
-                                </div>
-                            </div>
-                        </div>`;
-                      })()}
+                      ${generatePaymentOptionsHTML(car)}
                   </div>
               </div>
           </div>`}

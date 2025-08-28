@@ -100,7 +100,7 @@ function generateXMLFeed(cars: any[], imageMap: Map<string, string>): string {
       <model>${escapeXml(model)}</model>
       <year>${car.model_year || ''}</year>
       <price currency="AED">${car.advertised_price_aed || 0}</price>
-      <monthly_payment currency="AED">${car.monthly_20_down_aed || 0}</monthly_payment>
+      <monthly_payment currency="AED">${car.monthly_20_down_aed === null ? 'CASH_ONLY' : (car.monthly_20_down_aed || 0)}</monthly_payment>
       <color>${escapeXml(car.colour || '')}</color>
       <mileage_km>${car.current_mileage_km || 0}</mileage_km>
       <image_url>${escapeXml(imageUrl)}</image_url>

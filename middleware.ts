@@ -12,7 +12,17 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
     
-    // Redirect all UV domain traffic to the deprecated page
+    // Allow static assets to load normally (images, fonts, etc.)
+    if (pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|ttf|woff|woff2|css|js)$/)) {
+      return NextResponse.next();
+    }
+    
+    // Allow Next.js internal routes
+    if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
+      return NextResponse.next();
+    }
+    
+    // Redirect all other UV domain traffic to the deprecated page
     return NextResponse.rewrite(new URL('/deprecated', request.url));
   }
 
@@ -23,13 +33,8 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - deprecated (avoid infinite loops)
+     * Match all request paths - we handle exclusions in the middleware function
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|deprecated).*)',
+    '/(.*)',
   ],
 };

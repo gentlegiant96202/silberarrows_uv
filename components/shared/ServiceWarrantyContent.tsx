@@ -1,6 +1,7 @@
 "use client";
 import { useUserRole } from '@/lib/useUserRole';
 import { useModulePermissions } from '@/lib/useModulePermissions';
+import PulsatingLogo from './PulsatingLogo';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
 import { Wrench, Shield, AlertCircle, Plus, Settings, FileText, DollarSign, Calendar, Eye, Edit, Trash2, Clock, AlertTriangle, X, ChevronDown } from 'lucide-react';
@@ -342,10 +343,7 @@ export default function ServiceWarrantyContent() {
   if (roleLoading || permissionsLoading) {
     return (
       <div className="h-screen bg-black flex items-center justify-center">
-        <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-silver-400"></div>
-          <span className="text-silver-300">Loading Service & Warranty...</span>
-        </div>
+        <PulsatingLogo size={48} text="Loading Service & Warranty..." />
       </div>
     );
   }

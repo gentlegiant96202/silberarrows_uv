@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ChevronDown, Car, TrendingUp, Wrench, CreditCard, Calculator } from 'lucide-react';
 import { useAllModulePermissions } from '@/lib/useModulePermissions';
+import PulsatingLogo from './PulsatingLogo';
 
 interface Module {
   id: string;
@@ -90,7 +91,7 @@ export default function ModuleSwitcher() {
   if (allPermissions.isLoading) {
     return (
       <div className="flex items-center space-x-2 text-white/60">
-        <div className="w-4 h-4 animate-spin border border-white/20 border-t-white rounded-full"></div>
+        <PulsatingLogo size={16} showText={false} />
         <span className="text-sm">Loading modules...</span>
       </div>
     );

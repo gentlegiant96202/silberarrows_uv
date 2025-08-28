@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { Shield } from 'lucide-react';
+import PulsatingLogo from './PulsatingLogo';
 
 // Import skeleton components
 import Header from '@/components/Header';
@@ -174,10 +175,7 @@ const CRMSkeleton = () => {
 // Generic skeleton for modules without specific skeletons
 const GenericModuleSkeleton = ({ moduleName }: { moduleName: string }) => (
   <div className="min-h-screen bg-black text-white flex items-center justify-center">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/20 border-t-white mx-auto mb-4"></div>
-      <p className="text-white/70">Loading {moduleName.replace('_', ' ')} module...</p>
-    </div>
+    <PulsatingLogo size={48} text={`Loading ${moduleName.replace('_', ' ')} module...`} />
   </div>
 );
 

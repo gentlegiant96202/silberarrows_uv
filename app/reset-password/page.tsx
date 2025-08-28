@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/shared/AuthProvider";
 import AuthLogo from "@/components/shared/AuthLogo";
 import Image from 'next/image';
+import PulsatingLogo from '@/components/shared/PulsatingLogo';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -18,17 +19,7 @@ export default function ResetPasswordPage() {
     router.replace("/");
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="flex flex-col items-center space-y-6">
-          <div className="relative">
-            {/* Outer ring */}
-            <div className="animate-spin rounded-full h-16 w-16 border-2 border-gray-300/20"></div>
-            {/* Inner spinning ring */}
-            <div className="animate-spin rounded-full h-16 w-16 border-2 border-transparent border-t-gray-300 border-r-gray-300 absolute top-0 left-0" style={{ animationDuration: '1s' }}></div>
-            {/* Center glow */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gradient-to-r from-gray-300/30 to-white/30 rounded-full blur-sm animate-pulse"></div>
-          </div>
-          <p className="text-white/70 text-sm animate-pulse">Loading...</p>
-        </div>
+        <PulsatingLogo size={64} />
       </div>
     );
   }

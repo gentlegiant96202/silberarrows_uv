@@ -75,8 +75,8 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
               </>
             )}
 
-            {/* Search Bar */}
-            <SearchBar />
+            {/* Search Bar - Hide on module selection page */}
+            {!isModuleSelectionPage && <SearchBar />}
           </div>
 
           {/* Right Side Components */}

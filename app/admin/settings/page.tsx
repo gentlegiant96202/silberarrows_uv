@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useUserRole } from '@/lib/useUserRole';
 import UnifiedRoleManager from '@/components/modules/admin/UnifiedRoleManager';
 import { ArrowLeft, Settings, Shield } from 'lucide-react';
+import PulsatingLogo from '@/components/shared/PulsatingLogo';
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -20,10 +21,7 @@ export default function AdminSettingsPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/20 border-t-white mx-auto mb-4"></div>
-          <p className="text-white/70">Verifying admin access...</p>
-        </div>
+        <PulsatingLogo size={48} text="Verifying admin access..." />
       </div>
     );
   }

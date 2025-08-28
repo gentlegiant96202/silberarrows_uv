@@ -5,6 +5,8 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { useAllModulePermissions } from '@/lib/useModulePermissions';
 import Header from '@/components/shared/header/Header';
 import LightRays from '@/components/shared/LightRays';
+import Image from 'next/image';
+import PulsatingLogo from '@/components/shared/PulsatingLogo';
 import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 
 interface ModuleCard {
@@ -197,6 +199,18 @@ export default function ModuleSelectionPage() {
           <div className="px-6 max-w-7xl mx-auto animate-fadeIn">
             {/* Loading Text with consistent spacing */}
             <div className="mb-12 text-center">
+              {/* Logo */}
+              <div className="mb-6 flex justify-center">
+                <div className="relative inline-block animate-fadeIn">
+                  <Image
+                    src="/MAIN LOGO.png"
+                    alt="SilberArrows Logo"
+                    width={120}
+                    height={120}
+                    className="object-contain opacity-50"
+                  />
+                </div>
+              </div>
               <h1 className="text-6xl font-bold text-white mb-6 opacity-50">
                 SilberArrows
               </h1>
@@ -210,7 +224,7 @@ export default function ModuleSelectionPage() {
               </div>
               
               {/* Loading Animation */}
-              <div className="w-12 h-12 border-4 border-gray-600 border-t-silver-400 rounded-full animate-spin mx-auto mb-8"></div>
+              <PulsatingLogo size={48} showText={false} className="mx-auto mb-8" />
             </div>
             
             {/* Placeholder Module Cards - matching exact structure */}
@@ -310,6 +324,18 @@ export default function ModuleSelectionPage() {
             <>
               {/* Hero Section */}
               <div className="mb-12 text-center">
+                {/* Logo */}
+                <div className="mb-6 flex justify-center">
+                  <div className="relative inline-block animate-fadeIn">
+                    <Image
+                      src="/MAIN LOGO.png"
+                      alt="SilberArrows Logo"
+                      width={120}
+                      height={120}
+                      className="object-contain logo-glow"
+                    />
+                  </div>
+                </div>
                 <h1 className="text-6xl font-bold text-white mb-6">
                   SilberArrows
                 </h1>

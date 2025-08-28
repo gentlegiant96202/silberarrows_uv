@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useRouter } from 'next/navigation';
+import PulsatingLogo from '@/components/shared/PulsatingLogo';
 import { useEffect, useState } from 'react';
 import { isPWAStandalone, checkPWASessionHealth, restorePWASession } from '@/lib/mobileAuth';
 import MobileHeader from '@/components/modules/uv-crm/mobile/MobileHeader';
@@ -53,7 +54,7 @@ export default function MobilePage() {
     return (
       <div className="h-screen flex items-center justify-center bg-black text-white">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <PulsatingLogo size={48} showText={false} className="mb-4" />
           <div className="text-lg mb-2">SilberCRM</div>
           <div className="text-sm text-white/70">
             {isPWAStandalone() ? 'Restoring PWA session...' : 'Loading mobile app...'}

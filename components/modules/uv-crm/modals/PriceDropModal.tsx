@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
+interface Car {
+  id: string;
+  stock_number: string;
+  model_year: number;
+  vehicle_model: string;
+  brand?: string;
+  advertised_price_aed: number;
+  current_mileage_km?: number;
+  mileage_km?: number;
+  horsepower_hp?: number;
+}
+
 interface PriceDropModalProps {
-  car: any;
+  car: Car;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -13,6 +25,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
   const [newPrice, setNewPrice] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize price when modal opens
   useEffect(() => {
@@ -21,6 +34,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       // Reset states when modal opens
       setShowSuccess(false);
       setNewPrice('');
+      setError(null);
     }
   }, [isOpen, car]);
 
@@ -38,6 +52,8 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
         clearTimeout(timer);
       };
     }
+    // No cleanup needed when showSuccess is false
+    return undefined;
   }, [showSuccess, onClose]);
 
   // Calculate monthly payments
@@ -59,18 +75,26 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
   const newMonthly = calculateMonthly(parseFloat(newPrice) || 0);
 
   // Load Acumin font
-  const loadAcuminFont = useCallback(async () => {
+  const loadAcuminFont = useCallback(async (): Promise<boolean> => {
+    if (typeof document === 'undefined') {
+      console.log('Document not available (SSR), skipping font loading');
+      return false;
+    }
+
     if (document.fonts.check('12px "Acumin Variable Concept"')) {
+      console.log('Acumin font already loaded');
       return true;
     }
 
     try {
+      console.log('Loading Acumin Variable Concept font...');
       const font = new FontFace('Acumin Variable Concept', 'url(/Acumin Variable Concept.ttf)');
       await font.load();
       document.fonts.add(font);
+      console.log('✅ Acumin font loaded successfully');
       return true;
     } catch (error) {
-      console.log('Acumin font not available, using fallback');
+      console.warn('⚠️ Acumin font not available, using fallback:', error);
       return false;
     }
   }, []);
@@ -80,6 +104,9 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
     try {
       setIsGenerating(true);
       console.log('🎨 Generating price drop images with Playwright...');
+      
+      // Ensure font is loaded before generating images
+      await loadAcuminFont();
       
       // Get the first catalog image for this car
       console.log('📸 Fetching catalog image...');
@@ -231,17 +258,49 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       
     } catch (error) {
       console.error('❌ Price drop generation failed:', error);
-      alert(`Failed to generate price drop: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(`Failed to generate price drop: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
   };
 
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isGenerating) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Focus management
+      const modal = document.querySelector('[role="dialog"]') as HTMLElement;
+      if (modal) {
+        modal.focus();
+      }
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, isGenerating, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-black/30 backdrop-blur-2xl border border-white/20 rounded-2xl w-full max-w-2xl shadow-2xl relative overflow-hidden">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="price-drop-title"
+      aria-describedby="price-drop-description"
+    >
+      <div 
+        className="bg-black/30 backdrop-blur-2xl border border-white/20 rounded-2xl w-full max-w-2xl shadow-2xl relative overflow-hidden"
+        tabIndex={-1}
+      >
         {/* Gradient overlay for glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent pointer-events-none"></div>
         
@@ -250,6 +309,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
           onClick={onClose}
           className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
           disabled={isGenerating}
+          aria-label="Close price drop modal"
         >
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -265,8 +325,8 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Create Price Drop Campaign</h2>
-              <p className="text-sm text-white/60">
+              <h2 id="price-drop-title" className="text-lg font-semibold text-white">Create Price Drop Campaign</h2>
+              <p id="price-drop-description" className="text-sm text-white/60">
                 {car.stock_number} - {car.model_year} {car.brand} {car.vehicle_model}
               </p>
             </div>
@@ -275,6 +335,29 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
 
         {/* Content */}
         <div className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 backdrop-blur-sm">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-red-400 mb-1">Error</h3>
+                  <p className="text-sm text-white/80">{error}</p>
+                </div>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-white/60 hover:text-white transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
           {showSuccess ? (
             <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-6 backdrop-blur-sm text-center text-white">
               <div className="flex items-center justify-center mb-4">
@@ -311,7 +394,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
                   type="number"
                       value={originalPrice}
                       onChange={(e) => setOriginalPrice(e.target.value)}
-                      className="w-full h-14 px-4 bg-black/30 border border-white/20 rounded-xl text-white text-lg font-medium placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all backdrop-blur-sm"
+                      className="w-full h-14 px-4 bg-black/30 border border-white/20 rounded-xl text-white text-lg font-medium placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50 transition-all backdrop-blur-sm"
                   placeholder="0"
                   disabled={isGenerating}
                 />
@@ -333,7 +416,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
                   type="number"
                       value={newPrice}
                       onChange={(e) => setNewPrice(e.target.value)}
-                      className="w-full h-14 px-4 bg-black/30 border border-white/20 rounded-xl text-white text-lg font-medium placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 transition-all backdrop-blur-sm"
+                      className="w-full h-14 px-4 bg-black/30 border border-white/20 rounded-xl text-white text-lg font-medium placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50 transition-all backdrop-blur-sm"
                   placeholder="Enter new price"
                   disabled={isGenerating}
                       required

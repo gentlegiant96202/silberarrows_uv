@@ -53,7 +53,7 @@ const dayColumns = [
   },
   { 
     key: "wednesday", 
-    title: "WEEKLY WEDNESDAY SPOTLIGHT", 
+    title: "SPOTLIGHT OF THE WEEK", 
     icon: <Plus className="w-4 h-4" />, 
     color: "purple"
   },

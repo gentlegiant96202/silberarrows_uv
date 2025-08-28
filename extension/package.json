@@ -1,0 +1,33 @@
+{
+  "name": "silberarrows-car-filler",
+  "version": "1.0.0",
+  "description": "Auto-fill car listing forms with data from SilberArrows inventory",
+  "main": "src/background.js",
+  "scripts": {
+    "build": "echo 'Extension ready for loading'",
+    "package": "zip -r silberarrows-car-filler.zip . -x '*.DS_Store' '*/.*' 'node_modules/*' 'package*.json'",
+    "safari-convert": "xcrun safari-web-extension-converter --macos-only --project-location ./safari-project ./"
+  },
+  "keywords": [
+    "chrome-extension",
+    "safari-extension",
+    "webextension",
+    "car-listing",
+    "auto-fill",
+    "silberarrows"
+  ],
+  "author": "SilberArrows",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/silberarrows/uv-crm"
+  },
+  "devDependencies": {},
+  "dependencies": {},
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "silberarrows-car-filler@silberarrows.com",
+      "strict_min_version": "109.0"
+    }
+  }
+}

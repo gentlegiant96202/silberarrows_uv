@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { Shield, Wrench } from 'lucide-react';
 import ServiceWarrantyContent from '@/components/shared/ServiceWarrantyContent';
+import PulsatingLogo from '@/components/shared/PulsatingLogo';
 import RouteProtector from '@/components/shared/RouteProtector';
 
 export default function WorkshopServiceWarrantyPage() {
@@ -21,10 +22,7 @@ export default function WorkshopServiceWarrantyPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/20 border-t-white mx-auto mb-4"></div>
-          <p className="text-white/70">Checking access permissions...</p>
-        </div>
+        <PulsatingLogo size={48} text="Checking access permissions..." />
       </div>
     );
   }

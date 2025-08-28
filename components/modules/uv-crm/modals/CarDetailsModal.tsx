@@ -33,6 +33,7 @@ export interface CarInfo {
   torque_nm: number | null;
   cubic_capacity_cc: number | null;
   number_of_keys: number | null;
+  body_style: string | null;
   ownership_type: string;
   status: string;
   sale_status: string;
@@ -640,6 +641,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         { label: 'HP', value: localCar.horsepower_hp || '—', field:'horsepower_hp' },
         { label: 'Torque', value: localCar.torque_nm || '—', field:'torque_nm' },
         { label: 'CC', value: localCar.cubic_capacity_cc || '—', field:'cubic_capacity_cc' },
+        { label: 'Body Style', value: localCar.body_style || '—', field:'body_style' },
         { label: 'Model Family', value: localCar.model_family || '—', field:'model_family' },
       ],
     },
@@ -1071,6 +1073,20 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                   </option>
                                 ))}
                               </select>
+                            ) : r.field === 'body_style' ? (
+                              <select 
+                                  className={'bg-black/40 border border-white/20 px-3 py-2 text-left w-full text-white text-[15px] rounded focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400/50'} 
+                                value={(localCar[r.field]??'') as any} 
+                                onChange={e=>handleFieldChange(r.field!, e.target.value)}
+                              >
+                                <option value="">Select...</option>
+                                <option value="Coupe">Coupe</option>
+                                <option value="Convertible">Convertible</option>
+                                <option value="Estate">Estate</option>
+                                <option value="Hatchback">Hatchback</option>
+                                <option value="Saloon">Saloon</option>
+                                <option value="SUV">SUV</option>
+                              </select>
                             ) : (
                               <input 
                                 type="text" 
@@ -1170,7 +1186,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     value={localCar.description||''} 
                       onChange={e=>handleFieldChange('description', e.target.value)}
                       placeholder="Enter vehicle description..."
-                      style={{height: 'auto'}}
+                      style={{height: 'auto', minHeight: '200px', overflow: 'hidden'}}
+                      rows={8}
                   />
                   {(localCar.description || '').length > 1700 && (
                       <p className="text-red-400 text-sm mt-2">Description must be 1700 characters or less</p>
@@ -1204,7 +1221,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     value={localCar.key_equipment||''} 
                       onChange={e=>handleFieldChange('key_equipment', e.target.value)}
                       placeholder="Enter key equipment and features..."
-                      style={{height:'auto'}}
+                      style={{height:'auto', minHeight: '250px', overflow: 'hidden'}}
+                      rows={10}
                   />
                   {(localCar.key_equipment || '').length > 1800 && (
                       <p className="text-red-400 text-sm mt-2">Key equipment must be 1800 characters or less</p>

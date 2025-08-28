@@ -20,6 +20,12 @@ function firstDesc(obj: any) {
 }
 
 export default function AddCarModal({ onClose, onCreated }: Props) {
+  // Standardized field styling classes
+  const fieldClass = "w-full px-4 py-4 rounded-lg bg-black/20 border border-white/10 text-white text-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]";
+  const labelClass = "block text-white/80 text-lg font-semibold mb-3";
+  const compactLabelClass = "block text-white/80 text-base font-medium mb-2";
+  const compactFieldClass = "w-full px-3 py-3 rounded-lg bg-black/20 border border-white/10 text-white text-base focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]";
+
   const [form, setForm] = useState({
     stock_number: "",
     model_year: "",
@@ -52,6 +58,9 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     service_expiry_date: "",
     warranty_km_limit: "",
     service_km_limit: "",
+    servicecare_2year_price: "",
+    servicecare_4year_price: "",
+    body_style: "",
     // Consignment-specific fields
     registration_expiry_date: "",
     insurance_expiry_date: "",
@@ -65,6 +74,12 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
   const [savedCar, setSavedCar] = useState<any>(null);
   const [docs, setDocs] = useState<any[]>([]);
   const [step, setStep] = useState(0);
+  const [activeTab, setActiveTab] = useState<string>('chassis');
+
+  // Map tabs to steps for navigation
+  const tabToStep = { chassis: 0, vehicle: 1, pricing: 2, specs: 3, details: 4 };
+  const stepToTab = ['chassis', 'vehicle', 'pricing', 'specs', 'details'];
+  const currentStep = tabToStep[activeTab as keyof typeof tabToStep];
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [generatingDescription, setGeneratingDescription] = useState(false);
@@ -139,6 +154,10 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
       add(!!form.regional_specification, 'Regional Specification');
       add(!!form.current_mileage_km, 'Mileage');
       add(!!form.advertised_price_aed, 'Advertised Price');
+      add(!!form.cost_price_aed, 'Cost Price');
+      add(!!form.warranty_package_type, 'Warranty Package Type');
+      add(!!form.service_package_type, 'Service Package Type');
+      add(!!form.number_of_keys, 'Number of Keys');
 
       if (form.ownership_type === 'consignment') {
         add(!!form.customer_name, 'Customer Name');
@@ -160,19 +179,88 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         add(!!form.service_expiry_date, 'Service Expiry Date');
         add(!!form.service_km_limit, 'Service KM Limit');
       }
+
     }
 
-
+    if (step === 3) {
+      add(!!form.engine, 'Engine');
+      add(!!form.transmission, 'Transmission');
+      add(!!form.horsepower_hp, 'Horsepower');
+      add(!!form.torque_nm, 'Torque');
+      add(!!form.cubic_capacity_cc, 'Cubic Capacity');
+      add(!!form.body_style, 'Body Style');
+    }
 
     if (step === 4) {
       add(!!form.key_equipment, 'Key Equipment');
+      add(!!form.description, 'Description');
     }
+
+    return missing;
+  };
+
+  const validateAllTabs = (): string[] => {
+    const missing: string[] = [];
+    const add = (cond: boolean, label: string) => { if (!cond) missing.push(label); };
+
+    // Chassis validation
+    add(!!form.chassis_number, 'Chassis #');
+
+    // Vehicle Info validation
+    add(!!form.stock_number, 'Stock Number');
+    add(!!form.model_year, 'Model Year');
+    add(!!form.vehicle_model, 'Vehicle Model');
+    add(!!form.model_family, 'Model Family');
+    add(!!form.colour, 'Colour');
+    add(!!form.interior_colour, 'Interior Colour');
+
+    // Pricing validation
+    add(!!form.regional_specification, 'Regional Specification');
+    add(!!form.current_mileage_km, 'Mileage');
+    add(!!form.advertised_price_aed, 'Advertised Price');
+    add(!!form.cost_price_aed, 'Cost Price');
+    add(!!form.warranty_package_type, 'Warranty Package Type');
+    add(!!form.service_package_type, 'Service Package Type');
+    add(!!form.number_of_keys, 'Number of Keys');
+
+    if (form.ownership_type === 'consignment') {
+      add(!!form.customer_name, 'Customer Name');
+      add(!!form.customer_phone, 'Customer Phone');
+      const emailOk = /.+@.+\..+/.test(form.customer_email);
+      if (!emailOk) missing.push('Valid Customer Email');
+      
+      add(!!form.registration_expiry_date, 'Registration Expiry Date');
+      add(!!form.insurance_expiry_date, 'Insurance Expiry Date');
+    }
+
+    if (form.warranty_package_type === 'dealer') {
+      add(!!form.warranty_expiry_date, 'Warranty Expiry Date');
+      add(!!form.warranty_km_limit, 'Warranty KM Limit');
+    }
+    if (form.service_package_type === 'dealer') {
+      add(!!form.service_expiry_date, 'Service Expiry Date');
+      add(!!form.service_km_limit, 'Service KM Limit');
+    }
+
+    // Specifications validation
+    add(!!form.engine, 'Engine');
+    add(!!form.transmission, 'Transmission');
+    add(!!form.horsepower_hp, 'Horsepower');
+    add(!!form.torque_nm, 'Torque');
+    add(!!form.cubic_capacity_cc, 'Cubic Capacity');
+    add(!!form.body_style, 'Body Style');
+
+    // Details validation
+    add(!!form.key_equipment, 'Key Equipment');
+    add(!!form.description, 'Description');
 
     return missing;
   };
 
   const handleNext = async () => {
     if (processing) return;
+    // Update step to match current tab for validation
+    setStep(currentStep);
     const missing = validateStep();
     if (missing.length) {
       setErrors(missing);
@@ -183,7 +271,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     setProcessing(true);
     
     try {
-      if (step === 0) {
+      if (currentStep === 0) {
         // Call VIN API
         try {
           const res = await fetch(`${VIN_API_URL}/vehicle/${form.chassis_number}`, {
@@ -256,18 +344,29 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
           console.error(e);
         }
       }
-      setStep((s) => s + 1);
+      // Move to next tab
+      const nextStep = currentStep + 1;
+      if (nextStep < stepToTab.length) {
+        setActiveTab(stepToTab[nextStep]);
+        setStep(nextStep);
+      }
     } finally {
       setProcessing(false);
     }
   };
 
-  const handleBack = () => setStep((s) => s - 1);
+  const handleBack = () => {
+    const prevStep = currentStep - 1;
+    if (prevStep >= 0) {
+      setActiveTab(stepToTab[prevStep]);
+      setStep(prevStep);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const upperCaseFields = ['chassis_number', 'stock_number', 'vehicle_model', 'model_family', 'colour', 'interior_colour', 'key_equipment'];
-    const numericFields = ['cost_price_aed', 'advertised_price_aed', 'warranty_km_limit', 'service_km_limit', 'current_mileage_km', 'number_of_keys'];
+    const numericFields = ['cost_price_aed', 'advertised_price_aed', 'warranty_km_limit', 'service_km_limit', 'current_mileage_km', 'number_of_keys', 'servicecare_2year_price', 'servicecare_4year_price'];
     const dateFields = ['registration_expiry_date', 'insurance_expiry_date', 'warranty_expiry_date', 'service_expiry_date'];
     
     let processedValue: string | boolean = value;
@@ -425,8 +524,9 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
           : 'SilberArrows warranty available',
         current_service: form.service_package_type === 'dealer'
           ? `Dealer service package until ${form.service_expiry_date} or ${form.service_km_limit} km`
-          : 'SilberArrows service package available',
+          : `SilberArrows ServiceCare available - 2yr: AED ${form.servicecare_2year_price || 'TBD'}, 4yr: AED ${form.servicecare_4year_price || 'TBD'}`,
         regional_specification: form.regional_specification || null,
+        body_style: form.body_style || null,
         engine: form.engine || null,
         transmission: form.transmission || null,
         horsepower_hp: form.horsepower_hp ? parseInt(form.horsepower_hp) : null,
@@ -468,7 +568,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-md text-xs relative max-h-[95vh] overflow-y-auto shadow-2xl">
+      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-6 w-[896px] max-w-[98vw] h-[85vh] flex flex-col text-sm relative overflow-hidden shadow-2xl">
         {processing && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 rounded-lg">
             <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -490,43 +590,94 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
           </div>
         )}
         
-        <p className="text-white/60 text-xs mb-3">Step {step + 1} of {totalSteps}</p>
-
         {!savedCar ? (
           <>
-          {/* Prevent implicit submits; we call handleSubmit manually */}
-          <form onSubmit={(e) => { e.preventDefault(); }} className="space-y-4">
-            {/* Step 0: Chassis */}
-            {step === 0 && (
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                <h3 className="text-white/80 text-xs font-semibold mb-2">Chassis # (VIN)</h3>
-                <ChassisInput value={form.chassis_number} onChange={(val) => {
-                  handleChange({
-                    target: { name: 'chassis_number', value: val }
-                  } as any);
-                }} />
+          {/* Tab Navigation */}
+          <div className="border-b border-white/20 mb-6">
+            <nav className="flex space-x-3" aria-label="Tabs">
+              {[
+                { id: 'chassis', label: 'Chassis', step: 0 },
+                { id: 'vehicle', label: 'Vehicle Info', step: 1 },
+                { id: 'pricing', label: 'Pricing', step: 2 },
+                { id: 'specs', label: 'Specifications', step: 3 },
+                { id: 'details', label: 'Details', step: 4 }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative whitespace-nowrap py-2.5 px-4 font-semibold text-[13px] md:text-sm uppercase tracking-wide rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:ring-offset-2 focus:ring-offset-black/40 ${
+                    activeTab === tab.id
+                      ? 'bg-gradient-to-b from-white/15 to-white/5 text-white border border-white/20'
+                      : 'text-white/70 hover:text-white/90 hover:bg-white/5 border border-transparent'
+                  }`}
+                  type="button"
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[11px] font-bold">
+                      {tab.step + 1}
+                    </span>
+                    {tab.label}
+                  </span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center">
+            <div className="w-full max-w-4xl mx-auto py-8">
+              {/* Prevent implicit submits; we call handleSubmit manually */}
+              <form onSubmit={(e) => { e.preventDefault(); }} className="space-y-6">
+            {/* Chassis Tab */}
+            {activeTab === 'chassis' && (
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-12 min-h-[500px] flex flex-col justify-center">
+                <div className="text-center space-y-12">
+                  <div className="space-y-6">
+                    <h3 className="text-white text-4xl font-bold">Vehicle Identification</h3>
+                    <p className="text-white/70 text-2xl">Enter the 17-character VIN to get started</p>
+                  </div>
+                  
+                  <div className="space-y-8">
+                    <label className="block text-white/80 text-3xl font-semibold">Chassis Number (VIN)</label>
+                    <div className="w-full flex justify-center px-4">
+                      <ChassisInput value={form.chassis_number} onChange={(val) => {
+                        handleChange({
+                          target: { name: 'chassis_number', value: val }
+                        } as any);
+                      }} />
+                    </div>
+                    <p className="text-white/50 text-lg max-w-2xl mx-auto">
+                      The VIN will automatically populate vehicle details in the next steps
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Step 1: Vehicle Information */}
-            {step === 1 && (
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5 space-y-4">
+            {/* Vehicle Info Tab */}
+            {activeTab === 'vehicle' && (
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-12 min-h-[500px] space-y-8">
+              <div className="text-center">
+                <h3 className="text-white text-4xl font-bold mb-6">Vehicle Information</h3>
+                <p className="text-white/70 text-xl mb-8">Complete the vehicle details below</p>
+              </div>
               <div>
-                <h3 className="text-white/80 text-xs font-semibold mb-2">Vehicle Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {[
                     { label: "Stock Number", name: "stock_number", readOnly: true, placeholder: "Auto generated" },
                     { label: "Model Year", name: "model_year", type: "number" },
                     { label: "Vehicle Model", name: "vehicle_model" },
                   ].map((f) => (
                     <div key={f.name}>
-                      <label className="block text-white/70 mb-0.5">{f.label}</label>
+                      <label className={labelClass}>{f.label}</label>
                       <input
                         name={f.name}
                         type={(f as any).type || "text"}
                         value={(form as any)[f.name]}
                         onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={fieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                         required={f.name !== 'stock_number'}
                         readOnly={(f as any).readOnly}
                         placeholder={(f as any).placeholder}
@@ -536,12 +687,13 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                     
                     {/* Model Family Dropdown */}
                     <div>
-                      <label className="block text-white/70 mb-0.5">Model Family</label>
+                      <label className={labelClass}>Model Family</label>
                       <select
                         name="model_family"
                         value={form.model_family}
                         onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={fieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                         required
                       >
                         <option value="">Select Model Family...</option>
@@ -558,13 +710,14 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                       { label: "Interior Colour", name: "interior_colour" },
                     ].map((f) => (
                       <div key={f.name}>
-                        <label className="block text-white/70 mb-0.5">{f.label}</label>
+                        <label className={labelClass}>{f.label}</label>
                         <input
                           name={f.name}
                           type="text"
                           value={(form as any)[f.name]}
                           onChange={handleChange}
-                          className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                          className={fieldClass}
+                          style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                           required
                         />
                       </div>
@@ -574,19 +727,24 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
             </div>
             )}
 
-            {/* Step 2: Pricing & Condition */}
-            {step === 2 && (
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-              <h3 className="text-white/80 text-xs font-semibold mb-2">Pricing & Condition</h3>
+            {/* Pricing Tab */}
+            {activeTab === 'pricing' && (
+            <div className="p-8">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 space-y-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-4xl font-bold text-white mb-4">Pricing & Condition</h2>
+                  <p className="text-xl text-white/60">Set the pricing details and condition for this vehicle</p>
+                </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Ownership Type */}
                 <div>
-                  <label className="block text-white/70 mb-0.5">Ownership Type</label>
+                  <label className={compactLabelClass}>Ownership Type</label>
                   <select
                     name="ownership_type"
                     value={form.ownership_type}
                     onChange={handleChange}
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    className={compactFieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                   >
                     <option value="stock">Stock</option>
                     <option value="consignment">Consignment</option>
@@ -595,12 +753,13 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
 
                 {/* Regional Specification */}
                 <div>
-                  <label className="block text-white/60 mb-0.5">Regional Specification</label>
+                  <label className={compactLabelClass}>Regional Specification</label>
                   <select
                     name="regional_specification"
                     value={form.regional_specification}
                     onChange={handleChange}
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    className={compactFieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     required
                   >
                     <option value="">Select...</option>
@@ -613,50 +772,54 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
 
                 {/* Mileage */}
                 <div>
-                  <label className="block text-white/60 mb-0.5">Mileage (KM)</label>
+                  <label className={compactLabelClass}>Mileage (KM)</label>
                   <input
                     name="current_mileage_km"
                     value={form.current_mileage_km}
                     onChange={handleChange}
                     inputMode="numeric"
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    className={compactFieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     required
                   />
                 </div>
 
                 {/* Number of Keys */}
                 <div>
-                  <label className="block text-white/60 mb-0.5">Number of Keys</label>
+                  <label className={compactLabelClass}>Number of Keys</label>
                   <input
                     type="number"
                     name="number_of_keys"
                     value={form.number_of_keys}
                     onChange={handleChange}
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    className={compactFieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                   />
                 </div>
 
                 {/* Warranty Package */}
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-white/60 mb-0.5">Warranty Package</label>
+                  <label className={compactLabelClass}>Warranty Package</label>
                   <select
                     name="warranty_package_type"
                     value={form.warranty_package_type}
                     onChange={handleChange}
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    className={compactFieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     required
                   >
                     <option value="silberarrows">SilberArrows</option>
                     <option value="dealer">Dealer</option>
                   </select>
                   {form.warranty_package_type === 'dealer' && (
-                    <div className="mt-1 grid grid-cols-2 gap-1.5">
+                    <div className="mt-2 grid grid-cols-2 gap-2">
                       <input
                         type="date"
                         name="warranty_expiry_date"
                         value={form.warranty_expiry_date}
                         onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                       />
                       <input
                         type="text"
@@ -665,7 +828,8 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                         onChange={handleChange}
                         inputMode="numeric"
                         placeholder="KM limit"
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                       />
                     </div>
                   )}
@@ -673,25 +837,27 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
 
                 {/* Service Package */}
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-white/60 mb-0.5">Service Package</label>
+                  <label className={compactLabelClass}>Service Package</label>
                   <select
                     name="service_package_type"
                     value={form.service_package_type}
                     onChange={handleChange}
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    className={compactFieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     required
                   >
                     <option value="silberarrows">SilberArrows</option>
                     <option value="dealer">Dealer</option>
                   </select>
                   {form.service_package_type === 'dealer' && (
-                    <div className="mt-1 grid grid-cols-2 gap-1.5">
+                    <div className="mt-2 grid grid-cols-2 gap-2">
                       <input
                         type="date"
                         name="service_expiry_date"
                         value={form.service_expiry_date}
                         onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                       />
                       <input
                         type="text"
@@ -700,36 +866,69 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                         onChange={handleChange}
                         inputMode="numeric"
                         placeholder="KM limit"
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                       />
+                    </div>
+                  )}
+                  {form.service_package_type === 'silberarrows' && (
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-white/80 text-sm font-medium mb-2">ServiceCare 2 Year (AED)</label>
+                        <input
+                          type="text"
+                          name="servicecare_2year_price"
+                          value={form.servicecare_2year_price}
+                          onChange={handleChange}
+                          inputMode="numeric"
+                          placeholder="2-year price"
+                          className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                          style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-white/80 text-sm font-medium mb-2">ServiceCare 4 Year (AED)</label>
+                        <input
+                          type="text"
+                          name="servicecare_4year_price"
+                          value={form.servicecare_4year_price}
+                          onChange={handleChange}
+                          inputMode="numeric"
+                          placeholder="4-year price"
+                          className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                          style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
 
                 {/* Cost & Advertised Price */}
                 <div>
-                  <label className="block text-white/60 mb-0.5">Cost Price (AED)</label>
+                  <label className={compactLabelClass}>Cost Price (AED)</label>
                   <input
                     name="cost_price_aed"
                     value={form.cost_price_aed}
                     onChange={handleChange}
                     inputMode="numeric"
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    className={compactFieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-white/60 mb-0.5">Advertised Price (AED)</label>
+                  <label className={compactLabelClass}>Advertised Price (AED)</label>
                   <input
                     name="advertised_price_aed"
                     value={form.advertised_price_aed}
                     onChange={handleChange}
                     inputMode="numeric"
-                    className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                    className={compactFieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     required
                   />
                   {monthlyPayments && (
-                    <div className="mt-1 text-[10px] text-white/70 space-y-0.5">
+                    <div className="mt-1 text-xs text-white/70 space-y-0.5">
                       <p>0% Down: AED {monthlyPayments.zero.toLocaleString()}/mo</p>
                       <p>20% Down: AED {monthlyPayments.twenty.toLocaleString()}/mo</p>
                     </div>
@@ -740,57 +939,62 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                 {form.ownership_type === 'consignment' && (
                   <>
                     <div className="col-span-2 sm:col-span-1">
-                      <label className="block text-white/60 mb-0.5">Customer Name</label>
+                      <label className={compactLabelClass}>Customer Name</label>
                       <input
                         name="customer_name"
                         value={form.customer_name}
                         onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                         required
                       />
                     </div>
                     <div className="col-span-2 sm:col-span-1">
-                      <label className="block text-white/60 mb-0.5">Customer Phone</label>
+                      <label className={compactLabelClass}>Customer Phone</label>
                       <input
                         name="customer_phone"
                         value={form.customer_phone}
                         onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                         required
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-white/60 mb-0.5">Customer Email</label>
+                      <label className={compactLabelClass}>Customer Email</label>
                       <input
                         name="customer_email"
                         type="email"
                         value={form.customer_email}
                         onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                         required
                       />
                     </div>
 
                     {/* Consignment Additional Fields */}
                     <div className="col-span-2 sm:col-span-1">
-                      <label className="block text-white/60 mb-0.5">Registration Expiry</label>
+                      <label className={compactLabelClass}>Registration Expiry</label>
                       <input
                         type="date"
                         name="registration_expiry_date"
                         value={form.registration_expiry_date}
                         onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                         required={form.ownership_type === 'consignment'}
                       />
                     </div>
                     <div className="col-span-2 sm:col-span-1">
-                      <label className="block text-white/60 mb-0.5">Insurance Expiry</label>
+                      <label className={compactLabelClass}>Insurance Expiry</label>
                       <input
                         type="date"
                         name="insurance_expiry_date"
                         value={form.insurance_expiry_date}
                         onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                         required={form.ownership_type === 'consignment'}
                       />
                     </div>
@@ -824,202 +1028,255 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                   </>
                 )}
               </div>
+              </div>
             </div>
             )}
 
-            {/* Step 3: Specifications */}
-            {step === 3 && (
-            <>
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                <h3 className="text-white/80 text-xs font-semibold mb-2">Specifications</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { label: "Engine", name: "engine" },
-                    { label: "Transmission", name: "transmission" },
-                    { label: "Horsepower (hp)", name: "horsepower_hp", type: "number" },
-                    { label: "Torque (Nm)", name: "torque_nm", type: "number" },
-                    { label: "Cubic Capacity (cc)", name: "cubic_capacity_cc", type: "number" },
-                  ].map((f) => (
-                    <div key={f.name}>
-                      <label className="block text-white/60 mb-0.5">{f.label}</label>
-                      <input
-                        type={f.type || 'text'}
-                        name={f.name}
-                        value={(form as any)[f.name]}
-                        onChange={handleChange}
-                        className="w-full px-2 py-1 rounded bg-black/20 border border-white/10 text-white"
-                      />
+            {/* Specifications Tab */}
+            {activeTab === 'specs' && (
+            <div className="p-8">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 space-y-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-4xl font-bold text-white mb-4">Specifications</h2>
+                  <p className="text-xl text-white/60">Enter the technical specifications for this vehicle</p>
+                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Body Style Dropdown */}
+                <div>
+                  <label className={labelClass}>Body Style</label>
+                  <select
+                    name="body_style"
+                    value={form.body_style}
+                    onChange={handleChange}
+                    className={fieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                  >
+                    <option value="">Select...</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Convertible">Convertible</option>
+                    <option value="Estate">Estate</option>
+                    <option value="Hatchback">Hatchback</option>
+                    <option value="Saloon">Saloon</option>
+                    <option value="SUV">SUV</option>
+                  </select>
+                </div>
+                
+                {[
+                  { label: "Engine", name: "engine" },
+                  { label: "Transmission", name: "transmission" },
+                  { label: "Horsepower (hp)", name: "horsepower_hp", type: "number" },
+                  { label: "Torque (Nm)", name: "torque_nm", type: "number" },
+                  { label: "Cubic Capacity (cc)", name: "cubic_capacity_cc", type: "number" },
+                ].map((f) => (
+                  <div key={f.name}>
+                    <label className={labelClass}>{f.label}</label>
+                    <input
+                      type={f.type || 'text'}
+                      name={f.name}
+                      value={(form as any)[f.name]}
+                      onChange={handleChange}
+                      className={fieldClass}
+                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                    />
+                  </div>
+                ))}
+              </div>
+              </div>
+            </div>
+            )}
+
+            {/* Details Tab */}
+            {activeTab === 'details' && (
+            <div className="px-8 pt-8 pb-8">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 space-y-6">
+                <div className="text-center mb-8 mt-8">
+                  <h2 className="text-4xl font-bold text-white mb-4">Vehicle Details</h2>
+                  <p className="text-xl text-white/60">Add key equipment and description for this vehicle</p>
+                </div>
+              <div className="space-y-8">
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-white">Key Equipment</h3>
+                    <div className="flex items-center gap-4">
+                      <button
+                        type="button"
+                        onClick={generateKeyEquipment}
+                        disabled={generatingEquipment || !rawEquipmentData}
+                        className="px-4 py-2 text-sm bg-green-600/20 hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-300 border border-green-500/30 rounded-lg transition-colors flex items-center gap-2"
+                        title={!rawEquipmentData ? "VIN decode first to get equipment data" : "Process raw equipment data"}
+                      >
+                        {generatingEquipment ? (
+                          <>
+                            <div className="w-4 h-4 border border-green-300/30 border-t-green-300 rounded-full animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                            </svg>
+                            Process
+                          </>
+                        )}
+                      </button>
+                      <span className={`text-sm ${form.key_equipment.length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
+                        {form.key_equipment.length}/1800
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-
-            </>
-            )}
-
-            {/* Step 4: Key Equipment & Description */}
-            {step === 4 && (
-             <>
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-white/80 text-xs font-semibold">Key Equipment</h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={generateKeyEquipment}
-                      disabled={generatingEquipment || !rawEquipmentData}
-                      className="px-2 py-1 text-xs bg-green-600/20 hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-300 border border-green-500/30 rounded transition-colors flex items-center gap-1"
-                      title={!rawEquipmentData ? "VIN decode first to get equipment data" : "Process raw equipment data"}
-                    >
-                      {generatingEquipment ? (
-                        <>
-                          <div className="w-3 h-3 border border-green-300/30 border-t-green-300 rounded-full animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                          </svg>
-                          Process
-                        </>
-                      )}
-                    </button>
-                    <span className={`text-xs ${form.key_equipment.length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
-                      {form.key_equipment.length}/1800
-                    </span>
                   </div>
+                  <textarea
+                    name="key_equipment"
+                    value={form.key_equipment}
+                    onChange={handleChange}
+                    className={`${fieldClass} resize-y min-h-[200px] ${
+                      form.key_equipment.length > 1800 ? 'border-red-400' : ''
+                    }`}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                    rows={8}
+                    required
+                    maxLength={1800}
+                  />
+                  {form.key_equipment.length > 1800 && (
+                    <p className="text-red-400 text-sm mt-2">Key equipment must be 1800 characters or less</p>
+                  )}
                 </div>
-                <textarea
-                  name="key_equipment"
-                  value={form.key_equipment}
-                  onChange={handleChange}
-                  className={`w-full px-2 py-1 rounded bg-black/20 border text-white resize-y min-h-[100px] ${
-                    form.key_equipment.length > 1800 ? 'border-red-400' : 'border-white/10'
-                  }`}
-                  rows={4}
-                  required
-                  maxLength={1800}
-                />
-                {form.key_equipment.length > 1800 && (
-                  <p className="text-red-400 text-xs mt-1">Key equipment must be 1800 characters or less</p>
-                )}
-              </div>
 
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-white/80 text-xs font-semibold">Description</h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={generateDescription}
-                      disabled={generatingDescription || !form.model_year || !form.vehicle_model || !form.colour}
-                      className="px-2 py-1 text-xs bg-blue-600/20 hover:bg-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-300 border border-blue-500/30 rounded transition-colors flex items-center gap-1"
-                    >
-                      {generatingDescription ? (
-                        <>
-                          <div className="w-3 h-3 border border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          Generate
-                        </>
-                      )}
-                    </button>
-                    <span className={`text-xs ${form.description.length > 1500 ? 'text-red-400' : 'text-white/60'}`}>
-                      {form.description.length}/1500
-                    </span>
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-white">Description</h3>
+                    <div className="flex items-center gap-4">
+                      <button
+                        type="button"
+                        onClick={generateDescription}
+                        disabled={generatingDescription || !form.model_year || !form.vehicle_model || !form.colour}
+                        className="px-4 py-2 text-sm bg-blue-600/20 hover:bg-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-300 border border-blue-500/30 rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        {generatingDescription ? (
+                          <>
+                            <div className="w-4 h-4 border border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Generate
+                          </>
+                        )}
+                      </button>
+                      <span className={`text-sm ${form.description.length > 1500 ? 'text-red-400' : 'text-white/60'}`}>
+                        {form.description.length}/1500
+                      </span>
+                    </div>
                   </div>
+                  <textarea
+                    name="description"
+                    value={form.description}
+                    onChange={handleChange}
+                    className={`${fieldClass} resize-y min-h-[200px] ${
+                      form.description.length > 1500 ? 'border-red-400' : ''
+                    }`}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                    rows={8}
+                    maxLength={1500}
+                  />
+                  {form.description.length > 1500 && (
+                    <p className="text-red-400 text-sm mt-2">Description must be 1500 characters or less</p>
+                  )}
                 </div>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  className={`w-full px-2 py-1 rounded bg-black/20 border text-white resize-y min-h-[100px] ${
-                    form.description.length > 1500 ? 'border-red-400' : 'border-white/10'
-                  }`}
-                  rows={3}
-                  maxLength={1500}
-                />
-                {form.description.length > 1500 && (
-                  <p className="text-red-400 text-xs mt-1">Description must be 1500 characters or less</p>
-                )}
               </div>
-             </>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex gap-2 justify-between">
-              {step > 0 && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="flex-1 py-2 rounded bg-white/10 hover:bg-white/20 text-white text-xs"
-                >
-                  Back
-                </button>
-              )}
-              
-              {step < totalSteps - 1 ? (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={processing}
-                  className={`flex-1 py-2 rounded bg-brand hover:bg-brand/90 disabled:opacity-50 text-white text-xs ${
-                    step === 0 ? 'w-full' : ''
-                  }`}
-                >
-                  {processing ? 'Processing...' : 'Next'}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmit as any}
-                  disabled={saving}
-                  className="flex-1 py-2 rounded bg-brand hover:bg-brand/90 disabled:opacity-50 text-white text-xs"
-                >
-                  {saving ? 'Creating...' : 'Create Car'}
-                </button>
-              )}
+              </div>
             </div>
+            )}
+
           </form>
+            </div>
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-2 justify-between pt-4 border-t border-white/10">
+            {currentStep > 0 && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex-1 py-2 rounded bg-white/10 hover:bg-white/20 text-white text-xs"
+              >
+                Back
+              </button>
+            )}
+            
+            {currentStep < totalSteps - 1 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={processing}
+                className={`flex-1 py-2 rounded bg-brand hover:bg-brand/90 disabled:opacity-50 text-white text-xs ${
+                  currentStep === 0 ? 'w-full' : ''
+                }`}
+              >
+                {processing ? 'Processing...' : 'Next'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  const missing = validateAllTabs();
+                  if (missing.length) {
+                    setErrors(missing);
+                    return;
+                  }
+                  setErrors([]);
+                  handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+                }}
+                disabled={saving}
+                className="flex-1 py-2 rounded bg-brand hover:bg-brand/90 disabled:opacity-50 text-white text-xs"
+              >
+                {saving ? 'Creating...' : 'Create Car'}
+              </button>
+            )}
+          </div>
           </>
         ) : (
-          <div className="space-y-4">
-            <h3 className="text-white/80 text-xs font-semibold">Upload Pre-UVC Documents (PDF)</h3>
-            <DocUploader carId={savedCar.id} onUploaded={async () => {
-              const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', savedCar.id).eq('kind', 'document');
-              setDocs(docRows || []);
-            }} />
+          <>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="p-8">
+                <div className="space-y-4">
+                  <h3 className="text-white/80 text-xs font-semibold">Upload Pre-UVC Documents (PDF)</h3>
+                  <DocUploader carId={savedCar.id} onUploaded={async () => {
+                    const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', savedCar.id).eq('kind', 'document');
+                    setDocs(docRows || []);
+                  }} />
 
-            {docs.length > 0 && (
-              <ul className="list-disc list-inside text-white/70 text-xs space-y-1">
-                {docs.map(d => (
-                  <li key={d.id}>
-                    <a href={d.url} target="_blank" className="underline">
-                      Document {d.id.slice(0, 4)}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
+                  {docs.length > 0 && (
+                    <ul className="list-disc list-inside text-white/70 text-xs space-y-1">
+                      {docs.map(d => (
+                        <li key={d.id}>
+                          <a href={d.url} target="_blank" className="underline">
+                            Document {d.id.slice(0, 4)}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                onCreated(savedCar);
-                onClose();
-              }}
-              className="w-full py-2 rounded bg-brand hover:bg-brand/90 disabled:opacity-50 text-white text-xs"
-            >
-              Done
-            </button>
-          </div>
+            {/* Navigation Buttons */}
+            <div className="flex gap-2 justify-between pt-4 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  onCreated(savedCar);
+                  onClose();
+                }}
+                className="w-full py-2 rounded bg-brand hover:bg-brand/90 disabled:opacity-50 text-white text-xs"
+              >
+                Done
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -31,7 +31,7 @@ export default function ChassisInput({ value, onChange }: Props){
   };
 
   return (
-    <div className="flex gap-0.5" onPaste={e=>{
+    <div className="flex gap-0.5 justify-center" onPaste={e=>{
       const text = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,17);
       if(text){ onChange(text.padEnd(17,'')); }
       e.preventDefault();
@@ -44,7 +44,7 @@ export default function ChassisInput({ value, onChange }: Props){
           onKeyDown={e=>handleKey(i,e)}
           onChange={e=>handleChange(i,e)}
           maxLength={1}
-          className={`w-5 h-8 text-center uppercase bg-black/25 border border-white/20 rounded text-white text-xs focus:outline-none ${((i+1)%4===0 && i!==16)?'mr-1':''}`}
+          className={`w-9 h-12 text-center uppercase bg-black/25 border border-white/20 rounded-lg text-white text-lg font-bold focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 ${((i+1)%4===0 && i!==16)?'mr-1':''}`}
         />
       ))}
     </div>

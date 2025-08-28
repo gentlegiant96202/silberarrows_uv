@@ -7,7 +7,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   // Set default options
   if (details.reason === 'install') {
     chrome.storage.sync.set({
-      apiUrl: 'http://localhost:3000',
+      apiUrl: 'http://localhost:3001',
       autoFillEnabled: true,
       highlightFields: true,
       fieldMappings: getDefaultFieldMappings()
@@ -49,7 +49,7 @@ async function handleGetSettings(sendResponse) {
     
     // Ensure defaults are set
     const defaultSettings = {
-      apiUrl: 'http://localhost:3000',
+      apiUrl: 'http://localhost:3001',
       autoFillEnabled: true,
       highlightFields: true,
       fieldMappings: getDefaultFieldMappings(),
@@ -109,7 +109,10 @@ function getDefaultFieldMappings() {
       color: ['input[name*="color"]', 'select[name*="color"]', '#color', '.color'],
       transmission: ['select[name*="transmission"]', '#transmission', '.transmission'],
       engine: ['input[name*="engine"]', '#engine', '.engine'],
-      description: ['textarea[name*="description"]', '#description', '.description']
+      description: ['textarea[name*="description"]', '#description', '.description'],
+      bodyStyle: ['select[name*="body"]', 'select[name*="style"]', '#body-style', '.body-style', '#bodyStyle', '.bodyStyle'],
+      serviceCare2Year: ['input[name*="servicecare"]', 'input[name*="service-care"]', 'input[name*="2year"]', 'input[name*="2-year"]'],
+      serviceCare4Year: ['input[name*="servicecare"]', 'input[name*="service-care"]', 'input[name*="4year"]', 'input[name*="4-year"]']
     },
     
     // Site-specific mappings can be added here
@@ -133,7 +136,12 @@ function getDefaultFieldMappings() {
       stockNumber: ['input[name="c-stock-number"]', '#c-stock-number'],
       warranty: ['input[name="c-warranty"]', '#c-warranty'],
       youtubeId: ['input[name="c-yt-id"]', '#c-yt-id'],
-      customerName: ['input[name="c-customer-name"]', '#c-customer-name']
+      customerName: ['input[name="c-customer-name"]', '#c-customer-name'],
+      bodyStyle: ['select[name="c-body-style"]', '#c-body-style', 'input[name="body-style"]', '#body-style'],
+      categoryId: ['select[name="c-category-id"]', '#select-car-cat'],
+      warrantyType: ['input[name="c-warranty-type"]'],
+      serviceCare2Year: ['input[name="c-servicecare-price"]', '#c-servicecare-price'],
+      serviceCare4Year: ['input[name="c-servicecare-price-4-years"]', '#c-servicecare-price-4-years']
     },
     
     'dubizzle.com': {
@@ -154,19 +162,25 @@ function getDefaultFieldMappings() {
   };
 }
 
-// Context menu setup (optional)
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: 'fillCarData',
-    title: 'Fill with SilberArrows car data',
-    contexts: ['page', 'selection']
-  });
-});
+// Context menu setup (optional) - only if contextMenus permission is available
+try {
+  if (chrome.contextMenus) {
+    chrome.runtime.onInstalled.addListener(() => {
+      chrome.contextMenus.create({
+        id: 'fillCarData',
+        title: 'Fill with SilberArrows car data',
+        contexts: ['page', 'selection']
+      });
+    });
 
-// Handle context menu clicks
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === 'fillCarData') {
-    // Open popup or trigger fill directly
-    chrome.action.openPopup();
+    // Handle context menu clicks
+    chrome.contextMenus.onClicked.addListener((info, tab) => {
+      if (info.menuItemId === 'fillCarData') {
+        // Open popup or trigger fill directly
+        chrome.action.openPopup();
+      }
+    });
   }
-});
+} catch (error) {
+  console.log('Context menus not available:', error);
+}

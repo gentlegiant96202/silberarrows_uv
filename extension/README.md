@@ -74,6 +74,27 @@ A Safari/Chrome extension that automatically fills car listing forms with data f
    - The extension will automatically detect and fill form fields
    - Filled fields will be highlighted briefly
 
+## Supported Fields
+
+The extension can fill the following car data fields:
+
+- **Basic Info**: Make, Model, Year, Price, Mileage
+- **Details**: Color, Interior Color, Transmission, Engine, Horsepower
+- **Specifications**: Regional Spec, Condition, Chassis Number, Body Style
+- **Content**: Description, Technical Data, Key Equipment
+- **Business**: Stock Number, Warranty, Service Package
+- **ServiceCare**: 2-Year Price, 4-Year Price (parsed from inventory service text)
+- **Media**: YouTube Video ID, Customer Name
+
+### New Fields Added
+
+- **Body Style**: Vehicle body type (Coupe, Convertible, Estate, etc.)
+- **ServiceCare 2 Year**: Automatically parsed from inventory service text
+- **ServiceCare 4 Year**: Automatically parsed from inventory service text
+
+The ServiceCare fields are automatically extracted from text like:
+`"SILBERARROWS SERVICECARE AVAILABLE - 2YR: AED 33333, 4YR: AED 44444"`
+
 ## Supported Websites
 
 The extension includes built-in support for:

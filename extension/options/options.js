@@ -17,11 +17,15 @@ const statusDiv = document.getElementById('status');
 const fieldNames = [
   'make', 'model', 'year', 'price', 'mileage', 'color', 'interiorColor',
   'transmission', 'engine', 'horsepower', 'displacement', 'description',
-  'chassis', 'keys', 'fuelLevel'
+  'chassis', 'keys', 'fuelLevel', 'bodyStyle', 'serviceCare2Year', 'serviceCare4Year'
 ];
 
 // Initialize options page
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('Options page loaded');
+  console.log('Save button element:', saveBtn);
+  console.log('API URL input element:', apiUrlInput);
+  
   await loadSettings();
   setupEventListeners();
   renderMappings();
@@ -29,28 +33,72 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Setup event listeners
 function setupEventListeners() {
-  saveBtn.addEventListener('click', saveSettings);
-  resetBtn.addEventListener('click', resetToDefaults);
-  addDomainBtn.addEventListener('click', addNewDomain);
+  console.log('Setting up event listeners');
+  
+  if (saveBtn) {
+    saveBtn.addEventListener('click', (e) => {
+      console.log('Save button clicked event');
+      e.preventDefault();
+      saveSettings();
+    });
+    console.log('Save button listener added');
+  } else {
+    console.error('Save button not found!');
+  }
+  
+  if (resetBtn) {
+    resetBtn.addEventListener('click', resetToDefaults);
+  }
+  
+  if (addDomainBtn) {
+    addDomainBtn.addEventListener('click', addNewDomain);
+  }
   
   // Auto-save on input changes
   [apiUrlInput, autoFillEnabledCheckbox, highlightFieldsCheckbox].forEach(input => {
-    input.addEventListener('change', () => {
-      showStatus('Settings will be saved when you click Save', 'info');
-    });
+    if (input) {
+      input.addEventListener('change', () => {
+        showStatus('Settings will be saved when you click Save', 'info');
+      });
+    }
   });
 }
 
 // Load current settings
 async function loadSettings() {
   try {
+    // Try direct storage first
+    try {
+      const settings = await chrome.storage.sync.get([
+        'apiUrl',
+        'autoFillEnabled',
+        'highlightFields',
+        'fieldMappings'
+      ]);
+      
+      // Set defaults if not found
+      currentSettings = {
+        apiUrl: settings.apiUrl || 'http://localhost:3001',
+        autoFillEnabled: settings.autoFillEnabled !== false,
+        highlightFields: settings.highlightFields !== false,
+        fieldMappings: settings.fieldMappings || {}
+      };
+      
+      console.log('Loaded settings directly:', currentSettings);
+      populateForm();
+      return;
+    } catch (directError) {
+      console.log('Direct storage failed, trying message:', directError);
+    }
+    
+    // Fallback to background script
     const response = await chrome.runtime.sendMessage({ action: 'getSettings' });
     
-    if (response.success) {
+    if (response && response.success) {
       currentSettings = response.settings;
       populateForm();
     } else {
-      throw new Error(response.error || 'Failed to load settings');
+      throw new Error(response?.error || 'Failed to load settings');
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -207,21 +255,38 @@ window.removeDomain = removeDomain;
 // Save settings
 async function saveSettings() {
   try {
+    console.log('Save button clicked');
+    console.log('Current API URL input value:', apiUrlInput.value);
+    
     // Update settings from form
     currentSettings.apiUrl = apiUrlInput.value.trim();
     currentSettings.autoFillEnabled = autoFillEnabledCheckbox.checked;
     currentSettings.highlightFields = highlightFieldsCheckbox.checked;
     
-    // Save to storage
+    console.log('Settings to save:', currentSettings);
+    
+    // Try direct storage first as fallback
+    try {
+      await chrome.storage.sync.set(currentSettings);
+      console.log('Direct storage save successful');
+      showStatus('Settings saved successfully!', 'success');
+      return;
+    } catch (directError) {
+      console.log('Direct storage failed, trying message:', directError);
+    }
+    
+    // Save to storage via background script
     const response = await chrome.runtime.sendMessage({
       action: 'saveSettings',
       settings: currentSettings
     });
     
-    if (response.success) {
+    console.log('Save response:', response);
+    
+    if (response && response.success) {
       showStatus('Settings saved successfully!', 'success');
     } else {
-      throw new Error(response.error || 'Failed to save settings');
+      throw new Error(response?.error || 'Failed to save settings');
     }
   } catch (error) {
     console.error('Failed to save settings:', error);

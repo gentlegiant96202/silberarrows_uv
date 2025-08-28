@@ -42,11 +42,14 @@ export async function GET(request: NextRequest) {
         fuel_level,
         monthly_0_down_aed,
         monthly_20_down_aed,
-        car_media!inner(url, kind, sort_order)
+        body_style,
+        current_service,
+        model_family,
+        current_warranty,
+        car_media(url, kind, sort_order)
       `)
       .eq('status', 'inventory')
       .eq('sale_status', 'available')
-      .eq('car_media.kind', 'photo')
       .order('sort_order', { ascending: true, foreignTable: 'car_media' });
 
     if (stockNumber) {
@@ -72,13 +75,49 @@ export async function GET(request: NextRequest) {
     const car = cars[0];
     console.log(`✅ Extension API: Successfully fetched car ${car.stock_number}`);
 
+    // Parse ServiceCare pricing from current_service text
+    const parseServiceCare = (serviceText: string) => {
+      const serviceCare2YrMatch = serviceText?.match(/2yr:\s*AED\s*(\d+)/i);
+      const serviceCare4YrMatch = serviceText?.match(/4yr:\s*AED\s*(\d+)/i);
+      
+      return {
+        serviceCare2Year: serviceCare2YrMatch ? parseInt(serviceCare2YrMatch[1]) : null,
+        serviceCare4Year: serviceCare4YrMatch ? parseInt(serviceCare4YrMatch[1]) : null
+      };
+    };
+
+    // Parse warranty information from current_warranty text
+    const parseWarranty = (warrantyText: string) => {
+      if (!warrantyText) return { type: 'standard', date: null, kmLimit: null };
+      
+      // Check for SilberArrows warranty -> Extended warranty (no date/mileage)
+      if (warrantyText.toLowerCase().includes('silberarrows')) {
+        return { type: 'extended', date: null, kmLimit: null };
+      }
+      
+      // Check for dealer warranty -> Standard/Manufacturer warranty (with date and mileage)
+      const dealerMatch = warrantyText.match(/Dealer warranty until (.+?) or (\d+) km/i);
+      if (dealerMatch) {
+        return {
+          type: 'standard', // Dealer warranty maps to standard/manufacturer warranty
+          date: dealerMatch[1].trim(),
+          kmLimit: parseInt(dealerMatch[2])
+        };
+      }
+      
+      return { type: 'standard', date: null, kmLimit: null };
+    };
+
+    const serviceCareData = parseServiceCare(car.current_service || '');
+    const warrantyData = parseWarranty(car.current_warranty || '');
+
     // Format data for extension consumption
     const formattedCar = {
       id: car.id,
       stockNumber: car.stock_number,
       year: car.model_year,
       make: 'Mercedes-Benz', // Assuming all cars are Mercedes
-      model: car.vehicle_model,
+      model: car.vehicle_model.replace(/^\d{4}\s+/, ''), // Remove year prefix from model
       color: car.colour,
       interiorColor: car.interior_colour,
       chassis: car.chassis_number,
@@ -97,7 +136,15 @@ export async function GET(request: NextRequest) {
       fuelLevel: car.fuel_level,
       monthlyPayment0Down: car.monthly_0_down_aed,
       monthlyPayment20Down: car.monthly_20_down_aed,
-      images: car.car_media?.map((media: any) => media.url) || []
+      bodyStyle: car.body_style,
+      modelFamily: car.model_family,
+      fuelType: 'Petrol', // Default for Mercedes-Benz (fuel_type column doesn't exist)
+      warrantyType: warrantyData.type,
+      warrantyDate: warrantyData.date,
+      warrantyKmLimit: warrantyData.kmLimit,
+      serviceCare2Year: serviceCareData.serviceCare2Year,
+      serviceCare4Year: serviceCareData.serviceCare4Year,
+      images: car.car_media?.filter((media: any) => media.kind === 'photo').map((media: any) => media.url) || []
     };
 
     return NextResponse.json({

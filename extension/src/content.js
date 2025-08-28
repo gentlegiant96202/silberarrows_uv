@@ -24,6 +24,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Content script received message:', message);
   
   switch (message.action) {
+    case 'ping':
+      console.log('Content script responding to ping');
+      sendResponse({ success: true, message: 'Content script is ready' });
+      return true; // Keep message channel open for response
+      
     case 'fillCarData':
       handleFillCarData(message.carData)
         .then(result => sendResponse({ success: true, result }))
@@ -33,10 +38,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'clearHighlights':
       clearFieldHighlights();
       sendResponse({ success: true });
-      break;
+      return true; // Keep message channel open for response
       
     default:
       console.warn('Unknown message action:', message.action);
+      sendResponse({ success: false, error: 'Unknown action' });
+      return true; // Keep message channel open for response
   }
 });
 
@@ -73,7 +80,7 @@ async function handleFillCarData(carData) {
     
     // Only add fields that have mappings and values
     if (carData.make) fieldData.make = carData.make;
-    if (carData.model) fieldData.model = `${carData.year} ${carData.model}`;
+    if (carData.model) fieldData.model = carData.model; // Don't include year - it has separate field
     if (carData.year) fieldData.year = carData.year.toString();
     if (carData.price) fieldData.price = carData.price.toString();
     if (carData.monthlyPayment0Down) fieldData.monthlyPrice = carData.monthlyPayment0Down.toString();
@@ -81,7 +88,7 @@ async function handleFillCarData(carData) {
     if (carData.color) fieldData.color = carData.color;
     if (carData.interiorColor) fieldData.interiorColor = carData.interiorColor;
     if (carData.transmission) fieldData.transmission = carData.transmission;
-    fieldData.fuelType = 'Petrol'; // Default for Mercedes
+    if (carData.fuelType) fieldData.fuelType = carData.fuelType;
     if (carData.specification) fieldData.regionalSpec = carData.specification;
     fieldData.condition = 'Used'; // Default
     if (carData.description) fieldData.description = carData.description;
@@ -89,7 +96,13 @@ async function handleFillCarData(carData) {
     if (carData.keyEquipment) fieldData.keyEquipment = carData.keyEquipment;
     if (carData.monthlyPayment0Down) fieldData.servicePackage = formatServicePackage(carData);
     if (carData.stockNumber) fieldData.stockNumber = carData.stockNumber;
-    if (carData.description) fieldData.warranty = formatWarranty(carData);
+    if (carData.warrantyType || carData.warrantyDate) fieldData.warranty = formatWarranty(carData);
+    if (carData.bodyStyle) fieldData.bodyStyle = carData.bodyStyle;
+    if (carData.modelFamily) fieldData.categoryId = carData.modelFamily; // Connect model family to category
+    if (carData.warrantyType) fieldData.warrantyType = carData.warrantyType;
+    // Don't set raw warrantyDate - use formatted warranty instead
+    if (carData.serviceCare2Year) fieldData.serviceCare2Year = carData.serviceCare2Year.toString();
+    if (carData.serviceCare4Year) fieldData.serviceCare4Year = carData.serviceCare4Year.toString();
     
     console.log('🔍 Debug - Field data keys:', Object.keys(fieldData));
     console.log('🔍 Debug - Mapping keys:', Object.keys(mappings));
@@ -111,9 +124,21 @@ async function handleFillCarData(carData) {
         continue;
       }
       
-      // Ensure dependent UI is visible (e.g., warranty text requires a radio selection)
+      // Handle special fields that require radio button selection
       if (fieldName === 'warranty') {
         await revealWarrantyField(value);
+      }
+      
+      // Handle warranty type radio buttons
+      if (fieldName === 'warrantyType') {
+        await handleWarrantyTypeSelection(value);
+        continue; // Skip normal field filling for radio buttons
+      }
+      
+      // Handle warranty date - needs delay after warranty type selection
+      if (fieldName === 'warrantyDate') {
+        // Wait a bit for the warranty field to become visible
+        await new Promise(r => setTimeout(r, 300));
       }
 
       console.log(`🔍 Processing field: ${fieldName} = ${value}`);
@@ -189,7 +214,12 @@ function getFieldMappings() {
     stockNumber: ['input[name="c-stock-number"]', '#c-stock-number'],
     warranty: ['input[name="c-warranty"]', '#c-warranty'],
     youtubeId: ['input[name="c-yt-id"]', '#c-yt-id'],
-    customerName: ['input[name="c-customer-name"]', '#c-customer-name']
+    customerName: ['input[name="c-customer-name"]', '#c-customer-name'],
+    categoryId: ['select[name="c-category-id"]', '#select-car-cat'],
+    warrantyType: ['input[name="c-warranty-type"]'],
+    bodyStyle: ['select[name="c-body-style"]', '#c-body-style', 'input[name="c-body-style"]'],
+    serviceCare2Year: ['input[name="c-servicecare-price"]', '#c-servicecare-price'],
+    serviceCare4Year: ['input[name="c-servicecare-price-4-years"]', '#c-servicecare-price-4-years']
   } : {
     // Generic fallback mappings
     make: ['#make', 'input[name="make"]', 'select[name="make"]'],
@@ -202,7 +232,12 @@ function getFieldMappings() {
     engine: ['#engine', 'input[name="engine"]'],
     horsepower: ['#horsepower', 'input[name="horsepower"]'],
     chassis: ['#chassis', 'input[name="chassis"]'],
-    description: ['#description', 'textarea[name="description"]']
+    description: ['#description', 'textarea[name="description"]'],
+    bodyStyle: ['#body-style', 'select[name="body-style"]', '#bodyStyle', 'select[name="bodyStyle"]'],
+    categoryId: ['#select-car-cat', 'select[name="category"]'],
+    warrantyType: ['input[name="warranty-type"]'],
+    serviceCare2Year: ['#servicecare-2year', 'input[name="servicecare-2year"]', '#servicecare-2-year-price'],
+    serviceCare4Year: ['#servicecare-4year', 'input[name="servicecare-4year"]', '#servicecare-4-year-price']
   };
   
   // Try site-specific mappings first
@@ -395,6 +430,32 @@ async function fillElement(element, value, fieldName) {
         );
       }
       
+      // Special handling for transmission
+      if (!option && fieldName === 'transmission') {
+        const transmissionMappings = {
+          '9g-tronic': ['automatic', '9g', 'auto', 'at'],
+          '7g-tronic': ['automatic', '7g', 'auto', 'at'],
+          '8g-tronic': ['automatic', '8g', 'auto', 'at'],
+          'manual': ['manual', 'stick', 'mt'],
+          'cvt': ['cvt', 'automatic']
+        };
+        
+        const lowerValue = value.toLowerCase();
+        for (const [key, alternatives] of Object.entries(transmissionMappings)) {
+          if (lowerValue.includes(key)) {
+            // Try to find option that matches any of the alternatives
+            for (const alt of alternatives) {
+              option = Array.from(element.options).find(opt => 
+                opt.text.toLowerCase().includes(alt) || 
+                opt.value.toLowerCase().includes(alt)
+              );
+              if (option) break;
+            }
+            if (option) break;
+          }
+        }
+      }
+      
       if (option) {
         console.log(`✅ Selected option: ${option.text} (${option.value})`);
         element.value = option.value;
@@ -428,8 +489,13 @@ async function fillElement(element, value, fieldName) {
 function formatTechnicalData(carData) {
   const parts = [];
   
+  // New order: Engine → Transmission → Power → Torque → Cubic Capacity
   if (carData.engine) {
     parts.push(`Engine: ${carData.engine}`);
+  }
+  
+  if (carData.transmission) {
+    parts.push(`Transmission: ${carData.transmission}`);
   }
   
   if (carData.horsepower) {
@@ -437,22 +503,30 @@ function formatTechnicalData(carData) {
   }
   
   if (carData.torque) {
-    parts.push(`Torque: ${carData.torque} Nm`);
+    parts.push(`Torque: ${carData.torque} NM`);
   }
   
   if (carData.displacement) {
-    parts.push(`Displacement: ${carData.displacement} cc`);
+    parts.push(`Cubic Capacity: ${carData.displacement}`);
   }
   
-  if (carData.transmission) {
-    parts.push(`Transmission: ${carData.transmission}`);
-  }
-  
-  return parts.join('\n');
+  return parts.join('\n\n');
 }
 
 // Format service package from car data
 function formatServicePackage(carData) {
+  // Check warranty type to determine service package content
+  if (carData.warrantyType === 'extended') {
+    // SilberArrows service package
+    return 'Available';
+  } else if (carData.warrantyType === 'standard' && carData.warrantyDate && carData.warrantyKmLimit) {
+    // Dealer service - show year and mileage (same as warranty)
+    const year = new Date(carData.warrantyDate).getFullYear();
+    const formattedKm = carData.warrantyKmLimit.toLocaleString();
+    return `${year} / ${formattedKm} km`;
+  }
+  
+  // Fallback to original format if no warranty info
   const parts = [];
   
   if (carData.monthlyPayment0Down) {
@@ -473,6 +547,28 @@ function formatServicePackage(carData) {
 
 // Format warranty information
 function formatWarranty(carData) {
+  // Handle warranty date and mileage formatting
+  if (carData.warrantyDate && carData.warrantyKmLimit) {
+    // Dealer warranty with date and mileage - show only year and mileage
+    const year = new Date(carData.warrantyDate).getFullYear();
+    const formattedKm = carData.warrantyKmLimit.toLocaleString(); // Format with commas
+    return `${year} / ${formattedKm} km`;
+  } else if (carData.warrantyDate) {
+    // Has date but no mileage limit - show only year
+    const year = new Date(carData.warrantyDate).getFullYear();
+    return `Warranty Until ${year}`;
+  } else if (carData.warrantyKmLimit) {
+    // Has mileage but no date
+    const formattedKm = carData.warrantyKmLimit.toLocaleString();
+    return `Warranty Until ${formattedKm} km`;
+  }
+  
+  // Check warranty type for SilberArrows warranty
+  if (carData.warrantyType === 'extended') {
+    return 'SilberArrows Warranty Available';
+  }
+  
+  // Fallback to description parsing
   if (carData.description && carData.description.includes('WARRANTY UNTIL')) {
     const match = carData.description.match(/WARRANTY UNTIL (\d{4})/);
     if (match) {
@@ -584,6 +680,38 @@ function showFillSummary(results) {
       notification.remove();
     }
   }, 5000);
+}
+
+// Handle warranty type radio button selection
+async function handleWarrantyTypeSelection(warrantyType) {
+  try {
+    let targetId = 'standard-warranty';
+    
+    // Map warranty types to radio button IDs
+    if (warrantyType === 'extended') {
+      // SilberArrows warranty -> Extended warranty
+      targetId = 'extended-warranty';
+    } else if (warrantyType === 'standard') {
+      // Dealer warranty -> Standard/Manufacturer warranty
+      targetId = 'standard-warranty';
+    } else if (warrantyType === 'none' || warrantyType.toLowerCase().includes('none')) {
+      targetId = 'none-warranty';
+    }
+    
+    const radio = document.getElementById(targetId);
+    if (radio) {
+      radio.checked = true;
+      radio.click();
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+      console.log(`✅ Selected warranty type radio: ${targetId}`);
+      // Longer delay to allow UI to reveal dependent fields
+      await new Promise(r => setTimeout(r, 500));
+    } else {
+      console.warn('⚠️ Warranty type radio not found:', targetId);
+    }
+  } catch (err) {
+    console.warn('⚠️ Failed to select warranty type:', err);
+  }
 }
 
 // Ensure warranty field is visible by selecting a radio option

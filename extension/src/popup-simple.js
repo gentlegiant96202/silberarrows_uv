@@ -1,4 +1,4 @@
-// Popup script for SilberArrows Car Filler extension
+// Simple popup script for SilberArrows Car Filler extension
 let allCars = [];
 let selectedCar = null;
 
@@ -9,20 +9,36 @@ const fillBtn = document.getElementById('fillBtn');
 const optionsBtn = document.getElementById('optionsBtn');
 const statusDiv = document.getElementById('status');
 
-// API configuration
-const API_BASE = 'http://localhost:3001'; // Updated to match current server port
+// API configuration - will be loaded from settings
+let API_BASE = 'http://localhost:3001';
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
+  await loadSettings();
   await loadCars();
   setupEventListeners();
 });
+
+// Load settings
+async function loadSettings() {
+  try {
+    const settings = await chrome.storage.sync.get(['apiUrl']);
+    if (settings.apiUrl) {
+      API_BASE = settings.apiUrl;
+      console.log('Using API URL:', API_BASE);
+    }
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  }
+}
 
 // Setup event listeners
 function setupEventListeners() {
   searchInput.addEventListener('input', handleSearch);
   fillBtn.addEventListener('click', handleFill);
-  optionsBtn.addEventListener('click', openOptions);
+  if (optionsBtn) {
+    optionsBtn.addEventListener('click', openOptions);
+  }
 }
 
 // Load cars from API
@@ -53,7 +69,7 @@ async function loadCars() {
     showStatus(`Error: ${error.message}`, 'error');
     carList.innerHTML = `
       <div class="status error">
-        Failed to load cars. Check your connection.
+        Failed to load cars. Check your connection and make sure the server is running on ${API_BASE}
       </div>
     `;
   }
@@ -146,72 +162,24 @@ async function handleFill() {
     console.log('Sending message to tab:', tab.id);
     console.log('Car data:', data.car);
     
-    try {
-      // First, ping the content script to see if it's responsive
-      let contentScriptReady = false;
-      try {
-        const pingResponse = await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
-        if (pingResponse && pingResponse.success) {
-          contentScriptReady = true;
-          console.log('Content script is already ready');
-        }
-      } catch (pingError) {
-        console.log('Content script not responding to ping:', pingError);
-      }
+    // Simple message sending without injection
+    const response2 = await chrome.tabs.sendMessage(tab.id, {
+      action: 'fillCarData',
+      carData: data.car
+    });
+    
+    console.log('Fill response:', response2);
+    
+    if (response2 && response2.success) {
+      showStatus('Car data filled successfully!', 'success');
       
-      // If content script isn't ready, try to inject it
-      if (!contentScriptReady) {
-        try {
-          // Check if scripting API is available
-          if (chrome.scripting && chrome.scripting.executeScript) {
-            await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              files: ['src/content.js']
-            });
-            console.log('Content script injected via scripting API');
-          } else {
-            // Fallback: assume content script is loaded via manifest
-            console.log('Scripting API not available, assuming content script is loaded via manifest');
-          }
-          
-          // Wait for the script to initialize
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Ping again to confirm it's ready
-          const pingResponse = await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
-          if (!pingResponse || !pingResponse.success) {
-            throw new Error('Content script failed to initialize. Please refresh the page and try again.');
-          }
-          console.log('Content script is now ready after injection');
-        } catch (injectError) {
-          console.error('Failed to inject content script:', injectError);
-          throw new Error('Could not load the extension on this page. Please refresh the page and try again.');
-        }
-      }
-      
-      // Send the fill message
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'fillCarData',
-        carData: data.car
-      });
-      
-      console.log('Fill message sent successfully:', response);
-      
-      if (!response || !response.success) {
-        throw new Error(response?.error || 'Failed to fill car data');
-      }
-      
-    } catch (messageError) {
-      console.error('Failed to communicate with page:', messageError);
-      throw messageError;
+      // Auto-close popup after success
+      setTimeout(() => {
+        window.close();
+      }, 1500);
+    } else {
+      throw new Error(response2?.error || 'Failed to fill car data');
     }
-    
-    showStatus('Car data filled successfully!', 'success');
-    
-    // Auto-close popup after success
-    setTimeout(() => {
-      window.close();
-    }, 1500);
     
   } catch (error) {
     console.error('Fill failed:', error);

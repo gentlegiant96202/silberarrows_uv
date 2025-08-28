@@ -20,8 +20,8 @@ export default function MobileHeader() {
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 flex items-center justify-center">
             <img 
-              src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" 
-              alt="Logo" 
+              src="/MAIN LOGO.png" 
+              alt="SilberArrows Logo" 
               className="w-8 h-8 object-contain"
             />
           </div>

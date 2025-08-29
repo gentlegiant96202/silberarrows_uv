@@ -117,7 +117,8 @@ export async function GET(request: NextRequest) {
       stockNumber: car.stock_number,
       year: car.model_year,
       make: 'Mercedes-Benz', // Assuming all cars are Mercedes
-      model: car.vehicle_model.replace(/^\d{4}\s+/, ''), // Remove year prefix from model
+      title: `${car.model_year || 'Unknown'} Mercedes-Benz ${(car.vehicle_model || 'Unknown Model').replace(/^\d{4}\s+/, '')}`, // Create title from year, make, model
+      model: (car.vehicle_model || 'Unknown Model').replace(/^\d{4}\s+/, ''), // Remove year prefix from model
       color: car.colour,
       interiorColor: car.interior_colour,
       chassis: car.chassis_number,
@@ -131,6 +132,7 @@ export async function GET(request: NextRequest) {
       keyEquipment: car.key_equipment,
       description: car.description,
       specification: car.regional_specification,
+      regionalSpec: car.regional_specification || 'GCC SPECIFICATION', // For Dubizzle field mapping
       ownership: car.ownership_type,
       keys: car.number_of_keys,
       fuelLevel: car.fuel_level,
@@ -144,7 +146,24 @@ export async function GET(request: NextRequest) {
       warrantyKmLimit: warrantyData.kmLimit,
       serviceCare2Year: serviceCareData.serviceCare2Year,
       serviceCare4Year: serviceCareData.serviceCare4Year,
-      images: car.car_media?.filter((media: any) => media.kind === 'photo').map((media: any) => media.url) || []
+      // Service package field for SilberArrows website
+      servicePackage: car.current_service && car.current_service.toLowerCase().includes('silberarrows') 
+        ? 'Available' 
+        : (car.current_service ? `${warrantyData.date} / ${warrantyData.kmLimit}` : ''),
+      images: car.car_media?.filter((media: any) => media.kind === 'photo').map((media: any) => media.url) || [],
+      // Dubizzle-specific fields
+      location: 'Dubai', // Default location for UAE
+      sellerType: 'Dealer', // Default seller type
+      // Format price for dubizzle (no currency symbol)
+      priceNumeric: parseInt(car.advertised_price_aed.toString().replace(/[^\d]/g, '')),
+      // Additional Dubizzle fields
+      doors: '4', // Default to 4 doors (not in DB)
+      seatingCapacity: '5', // Default to 5 seats (not in DB)
+      steeringSide: 'Left', // Default for UAE
+      targetMarket: 'GCC', // Default for regional spec
+      phoneNumber: '+971561742746', // Default phone number
+      whatsappNumber: '+971561742746', // Default WhatsApp number
+      view360: '' // 360 tour URL (empty by default)
     };
 
     return NextResponse.json({

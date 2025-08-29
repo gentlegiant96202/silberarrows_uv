@@ -9,11 +9,23 @@ const fillBtn = document.getElementById('fillBtn');
 const optionsBtn = document.getElementById('optionsBtn');
 const statusDiv = document.getElementById('status');
 
-// API configuration
-const API_BASE = 'http://localhost:3001'; // Updated to match current server port
+// Settings panel elements
+const mainPanel = document.getElementById('mainPanel');
+const settingsPanel = document.getElementById('settingsPanel');
+const backBtn = document.getElementById('backBtn');
+const apiUrlInput = document.getElementById('apiUrl');
+const autoFillCheckbox = document.getElementById('autoFillEnabled');
+const highlightCheckbox = document.getElementById('highlightFields');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const resetSettingsBtn = document.getElementById('resetSettingsBtn');
+const settingsStatusDiv = document.getElementById('settingsStatus');
+
+// API configuration - will be loaded from settings
+let API_BASE = 'http://localhost:3001'; // Default fallback
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
+  await loadSettings();
   await loadCars();
   setupEventListeners();
 });
@@ -22,7 +34,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 function setupEventListeners() {
   searchInput.addEventListener('input', handleSearch);
   fillBtn.addEventListener('click', handleFill);
-  optionsBtn.addEventListener('click', openOptions);
+  optionsBtn.addEventListener('click', showSettings);
+  backBtn.addEventListener('click', showMainPanel);
+  saveSettingsBtn.addEventListener('click', saveSettings);
+  resetSettingsBtn.addEventListener('click', resetSettings);
 }
 
 // Load cars from API
@@ -221,9 +236,112 @@ async function handleFill() {
   }
 }
 
-// Open options page
-function openOptions() {
-  chrome.runtime.openOptionsPage();
+// Load settings from storage
+async function loadSettings() {
+  try {
+    const result = await chrome.storage.sync.get(['apiUrl', 'autoFillEnabled', 'highlightFields']);
+    
+    // Update API_BASE with saved URL
+    API_BASE = result.apiUrl || 'http://localhost:3001';
+    
+    apiUrlInput.value = API_BASE;
+    autoFillCheckbox.checked = result.autoFillEnabled !== false; // Default to true
+    highlightCheckbox.checked = result.highlightFields !== false; // Default to true
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+    // Set defaults
+    API_BASE = 'http://localhost:3001';
+    apiUrlInput.value = API_BASE;
+    autoFillCheckbox.checked = true;
+    highlightCheckbox.checked = true;
+  }
+}
+
+// Show settings panel
+function showSettings() {
+  mainPanel.classList.add('hidden');
+  settingsPanel.classList.remove('hidden');
+}
+
+// Show main panel
+function showMainPanel() {
+  settingsPanel.classList.add('hidden');
+  mainPanel.classList.remove('hidden');
+}
+
+// Save settings
+async function saveSettings() {
+  try {
+    saveSettingsBtn.disabled = true;
+    showSettingsStatus('Saving settings...', 'loading');
+    
+    // Get current settings to preserve field mappings
+    const currentSettings = await chrome.storage.sync.get();
+    
+    const settings = {
+      ...currentSettings, // Preserve existing settings including field mappings
+      apiUrl: apiUrlInput.value.trim() || 'http://localhost:3001',
+      autoFillEnabled: autoFillCheckbox.checked,
+      highlightFields: highlightCheckbox.checked
+    };
+    
+    await chrome.storage.sync.set(settings);
+    
+    // Update API_BASE with new URL
+    API_BASE = settings.apiUrl;
+    
+    showSettingsStatus('Settings saved successfully!', 'success');
+    
+    // Auto-hide success message and go back to main panel
+    setTimeout(() => {
+      hideSettingsStatus();
+      showMainPanel();
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+    showSettingsStatus(`Error: ${error.message}`, 'error');
+  } finally {
+    saveSettingsBtn.disabled = false;
+  }
+}
+
+// Reset settings to default
+async function resetSettings() {
+  try {
+    resetSettingsBtn.disabled = true;
+    showSettingsStatus('Resetting settings...', 'loading');
+    
+    // Clear all stored settings first
+    await chrome.storage.sync.clear();
+    
+    // Get fresh default settings from background script (includes field mappings)
+    const response = await chrome.runtime.sendMessage({ action: 'getSettings' });
+    if (response.success) {
+      // Save the complete default settings including field mappings
+      await chrome.storage.sync.set(response.settings);
+      
+      // Update UI with the fresh settings
+      apiUrlInput.value = response.settings.apiUrl;
+      autoFillCheckbox.checked = response.settings.autoFillEnabled;
+      highlightCheckbox.checked = response.settings.highlightFields;
+      
+      // Update API_BASE
+      API_BASE = response.settings.apiUrl;
+    }
+    
+    showSettingsStatus('Settings reset to default with complete field mappings!', 'success');
+    
+    setTimeout(() => {
+      hideSettingsStatus();
+    }, 3000);
+    
+  } catch (error) {
+    console.error('Failed to reset settings:', error);
+    showSettingsStatus(`Error: ${error.message}`, 'error');
+  } finally {
+    resetSettingsBtn.disabled = false;
+  }
 }
 
 // Show status message
@@ -238,6 +356,20 @@ function showStatus(message, type = 'loading') {
 // Hide status message
 function hideStatus() {
   statusDiv.classList.add('hidden');
+}
+
+// Show settings status message
+function showSettingsStatus(message, type = 'loading') {
+  settingsStatusDiv.className = `status ${type}`;
+  settingsStatusDiv.innerHTML = type === 'loading' 
+    ? `<span class="loading-spinner"></span>${message}`
+    : message;
+  settingsStatusDiv.classList.remove('hidden');
+}
+
+// Hide settings status message
+function hideSettingsStatus() {
+  settingsStatusDiv.classList.add('hidden');
 }
 
 // Format price with commas

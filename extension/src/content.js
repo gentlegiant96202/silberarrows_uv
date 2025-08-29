@@ -12,7 +12,12 @@ let imageUploadInProgress = false;
     const response = await chrome.runtime.sendMessage({ action: 'getSettings' });
     if (response.success) {
       extensionSettings = response.settings;
-      console.log('Extension settings loaded:', extensionSettings);
+      console.log('🔧 Content: Extension settings loaded:', {
+        apiUrl: extensionSettings.apiUrl,
+        fieldMappingsKeys: Object.keys(extensionSettings.fieldMappings || {}),
+        silberarrowsMappingsCount: Object.keys(extensionSettings.fieldMappings?.['silberarrows.com'] || {}).length,
+        silberarrowsFields: Object.keys(extensionSettings.fieldMappings?.['silberarrows.com'] || {})
+      });
     }
   } catch (error) {
     console.error('Failed to load extension settings:', error);
@@ -114,6 +119,30 @@ async function handleFillCarData(carData) {
       setTimeout(() => handleImageUploads(carData.images), 2000);
     }
     
+    // Create title field if not provided by API
+    if (!fieldData.title && fieldData.year && fieldData.make && fieldData.model) {
+      fieldData.title = `${fieldData.year} ${fieldData.make} ${fieldData.model}`;
+      console.log('🔍 Created title field:', fieldData.title);
+    }
+    
+    // Create servicePackage field if not provided by API
+    if (!fieldData.servicePackage && fieldData.description) {
+      if (fieldData.description.toLowerCase().includes('silberarrows service')) {
+        fieldData.servicePackage = 'Available';
+        console.log('🔍 Created servicePackage field: Available (found SilberArrows service)');
+      } else if (fieldData.warranty && fieldData.warranty.includes('/')) {
+        // Extract year/mileage from warranty field for dealer service
+        fieldData.servicePackage = fieldData.warranty;
+        console.log('🔍 Created servicePackage field from warranty:', fieldData.warranty);
+      }
+    }
+    
+    // Create monthlyPrice field from 20% down payment data
+    if (!fieldData.monthlyPrice && carData.monthlyPayment20Down) {
+      fieldData.monthlyPrice = carData.monthlyPayment20Down;
+      console.log('🔍 Created monthlyPrice field from 20% down payment:', fieldData.monthlyPrice);
+    }
+    
     // Fill each field
     console.log('🔍 Debug - Starting to fill fields with data:', fieldData);
     console.log('🔍 Debug - Available mappings:', mappings);
@@ -148,7 +177,7 @@ async function handleFillCarData(carData) {
       const element = findElement(selectors);
       
       if (element) {
-        const success = await fillElement(element, value, fieldName);
+        const success = await fillElement(element, value, fieldName, carData);
         if (success) {
           results.filled.push({ field: fieldName, value, element: element.tagName });
           if (extensionSettings?.highlightFields) {
@@ -171,6 +200,26 @@ async function handleFillCarData(carData) {
         ...results
       }
     });
+    
+    // Retry model field if it failed (it might depend on make selection)
+    if (carData.model && !results.filled.find(f => f.field === 'model')) {
+      console.log('🔄 Retrying model field after make selection...');
+      await new Promise(r => setTimeout(r, 1500)); // Wait for make selection to complete
+      
+      const modelSelectors = mappings['model'] || [];
+      const modelElement = findElement(modelSelectors);
+      
+      if (modelElement) {
+        console.log('🔄 Attempting model field retry...');
+        const success = await fillElement(modelElement, carData.model, 'model', carData);
+        if (success) {
+          results.filled.push({ field: 'model', value: carData.model, element: modelElement.tagName });
+          console.log('✅ Model field retry successful!');
+        } else {
+          console.log('❌ Model field retry failed');
+        }
+      }
+    }
     
     // Show summary notification
     showFillSummary(results);
@@ -241,14 +290,22 @@ function getFieldMappings() {
   };
   
   // Try site-specific mappings first
-  if (settings[domain]) {
-    console.log('✅ Using site-specific mappings for:', domain);
-    return { ...settings.generic, ...settings[domain] };
+  // Handle both www.silberarrows.com and silberarrows.com
+  let domainKey = domain.replace('www.', '');
+  
+  // Handle dubizzle subdomains (dubai.dubizzle.com -> dubizzle.com)
+  if (domainKey.includes('dubizzle.com')) {
+    domainKey = 'dubizzle.com';
+  }
+  
+  if (settings[domainKey]) {
+    console.log('✅ Using site-specific mappings for:', domain, '(key:', domainKey + ')');
+    return { ...settings.generic, ...settings[domainKey] };
   }
   
   // Use generic mappings from settings or fallback
   const genericMappings = settings.generic || fallbackMappings;
-  const mappingType = domain === 'www.silberarrows.com' ? 'SilberArrows-specific' : 'generic';
+  const mappingType = domain.includes('silberarrows.com') ? 'SilberArrows-specific (fallback)' : 'generic';
   console.log(`✅ Using ${mappingType} mappings for:`, domain, genericMappings);
   return genericMappings;
 }
@@ -268,15 +325,21 @@ function findElement(selectors) {
       console.log(`🔍 Debug - Selector "${selector}":`, element ? 'FOUND' : 'NOT FOUND');
       if (element) {
         // Special case: Allow hidden textareas if CKEditor is present
-        const isCKEditorTextarea = element.tagName === 'TEXTAREA' && (
-          (window.CKEDITOR && window.CKEDITOR.instances[element.id]) ||
-          (element.id && document.querySelector(`#cke_${element.id}`))
-        ); // Alternative CKEditor detection
+        let isCKEditorTextarea = false;
+        if (element.tagName === 'TEXTAREA') {
+          try {
+            isCKEditorTextarea = (window.CKEDITOR && window.CKEDITOR.instances[element.id]) ||
+              (element.id && element.id.match(/^[a-zA-Z][\w-]*$/) && document.querySelector(`#cke_${element.id}`));
+          } catch (e) {
+            // Ignore invalid selector errors for CKEditor detection
+            isCKEditorTextarea = false;
+          }
+        }
         
-        console.log(`🔍 CKEditor check for ${element.id}:`, {
+        console.log(`🔍 CKEditor check for ${element.id || 'no-id'}:`, {
           hasCKEDITOR: !!window.CKEDITOR,
-          hasInstance: !!(window.CKEDITOR && window.CKEDITOR.instances[element.id]),
-          hasCKEDiv: !!document.querySelector(`#cke_${element.id}`),
+          hasInstance: !!(window.CKEDITOR && element.id && window.CKEDITOR.instances[element.id]),
+          hasCKEDiv: false, // Skip this check to avoid invalid selectors
           isCKEditorTextarea
         });
         
@@ -306,7 +369,7 @@ function isVisible(element) {
 }
 
 // Fill an element with value
-async function fillElement(element, value, fieldName) {
+async function fillElement(element, value, fieldName, carData = null) {
   try {
     // Check if this is a CKEditor field
     if (element.tagName === 'TEXTAREA') {
@@ -337,7 +400,8 @@ async function fillElement(element, value, fieldName) {
 
       // If CKEditor UI exists but API isn't exposed, write into the editable iframe/div first
       let wroteEditor = false;
-      if (element.id) {
+      if (element.id && element.id.match(/^[a-zA-Z][\w-]*$/)) {
+        try {
         const ckeContainer = document.querySelector(`#cke_${element.id}`);
         if (ckeContainer) {
           // Try iframe-based editor
@@ -367,6 +431,9 @@ async function fillElement(element, value, fieldName) {
               }
             }
           }
+        }
+        } catch (e) {
+          console.log(`⚠️ CKEditor container check failed for ${element.id}:`, e.message);
         }
       }
 
@@ -456,6 +523,111 @@ async function fillElement(element, value, fieldName) {
         }
       }
       
+      // Special handling for common field mappings
+      if (!option) {
+        let mappings = {};
+        
+        // Body type mappings
+        if (fieldName === 'bodyStyle') {
+          mappings = {
+            'saloon': ['sedan'],
+            'estate': ['wagon'],
+            'hatchback': ['hatchback'],
+            'coupe': ['coupe'],
+            'convertible': ['soft top convertible', 'hard top convertible'],
+            'suv': ['suv'],
+            'crossover': ['crossover'],
+            'pickup': ['pick up truck'],
+            'van': ['van'],
+            'sports car': ['sports car'],
+            'utility': ['utility truck']
+          };
+        }
+        
+        // Transmission mappings
+        if (fieldName === 'transmission') {
+          mappings = {
+            'automatic': ['automatic', 'auto'],
+            'manual': ['manual'],
+            '9g-tronic': ['automatic', 'auto'],
+            'cvt': ['cvt', 'automatic'],
+            'dsg': ['automatic', 'auto']
+          };
+        }
+        
+        // Color mappings
+        if (fieldName === 'color' || fieldName === 'interiorColor') {
+          mappings = {
+            // White variations
+            'polar white': ['white', 'polar white'],
+            'arctic white': ['white', 'arctic white'],
+            'diamond white': ['white', 'diamond white'],
+            'white - standard finish': ['white'],
+            'white': ['white'],
+            
+            // Black variations
+            'obsidian black': ['black', 'obsidian black'],
+            'jet black': ['black', 'jet black'],
+            'black - standard finish': ['black'],
+            'black': ['black'],
+            
+            // Silver/Grey variations
+            'iridium silver': ['silver', 'iridium silver'],
+            'selenite grey': ['grey', 'gray', 'selenite grey'],
+            'graphite grey': ['grey', 'gray', 'graphite grey'],
+            'silver - standard finish': ['silver'],
+            'grey - standard finish': ['grey', 'gray'],
+            'silver': ['silver'],
+            'grey': ['grey', 'gray'],
+            'gray': ['grey', 'gray'],
+            
+            // Blue variations
+            'brilliant blue': ['blue', 'brilliant blue'],
+            'cavansite blue': ['blue', 'cavansite blue'],
+            'blue - standard finish': ['blue'],
+            'blue': ['blue'],
+            
+            // Red variations
+            'jupiter red': ['red', 'jupiter red'],
+            'red - standard finish': ['red'],
+            'red': ['red'],
+            
+            // Interior specific colors
+            'leather - black': ['black'],
+            'leather - beige': ['beige', 'tan', 'brown'],
+            'leather - brown': ['brown', 'beige', 'tan'],
+            'fabric / leatherette / microfiber - black / anthra': ['black'],
+            'black/anthracite': ['black']
+          };
+        }
+        
+        // Regional spec mappings
+        if (fieldName === 'regionalSpec') {
+          mappings = {
+            'gcc specification': ['gcc', 'gulf'],
+            'american specification': ['american', 'usa', 'us'],
+            'european specification': ['european', 'euro'],
+            'japanese specification': ['japanese', 'japan']
+          };
+        }
+        
+        // Apply mappings
+        const lowerValue = value.toLowerCase();
+        for (const [key, alternatives] of Object.entries(mappings)) {
+          if (lowerValue.includes(key)) {
+            // Try to find option that matches any of the alternatives
+            for (const alt of alternatives) {
+              option = Array.from(element.options).find(opt => 
+                opt.text.toLowerCase().includes(alt) || 
+                opt.value.toLowerCase().includes(alt)
+              );
+              if (option) break;
+            }
+            if (option) break;
+          }
+        }
+      }
+      
       if (option) {
         console.log(`✅ Selected option: ${option.text} (${option.value})`);
         element.value = option.value;
@@ -465,6 +637,179 @@ async function fillElement(element, value, fieldName) {
         console.warn(`❌ No matching option found for ${fieldName}: "${value}"`);
         return false;
       }
+    } else if (element.role === 'combobox' && element.getAttribute('aria-autocomplete') === 'list') {
+      // Handle MUI Autocomplete fields
+      console.log(`🔍 Handling MUI Autocomplete for ${fieldName}`);
+      
+      // Focus the input first
+      element.focus();
+      
+      // Clear and set value
+      element.value = '';
+      element.value = value;
+      
+      // Trigger multiple events to ensure dropdown opens
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+      element.dispatchEvent(new Event('focus', { bubbles: true }));
+      element.dispatchEvent(new Event('click', { bubbles: true }));
+      element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+      
+      // Wait for dropdown to appear, then try to select option
+      setTimeout(() => {
+        // Look for dropdown options with multiple selectors
+        const dropdownSelectors = [
+          '.MuiAutocomplete-popper:not([style*="display: none"])',
+          '.MuiPopper-root:not([style*="display: none"])',
+          '.MuiAutocomplete-listbox',
+          '[role="listbox"]',
+          '.MuiPaper-root[role="presentation"]'
+        ];
+        
+        let dropdown = null;
+        for (const selector of dropdownSelectors) {
+          dropdown = document.querySelector(selector);
+          if (dropdown) break;
+        }
+        
+        console.log(`🔍 Dropdown search for ${fieldName}:`, {
+          dropdown: !!dropdown,
+          allPoppers: document.querySelectorAll('.MuiAutocomplete-popper, .MuiPopper-root').length,
+          allListboxes: document.querySelectorAll('[role="listbox"], .MuiAutocomplete-listbox').length
+        });
+        if (dropdown) {
+          const options = dropdown.querySelectorAll('[role="option"], .MuiAutocomplete-option');
+          console.log(`🔍 Found ${options.length} autocomplete options`);
+          
+          // Try to find matching option with flexible matching
+          let matchedOption = null;
+          let searchValue = value.toLowerCase();
+          
+          // Special handling for Make field on Dubizzle - it expects Brand only
+          if (fieldName === 'make') {
+            console.log(`🔍 DEBUG - Make field: Using brand only: "${searchValue}"`);
+            // For make field, just use the brand name (Mercedes-Benz, BMW, etc.)
+            // The model will be filled in the separate model field
+          }
+          
+          // Log all available options for debugging
+          console.log(`🔍 Available options for ${fieldName}:`, 
+            Array.from(options).map(opt => opt.textContent).slice(0, 10)
+          );
+          
+          // For make field, prioritize exact brand matches
+          if (fieldName === 'make') {
+            // First, look for exact brand match (e.g., "Mercedes-Benz" exactly)
+            for (const option of options) {
+              const optionText = option.textContent.toLowerCase().trim();
+              if (optionText === searchValue) {
+                matchedOption = option;
+                console.log(`✅ Matched "${searchValue}" with option "${optionText}" (exact match)`);
+                break;
+              }
+            }
+            
+            // Second, look for brand-only option (no model suffixes)
+            if (!matchedOption) {
+              // Try to find options that are just the brand without model codes
+              const brandOnlyOptions = [];
+              const modelSuffixes = ['glc', 'gle', 'gls', 'gla', 'glb', 'eqc', 'eqs', 'eqe', 'eqa', 'eqb', 'a class', 'c class', 'e class', 's class', 'g class', 'x class', 'v class', 'amg', 'maybach'];
+              
+              for (const option of options) {
+                const optionText = option.textContent.toLowerCase();
+                if (optionText.includes(searchValue)) {
+                  // Check if this option contains model suffixes
+                  const hasModelSuffix = modelSuffixes.some(suffix => optionText.includes(suffix));
+                  if (!hasModelSuffix) {
+                    brandOnlyOptions.push(option);
+                  }
+                }
+              }
+              
+              if (brandOnlyOptions.length > 0) {
+                // Pick the shortest brand-only option
+                matchedOption = brandOnlyOptions.reduce((shortest, current) => 
+                  current.textContent.length < shortest.textContent.length ? current : shortest
+                );
+                console.log(`✅ Matched "${searchValue}" with option "${matchedOption.textContent}" (brand-only option)`);
+              }
+            }
+            
+            // Third fallback: shortest option overall
+            if (!matchedOption) {
+              let shortestOption = null;
+              let shortestLength = 999;
+              
+              for (const option of options) {
+                const optionText = option.textContent.toLowerCase();
+                if (optionText.includes(searchValue) && optionText.length < shortestLength) {
+                  shortestOption = option;
+                  shortestLength = optionText.length;
+                }
+              }
+              
+              if (shortestOption) {
+                matchedOption = shortestOption;
+                console.log(`✅ Matched "${searchValue}" with option "${shortestOption.textContent}" (shortest fallback)`);
+              }
+            }
+            
+            // If no exact match, fall back to any Mercedes option
+            if (!matchedOption) {
+              for (const option of options) {
+                const optionText = option.textContent.toLowerCase();
+                if (optionText.includes('mercedes')) {
+                  matchedOption = option;
+                  console.log(`✅ Matched "${searchValue}" with option "${optionText}" (fallback)`);
+                  break;
+                }
+              }
+            }
+          } else {
+            // For other fields, use the original matching logic
+            for (const option of options) {
+              const optionText = option.textContent.toLowerCase();
+              
+              // Try different matching strategies
+              if (
+                optionText === searchValue || // Exact match
+                optionText.includes(searchValue) || // Option contains search
+                // For model field, be more precise to avoid GLE/GLC confusion
+                (fieldName === 'model' && searchValue.includes('gle') && optionText.includes('gle') && !optionText.includes('glc')) ||
+                (fieldName === 'model' && searchValue.includes('glc') && optionText.includes('glc') && !optionText.includes('gle')) ||
+                // For non-model fields, allow broader matching
+                (fieldName !== 'model' && searchValue.includes(optionText)) || // Search contains option
+                // Try matching key words (for non-model fields)
+                (fieldName !== 'model' && searchValue.split(' ').some(word => word.length > 2 && optionText.includes(word))) ||
+                (fieldName !== 'model' && optionText.split(' ').some(word => word.length > 2 && searchValue.includes(word)))
+              ) {
+                matchedOption = option;
+                console.log(`✅ Matched "${searchValue}" with option "${optionText}" (${fieldName} field)`);
+                break;
+              }
+            }
+          }
+          
+          if (matchedOption) {
+            console.log(`✅ Clicking autocomplete option: ${matchedOption.textContent}`);
+            matchedOption.click();
+          } else {
+            console.warn(`❌ No matching autocomplete option found for: ${value}`);
+            // Fallback: press Escape to close dropdown and keep typed value
+            element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+          }
+        } else {
+          console.warn(`❌ Autocomplete dropdown not found for ${fieldName}`);
+          
+          // Special case: Model field might need Make to be selected first
+          if (fieldName === 'model') {
+            console.log('🔄 Model field failed, will retry after Make selection completes...');
+            // We'll handle this with a delayed retry in the main flow
+          }
+        }
+      }, 800);
+      
+      return true;
     } else {
       // Handle input/textarea elements
       element.value = '';
@@ -748,10 +1093,25 @@ async function handleImageUploads(imageUrls) {
   imageUploadInProgress = true;
   
   try {
-    // Find the file input for photos
-    const fileInput = document.querySelector('input[name="c-photos[]"]');
+    // Find the file input for photos - try multiple selectors
+    const selectors = [
+      'input[name="c-photos[]"]', // SilberArrows
+      'input[type="file"]', // Generic file input
+      'input[name="images"]', // Dubizzle images field
+      'input[type="file"][accept*="image"]' // File input that accepts images
+    ];
+    
+    let fileInput = null;
+    for (const selector of selectors) {
+      fileInput = document.querySelector(selector);
+      if (fileInput) {
+        console.log(`✅ Found photo upload input with selector: ${selector}`);
+        break;
+      }
+    }
+    
     if (!fileInput) {
-      console.warn('❌ Photo upload input not found');
+      console.warn('❌ Photo upload input not found. Tried selectors:', selectors);
       return;
     }
 
@@ -783,25 +1143,7 @@ async function handleImageUploads(imageUrls) {
         fileInput.dispatchEvent(new Event('input', { bubbles: true }));
         fileInput.dispatchEvent(new Event('change', { bubbles: true }));
         console.log(`✅ Queued all ${dtAll.files.length} images in a single change`);
-
-        // Offer to submit the form to persist uploads
-        const form = fileInput.closest('form');
-        if (form) {
-          const shouldSubmit = confirm('All images are queued. Submit the form now to upload and save them?');
-          if (shouldSubmit) {
-            // Try to click an explicit Save button if present, else submit form
-            const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button.save, .button-primary');
-            if (submitBtn) {
-              submitBtn.click();
-              console.log('📝 Clicked submit button to save form and upload images');
-            } else {
-              form.submit();
-              console.log('📝 Submitted form to save and upload images');
-            }
-          } else {
-            console.log('ℹ️ User chose not to auto-submit form. Images will save on manual submit.');
-          }
-        }
+        console.log('ℹ️ Images are now queued. You can manually submit the form when ready.');
         return;
       }
     } catch (e) {

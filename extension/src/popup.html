@@ -196,6 +196,68 @@
     .hidden {
       display: none;
     }
+    
+    /* Settings Panel Styles */
+    .settings-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      padding: 20px;
+      z-index: 100;
+    }
+    
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #444;
+    }
+    
+    .settings-header h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #e5e5e5;
+    }
+    
+    .btn-back {
+      background: #444;
+      color: #ccc;
+      border: 1px solid #555;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-back:hover {
+      background: #555;
+      color: white;
+    }
+    
+    .help-text {
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+    
+    .form-group label input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+      margin-bottom: 0;
+    }
+    
+    .form-group label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -205,27 +267,63 @@
   </div>
   
   <div class="content">
-    <div class="form-group">
-      <label for="search">Search Cars</label>
-      <input type="text" id="search" class="search-input" placeholder="Search by model, year, or stock number...">
-    </div>
-    
-    <div class="form-group">
-      <label>Select Car</label>
-      <div id="carList" class="car-select">
-        <div class="status loading">
-          <span class="loading-spinner"></span>
-          Loading cars...
+    <!-- Main Panel -->
+    <div id="mainPanel">
+      <div class="form-group">
+        <label for="search">Search Cars</label>
+        <input type="text" id="search" class="search-input" placeholder="Search by model, year, or stock number...">
+      </div>
+      
+      <div class="form-group">
+        <label>Select Car</label>
+        <div id="carList" class="car-select">
+          <div class="status loading">
+            <span class="loading-spinner"></span>
+            Loading cars...
+          </div>
         </div>
       </div>
+      
+      <div class="buttons">
+        <button id="fillBtn" class="btn-primary" disabled>Fill This Page</button>
+        <button id="optionsBtn" class="btn-secondary">Settings</button>
+      </div>
+      
+      <div id="status" class="status hidden"></div>
     </div>
-    
-    <div class="buttons">
-      <button id="fillBtn" class="btn-primary" disabled>Fill This Page</button>
-      <button id="optionsBtn" class="btn-secondary">Settings</button>
+
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="settings-panel hidden">
+      <div class="settings-header">
+        <h3>Extension Settings</h3>
+        <button id="backBtn" class="btn-back">← Back</button>
+      </div>
+      
+      <div class="form-group">
+        <label for="apiUrl">API Server URL</label>
+        <input type="text" id="apiUrl" placeholder="http://localhost:3001" value="">
+        <div class="help-text">Change this to your production server URL when deployed</div>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="autoFillEnabled"> Auto-fill enabled
+        </label>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="highlightFields"> Highlight filled fields
+        </label>
+      </div>
+      
+      <div class="buttons">
+        <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+        <button id="resetSettingsBtn" class="btn-secondary">Reset to Default</button>
+      </div>
+      
+      <div id="settingsStatus" class="status hidden"></div>
     </div>
-    
-    <div id="status" class="status hidden"></div>
   </div>
   
   <script src="popup.js"></script>

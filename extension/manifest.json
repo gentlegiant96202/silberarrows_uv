@@ -1,19 +1,22 @@
 {
   "manifest_version": 3,
-  "name": "SilberArrows Car Filler (Test)",
-  "version": "1.0.1",
+  "name": "SilberArrows Car Filler",
+  "version": "1.0.2",
   "description": "Auto-fill car listing forms with data from SilberArrows inventory",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting",
+    "contextMenus"
   ],
   "host_permissions": [
+    "http://localhost:3000/*",
     "http://localhost:3001/*",
     "https://*.silberarrows.com/*",
-    "<all_urls>"
+    "https://*.dubizzle.com/*"
   ],
   "background": {
-    "service_worker": "src/background-simple.js"
+    "service_worker": "src/background.js"
   },
   "content_scripts": [
     {
@@ -24,7 +27,20 @@
     }
   ],
   "action": {
-    "default_popup": "src/popup-simple.html",
-    "default_title": "Fill Car Data"
+    "default_popup": "src/popup.html",
+    "default_title": "Fill Car Data",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "options_page": "options/options.html",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   }
 }

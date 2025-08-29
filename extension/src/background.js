@@ -48,13 +48,29 @@ async function handleGetSettings(sendResponse) {
     ]);
     
     // Ensure defaults are set
+    const defaultFieldMappings = getDefaultFieldMappings();
     const defaultSettings = {
-      apiUrl: 'http://localhost:3001',
-      autoFillEnabled: true,
-      highlightFields: true,
-      fieldMappings: getDefaultFieldMappings(),
-      ...settings
+      apiUrl: settings.apiUrl || 'http://localhost:3001',
+      autoFillEnabled: settings.autoFillEnabled !== false, // Default to true
+      highlightFields: settings.highlightFields !== false, // Default to true
+      fieldMappings: settings.fieldMappings ? 
+        // Merge stored mappings with defaults to ensure completeness
+        {
+          ...defaultFieldMappings,
+          ...settings.fieldMappings,
+          // Ensure silberarrows.com mappings are complete
+          'silberarrows.com': {
+            ...defaultFieldMappings['silberarrows.com'],
+            ...(settings.fieldMappings['silberarrows.com'] || {})
+          }
+        } : defaultFieldMappings
     };
+    
+    console.log('🔧 Background: Sending settings with field mappings:', {
+      apiUrl: defaultSettings.apiUrl,
+      fieldMappingsKeys: Object.keys(defaultSettings.fieldMappings),
+      silberarrowsMappingsCount: Object.keys(defaultSettings.fieldMappings['silberarrows.com'] || {}).length
+    });
     
     sendResponse({ success: true, settings: defaultSettings });
   } catch (error) {
@@ -145,11 +161,31 @@ function getDefaultFieldMappings() {
     },
     
     'dubizzle.com': {
-      make: ['select[data-testid="make-select"]'],
-      model: ['select[data-testid="model-select"]'],
-      year: ['select[data-testid="year-select"]'],
-      price: ['input[data-testid="price-input"]'],
-      mileage: ['input[data-testid="mileage-input"]']
+      // Updated field mappings based on comprehensive analysis
+      title: ['#\\:r0\\:', 'textarea[name="title"]'], // Title textarea
+      make: ['#category'], // MUI Autocomplete for make/category
+      model: ['#motors_trim'], // MUI Autocomplete for model/trim
+      year: ['input[name="year"]'], // Regular input field
+      price: ['#\\:r3\\:', 'input[name="price"]'], // Price field with dynamic ID
+      mileage: ['#\\:r5\\:', 'input[name="kilometers"]'], // Kilometers field with dynamic ID
+      color: ['input[name="exterior_color"]'], // Regular input field
+      interiorColor: ['input[name="interior_color"]'], // Regular input field
+      transmission: ['input[name="transmission_type"]'], // Regular input field
+      fuelType: ['input[name="fuel_type"]'], // Regular input field
+      bodyStyle: ['input[name="body_type"]'], // Regular input field
+      regionalSpec: ['input[name="regional_specs"]'], // Regular input field
+      description: ['#\\:r4\\:', 'textarea[name="description"]'], // Description textarea with dynamic ID
+      // Additional Dubizzle fields
+      warranty: ['input[name="warranty"]'], // Regular input field
+      doors: ['input[name="doors"]'], // Regular input field
+      seatingCapacity: ['input[name="seating_capacity"]'], // Regular input field
+      horsepower: ['input[name="horsepower"]'], // Regular input field
+      steeringSide: ['input[name="steering_side"]'], // Regular input field
+      targetMarket: ['input[name="target_market"]'], // Regular input field
+      phoneNumber: ['input[name="phone_number"]'], // Regular input field
+      whatsappNumber: ['input[name="whatsapp_number"]'], // Regular input field
+      view360: ['#\\:r1\\:', 'input[name="view360"]'], // 360 Tour URL field
+      images: ['input[type="file"]'] // File upload field
     },
     
     'autotrader.ae': {

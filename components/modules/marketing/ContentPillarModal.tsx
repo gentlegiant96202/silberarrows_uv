@@ -1016,8 +1016,11 @@ ${fontFaceCSS}
           .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #555555; line-height: 0.8; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); margin-bottom: 2px; font-style: normal; padding: 0 80px; }
           .subtitle { font-size: 45px; color: #555555; margin-bottom: 8px; font-weight: 700; text-shadow: none; font-style: normal; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
-          .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #555555; }
-          .contact i { color: #555555; font-size: 26px; }
+          .button-row { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; gap: 16px; }
+          .contact { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 20px 24px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #555555; }
+          .contact i { color: #555555; font-size: 22px; }
+          .more-details { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 20px 24px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #555555; }
+          .more-details i { color: #555555; font-size: 22px; }
           
           /* Update ALL font families for Resonate - but preserve icons */
           *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
@@ -1211,7 +1214,7 @@ ${fontFaceCSS}
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
           .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
-          .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+          .contact { position: fixed; left: 40px; right: 40px; bottom: 120px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
           .contact i { color: #ffffff; font-size: 26px; }
           
           /* Tech sections styling */
@@ -1328,11 +1331,8 @@ ${fontFaceCSS}
             margin-bottom: 24px;
           }
           
-          .button-row { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; gap: 16px; }
-          .contact { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 20px 24px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
-          .contact i { color: #ffffff; font-size: 22px; }
-          .more-details { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 20px 24px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #ffffff; }
-          .more-details i { color: #ffffff; font-size: 22px; }
+          .contact { position: fixed; left: 40px; right: 40px; bottom: 120px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+          .contact i { color: #ffffff; font-size: 26px; }
         </style>
 
         <div class="content-card">
@@ -1390,10 +1390,7 @@ ${fontFaceCSS}
               ` : ''}
             </div>
             
-            <div class="button-row">
-              <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp</div>
-              <div class="more-details"><i class="fas fa-arrow-right"></i> More Details</div>
-            </div>
+            <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
           </div>
         </div>
         </body>
@@ -1699,39 +1696,39 @@ ${fontFaceCSS}
             </div>
               
             <!-- Car Specifications Grid - All 6 cards in one unified grid -->
-            <div class="car-specs-grid">
-              <div class="detail-card">
-                <div class="detail-header">
-                  <i class="fas fa-tachometer-alt"></i>
-                  <span class="detail-title">Mileage</span>
+              <div class="car-specs-grid">
+                <div class="detail-card">
+                  <div class="detail-header">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span class="detail-title">Mileage</span>
+            </div>
+                  <div class="detail-content">${formData.car_mileage || '25,000'} km</div>
+          </div>
+                
+                <div class="detail-card">
+                  <div class="detail-header">
+                    <i class="fas fa-bolt"></i>
+                    <span class="detail-title">Horsepower</span>
+                  </div>
+                  <div class="detail-content">${formData.car_horsepower || '300'} HP</div>
                 </div>
-                <div class="detail-content">${formData.car_mileage || '25,000'} km</div>
-              </div>
-              
-              <div class="detail-card">
-                <div class="detail-header">
-                  <i class="fas fa-bolt"></i>
-                  <span class="detail-title">Horsepower</span>
+                
+                <div class="detail-card">
+                  <div class="detail-header">
+                    <i class="fas fa-paint-brush"></i>
+                    <span class="detail-title">Exterior Color</span>
+                  </div>
+                  <div class="detail-content">${formData.car_exterior_color || 'Black'}</div>
                 </div>
-                <div class="detail-content">${formData.car_horsepower || '300'} HP</div>
-              </div>
-              
-              <div class="detail-card">
-                <div class="detail-header">
-                  <i class="fas fa-paint-brush"></i>
-                  <span class="detail-title">Exterior Color</span>
-                </div>
-                <div class="detail-content">${formData.car_exterior_color || 'Black'}</div>
-              </div>
-              
-              <div class="detail-card">
-                <div class="detail-header">
-                  <i class="fas fa-car-side"></i>
-                  <span class="detail-title">Interior Color</span>
-                </div>
-                <div class="detail-content">${formData.car_interior_color || 'Black'}</div>
-              </div>
-              
+                
+                <div class="detail-card">
+                  <div class="detail-header">
+                    <i class="fas fa-car-side"></i>
+                    <span class="detail-title">Interior Color</span>
+                  </div>
+                  <div class="detail-content">${formData.car_interior_color || 'Black'}</div>
+            </div>
+            
               <div class="detail-card">
                 <div class="detail-header">
                   <i class="fas fa-cogs"></i>
@@ -1846,10 +1843,7 @@ ${fontFaceCSS}
               return '';
             })()}
             
-            <div class="button-row">
-              <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp</div>
-              <div class="more-details"><i class="fas fa-arrow-right"></i> More Details</div>
-            </div>
+            <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
           </div>
         </div>
         </body>
@@ -1880,7 +1874,7 @@ ${fontFaceCSS}
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
           .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
-          .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+          .contact { position: fixed; left: 40px; right: 40px; bottom: 120px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
           .contact i { color: #ffffff; font-size: 26px; }
           
           /* Tech sections styling */
@@ -2163,10 +2157,7 @@ ${fontFaceCSS}
               ` : ''}
             </div>
             
-            <div class="button-row">
-              <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp</div>
-              <div class="more-details"><i class="fas fa-arrow-right"></i> More Details</div>
-            </div>
+            <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
           </div>
         </div>
         </body>

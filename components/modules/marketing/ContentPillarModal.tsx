@@ -687,9 +687,9 @@ ${fontFaceCSS}
           .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
           .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
-          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-          .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
+          .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
           
           .content-container {
@@ -804,9 +804,9 @@ ${fontFaceCSS}
           .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
           .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
-          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-          .description { font-size: 32px; color: #f1f5f9; line-height: 2.1; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
+          .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
           
           .tech-grid { 
@@ -1027,6 +1027,7 @@ ${fontFaceCSS}
           .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
           .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
           .contact { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          .more-details { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
           h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
           p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
           
@@ -1206,9 +1207,9 @@ ${fontFaceCSS}
           .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
           .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
-          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-          .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
+          .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
           .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
           .contact i { color: #ffffff; font-size: 26px; }
@@ -1326,6 +1327,12 @@ ${fontFaceCSS}
           .content-container {
             margin-bottom: 24px;
           }
+          
+          .button-row { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; gap: 16px; }
+          .contact { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 20px 24px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+          .contact i { color: #ffffff; font-size: 22px; }
+          .more-details { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 20px 24px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #ffffff; }
+          .more-details i { color: #ffffff; font-size: 22px; }
         </style>
 
         <div class="content-card">
@@ -1383,7 +1390,10 @@ ${fontFaceCSS}
               ` : ''}
             </div>
             
-            <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
+            <div class="button-row">
+              <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp</div>
+              <div class="more-details"><i class="fas fa-arrow-right"></i> More Details</div>
+            </div>
           </div>
         </div>
         </body>
@@ -1464,6 +1474,7 @@ ${fontFaceCSS}
           .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
           .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
           .contact { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          .more-details { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
           h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
           p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
           
@@ -1835,7 +1846,10 @@ ${fontFaceCSS}
               return '';
             })()}
             
-            <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
+            <div class="button-row">
+              <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp</div>
+              <div class="more-details"><i class="fas fa-arrow-right"></i> More Details</div>
+            </div>
           </div>
         </div>
         </body>
@@ -1862,9 +1876,9 @@ ${fontFaceCSS}
           .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
           .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
-          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-          .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
+          .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
           .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
           .contact i { color: #ffffff; font-size: 26px; }
@@ -2149,7 +2163,10 @@ ${fontFaceCSS}
               ` : ''}
             </div>
             
-            <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
+            <div class="button-row">
+              <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp</div>
+              <div class="more-details"><i class="fas fa-arrow-right"></i> More Details</div>
+            </div>
           </div>
         </div>
         </body>

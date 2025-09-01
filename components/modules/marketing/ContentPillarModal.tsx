@@ -806,7 +806,7 @@ ${fontFaceCSS}
           .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
           .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-          .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
+          .description { font-size: 32px; color: #f1f5f9; line-height: 2.1; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
           
           .tech-grid { 

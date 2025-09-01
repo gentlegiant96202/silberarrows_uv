@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
         interior_colour,
         chassis_number,
         advertised_price_aed,
+        monthly_20_down_aed,
+        monthly_0_down_aed,
         current_mileage_km,
         engine,
         transmission,

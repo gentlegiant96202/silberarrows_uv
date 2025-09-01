@@ -7,6 +7,38 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Black.otf') format('opentype');
+      font-weight: 900;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Bold.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Medium.otf') format('opentype');
+      font-weight: 500;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Light.otf') format('opentype');
+      font-weight: 300;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+    }
+  </style>
+  <style>
     * {
       margin: 0;
       padding: 0;
@@ -14,7 +46,7 @@
     }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Resonate', 'Inter', sans-serif;
       background: linear-gradient(135deg, #065f46, #10b981);
       color: #ffffff;
       height: 100vh;
@@ -83,12 +115,12 @@
       margin-bottom: 24px;
       text-transform: uppercase;
       letter-spacing: 1px;
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       border: 2px solid rgba(255, 255, 255, 0.2);
     }
 
     .main-title {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       font-size: 4rem;
       font-weight: 700;
       line-height: 1.1;
@@ -141,7 +173,7 @@
     }
 
     .bts-title {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       font-size: 1.3rem;
       font-weight: 600;
       margin-bottom: 8px;
@@ -169,7 +201,7 @@
       justify-content: center;
       gap: 12px;
       margin: 0 auto 40px;
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       text-transform: uppercase;
       letter-spacing: 1px;
       box-shadow: 0 8px 25px rgba(52, 211, 153, 0.3);
@@ -182,7 +214,7 @@
     }
 
     .brand-logo {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       font-size: 2rem;
       font-weight: 700;
       color: #ffffff;
@@ -206,6 +238,20 @@
     .contact-info i {
       color: #34d399;
     }
+    
+    /* Update ALL font families for Resonate - but preserve icons */
+    *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+    i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+    .wednesday-badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+    .main-title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+    .bts-title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+    .peek-behind { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+    .brand-logo { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+    .description { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+    .bts-subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+    .contact-info { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
+    p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
   </style>
 </head>
 <body>

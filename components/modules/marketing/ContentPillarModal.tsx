@@ -22,6 +22,7 @@ interface ContentPillarItem {
   difficulty?: string;
   tools_needed?: string;
   warning?: string;
+  titleFontSize?: number; // Font size for the title in Template A
 }
 
 // File handling types
@@ -44,6 +45,8 @@ interface InventoryCar {
   interior_colour: string | null;
   chassis_number: string;
   advertised_price_aed: number;
+  monthly_20_down_aed: number | null;
+  monthly_0_down_aed: number | null;
   current_mileage_km: number | null;
   engine: string | null;
   transmission: string | null;
@@ -118,7 +121,7 @@ export default function ContentPillarModal({
   const [selectedFiles, setSelectedFiles] = useState<FileWithThumbnail[]>([]);
   const [existingMedia, setExistingMedia] = useState<any[]>(editingItem?.media_files || []);
   const [generatingTemplate, setGeneratingTemplate] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<'A' | 'B'>('A');
+
   const [inventoryCars, setInventoryCars] = useState<InventoryCar[]>([]);
   const [selectedCarId, setSelectedCarId] = useState<string>('');
   const [loadingCars, setLoadingCars] = useState(false);
@@ -126,7 +129,8 @@ export default function ContentPillarModal({
     title: editingItem?.title || aiGeneratedContent?.title || '',
     description: editingItem?.description || aiGeneratedContent?.description || '',
     content_type: editingItem?.content_type || aiGeneratedContent?.content_type || 'image' as const,
-    badgeText: editingItem?.badge_text || aiGeneratedContent?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase()),
+    titleFontSize: editingItem?.titleFontSize || 68, // Default font size for title
+              badgeText: editingItem?.badge_text || aiGeneratedContent?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey === 'wednesday' ? 'HIGHLIGHT OF THE DAY' : dayKey.toUpperCase()),
     subtitle: editingItem?.subtitle || aiGeneratedContent?.subtitle || (dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
     myth: editingItem?.myth ?? aiGeneratedContent?.myth ?? '',
     fact: editingItem?.fact ?? aiGeneratedContent?.fact ?? '',
@@ -153,6 +157,8 @@ export default function ContentPillarModal({
     car_color: '',
     car_fuel_type: '',
     car_price: '',
+    monthly_0_down_aed: null as number | null,
+    monthly_20_down_aed: null as number | null,
     feature_1: '',
     feature_2: '',
     feature_3: '',
@@ -170,7 +176,8 @@ export default function ContentPillarModal({
       title: editingItem?.title || aiGeneratedContent?.title || '',
       description: editingItem?.description || aiGeneratedContent?.description || '',
       content_type: editingItem?.content_type || aiGeneratedContent?.content_type || 'image' as const,
-      badgeText: editingItem?.badge_text || aiGeneratedContent?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey.toUpperCase()),
+      titleFontSize: editingItem?.titleFontSize || 68, // Default font size for title
+                badgeText: editingItem?.badge_text || aiGeneratedContent?.badge_text || (dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : dayKey === 'wednesday' ? 'HIGHLIGHT OF THE DAY' : dayKey.toUpperCase()),
       subtitle: editingItem?.subtitle || aiGeneratedContent?.subtitle || (dayKey === 'monday' ? 'Independent Mercedes Service' : 'Premium Selection'),
       myth: editingItem?.myth ?? aiGeneratedContent?.myth ?? '',
       fact: editingItem?.fact ?? aiGeneratedContent?.fact ?? '',
@@ -197,6 +204,8 @@ export default function ContentPillarModal({
       car_color: '',
       car_fuel_type: '',
       car_price: '',
+      monthly_0_down_aed: null,
+      monthly_20_down_aed: null,
       feature_1: '',
       feature_2: '',
       feature_3: '',
@@ -252,7 +261,9 @@ export default function ContentPillarModal({
         car_interior_color: selectedCar.interior_colour || 'Black',
         car_engine: selectedCar.engine || '3.0L V6 Turbo',
         car_transmission: selectedCar.transmission || '9G-TRONIC Automatic',
-        car_price: `AED ${selectedCar.advertised_price_aed.toLocaleString()}`,
+        monthly_20_down_aed: selectedCar.monthly_20_down_aed,
+        monthly_0_down_aed: selectedCar.monthly_0_down_aed,
+        car_price: `<svg height="0.7em" viewBox="0 0 344.84 299.91" style="display: inline-block; vertical-align: baseline; margin-right: 6px; margin-bottom: -0.02em;" xmlns="http://www.w3.org/2000/svg"><path fill="#555555" d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg>${selectedCar.advertised_price_aed.toLocaleString()}`,
         key_equipment: selectedCar.key_equipment || 'Premium Interior Package, Advanced Driver Assistance, Panoramic Sunroof, AMG Styling Package, Leather Seats, Navigation System, Bluetooth Connectivity, Cruise Control, Parking Sensors, Automatic Climate Control, Keyless Entry, Power Windows, Electric Mirrors, Heated Seats, Premium Sound System'
       }));
 
@@ -359,7 +370,9 @@ export default function ContentPillarModal({
 
       for (const file of files) {
         try {
+          console.log('🎬 Generating thumbnail for:', file.name, 'type:', file.type);
           const thumbnail = await generateThumbnail(file);
+          console.log('✅ Thumbnail generated for:', file.name, 'thumbnail length:', thumbnail.length);
           filesWithThumbnails.push({
             file,
             thumbnail,
@@ -368,7 +381,7 @@ export default function ContentPillarModal({
             uploaded: false
           });
         } catch (error) {
-          console.error('Error generating thumbnail:', error);
+          console.error('❌ Error generating thumbnail for:', file.name, error);
           filesWithThumbnails.push({
             file,
             thumbnail: '',
@@ -456,6 +469,16 @@ export default function ContentPillarModal({
         // Generate HTML for this template
         const htmlContent = generateLivePreviewHTML(template);
         console.log(`📄 Generated HTML for Template ${template}, length:`, htmlContent.length);
+        
+        // Debug: Check if fonts are properly included
+        if (htmlContent.includes('/Fonts/Resonate') && htmlContent.includes('.woff2')) {
+          console.log('✅ Using WOFF2 Resonate fonts');
+        } else if (htmlContent.includes('/Fonts/Resonate')) {
+          console.log('⚠️ Using OTF Resonate fonts (may not work)');
+        } else {
+          console.log('❌ No Resonate fonts found in HTML!');
+        }
+        console.log('🔍 Font URL sample:', htmlContent.substring(htmlContent.indexOf('@font-face'), htmlContent.indexOf('@font-face') + 200));
 
       const response = await fetch('/api/generate-content-pillar-image', {
         method: 'POST',
@@ -467,12 +490,20 @@ export default function ContentPillarModal({
           dayOfWeek: dayKey
         })
       });
+      
+      console.log('📡 Sent HTML-based request to API with dayOfWeek:', dayKey);
 
       if (!response.ok) {
           throw new Error(`Failed to generate Template ${template} image`);
       }
 
       const result = await response.json();
+      console.log('📨 API Response:', { 
+        success: result.success, 
+        method: result.method || 'unknown',
+        hasImageBase64: !!result.imageBase64,
+        hasImage: !!result.image
+      });
       
       if (!result.success) {
           throw new Error(result.error || `Failed to generate Template ${template}`);
@@ -480,7 +511,7 @@ export default function ContentPillarModal({
         
         generatedImages.push({
           template,
-          imageBase64: result.imageBase64
+          imageBase64: result.imageBase64 || result.image // Handle both PDFShift (image) and local renderer (imageBase64)
         });
         
         console.log(`✅ Template ${template} image generated successfully`);
@@ -543,12 +574,94 @@ export default function ContentPillarModal({
   const generateLivePreviewHTML = (templateType: 'A' | 'B' = 'A') => {
     // Filter out generated template images from preview (only use uploaded images)
     const uploadedFiles = selectedFiles.filter(file => !file.file.name.includes('template_'));
+    
+    // Get the first image from existing media (uploaded files from database)
+    const existingImageFiles = existingMedia.filter(media => {
+      if (typeof media === 'string') {
+        return media.match(/\.(jpe?g|png|webp|gif)$/i);
+      }
+      return media.type?.startsWith('image/') || media.name?.match(/\.(jpe?g|png|webp|gif)$/i) || media.url?.match(/\.(jpe?g|png|webp|gif)$/i);
+    });
+    
+    console.log('🖼️ Preview image selection:', {
+      uploadedFilesCount: uploadedFiles.length,
+      uploadedFilesThumbnails: uploadedFiles.map(f => ({ name: f.file.name, hasThumbnail: !!f.thumbnail })),
+      existingMediaCount: existingMedia.length,
+      existingImageFilesCount: existingImageFiles.length,
+      existingMediaUrls: existingMedia.map(m => typeof m === 'string' ? m : m.url),
+      existingImageUrls: existingImageFiles.map(m => typeof m === 'string' ? m : m.url)
+    });
+    
+    // Priority: 1) New uploaded file thumbnail, 2) Existing image file URL, 3) Default logo
     const imageUrl = uploadedFiles[0]?.thumbnail || 
-                    existingMedia[0]?.url || 
-                    'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
+                    existingImageFiles[0]?.url || 
+                    (typeof existingImageFiles[0] === 'string' ? existingImageFiles[0] : null) ||
+                    '/MAIN LOGO.png';
+                    
+    console.log('🎯 Selected imageUrl for preview:', imageUrl);
 
     // Force refresh timestamp
     const timestamp = Date.now();
+
+    // Build absolute URL for public assets so the renderer can fetch them
+    const originSafe = (typeof window !== 'undefined' && window.location) ? `${window.location.protocol}//${window.location.host}` : '';
+    const absoluteLogoUrl = originSafe ? `${originSafe}/MAIN LOGO.png` : '/MAIN LOGO.png';
+    
+    // Use WOFF2 fonts including UAESymbol for Dirham symbol
+    const fontFaceCSS = `
+            @font-face {
+              font-family: 'UAESymbol';
+              src: url('data:font/woff2;base64,d09GMgABAAAAAAQYAA0AAAAACBAAAAPDAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP0ZGVE0cBmAAgkIIBBEICoUUhCkBNgIkAxALCgAEIAWEEAcqG7YGUZQPTgfg47Apmy9iLmImDnGZy6goEb/MR/MYQbVG9uze3RO4ALBFhQoAVFiTQhIyGnVcolgBokvV/WSX/+Yu3Al08BwCbQCpXXyYbdB9UFW6f3A5/X/6J1j6rE/3ezTw3xoLs7ZIgImtaUX58mgKJJRpgon2VjNR6jPw3PkpCCJqLwS8uH9zAuBt6/4L8i7/FfljnFKSjqSrOCbPjpcmhICkbMLIBNdp7uaEepj22efcvw5Wmt7ZAQQA+kPIyOgNgcmEAr0Z6Q8UCoHPdb1urXtAQFQEvU+ii99CwG/KpmMPSCNA1LUECtCICg/wHtCKsZEAFz29WmIpx8aWRoXYmKqaKVpzXGPx4xRWxDrOiI46Pi5gYZrFV1nRURULIOacOMpfNA0OOEB0VAaxbJpa9cACVLfusOrAHHCYEXJSxuFMOMlzYrjif0QefiT+CEVJTut5CY9Q3rhrOk6ORKxIhLENPyYHzM7gNTvhyNbOyA+5cTUcxsBAwbYEz4hnOLRLvUv+pPBYyZ4Ao4LQv8rP5M8wVD4AXnPeCDrOY975thcv4RW7Nbu1u8x3fSUbxRt09Qc4BtdqBO+N0k1vktptmTo3z4ok3bC7ANk6w/v5t4cixFb5r4Qx7hewSoO10Pvjr2OEkcAWoYLFurl/zmyEQtN/3YQZ64aAodj/C3GxW7lQ9zTZa4S7P03ykfeRY/qVJdqcKi7WqGtO35P6ItlvOnmk15N2cyckpvH93UXSirc66fagHa6uBbXJS23+ca7vZswQxF4Tj19ElEbnsnt11wOWtsq+/M3LL16ExpEvXqQ0u/l86v/ogX370tJ8DDgwBNdO3jo5y7Zk7uZsJ9gAmutT+WV6dzmMm3ypofBt4uWqfDr5Sk6+TXQxu7ASArJV/NeJSG8NITj3+0brGuvJ/xpx/nj6y9UXoFECgQ08keUZA/JLgemFNz8AIAsju1mgcPcFICEEpqMBaHdBAHrwh0Bosh4CSYPdEMiGuCdAoSmaBSh1RD5SbYmlhKJowkSgk6FbJpm020Jmc8yThW7bZKlvOHxOpTvixenSbUSvFk2a9SNc1HFF+PLmK4AHokavBs06wG+WBnWuXyVzUE1vQ3MHwCKd+rXo165BvQCwaNuFe3x9AMB8DZoMaK9owyvligAzdOUKcrFXk4bjM2neiNAOlWVfo69gnvx4dmvAk7EwzultaiC+tDcJJR3wesE32NPPs+WeekUXF3v1aeltHOHNmw+aN7fhdjfn7e1De1NPFcMEuNZXTQRCvkBEGrsAAA==') format('woff2');
+              font-weight: normal;
+              font-style: normal;
+              font-display: block;
+            }
+            
+            .dirham-symbol {
+              font-family: 'UAESymbol';
+              font-size: inherit;
+              color: inherit;
+            }
+            
+            @font-face {
+              font-family: 'Resonate';
+              src: url('/Fonts/Resonate-Black.woff2') format('woff2');
+              font-weight: 900;
+              font-style: normal;
+              font-display: swap;
+            }
+            @font-face {
+              font-family: 'Resonate';
+              src: url('/Fonts/Resonate-Bold.woff2') format('woff2');
+              font-weight: 700;
+              font-style: normal;
+              font-display: swap;
+            }
+            @font-face {
+              font-family: 'Resonate';
+              src: url('/Fonts/Resonate-Medium.woff2') format('woff2');
+              font-weight: 500;
+              font-style: normal;
+              font-display: swap;
+            }
+            @font-face {
+              font-family: 'Resonate';
+              src: url('/Fonts/Resonate-Light.woff2') format('woff2');
+              font-weight: 300;
+              font-style: normal;
+              font-display: swap;
+            }
+            @font-face {
+              font-family: 'Resonate';
+              src: url('/Fonts/Resonate-Regular.woff2') format('woff2');
+              font-weight: 400;
+              font-style: normal;
+              font-display: swap;
+            }`;
+    
+    // For rendering: use cache-busted URL if it's http(s), otherwise use original for preview
+    const isHttpUrl = (u?: string) => typeof u === 'string' && /^https?:\/\//.test(u);
+    const renderImageUrl = isHttpUrl(imageUrl) ? `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${timestamp}` : imageUrl;
 
     // Get the template based on day and template type
     const templatesA = {
@@ -558,20 +671,23 @@ export default function ContentPillarModal({
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+          <style>
+${fontFaceCSS}
+          </style>
         </head>
         <body>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-          body { font-family: 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
+          body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
           .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
-          .image-section { position: relative; width: 100%; height: 75%; }
+          .image-section { position: relative; width: 100%; height: 69.5%; }
           .background-image { width: 100%; height: 100%; object-fit: ${formData.imageFit || 'cover'}; object-position: ${formData.imageAlignment || 'center'}; }
-          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
-          .content { padding: 40px; height: 25%; display: flex; flex-direction: column; justify-content: flex-start; gap: 16px; overflow: visible; }
-          .title { font-size: 68px; font-weight: 900; color: #ffffff; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+          .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
+          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
           .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
@@ -584,7 +700,7 @@ export default function ContentPillarModal({
             position: fixed;
             left: 40px;
             right: 40px;
-            bottom: 20px;
+            bottom: 120px;
             z-index: 5;
             display: flex;
             align-items: center;
@@ -611,17 +727,32 @@ export default function ContentPillarModal({
             font-weight: 800;
             font-size: 32px;
           }
+          
+          /* Update ALL font families for Resonate - but preserve icons */
+          *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+          .badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          .section-header i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          body { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          .badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+          .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+          .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+          .description { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+          .arrow-indicator { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          .arrow-text { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
         </style>
 
         <div class="content-card">
           <div class="image-section">
-            <img src="${imageUrl}" class="background-image" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1619767886558-efdc259cde1f?auto=format&fit=crop&w=1080&h=720&q=80';" />
+            <img src="${renderImageUrl}" class="background-image" referrerpolicy="no-referrer" />
           </div>
           
           <div class="content">
             <div class="badge-row">
               <div class="badge"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i> ${formData.badgeText || 'MYTH BUSTER MONDAY'}</div>
-              <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.style.display='none';" />
+              <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/MAIN LOGO.png';" />
             </div>
             
             <div class="content-container">
@@ -637,6 +768,20 @@ export default function ContentPillarModal({
             <span class="arrow-text">More Details</span>
           </div>
         </div>
+        
+        <style>
+          /* FORCE ALL font families to Resonate - but preserve icons */
+          * { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          i, .fas, .far, .fab, .fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+          .badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          .spotlight-badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+          .spotlight-badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; font-style: normal !important; }
+          .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; font-style: normal !important; }
+          .contact { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; font-style: normal !important; }
+          p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        </style>
         </body>
         </html>`,
       
@@ -646,20 +791,20 @@ export default function ContentPillarModal({
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
         </head>
         <body>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-          body { font-family: 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
+          body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
           .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
-          .image-section { position: relative; width: 100%; height: 75%; }
+          .image-section { position: relative; width: 100%; height: 69.5%; }
           .background-image { width: 100%; height: 100%; object-fit: ${formData.imageFit || 'cover'}; object-position: ${formData.imageAlignment || 'center'}; }
-          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
-          .content { padding: 40px; height: 25%; display: flex; flex-direction: column; justify-content: flex-start; gap: 16px; overflow: visible; }
-          .title { font-size: 68px; font-weight: 900; color: #ffffff; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+          .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
+          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
           .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
@@ -780,7 +925,7 @@ export default function ContentPillarModal({
             position: fixed;
             left: 40px;
             right: 40px;
-            bottom: 20px;
+            bottom: 120px;
             z-index: 5;
             display: flex;
             align-items: center;
@@ -811,13 +956,13 @@ export default function ContentPillarModal({
 
         <div class="content-card">
           <div class="image-section">
-            <img src="${imageUrl}" class="background-image" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1619767886558-efdc259cde1f?auto=format&fit=crop&w=1080&h=720&q=80';" />
+            <img src="${renderImageUrl}" class="background-image" referrerpolicy="no-referrer" />
           </div>
           
           <div class="content">
             <div class="badge-row">
               <div class="badge"><i class="fas fa-lightbulb" style="margin-right:6px;"></i> ${formData.badgeText || 'TECH TIPS TUESDAY'}</div>
-              <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.style.display='none';" />
+              <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/MAIN LOGO.png';" />
             </div>
             
                         <div class="content-container">
@@ -840,11 +985,11 @@ export default function ContentPillarModal({
 
       
       // Simplified templates for other days
-      thursday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #7c2d12, #ea580c); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; } .testimonial { background: rgba(255,255,255,0.15); padding: 25px; border-radius: 15px; margin-bottom: 20px; } .stars { color: #fbbf24; font-size: 1.5rem; margin-bottom: 10px; }</style><div class="content"><div class="badge">💬 CUSTOMER STORIES</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="testimonial"><div class="stars">⭐⭐⭐⭐⭐</div><p>"Exceptional service and premium quality!"</p></div><div>📞 +971 4 380 5515</div></div>`,
+      thursday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Resonate', 'Inter', sans-serif; background: linear-gradient(135deg, #7c2d12, #ea580c); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; } .testimonial { background: rgba(255,255,255,0.15); padding: 25px; border-radius: 15px; margin-bottom: 20px; } .stars { color: #fbbf24; font-size: 1.5rem; margin-bottom: 10px; }</style><div class="content"><div class="badge">💬 CUSTOMER STORIES</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="testimonial"><div class="stars">⭐⭐⭐⭐⭐</div><p>"Exceptional service and premium quality!"</p></div><div>📞 +971 4 380 5515</div></div>`,
       
-      friday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #7c3aed, #a855f7); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: linear-gradient(135deg, #fbbf24, #f59e0b); padding: 12px 25px; border-radius: 25px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; } .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; } .feature { background: rgba(255,255,255,0.15); padding: 20px; border-radius: 12px; }</style><div class="content"><div class="badge">🎉 FRIDAY CELEBRATION</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="features"><div class="feature">🏆<br>Achievement</div><div class="feature">⭐<br>Excellence</div><div class="feature">🚀<br>Success</div></div><div>📞 +971 4 380 5515</div></div>`,
+      friday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Resonate', 'Inter', sans-serif; background: linear-gradient(135deg, #7c3aed, #a855f7); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: linear-gradient(135deg, #fbbf24, #f59e0b); padding: 12px 25px; border-radius: 25px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; } .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; } .feature { background: rgba(255,255,255,0.15); padding: 20px; border-radius: 12px; }</style><div class="content"><div class="badge">🎉 FRIDAY CELEBRATION</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="features"><div class="feature">🏆<br>Achievement</div><div class="feature">⭐<br>Excellence</div><div class="feature">🚀<br>Success</div></div><div>📞 +971 4 380 5515</div></div>`,
       
-      saturday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0891b2, #06b6d4); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: rgba(255,255,255,0.2); padding: 12px 25px; border-radius: 25px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; } .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 25px; } .feature { background: rgba(255,255,255,0.15); padding: 25px; border-radius: 12px; }</style><div class="content"><div class="badge">☀️ WEEKEND LIFESTYLE</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="features"><div class="feature">❤️<br>Passion</div><div class="feature">👥<br>Community</div></div><div>📞 +971 4 380 5515</div></div>`,
+      saturday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Resonate', 'Inter', sans-serif; background: linear-gradient(135deg, #0891b2, #06b6d4); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: rgba(255,255,255,0.2); padding: 12px 25px; border-radius: 25px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; } .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 25px; } .feature { background: rgba(255,255,255,0.15); padding: 25px; border-radius: 12px; }</style><div class="content"><div class="badge">☀️ WEEKEND LIFESTYLE</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="features"><div class="feature">❤️<br>Passion</div><div class="feature">👥<br>Community</div></div><div>📞 +971 4 380 5515</div></div>`,
       
       wednesday: `
         <!DOCTYPE html>
@@ -852,24 +997,38 @@ export default function ContentPillarModal({
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+          <style>
+${fontFaceCSS}
+          </style>
         </head>
         <body>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-          body { font-family: 'Inter', sans-serif; background: #D5D5D5; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
+          body { font-family: 'Resonate', 'Inter', sans-serif; background: #D5D5D5; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
           .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
           .image-section { position: relative; width: 100%; height: 100%; overflow: hidden; }
           .background-image { width: 100%; height: 100%; object-fit: ${formData.imageFit || 'cover'}; object-position: ${formData.imageAlignment || 'center'}; transform: scale(${(formData.imageZoom || 100) / 100}) translateY(${formData.imageVerticalPosition || 0}px); }
           .badge-row { display: flex; align-items: center; justify-content: center; margin-bottom: 24px; gap: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
           .content { padding: 40px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; overflow: visible; position: absolute; top: 2%; left: 0; right: 0; z-index: 10; text-align: center; }
-          .title { font-size: 68px; font-weight: 950; color: #555555; line-height: 1.1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); margin-bottom: 12px; font-stretch: ultra-condensed; font-style: italic; padding: 0 80px; }
-          .subtitle { font-size: 42px; color: #6a6a6a; margin-bottom: 16px; font-weight: 800; text-shadow: none; font-style: italic; }
+          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #555555; line-height: 0.8; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); margin-bottom: 2px; font-style: normal; padding: 0 80px; }
+          .subtitle { font-size: 45px; color: #555555; margin-bottom: 8px; font-weight: 700; text-shadow: none; font-style: normal; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
-          .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #000000; }
-          .contact i { color: #000000; font-size: 26px; }
+          .contact { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 28px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #555555; }
+          .contact i { color: #555555; font-size: 26px; }
+          
+          /* Update ALL font families for Resonate - but preserve icons */
+          *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+          .badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          .badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+          .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+          .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+          .contact { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
           
           /* Car spotlight specific styles */
           .car-specs-grid { 
@@ -910,7 +1069,7 @@ export default function ContentPillarModal({
           
           .spec-value {
             font-size: 28px;
-            color: #000000;
+            color: #555555;
             font-weight: 700;
           }
           
@@ -941,13 +1100,14 @@ export default function ContentPillarModal({
           
           .spotlight-badge {
             position: absolute;
-            top: 30px;
+            top: 100px;
             right: 30px;
             background: linear-gradient(135deg, #ffd700, #ff8c00);
             color: #000;
             padding: 16px 32px;
             border-radius: 25px;
-            font-weight: 900;
+            font-family: 'Resonate', 'Inter', sans-serif;
+            font-weight: 300;
             font-size: 28px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -960,7 +1120,7 @@ export default function ContentPillarModal({
             position: fixed; 
             left: 32px; 
             right: 32px; 
-            bottom: 20px; 
+            bottom: 120px; 
             z-index: 5; 
             display: flex; 
             align-items: center; 
@@ -983,26 +1143,48 @@ export default function ContentPillarModal({
           .arrow-text { 
             color: #ffffff; 
           }
+          
+          /* FORCE ALL font families to Resonate - but preserve icons */
+          * { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          i, .fas, .far, .fab, .fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+          .badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          .spotlight-badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+          .spotlight-badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; font-style: normal !important; }
+          .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; font-style: normal !important; }
+          .contact { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; font-style: normal !important; }
+          p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
         </style>
 
         <div class="content-card">
           <div class="image-section">
-            <img src="${imageUrl}" class="background-image" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1542362567-b07e54358753?auto=format&fit=crop&w=1080&h=768&q=80';" />
-            <div class="spotlight-badge"><i class="fas fa-star" style="margin-right:8px;"></i> SPOTLIGHT OF THE WEEK</div>
+            <img src="${renderImageUrl}" class="background-image" referrerpolicy="no-referrer" />
+            <div class="spotlight-badge"><i class="fas fa-star" style="margin-right:8px;"></i> HIGHLIGHT OF THE DAY</div>
           </div>
           
           <div class="content">
             <div>
-              <h1 class="title">${formData.car_model || formData.title}</h1>
-              <div class="subtitle">${formData.car_year || '2023'} • Premium Selection</div>
+              <h1 class="title">${(() => {
+                const year = formData.car_year || '2024';
+                const title = (formData.car_model || formData.title || '').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
+                return `${year} ${title}`;
+              })()}</h1>
+              <div class="subtitle">${(() => {
+                const monthlyPayment = formData.monthly_20_down_aed;
+                if (monthlyPayment && monthlyPayment > 0) {
+                  return `<svg height="0.7em" viewBox="0 0 344.84 299.91" style="display: inline-block; vertical-align: baseline; margin-right: 6px; margin-bottom: -0.02em;" xmlns="http://www.w3.org/2000/svg"><path fill="#555555" d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg><span style="font-family: 'Inter', sans-serif; font-weight: 900; color: #555555;">${monthlyPayment.toLocaleString()}</span><span style="font-family: 'Inter', sans-serif; font-weight: 300; color: #555555;"> PER MONTH</span>`;
+                } else {
+                  return '<span style="font-family: \'Resonate\', \'Inter\', sans-serif; font-weight: 300; color: #555555;">CASH PAYMENT</span>';
+                }
+              })()}</div>
             </div>
           </div>
         </div>
         </body>
-        </html>
-      `,
+        </html>`,
       
-      sunday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #581c87, #7c3aed); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: rgba(255,255,255,0.2); padding: 12px 25px; border-radius: 25px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; font-style: italic; } .quote { background: rgba(255,255,255,0.1); padding: 25px; border-radius: 15px; margin-bottom: 25px; border-left: 4px solid #a855f7; } .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; } .feature { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; }</style><div class="content"><div class="badge">🕊️ SUNDAY REFLECTION</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="quote">"Excellence is never an accident. It is always the result of high intention, sincere effort, and intelligent execution." — Aristotle</div><div class="features"><div class="feature">💡<br>Inspiration</div><div class="feature">🎯<br>Focus</div><div class="feature">🌱<br>Growth</div></div><div>📞 +971 4 380 5515</div></div>`
+      sunday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Resonate', 'Inter', sans-serif; background: linear-gradient(135deg, #581c87, #7c3aed); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: rgba(255,255,255,0.2); padding: 12px 25px; border-radius: 25px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; font-style: italic; } .quote { background: rgba(255,255,255,0.1); padding: 25px; border-radius: 15px; margin-bottom: 25px; border-left: 4px solid #a855f7; } .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; } .feature { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; }</style><div class="content"><div class="badge">🕊️ SUNDAY REFLECTION</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="quote">"Excellence is never an accident. It is always the result of high intention, sincere effort, and intelligent execution." — Aristotle</div><div class="features"><div class="feature">💡<br>Inspiration</div><div class="feature">🎯<br>Focus</div><div class="feature">🌱<br>Growth</div></div><div>📞 +971 4 380 5515</div></div>`
     };
 
     // Template B - Alternative design for Tuesday (and can be extended for other days)
@@ -1013,18 +1195,18 @@ export default function ContentPillarModal({
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
         </head>
         <body>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-          body { font-family: 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
+          body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
           .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
-          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
-          .content { padding: 40px; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 16px; overflow: visible; }
-          .title { font-size: 68px; font-weight: 900; color: #ffffff; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+          .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
+          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
           .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
@@ -1150,7 +1332,7 @@ export default function ContentPillarModal({
           <div class="content">
             <div class="badge-row">
               <div class="badge"><i class="fas fa-lightbulb" style="margin-right:6px;"></i> ${formData.badgeText || 'TECH TIPS TUESDAY'}</div>
-              <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.style.display='none';" />
+              <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/MAIN LOGO.png';" />
             </div>
             
             <div class="content-container">
@@ -1214,38 +1396,35 @@ export default function ContentPillarModal({
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+          <style>
+${fontFaceCSS}
+          </style>
         </head>
         <body>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-          body { font-family: 'Inter', sans-serif; background: #D5D5D5; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
+          body { font-family: 'Resonate', 'Inter', sans-serif; background: #D5D5D5; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
           .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
           .content { padding: 32px; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 20px; overflow: visible; position: relative; z-index: 2; }
-          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
           .content-container { margin-top: 120px; }
           .title-section { margin-bottom: 20px; }
-          .title { font-size: 41px; font-weight: 900; color: #000000; line-height: 1.1; text-shadow: none; margin-bottom: 12px; }
+          .title { font-size: 41px; font-weight: 900; color: #555555; line-height: 1.1; text-shadow: none; margin-bottom: 12px; }
           .subtitle { font-size: 32px; color: #333333; margin-bottom: 16px; font-weight: 600; text-shadow: none; }
-          .contact { position: fixed; left: 32px; right: 32px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #000000; }
-          .contact i { color: #000000; font-size: 32px; }
+          .contact { position: fixed; left: 32px; right: 32px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #555555; }
+          .contact i { color: #555555; font-size: 32px; }
           
           /* Car spotlight specific styles for Template B */
           .car-specs-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            gap: 20px; 
-            margin: 20px 0; 
-          }
-          
-          .car-details-section { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 20px; 
-            margin: 0; 
+            grid-template-rows: repeat(3, 1fr);
+            gap: 16px; 
+            margin: 16px 0; 
           }
           
           .detail-card {
@@ -1263,17 +1442,35 @@ export default function ContentPillarModal({
             align-items: center;
             gap: 12px;
             margin-bottom: 16px;
+            min-height: 40px;
           }
           
           .detail-header i {
             font-size: 28px;
-            color: #000000;
+            color: #555555;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
           }
+          
+          /* Update ALL font families for Resonate - but preserve icons */
+          *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+          .badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          .badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+          .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+          .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+          .contact { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
           
           .detail-title {
             font-size: 28px;
             font-weight: 700;
-            color: #000000;
+            color: #555555;
             text-transform: uppercase;
             letter-spacing: 0.5px;
           }
@@ -1282,17 +1479,17 @@ export default function ContentPillarModal({
             font-size: 26px;
             color: #333333;
             line-height: 1.4;
-            padding-left: 40px;
+            margin-left: 44px;
           }
           
           .car-features {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 16px;
-            padding: 24px;
+            padding: 20px;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            margin: 0;
+            margin: 18px 0;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
           }
           
@@ -1301,17 +1498,24 @@ export default function ContentPillarModal({
             align-items: center;
             gap: 12px;
             margin-bottom: 16px;
+            min-height: 40px;
           }
           
           .features-header i {
             font-size: 28px;
-            color: #000000;
+            color: #555555;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
           }
           
           .features-title {
             font-size: 28px;
             font-weight: 700;
-            color: #000000;
+            color: #555555;
             text-transform: uppercase;
             letter-spacing: 0.5px;
           }
@@ -1320,7 +1524,7 @@ export default function ContentPillarModal({
             font-size: 26px;
             color: #333333;
             line-height: 1.4;
-            padding-left: 40px;
+            margin-left: 44px;
           }
           
           .features-list li {
@@ -1332,8 +1536,8 @@ export default function ContentPillarModal({
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 16px;
-            padding: 24px;
-            margin: 0;
+            padding: 20px;
+            margin: 18px 0;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
@@ -1345,16 +1549,23 @@ export default function ContentPillarModal({
             justify-content: center;
             gap: 12px;
             margin-bottom: 16px;
+            min-height: 40px;
           }
           
           .pricing-header i {
             font-size: 28px;
-            color: #000000;
+            color: #555555;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
           }
           
           .pricing-title {
             font-size: 28px;
-            color: #000000;
+            color: #555555;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -1362,7 +1573,7 @@ export default function ContentPillarModal({
           
           .pricing-value {
             font-size: 46px;
-            color: #000000;
+            color: #555555;
             font-weight: 900;
             text-shadow: none;
           }
@@ -1376,13 +1587,14 @@ export default function ContentPillarModal({
           
           .spotlight-badge {
             position: absolute;
-            top: 30px;
+            top: 60px;
             right: 30px;
             background: linear-gradient(135deg, #ffd700, #ff8c00);
             color: #000;
             padding: 16px 32px;
             border-radius: 25px;
-            font-weight: 900;
+            font-family: 'Resonate', 'Inter', sans-serif;
+            font-weight: 300;
             font-size: 28px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -1390,60 +1602,125 @@ export default function ContentPillarModal({
             border: 2px solid rgba(255,255,255,0.3);
             z-index: 10;
           }
+          
+          /* Monthly Payment Cards */
+          .monthly-payments-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin: 18px 0 24px 0;
+          }
+          
+          .monthly-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+          }
+          
+          .monthly-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            min-height: 32px;
+          }
+          
+          .monthly-header i {
+            font-size: 20px;
+            color: #555555;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          
+          .monthly-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #555555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          
+          .monthly-amount {
+            font-size: 46px;
+            color: #555555;
+            font-weight: 900;
+            margin-bottom: 4px;
+          }
+          
+          .monthly-period {
+            font-size: 16px;
+            color: #333333;
+            font-weight: 300;
+            text-transform: lowercase;
+          }
+          
+          .cash-only {
+            font-size: 16px;
+            color: #555555;
+            font-weight: 500;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
         </style>
 
         <div class="content-card">
           <div class="content">
-            <div class="spotlight-badge"><i class="fas fa-star" style="margin-right:8px;"></i> SPOTLIGHT OF THE WEEK</div>
             
             <div class="content-container">
               <div class="title-section">
                 <h1 class="title">${(() => {
                   const year = formData.car_year || '2023';
-                  const title = formData.car_model || formData.title || '';
+                  const title = (formData.car_model || formData.title || '').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
                   // Add year to beginning - no wrapping needed
                   return `${year} ${title}`;
                 })()}</h1>
             </div>
               
-                            <!-- Car Specifications Grid -->
-              <div class="car-specs-grid">
-                <div class="detail-card">
-                  <div class="detail-header">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span class="detail-title">Mileage</span>
-            </div>
-                  <div class="detail-content">${formData.car_mileage || '25,000'} km</div>
-          </div>
-                
-                <div class="detail-card">
-                  <div class="detail-header">
-                    <i class="fas fa-bolt"></i>
-                    <span class="detail-title">Horsepower</span>
-                  </div>
-                  <div class="detail-content">${formData.car_horsepower || '300'} HP</div>
+            <!-- Car Specifications Grid - All 6 cards in one unified grid -->
+            <div class="car-specs-grid">
+              <div class="detail-card">
+                <div class="detail-header">
+                  <i class="fas fa-tachometer-alt"></i>
+                  <span class="detail-title">Mileage</span>
                 </div>
-                
-                <div class="detail-card">
-                  <div class="detail-header">
-                    <i class="fas fa-paint-brush"></i>
-                    <span class="detail-title">Exterior Color</span>
-                  </div>
-                  <div class="detail-content">${formData.car_exterior_color || 'Black'}</div>
-                </div>
-                
-                <div class="detail-card">
-                  <div class="detail-header">
-                    <i class="fas fa-car-side"></i>
-                    <span class="detail-title">Interior Color</span>
-                  </div>
-                  <div class="detail-content">${formData.car_interior_color || 'Black'}</div>
-                </div>
+                <div class="detail-content">${formData.car_mileage || '25,000'} km</div>
               </div>
-            </div>
-            
-            <!-- Car Details Grid -->
-            <div class="car-details-section">
+              
+              <div class="detail-card">
+                <div class="detail-header">
+                  <i class="fas fa-bolt"></i>
+                  <span class="detail-title">Horsepower</span>
+                </div>
+                <div class="detail-content">${formData.car_horsepower || '300'} HP</div>
+              </div>
+              
+              <div class="detail-card">
+                <div class="detail-header">
+                  <i class="fas fa-paint-brush"></i>
+                  <span class="detail-title">Exterior Color</span>
+                </div>
+                <div class="detail-content">${formData.car_exterior_color || 'Black'}</div>
+              </div>
+              
+              <div class="detail-card">
+                <div class="detail-header">
+                  <i class="fas fa-car-side"></i>
+                  <span class="detail-title">Interior Color</span>
+                </div>
+                <div class="detail-content">${formData.car_interior_color || 'Black'}</div>
+              </div>
+              
               <div class="detail-card">
                 <div class="detail-header">
                   <i class="fas fa-cogs"></i>
@@ -1505,9 +1782,9 @@ export default function ContentPillarModal({
                   
                   console.log('Processed Equipment:', allEquipment);
                   
-                  // Shuffle and pick 13 random items
+                  // Shuffle and pick 10 random items (reduced from 13)
                   const shuffled = [...allEquipment].sort(() => 0.5 - Math.random());
-                  const selectedEquipment = shuffled.slice(0, 13);
+                  const selectedEquipment = shuffled.slice(0, 10);
                   
                   console.log('Selected Equipment:', selectedEquipment);
                   
@@ -1516,15 +1793,47 @@ export default function ContentPillarModal({
               </ul>
             </div>
             
-            <!-- Pricing -->
+            <!-- Special Offer Section -->
             <div class="car-pricing">
               <div class="pricing-header">
                 <i class="fas fa-tag"></i>
                 <span class="pricing-title">Special Offer</span>
               </div>
-              <div class="pricing-value">${formData.car_price || 'AED 185,000'}</div>
-              <div class="financing-info">Financing Available • Trade-ins Welcome</div>
+              
+              <!-- Main Car Price -->
+              <div class="pricing-value">${formData.car_price || '<svg height="0.7em" viewBox="0 0 344.84 299.91" style="display: inline-block; vertical-align: baseline; margin-right: 6px; margin-bottom: -0.02em;" xmlns="http://www.w3.org/2000/svg"><path fill="#555555" d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg>185,000'}</div>
+              ${(() => {
+                const monthly0Down = formData.monthly_0_down_aed;
+                const monthly20Down = formData.monthly_20_down_aed;
+                
+                if (!monthly0Down && !monthly20Down) {
+                  return '<div class="cash-only">Cash Payment Only</div>';
+                }
+                return '';
+              })()}
             </div>
+            
+            <!-- Monthly Payment Cards -->
+            ${(() => {
+              const monthly0Down = formData.monthly_0_down_aed;
+              const monthly20Down = formData.monthly_20_down_aed;
+              
+              if (monthly0Down || monthly20Down) {
+                let cards = '<div class="monthly-payments-grid">';
+                
+                if (monthly0Down) {
+                  cards += '<div class="monthly-card"><div class="monthly-header"><i class="fas fa-calendar-alt"></i><span class="monthly-title">0% Down</span></div><div class="monthly-amount"><svg height="0.7em" viewBox="0 0 344.84 299.91" style="display: inline-block; vertical-align: baseline; margin-right: 6px; margin-bottom: -0.02em;" xmlns="http://www.w3.org/2000/svg"><path fill="#555555" d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg>' + monthly0Down.toLocaleString() + '</div><div class="monthly-period">per month</div></div>';
+                }
+                
+                if (monthly20Down) {
+                  cards += '<div class="monthly-card"><div class="monthly-header"><i class="fas fa-calendar-alt"></i><span class="monthly-title">20% Down</span></div><div class="monthly-amount"><svg height="0.7em" viewBox="0 0 344.84 299.91" style="display: inline-block; vertical-align: baseline; margin-right: 6px; margin-bottom: -0.02em;" xmlns="http://www.w3.org/2000/svg"><path fill="#555555" d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg>' + monthly20Down.toLocaleString() + '</div><div class="monthly-period">per month</div></div>';
+                }
+                
+                cards += '</div>';
+                return cards;
+              }
+              return '';
+            })()}
             
             <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
           </div>
@@ -1539,18 +1848,21 @@ export default function ContentPillarModal({
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+          <style>
+${fontFaceCSS}
+          </style>
         </head>
         <body>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-          body { font-family: 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
+          body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
           .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
-          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+          .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
-          .content { padding: 40px; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 16px; overflow: visible; }
-          .title { font-size: 68px; font-weight: 900; color: #ffffff; line-height: 1.1; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+          .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
+          .title { font-size: ${formData.titleFontSize}px; font-weight: 900; color: #ffffff; line-height: 0.8; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
           .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
           .description { font-size: 36px; color: #f1f5f9; line-height: 1.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
           .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
@@ -1692,9 +2004,11 @@ export default function ContentPillarModal({
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 69.5%;
             z-index: 0;
           }
+          
+
           
           .background-image-blur {
             width: 100%;
@@ -1716,19 +2030,75 @@ export default function ContentPillarModal({
           .content {
             position: relative;
             z-index: 1;
+            padding: 20px 40px 40px 40px;
+            height: 30.5%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 12px;
+            overflow: visible;
           }
+          
+          /* Update ALL font families for Resonate - but preserve icons */
+          *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+          .badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          .section-header i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+          body { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          .badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+          .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+          .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+          .description { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+          .section-title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          .section-content { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+          .contact { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          .info-label { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+          .info-value { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          .warning-title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+          .warning-content { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+          h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          
+          /* Template B Monday positioning adjustments */
+          .background-image-container { height: 100% !important; width: 100% !important; left: 0 !important; right: 0 !important; top: 0 !important; }
+          .background-image, .background-image-blur { width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center !important; }
+          .content { 
+            padding: calc(20px + 3vh) 40px 40px 40px !important; 
+            height: 30.5% !important; 
+            gap: 12px !important; 
+          }
+          .badge-row { 
+            margin-top: 60px !important; 
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            margin-bottom: 16px !important;
+          }
+          .spotlight-badge { top: calc(90px + 3vh) !important; }
+          .company-logo-inline { 
+            height: 96px !important; 
+            width: auto !important; 
+            margin-top: 4px !important; 
+            flex-shrink: 0 !important; 
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 999 !important;
+            filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)) !important;
+          }
+          .contact { bottom: 120px !important; }
         </style>
 
         <div class="content-card">
           <!-- Background image with blur -->
           <div class="background-image-container">
-            <img src="${imageUrl}" class="background-image-blur" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1619767886558-efdc259cde1f?auto=format&fit=crop&w=1080&h=720&q=80';" />
+            <img src="${renderImageUrl}" class="background-image-blur" referrerpolicy="no-referrer" />
             <div class="background-overlay"></div>
           </div>
           <div class="content">
             <div class="badge-row">
               <div class="badge"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i> ${formData.badgeText || 'MYTH BUSTER MONDAY'}</div>
-              <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.style.display='none';" />
+              <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/MAIN LOGO.png';" />
             </div>
             
             <div class="content-container">
@@ -1863,6 +2233,7 @@ export default function ContentPillarModal({
         difficulty: formData.difficulty,
         tools_needed: formData.tools_needed,
         warning: formData.warning,
+        titleFontSize: formData.titleFontSize,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -1883,7 +2254,8 @@ export default function ContentPillarModal({
         title: '',
         description: '',
         content_type: 'image',
-        badgeText: dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : (dayKey === 'tuesday' ? 'TECH TIPS TUESDAY' : dayKey.toUpperCase()),
+        titleFontSize: 68, // Reset to default font size
+                  badgeText: dayKey === 'monday' ? 'MYTH BUSTER MONDAY' : (dayKey === 'tuesday' ? 'TECH TIPS TUESDAY' : dayKey === 'wednesday' ? 'HIGHLIGHT OF THE DAY' : dayKey.toUpperCase()),
         subtitle: dayKey === 'monday' ? 'Independent Mercedes Service' : (dayKey === 'tuesday' ? 'Expert Mercedes Knowledge' : 'Premium Selection'),
         myth: '',
         fact: '',
@@ -1910,6 +2282,8 @@ export default function ContentPillarModal({
         car_color: '',
         car_fuel_type: '',
         car_price: '',
+        monthly_0_down_aed: null,
+        monthly_20_down_aed: null,
         feature_1: '',
         feature_2: '',
         feature_3: '',
@@ -1999,6 +2373,36 @@ export default function ContentPillarModal({
                   placeholder="Enter content title"
                   required
                 />
+              </div>
+
+              {/* Title Font Size Slider */}
+              <div>
+                <label className="block text-xs font-medium text-white mb-2 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                  </svg>
+                  Title Font Size: {formData.titleFontSize}px
+                </label>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-white/60 font-medium">Small</span>
+                  <input
+                    type="range"
+                    min="40"
+                    max="100"
+                    step="2"
+                    value={formData.titleFontSize}
+                    onChange={(e) => setFormData(prev => ({ ...prev, titleFontSize: parseInt(e.target.value) }))}
+                    className="flex-1 h-2 bg-black/30 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, 
+                        rgba(192, 192, 192, 0.8) 0%, 
+                        rgba(192, 192, 192, 0.8) ${((formData.titleFontSize - 40) / (100 - 40)) * 100}%, 
+                        rgba(0, 0, 0, 0.3) ${((formData.titleFontSize - 40) / (100 - 40)) * 100}%, 
+                        rgba(0, 0, 0, 0.3) 100%)`
+                    }}
+                  />
+                  <span className="text-xs text-white/60 font-medium">Large</span>
+                </div>
               </div>
 
               {/* Car Selection Dropdown (Wednesday only) */}
@@ -2614,29 +3018,7 @@ export default function ContentPillarModal({
               <div className="text-xs text-white/60 capitalize">{dayKey} Templates • 1080×1920</div>
             </div>
             
-            {/* Template Selection Buttons */}
-            <div className="flex gap-2 mb-3">
-              <button
-                onClick={() => setSelectedTemplate('A')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedTemplate === 'A'
-                    ? 'bg-white/20 text-white border border-white/30'
-                    : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80'
-                }`}
-              >
-                Template A
-              </button>
-              <button
-                onClick={() => setSelectedTemplate('B')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedTemplate === 'B'
-                    ? 'bg-white/20 text-white border border-white/30'
-                    : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80'
-                }`}
-              >
-                Template B
-              </button>
-            </div>
+
             
             {/* Dual Preview Panes */}
             <div className="flex-1 flex gap-2">

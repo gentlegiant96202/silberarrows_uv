@@ -9,6 +9,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "new-dirham-symbol": "^1.0.3",
     "playwright": "^1.54.2"
   }
-} 
+}

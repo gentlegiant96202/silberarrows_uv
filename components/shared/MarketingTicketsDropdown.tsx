@@ -239,11 +239,16 @@ export default function MarketingTicketsDropdown() {
         >
           <MessageSquarePlus className="w-4 h-4 text-orange-300" />
           <span>Marketing Tickets</span>
-          {pendingCount > 0 && (
-            <span className="bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-              {pendingCount}
-            </span>
-          )}
+          {/* Always show badge container to prevent layout shifts */}
+          <span className={`text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold transition-all ${
+            isLoading 
+              ? 'bg-white/10 text-white/40' // Loading state
+              : pendingCount > 0 
+                ? 'bg-orange-500 text-white' // Has tickets
+                : 'bg-white/10 text-white/40' // No tickets
+          }`}>
+            {isLoading ? '·' : pendingCount || '0'}
+          </span>
           <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 

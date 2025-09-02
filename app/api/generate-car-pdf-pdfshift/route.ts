@@ -91,12 +91,12 @@ function optimizeImageForPdf(imageUrl: string): string {
   return getOriginalImageUrl(imageUrl);
 }
 
-// Add format=webp for better compression efficiency
+// Aggressive compression for maximum file size reduction
 function getCompressedImageUrl(originalUrl: string): string {
   try {
     if (originalUrl.includes('.supabase.co')) {
-      // WebP format + stronger compression
-      return `${originalUrl.split('?')[0]}?width=600&quality=70&format=webp`;
+      // Very aggressive compression: smaller size + lower quality + WebP
+      return `${originalUrl.split('?')[0]}?width=400&quality=50&format=webp`;
     }
     return originalUrl;
   } catch {
@@ -174,15 +174,20 @@ export async function POST(request: NextRequest) {
       console.log(`📸 Limited from ${optimizedPhotos.length} to ${maxImages} images to prevent timeout`);
     }
     
-    // Split images: first 5 for main pages, rest for gallery pages (2 per page)  
-    const mainPhotos = limitedPhotos.slice(0, 5);
+        // Split images: first 5 for main pages, rest for gallery pages (2 per page)  
+    let mainPhotos = limitedPhotos.slice(0, 5);
     let galleryPhotos = limitedPhotos.slice(5);
     
-         // Compress gallery images (page 3 onwards) to reduce payload size
-     galleryPhotos = galleryPhotos.map((photo: any) => ({
-       ...photo,
-       url: getCompressedImageUrl(photo.url)
-     }));
+    // Compress ALL images for maximum file size reduction
+    mainPhotos = mainPhotos.map((photo: any) => ({
+      ...photo,
+      url: getCompressedImageUrl(photo.url) // Compress main photos too
+    }));
+    
+    galleryPhotos = galleryPhotos.map((photo: any) => ({
+      ...photo,
+      url: getCompressedImageUrl(photo.url) // Compress gallery photos
+    }));
     
     console.log('✅ All images processed for PDF generation');
     optimizedPhotos.slice(0, 3).forEach((photo: any, i: number) => {

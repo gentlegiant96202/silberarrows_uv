@@ -91,12 +91,12 @@ function optimizeImageForPdf(imageUrl: string): string {
   return getOriginalImageUrl(imageUrl);
 }
 
-// Aggressive compression for maximum file size reduction
+// Simple function - return original URL and let CSS handle sizing
 function getCompressedImageUrl(originalUrl: string): string {
   try {
     if (originalUrl.includes('.supabase.co')) {
-      // Very aggressive compression: smaller size + lower quality + WebP
-      return `${originalUrl.split('?')[0]}?width=400&quality=50&format=webp`;
+      console.log('🔄 Using original image URL (CSS will handle sizing):', originalUrl.split('?')[0]);
+      return originalUrl.split('?')[0]; // Remove any existing query params
     }
     return originalUrl;
   } catch {
@@ -225,6 +225,9 @@ export async function POST(request: NextRequest) {
                   image-rendering: -webkit-optimize-contrast;
                   image-rendering: optimize-contrast;
                   image-rendering: crisp-edges;
+                  /* Force smaller image dimensions for file size reduction */
+                  max-width: 400px !important;
+                  max-height: 400px !important;
               }
               
               body {
@@ -476,9 +479,9 @@ export async function POST(request: NextRequest) {
                   object-fit: cover;
                   border-radius: 10px;
                   border: none;
-                  /* Force max resolution for PDF optimization */
-                  max-width: 800px;
-                  max-height: 600px;
+                  /* Aggressive size limits for main images */
+                  max-width: 300px !important;
+                  max-height: 300px !important;
               }
               
               .image-placeholder {
@@ -807,9 +810,9 @@ export async function POST(request: NextRequest) {
                   height: 100%;
                   object-fit: cover;
                   display: block;
-                  /* Force max resolution for PDF optimization */
-                  max-width: 1000px;
-                  max-height: 750px;
+                  /* Aggressive size limits for gallery images */
+                  max-width: 200px !important;
+                  max-height: 200px !important;
               }
           </style>
       </head>

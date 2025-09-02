@@ -1,12 +1,12 @@
 "use client";
-import Header from '@/components/Header';
+
 import RouteProtector from '@/components/shared/RouteProtector';
 
 export default function LeasingDashboard() {
   return (
     <RouteProtector moduleName="leasing">
       <div className="min-h-screen bg-black">
-        <Header />
+
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
             {/* Leasing Dashboard Header */}

@@ -5,8 +5,7 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { Shield } from 'lucide-react';
 import PulsatingLogo from './PulsatingLogo';
 
-// Import skeleton components
-import Header from '@/components/Header';
+// Skeleton components for loading states
 
 // Inventory Module Skeleton (CarKanbanBoard skeleton)
 const InventorySkeleton = () => {
@@ -80,18 +79,15 @@ const InventorySkeleton = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
-        <div className="flex gap-3 pb-4 w-full h-full">
-          {columns.map(col => (
-            <SkeletonColumn 
-              key={col.key} 
-              title={col.title}
-              isInventory={col.key === 'inventory'}
-            />
-          ))}
-        </div>
+    <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
+      <div className="flex gap-3 pb-4 w-full h-full">
+        {columns.map(col => (
+          <SkeletonColumn 
+            key={col.key} 
+            title={col.title}
+            isInventory={col.key === 'inventory'}
+          />
+        ))}
       </div>
     </div>
   );
@@ -152,9 +148,8 @@ const CRMSkeleton = () => {
   ];
 
   return (
-    <main className="min-h-screen">
-      <Header />
-      <div className="flex h-[calc(100vh-72px)]">
+    <div className="h-full">
+      <div className="flex h-full">
         <div className="flex-1 overflow-auto">
           <div className="px-4">
             <div
@@ -168,7 +163,7 @@ const CRMSkeleton = () => {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 };
 
@@ -194,6 +189,8 @@ export default function RouteProtector({
   const { user } = useAuth();
   const { canView, isLoading, error } = useModulePermissions(moduleName);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const [skeletonVisible, setSkeletonVisible] = useState(true);
 
   useEffect(() => {
     // Wait for both user authentication and permissions to load
@@ -201,6 +198,18 @@ export default function RouteProtector({
       setHasInitialized(true);
       // Don't redirect - just show access denied screen
       // This prevents the constant reloading issue
+      
+      // If user has permission, start the smooth transition
+      if (canView) {
+        // Start fading out skeleton after a brief delay
+        setTimeout(() => {
+          setSkeletonVisible(false);
+          // Show content after skeleton starts fading out
+          setTimeout(() => {
+            setShowContent(true);
+          }, 200); // 200ms for skeleton fade-out
+        }, 300); // 300ms initial delay for data loading
+      }
     }
   }, [canView, isLoading, user]);
 
@@ -261,6 +270,33 @@ export default function RouteProtector({
     );
   }
 
-  // User has permission, render the protected content
-  return <>{children}</>;
+  // User has permission - render with smooth cross-fade transition
+  const getSkeleton = () => {
+    switch (moduleName) {
+      case 'inventory':
+        return <InventorySkeleton />;
+      case 'uv_crm':
+        return <CRMSkeleton />;
+      default:
+        return <GenericModuleSkeleton moduleName={moduleName} />;
+    }
+  };
+
+  return (
+    <div className="relative h-full">
+      {/* Skeleton - fades out */}
+      <div className={`absolute inset-0 transition-opacity duration-500 ease-out ${
+        skeletonVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      }`}>
+        {getSkeleton()}
+      </div>
+      
+      {/* Real content - fades in */}
+      <div className={`transition-opacity duration-500 ease-out ${
+        showContent ? 'opacity-100' : 'opacity-0'
+      }`}>
+        {children}
+      </div>
+    </div>
+  );
 } 

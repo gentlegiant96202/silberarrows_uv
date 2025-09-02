@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import Header from '@/components/Header';
+
 import { supabase } from '@/lib/supabaseClient';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import dayjs from 'dayjs';
@@ -429,7 +429,7 @@ export default function GargashReportPage() {
   return (
     <main className="min-h-screen overflow-y-auto no-scrollbar bg-black print:bg-black">
       <div className="print-hide">
-        <Header />
+
       </div>
       <div className="p-6 text-white print:p-4">
         {/* PAGE 1: Header, KPIs, Charts, Performance Summary */}

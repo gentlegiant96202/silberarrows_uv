@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
 import { Shield, Wrench, LayoutDashboard } from 'lucide-react';
@@ -50,7 +50,7 @@ export default function WorkshopDashboard() {
   return (
     <RouteProtector moduleName="workshop">
       <div className="h-screen bg-black flex flex-col overflow-hidden">
-        <Header />
+
         
         {/* Full-height container */}
         <div className="flex-1 flex flex-col w-full px-2 py-4 overflow-hidden">

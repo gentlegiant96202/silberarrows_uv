@@ -175,6 +175,9 @@ export default function KanbanBoard() {
   const [leadToLose, setLeadToLose] = useState<Lead | null>(null);
   const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  
+  // Progressive loading states for fade-in animations
+  const [columnsVisible, setColumnsVisible] = useState(false);
   const hasFetchedLeads = useRef(false);
 
   // Get permissions for archive functionality
@@ -205,14 +208,21 @@ export default function KanbanBoard() {
     );
   };
 
-  // fetch initial data
+  // fetch initial data with progressive fade-in
   useEffect(() => {
     if (!hasFetchedLeads.current) {
       async function load() {
         try {
+          console.log('🚀 CRM: Loading leads data...');
           const leadsResult = await supabase.from("leads").select("*").order("updated_at", { ascending: false });
           if (leadsResult.data) setLeads(leadsResult.data as unknown as Lead[]);
           hasFetchedLeads.current = true;
+          
+          // Trigger fade-in animation immediately after data loads
+          // RouteProtector handles the main transition timing
+          setColumnsVisible(true);
+          console.log('✅ CRM: Leads loaded, columns visible');
+          
         } finally {
           setLoading(false);
         }
@@ -523,7 +533,11 @@ export default function KanbanBoard() {
   return (
     <div className="px-4">
       <div
-        className="flex gap-3 pb-4 w-full h-full overflow-hidden"
+        className={`flex gap-3 pb-4 w-full h-full overflow-hidden transition-all duration-700 ease-out transform ${
+          columnsVisible 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-4'
+        }`}
         style={{ height: "calc(100vh - 72px)" }}
       >
         {columns

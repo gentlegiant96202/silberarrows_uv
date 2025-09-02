@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { Shield, Wrench } from 'lucide-react';
 import ServiceWarrantyContent from '@/components/shared/ServiceWarrantyContent';
@@ -51,7 +51,7 @@ export default function WorkshopServiceWarrantyPage() {
   return (
     <RouteProtector moduleName="workshop">
       <div className="h-screen bg-black flex flex-col overflow-hidden">
-        <Header />
+
         <ServiceWarrantyContent />
       </div>
     </RouteProtector>

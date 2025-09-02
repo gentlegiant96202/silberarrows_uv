@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import Providers from '@/components/shared/Providers'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import LayoutWrapper from '@/components/shared/LayoutWrapper'
 
 export const metadata: Metadata = {
   title: 'SilberArrows',
@@ -54,7 +55,9 @@ export default function RootLayout({
       <body className="antialiased">
         <div className="min-h-screen bg-black">
           <Providers>
-          {children}
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
           </Providers>
         </div>
         <SpeedInsights />

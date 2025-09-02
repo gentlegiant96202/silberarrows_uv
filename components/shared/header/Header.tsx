@@ -61,11 +61,8 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
                   {currentModule === 'workshop' && (!activeTab || !onTabChange) && (
                     <WorkshopNavigation activeTab="dashboard" onTabChange={() => {}} />
                   )}
-                  {currentModule === 'marketing' && activeTab && onTabChange && (
-                    <MarketingNavigation activeTab={activeTab} onTabChange={onTabChange} />
-                  )}
-                  {currentModule === 'marketing' && (!activeTab || !onTabChange) && (
-                    <MarketingNavigation activeTab="design" onTabChange={() => {}} />
+                  {currentModule === 'marketing' && (
+                    <MarketingNavigation />
                   )}
                   {currentModule === 'leasing' && (
                     <div className="text-white/60 text-sm">Leasing Navigation Coming Soon</div>

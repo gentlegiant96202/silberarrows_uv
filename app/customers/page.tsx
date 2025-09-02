@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import Header from '@/components/Header';
+
 import { Copy } from 'lucide-react';
 
 interface LeadRow {
@@ -161,28 +161,31 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Header />
+    <div className="h-full">
       <main className="p-4 space-y-4">
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 items-center">
+        {/* Filters - Fixed layout to prevent shifts */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-center">
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded"
+            className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded min-w-[140px]"
           >
             <option value="">Model (Any)</option>
-            {modelOptions.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
+            {modelOptions.length === 0 ? (
+              <option disabled>Loading...</option>
+            ) : (
+              modelOptions.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))
+            )}
           </select>
 
           <select
             value={maxAge}
             onChange={(e) => setMaxAge(e.target.value)}
-            className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded"
+            className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded min-w-[130px]"
           >
             <option value="">Max Age (Any)</option>
             {maxAgeOptions.map((a) => (
@@ -195,7 +198,7 @@ export default function CustomersPage() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded"
+            className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded min-w-[120px]"
           >
             <option value="">Status (Any)</option>
             {statusOptions.map((s) => (
@@ -205,21 +208,25 @@ export default function CustomersPage() {
             ))}
           </select>
 
-          {/* Conditional Lost Reason Filter - Only shows when status is 'lost' */}
-          {status === 'lost' && (
-            <select
-              value={lostReason}
-              onChange={(e) => setLostReason(e.target.value)}
-              className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded"
-            >
-              <option value="">Lost Reason (Any)</option>
-              {lostReasonOptions.map((reason) => (
-                <option key={reason} value={reason}>
-                  {reason}
-                </option>
-              ))}
-            </select>
-          )}
+          {/* Always reserve space for Lost Reason Filter to prevent layout shift */}
+          <div className="min-w-[140px]">
+            {status === 'lost' ? (
+              <select
+                value={lostReason}
+                onChange={(e) => setLostReason(e.target.value)}
+                className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded w-full"
+              >
+                <option value="">Lost Reason (Any)</option>
+                {lostReasonOptions.map((reason) => (
+                  <option key={reason} value={reason}>
+                    {reason}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="h-[38px]"></div> // Reserve space when not showing
+            )}
+          </div>
 
           <button
             onClick={() => {
@@ -228,7 +235,7 @@ export default function CustomersPage() {
               setMaxAge('');
               setLostReason('');
             }}
-            className="px-4 py-2 bg-white/10 text-white text-sm rounded hover:bg-white/20 transition-colors"
+            className="px-4 py-2 bg-white/10 text-white text-sm rounded hover:bg-white/20 transition-colors min-w-[100px]"
           >
             Clear Filters
           </button>
@@ -238,7 +245,7 @@ export default function CustomersPage() {
             onClick={exportToCSV}
             disabled={loading || rows.length === 0}
             title="Export to Excel"
-            className="p-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
+            className="p-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded w-[38px] h-[38px] flex items-center justify-center"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
@@ -259,19 +266,22 @@ export default function CustomersPage() {
                 <th className="px-4 py-2">Max Age</th>
                 <th className="px-4 py-2">Payment</th>
                 <th className="px-4 py-2">Budget</th>
-                {status === 'lost' && <th className="px-4 py-2">Lost Reason</th>}
+                {/* Always reserve space for Lost Reason column to prevent layout shift */}
+                <th className={`px-4 py-2 ${status !== 'lost' ? 'text-transparent' : ''}`}>
+                  Lost Reason
+                </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={status === 'lost' ? 8 : 7} className="text-center py-6">
+                  <td colSpan={8} className="text-center py-6">
                     Loading...
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={status === 'lost' ? 8 : 7} className="py-12 text-center text-white/60">
+                  <td colSpan={8} className="py-12 text-center text-white/60">
                     <div className="flex flex-col items-center gap-3">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -318,8 +328,9 @@ export default function CustomersPage() {
                         ? `AED ${r.monthly_budget?.toLocaleString() || 0}/mo`
                         : `AED ${r.total_budget?.toLocaleString() || 0}`}
                     </td>
-                    {status === 'lost' && (
-                      <td className="px-4 py-2">
+                    {/* Always include Lost Reason cell to prevent layout shift */}
+                    <td className={`px-4 py-2 ${status !== 'lost' ? 'text-transparent' : ''}`}>
+                      {status === 'lost' && (
                         <div className="max-w-xs">
                           {r.lost_reason && (
                             <div className="text-xs">
@@ -340,8 +351,11 @@ export default function CustomersPage() {
                             <span className="text-white/40 text-xs">No reason recorded</span>
                           )}
                         </div>
-                      </td>
-                    )}
+                      )}
+                      {status !== 'lost' && (
+                        <div className="h-6"></div> // Reserve space when not showing
+                      )}
+                    </td>
                   </tr>
                 ))
               )}

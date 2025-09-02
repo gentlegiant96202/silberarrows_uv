@@ -1,10 +1,11 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { MessageSquarePlus, ChevronDown, Calendar, User, Ticket } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 import AddTaskModal from '@/components/modules/marketing/AddTaskModal';
 import { MarketingTask } from '@/types/marketing';
+import React from 'react';
 
 interface MarketingTicket {
   id: string;
@@ -18,7 +19,7 @@ interface MarketingTicket {
   created_by?: string;
 }
 
-export default function MarketingTicketsDropdown() {
+function MarketingTicketsDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [tickets, setTickets] = useState<MarketingTicket[]>([]);
@@ -87,7 +88,8 @@ export default function MarketingTicketsDropdown() {
           );
           
           if (isUserRelated) {
-            fetchMyTickets();
+            // Debounce updates to prevent rapid re-renders
+            setTimeout(() => fetchMyTickets(), 100);
           }
         }
       )
@@ -227,7 +229,11 @@ export default function MarketingTicketsDropdown() {
     setIsOpen(!isOpen);
   };
 
-  const pendingCount = tickets.filter(t => ['planned', 'intake', 'in_progress'].includes(t.status)).length;
+  // Memoize pending count to prevent unnecessary re-calculations
+  const pendingCount = useMemo(() => 
+    tickets.filter(t => ['planned', 'intake', 'in_progress'].includes(t.status)).length,
+    [tickets]
+  );
 
   return (
     <>
@@ -375,4 +381,7 @@ export default function MarketingTicketsDropdown() {
       )}
     </>
   );
-} 
+}
+
+// Memoize MarketingTicketsDropdown to prevent unnecessary re-renders
+export default React.memo(MarketingTicketsDropdown); 

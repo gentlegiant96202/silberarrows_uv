@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import Header from '@/components/shared/header/Header';
+
 import RouteProtector from '@/components/shared/RouteProtector';
 import ServiceDataGrid from '@/components/service/ServiceDataGrid';
 import ServiceTargetsManager from '@/components/service/ServiceTargetsManager';
@@ -176,7 +176,7 @@ export default function AccountsDashboard() {
   return (
     <RouteProtector moduleName="accounts">
       <div className="min-h-screen bg-black">
-        <Header activeTab={activeTab} onTabChange={handleTabChange} />
+
         <div className="w-full">
           <div className="w-full px-4 py-4">
             

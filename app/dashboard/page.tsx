@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, useRef } from 'react';
-import Header from '@/components/Header';
+
 import DashboardFilterBar from '@/components/modules/uv-crm/dashboard/DashboardFilterBar';
 import SharedSalesDashboard from '@/components/shared/SalesDashboard';
 import { supabase } from '@/lib/supabaseClient';
@@ -146,6 +146,10 @@ export default function DashboardPage() {
   const [allSalesTargets, setAllSalesTargets] = useState<any[]>([]);
   const hasFetchedInitialData = useRef(false);
 
+  // Progressive loading states for fade-in animations
+  const [salesLoaded, setSalesLoaded] = useState(false);
+  const [showOtherComponents, setShowOtherComponents] = useState(false);
+
   // Trend chart data
   const [trendData, setTrendData] = useState<any[]>([]);
 
@@ -171,11 +175,12 @@ export default function DashboardPage() {
     }
   };
 
-  // Load sales data on component mount
+  // Load sales data on component mount with progressive loading
   useEffect(() => {
     if (!hasFetchedInitialData.current) {
       async function loadSalesData() {
         try {
+          console.log('🚀 Loading sales metrics first...');
           const [salesMetrics, salesTargets] = await Promise.all([
             fetchSalesMetrics(),
             fetchAllSalesTargets()
@@ -183,8 +188,25 @@ export default function DashboardPage() {
           setAllSalesMetrics(salesMetrics);
           setAllSalesTargets(salesTargets);
           hasFetchedInitialData.current = true;
+          
+          // Mark sales as loaded and fade in
+          setTimeout(() => {
+            setSalesLoaded(true);
+            console.log('✅ Sales metrics loaded, showing other components...');
+            
+            // Show other components after sales dashboard fades in
+            setTimeout(() => {
+              setShowOtherComponents(true);
+            }, 300); // Wait for sales fade-in to start
+          }, 100);
+          
         } catch (error) {
           console.error('Error loading sales data:', error);
+          // Still show other components even if sales fails
+          setTimeout(() => {
+            setSalesLoaded(true);
+            setShowOtherComponents(true);
+          }, 500);
         }
       }
 
@@ -241,8 +263,7 @@ export default function DashboardPage() {
   }, [year, months]);
 
   return (
-    <main className="min-h-screen overflow-y-auto no-scrollbar">
-      <Header />
+    <main className="h-full overflow-y-auto no-scrollbar">
       <div className="p-4 text-white text-sm">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Dashboard</h1>
@@ -255,8 +276,12 @@ export default function DashboardPage() {
           </a>
         </div>
         
-        {/* Sales Dashboard Section */}
-        <div className="mb-6">
+        {/* Sales Dashboard Section - Loads First with Fade In */}
+        <div className={`mb-6 transition-all duration-700 ease-out transform ${
+          salesLoaded 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-4'
+        }`}>
           <SharedSalesDashboard 
             metrics={allSalesMetrics} 
             targets={allSalesTargets}
@@ -265,33 +290,39 @@ export default function DashboardPage() {
           />
         </div>
         
-        <DashboardFilterBar />
-        
-        {/* Top row: Lead and Inventory KPIs */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          {/* Left column */}
-          <LeadKPICards year={year} months={months} />
+        {/* Other Components - Load After Sales with Fade In */}
+        <div className={`transition-all duration-700 ease-out transform ${
+          showOtherComponents 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-4'
+        }`}>
+          <DashboardFilterBar />
+          
+          {/* Top row: Lead and Inventory KPIs */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Left column */}
+            <LeadKPICards year={year} months={months} />
 
-          {/* Right column inventory KPI cards */}
-          <InventoryKPICards year={year} months={months} />
-        </div>
-
-        {/* Second row: Stock Age Insights */}
-        <div className="mt-4">
-          <StockAgeInsights year={year} months={months} />
-        </div>
-
-        {/* Location Insights */}
-        <div className="mt-4">
-          <LocationInsights year={year} months={months} />
-        </div>
-
-                {/* Third row: Charts and Analytics */}
-        <div className="grid gap-4 mt-4 lg:grid-cols-2">
-          {/* Cumulative Lead Funnel */}
-          <div className="lg:col-span-1">
-            <CumulativeFunnel />
+            {/* Right column inventory KPI cards */}
+            <InventoryKPICards year={year} months={months} />
           </div>
+
+          {/* Second row: Stock Age Insights */}
+          <div className="mt-4">
+            <StockAgeInsights year={year} months={months} />
+          </div>
+
+          {/* Location Insights */}
+          <div className="mt-4">
+            <LocationInsights year={year} months={months} />
+          </div>
+
+          {/* Third row: Charts and Analytics */}
+          <div className="grid gap-4 mt-4 lg:grid-cols-2">
+            {/* Cumulative Lead Funnel */}
+            <div className="lg:col-span-1">
+              <CumulativeFunnel />
+            </div>
 
           {/* Model Demand Chart */}
           <div className="lg:col-span-1">
@@ -307,6 +338,8 @@ export default function DashboardPage() {
           </div>
           <AcquisitionsTrendChart year={year} months={months} />
         </div>
+        
+        </div> {/* End of Other Components wrapper */}
 
       </div>
     </main>

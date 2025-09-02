@@ -47,17 +47,14 @@ interface ServicePageStats {
 }
 
 export default function ServiceWarrantyContent() {
-  const { role, isLoading: roleLoading } = useUserRole();
   const { user } = useAuth();
   
-  // Use proper CRUD permissions instead of role-based access
+  // Use proper CRUD permissions - remove loading dependencies since RouteProtector handles access
   const { 
     canView, 
     canCreate, 
     canEdit, 
-    canDelete, 
-    isLoading: permissionsLoading,
-    error: permissionsError 
+    canDelete 
   } = useModulePermissions('service');
   
   const [activeTab, setActiveTab] = useState<'service' | 'warranty'>('service');
@@ -122,10 +119,10 @@ export default function ServiceWarrantyContent() {
   };
 
   useEffect(() => {
-    if (canView && !permissionsLoading && user) {
+    if (canView && user) {
       fetchContracts();
     }
-  }, [canView, permissionsLoading, user]);
+  }, [canView, user]);
 
   const handleCreateContract = async (data: ServiceContractData) => {
     // Check create permission
@@ -339,17 +336,9 @@ export default function ServiceWarrantyContent() {
     total: warrantyContracts.length
   };
 
-  // Show loading while role and permissions are being determined
-  if (roleLoading || permissionsLoading) {
-    return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <PulsatingLogo size={48} text="Loading Service & Warranty..." />
-      </div>
-    );
-  }
-
+  // Remove loading screen - RouteProtector handles access control
   // Show permission error if there was an error
-  if (permissionsError) {
+  if (false) { // Disabled - RouteProtector handles this
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center space-y-4">

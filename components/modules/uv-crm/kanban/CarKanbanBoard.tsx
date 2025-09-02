@@ -129,6 +129,9 @@ export default function CarKanbanBoard() {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const hasFetchedCars = useRef(false);
   
+  // Progressive loading state for fade-in animation
+  const [columnsVisible, setColumnsVisible] = useState(false);
+  
   // Inventory filter state
   const [showInventoryFilters, setShowInventoryFilters] = useState(false);
   const [inventoryExpanded, setInventoryExpanded] = useState(false);
@@ -305,7 +308,14 @@ export default function CarKanbanBoard() {
 
   useEffect(() => {
     if (!hasFetchedCars.current) {
-      load();
+      async function loadWithFadeIn() {
+        await load();
+        // Trigger fade-in animation immediately after data loads
+        // RouteProtector handles the main transition timing
+        setColumnsVisible(true);
+        console.log('✅ Inventory: Cars loaded, columns visible');
+      }
+      loadWithFadeIn();
       hasFetchedCars.current = true;
     }
 
@@ -446,29 +456,16 @@ export default function CarKanbanBoard() {
     });
   };
 
-  // Show loading skeleton while data is being fetched
-  if (loading) {
-    return (
-      <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
-        <div className="flex gap-3 pb-4 w-full h-full">
-          {columns
-            .filter(col => showArchived || col.key !== 'archived')
-            .map(col => (
-            <SkeletonColumn 
-              key={col.key} 
-              title={col.title} 
-              isInventory={col.key === 'inventory'}
-              isExpanded={inventoryExpanded && col.key === 'inventory'}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // RouteProtector handles skeleton loading, so we don't need internal skeleton
+  // This prevents double fade-in glitching
 
   return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
-      <div className={`flex gap-3 pb-4 w-full h-full ${inventoryExpanded ? 'overflow-hidden' : ''}`}>
+      <div className={`flex gap-3 pb-4 w-full h-full transition-all duration-700 ease-out transform ${
+        columnsVisible 
+          ? 'opacity-100 translate-y-0' 
+          : 'opacity-0 translate-y-4'
+      } ${inventoryExpanded ? 'overflow-hidden' : ''}`}>
         {columns
           .filter(col => showArchived || col.key !== 'archived')
           .map(col => {

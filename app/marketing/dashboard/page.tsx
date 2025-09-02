@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import Header from '@/components/Header';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+
 import MarketingKanbanBoard from '@/components/modules/marketing/MarketingKanbanBoard';
 import UVCatalogBoard from '@/components/modules/marketing/UVCatalogBoard';
 import CallLogBoard from '@/components/modules/marketing/CallLogBoard';
@@ -9,7 +10,18 @@ import ContentPillarsBoard from '@/components/modules/marketing/ContentPillarsBo
 import RouteProtector from '@/components/shared/RouteProtector';
 
 export default function MarketingDashboard() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('design');
+
+  // Sync with URL search params
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'design';
+    setActiveTab(tabFromUrl);
+  }, [searchParams]);
+  
+  // Pass activeTab to the layout header via URL params or context
+  // For now, we'll handle tab switching internally in this component
 
   const renderContent = () => {
     if (activeTab === 'design') {
@@ -43,9 +55,8 @@ export default function MarketingDashboard() {
 
   return (
     <RouteProtector moduleName="marketing">
-      <div className="min-h-screen bg-black">
-        <Header activeTab={activeTab} onTabChange={setActiveTab} />
-        <div className="flex h-[calc(100vh-72px)]">
+      <div className="h-full bg-black">
+        <div className="flex h-full">
           <div className="flex-1 overflow-auto">
             {renderContent()}
           </div>

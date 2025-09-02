@@ -367,12 +367,22 @@ export default function CarKanbanBoard() {
   };
 
   const loadFullCarData = async (carId: string) => {
-    const { data } = await supabase
-      .from('cars')
-      .select('*')
-      .eq('id', carId)
-      .single();
-    return data;
+    try {
+      console.log('🚗 CarKanbanBoard: Loading full car data for:', carId);
+      const response = await fetch(`/api/car-details/${carId}`);
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        console.error('❌ CarKanbanBoard: Error loading car details:', result.error);
+        return null;
+      }
+      
+      console.log('✅ CarKanbanBoard: Loaded full car data for:', result.car.stock_number);
+      return result.car;
+    } catch (error) {
+      console.error('❌ CarKanbanBoard: Failed to fetch car details:', error);
+      return null;
+    }
   };
 
   // Filter helper functions
@@ -681,7 +691,12 @@ export default function CarKanbanBoard() {
                         onClick={async () => {
                           setSelected(c);
                           const fullData = await loadFullCarData(c.id);
-                          setSelectedCarFull(fullData);
+                          if (fullData) {
+                            setSelectedCarFull(fullData);
+                          } else {
+                            console.error('❌ CarKanbanBoard: Failed to load car details, modal will not open');
+                            setSelected(null);
+                          }
                         }}
                         className={`bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-2 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
                       >
@@ -740,7 +755,12 @@ export default function CarKanbanBoard() {
                       onClick={async () => {
                         setSelected(c);
                         const fullData = await loadFullCarData(c.id);
-                        setSelectedCarFull(fullData);
+                        if (fullData) {
+                          setSelectedCarFull(fullData);
+                        } else {
+                          console.error('❌ CarKanbanBoard: Failed to load car details, modal will not open');
+                          setSelected(null);
+                        }
                       }}
                       className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)} relative`}
                     >

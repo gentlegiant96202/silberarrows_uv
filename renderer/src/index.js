@@ -11,6 +11,9 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 
+// Serve static files from public directory (for SVG files, fonts, etc.)
+app.use(express.static(path.resolve(__dirname, '../public')));
+
 const templatePath = path.resolve(__dirname, '../public/templates/price-drop-template.html');
 const template45Path = path.resolve(__dirname, '../public/templates/price-drop-template-45.html');
 const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
@@ -348,9 +351,97 @@ app.post('/render-html', async (req, res) => {
     await page.setContent(html, { waitUntil: 'networkidle' });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     
+    // Use Google Fonts which load reliably in headless browsers
+    
     // Wait for fonts and images to load
+    console.log('⏳ Waiting for fonts and images to load...');
     await page.evaluate(() => document.fonts && document.fonts.ready);
-    await page.waitForTimeout(2000); // Give extra time for everything to load
+    
+    // Check if images (including SVGs) are loading
+    const imageInfo = await page.evaluate(() => {
+      const images = Array.from(document.querySelectorAll('img'));
+      return images.map(img => ({
+        src: img.src,
+        alt: img.alt,
+        complete: img.complete,
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight
+      }));
+    });
+    console.log('🖼️ Image loading status:', imageInfo);
+    
+    // Check if fonts are loaded
+    const fontInfo = await page.evaluate(() => {
+      const fonts = [];
+      if (document.fonts) {
+        document.fonts.forEach(font => {
+          fonts.push({
+            family: font.family,
+            status: font.status,
+            loaded: font.status === 'loaded'
+          });
+        });
+      }
+      return {
+        totalFonts: fonts.length,
+        loadedFonts: fonts.filter(f => f.loaded).length,
+        resonateFonts: fonts.filter(f => f.family.includes('Resonate')),
+        uaeSymbolFonts: fonts.filter(f => f.family.includes('UAESymbol')),
+        allFonts: fonts
+      };
+    });
+    console.log('🔤 Font loading status:', fontInfo);
+    
+    // Force font loading by applying styles
+    await page.evaluate(() => {
+      // Create a hidden element to force font loading
+      const testElement = document.createElement('div');
+      testElement.style.fontFamily = 'Resonate, Inter, Arial, sans-serif';
+      testElement.style.fontSize = '68px';
+      testElement.style.fontWeight = '900';
+      testElement.style.position = 'absolute';
+      testElement.style.left = '-9999px';
+      testElement.innerHTML = 'Font Loading Test';
+      document.body.appendChild(testElement);
+      
+      // Force layout calculation
+      testElement.offsetHeight;
+      
+      // Remove test element
+      document.body.removeChild(testElement);
+    });
+    
+    // Force load UAESymbol font specifically
+    await page.evaluate(() => {
+      // Create test elements for both Resonate and UAESymbol fonts
+      const resonateTest = document.createElement('div');
+      resonateTest.style.fontFamily = 'Resonate, Inter, Arial, sans-serif';
+      resonateTest.style.fontSize = '68px';
+      resonateTest.style.fontWeight = '900';
+      resonateTest.style.position = 'absolute';
+      resonateTest.style.left = '-9999px';
+      resonateTest.innerHTML = 'Resonate Font Test';
+      document.body.appendChild(resonateTest);
+      
+      const uaeTest = document.createElement('div');
+      uaeTest.style.fontFamily = 'UAESymbol, Arial, sans-serif';
+      uaeTest.style.fontSize = '24px';
+      uaeTest.style.fontWeight = 'bold';
+      uaeTest.style.position = 'absolute';
+      uaeTest.style.left = '-9999px';
+      uaeTest.innerHTML = '&#xea;'; // The Dirham symbol
+      document.body.appendChild(uaeTest);
+      
+      // Force layout calculations
+      resonateTest.offsetHeight;
+      uaeTest.offsetHeight;
+      
+      // Remove test elements
+      document.body.removeChild(resonateTest);
+      document.body.removeChild(uaeTest);
+    });
+    
+    await page.waitForTimeout(7000); // Give extra time for custom fonts to load
     
     console.log('📸 Taking screenshot...');
     const imageBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1920 } });

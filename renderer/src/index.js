@@ -460,6 +460,79 @@ app.post('/render-html', async (req, res) => {
   }
 });
 
+// NEW: PDF generation endpoint (separate from existing functions)
+app.post('/render-car-pdf', async (req, res) => {
+  try {
+    console.log('🚀 PDF render request received');
+    const { html } = req.body;
+    
+    if (!html) {
+      return res.status(400).json({ success: false, error: 'Missing HTML content' });
+    }
+
+    console.log('📄 Starting PDF generation...');
+    console.log('📊 HTML length:', html.length);
+
+    // Launch Playwright for PDF generation
+    console.log('🎭 Launching Playwright for PDF...');
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch({ 
+      headless: true, 
+      args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    });
+    const page = await browser.newPage();
+    console.log('✅ Browser launched for PDF generation');
+
+    // Set content and wait for everything to load
+    console.log('📝 Loading HTML content...');
+    await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
+    
+    // Wait for fonts and images to load
+    console.log('⏳ Waiting for fonts and images to load...');
+    await page.evaluate(() => document.fonts && document.fonts.ready);
+    await page.waitForTimeout(3000); // Give extra time for images
+    console.log('✅ Content loaded, generating PDF...');
+
+    // Generate PDF with proper settings
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { 
+        top: '0.5in', 
+        bottom: '0.5in', 
+        left: '0.5in', 
+        right: '0.5in' 
+      },
+      timeout: 60000 // 60 second timeout for PDF generation
+    });
+
+    await browser.close();
+    console.log('🔒 Browser closed');
+    console.log('✅ PDF generated successfully, size:', Math.round(pdf.length / 1024), 'KB');
+
+    // Return PDF as base64 for upload to Supabase
+    const pdfBase64 = pdf.toString('base64');
+    res.json({ 
+      success: true, 
+      pdf: pdfBase64,
+      stats: {
+        fileSizeKB: Math.round(pdf.length / 1024),
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+  } catch (err) {
+    console.error('❌ PDF render error:', err);
+    console.error('❌ Error stack:', err.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: err instanceof Error ? err.message : 'Unknown error',
+      details: err.stack 
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 

@@ -225,9 +225,6 @@ export async function POST(request: NextRequest) {
                   image-rendering: -webkit-optimize-contrast;
                   image-rendering: optimize-contrast;
                   image-rendering: crisp-edges;
-                  /* Force smaller image dimensions for file size reduction */
-                  max-width: 400px !important;
-                  max-height: 400px !important;
               }
               
               body {
@@ -479,9 +476,6 @@ export async function POST(request: NextRequest) {
                   object-fit: cover;
                   border-radius: 10px;
                   border: none;
-                  /* Aggressive size limits for main images */
-                  max-width: 300px !important;
-                  max-height: 300px !important;
               }
               
               .image-placeholder {
@@ -810,9 +804,6 @@ export async function POST(request: NextRequest) {
                   height: 100%;
                   object-fit: cover;
                   display: block;
-                  /* Aggressive size limits for gallery images */
-                  max-width: 200px !important;
-                  max-height: 200px !important;
               }
           </style>
       </head>
@@ -1044,79 +1035,55 @@ export async function POST(request: NextRequest) {
       </html>
     `;
 
-    // Call PDFShift API with timeout
-    console.log('📄 Generating PDF with Supabase images...');
+        // Call our own renderer service for PDF generation
+    console.log('📄 Generating PDF using our renderer service...');
     console.log('📄 Image count for PDF:', optimizedPhotos.length);
     
-    const controller = new AbortController();
-    // Increase timeout based on image count (5 seconds per image + 15 second base)
-    const timeoutMs = Math.min(120000, 15000 + (optimizedPhotos.length * 5000));
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    console.log(`📄 PDFShift timeout set to ${timeoutMs/1000} seconds for ${optimizedPhotos.length} images`);
+    const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
+    console.log('🔄 Calling renderer service at:', rendererUrl);
     
-    const response = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
+    const controller = new AbortController();
+    const timeoutMs = 120000; // 2 minutes timeout for our own service
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    console.log(`📄 Renderer timeout set to ${timeoutMs/1000} seconds`);
+    
+    const response = await fetch(`${rendererUrl}/render-car-pdf`, {
       method: 'POST',
       headers: {
-        'X-API-Key': process.env.PDFSHIFT_API_KEY,
         'Content-Type': 'application/json',
       },
-              body: JSON.stringify({
-          source: html,
-          landscape: false,
-          use_print: false,
-          // Add PDFShift optimizations from docs
-          lazy_load_images: true, // Load images more efficiently
-          delay: 2000, // Wait 2 seconds for images to load
-          timeout: 45, // PDFShift internal timeout (45 seconds max)
-          sandbox: process.env.NODE_ENV === 'development', // Use sandbox in dev
-          margin: {
-            top: '0.5in',
-            bottom: '0.5in',
-            left: '0.5in',
-            right: '0.5in'
-          }
-        }),
+      body: JSON.stringify({
+        html: html
+      }),
       signal: controller.signal
     });
     
     clearTimeout(timeoutId);
     
-    // Handle PDFShift-specific status codes per documentation
     if (!response.ok) {
       const error = await response.text();
-      
-      // Check rate limiting headers from PDFShift docs
-      const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
-      const rateLimitReset = response.headers.get('X-RateLimit-Reset');
-      
-      console.error('📄 PDFShift Error Response:', {
+      console.error('📄 Renderer Error Response:', {
         status: response.status,
         statusText: response.statusText,
-        rateLimitRemaining,
-        rateLimitReset,
         error: error.slice(0, 500)
       });
       
-      // Handle specific PDFShift error codes from docs
-      switch (response.status) {
-        case 400:
-          return NextResponse.json({ error: 'Invalid request parameters for PDF generation' }, { status: 400 });
-        case 401:
-          return NextResponse.json({ error: 'PDFShift API key is invalid' }, { status: 500 });
-        case 403:
-          return NextResponse.json({ error: 'PDFShift API key is forbidden' }, { status: 500 });
-        case 408:
-          return NextResponse.json({ error: 'PDF generation timed out on PDFShift servers' }, { status: 408 });
-        case 429:
-          return NextResponse.json({ 
-            error: `Rate limit exceeded. Try again in ${rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000).toLocaleTimeString() : 'a few minutes'}` 
-          }, { status: 429 });
-        default:
-          return NextResponse.json({ error: `PDFShift API error (${response.status}): ${error}` }, { status: 500 });
-      }
+      return NextResponse.json({ 
+        error: `Renderer service error (${response.status}): ${error}` 
+      }, { status: 500 });
     }
 
-    const pdfBuffer = await response.arrayBuffer();
+    const renderResult = await response.json();
+    
+    if (!renderResult.success || !renderResult.pdf) {
+      return NextResponse.json({ 
+        error: 'Renderer service returned invalid response',
+        details: renderResult 
+      }, { status: 500 });
+    }
+
+    // Convert base64 PDF back to buffer
+    const pdfBuffer = Buffer.from(renderResult.pdf, 'base64');
     const pdfSizeMB = (pdfBuffer.byteLength / (1024 * 1024)).toFixed(2);
     
     console.log(`📄 PDF Generated:`);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
 const marketingTabs = [
   { key: 'design', title: 'CREATIVE HUB' },
@@ -17,7 +17,7 @@ interface MarketingNavigationProps {
   onTabChange?: (tab: string) => void;
 }
 
-export default function MarketingNavigation({ activeTab: propActiveTab, onTabChange: propOnTabChange }: MarketingNavigationProps = {}) {
+function MarketingNavigationContent({ activeTab: propActiveTab, onTabChange: propOnTabChange }: MarketingNavigationProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -59,5 +59,24 @@ export default function MarketingNavigation({ activeTab: propActiveTab, onTabCha
         </button>
       ))}
     </div>
+  );
+}
+
+export default function MarketingNavigation(props: MarketingNavigationProps = {}) {
+  return (
+    <Suspense fallback={
+      <div className="flex gap-1.5">
+        {marketingTabs.map((tab) => (
+          <div
+            key={tab.key}
+            className="px-4 py-1.5 rounded-full font-medium text-xs md:text-sm bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap text-white/70 animate-pulse"
+          >
+            {tab.title}
+          </div>
+        ))}
+      </div>
+    }>
+      <MarketingNavigationContent {...props} />
+    </Suspense>
   );
 } 

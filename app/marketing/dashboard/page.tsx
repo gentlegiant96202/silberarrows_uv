@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 import MarketingKanbanBoard from '@/components/modules/marketing/MarketingKanbanBoard';
@@ -9,7 +9,7 @@ import CallLogBoard from '@/components/modules/marketing/CallLogBoard';
 import ContentPillarsBoard from '@/components/modules/marketing/ContentPillarsBoard';
 import RouteProtector from '@/components/shared/RouteProtector';
 
-export default function MarketingDashboard() {
+function MarketingDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('design');
@@ -54,14 +54,26 @@ export default function MarketingDashboard() {
   };
 
   return (
-    <RouteProtector moduleName="marketing">
-      <div className="h-full bg-black">
-        <div className="flex h-full">
-          <div className="flex-1 overflow-auto">
-            {renderContent()}
-          </div>
+    <div className="h-full bg-black">
+      <div className="flex h-full">
+        <div className="flex-1 overflow-auto">
+          {renderContent()}
         </div>
       </div>
+    </div>
+  );
+}
+
+export default function MarketingDashboard() {
+  return (
+    <RouteProtector moduleName="marketing">
+      <Suspense fallback={
+        <div className="h-full bg-black flex items-center justify-center">
+          <div className="text-white">Loading...</div>
+        </div>
+      }>
+        <MarketingDashboardContent />
+      </Suspense>
     </RouteProtector>
   );
 } 

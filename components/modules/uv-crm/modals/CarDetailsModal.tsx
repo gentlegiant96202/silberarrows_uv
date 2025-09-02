@@ -182,22 +182,32 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const refetchMedia = async () => {
     setMediaLoading(true);
     try {
-      console.log('🖼️ CarDetailsModal: Loading media via admin API for car:', car.id);
-      const response = await fetch(`/api/car-media/${car.id}`);
-      const result = await response.json();
+      const { data, error } = await supabase
+        .from('car_media')
+        .select('*')
+        .eq('car_id', car.id)
+        .order('sort_order', { ascending: true })
+        .order('created_at');
       
-      if (!response.ok || !result.success) {
-        console.error('❌ CarDetailsModal: Error fetching media:', result.error);
+      if (error) {
+        console.error('Supabase error fetching media:', error);
         setMedia([]);
       } else {
-        const data = result.media || [];
-        console.log('✅ CarDetailsModal: Fetched media for car:', car.id, 'Count:', data.length);
-        const primaryPhoto = data.find((m: any) => m.kind === 'photo' && m.is_primary);
+        // Fix storage URLs for custom domain
+        const fixedData = data?.map(m => ({
+          ...m,
+          url: m.url && m.url.includes('.supabase.co/storage/') 
+            ? `/api/storage-proxy?url=${encodeURIComponent(m.url)}`
+            : m.url
+        })) || [];
+        
+        console.log('Fetched media for car:', car.id, 'Count:', fixedData.length);
+        const primaryPhoto = fixedData.find(m => m.kind === 'photo' && m.is_primary);
         console.log('🎯 Primary photo found:', primaryPhoto ? 'Yes' : 'No', primaryPhoto?.id);
-        setMedia(data);
+        setMedia(fixedData);
       }
     } catch (error) {
-      console.error('❌ CarDetailsModal: Failed to refetch media:', error);
+      console.error('Failed to refetch media:', error);
       setMedia([]);
     } finally {
       setMediaLoading(false);

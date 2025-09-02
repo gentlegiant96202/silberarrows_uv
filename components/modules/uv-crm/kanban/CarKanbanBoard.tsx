@@ -165,24 +165,35 @@ export default function CarKanbanBoard() {
 
   const load = async () => {
     try {
-      console.log('🚗 CarKanbanBoard: Loading cars via admin API...');
-      const response = await fetch('/api/cars-admin');
-      const result = await response.json();
-      
-      if (!response.ok || !result.success) {
-        console.error('❌ CarKanbanBoard: Error loading cars:', result.error);
-        setCars([]);
-        setThumbs({});
-      } else {
-        const carRows = (result.cars || []) as Car[];
-        console.log('✅ CarKanbanBoard: Loaded', carRows.length, 'cars');
-        setCars(carRows);
-        setThumbs(result.thumbnails || {});
+      console.log('🚗 CarKanbanBoard: Loading cars with proper permissions...');
+      const { data } = await supabase
+        .from('cars')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      const carRows = (data as any[] || []) as Car[];
+      setCars(carRows);
+
+      // fetch primary thumbnails for these cars
+      const ids = carRows.map(c=>c.id);
+      if(ids.length){
+        const { data: mediaRows } = await supabase
+          .from('car_media')
+          .select('car_id,url')
+          .eq('is_primary', true)
+          .eq('kind', 'photo')
+          .in('car_id', ids);
+        const map: Record<string,string> = {};
+        (mediaRows||[]).forEach((m:any)=>{ 
+          // Use storage proxy for images
+          let imageUrl = m.url;
+          if (imageUrl && imageUrl.includes('.supabase.co/storage/')) {
+            imageUrl = `/api/storage-proxy?url=${encodeURIComponent(m.url)}`;
+          }
+          map[m.car_id] = imageUrl; 
+        });
+        console.log('🖼️ CarKanbanBoard: Loaded', mediaRows?.length || 0, 'primary thumbnails');
+        setThumbs(map);
       }
-    } catch (error) {
-      console.error('❌ CarKanbanBoard: Failed to fetch cars:', error);
-      setCars([]);
-      setThumbs({});
     } finally {
       setLoading(false);
     }
@@ -367,22 +378,12 @@ export default function CarKanbanBoard() {
   };
 
   const loadFullCarData = async (carId: string) => {
-    try {
-      console.log('🚗 CarKanbanBoard: Loading full car data for:', carId);
-      const response = await fetch(`/api/car-details/${carId}`);
-      const result = await response.json();
-      
-      if (!response.ok || !result.success) {
-        console.error('❌ CarKanbanBoard: Error loading car details:', result.error);
-        return null;
-      }
-      
-      console.log('✅ CarKanbanBoard: Loaded full car data for:', result.car.stock_number);
-      return result.car;
-    } catch (error) {
-      console.error('❌ CarKanbanBoard: Failed to fetch car details:', error);
-      return null;
-    }
+    const { data } = await supabase
+      .from('cars')
+      .select('*')
+      .eq('id', carId)
+      .single();
+    return data;
   };
 
   // Filter helper functions

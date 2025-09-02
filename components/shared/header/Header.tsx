@@ -10,9 +10,11 @@ import FinanceCalculator from './modules/uv-crm/FinanceCalculator';
 import MarketingNavigation from './modules/marketing/MarketingNavigation';
 import AccountsNavigation from './modules/accounts/AccountsNavigation';
 import WorkshopNavigation from './modules/workshop/WorkshopNavigation';
-import ModuleSwitcher from '@/components/shared/ModuleSwitcher';
+
 import MarketingTicketsDropdown from '@/components/shared/MarketingTicketsDropdown';
 import { useUserRole } from '@/lib/useUserRole';
+
+
 
 interface HeaderProps {
   activeTab?: string;
@@ -21,7 +23,7 @@ interface HeaderProps {
 
 export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
   const pathname = usePathname();
-  const { role } = useUserRole();
+  // Remove role loading dependency - header renders immediately
   
   // Check if we're on the module selection page
   const isModuleSelectionPage = pathname === '/module-selection';
@@ -45,54 +47,80 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
           {/* Logo - Universal */}
           <Logo />
           
-          {/* Module-specific Navigation & Search */}
-          <div className="flex-1 flex items-center space-x-4 min-w-fit">
+          {/* Module-specific Navigation & Search - Fixed height container to prevent layout shifts */}
+          <div className="flex-1 flex items-center space-x-4 min-w-fit min-h-[40px]">
             {/* Module-specific navigation - Hide on module selection page */}
             {!isModuleSelectionPage && (
               <>
-                {currentModule === 'uv-crm' && <CRMNavigation />}
-                {currentModule === 'workshop' && activeTab && onTabChange && (
-                  <WorkshopNavigation activeTab={activeTab} onTabChange={onTabChange} />
-                )}
-                {currentModule === 'workshop' && (!activeTab || !onTabChange) && (
-                  <WorkshopNavigation activeTab="dashboard" onTabChange={() => {}} />
-                )}
-                {currentModule === 'marketing' && activeTab && onTabChange && (
-                  <MarketingNavigation activeTab={activeTab} onTabChange={onTabChange} />
-                )}
-                {currentModule === 'marketing' && (!activeTab || !onTabChange) && (
-                  <MarketingNavigation activeTab="design" onTabChange={() => {}} />
-                )}
-                {currentModule === 'leasing' && (
-                  <div className="text-white/60 text-sm">Leasing Navigation Coming Soon</div>
-                )}
-                {currentModule === 'accounts' && activeTab && onTabChange && (
-                  <AccountsNavigation activeTab={activeTab} onTabChange={onTabChange} />
-                )}
-                {currentModule === 'accounts' && (!activeTab || !onTabChange) && (
-                  <AccountsNavigation activeTab="service" onTabChange={() => {}} />
-                )}
+                {/* Static navigation - renders immediately based on current path */}
+                <div className="max-w-[805px] min-h-[36px] flex items-center overflow-hidden">
+                  {currentModule === 'uv-crm' && <CRMNavigation />}
+                  {currentModule === 'workshop' && activeTab && onTabChange && (
+                    <WorkshopNavigation activeTab={activeTab} onTabChange={onTabChange} />
+                  )}
+                  {currentModule === 'workshop' && (!activeTab || !onTabChange) && (
+                    <WorkshopNavigation activeTab="dashboard" onTabChange={() => {}} />
+                  )}
+                  {currentModule === 'marketing' && activeTab && onTabChange && (
+                    <MarketingNavigation activeTab={activeTab} onTabChange={onTabChange} />
+                  )}
+                  {currentModule === 'marketing' && (!activeTab || !onTabChange) && (
+                    <MarketingNavigation activeTab="design" onTabChange={() => {}} />
+                  )}
+                  {currentModule === 'leasing' && (
+                    <div className="text-white/60 text-sm">Leasing Navigation Coming Soon</div>
+                  )}
+                  {currentModule === 'accounts' && activeTab && onTabChange && (
+                    <AccountsNavigation activeTab={activeTab} onTabChange={onTabChange} />
+                  )}
+                  {currentModule === 'accounts' && (!activeTab || !onTabChange) && (
+                    <AccountsNavigation activeTab="service" onTabChange={() => {}} />
+                  )}
+                </div>
               </>
             )}
 
-            {/* Search Bar - Hide on module selection page */}
-            {!isModuleSelectionPage && <SearchBar />}
           </div>
 
-          {/* Right Side Components */}
-          <div className="flex items-center space-x-4">
-            {/* Marketing Tickets Dropdown - Hide on module selection page and for marketing department users */}
-            {!isModuleSelectionPage && role !== 'marketing' && <MarketingTicketsDropdown />}
+          {/* Search Bar - Moved closer to right side for better spacing */}
+          {!isModuleSelectionPage && (
+            <div className="min-h-[32px] flex items-center mr-2">
+              <SearchBar />
+            </div>
+          )}
+
+          {/* Right Side Components - Fixed height container to prevent layout shifts */}
+          <div className="flex items-center space-x-4 min-h-[40px]">
+            {/* Marketing Tickets Dropdown - Always render, let component handle permissions */}
+            {!isModuleSelectionPage && (
+              <div className="min-h-[32px] flex items-center">
+                <MarketingTicketsDropdown />
+              </div>
+            )}
             
-            {/* Finance Calculator for CRM module only - Hide on module selection page */}
-            {!isModuleSelectionPage && currentModule === 'uv-crm' && <FinanceCalculator />}
+            {/* Finance Calculator for CRM module only - Always render when in CRM */}
+            {!isModuleSelectionPage && currentModule === 'uv-crm' && (
+              <div className="min-h-[32px] flex items-center">
+                <FinanceCalculator />
+              </div>
+            )}
             
-            <WeatherClock />
-            <MusicPlayer />
+            {/* Weather & Clock - Universal - Fixed height */}
+            <div className="min-h-[32px] flex items-center">
+              <WeatherClock />
+            </div>
             
-            {/* Module Switcher - Right next to profile - Hide on module selection page */}
-            {!isModuleSelectionPage && <ModuleSwitcher />}
-            <ProfileDropdown />
+            {/* Music Player - Universal - Fixed height */}
+            <div className="min-h-[32px] flex items-center">
+              <MusicPlayer />
+            </div>
+            
+
+            
+            {/* Profile - Universal - Fixed height */}
+            <div className="min-h-[32px] flex items-center">
+              <ProfileDropdown />
+            </div>
           </div>
         </div>
       </div>

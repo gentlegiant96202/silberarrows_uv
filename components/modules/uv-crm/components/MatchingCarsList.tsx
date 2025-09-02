@@ -22,7 +22,7 @@ export default function MatchingCarsList({ model }: { model: string }) {
     setLoading(true);
 
     const fetchCars = async () => {
-      // Simple filter by model_family - much cleaner than text matching
+      // Simple filter by model_family with proper permissions
       const { data, error } = await supabase
       .from('cars')
       .select('*')
@@ -38,7 +38,7 @@ export default function MatchingCarsList({ model }: { model: string }) {
       } else {
         setCars(data ?? []);
 
-        // fetch thumbs
+        // fetch thumbs with storage proxy
         const ids = (data ?? []).map(c=>c.id);
         if(ids.length){
           const { data: mediaRows } = await supabase
@@ -48,7 +48,13 @@ export default function MatchingCarsList({ model }: { model: string }) {
             .eq('kind','photo')
             .in('car_id', ids);
           const map:Record<string,string> = {};
-          (mediaRows||[]).forEach((m:any)=>{ map[m.car_id]=m.url; });
+          (mediaRows||[]).forEach((m:any)=>{ 
+            let imageUrl = m.url;
+            if (imageUrl && imageUrl.includes('.supabase.co/storage/')) {
+              imageUrl = `/api/storage-proxy?url=${encodeURIComponent(m.url)}`;
+            }
+            map[m.car_id] = imageUrl;
+          });
           setThumbs(map);
         }
       }

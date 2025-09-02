@@ -174,13 +174,19 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
 
   useEffect(()=>{
     async function loadCars(){
-              const { data } = await supabase.from('cars').select('id,stock_number,model_year,vehicle_model,advertised_price_aed,colour').eq('status','inventory').eq('sale_status','available').order('advertised_price_aed', { ascending: true });
+      const { data } = await supabase.from('cars').select('id,stock_number,model_year,vehicle_model,advertised_price_aed,colour').eq('status','inventory').eq('sale_status','available').order('advertised_price_aed', { ascending: true });
       setInventoryCars(data as any[]||[]);
       const ids = (data||[]).map((c:any)=>c.id);
       if(ids.length){
         const { data: mediaRows } = await supabase.from('car_media').select('car_id,url').eq('is_primary',true).eq('kind','photo').in('car_id',ids);
         const map:Record<string,string> = {};
-        (mediaRows||[]).forEach((m:any)=>{ map[m.car_id]=m.url; });
+        (mediaRows||[]).forEach((m:any)=>{ 
+          let imageUrl = m.url;
+          if (imageUrl && imageUrl.includes('.supabase.co/storage/')) {
+            imageUrl = `/api/storage-proxy?url=${encodeURIComponent(m.url)}`;
+          }
+          map[m.car_id] = imageUrl;
+        });
         setThumbs(map);
       }
     }

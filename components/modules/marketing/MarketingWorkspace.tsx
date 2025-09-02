@@ -334,7 +334,9 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
       <div 
         className="w-full h-full flex items-center justify-center"
         style={{
-                      transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
+          transform: mediaType === 'video' && !isVideoPlaying 
+            ? 'scale(1) translate(0px, 0px)'  // Reset transform when video paused
+            : `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
           transformOrigin: 'center center',
           transition: isDragging ? 'none' : 'transform 0.1s ease'
         }}
@@ -364,6 +366,9 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               willChange: 'transform',
               transform: 'translate3d(0,0,0)'
             }}
+            onPlay={() => setIsVideoPlaying(true)}
+            onPause={() => setIsVideoPlaying(false)}
+            onEnded={() => setIsVideoPlaying(false)}
           />
         )}
 
@@ -381,7 +386,9 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
       <div
         className="absolute inset-0"
         style={{
-          transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
+          transform: mediaType === 'video' && !isVideoPlaying 
+            ? 'scale(1) translate(0px, 0px)'  // Reset transform when video paused
+            : `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
           transformOrigin: 'center center',
           transition: isDragging ? 'none' : 'transform 0.1s ease',
           pointerEvents: isAnnotationMode ? 'auto' : 'none'
@@ -1589,12 +1596,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                     onEnded={() => setIsVideoPlaying(false)}
                   />
                   
-                  {/* Performance mode notice */}
-                  {!isVideoPlaying && (
-                    <div className="absolute top-4 left-4 bg-blue-500/25 backdrop-blur-sm border border-blue-500/40 text-blue-300 px-3 py-1 rounded-lg text-xs font-medium shadow-lg ring-1 ring-blue-500/20">
-                      Video Mode - Zoom/Pan disabled for performance
-                    </div>
-                  )}
+
                   
                   {/* Annotation overlay for videos - positioned absolutely */}
                   {(isAnnotationMode || selectedAnnotationId) && !isVideoPlaying && (
@@ -1960,13 +1962,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                          fileName.match(/\.(mp4|mov|avi|webm|mkv)$/i) :
                          (currentFile as any)?.type?.startsWith('video/') || fileName.match(/\.(mp4|mov|avi|webm|mkv)$/i);
                       
-                      if (isCurrentVideo) {
-                        return (
-                          <div className="text-xs text-white/50 italic">
-                            Zoom/Pan disabled for video performance
-                          </div>
-                        );
-                      }
+                      // Removed the "Zoom/Pan disabled" message for videos
                       
                       return (
                         <div className="flex items-center gap-1">

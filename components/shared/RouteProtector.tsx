@@ -199,13 +199,10 @@ export default function RouteProtector({
     // Wait for both user authentication and permissions to load
     if (!isLoading && user) {
       setHasInitialized(true);
-      
-      // Only redirect after we're sure permissions have been checked
-      if (!canView) {
-        router.push(redirectTo);
-      }
+      // Don't redirect - just show access denied screen
+      // This prevents the constant reloading issue
     }
-  }, [canView, isLoading, user, router, redirectTo]);
+  }, [canView, isLoading, user]);
 
   // Show skeleton loading while checking authentication and permissions
   if (!hasInitialized || isLoading || !user) {
@@ -230,12 +227,14 @@ export default function RouteProtector({
           <p className="text-white/70 mb-6">
             You don't have permission to access the {moduleName.replace('_', ' ')} module.
           </p>
-          <button
-            onClick={() => router.push('/')}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors"
-          >
-            Return to Dashboard
-          </button>
+          <div className="flex justify-center">
+            <button
+              onClick={() => window.history.back()}
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors"
+            >
+              Back
+            </button>
+          </div>
         </div>
       </div>
     );

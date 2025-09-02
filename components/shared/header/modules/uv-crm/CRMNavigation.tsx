@@ -8,24 +8,25 @@ export default function CRMNavigation() {
   const pathname = usePathname();
   const { role, isLoading: roleLoading } = useUserRole();
   
-  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'CRM' | 'CUSTOMERS' | 'INVENTORY' | 'CONSIGNMENTS' | 'SERVICE'>('DASHBOARD');
-
-  useEffect(() => {
-    if (!pathname) return;
-    if (pathname === '/dashboard') setActiveTab('DASHBOARD');
-    else if (pathname === '/crm') setActiveTab('CRM');
-    else if (pathname.startsWith('/customers')) setActiveTab('CUSTOMERS');
-    else if (pathname.startsWith('/inventory')) setActiveTab('INVENTORY');
-    else if (pathname.startsWith('/consignments')) setActiveTab('CONSIGNMENTS');
-    else if (pathname.startsWith('/service')) setActiveTab('SERVICE');
-    else setActiveTab('DASHBOARD'); // Default fallback
-  }, [pathname]);
+  // Determine active tab directly from pathname to prevent brief highlights
+  const getActiveTab = () => {
+    if (!pathname) return 'DASHBOARD';
+    if (pathname === '/dashboard') return 'DASHBOARD';
+    if (pathname === '/crm') return 'CRM';
+    if (pathname.startsWith('/customers')) return 'CUSTOMERS';
+    if (pathname.startsWith('/inventory')) return 'INVENTORY';
+    if (pathname.startsWith('/consignments')) return 'CONSIGNMENTS';
+    if (pathname.startsWith('/service')) return 'SERVICE';
+    return 'DASHBOARD'; // Default fallback
+  };
+  
+  const activeTab = getActiveTab();
 
   return (
-    <div className="flex gap-1.5 min-w-fit">
+    <div className="flex gap-1 min-w-fit">
       <button
         onClick={() => routerHook.push('/dashboard')}
-        className={`px-4 py-1.5 rounded-full font-medium text-xs md:text-sm transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
+        className={`px-3 py-1.5 rounded-full font-medium text-xs transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
           activeTab === 'DASHBOARD'
             ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg border-gray-300'
             : 'text-white/70 hover:text-white hover:bg-black/60'
@@ -35,7 +36,7 @@ export default function CRMNavigation() {
       </button>
       <button
         onClick={() => routerHook.push('/crm')}
-        className={`px-4 py-1.5 rounded-full font-medium text-xs md:text-sm transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
+        className={`px-3 py-1.5 rounded-full font-medium text-xs transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
           activeTab === 'CRM'
             ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg border-gray-300'
             : 'text-white/70 hover:text-white hover:bg-black/60'
@@ -45,7 +46,7 @@ export default function CRMNavigation() {
       </button>
       <button
         onClick={() => routerHook.push('/customers')}
-        className={`px-4 py-1.5 rounded-full font-medium text-xs md:text-sm transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
+        className={`px-3 py-1.5 rounded-full font-medium text-xs transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
           activeTab === 'CUSTOMERS'
             ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg border-gray-300'
             : 'text-white/70 hover:text-white hover:bg-black/60'
@@ -55,7 +56,7 @@ export default function CRMNavigation() {
       </button>
       <button
         onClick={() => routerHook.push('/inventory')}
-        className={`px-4 py-1.5 rounded-full font-medium text-xs md:text-sm transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
+        className={`px-3 py-1.5 rounded-full font-medium text-xs transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
           activeTab === 'INVENTORY'
             ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg border-gray-300'
             : 'text-white/70 hover:text-white hover:bg-black/60'
@@ -65,7 +66,7 @@ export default function CRMNavigation() {
       </button>
       <button
         onClick={() => routerHook.push('/consignments')}
-        className={`px-4 py-1.5 rounded-full font-medium text-xs md:text-sm transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
+        className={`px-3 py-1.5 rounded-full font-medium text-xs transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
           activeTab === 'CONSIGNMENTS'
             ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg border-gray-300'
             : 'text-white/70 hover:text-white hover:bg-black/60'
@@ -77,7 +78,7 @@ export default function CRMNavigation() {
       {/* SERVICE & WARRANTY - Permission checking handled at page level */}
       <button
         onClick={() => routerHook.push('/service')}
-        className={`px-4 py-1.5 rounded-full font-medium text-xs md:text-sm transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
+        className={`px-3 py-1.5 rounded-full font-medium text-xs transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
           activeTab === 'SERVICE'
             ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg border-gray-300'
             : 'text-white/70 hover:text-white hover:bg-black/60'

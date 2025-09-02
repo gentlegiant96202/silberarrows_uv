@@ -62,6 +62,10 @@ export default function ModuleSwitcher() {
     return permission && typeof permission === 'object' && permission.canView;
   });
   
+  // Always render the switcher with static structure - handle permissions internally
+  // If still loading permissions, show all modules but disable them
+  const modulesToShow = allPermissions.isLoading ? allModules : allowedModules;
+  
   // Determine current module based on path
   const getCurrentModule = () => {
     if (pathname.startsWith('/workshop')) return 'workshop';
@@ -73,7 +77,7 @@ export default function ModuleSwitcher() {
   };
   
   const currentModuleId = getCurrentModule();
-  const currentModule = allowedModules.find(m => m.id === currentModuleId) || allowedModules[0];
+  const currentModule = modulesToShow.find(m => m.id === currentModuleId) || modulesToShow[0];
   
   const [isOpen, setIsOpen] = useState(false);
 
@@ -86,20 +90,15 @@ export default function ModuleSwitcher() {
     
     router.push(targetPath);
   };
-
-  // Show loading state while permissions are being fetched
-  if (allPermissions.isLoading) {
+  
+  // If no modules are allowed after loading, show disabled state
+  if (!allPermissions.isLoading && allowedModules.length === 0) {
     return (
-      <div className="flex items-center space-x-2 text-white/60">
-        <PulsatingLogo size={16} showText={false} />
-        <span className="text-sm">Loading modules...</span>
+      <div className="flex items-center space-x-2 w-[140px] h-[36px] opacity-50">
+        <div className="w-4 h-4 text-white/40">🔒</div>
+        <span className="text-sm text-white/40">No Access</span>
       </div>
     );
-  }
-
-  // If no modules are allowed, don't render the switcher
-  if (allowedModules.length === 0) {
-    return null;
   }
 
   return (
@@ -135,16 +134,22 @@ export default function ModuleSwitcher() {
             <p className="text-white/70 text-sm mb-3">Business Modules</p>
             
             <div className="space-y-2">
-              {allowedModules.map((module) => {
+              {allModules.map((module) => {
+                const permission = allPermissions[module.id as keyof typeof allPermissions];
+                const hasAccess = permission && typeof permission === 'object' && permission.canView;
+                const isDisabled = !allPermissions.isLoading && !hasAccess;
                 const IconComponent = module.icon;
                 return (
                   <button
                     key={module.id}
-                    onClick={() => handleModuleSwitch(module)}
+                    onClick={() => !isDisabled && handleModuleSwitch(module)}
+                    disabled={isDisabled}
                     className={`w-full flex items-start p-3 rounded-lg transition-colors text-left ${
-                      module.id === currentModuleId
-                        ? 'bg-white/20 text-white'
-                        : 'hover:bg-white/10 text-white/80'
+                      isDisabled 
+                        ? 'opacity-50 cursor-not-allowed bg-white/5 text-white/40'
+                        : module.id === currentModuleId
+                          ? 'bg-white/20 text-white'
+                          : 'hover:bg-white/10 text-white/80'
                     }`}
                   >
                     {/* Silver Gradient Icon */}

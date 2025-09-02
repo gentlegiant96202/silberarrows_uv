@@ -345,7 +345,7 @@ export default function ServiceWarrantyContent() {
           <AlertCircle className="h-16 w-16 text-yellow-500 mx-auto" />
           <h2 className="text-2xl font-bold text-white">Permission Error</h2>
           <p className="text-gray-400 max-w-md">
-            Unable to verify permissions for the Service & Warranty module: {permissionsError}
+            Unable to verify permissions for the Service & Warranty module.
           </p>
           <button
             onClick={() => window.location.reload()}

@@ -9,6 +9,17 @@ import { useSalesData } from '@/lib/useSalesData';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 
+// TypeScript interface for car data
+interface CarData {
+  ownership_type: string;
+  sale_status: string;
+  status: string;
+  created_at: string;
+  stock_age_days?: number | null;
+  advertised_price_aed?: number;
+  stock_number?: string;
+}
+
 // Simple Cumulative Funnel Component
 function CumulativeFunnel() {
   const STAGES = [
@@ -457,31 +468,31 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
         // Fetch cars data via admin API to bypass RLS
         const response = await fetch('/api/cars-admin');
         const result = await response.json();
-        const allCars = result.success ? result.cars.filter((c: any) => c.status === 'inventory') : [] as any[];
+        const allCars = result.success ? result.cars.filter((c: any) => c.status === 'inventory') as CarData[] : [] as CarData[];
 
         if (allCars) {
           // Current inventory breakdown
-          const stockCars = allCars.filter(c => 
+          const stockCars = allCars.filter((c: CarData) => 
             c.ownership_type === 'stock' && c.sale_status === 'available'
           ).length;
           
-          const consignmentCars = allCars.filter(c => 
+          const consignmentCars = allCars.filter((c: CarData) => 
             c.ownership_type === 'consignment' && c.sale_status === 'available'
           ).length;
           
-          const stockReserved = allCars.filter(c => 
+          const stockReserved = allCars.filter((c: CarData) => 
             c.ownership_type === 'stock' && c.sale_status === 'reserved'
           ).length;
           
-          const consignmentReserved = allCars.filter(c => 
+          const consignmentReserved = allCars.filter((c: CarData) => 
             c.ownership_type === 'consignment' && c.sale_status === 'reserved'
           ).length;
 
           // Total cars - only counting inventory status cars that are available
-          const totalCars = allCars.filter(c => c.sale_status === 'available').length;
+          const totalCars = allCars.filter((c: CarData) => c.sale_status === 'available').length;
 
           // Cars bought/added in selected period (only available ones)
-          const stockBoughtPeriod = allCars.filter(c => {
+          const stockBoughtPeriod = allCars.filter((c: CarData) => {
             if (c.ownership_type === 'stock' && c.sale_status === 'available' && c.created_at) {
               const addedDate = new Date(c.created_at);
               return addedDate >= from && addedDate <= to;
@@ -489,7 +500,7 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
             return false;
           }).length;
 
-          const consignmentBoughtPeriod = allCars.filter(c => {
+          const consignmentBoughtPeriod = allCars.filter((c: CarData) => {
             if (c.ownership_type === 'consignment' && c.sale_status === 'available' && c.created_at) {
               const addedDate = new Date(c.created_at);
               return addedDate >= from && addedDate <= to;
@@ -577,7 +588,7 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
             c.status === 'inventory' && 
             c.sale_status === 'available' && 
             c.stock_age_days !== null
-          ) : [];
+          ) as CarData[] : [] as CarData[];
         const error = result.success ? null : result.error;
 
         if (error) {
@@ -587,16 +598,16 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
 
         if (cars) {
           // Separate by ownership type
-          const stockCars = cars.filter(c => c.ownership_type === 'stock');
-          const consignmentCars = cars.filter(c => c.ownership_type === 'consignment');
+          const stockCars = cars.filter((c: CarData) => c.ownership_type === 'stock');
+          const consignmentCars = cars.filter((c: CarData) => c.ownership_type === 'consignment');
 
           // Calculate averages
           const stockAvgAge = stockCars.length > 0 
-            ? Math.round(stockCars.reduce((sum, car) => sum + (car.stock_age_days || 0), 0) / stockCars.length)
+            ? Math.round(stockCars.reduce((sum: number, car: CarData) => sum + (car.stock_age_days || 0), 0) / stockCars.length)
             : 0;
           
           const consignmentAvgAge = consignmentCars.length > 0 
-            ? Math.round(consignmentCars.reduce((sum, car) => sum + (car.stock_age_days || 0), 0) / consignmentCars.length)
+            ? Math.round(consignmentCars.reduce((sum: number, car: CarData) => sum + (car.stock_age_days || 0), 0) / consignmentCars.length)
             : 0;
 
           // Categorize by age ranges
@@ -788,7 +799,7 @@ const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year,
             c.ownership_type === 'stock' &&
             c.created_at >= `${year}-01-01` &&
             c.created_at <= `${year}-12-31T23:59:59`
-          ) : [];
+          ) as CarData[] : [] as CarData[];
         const error = result.success ? null : result.error;
 
         if (error) {
@@ -896,7 +907,7 @@ const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = (
             c.ownership_type === 'consignment' &&
             c.created_at >= `${year}-01-01` &&
             c.created_at <= `${year}-12-31T23:59:59`
-          ) : [];
+          ) as CarData[] : [] as CarData[];
         const error = result.success ? null : result.error;
 
         if (error) {

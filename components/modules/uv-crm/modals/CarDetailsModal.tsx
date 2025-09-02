@@ -125,15 +125,23 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [mediaLoading, setMediaLoading] = useState(false);
   const [reorderLoading, setReorderLoading] = useState(false);
   
-  // Function to get original full-resolution image URL
+  // Function to get original full-resolution image URL (avoid proxy for fullscreen)
   const getOriginalImageUrl = (url: string) => {
-    // Remove any Supabase transformations that might crop the image
-    if (url.includes('supabase')) {
-      // Remove any transform parameters to get original
-      const baseUrl = url.split('?')[0];
-      return baseUrl;
+    try {
+      // If this is a proxied URL, extract the original Supabase URL
+      if (url.startsWith('/api/storage-proxy?url=')) {
+        const qs = url.split('?')[1] || '';
+        const original = new URLSearchParams(qs).get('url') || url;
+        return original.split('?')[0];
+      }
+      // If already a direct Supabase URL, strip any transforms/queries
+      if (url.includes('.supabase.co')) {
+        return url.split('?')[0];
+      }
+      return url;
+    } catch {
+      return url;
     }
-    return url;
   };
 
   // Mercedes-Benz models from appointment modal
@@ -507,8 +515,17 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       });
       
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate PDF');
+        let message = 'Failed to generate PDF';
+        try {
+          const errJson = await response.json();
+          message = errJson?.error || JSON.stringify(errJson);
+        } catch {
+          try {
+            message = await response.text();
+          } catch {}
+        }
+        setStatusMsg(message);
+        throw new Error(message);
       }
       
       setStatusMsg('Generating PDF...');

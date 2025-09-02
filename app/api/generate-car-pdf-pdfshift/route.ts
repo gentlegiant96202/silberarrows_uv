@@ -67,100 +67,132 @@ function generatePaymentOptionsHTML(car: any): string {
   </div>`;
 }
 
-// Actual image optimization - resize and compress images before PDF generation
-async function optimizeImageForPdf(imageUrl: string): Promise<string> {
-  try {
-    console.log('🔍 Optimizing image:', imageUrl);
-    
-    // Fetch the original image
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      console.warn('Failed to fetch image, using original');
-      return imageUrl;
-    }
-    
-    // Check if we're in a serverless environment (Vercel)
-    const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME;
-    
-    if (isServerless) {
-      // In serverless environments, skip canvas processing and return original URL
-      console.log('📦 Serverless environment detected, skipping canvas optimization');
-      return imageUrl;
-    }
-    
-    const imageBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(imageBuffer);
-    
+// Simple function to convert proxy URLs back to original Supabase URLs
+function getOriginalImageUrl(imageUrl: string): string {
+  // If it's a storage proxy URL, extract the original URL
+  if (imageUrl.startsWith('/api/storage-proxy?url=')) {
     try {
-      // Check if canvas module is available before importing
-      let createCanvas: any, loadImage: any;
-      try {
-        // Use require instead of import to avoid TypeScript resolution issues
-        const canvasModule = eval('require')('canvas');
-        createCanvas = canvasModule.createCanvas;
-        loadImage = canvasModule.loadImage;
-      } catch (importError) {
-        console.log('📦 Canvas module not available, using original image');
-        return imageUrl;
+      const urlParams = new URLSearchParams(imageUrl.split('?')[1]);
+      const originalUrl = urlParams.get('url');
+      if (originalUrl) {
+        return originalUrl; // Return original Supabase URL
       }
-      
-      // Load the image
-      const img: any = await loadImage(Buffer.from(uint8Array));
-      
-      // Calculate new dimensions (max 1200px width, maintain aspect ratio)
-      const maxWidth = 1200;
-      const aspectRatio = img.height / img.width;
-      const newWidth = Math.min(img.width, maxWidth);
-      const newHeight = Math.round(newWidth * aspectRatio);
-      
-      // Create canvas and draw resized image
-      const canvas: any = createCanvas(newWidth, newHeight);
-      const ctx: any = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, newWidth, newHeight);
-      
-      // Convert to base64 data URL with compression
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.75); // 75% quality
-      
-      console.log(`✅ Resized ${img.width}x${img.height} → ${newWidth}x${newHeight}`);
-      return dataUrl;
-    } catch (canvasError) {
-      console.warn('Canvas optimization failed, using original URL:', canvasError);
-      return imageUrl;
+    } catch (error) {
+      console.warn('Failed to parse proxy URL:', error);
     }
-    
-  } catch (error) {
-    console.warn('Image optimization failed, using original:', error);
-    return imageUrl;
+  }
+  
+  // Return as-is if not a proxy URL
+  return imageUrl;
+}
+
+// Fast function - just convert proxy URLs to original Supabase URLs
+function optimizeImageForPdf(imageUrl: string): string {
+  return getOriginalImageUrl(imageUrl);
+}
+
+// Add format=webp for better compression efficiency
+function getCompressedImageUrl(originalUrl: string): string {
+  try {
+    if (originalUrl.includes('.supabase.co')) {
+      // WebP format + stronger compression
+      return `${originalUrl.split('?')[0]}?width=600&quality=70&format=webp`;
+    }
+    return originalUrl;
+  } catch {
+    return originalUrl;
   }
 }
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 PDF Generation POST endpoint hit');
+  console.log('📍 Request URL:', request.url);
+  console.log('📍 Request method:', request.method);
+  console.log('📍 User-Agent:', request.headers.get('user-agent'));
+  console.log('📍 Content-Type:', request.headers.get('content-type'));
+  console.log('📍 Origin:', request.headers.get('origin'));
+  console.log('📍 Referer:', request.headers.get('referer'));
+  
   try {
+    console.log('📦 Parsing request body...');
     const { car, media } = await request.json();
+    
+    console.log('📋 Car ID:', car?.id);
+    console.log('📋 Car model:', car?.vehicle_model);
+    console.log('📋 Car year:', car?.model_year);
+    console.log('📊 Media count:', media?.length);
+    
+    // Debug car data for potential issues
+    if (!car?.id) {
+      return NextResponse.json({ error: 'Car ID is missing' }, { status: 400 });
+    }
+    
+    if (!car?.vehicle_model) {
+      console.warn('⚠️ Car missing vehicle_model');
+    }
+    
+    if (car?.description && car.description.length > 5000) {
+      console.warn('⚠️ Car has very long description:', car.description.length, 'characters');
+    }
+    
+    if (car?.key_equipment && car.key_equipment.length > 3000) {
+      console.warn('⚠️ Car has very long key_equipment:', car.key_equipment.length, 'characters');
+    }
     
     if (!process.env.PDFSHIFT_API_KEY) {
       return NextResponse.json({ error: 'PDFShift API key not configured' }, { status: 500 });
     }
     
     const photos = media.filter((m: any) => m.kind === 'photo');
+    console.log('📸 Photo count:', photos.length);
     
-    // Optimize all photos for PDF (actual resizing and compression)
-    console.log('🖼️ Optimizing', photos.length, 'images for PDF...');
+    // Check for problematic image URLs
+    photos.forEach((photo: any, i: number) => {
+      if (!photo.url) {
+        console.error(`❌ Photo ${i} has no URL`);
+      } else if (photo.url.length > 500) {
+        console.warn(`⚠️ Photo ${i} has very long URL:`, photo.url.length, 'characters');
+      }
+    });
     
-    const optimizedPhotos = await Promise.all(
-      photos.map(async (photo: any, index: number) => {
-        console.log(`📸 Processing image ${index + 1}/${photos.length}...`);
-        const optimizedUrl = await optimizeImageForPdf(photo.url);
-        return {
-          ...photo,
-          url: optimizedUrl
-        };
-      })
-    );
+    // Use all photos but optimize for PDFShift
+    console.log('📸 Processing all', photos.length, 'photos for PDF generation');
     
-    console.log('✅ All images optimized for PDF generation');
+    // Convert proxy URLs to original Supabase URLs (fast)
+    const optimizedPhotos = photos.map((photo: any) => ({
+      ...photo,
+      url: optimizeImageForPdf(photo.url)
+    }));
     
-    const firstPhotoUrl = optimizedPhotos[0]?.url || '';
+    console.log('✅ URLs converted to original Supabase domains');
+    
+    // Limit total images to prevent PDFShift timeouts (based on your server logs)
+    const maxImages = 12; // Sweet spot based on successful vs failed attempts
+    const limitedPhotos = optimizedPhotos.slice(0, maxImages);
+    
+    if (optimizedPhotos.length > maxImages) {
+      console.log(`📸 Limited from ${optimizedPhotos.length} to ${maxImages} images to prevent timeout`);
+    }
+    
+    // Split images: first 5 for main pages, rest for gallery pages (2 per page)  
+    const mainPhotos = limitedPhotos.slice(0, 5);
+    let galleryPhotos = limitedPhotos.slice(5);
+    
+         // Compress gallery images (page 3 onwards) to reduce payload size
+     galleryPhotos = galleryPhotos.map((photo: any) => ({
+       ...photo,
+       url: getCompressedImageUrl(photo.url)
+     }));
+    
+    console.log('✅ All images processed for PDF generation');
+    optimizedPhotos.slice(0, 3).forEach((photo: any, i: number) => {
+      console.log(`   [${i}] Final URL: ${photo.url}`);
+    });
+    
+    const firstPhotoUrl = mainPhotos[0]?.url || '';
+    console.log('📸 Main photos for template:', mainPhotos.length);
+    console.log('📸 Gallery photos for additional pages:', galleryPhotos.length);
+    console.log('🎯 First photo URL:', firstPhotoUrl);
     
     // Helper functions
     const toTitle = (s: string) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
@@ -828,14 +860,14 @@ export async function POST(request: NextRequest) {
                             '<div class="image-placeholder">Main Vehicle Image<br><small>Primary photo will appear here</small></div>'}
                       </div>
                       <div class="thumbnail-grid">
-                          ${optimizedPhotos.slice(1, 5).map((photo: any, index: number) => 
+                          ${mainPhotos.slice(1, 5).map((photo: any, index: number) => 
                             `<div class="thumbnail">
                                 <img src="${photo.url}" alt="Vehicle image ${index + 2}" />
                             </div>`
                           ).join('')}
-                          ${Array.from({ length: Math.max(0, 4 - optimizedPhotos.slice(1).length) }, (_, i) => 
+                          ${Array.from({ length: Math.max(0, 4 - mainPhotos.slice(1).length) }, (_, i) => 
                             `<div class="thumbnail">
-                                <div class="image-placeholder" style="font-size: 9px;">Image ${optimizedPhotos.slice(1).length + i + 2}</div>
+                                <div class="image-placeholder" style="font-size: 9px;">Image ${mainPhotos.slice(1).length + i + 2}</div>
                             </div>`
                           ).join('')}
                       </div>
@@ -983,14 +1015,14 @@ export async function POST(request: NextRequest) {
           <div class="image-gallery">
               ${(() => {
                   const imagePages = [];
-                  // Group images in pairs (2 per page)
-                  for (let i = 0; i < optimizedPhotos.length; i += 2) {
-                      const pageImages = optimizedPhotos.slice(i, i + 2);
+                  // Group images in pairs (2 per page) but only use gallery photos for additional pages
+                  for (let i = 0; i < galleryPhotos.length; i += 2) {
+                      const pageImages = galleryPhotos.slice(i, i + 2);
                       const pageHTML = `
                       <div class="image-page">
                           ${pageImages.map((photo: any, index: number) => `
                           <div class="gallery-image">
-                              <img src="${photo.url}" alt="Vehicle image ${i + index + 1}" />
+                              <img src="${photo.url}" alt="Vehicle image ${i + index + 6}" />
                           </div>
                           `).join('')}
                       </div>`;
@@ -1004,31 +1036,76 @@ export async function POST(request: NextRequest) {
       </html>
     `;
 
-    // Call PDFShift API
+    // Call PDFShift API with timeout
     console.log('📄 Generating PDF with Supabase images...');
+    console.log('📄 Image count for PDF:', optimizedPhotos.length);
+    
+    const controller = new AbortController();
+    // Increase timeout based on image count (5 seconds per image + 15 second base)
+    const timeoutMs = Math.min(120000, 15000 + (optimizedPhotos.length * 5000));
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    console.log(`📄 PDFShift timeout set to ${timeoutMs/1000} seconds for ${optimizedPhotos.length} images`);
+    
     const response = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
       method: 'POST',
       headers: {
         'X-API-Key': process.env.PDFSHIFT_API_KEY,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        source: html,
-        landscape: false,
-        use_print: false,
-        // Basic PDF settings (PDFShift supported)
-        margin: {
-          top: '0.5in',
-          bottom: '0.5in',
-          left: '0.5in',
-          right: '0.5in'
-        }
-      }),
+              body: JSON.stringify({
+          source: html,
+          landscape: false,
+          use_print: false,
+          // Add PDFShift optimizations from docs
+          lazy_load_images: true, // Load images more efficiently
+          delay: 2000, // Wait 2 seconds for images to load
+          timeout: 45, // PDFShift internal timeout (45 seconds max)
+          sandbox: process.env.NODE_ENV === 'development', // Use sandbox in dev
+          margin: {
+            top: '0.5in',
+            bottom: '0.5in',
+            left: '0.5in',
+            right: '0.5in'
+          }
+        }),
+      signal: controller.signal
     });
-
+    
+    clearTimeout(timeoutId);
+    
+    // Handle PDFShift-specific status codes per documentation
     if (!response.ok) {
       const error = await response.text();
-      return NextResponse.json({ error: `PDFShift API error: ${error}` }, { status: 500 });
+      
+      // Check rate limiting headers from PDFShift docs
+      const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
+      const rateLimitReset = response.headers.get('X-RateLimit-Reset');
+      
+      console.error('📄 PDFShift Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        rateLimitRemaining,
+        rateLimitReset,
+        error: error.slice(0, 500)
+      });
+      
+      // Handle specific PDFShift error codes from docs
+      switch (response.status) {
+        case 400:
+          return NextResponse.json({ error: 'Invalid request parameters for PDF generation' }, { status: 400 });
+        case 401:
+          return NextResponse.json({ error: 'PDFShift API key is invalid' }, { status: 500 });
+        case 403:
+          return NextResponse.json({ error: 'PDFShift API key is forbidden' }, { status: 500 });
+        case 408:
+          return NextResponse.json({ error: 'PDF generation timed out on PDFShift servers' }, { status: 408 });
+        case 429:
+          return NextResponse.json({ 
+            error: `Rate limit exceeded. Try again in ${rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000).toLocaleTimeString() : 'a few minutes'}` 
+          }, { status: 429 });
+        default:
+          return NextResponse.json({ error: `PDFShift API error (${response.status}): ${error}` }, { status: 500 });
+      }
     }
 
     const pdfBuffer = await response.arrayBuffer();
@@ -1054,6 +1131,16 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('PDF Generation Error:', error);
+    console.error('Error stack:', error.stack);
+    return NextResponse.json({ 
+      error: error.message, 
+      stack: error.stack,
+      debug: {
+        hasApiKey: !!process.env.PDFSHIFT_API_KEY,
+        nodeEnv: process.env.NODE_ENV,
+        vercel: process.env.VERCEL
+      }
+    }, { status: 500 });
   }
 } 

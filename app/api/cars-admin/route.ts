@@ -34,7 +34,15 @@ export async function GET(request: NextRequest) {
         console.warn('⚠️ API: Error loading thumbnails:', mediaError);
       } else {
         mediaRows?.forEach((m: any) => {
-          thumbnails[m.car_id] = m.url;
+          let imageUrl = m.url;
+          
+          // If URL is from old domain, proxy it through our storage proxy
+          if (imageUrl && imageUrl.includes('.supabase.co/storage/')) {
+            imageUrl = `/api/storage-proxy?url=${encodeURIComponent(m.url)}`;
+            console.log('🔧 Using storage proxy for image');
+          }
+          
+          thumbnails[m.car_id] = imageUrl;
         });
         console.log('🖼️ API: Loaded', mediaRows?.length || 0, 'primary thumbnails');
       }

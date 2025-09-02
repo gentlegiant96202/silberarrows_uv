@@ -27,11 +27,21 @@ export async function GET(
       return NextResponse.json({ error: mediaError.message }, { status: 500 });
     }
 
-    console.log('✅ API: Loaded', media?.length || 0, 'media items for car:', carId);
+    // Fix media URLs to use storage proxy for inaccessible storage domains
+    const fixedMedia = media?.map((m: any) => {
+      let fixedUrl = m.url;
+      if (fixedUrl && fixedUrl.includes('.supabase.co/storage/')) {
+        fixedUrl = `/api/storage-proxy?url=${encodeURIComponent(m.url)}`;
+        console.log('🔧 Using storage proxy for media URL');
+      }
+      return { ...m, url: fixedUrl };
+    }) || [];
+
+    console.log('✅ API: Loaded', fixedMedia.length, 'media items for car:', carId);
 
     return NextResponse.json({
       success: true,
-      media: media || []
+      media: fixedMedia
     });
 
   } catch (error) {

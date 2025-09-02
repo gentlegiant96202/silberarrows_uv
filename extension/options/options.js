@@ -78,7 +78,7 @@ async function loadSettings() {
       
       // Set defaults if not found
       currentSettings = {
-        apiUrl: settings.apiUrl || 'http://localhost:3001',
+        apiUrl: settings.apiUrl || 'https://portal.silberarrows.com',
         autoFillEnabled: settings.autoFillEnabled !== false,
         highlightFields: settings.highlightFields !== false,
         fieldMappings: settings.fieldMappings || {}

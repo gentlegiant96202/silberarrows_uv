@@ -166,13 +166,9 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ URLs converted to original Supabase domains');
     
-    // Limit total images to prevent PDFShift timeouts (based on your server logs)
-    const maxImages = 12; // Sweet spot based on successful vs failed attempts
-    const limitedPhotos = optimizedPhotos.slice(0, maxImages);
-    
-    if (optimizedPhotos.length > maxImages) {
-      console.log(`📸 Limited from ${optimizedPhotos.length} to ${maxImages} images to prevent timeout`);
-    }
+    // Use ALL images - no limit needed with our own renderer service
+    const limitedPhotos = optimizedPhotos;
+    console.log(`📸 Using all ${optimizedPhotos.length} images for PDF generation`);
     
         // Split images: first 5 for main pages, rest for gallery pages (2 per page)  
     let mainPhotos = limitedPhotos.slice(0, 5);
@@ -780,11 +776,13 @@ export async function POST(request: NextRequest) {
                   page-break-inside: avoid;
                   page-break-after: always;
                   display: flex;
-                  flex-direction: column;
+                  flex-direction: column; /* Vertical stacking - one below the other */
                   height: 100vh;
-                  padding: 0;
+                  padding: 20px;
                   margin: 0;
-                  gap: 0;
+                  gap: 20px; /* Space between stacked images */
+                  align-items: center;
+                  justify-content: center;
               }
               
               .image-page:last-child {
@@ -793,10 +791,19 @@ export async function POST(request: NextRequest) {
               
               .gallery-image {
                   flex: 1;
-                  width: 100%;
+                  width: 90%; /* Slightly smaller width for better fit */
+                  max-height: 45%; /* Each image takes up to 45% of page height */
+                  min-height: 300px; /* Minimum height to prevent empty space */
                   display: flex;
                   align-items: center;
                   justify-content: center;
+                  overflow: hidden;
+              }
+              
+              /* When only one image on a page, make it larger */
+              .image-page .gallery-image:only-child {
+                  max-height: 80%; /* Single image can be larger */
+                  min-height: 500px;
               }
               
               .gallery-image img {
@@ -804,6 +811,8 @@ export async function POST(request: NextRequest) {
                   height: 100%;
                   object-fit: cover;
                   display: block;
+                  border-radius: 10px;
+                  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
               }
           </style>
       </head>
@@ -1014,7 +1023,7 @@ export async function POST(request: NextRequest) {
           <div class="image-gallery">
               ${(() => {
                   const imagePages = [];
-                  // Group images in pairs (2 per page) but only use gallery photos for additional pages
+                  // Group images in pairs (2 per page) for vertical stacking
                   for (let i = 0; i < galleryPhotos.length; i += 2) {
                       const pageImages = galleryPhotos.slice(i, i + 2);
                       const pageHTML = `
@@ -1024,6 +1033,7 @@ export async function POST(request: NextRequest) {
                               <img src="${photo.url}" alt="Vehicle image ${i + index + 6}" />
                           </div>
                           `).join('')}
+                          ${pageImages.length === 1 ? '<div class="gallery-image" style="visibility: hidden;"></div>' : ''}
                       </div>`;
                       imagePages.push(pageHTML);
                   }

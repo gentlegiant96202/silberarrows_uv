@@ -21,7 +21,7 @@ const resetSettingsBtn = document.getElementById('resetSettingsBtn');
 const settingsStatusDiv = document.getElementById('settingsStatus');
 
 // API configuration - will be loaded from settings
-let API_BASE = 'http://localhost:3001'; // Default fallback
+let API_BASE = 'https://portal.silberarrows.com'; // Production default
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -242,7 +242,7 @@ async function loadSettings() {
     const result = await chrome.storage.sync.get(['apiUrl', 'autoFillEnabled', 'highlightFields']);
     
     // Update API_BASE with saved URL
-    API_BASE = result.apiUrl || 'http://localhost:3001';
+    API_BASE = result.apiUrl || 'https://portal.silberarrows.com';
     
     apiUrlInput.value = API_BASE;
     autoFillCheckbox.checked = result.autoFillEnabled !== false; // Default to true
@@ -250,7 +250,7 @@ async function loadSettings() {
   } catch (error) {
     console.error('Failed to load settings:', error);
     // Set defaults
-    API_BASE = 'http://localhost:3001';
+    API_BASE = 'https://portal.silberarrows.com';
     apiUrlInput.value = API_BASE;
     autoFillCheckbox.checked = true;
     highlightCheckbox.checked = true;
@@ -280,7 +280,7 @@ async function saveSettings() {
     
     const settings = {
       ...currentSettings, // Preserve existing settings including field mappings
-      apiUrl: apiUrlInput.value.trim() || 'http://localhost:3001',
+      apiUrl: apiUrlInput.value.trim() || 'https://portal.silberarrows.com',
       autoFillEnabled: autoFillCheckbox.checked,
       highlightFields: highlightCheckbox.checked
     };

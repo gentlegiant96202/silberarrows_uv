@@ -7,7 +7,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   // Set default options
   if (details.reason === 'install') {
     chrome.storage.sync.set({
-      apiUrl: 'http://localhost:3001',
+      apiUrl: 'https://portal.silberarrows.com',
       autoFillEnabled: true,
       highlightFields: true,
       fieldMappings: getDefaultFieldMappings()
@@ -50,7 +50,7 @@ async function handleGetSettings(sendResponse) {
     // Ensure defaults are set
     const defaultFieldMappings = getDefaultFieldMappings();
     const defaultSettings = {
-      apiUrl: settings.apiUrl || 'http://localhost:3001',
+      apiUrl: settings.apiUrl || 'https://portal.silberarrows.com',
       autoFillEnabled: settings.autoFillEnabled !== false, // Default to true
       highlightFields: settings.highlightFields !== false, // Default to true
       fieldMappings: settings.fieldMappings ? 

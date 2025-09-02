@@ -10,7 +10,7 @@ const optionsBtn = document.getElementById('optionsBtn');
 const statusDiv = document.getElementById('status');
 
 // API configuration - will be loaded from settings
-let API_BASE = 'http://localhost:3001';
+let API_BASE = 'https://portal.silberarrows.com';
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {

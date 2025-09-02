@@ -9,7 +9,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   // Set default options
   if (details.reason === 'install') {
     chrome.storage.sync.set({
-      apiUrl: 'http://localhost:3001',
+      apiUrl: 'https://portal.silberarrows.com',
       autoFillEnabled: true,
       highlightFields: true
     });
@@ -46,7 +46,7 @@ async function handleGetSettings(sendResponse) {
     
     // Ensure defaults are set
     const defaultSettings = {
-      apiUrl: 'http://localhost:3001',
+      apiUrl: 'https://portal.silberarrows.com',
       autoFillEnabled: true,
       highlightFields: true,
       ...settings

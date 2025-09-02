@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
+
+// Use service role for extension API to bypass RLS
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function GET(request: NextRequest) {
   try {
@@ -184,6 +189,15 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔌 Extension API: Listing available cars...');
 
+    // Debug: Check what cars exist in production
+    const { data: allCars, error: allError } = await supabase
+      .from('cars')
+      .select('id, stock_number, status, sale_status')
+      .limit(5);
+    
+    console.log('🔍 PRODUCTION DEBUG: Sample cars:', allCars);
+    console.log('🔍 PRODUCTION DEBUG: Error:', allError);
+
     // Fetch all available cars for the extension dropdown
     const { data: cars, error } = await supabase
       .from('cars')
@@ -196,7 +210,9 @@ export async function POST(request: NextRequest) {
         advertised_price_aed
       `)
       .eq('status', 'inventory')
-      .eq('sale_status', 'available')
+      // Temporarily allow all sale_status for production testing
+      // .eq('sale_status', 'available')
+      .limit(10) // Limit for testing
       .order('model_year', { ascending: false })
       .order('vehicle_model');
 
@@ -216,7 +232,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      cars: formattedCars
+      cars: formattedCars,
+      debug: {
+        totalAvailable: cars?.length || 0,
+        sampleCars: allCars?.map(c => ({ stock: c.stock_number, status: c.status, sale_status: c.sale_status })) || [],
+        hasError: !!error,
+        allCarsError: allError?.message
+      }
     });
 
   } catch (error) {

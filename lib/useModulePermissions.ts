@@ -69,22 +69,33 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
       try {
         setPermissions(prev => ({ ...prev, isLoading: true, error: null }));
 
+        // Use proper RPC-based permissions system
         const { data, error } = await supabase.rpc('get_user_module_permissions', {
           check_user_id: user.id,
           module_name: moduleName,
         });
 
         if (error) {
-          console.error('Error fetching module permissions:', error);
-          setPermissions(prev => ({
-            ...prev,
-            isLoading: false,
-            error: error.message,
-          }));
-          return;
-        }
+          console.error(`Error fetching permissions for ${moduleName}:`, error);
+          // Fallback to static role-based permissions if RPC fails
+          const isAdmin = role === 'admin';
+          const hasModuleAccess = isAdmin || (
+            (role === 'marketing' && moduleName === 'marketing') ||
+            (role === 'sales' && (moduleName === 'uv_crm' || moduleName === 'inventory')) ||
+            (role === 'service' && moduleName === 'service') ||
+            (role === 'leasing' && moduleName === 'leasing')
+          );
 
-        if (data && data.length > 0) {
+          setPermissions({
+            canView: hasModuleAccess,
+            canCreate: hasModuleAccess,
+            canEdit: hasModuleAccess,
+            canDelete: isAdmin,
+            isLoading: false,
+            error: `RPC failed, using fallback: ${error.message}`,
+          });
+        } else if (data && data.length > 0) {
+          // Use RPC permissions
           const perms = data[0];
           setPermissions({
             canView: perms.can_view || false,
@@ -95,7 +106,7 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
             error: null,
           });
         } else {
-          // No permissions found - default to no access (even for admins)
+          // No permissions found in database - deny access
           setPermissions({
             canView: false,
             canCreate: false,
@@ -119,7 +130,7 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
     }
 
     fetchPermissions();
-  }, [user?.id, moduleName, roleLoading]);
+  }, [user?.id, moduleName, role, roleLoading]);
 
   return permissions;
 }

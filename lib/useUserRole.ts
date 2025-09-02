@@ -58,49 +58,28 @@ export function useUserRole(): UserRole {
         setIsLoading(true);
         setError(null);
 
-        // Method 1: Try database first (new system) - TEMPORARILY DISABLED TO FIX 500 ERRORS
-        // let roleData = null;
-        // let roleError = { message: 'Temporarily disabled' };
-        
-        // Uncomment when database issues are fixed:
-        // const { data: roleData, error: roleError } = await supabase
-        //   .from('user_roles')
-        //   .select('role')
-        //   .eq('user_id', user.id)
-        //   .single();
+        // Method 1: Try database first (new system)
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
 
-        // if (roleData && !roleError) {
-        //   // Found in database - use new system
-        //   setRole(roleData.role);
-        //   console.log('🆕 Using database role:', roleData.role);
-        //   return;
-        // }
-
-        // Method 2: Use helper function (checks both database and metadata)
-        const { data: helperResult, error: helperError } = await supabase
-          .rpc('get_user_role', { check_user_id: user.id });
-
-        if (helperResult && !helperError) {
-          setRole(helperResult);
-          console.log('🔄 Using helper function role:', helperResult);
+        if (roleData && !roleError) {
+          // Found in database - use new system
+          setRole(roleData.role);
+          console.log('🆕 Using database role:', roleData.role);
           return;
         }
 
-        // Method 3: Fallback to legacy metadata logic
+        if (roleError) {
+          console.warn('Database role lookup failed:', roleError.message);
+        }
+
+        // Fallback to legacy metadata logic if database lookup fails
         const legacyRole = isAdminLegacy ? 'admin' : 'sales'; // Convert old 'user' to 'sales'
         setRole(legacyRole);
-        console.log('📜 Using legacy metadata role:', legacyRole);
-
-        // Auto-migrate user if using legacy - TEMPORARILY DISABLED
-        // if (roleError || helperError) {
-        if (helperError) {
-          console.log('🔄 Auto-migrating user to database...');
-          try {
-            await supabase.rpc('migrate_user_role', { migrate_user_id: user.id });
-          } catch (migrationError) {
-            console.warn('Migration failed:', migrationError);
-          }
-        }
+        console.log('📜 Using legacy metadata role (fallback):', legacyRole);
 
       } catch (err: any) {
         console.error('Error fetching user role:', err);
@@ -116,7 +95,7 @@ export function useUserRole(): UserRole {
     }
 
     fetchUserRole();
-  }, [userId]); // Use stable userId reference
+  }, [userId, isAdminLegacy]); // Use stable userId reference and include isAdminLegacy
 
   return {
     role,

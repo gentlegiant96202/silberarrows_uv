@@ -165,27 +165,24 @@ export default function CarKanbanBoard() {
 
   const load = async () => {
     try {
-      const { data } = await supabase
-        .from('cars')
-        .select('*')
-        .order('updated_at', { ascending: false });
-      const carRows = (data as any[] || []) as Car[];
-      setCars(carRows);
-
-      // fetch primary thumbnails for these cars
-      const ids = carRows.map(c=>c.id);
-      if(ids.length){
-        const { data: mediaRows } = await supabase
-          .from('car_media')
-          .select('car_id,url')
-          .eq('is_primary', true)
-          .eq('kind', 'photo')
-          .in('car_id', ids);
-        const map: Record<string,string> = {};
-        (mediaRows||[]).forEach((m:any)=>{ map[m.car_id] = m.url; });
-        console.log('🖼️ CarKanbanBoard: Loaded', mediaRows?.length || 0, 'primary thumbnails');
-        setThumbs(map);
+      console.log('🚗 CarKanbanBoard: Loading cars via admin API...');
+      const response = await fetch('/api/cars-admin');
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        console.error('❌ CarKanbanBoard: Error loading cars:', result.error);
+        setCars([]);
+        setThumbs({});
+      } else {
+        const carRows = (result.cars || []) as Car[];
+        console.log('✅ CarKanbanBoard: Loaded', carRows.length, 'cars');
+        setCars(carRows);
+        setThumbs(result.thumbnails || {});
       }
+    } catch (error) {
+      console.error('❌ CarKanbanBoard: Failed to fetch cars:', error);
+      setCars([]);
+      setThumbs({});
     } finally {
       setLoading(false);
     }

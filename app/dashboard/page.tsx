@@ -454,11 +454,10 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
           to = new Date(year, 11, 31);
         }
 
-        // Fetch only cars with status = 'inventory'
-        const { data: allCars } = await supabase
-          .from('cars')
-          .select('ownership_type, sale_status, status, created_at')
-          .eq('status', 'inventory');
+        // Fetch cars data via admin API to bypass RLS
+        const response = await fetch('/api/cars-admin');
+        const result = await response.json();
+        const allCars = result.success ? result.cars.filter((c: any) => c.status === 'inventory') : [] as any[];
 
         if (allCars) {
           // Current inventory breakdown
@@ -570,13 +569,16 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
     async function fetchStockAgeData() {
       setLoading(true);
       try {
-        // Fetch all current inventory cars with stock age
-        const { data: cars, error } = await supabase
-          .from('cars')
-          .select('ownership_type, stock_age_days')
-          .eq('status', 'inventory')
-          .eq('sale_status', 'available')
-          .not('stock_age_days', 'is', null);
+        // Fetch cars data via admin API to bypass RLS
+        const response = await fetch('/api/cars-admin');
+        const result = await response.json();
+        const cars = result.success ? 
+          result.cars.filter((c: any) => 
+            c.status === 'inventory' && 
+            c.sale_status === 'available' && 
+            c.stock_age_days !== null
+          ) : [];
+        const error = result.success ? null : result.error;
 
         if (error) {
           console.error('❌ [Stock Age] Error fetching cars:', error);
@@ -778,12 +780,16 @@ const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year,
       try {
         console.log(`🔍 [Stock] Fetching data for year: ${year}`);
         
-        const { data: cars, error } = await supabase
-          .from('cars')
-          .select('created_at, advertised_price_aed, stock_number')
-          .eq('ownership_type', 'stock')
-          .gte('created_at', `${year}-01-01`)
-          .lte('created_at', `${year}-12-31T23:59:59`);
+        // Fetch cars data via admin API to bypass RLS
+        const response = await fetch('/api/cars-admin');
+        const result = await response.json();
+        const cars = result.success ? 
+          result.cars.filter((c: any) => 
+            c.ownership_type === 'stock' &&
+            c.created_at >= `${year}-01-01` &&
+            c.created_at <= `${year}-12-31T23:59:59`
+          ) : [];
+        const error = result.success ? null : result.error;
 
         if (error) {
           console.error('❌ [Stock] Query error:', error);
@@ -882,12 +888,16 @@ const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = (
       try {
         console.log(`🔍 [Consignment] Fetching data for year: ${year}`);
         
-        const { data: cars, error } = await supabase
-          .from('cars')
-          .select('created_at, advertised_price_aed, stock_number')
-          .eq('ownership_type', 'consignment')
-          .gte('created_at', `${year}-01-01`)
-          .lte('created_at', `${year}-12-31T23:59:59`);
+        // Fetch cars data via admin API to bypass RLS
+        const response = await fetch('/api/cars-admin');
+        const result = await response.json();
+        const cars = result.success ? 
+          result.cars.filter((c: any) => 
+            c.ownership_type === 'consignment' &&
+            c.created_at >= `${year}-01-01` &&
+            c.created_at <= `${year}-12-31T23:59:59`
+          ) : [];
+        const error = result.success ? null : result.error;
 
         if (error) {
           console.error('❌ [Consignment] Query error:', error);

@@ -125,6 +125,11 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [mediaLoading, setMediaLoading] = useState(false);
   const [reorderLoading, setReorderLoading] = useState(false);
   
+  // Loading states for download operations
+  const [downloadingGallery, setDownloadingGallery] = useState(false);
+  const [downloadingSocial, setDownloadingSocial] = useState(false);
+  const [downloadingCatalog, setDownloadingCatalog] = useState(false);
+  
   // Function to get original full-resolution image URL (convert to custom domain to avoid ISP blocking)
   const getOriginalImageUrl = (url: string) => {
     try {
@@ -298,24 +303,27 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       return aOrder - bOrder;
     });
 
-  const downloadAll = async (items: any[], zipName: string = 'car_media.zip') => {
+  const downloadAll = async (items: any[], zipName: string = 'car_media.zip', setLoading?: (loading: boolean) => void) => {
     if (items.length === 0) return;
 
-    // Single file – direct download to avoid extra work
-    if (items.length === 1) {
-      const base = items[0].url;
-      const dl = base.includes('?') ? `${base}&download` : `${base}?download`;
-      const link = document.createElement('a');
-      link.href = dl;
-      link.download = '';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      return;
-    }
+    // Set loading state if provided
+    if (setLoading) setLoading(true);
 
-    // Multiple files – package into ZIP
     try {
+      // Single file – direct download to avoid extra work
+      if (items.length === 1) {
+        const base = items[0].url;
+        const dl = base.includes('?') ? `${base}&download` : `${base}?download`;
+        const link = document.createElement('a');
+        link.href = dl;
+        link.download = '';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        return;
+      }
+
+      // Multiple files – package into ZIP
       // @ts-ignore – dynamic import, jszip type optional
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
@@ -346,6 +354,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     } catch (err) {
       console.error(err);
       alert('Failed to prepare ZIP file');
+    } finally {
+      // Clear loading state
+      if (setLoading) setLoading(false);
     }
   };
 
@@ -1304,10 +1315,14 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   </h4>
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => downloadAll(gallery, `${localCar.stock_number}_photos.zip`)}
-                        className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
+                        onClick={() => downloadAll(gallery, `${localCar.stock_number}_photos.zip`, setDownloadingGallery)}
+                        disabled={downloadingGallery}
+                        className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >
-                        Download All
+                        {downloadingGallery && (
+                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                        )}
+                        {downloadingGallery ? 'Creating ZIP...' : 'Download All'}
                       </button>
                       {editing && (
                         <span className="text-sm text-white/60">Drag to reorder</span>
@@ -1375,10 +1390,14 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                       Social Media Images ({socialMedia.length})
                     </h4>
                     <button
-                      onClick={() => downloadAll(socialMedia, `${localCar.stock_number}_social_media.zip`)}
-                      className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
+                      onClick={() => downloadAll(socialMedia, `${localCar.stock_number}_social_media.zip`, setDownloadingSocial)}
+                      disabled={downloadingSocial}
+                      className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      Download All
+                      {downloadingSocial && (
+                        <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                      )}
+                      {downloadingSocial ? 'Creating ZIP...' : 'Download All'}
                     </button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -1414,10 +1433,14 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                       Catalog Images ({catalog.length})
                     </h4>
                     <button
-                      onClick={() => downloadAll(catalog, `${localCar.stock_number}_catalog.zip`)}
-                      className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
+                      onClick={() => downloadAll(catalog, `${localCar.stock_number}_catalog.zip`, setDownloadingCatalog)}
+                      disabled={downloadingCatalog}
+                      className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      Download All
+                      {downloadingCatalog && (
+                        <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                      )}
+                      {downloadingCatalog ? 'Creating ZIP...' : 'Download All'}
                     </button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

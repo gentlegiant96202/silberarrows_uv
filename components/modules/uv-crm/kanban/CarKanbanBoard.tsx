@@ -149,8 +149,8 @@ export default function CarKanbanBoard() {
   const [showArchived, setShowArchived] = useState(false);
 
   const columns = [
-    { key: 'marketing',   title: 'MARKETING' },
-    { key: 'qc_ceo',      title: 'QC CHECK CEO' },
+    { key: 'marketing',   title: 'QC CHECK CEO' },
+    { key: 'qc_ceo',      title: 'MARKETING' },
     { key: 'inventory',   title: 'INVENTORY' },
     { key: 'reserved',    title: 'RESERVED' },
     { key: 'sold',        title: 'SOLD' },

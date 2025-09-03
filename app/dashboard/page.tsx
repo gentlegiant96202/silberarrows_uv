@@ -1,13 +1,66 @@
 "use client";
 import React, { useEffect, useState, useRef } from 'react';
 
-import DashboardFilterBar from '@/components/modules/uv-crm/dashboard/DashboardFilterBar';
+
+
 import SharedSalesDashboard from '@/components/shared/SalesDashboard';
 import { supabase } from '@/lib/supabaseClient';
-import { useDashboardFilter } from '@/lib/dashboardFilterStore';
+import PulsatingLogo from '@/components/shared/PulsatingLogo';
+
 import { useSalesData } from '@/lib/useSalesData';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
+
+// Sales Filter Component (connected to sales dashboard)
+function SalesFilterInline({ salesYear, salesMonth, setSalesYear, setSalesMonth }: {
+  salesYear: number;
+  salesMonth: number;
+  setSalesYear: (year: number) => void;
+  setSalesMonth: (month: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 backdrop-blur-md bg-gradient-to-r from-white/10 to-white/5 border border-white/10 rounded-lg shadow-inner">
+      <div className="flex items-center gap-1.5">
+        <span className="text-white/60 text-xs font-medium">Year:</span>
+        <select
+          value={salesYear}
+          onChange={(e) => setSalesYear(Number(e.target.value))}
+          className="bg-white/10 border border-white/20 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-white/40 backdrop-blur-sm"
+        >
+          {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+            <option key={year} value={year} className="bg-gray-800 text-white">{year}</option>
+          ))}
+        </select>
+      </div>
+      
+      <div className="flex items-center gap-1.5">
+        <span className="text-white/60 text-xs font-medium">Month:</span>
+        <select
+          value={salesMonth}
+          onChange={(e) => setSalesMonth(Number(e.target.value))}
+          className="bg-white/10 border border-white/20 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-white/40 backdrop-blur-sm"
+        >
+          {[
+            { value: 1, label: 'January' },
+            { value: 2, label: 'February' },
+            { value: 3, label: 'March' },
+            { value: 4, label: 'April' },
+            { value: 5, label: 'May' },
+            { value: 6, label: 'June' },
+            { value: 7, label: 'July' },
+            { value: 8, label: 'August' },
+            { value: 9, label: 'September' },
+            { value: 10, label: 'October' },
+            { value: 11, label: 'November' },
+            { value: 12, label: 'December' }
+          ].map(month => (
+            <option key={month.value} value={month.value} className="bg-gray-800 text-white">{month.label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
 
 // TypeScript interface for car data
 interface CarData {
@@ -25,7 +78,7 @@ interface CarData {
 }
 
 // Simple Cumulative Funnel Component
-function CumulativeFunnel() {
+function CumulativeFunnel({ salesYear, salesMonth }: { salesYear: number; salesMonth: number }) {
   const STAGES = [
     { key: 'new_lead', label: 'New Lead', color: 'bg-slate-500' },
     { key: 'new_customer', label: 'New Appointment', color: 'bg-blue-500' },
@@ -34,7 +87,8 @@ function CumulativeFunnel() {
     { key: 'delivered', label: 'Delivered', color: 'bg-purple-500' },
   ];
 
-  const { year, months } = useDashboardFilter();
+  const year = salesYear;
+  const months = [salesMonth];
   const [funnelData, setFunnelData] = useState<any[]>([]);
   const [totalLeads, setTotalLeads] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -79,7 +133,7 @@ function CumulativeFunnel() {
     }
 
     fetchFunnelData();
-  }, [year, months]);
+  }, [salesYear, salesMonth]);
 
   const maxCount = Math.max(...funnelData.map(stage => stage.cumulative_count || 0), 1);
 
@@ -130,7 +184,6 @@ function CumulativeFunnel() {
 
 
 export default function DashboardPage() {
-  const { year, months } = useDashboardFilter();
 
   // Sales data hooks for the shared component
   const { 
@@ -149,9 +202,14 @@ export default function DashboardPage() {
   // Progressive loading states for fade-in animations
   const [salesLoaded, setSalesLoaded] = useState(false);
   const [showOtherComponents, setShowOtherComponents] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Trend chart data
   const [trendData, setTrendData] = useState<any[]>([]);
+
+  // Sales filter state
+  const [salesYear, setSalesYear] = useState(new Date().getFullYear());
+  const [salesMonth, setSalesMonth] = useState(new Date().getMonth() + 1);
 
   // Sales data fetching
   const fetchAllSalesTargets = async () => {
@@ -181,6 +239,7 @@ export default function DashboardPage() {
       async function loadSalesData() {
         try {
           console.log('🚀 Loading sales metrics first...');
+          
           const [salesMetrics, salesTargets] = await Promise.all([
             fetchSalesMetrics(),
             fetchAllSalesTargets()
@@ -189,24 +248,28 @@ export default function DashboardPage() {
           setAllSalesTargets(salesTargets);
           hasFetchedInitialData.current = true;
           
-          // Mark sales as loaded and fade in
+          // Wait a minimum time to show the logo, then start fading out
           setTimeout(() => {
-            setSalesLoaded(true);
-            console.log('✅ Sales metrics loaded, showing other components...');
+            console.log('✅ Sales metrics loaded, starting fade transition...');
             
-            // Show other components after sales dashboard fades in
+            // Start fading out the logo and fading in the dashboard simultaneously
+            setInitialLoading(false);
+            setSalesLoaded(true);
+            
+            // Show other components after the main dashboard starts fading in
             setTimeout(() => {
               setShowOtherComponents(true);
-            }, 300); // Wait for sales fade-in to start
-          }, 100);
+            }, 400); // Wait for dashboard fade-in to start
+          }, 1200); // Show logo for at least 1.2 seconds
           
         } catch (error) {
           console.error('Error loading sales data:', error);
           // Still show other components even if sales fails
           setTimeout(() => {
+            setInitialLoading(false);
             setSalesLoaded(true);
             setShowOtherComponents(true);
-          }, 500);
+          }, 1200);
         }
       }
 
@@ -221,17 +284,18 @@ export default function DashboardPage() {
       let from: Date;
       let to: Date;
       
+      const months = [salesMonth];
       if (months.length > 0) {
         // When specific months are selected
         const firstMonth = Math.min(...months) - 1; // Convert to 0-based index
         const lastMonth = Math.max(...months) - 1;  // Convert to 0-based index
         
-        from = new Date(year, firstMonth, 1); // First day of first selected month
-        to = new Date(year, lastMonth + 1, 0); // Last day of last selected month
+        from = new Date(salesYear, firstMonth, 1); // First day of first selected month
+        to = new Date(salesYear, lastMonth + 1, 0); // Last day of last selected month
       } else {
         // When no months selected (show full year)
-        from = new Date(year, 0, 1);     // January 1st
-        to = new Date(year, 11, 31);     // December 31st
+        from = new Date(salesYear, 0, 1);     // January 1st
+        to = new Date(salesYear, 11, 31);     // December 31st
       }
 
       const { data, error } = await supabase
@@ -260,20 +324,47 @@ export default function DashboardPage() {
     }
 
     fetchTrend();
-  }, [year, months]);
+  }, [salesYear, salesMonth]);
+
+  // Show pulsating logo overlay while initial loading
+  const showLogo = initialLoading || !salesLoaded;
 
   return (
-    <main className="h-full overflow-y-auto no-scrollbar">
-      <div className="p-4 text-white text-sm">
+    <main className="h-full overflow-y-auto no-scrollbar relative">
+      {/* Pulsating Logo Overlay - Centered on Screen */}
+      {showLogo && (
+        <div className={`fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm transition-all duration-700 ease-out ${
+          initialLoading 
+            ? 'opacity-100' 
+            : 'opacity-0 pointer-events-none'
+        }`}>
+          <PulsatingLogo size={80} text="Loading Dashboard..." />
+        </div>
+      )}
+      
+      {/* Dashboard Content */}
+      <div className={`p-4 text-white text-sm transition-all duration-700 ease-out ${
+        salesLoaded 
+          ? 'opacity-100' 
+          : 'opacity-30'
+      }`}>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Dashboard</h1>
-          <a 
-            href="/dashboard/gargash-report" 
-            className="px-6 py-3 bg-black border border-white/20 hover:border-white/40 text-white text-sm font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-3 hover:bg-white/5 group"
-          >
-            <span className="text-lg group-hover:scale-110 transition-transform duration-200">◼️</span>
-            <span>Gargash Report</span>
-          </a>
+          <div className="flex items-center gap-4">
+            <a 
+              href="/dashboard/gargash-report" 
+              className="px-3 py-2 bg-black border border-white/20 hover:border-white/40 text-white text-sm font-semibold rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-3 hover:bg-white/5 group"
+            >
+              <span className="text-lg group-hover:scale-110 transition-transform duration-200">◼️</span>
+              <span>Gargash Report</span>
+            </a>
+            <SalesFilterInline 
+              salesYear={salesYear}
+              salesMonth={salesMonth}
+              setSalesYear={setSalesYear}
+              setSalesMonth={setSalesMonth}
+            />
+          </div>
         </div>
         
         {/* Sales Dashboard Section - Loads First with Fade In */}
@@ -287,6 +378,8 @@ export default function DashboardPage() {
             targets={allSalesTargets}
             loading={salesLoading}
             className="mb-4"
+            salesYear={salesYear}
+            salesMonth={salesMonth}
           />
         </div>
         
@@ -296,47 +389,47 @@ export default function DashboardPage() {
             ? 'opacity-100 translate-y-0' 
             : 'opacity-0 translate-y-4'
         }`}>
-          <DashboardFilterBar />
+
           
           {/* Top row: Lead and Inventory KPIs */}
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Left column */}
-            <LeadKPICards year={year} months={months} />
+            <LeadKPICards year={salesYear} months={[salesMonth]} />
 
             {/* Right column inventory KPI cards */}
-            <InventoryKPICards year={year} months={months} />
+            <InventoryKPICards year={salesYear} months={[salesMonth]} />
           </div>
 
           {/* Second row: Stock Age Insights */}
           <div className="mt-4">
-            <StockAgeInsights year={year} months={months} />
+            <StockAgeInsights year={salesYear} months={[salesMonth]} />
           </div>
 
           {/* Location Insights */}
           <div className="mt-4">
-            <LocationInsights year={year} months={months} />
+            <LocationInsights year={salesYear} months={[salesMonth]} />
           </div>
 
           {/* Third row: Charts and Analytics */}
           <div className="grid gap-4 mt-4 lg:grid-cols-2">
             {/* Cumulative Lead Funnel */}
             <div className="lg:col-span-1">
-              <CumulativeFunnel />
+              <CumulativeFunnel salesYear={salesYear} salesMonth={salesMonth} />
             </div>
 
           {/* Model Demand Chart */}
           <div className="lg:col-span-1">
-            <ModelDemandChart year={year} months={months} />
+            <ModelDemandChart year={salesYear} months={[salesMonth]} />
           </div>
         </div>
 
         {/* Acquisitions Charts Section */}
         <div className="mb-6">
           <div className="grid gap-4 lg:grid-cols-2 mb-4">
-            <StockAcquisitionsChart year={year} months={months} />
-            <ConsignmentAcquisitionsChart year={year} months={months} />
+            <StockAcquisitionsChart year={salesYear} months={[salesMonth]} />
+            <ConsignmentAcquisitionsChart year={salesYear} months={[salesMonth]} />
           </div>
-          <AcquisitionsTrendChart year={year} months={months} />
+          <AcquisitionsTrendChart year={salesYear} months={[salesMonth]} />
         </div>
         
         </div> {/* End of Other Components wrapper */}
@@ -349,8 +442,7 @@ export default function DashboardPage() {
 /* ---------------- Lead KPI Cards ---------------- */
 const LeadKPICards: React.FC<{year:number; months:number[]}> = ({year, months}) => {
   const [kpi, setKpi] = useState({
-    newLeads: 0,
-    previousLeads: 0,
+    totalLeads: 0,
     activePipeline: 0,
     conversions: 0,
     conversionRate: 0,
@@ -362,21 +454,16 @@ const LeadKPICards: React.FC<{year:number; months:number[]}> = ({year, months}) 
     async function fetchKPIs() {
       setLoading(true);
       
-      // Calculate current and previous period dates
-      let currentFrom: Date, currentTo: Date, previousFrom: Date, previousTo: Date;
+      // Calculate current period dates
+      let currentFrom: Date, currentTo: Date;
       if (months.length > 0) {
         const first = Math.min(...months) - 1;
         const last = Math.max(...months) - 1;
         currentFrom = new Date(year, first, 1);
         currentTo = new Date(year, last + 1, 0);
-        // Previous period (same months, previous year)
-        previousFrom = new Date(year - 1, first, 1);
-        previousTo = new Date(year - 1, last + 1, 0);
       } else {
         currentFrom = new Date(year, 0, 1);
         currentTo = new Date(year, 11, 31);
-        previousFrom = new Date(year - 1, 0, 1);
-        previousTo = new Date(year - 1, 11, 31);
       }
 
       // Fetch all leads for current period
@@ -386,14 +473,6 @@ const LeadKPICards: React.FC<{year:number; months:number[]}> = ({year, months}) 
         .gte('created_at', currentFrom.toISOString().split('T')[0])
         .lte('created_at', currentTo.toISOString().split('T')[0]);
 
-      // Fetch previous period for comparison
-      const { count: previousLeadsCount } = await supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'new_lead')
-        .gte('created_at', previousFrom.toISOString().split('T')[0])
-        .lte('created_at', previousTo.toISOString().split('T')[0]);
-
       // Fetch current active pipeline (all statuses except new_lead)
       const { count: activePipelineCount } = await supabase
         .from('leads')
@@ -402,9 +481,8 @@ const LeadKPICards: React.FC<{year:number; months:number[]}> = ({year, months}) 
 
       if (currentLeads) {
         // Calculate metrics
-        const newLeads = currentLeads.filter(l => l.status === 'new_lead').length;
-        const conversions = currentLeads.filter(l => l.status === 'won' || l.status === 'delivered').length;
         const totalLeads = currentLeads.length;
+        const conversions = currentLeads.filter(l => l.status === 'won' || l.status === 'delivered').length;
         const conversionRate = totalLeads > 0 ? Math.round((conversions / totalLeads) * 100) : 0;
         
         // Calculate average budget
@@ -421,8 +499,7 @@ const LeadKPICards: React.FC<{year:number; months:number[]}> = ({year, months}) 
           : 0;
 
         setKpi({
-          newLeads,
-          previousLeads: previousLeadsCount || 0,
+          totalLeads,
           activePipeline: activePipelineCount || 0,
           conversions,
           conversionRate,
@@ -439,29 +516,23 @@ const LeadKPICards: React.FC<{year:number; months:number[]}> = ({year, months}) 
   const formatBudget = (amount: number) =>
     amount >= 1000 ? `${Math.round(amount / 1000)}K` : amount.toString();
 
-  const getGrowthIndicator = () => {
-    if (kpi.previousLeads === 0) return '';
-    const growth = kpi.newLeads - kpi.previousLeads;
-    return growth > 0 ? `+${growth}` : growth < 0 ? `${growth}` : '0';
-  };
-
   return (
     <div className="space-y-4">
       <div className="grid gap-3 grid-cols-2">
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-          <p className="text-sm text-white/60">New Leads</p>
-          <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.newLeads}</p>
-          <p className="text-xs text-white/40">vs last year: {getGrowthIndicator()}</p>
+          <p className="text-sm text-white/60">Total Leads</p>
+          <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.totalLeads}</p>
+          <p className="text-xs text-white/40">Current period</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
           <p className="text-sm text-white/60">Active Pipeline</p>
           <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.activePipeline}</p>
-          <p className="text-xs text-white/40">In progress</p>
+          <p className="text-xs text-white/40">In pipeline</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
           <p className="text-sm text-white/60">Conversions</p>
           <p className="text-xl font-semibold text-white">{loading ? '—' : kpi.conversions}</p>
-          <p className="text-xs text-white/40">Won + delivered</p>
+          <p className="text-xs text-white/40">Reserved + Delivered</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
           <p className="text-sm text-white/60">Conversion Rate</p>
@@ -502,14 +573,22 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
           to = new Date(year, 11, 31);
         }
 
-        // Fetch cars data with proper module permissions
+        // Fetch current inventory data
         const { data: allCarsData } = await supabase
           .from('cars')
           .select('ownership_type, sale_status, status, created_at')
           .eq('status', 'inventory');
         const allCars = allCarsData as CarData[] || [];
 
-        if (allCars) {
+        // Fetch ALL cars added in the selected period (regardless of current status)
+        const { data: periodCarsData } = await supabase
+          .from('cars')
+          .select('ownership_type, created_at')
+          .gte('created_at', from.toISOString().split('T')[0])
+          .lte('created_at', to.toISOString().split('T')[0]);
+        const periodCars = periodCarsData as CarData[] || [];
+
+        if (allCars && periodCars) {
           // Current inventory breakdown
           const stockCars = allCars.filter((c: CarData) => 
             c.ownership_type === 'stock' && c.sale_status === 'available'
@@ -530,22 +609,14 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
           // Total cars - only counting inventory status cars that are available
           const totalCars = allCars.filter((c: CarData) => c.sale_status === 'available').length;
 
-          // Cars bought/added in selected period (only available ones)
-          const stockBoughtPeriod = allCars.filter((c: CarData) => {
-            if (c.ownership_type === 'stock' && c.sale_status === 'available' && c.created_at) {
-              const addedDate = new Date(c.created_at);
-              return addedDate >= from && addedDate <= to;
-            }
-            return false;
-          }).length;
+          // Cars bought/added in selected period (ALL cars, regardless of current status)
+          const stockBoughtPeriod = periodCars.filter((c: CarData) => 
+            c.ownership_type === 'stock'
+          ).length;
 
-          const consignmentBoughtPeriod = allCars.filter((c: CarData) => {
-            if (c.ownership_type === 'consignment' && c.sale_status === 'available' && c.created_at) {
-              const addedDate = new Date(c.created_at);
-              return addedDate >= from && addedDate <= to;
-            }
-            return false;
-          }).length;
+          const consignmentBoughtPeriod = periodCars.filter((c: CarData) => 
+            c.ownership_type === 'consignment'
+          ).length;
 
           setKpiData({
             stockCars,

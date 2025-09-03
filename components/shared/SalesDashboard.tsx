@@ -7,31 +7,20 @@ interface SalesDashboardProps {
   targets: any[];
   loading?: boolean;
   className?: string;
+  salesYear?: number;
+  salesMonth?: number;
 }
 
-export default function SharedSalesDashboard({ metrics, targets, loading = false, className = "" }: SalesDashboardProps) {
-  const [salesYear, setSalesYear] = useState(new Date().getFullYear());
-  const [salesMonth, setSalesMonth] = useState(new Date().getMonth() + 1);
+export default function SharedSalesDashboard({ 
+  metrics, 
+  targets, 
+  loading = false, 
+  className = "",
+  salesYear = new Date().getFullYear(),
+  salesMonth = new Date().getMonth() + 1
+}: SalesDashboardProps) {
 
-  // If there is no metric matching the current selection, default to the latest available metric
-  useEffect(() => {
-    if (!metrics || metrics.length === 0) return;
 
-    const hasMatch = metrics.some(m => {
-      const d = new Date(m.metric_date);
-      return d.getFullYear() === salesYear && (d.getMonth() + 1) === salesMonth;
-    });
-
-    if (!hasMatch) {
-      // pick the latest metric by date
-      const latest = [...metrics].sort((a, b) => new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime())[0];
-      if (latest) {
-        const d = new Date(latest.metric_date);
-        setSalesYear(d.getFullYear());
-        setSalesMonth(d.getMonth() + 1);
-      }
-    }
-  }, [metrics, salesYear, salesMonth]);
 
   if (loading) {
     return (
@@ -44,49 +33,7 @@ export default function SharedSalesDashboard({ metrics, targets, loading = false
 
   return (
     <main className={`text-white text-sm ${className}`}>
-      <div className="flex items-center justify-end mb-4">
-        {/* Compact Inline Sales Filter Bar */}
-        <div className="flex items-center gap-3 px-3 py-2 backdrop-blur-md bg-gradient-to-r from-white/10 to-white/5 border border-white/10 rounded-lg shadow-inner">
-          <div className="flex items-center gap-1.5">
-            <span className="text-white/60 text-xs font-medium">Year:</span>
-            <select
-              value={salesYear}
-              onChange={(e) => setSalesYear(Number(e.target.value))}
-              className="bg-white/10 border border-white/20 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-white/40 backdrop-blur-sm"
-            >
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                <option key={year} value={year} className="bg-gray-800 text-white">{year}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="flex items-center gap-1.5">
-            <span className="text-white/60 text-xs font-medium">Month:</span>
-            <select
-              value={salesMonth}
-              onChange={(e) => setSalesMonth(Number(e.target.value))}
-              className="bg-white/10 border border-white/20 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-white/40 backdrop-blur-sm"
-            >
-              {[
-                { value: 1, label: 'January' },
-                { value: 2, label: 'February' },
-                { value: 3, label: 'March' },
-                { value: 4, label: 'April' },
-                { value: 5, label: 'May' },
-                { value: 6, label: 'June' },
-                { value: 7, label: 'July' },
-                { value: 8, label: 'August' },
-                { value: 9, label: 'September' },
-                { value: 10, label: 'October' },
-                { value: 11, label: 'November' },
-                { value: 12, label: 'December' }
-              ].map(month => (
-                <option key={month.value} value={month.value} className="bg-gray-800 text-white">{month.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+
       
       {/* Top row: Sales KPI Cards */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -204,7 +151,7 @@ const SalesKPICards: React.FC<{metrics: any[], targets?: any[], selectedYear: nu
             <div className="text-right">
               <p className="text-sm text-white/60">Units Sold</p>
               <p className="text-lg font-semibold text-white">{kpi.totalUnitsSold}</p>
-              <p className="text-xs text-white/40">S:{kpi.stockUnitsSold} C:{kpi.consignmentUnitsSold}</p>
+              <p className="text-xs text-white/40">Stock:{kpi.stockUnitsSold} Consignment:{kpi.consignmentUnitsSold}</p>
             </div>
           </div>
         </div>
@@ -411,7 +358,7 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
   return (
     <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-white/80">Monthly Progress vs Target Pace</h2>
+        <h2 className="text-sm font-semibold text-white/80">Target Pace vs Monthly Progress</h2>
         <div className="flex items-center gap-6 text-xs text-white/50">
           <div className="flex items-center gap-1">
             <div className="w-3 h-2 bg-white/60 rounded-sm"></div>
@@ -419,7 +366,7 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-2 bg-green-500 rounded-sm"></div>
-            <span>Actual Progress</span>
+            <span>Monthly Progress</span>
           </div>
         </div>
       </div>
@@ -450,7 +397,7 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
               labelFormatter={(label: string | number) => `Working Day ${label}`}
               formatter={(value: any, name: string) => [
                 value ? `AED ${value.toLocaleString()}` : 'No data',
-                name === 'targetPace' ? 'Cumulative Target' : 'Actual Progress'
+                name === 'targetPace' ? 'Target Pace' : 'Monthly Progress'
               ]}
             />
             
@@ -585,15 +532,15 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
   return (
     <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-white/80">Cumulative Yearly Target Progress</h2>
+        <h2 className="text-sm font-semibold text-white/80">Target Pace vs Yearly Progress</h2>
         <div className="flex items-center gap-6 text-xs text-white/50">
           <div className="flex items-center gap-1">
             <div className="w-3 h-2 bg-white/60 rounded-sm"></div>
-            <span>Cumulative Target</span>
+            <span>Target Pace</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-2 bg-green-500 rounded-sm"></div>
-            <span>Actual Progress</span>
+            <span>Yearly Progress</span>
           </div>
         </div>
       </div>
@@ -623,7 +570,7 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
               labelFormatter={(label: string | number) => `${label} ${new Date().getFullYear()}`}
               formatter={(value: any, name: string) => [
                 value ? `AED ${value.toLocaleString()}` : 'No data',
-                name === 'cumulativeTarget' ? 'Cumulative Target' : 'Actual Progress'
+                name === 'cumulativeTarget' ? 'Target Pace' : 'Yearly Progress'
               ]}
             />
             

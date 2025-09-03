@@ -1112,7 +1112,7 @@ export async function POST(request: NextRequest) {
             fs.writeFileSync(htmlPath, html);
             console.log('💾 HTML saved to debug-pdf.html for inspection');
         } catch (e) {
-            console.log('⚠️ Could not save debug HTML:', e.message);
+            console.log('⚠️ Could not save debug HTML:', e instanceof Error ? e.message : e);
         }
     }
     

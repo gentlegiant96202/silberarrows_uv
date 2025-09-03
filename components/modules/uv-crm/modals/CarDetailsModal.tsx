@@ -125,20 +125,24 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [mediaLoading, setMediaLoading] = useState(false);
   const [reorderLoading, setReorderLoading] = useState(false);
   
-  // Function to get original full-resolution image URL (avoid proxy for fullscreen)
+  // Function to get original full-resolution image URL (convert to custom domain to avoid ISP blocking)
   const getOriginalImageUrl = (url: string) => {
     try {
-      // If this is a proxied URL, extract the original Supabase URL
+      let targetUrl = url;
+      
+      // If this is a proxied URL, extract the original Supabase URL first
       if (url.startsWith('/api/storage-proxy?url=')) {
         const qs = url.split('?')[1] || '';
-        const original = new URLSearchParams(qs).get('url') || url;
-        return original.split('?')[0];
+        targetUrl = new URLSearchParams(qs).get('url') || url;
       }
-      // If already a direct Supabase URL, strip any transforms/queries
-      if (url.includes('.supabase.co')) {
-        return url.split('?')[0];
+      
+      // Convert any supabase.co URL to custom domain to avoid ISP blocking
+      if (targetUrl.includes('.supabase.co')) {
+        targetUrl = targetUrl.replace(/https:\/\/[^.]+\.supabase\.co/, 'https://database.silberarrows.com');
       }
-      return url;
+      
+      // Strip query params for clean full-resolution URL
+      return targetUrl.split('?')[0];
     } catch {
       return url;
     }
@@ -1298,9 +1302,17 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     <h4 className="text-sm font-semibold text-white">
                       Photo Gallery ({gallery.length})
                   </h4>
-                    {editing && (
-                      <span className="text-sm text-white/60">Drag to reorder</span>
-                    )}
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => downloadAll(gallery, `${localCar.stock_number}_photos.zip`)}
+                        className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
+                      >
+                        Download All
+                      </button>
+                      {editing && (
+                        <span className="text-sm text-white/60">Drag to reorder</span>
+                      )}
+                    </div>
                 </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {gallery.map((item, i) => (
@@ -1358,9 +1370,17 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               {/* Social Media Images */}
             {socialMedia.length > 0 && (
                 <div className="border border-white/15 rounded-md p-4 bg-white/5">
-                  <h4 className="text-sm font-semibold text-white mb-4">
-                    Social Media Images ({socialMedia.length})
-                  </h4>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">
+                      Social Media Images ({socialMedia.length})
+                    </h4>
+                    <button
+                      onClick={() => downloadAll(socialMedia, `${localCar.stock_number}_social_media.zip`)}
+                      className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
+                    >
+                      Download All
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {socialMedia.map((item) => (
                       <div key={item.id} className="relative group">
@@ -1389,9 +1409,17 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               {/* Catalog Images */}
               {catalog.length > 0 && (
                 <div className="border border-white/15 rounded-md p-4 bg-white/5">
-                  <h4 className="text-sm font-semibold text-white mb-4">
-                    Catalog Images ({catalog.length})
-                  </h4>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">
+                      Catalog Images ({catalog.length})
+                    </h4>
+                    <button
+                      onClick={() => downloadAll(catalog, `${localCar.stock_number}_catalog.zip`)}
+                      className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
+                    >
+                      Download All
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {catalog.map((item) => (
                       <div key={item.id} className="relative group">
@@ -1583,53 +1611,60 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         {/* Gallery Modal */}
         {showGallery && gallery.length > 0 && (
           createPortal(
-            <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-6">
-              <div className="relative w-[90vw] h-[90vh] max-w-[1600px] max-h-[90vh] flex items-center justify-center">
-                {/* Close */}
-                <button
-                  onClick={() => setShowGallery(false)}
-                  className="absolute top-4 right-4 text-white/90 hover:text-white bg-white/10 rounded-full px-3 py-1"
-                  aria-label="Close"
-                >
-                  Close
-                </button>
-                {/* Download current */}
-                <a
-                  href={`${getOriginalImageUrl(gallery[galleryIdx].url)}?download`}
-                  className="absolute top-4 left-4 text-white/90 hover:text-white bg-white/10 rounded-full px-3 py-1"
-                >
-                  Download
-                </a>
-                {/* Media */}
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60]">
+              <div className="relative flex items-center justify-center">
+                {/* Media Container with Overlays */}
                 {gallery[galleryIdx] && (
-                  <img 
-                    src={getOriginalImageUrl(gallery[galleryIdx].url)} 
-                    className="max-w-full max-h-full object-contain"
-                    alt="Gallery image"
-                  />
+                  <div className="relative">
+                    <img 
+                      src={getOriginalImageUrl(gallery[galleryIdx].url)} 
+                      className="max-w-[90vw] max-h-[90vh] object-contain"
+                      alt="Gallery image"
+                    />
+                    
+                    {/* Close - Top Right of Image */}
+                    <button
+                      onClick={() => setShowGallery(false)}
+                      className="absolute top-4 right-4 text-white/90 hover:text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 rounded-full px-4 py-2 transition-all duration-200 shadow-lg z-10"
+                      aria-label="Close"
+                    >
+                      Close
+                    </button>
+                    
+                    {/* Download - Top Left of Image */}
+                    <a
+                      href={`${getOriginalImageUrl(gallery[galleryIdx].url)}?download`}
+                      className="absolute top-4 left-4 text-white/90 hover:text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 rounded-full px-4 py-2 transition-all duration-200 shadow-lg z-10"
+                    >
+                      Download
+                    </a>
+                    
+                    {/* Image Counter - Bottom Center of Image */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/90 bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm shadow-lg z-10">
+                      {galleryIdx + 1} / {gallery.length}
+                    </div>
+                  </div>
                 )}
-                {/* Arrows */}
+                
+                {/* Navigation Arrows - Outside image but centered */}
                 {gallery.length > 1 && (
                   <>
                     <button
                       onClick={() => setGalleryIdx(prev => prev > 0 ? prev - 1 : gallery.length - 1)}
-                      className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/20 hover:bg-white/30 rounded-full px-3 py-2 text-xl"
+                      className="absolute left-4 text-white/80 hover:text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 rounded-full px-4 py-3 text-xl transition-all duration-200 shadow-lg z-10"
                       aria-label="Prev"
                     >
                       ‹
                     </button>
                     <button
                       onClick={() => setGalleryIdx(prev => prev < gallery.length - 1 ? prev + 1 : 0)}
-                      className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/20 hover:bg-white/30 rounded-full px-3 py-2 text-xl"
+                      className="absolute right-4 text-white/80 hover:text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 rounded-full px-4 py-3 text-xl transition-all duration-200 shadow-lg z-10"
                       aria-label="Next"
                     >
                       ›
                     </button>
                   </>
                 )}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-sm">
-                  {galleryIdx + 1} / {gallery.length}
-          </div>
         </div>
             </div>, document.body)
         )}

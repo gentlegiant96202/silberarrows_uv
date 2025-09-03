@@ -174,6 +174,16 @@ export async function POST(request: NextRequest) {
     let mainPhotos = limitedPhotos.slice(0, 5);
     let galleryPhotos = limitedPhotos.slice(5);
     
+    console.log(`📸 Image distribution: ${mainPhotos.length} main photos, ${galleryPhotos.length} gallery photos`);
+    console.log(`📄 Gallery pages needed: ${Math.ceil(galleryPhotos.length / 2)} pages`);
+    console.log(`📸 Total optimized photos: ${optimizedPhotos.length}`);
+    console.log(`🔍 Main photos URLs:`, mainPhotos.slice(0, 2).map(p => p.url?.substring(0, 50) + '...'));
+    console.log(`🔍 Gallery photos URLs:`, galleryPhotos.slice(0, 2).map(p => p.url?.substring(0, 50) + '...'));
+    console.log(`📝 Has description: ${!!car.description}`);
+    if (galleryPhotos.length % 2 === 1) {
+        console.log(`📄 Last gallery page will have 1 image (odd number: ${galleryPhotos.length})`);
+    }
+    
     // Compress ALL images for maximum file size reduction
     mainPhotos = mainPhotos.map((photo: any) => ({
       ...photo,
@@ -198,6 +208,9 @@ export async function POST(request: NextRequest) {
     // Helper functions
     const toTitle = (s: string) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
     const equipItems = car.key_equipment ? car.key_equipment.split(/[\n,]+/).map((item: string) => item.trim()) : [];
+    
+    // Log equipment info after it's defined
+    console.log(`🛠️ Equipment items: ${equipItems.length} items`);
     
     // Build the exact sophisticated HTML template optimized for single page
     const html = `
@@ -766,15 +779,18 @@ export async function POST(request: NextRequest) {
                   background-clip: text;
               }
               
-              /* Image Gallery Section */
+              /* Image Gallery Section - only break page if there are actual images */
               .image-gallery {
                   margin-top: 40px;
+              }
+              
+              /* Force page break before the first image page only */
+              .image-page:first-child {
                   page-break-before: always;
               }
               
               .image-page {
                   page-break-inside: avoid;
-                  page-break-after: always;
                   display: flex;
                   flex-direction: column; /* Vertical stacking - one below the other */
                   height: 100vh;
@@ -785,8 +801,9 @@ export async function POST(request: NextRequest) {
                   justify-content: center;
               }
               
-              .image-page:last-child {
-                  page-break-after: avoid;
+              /* Only add page break after if it's not the last image page */
+              .image-page:not(:last-child) {
+                  page-break-after: always;
               }
               
               .gallery-image {
@@ -800,10 +817,11 @@ export async function POST(request: NextRequest) {
                   overflow: hidden;
               }
               
-              /* When only one image on a page, make it larger */
+              /* When only one image on a page, make it larger and center it */
               .image-page .gallery-image:only-child {
                   max-height: 80%; /* Single image can be larger */
                   min-height: 500px;
+                  margin: auto 0; /* Center vertically when it's the only image */
               }
               
               .gallery-image img {
@@ -982,7 +1000,7 @@ export async function POST(request: NextRequest) {
               </div>
           </div>`}
 
-          <!-- THIRD PAGE: Key Equipment + Footer -->
+          <!-- THIRD PAGE: Key Equipment + Footer (only if equipment exists) -->
           ${equipItems.length ? `
           <div class="quotation-container" style="page-break-before: always;">
               <div class="content-wrapper">
@@ -1004,39 +1022,39 @@ export async function POST(request: NextRequest) {
                       </div>
                   </div>
               </div>
-          </div>` : `
-          <div class="quotation-container" style="page-break-before: always;">
-              <div class="content-wrapper">
-                  <!-- Footer (when no equipment) -->
-                  <div class="footer">
-                      <p>This quotation is valid for 30 days from the date of issue</p>
-                      <!-- VAT disclaimer removed as per requirement -->
-                      <div class="contact-info">
-                          Approved Used Vehicles • +971 4 380 5515 • sales@silberarrows.com
-                      </div>
-                  </div>
-              </div>
-          </div>`}
+          </div>
+          ` : ''}
 
-          <!-- REST OF PAGES: Image Gallery Section (as they were) -->
-          ${optimizedPhotos.length > 0 ? `
+          <!-- REST OF PAGES: Image Gallery Section (2 images per page, no empty pages) -->
+          ${(() => {
+              console.log(`🎯 FINAL CHECK: galleryPhotos.length = ${galleryPhotos.length}`);
+              console.log(`🎯 Will render gallery section: ${galleryPhotos.length > 0}`);
+              return galleryPhotos.length > 0;
+          })() ? `
           <div class="image-gallery">
               ${(() => {
                   const imagePages = [];
+                  console.log(`📄 Processing ${galleryPhotos.length} gallery photos for pagination...`);
+                  
                   // Group images in pairs (2 per page) for vertical stacking
                   for (let i = 0; i < galleryPhotos.length; i += 2) {
                       const pageImages = galleryPhotos.slice(i, i + 2);
-                      const pageHTML = `
-                      <div class="image-page">
-                          ${pageImages.map((photo: any, index: number) => `
-                          <div class="gallery-image">
-                              <img src="${photo.url}" alt="Vehicle image ${i + index + 6}" />
-                          </div>
-                          `).join('')}
-                          ${pageImages.length === 1 ? '<div class="gallery-image" style="visibility: hidden;"></div>' : ''}
-                      </div>`;
-                      imagePages.push(pageHTML);
+                      console.log(`📄 Page ${Math.floor(i/2) + 1}: ${pageImages.length} images (indices ${i} to ${i + pageImages.length - 1})`);
+                      
+                      // Only create a page if we have at least one image
+                      if (pageImages.length > 0) {
+                          const pageHTML = `
+                          <div class="image-page">
+                              ${pageImages.map((photo: any, index: number) => `
+                              <div class="gallery-image">
+                                  <img src="${photo.url}" alt="Vehicle image ${i + index + 6}" />
+                              </div>
+                              `).join('')}
+                          </div>`;
+                          imagePages.push(pageHTML);
+                      }
                   }
+                  console.log(`📄 Generated ${imagePages.length} gallery pages total`);
                   return imagePages.join('');
               })()}
           </div>

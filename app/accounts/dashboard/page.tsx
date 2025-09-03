@@ -12,10 +12,10 @@ import { useSalesData } from '@/lib/useSalesData';
 import { supabase } from '@/lib/supabaseClient';
 import { Building2, Grid3X3, Target, TrendingUp, Calculator, Package, DollarSign } from 'lucide-react';
 import dayjs from 'dayjs';
+import { AccountsTabProvider, useAccountsTab } from '@/lib/AccountsTabContext';
 
-export default function AccountsDashboard() {
-
-  const [activeTab, setActiveTab] = useState<'service' | 'sales' | 'leasing'>('service');
+function AccountsDashboardContent() {
+  const { activeTab, setActiveTab } = useAccountsTab();
   const [serviceSubTab, setServiceSubTab] = useState<'grid' | 'targets'>('grid');
   const [salesSubTab, setSalesSubTab] = useState<'dashboard' | 'grid' | 'targets'>('dashboard');
   const [allMetrics, setAllMetrics] = useState<any[]>([]);
@@ -346,4 +346,8 @@ export default function AccountsDashboard() {
       </div>
     </RouteProtector>
   );
+}
+
+export default function AccountsDashboard() {
+  return <AccountsDashboardContent />;
 } 

@@ -13,6 +13,7 @@ import WorkshopNavigation from './modules/workshop/WorkshopNavigation';
 
 import MarketingTicketsDropdown from '@/components/shared/MarketingTicketsDropdown';
 import { useUserRole } from '@/lib/useUserRole';
+import { useAccountsTab } from '@/lib/AccountsTabContext';
 
 
 
@@ -38,6 +39,17 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
   };
   
   const currentModule = getCurrentModule();
+  
+  // Use accounts tab context when in accounts module
+  let accountsTabState = null;
+  try {
+    if (currentModule === 'accounts') {
+      accountsTabState = useAccountsTab();
+    }
+  } catch (error) {
+    // Context not available, use fallback
+    accountsTabState = null;
+  }
 
   return (
     <header className={`sticky top-0 z-50 ${isModuleSelectionPage ? 'bg-transparent' : 'bg-black'} border-b ${isModuleSelectionPage ? 'border-white/5' : 'border-white/10'} overflow-visible`}>
@@ -67,11 +79,11 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
                   {currentModule === 'leasing' && (
                     <div className="text-white/60 text-sm">Leasing Navigation Coming Soon</div>
                   )}
-                  {currentModule === 'accounts' && activeTab && onTabChange && (
-                    <AccountsNavigation activeTab={activeTab} onTabChange={onTabChange} />
-                  )}
-                  {currentModule === 'accounts' && (!activeTab || !onTabChange) && (
-                    <AccountsNavigation activeTab="service" onTabChange={() => {}} />
+                  {currentModule === 'accounts' && (
+                    <AccountsNavigation 
+                      activeTab={accountsTabState?.activeTab || activeTab} 
+                      onTabChange={accountsTabState?.setActiveTab || onTabChange} 
+                    />
                   )}
                 </div>
               </>

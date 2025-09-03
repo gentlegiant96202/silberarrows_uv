@@ -200,6 +200,8 @@ export default function SalesDashboard() {
   );
 }
 
+
+
 /* ---------------- Sales KPI Cards ---------------- */
 const SalesKPICards: React.FC<{metrics: any[]}> = ({ metrics }) => {
   const [kpi, setKpi] = useState({

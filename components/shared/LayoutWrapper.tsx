@@ -1,6 +1,7 @@
 "use client";
 import { usePathname } from 'next/navigation';
 import Header from '@/components/shared/header/Header';
+import { AccountsTabProvider } from '@/lib/AccountsTabContext';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -15,8 +16,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   ];
   
   const shouldShowHeader = !noHeaderPages.includes(pathname);
+  const isAccountsPage = pathname.startsWith('/accounts');
   
-  return (
+  const content = (
     <>
       {/* Persistent Header - never re-mounts, eliminates glitching */}
       {shouldShowHeader && <Header />}
@@ -27,4 +29,15 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       </div>
     </>
   );
+  
+  // Wrap with AccountsTabProvider if on accounts pages
+  if (isAccountsPage) {
+    return (
+      <AccountsTabProvider>
+        {content}
+      </AccountsTabProvider>
+    );
+  }
+  
+  return content;
 }

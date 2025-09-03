@@ -325,9 +325,10 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       aria-describedby="price-drop-description"
     >
       <div 
-        className="bg-black/30 backdrop-blur-2xl border border-white/20 rounded-2xl w-full max-w-2xl shadow-2xl relative overflow-hidden"
+        className="bg-gradient-to-r from-gray-300 via-gray-400 to-gray-500 p-0.5 rounded-2xl w-full max-w-2xl shadow-2xl relative overflow-hidden focus:outline-none"
         tabIndex={-1}
       >
+        <div className="bg-black/90 backdrop-blur-2xl rounded-2xl h-full w-full relative overflow-hidden">
         {/* Gradient overlay for glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent pointer-events-none"></div>
         
@@ -520,6 +521,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
           </div>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>

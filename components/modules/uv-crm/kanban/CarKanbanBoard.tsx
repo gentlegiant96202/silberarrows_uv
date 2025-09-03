@@ -15,10 +15,10 @@ const SkeletonCarCard = ({ isExpanded = false }: { isExpanded?: boolean }) => {
   if (isExpanded) {
     // Grid layout skeleton (expanded inventory view)
     return (
-      <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-lg shadow-sm p-2 text-xs animate-pulse">
+      <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-lg shadow-sm p-3 text-xs animate-pulse">
         {/* Thumbnail skeleton */}
-        <div className="w-full h-20 bg-white/10 rounded mb-2"></div>
-        <div className="space-y-1">
+        <div className="w-full h-36 bg-white/10 rounded mb-3"></div>
+        <div className="space-y-2">
           {/* Stock number */}
           <div className="h-3 bg-white/10 rounded w-3/4"></div>
           {/* Model year + model */}
@@ -27,7 +27,7 @@ const SkeletonCarCard = ({ isExpanded = false }: { isExpanded?: boolean }) => {
           {/* Price */}
           <div className="h-2 bg-white/10 rounded w-1/2"></div>
           {/* Button */}
-          <div className="h-5 bg-white/10 rounded w-full mt-1"></div>
+          <div className="h-6 bg-white/10 rounded w-full mt-2"></div>
         </div>
       </div>
     );
@@ -86,7 +86,7 @@ const SkeletonColumn = ({ title, isInventory = false, isExpanded = false }: {
     
     <div className="flex-1 overflow-y-auto space-y-2">
       {isExpanded && isInventory ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {Array.from({ length: 12 }).map((_, i) => (
             <SkeletonCarCard key={i} isExpanded={true} />
           ))}
@@ -680,7 +680,7 @@ export default function CarKanbanBoard() {
               <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
                 {inventoryExpanded && col.key === 'inventory' ? (
                   // Grid layout for expanded inventory view
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                     {list.map(c => (
                       <div
                         key={c.id}
@@ -696,18 +696,18 @@ export default function CarKanbanBoard() {
                             setSelected(null);
                           }
                         }}
-                        className={`bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-2 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
+                        className={`bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-3 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
                       >
                         {/* thumbnail */}
-                        <div className="w-full h-20 bg-white/10 rounded overflow-hidden mb-2">
+                        <div className="w-full h-36 bg-white/10 rounded overflow-hidden mb-3">
                           {thumbs[c.id] ? (
                             <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy" />
                           ) : null}
                         </div>
-                        <div className="space-y-1">
-                          <div className="text-[10px] font-semibold text-white leading-tight truncate">{highlight(c.stock_number)}</div>
-                          <div className="text-[9px] text-white/60 leading-tight line-clamp-2">{highlight(c.model_year+' '+cleanModel(c.vehicle_model))}</div>
-                          <div className="text-white font-semibold text-[9px] flex items-center gap-0.5">
+                        <div className="space-y-2">
+                          <div className="text-xs font-semibold text-white leading-tight truncate">{highlight(c.stock_number)}</div>
+                          <div className="text-xs text-white/70 leading-tight line-clamp-2">{highlight(c.model_year+' '+cleanModel(c.vehicle_model))}</div>
+                          <div className="text-white font-semibold text-sm flex items-center gap-1">
                             <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
                           </div>
                           {/* Price Drop Button - Expanded View */}
@@ -718,10 +718,10 @@ export default function CarKanbanBoard() {
                                 setSelectedCarForPriceDrop(c);
                                 setShowPriceDropModal(true);
                               }}
-                              className="w-full mt-1 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-[8px] px-1.5 py-0.5 rounded transition-all duration-200 flex items-center justify-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
+                              className="w-full mt-2 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-xs px-2 py-1 rounded transition-all duration-200 flex items-center justify-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
                               title="Create price drop marketing task"
                             >
-                              <Tag className="w-2 h-2" />
+                              <Tag className="w-3 h-3" />
                               <span className="font-medium">Price Drop</span>
                             </button>
                           )}
@@ -732,10 +732,10 @@ export default function CarKanbanBoard() {
                                 e.stopPropagation();
                                 handleArchiveCar(c.id);
                               }}
-                              className="w-full mt-1 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-[8px] px-1.5 py-0.5 rounded transition-all duration-200 flex items-center justify-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
+                              className="w-full mt-2 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-xs px-2 py-1 rounded transition-all duration-200 flex items-center justify-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
                               title="Archive car"
                             >
-                              <Archive className="w-2 h-2" />
+                              <Archive className="w-3 h-3" />
                               <span className="font-medium">Archive</span>
                             </button>
                           )}

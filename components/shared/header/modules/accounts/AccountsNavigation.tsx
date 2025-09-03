@@ -8,11 +8,11 @@ const accountsTabs = [
 
 interface AccountsNavigationProps {
   activeTab?: string;
-  onTabChange?: (tab: string) => void;
+  onTabChange?: (tab: 'service' | 'sales' | 'leasing') => void;
 }
 
 export default function AccountsNavigation({ activeTab = 'service', onTabChange }: AccountsNavigationProps) {
-  const handleTabClick = (tabKey: string) => {
+  const handleTabClick = (tabKey: 'service' | 'sales' | 'leasing') => {
     if (onTabChange) {
       onTabChange(tabKey);
     }
@@ -23,7 +23,7 @@ export default function AccountsNavigation({ activeTab = 'service', onTabChange 
       {accountsTabs.map((tab) => (
         <button
           key={tab.key}
-          onClick={() => handleTabClick(tab.key)}
+          onClick={() => handleTabClick(tab.key as 'service' | 'sales' | 'leasing')}
           className={`px-4 py-1.5 rounded-full font-medium text-xs md:text-sm transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
             activeTab === tab.key
               ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg border-gray-300'

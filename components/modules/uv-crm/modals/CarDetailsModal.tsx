@@ -1423,80 +1423,128 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           {activeTab === 'media' && (
             <div className="space-y-6">
               {/* Photo Gallery */}
-              {gallery.length > 0 && (
-                <div className="border border-white/15 rounded-md p-4 bg-white/5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-semibold text-white">
-                      Photo Gallery ({gallery.length})
-                      {isSelectionMode && selectedMediaIds.size > 0 && (
-                        <span className="ml-2 text-xs text-gray-300">
-                          ({selectedMediaIds.size} selected)
-                        </span>
-                      )}
+              <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-white">
+                    Photo Gallery ({gallery.length})
+                    {isSelectionMode && selectedMediaIds.size > 0 && (
+                      <span className="ml-2 text-xs text-gray-300">
+                        ({selectedMediaIds.size} selected)
+                      </span>
+                    )}
                   </h4>
-                    <div className="flex items-center gap-3">
-                      {editing && (
-                        <>
-                          {!isSelectionMode ? (
-                            <button
-                              onClick={() => setIsSelectionMode(true)}
-                              className="px-3 py-1.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 hover:from-blue-400/30 hover:to-blue-500/30 border border-blue-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
-                            >
-                              Select Multiple
+                  <div className="flex items-center gap-3">
+                    {editing && (
+                      <>
+                        {/* Upload Button */}
+                        <div className="border-r border-white/20 pr-3">
+                          <div className="relative">
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files || []);
+                                if (!files.length) return;
+                                
+                                // Use existing MediaUploader logic inline
+                                setMediaLoading(true);
+                                for (const file of files) {
+                                  const ext = file.name.split('.').pop();
+                                  const path = `${car.id}/${crypto.randomUUID()}.${ext}`;
+                                  
+                                  const { error: upErr } = await supabase.storage
+                                    .from('car-media')
+                                    .upload(path, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+                                  
+                                  if (upErr) continue;
+                                  
+                                  const { data: pub } = supabase.storage.from('car-media').getPublicUrl(path);
+                                  const { count: photoCount } = await supabase
+                                    .from('car_media')
+                                    .select('*', { head: true, count: 'exact' })
+                                    .eq('car_id', car.id)
+                                    .eq('kind', 'photo');
+                                  
+                                  await supabase.from('car_media').insert({
+                                    car_id: car.id,
+                                    kind: 'photo',
+                                    url: pub.publicUrl,
+                                    is_primary: (!photoCount || photoCount === 0),
+                                  });
+                                }
+                                setMediaLoading(false);
+                                refetchMedia();
+                                e.target.value = '';
+                              }}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                            <button className="px-3 py-1.5 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm">
+                              Upload Photos
                             </button>
-                          ) : (
-                            <>
+                          </div>
+                        </div>
+                        
+                        {!isSelectionMode ? (
+                          <button
+                            onClick={() => setIsSelectionMode(true)}
+                            className="px-3 py-1.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 hover:from-blue-400/30 hover:to-blue-500/30 border border-blue-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
+                          >
+                            Select Multiple
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={selectAllMedia}
+                              className="px-2 py-1 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200"
+                            >
+                              Select All
+                            </button>
+                            <button
+                              onClick={deselectAllMedia}
+                              className="px-2 py-1 bg-gradient-to-r from-gray-500/20 to-gray-600/20 hover:from-gray-400/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200"
+                            >
+                              Deselect All
+                            </button>
+                            {selectedMediaIds.size > 0 && (
                               <button
-                                onClick={selectAllMedia}
-                                className="px-2 py-1 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200"
+                                onClick={handleDeleteSelectedMedia}
+                                disabled={mediaLoading}
+                                className="px-3 py-1.5 bg-gradient-to-r from-red-500/20 to-red-600/20 hover:from-red-400/30 hover:to-red-500/30 border border-red-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                               >
-                                Select All
+                                {mediaLoading && (
+                                  <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                                )}
+                                Delete Selected ({selectedMediaIds.size})
                               </button>
-                              <button
-                                onClick={deselectAllMedia}
-                                className="px-2 py-1 bg-gradient-to-r from-gray-500/20 to-gray-600/20 hover:from-gray-400/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200"
-                              >
-                                Deselect All
-                              </button>
-                              {selectedMediaIds.size > 0 && (
-                                <button
-                                  onClick={handleDeleteSelectedMedia}
-                                  disabled={mediaLoading}
-                                  className="px-3 py-1.5 bg-gradient-to-r from-red-500/20 to-red-600/20 hover:from-red-400/30 hover:to-red-500/30 border border-red-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                  {mediaLoading && (
-                                    <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                                  )}
-                                  Delete Selected ({selectedMediaIds.size})
-                                </button>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setIsSelectionMode(false);
-                                  setSelectedMediaIds(new Set());
-                                }}
-                                className="px-2 py-1 bg-gradient-to-r from-gray-500/20 to-gray-600/20 hover:from-gray-400/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200"
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
-                      <button
-                        onClick={() => downloadAll(gallery, `${localCar.stock_number}_photos.zip`, setDownloadingGallery)}
-                        disabled={downloadingGallery}
-                        className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {downloadingGallery && (
-                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                            )}
+                            <button
+                              onClick={() => {
+                                setIsSelectionMode(false);
+                                setSelectedMediaIds(new Set());
+                              }}
+                              className="px-2 py-1 bg-gradient-to-r from-gray-500/20 to-gray-600/20 hover:from-gray-400/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200"
+                            >
+                              Cancel
+                            </button>
+                          </>
                         )}
-                        {downloadingGallery ? 'Creating ZIP...' : 'Download All'}
-                      </button>
-                      {editing && !isSelectionMode && (
-                        <span className="text-sm text-white/60">Drag to reorder</span>
+                      </>
+                    )}
+                    <button
+                      onClick={() => downloadAll(gallery, `${localCar.stock_number}_photos.zip`, setDownloadingGallery)}
+                      disabled={downloadingGallery}
+                      className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {downloadingGallery && (
+                        <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
                       )}
-                    </div>
+                      {downloadingGallery ? 'Creating ZIP...' : 'Download All'}
+                    </button>
+                    {editing && !isSelectionMode && (
+                      <span className="text-sm text-white/60">Drag to reorder</span>
+                    )}
+                  </div>
                 </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {gallery.map((item, i) => (
@@ -1574,17 +1622,64 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                       )}
                     </div>
                   ))}
-                </div>
+                  </div>
+                {gallery.length === 0 && editing && (
+                  <div className="text-center py-8 text-white/60">
+                    <p>No photos uploaded yet. Click "Upload Photos" to add images.</p>
+                  </div>
+                )}
               </div>
-            )}
 
               {/* Social Media Images */}
-            {socialMedia.length > 0 && (
-                <div className="border border-white/15 rounded-md p-4 bg-white/5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-semibold text-white">
-                      Social Media Images ({socialMedia.length})
-                    </h4>
+              <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-white">
+                    Social Media Images ({socialMedia.length})
+                  </h4>
+                  <div className="flex items-center gap-3">
+                    {editing && (
+                      <div className="border-r border-white/20 pr-3">
+                        <div className="relative">
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const files = Array.from(e.target.files || []);
+                              if (!files.length) return;
+                              
+                              setMediaLoading(true);
+                              for (const file of files) {
+                                const ext = file.name.split('.').pop();
+                                const path = `${car.id}/${crypto.randomUUID()}.${ext}`;
+                                
+                                const { error: upErr } = await supabase.storage
+                                  .from('car-media')
+                                  .upload(path, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+                                
+                                if (upErr) continue;
+                                
+                                const { data: pub } = supabase.storage.from('car-media').getPublicUrl(path);
+                                
+                                await supabase.from('car_media').insert({
+                                  car_id: car.id,
+                                  kind: 'social_media',
+                                  url: pub.publicUrl,
+                                  is_primary: false,
+                                });
+                              }
+                              setMediaLoading(false);
+                              refetchMedia();
+                              e.target.value = '';
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                          <button className="px-3 py-1.5 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm">
+                            Upload Social
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <button
                       onClick={() => downloadAll(socialMedia, `${localCar.stock_number}_social_media.zip`, setDownloadingSocial)}
                       disabled={downloadingSocial}
@@ -1596,6 +1691,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                       {downloadingSocial ? 'Creating ZIP...' : 'Download All'}
                     </button>
                   </div>
+                </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {socialMedia.map((item) => (
                       <div key={item.id} className="relative group">
@@ -1613,21 +1709,67 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                             title="Delete"
                   >
                             ×
-                  </button>
+                                            </button>
                         )}
                 </div>
                     ))}
                   </div>
-                </div>
-              )}
+                {socialMedia.length === 0 && editing && (
+                  <div className="text-center py-8 text-white/60">
+                    <p>No social media images uploaded yet. Click "Upload Social" to add images.</p>
+                  </div>
+                )}
+              </div>
 
               {/* Catalog Images */}
-              {catalog.length > 0 && (
-                <div className="border border-white/15 rounded-md p-4 bg-white/5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-semibold text-white">
-                      Catalog Images ({catalog.length})
-                    </h4>
+              <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-white">
+                    Catalog Images ({catalog.length})
+                  </h4>
+                  <div className="flex items-center gap-3">
+                    {editing && (
+                      <div className="border-r border-white/20 pr-3">
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const files = Array.from(e.target.files || []);
+                              if (!files.length) return;
+                              
+                              setMediaLoading(true);
+                              for (const file of files) {
+                                const ext = file.name.split('.').pop();
+                                const path = `${car.id}/${crypto.randomUUID()}.${ext}`;
+                                
+                                const { error: upErr } = await supabase.storage
+                                  .from('car-media')
+                                  .upload(path, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+                                
+                                if (upErr) continue;
+                                
+                                const { data: pub } = supabase.storage.from('car-media').getPublicUrl(path);
+                                
+                                await supabase.from('car_media').insert({
+                                  car_id: car.id,
+                                  kind: 'catalog',
+                                  url: pub.publicUrl,
+                                  is_primary: false,
+                                });
+                              }
+                              setMediaLoading(false);
+                              refetchMedia();
+                              e.target.value = '';
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                          <button className="px-3 py-1.5 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm">
+                            Upload Catalog
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <button
                       onClick={() => downloadAll(catalog, `${localCar.stock_number}_catalog.zip`, setDownloadingCatalog)}
                       disabled={downloadingCatalog}
@@ -1639,6 +1781,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                       {downloadingCatalog ? 'Creating ZIP...' : 'Download All'}
                     </button>
                   </div>
+                </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {catalog.map((item) => (
                       <div key={item.id} className="relative group">
@@ -1660,44 +1803,13 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         )}
                     </div>
                   ))}
-                </div>
+                  </div>
+                {catalog.length === 0 && editing && (
+                  <div className="text-center py-8 text-white/60">
+                    <p>No catalog images uploaded yet. Click "Upload Catalog" to add images.</p>
+                  </div>
+                )}
               </div>
-            )}
-
-              {/* Media Upload Sections - Only show in edit mode */}
-              {editing && canEdit && (
-                <div className="space-y-4">
-                  <div className="border border-white/15 rounded-md p-4 bg-white/5">
-                    <h4 className="text-sm font-semibold text-white/70 mb-3">Upload Photo Gallery</h4>
-                <MediaUploader 
-                  carId={car.id} 
-                      onUploaded={()=>refetchMedia()}
-                      mediaKind="photo"
-                      acceptedFormats="image/*"
-                    />
-                  </div>
-                  
-                  <div className="border border-white/15 rounded-md p-4 bg-white/5">
-                    <h4 className="text-sm font-semibold text-white/70 mb-3">Upload Social Media Images</h4>
-                    <MediaUploader 
-                      carId={car.id} 
-                      onUploaded={()=>refetchMedia()}
-                      mediaKind="social_media"
-                      acceptedFormats="image/*"
-                    />
-                  </div>
-                  
-                  <div className="border border-white/15 rounded-md p-4 bg-white/5">
-                    <h4 className="text-sm font-semibold text-white/70 mb-3">Upload Catalog Image</h4>
-                    <MediaUploader 
-                      carId={car.id} 
-                      onUploaded={()=>refetchMedia()}
-                  mediaKind="catalog"
-                  acceptedFormats="image/*"
-                />
-                  </div>
-                </div>
-              )}
               </div>
             )}
 

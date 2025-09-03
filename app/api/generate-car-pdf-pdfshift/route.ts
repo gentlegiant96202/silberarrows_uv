@@ -177,8 +177,8 @@ export async function POST(request: NextRequest) {
     console.log(`📸 Image distribution: ${mainPhotos.length} main photos, ${galleryPhotos.length} gallery photos`);
     console.log(`📄 Gallery pages needed: ${Math.ceil(galleryPhotos.length / 2)} pages`);
     console.log(`📸 Total optimized photos: ${optimizedPhotos.length}`);
-    console.log(`🔍 Main photos URLs:`, mainPhotos.slice(0, 2).map(p => p.url?.substring(0, 50) + '...'));
-    console.log(`🔍 Gallery photos URLs:`, galleryPhotos.slice(0, 2).map(p => p.url?.substring(0, 50) + '...'));
+    console.log(`🔍 Main photos URLs:`, mainPhotos.slice(0, 2).map((p: any) => p.url?.substring(0, 50) + '...'));
+    console.log(`🔍 Gallery photos URLs:`, galleryPhotos.slice(0, 2).map((p: any) => p.url?.substring(0, 50) + '...'));
     console.log(`📝 Has description: ${!!car.description}`);
     if (galleryPhotos.length % 2 === 1) {
         console.log(`📄 Last gallery page will have 1 image (odd number: ${galleryPhotos.length})`);

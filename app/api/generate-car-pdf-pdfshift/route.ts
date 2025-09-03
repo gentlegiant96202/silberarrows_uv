@@ -105,6 +105,7 @@ function getCompressedImageUrl(originalUrl: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('🚀🚀🚀 PDF GENERATION API ROUTE HIT - NEW VERSION 🚀🚀🚀');
   console.log('🚀 PDF Generation POST endpoint hit');
   console.log('📍 Request URL:', request.url);
   console.log('📍 Request method:', request.method);
@@ -266,6 +267,27 @@ export async function POST(request: NextRequest) {
                   justify-content: center;
                   min-height: calc(100vh - 60px);
                   margin: auto 0;
+              }
+              
+              /* Special layout for equipment page - fixed positioning */
+              .equipment-page-container {
+                  page-break-inside: avoid;
+                  padding: 40px 40px 20px 40px;
+                  display: flex;
+                  flex-direction: column;
+                  min-height: 100vh;
+                  margin: 0;
+                  position: relative;
+              }
+              
+              .equipment-content {
+                  flex: 1;
+                  padding-top: 0;
+              }
+              
+              .equipment-footer {
+                  margin-top: auto;
+                  padding-top: 30px;
               }
               
               .quotation-container {
@@ -779,14 +801,9 @@ export async function POST(request: NextRequest) {
                   background-clip: text;
               }
               
-              /* Image Gallery Section - only break page if there are actual images */
+              /* Image Gallery Section - natural page flow */
               .image-gallery {
                   margin-top: 40px;
-              }
-              
-              /* Force page break before the first image page only */
-              .image-page:first-child {
-                  page-break-before: always;
               }
               
               .image-page {
@@ -1000,20 +1017,20 @@ export async function POST(request: NextRequest) {
               </div>
           </div>`}
 
-          <!-- THIRD PAGE: Key Equipment + Footer (only if equipment exists) -->
+          <!-- THIRD PAGE: Key Equipment + Footer (only if equipment exists) - Fixed Layout -->
           ${equipItems.length ? `
-          <div class="quotation-container" style="page-break-before: always;">
-              <div class="content-wrapper">
+          <div class="equipment-page-container" style="page-break-before: always;">
+              <div class="equipment-content">
                   <div class="full-width-section">
                       <h4 class="card-title">Key Equipment & Features</h4>
                       <div class="equipment-grid">
                           ${equipItems.map((item: string) => `<span class="equipment-item">${toTitle(item)}</span>`).join('')}
                       </div>
                   </div>
-                  
-                  <!-- Spacer between sections -->
-                  
-                  <!-- Footer -->
+              </div>
+              
+              <!-- Fixed Footer at Bottom -->
+              <div class="equipment-footer">
                   <div class="footer">
                       <p>This quotation is valid for 30 days from the date of issue</p>
                       <!-- VAT disclaimer removed as per requirement -->
@@ -1066,6 +1083,38 @@ export async function POST(request: NextRequest) {
         // Call our own renderer service for PDF generation
     console.log('📄 Generating PDF using our renderer service...');
     console.log('📄 Image count for PDF:', optimizedPhotos.length);
+    
+    // DEBUG: Log the actual HTML structure to see what pages are being created
+    const pageBreaks = (html.match(/page-break-before:\s*always/g) || []).length;
+    const quotationContainers = (html.match(/quotation-container/g) || []).length;
+    const imagePages = (html.match(/image-page/g) || []).length;
+    
+    console.log('🔍 HTML STRUCTURE DEBUG:');
+    console.log(`   - Page breaks (page-break-before): ${pageBreaks}`);
+    console.log(`   - Quotation containers: ${quotationContainers}`);
+    console.log(`   - Image pages: ${imagePages}`);
+    console.log(`   - HTML length: ${html.length} characters`);
+    
+    // Log sections of HTML to see the structure
+    const htmlLines = html.split('\n');
+    const pageBreakLines = htmlLines.filter(line => line.includes('page-break-before'));
+    console.log('🔍 PAGE BREAK LINES:');
+    pageBreakLines.forEach((line, i) => {
+        console.log(`   ${i + 1}: ${line.trim().substring(0, 100)}...`);
+    });
+    
+    // Save HTML to inspect the actual structure (development only)
+    if (process.env.NODE_ENV === 'development') {
+        try {
+            const fs = await import('fs');
+            const path = await import('path');
+            const htmlPath = path.join(process.cwd(), 'debug-pdf.html');
+            fs.writeFileSync(htmlPath, html);
+            console.log('💾 HTML saved to debug-pdf.html for inspection');
+        } catch (e) {
+            console.log('⚠️ Could not save debug HTML:', e.message);
+        }
+    }
     
     const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
     console.log('🔄 Calling renderer service at:', rendererUrl);

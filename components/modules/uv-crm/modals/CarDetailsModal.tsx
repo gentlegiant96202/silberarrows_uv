@@ -518,6 +518,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       setGenerating(true);
       setStatusMsg('Building HTML content...');
       
+      console.log('🔥 ABOUT TO CALL API: /api/generate-car-pdf-pdfshift');
+      console.log('🔥 Car ID:', car.id);
+      console.log('🔥 Media count:', media.length);
+      
       const response = await fetch('/api/generate-car-pdf-pdfshift', {
         method: 'POST',
         headers: {
@@ -528,6 +532,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           media: media
         }),
       });
+      
+      console.log('🔥 API RESPONSE STATUS:', response.status);
+      console.log('🔥 API RESPONSE OK:', response.ok);
+      console.log('🔥 API RESPONSE HEADERS:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         let message = 'Failed to generate PDF';

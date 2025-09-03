@@ -859,29 +859,48 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     onDeleted(car.id);
   };
 
-  const handleDeleteMedia = async (m:any)=>{
+  // State for multiple selection
+  const [selectedMediaIds, setSelectedMediaIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+
+  const handleDeleteMedia = async (mediaItem: any) => {
     if(!confirm('Delete this media?')) return;
     if (reorderLoading || mediaLoading) return;
     
     setMediaLoading(true);
     
+    // Handle both single item (object) and ID (string) for backward compatibility
+    const mediaId = typeof mediaItem === 'string' ? mediaItem : mediaItem.id;
+    const mediaUrl = typeof mediaItem === 'string' 
+      ? media.find(m => m.id === mediaItem)?.url 
+      : mediaItem.url;
+    
     // Optimistic update: remove from UI immediately
     const previousMedia = [...media];
-    const optimisticMedia = media.filter(item => item.id !== m.id);
+    const optimisticMedia = media.filter(item => item.id !== mediaId);
     setMedia(optimisticMedia);
     
     try {
-    // remove from DB
-    await supabase.from('car_media').delete().eq('id', m.id);
-    // remove file from storage if path exists
-    try{
-      const prefix = '/car-media/';
-      const idx = m.url.indexOf(prefix);
-      if(idx!==-1){
-        const path = m.url.slice(idx + prefix.length);
-        await supabase.storage.from('car-media').remove([path]);
+      // remove from DB
+      const { error: dbError } = await supabase.from('car_media').delete().eq('id', mediaId);
+      if (dbError) {
+        throw new Error(`Database error: ${dbError.message}`);
       }
-    }catch(e){}
+      
+      // remove file from storage if path exists
+      if (mediaUrl) {
+        try{
+          const prefix = '/car-media/';
+          const idx = mediaUrl.indexOf(prefix);
+          if(idx !== -1){
+            const path = mediaUrl.slice(idx + prefix.length);
+            await supabase.storage.from('car-media').remove([path]);
+          }
+        }catch(storageError){
+          console.warn('Storage deletion failed:', storageError);
+          // Continue even if storage deletion fails
+        }
+      }
       
       // Refetch to ensure consistency
       await refetchMedia();
@@ -889,8 +908,97 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       console.error('Failed to delete media:', error);
       // Rollback on failure
       setMedia(previousMedia);
-      alert('Failed to delete media. Please try again.');
+      alert(`Failed to delete media: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setMediaLoading(false);
     }
+  };
+
+  const handleDeleteSelectedMedia = async () => {
+    if (selectedMediaIds.size === 0) return;
+    
+    if (!confirm(`Delete ${selectedMediaIds.size} selected media items?`)) return;
+    
+    if (reorderLoading || mediaLoading) return;
+    
+    setMediaLoading(true);
+    
+    // Get selected media items
+    const selectedItems = media.filter(item => selectedMediaIds.has(item.id));
+    
+    // Optimistic update: remove from UI immediately
+    const previousMedia = [...media];
+    const optimisticMedia = media.filter(item => !selectedMediaIds.has(item.id));
+    setMedia(optimisticMedia);
+    
+    try {
+      // Delete from database in batch
+      const { error: dbError } = await supabase
+        .from('car_media')
+        .delete()
+        .in('id', Array.from(selectedMediaIds));
+      
+      if (dbError) {
+        throw new Error(`Database error: ${dbError.message}`);
+      }
+      
+      // Delete files from storage
+      const storagePaths: string[] = [];
+      selectedItems.forEach(item => {
+        if (item.url) {
+          const prefix = '/car-media/';
+          const idx = item.url.indexOf(prefix);
+          if (idx !== -1) {
+            const path = item.url.slice(idx + prefix.length);
+            storagePaths.push(path);
+          }
+        }
+      });
+      
+      if (storagePaths.length > 0) {
+        try {
+          await supabase.storage.from('car-media').remove(storagePaths);
+        } catch (storageError) {
+          console.warn('Some storage files could not be deleted:', storageError);
+          // Continue even if storage deletion fails
+        }
+      }
+      
+      // Clear selection and exit selection mode
+      setSelectedMediaIds(new Set());
+      setIsSelectionMode(false);
+      
+      // Refetch to ensure consistency
+      await refetchMedia();
+    } catch (error) {
+      console.error('Failed to delete selected media:', error);
+      // Rollback on failure
+      setMedia(previousMedia);
+      alert(`Failed to delete selected media: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const toggleMediaSelection = (mediaId: string) => {
+    setSelectedMediaIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(mediaId)) {
+        newSet.delete(mediaId);
+      } else {
+        newSet.add(mediaId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllMedia = () => {
+    const allPhotoVideoIds = gallery.map(item => item.id);
+    setSelectedMediaIds(new Set(allPhotoVideoIds));
+  };
+
+  const deselectAllMedia = () => {
+    setSelectedMediaIds(new Set());
   };
 
 
@@ -1320,8 +1428,61 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-sm font-semibold text-white">
                       Photo Gallery ({gallery.length})
+                      {isSelectionMode && selectedMediaIds.size > 0 && (
+                        <span className="ml-2 text-xs text-gray-300">
+                          ({selectedMediaIds.size} selected)
+                        </span>
+                      )}
                   </h4>
                     <div className="flex items-center gap-3">
+                      {editing && (
+                        <>
+                          {!isSelectionMode ? (
+                            <button
+                              onClick={() => setIsSelectionMode(true)}
+                              className="px-3 py-1.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 hover:from-blue-400/30 hover:to-blue-500/30 border border-blue-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
+                            >
+                              Select Multiple
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={selectAllMedia}
+                                className="px-2 py-1 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200"
+                              >
+                                Select All
+                              </button>
+                              <button
+                                onClick={deselectAllMedia}
+                                className="px-2 py-1 bg-gradient-to-r from-gray-500/20 to-gray-600/20 hover:from-gray-400/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200"
+                              >
+                                Deselect All
+                              </button>
+                              {selectedMediaIds.size > 0 && (
+                                <button
+                                  onClick={handleDeleteSelectedMedia}
+                                  disabled={mediaLoading}
+                                  className="px-3 py-1.5 bg-gradient-to-r from-red-500/20 to-red-600/20 hover:from-red-400/30 hover:to-red-500/30 border border-red-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  {mediaLoading && (
+                                    <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                                  )}
+                                  Delete Selected ({selectedMediaIds.size})
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setIsSelectionMode(false);
+                                  setSelectedMediaIds(new Set());
+                                }}
+                                className="px-2 py-1 bg-gradient-to-r from-gray-500/20 to-gray-600/20 hover:from-gray-400/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
                       <button
                         onClick={() => downloadAll(gallery, `${localCar.stock_number}_photos.zip`, setDownloadingGallery)}
                         disabled={downloadingGallery}
@@ -1332,7 +1493,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         )}
                         {downloadingGallery ? 'Creating ZIP...' : 'Download All'}
                       </button>
-                      {editing && (
+                      {editing && !isSelectionMode && (
                         <span className="text-sm text-white/60">Drag to reorder</span>
                       )}
                     </div>
@@ -1341,28 +1502,55 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     {gallery.map((item, i) => (
                       <div
                         key={item.id}
-                        className={`relative group ${editing ? 'cursor-move' : 'cursor-pointer'}`}
-                        draggable={editing}
-                        onDragStart={(e)=>handleDragStart(e,i)}
-                        onDragOver={(e)=>handleDragOver(e,i)}
-                      onDragLeave={handleDragLeave}
-                        onDrop={(e)=>handleDrop(e,i)}
-                      onDragEnd={handleDragEnd}
+                        className={`relative group ${
+                          editing && !isSelectionMode ? 'cursor-move' : 'cursor-pointer'
+                        } ${
+                          isSelectionMode && selectedMediaIds.has(item.id) 
+                            ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-black/40' 
+                            : ''
+                        }`}
+                        draggable={editing && !isSelectionMode}
+                        onDragStart={(e) => !isSelectionMode && handleDragStart(e, i)}
+                        onDragOver={(e) => !isSelectionMode && handleDragOver(e, i)}
+                        onDragLeave={!isSelectionMode ? handleDragLeave : undefined}
+                        onDrop={(e) => !isSelectionMode && handleDrop(e, i)}
+                        onDragEnd={!isSelectionMode ? handleDragEnd : undefined}
                     >
                         <div className="aspect-square bg-white/10 rounded overflow-hidden">
                           <img 
                             src={item.url} 
                             className="w-full h-full object-contain bg-black/40 cursor-pointer hover:opacity-80 transition-opacity" 
-                            onClick={() => {setShowGallery(true); setGalleryIdx(i);}}
+                            onClick={() => {
+                              if (isSelectionMode) {
+                                toggleMediaSelection(item.id);
+                              } else {
+                                setShowGallery(true); 
+                                setGalleryIdx(i);
+                              }
+                            }}
                             loading="lazy"
                           />
-                            </div>
+                        </div>
+                        
+                        {/* Selection checkbox */}
+                        {isSelectionMode && (
+                          <div className="absolute top-2 left-2 z-10">
+                            <input
+                              type="checkbox"
+                              checked={selectedMediaIds.has(item.id)}
+                              onChange={() => toggleMediaSelection(item.id)}
+                              className="w-4 h-4 text-blue-600 bg-black/50 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            />
+                          </div>
+                        )}
+                        
                         {item.is_primary && (
-                          <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded">
+                          <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded">
                             Primary
                           </div>
                         )}
-                        {editing && (
+                        
+                        {editing && !isSelectionMode && (
                           <div className="absolute inset-0 hidden group-hover:flex items-start justify-between p-1">
                             <div>
                               {!item.is_primary && (
@@ -1376,7 +1564,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                               )}
                             </div>
                           <button
-                              onClick={() => handleDeleteMedia(item.id)}
+                              onClick={() => handleDeleteMedia(item)}
                               className="bg-red-500/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-red-500/90"
                               title="Delete"
                             >
@@ -1420,7 +1608,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         </div>
                         {editing && (
                   <button 
-                            onClick={() => handleDeleteMedia(item.id)}
+                            onClick={() => handleDeleteMedia(item)}
                             className="absolute top-1 right-1 bg-red-500/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-red-500/90"
                             title="Delete"
                   >
@@ -1463,7 +1651,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         </div>
                         {editing && (
                       <button 
-                            onClick={() => handleDeleteMedia(item.id)}
+                            onClick={() => handleDeleteMedia(item)}
                             className="absolute top-1 right-1 bg-red-500/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-red-500/90"
                             title="Delete"
                           >
@@ -1555,7 +1743,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                           </a>
                           {editing && (
                       <button 
-                              onClick={() => handleDeleteMedia(doc.id)}
+                              onClick={() => handleDeleteMedia(doc)}
                               className="text-sm text-red-400 hover:text-red-300"
                       >
                               Delete

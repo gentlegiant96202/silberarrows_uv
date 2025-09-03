@@ -757,7 +757,10 @@ ${fontFaceCSS}
             
             <div class="content-container">
             <div>
-              <h1 class="title">${formData.title || 'Your Title Here'}</h1>
+              <h1 class="title">${(() => {
+                const title = (formData.car_model || formData.title || 'Your Title Here').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
+                return title;
+              })()}</h1>
                 </div>
             </div>
           </div>
@@ -1170,9 +1173,8 @@ ${fontFaceCSS}
           <div class="content">
             <div>
               <h1 class="title">${(() => {
-                const year = formData.car_year || '2024';
                 const title = (formData.car_model || formData.title || '').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
-                return `${year} ${title}`;
+                return title;
               })()}</h1>
               <div class="subtitle">${(() => {
                 const monthlyPayment = formData.monthly_20_down_aed;
@@ -1435,13 +1437,13 @@ ${fontFaceCSS}
           }
           
           .detail-card {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
             padding: 24px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
           }
           
           .detail-header {
@@ -1491,14 +1493,14 @@ ${fontFaceCSS}
           }
           
           .car-features {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
             padding: 20px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             margin: 18px 0;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
           }
           
           .features-header {
@@ -1541,14 +1543,14 @@ ${fontFaceCSS}
           
           .car-pricing {
             text-align: center;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
             padding: 20px;
             margin: 18px 0;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
           }
           
           .pricing-header {
@@ -1620,14 +1622,14 @@ ${fontFaceCSS}
           }
           
           .monthly-card {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
             padding: 20px;
             text-align: center;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
           }
           
           .monthly-header {
@@ -1680,18 +1682,42 @@ ${fontFaceCSS}
             text-transform: uppercase;
             letter-spacing: 0.5px;
           }
+
+          .arrows-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+          }
+
+          .arrows-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.3;
+            transform: scale(1.1);
+            filter: brightness(1.3) contrast(0.8);
+          }
         </style>
 
         <div class="content-card">
+          <!-- SilberArrows Logo Background -->
+          <div class="arrows-background">
+            <img src="${absoluteLogoUrl}" alt="SilberArrows" class="arrows-logo" />
+          </div>
           <div class="content">
             
             <div class="content-container">
               <div class="title-section">
                 <h1 class="title">${(() => {
-                  const year = formData.car_year || '2023';
                   const title = (formData.car_model || formData.title || '').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
-                  // Add year to beginning - no wrapping needed
-                  return `${year} ${title}`;
+                  return title;
                 })()}</h1>
             </div>
               

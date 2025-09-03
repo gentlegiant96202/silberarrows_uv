@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🚗 API: Fetching inventory cars...');
 
     // Fetch available cars from inventory with social media images
-    const { data: cars, error } = await supabase
+    const { data: cars, error } = await supabaseAdmin
       .from('cars')
       .select(`
         id,
@@ -25,11 +25,10 @@ export async function GET(request: NextRequest) {
         horsepower_hp,
         key_equipment,
         description,
-        car_media!inner(url, kind, sort_order)
+        car_media(url, kind, sort_order)
       `)
       .eq('status', 'inventory')
       .eq('sale_status', 'available')
-      .eq('car_media.kind', 'social_media')
       .order('model_year', { ascending: false })
       .order('vehicle_model');
 
@@ -38,11 +37,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log(`✅ API: Successfully fetched ${cars?.length || 0} inventory cars`);
+    // Transform image URLs to use custom domain and filter for social media images
+    const transformedCars = cars?.map(car => ({
+      ...car,
+      car_media: car.car_media
+        ?.filter((media: any) => media.kind === 'social_media') // Only get social media images
+        ?.map((media: any) => ({
+          ...media,
+          url: media.url?.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com') || media.url
+        })) || []
+    }))?.filter(car => car.car_media && car.car_media.length > 0) || []; // Only include cars with social media images
+
+    console.log(`✅ API: Successfully fetched ${transformedCars.length} inventory cars with transformed URLs`);
 
     return NextResponse.json({
       success: true,
-      cars: cars || []
+      cars: transformedCars
     });
 
   } catch (error) {

@@ -84,9 +84,13 @@ export default function UVCatalogBoard() {
             colour,
             advertised_price_aed,
             current_mileage_km,
-            created_at
+            created_at,
+            status,
+            sale_status
           )
         `)
+        .eq('cars.status', 'inventory')
+        .eq('cars.sale_status', 'available')
         .order('created_at', { ascending: false });
 
       if (catalogError) {

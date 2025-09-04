@@ -1283,6 +1283,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         e.preventDefault();
         handleNextImage();
       } else if (e.key === 'Escape') {
+        console.log('🚪 ESC key pressed - closing workspace');
         onClose();
       } else if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
@@ -1490,54 +1491,13 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
   // --- Main return ---
   return (
-    <div className={`fixed inset-0 bg-black/85 ${performanceMode ? '' : 'backdrop-blur-2xl'} z-50 flex`}>
-      {/* Header Bar */}
-      <div className={`absolute top-0 left-0 right-0 h-16 bg-white/8 ${performanceMode ? '' : 'backdrop-blur-xl'} border-b border-white/20 flex items-center justify-between px-6 z-10 ${performanceMode ? '' : 'shadow-lg ring-1 ring-white/10'}`}>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg text-white/70 hover:text-white transition-all shadow-lg ring-1 ring-white/5"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back to Board</span>
-          </button>
-          <div className="w-px h-6 bg-white/10" />
-          <h1 className="text-white font-semibold">Design Workspace</h1>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Delete notification */}
-          {deleteMessage && (
-            <div className={`px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-sm shadow-lg ring-1 ${
-              deleteMessage.includes('successfully') 
-                ? 'bg-green-500/25 text-green-300 border border-green-500/40 ring-green-500/20' 
-                : 'bg-white/25 text-white border border-white/40 ring-white/20'
-            }`}>
-              {deleteMessage}
-            </div>
-          )}
-          
-          <div className="text-xs text-white/50">
-            {selectedImageIndex + 1} of {allViewableFiles.length}
-          </div>
-          {canEdit && (
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 text-black text-sm rounded-lg transition-all font-semibold disabled:opacity-50 shadow-lg"
-            >
-              <Save className="w-3.5 h-3.5" />
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-          )}
-        </div>
-      </div>
+    <div className={`fixed inset-0 top-[72px] bg-black/85 ${performanceMode ? '' : 'backdrop-blur-2xl'} z-[100] flex`} style={{ height: 'calc(100vh - 72px)' }}>
 
       {/* Main Content */}
-      <div className="flex w-full pt-16 min-h-0">
+      <div className="flex w-full h-full min-h-0">
         
         {/* Main Canvas Area - Now Full Width */}
-        <div className="flex-1 relative bg-black/10">
+        <div className="flex-1 relative bg-black/10 h-full">
           {(() => {
             const currentFile: any = allViewableFiles[selectedImageIndex];
             if (!currentFile) return null;
@@ -1774,11 +1734,34 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         </div>
 
         {/* Right Sidebar - Task Info */}
-        <div className="w-full lg:w-96 bg-black border-l border-white/20 flex flex-col h-[calc(100dvh-64px)] min-h-0 overflow-y-auto">
+        <div className="w-full lg:w-96 bg-black border-l border-white/20 flex flex-col h-full min-h-0 overflow-y-auto">
           <div className="p-4 flex flex-col">
             
+            {/* Back to Board Button - Top of Sidebar */}
+            <div className="p-4 bg-white/8 border-b border-white/10 rounded-t-lg space-y-3">
+              <button
+                onClick={onClose}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 hover:brightness-110 text-black font-bold rounded-lg transition-all shadow-xl text-base"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>BACK TO CREATIVE HUB</span>
+              </button>
+              
+              {/* Save Button */}
+              {canEdit && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-green-500 via-green-600 to-green-700 hover:from-green-600 hover:via-green-700 hover:to-green-800 text-white font-bold rounded-lg transition-all shadow-xl text-base disabled:opacity-50"
+                >
+                  <Save className="w-5 h-5" />
+                  <span>{saving ? 'SAVING...' : 'SAVE CHANGES'}</span>
+                </button>
+              )}
+            </div>
+
             {/* Top Section - Task Info */}
-            <div className="space-y-3 flex-shrink-0 p-4 bg-white/5 border-b border-white/10 rounded-t-lg">
+            <div className="space-y-3 flex-shrink-0 p-4 bg-white/5 border-b border-white/10">
               {/* Task Title */}
               <div>
               <label className="block text-xs font-medium text-white/80 mb-1 flex items-center gap-2">

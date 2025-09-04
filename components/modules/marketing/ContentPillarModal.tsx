@@ -170,6 +170,17 @@ export default function ContentPillarModal({
   const iframeRefA = useRef<HTMLIFrameElement>(null);
   const iframeRefB = useRef<HTMLIFrameElement>(null);
 
+  // Cleanup blob URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      selectedFiles.forEach(file => {
+        if (file.thumbnail && file.thumbnail.startsWith('blob:')) {
+          URL.revokeObjectURL(file.thumbnail);
+        }
+      });
+    };
+  }, [selectedFiles]);
+
   // Update form data when editingItem or aiGeneratedContent changes
   useEffect(() => {
     setFormData({
@@ -333,6 +344,7 @@ export default function ContentPillarModal({
   const generateThumbnail = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       if (file.type.startsWith('image/')) {
+        // Use base64 data URL for iframe compatibility
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target?.result as string);
         reader.onerror = reject;
@@ -398,7 +410,14 @@ export default function ContentPillarModal({
 
   // Remove selected file
   const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles(prev => {
+      const fileToRemove = prev[index];
+      // Clean up blob URL to prevent memory leaks
+      if (fileToRemove?.thumbnail && fileToRemove.thumbnail.startsWith('blob:')) {
+        URL.revokeObjectURL(fileToRemove.thumbnail);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   // Remove existing media file
@@ -585,7 +604,7 @@ export default function ContentPillarModal({
     
     console.log('🖼️ Preview image selection:', {
       uploadedFilesCount: uploadedFiles.length,
-      uploadedFilesThumbnails: uploadedFiles.map(f => ({ name: f.file.name, hasThumbnail: !!f.thumbnail })),
+      uploadedFilesThumbnails: uploadedFiles.map(f => ({ name: f.file.name, hasThumbnail: !!f.thumbnail, thumbnailType: f.thumbnail?.substring(0, 20) })),
       existingMediaCount: existingMedia.length,
       existingImageFilesCount: existingImageFiles.length,
       existingMediaUrls: existingMedia.map(m => typeof m === 'string' ? m : m.url),
@@ -599,6 +618,7 @@ export default function ContentPillarModal({
                     '/MAIN LOGO.png';
                     
     console.log('🎯 Selected imageUrl for preview:', imageUrl);
+    console.log('🎯 ImageUrl type:', typeof imageUrl, 'starts with blob:', imageUrl?.startsWith?.('blob:'));
 
     // Force refresh timestamp
     const timestamp = Date.now();
@@ -664,6 +684,7 @@ export default function ContentPillarModal({
     const renderImageUrl = isHttpUrl(imageUrl) ? `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${timestamp}` : imageUrl;
 
     // Get the template based on day and template type
+    console.log(`🎨 Generating ${templateType} template for ${dayKey}`);
     const templatesA = {
       monday: `
         <!DOCTYPE html>
@@ -1208,7 +1229,23 @@ ${fontFaceCSS}
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
           body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
-          .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
+          .content-card { 
+            display: flex; 
+            flex-direction: column; 
+            width: 100%; 
+            height: 100vh; 
+          }
+          .content {
+            padding: 20px 40px 40px 40px; 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: flex-start; 
+            gap: 12px; 
+            overflow: visible;
+          }
+          .image-section { position: relative; width: 100%; height: 69.5%; }
+          .background-image { width: 100%; height: 100%; object-fit: ${formData.imageFit || 'cover'}; object-position: ${formData.imageAlignment || 'center'}; }
           .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
           .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
           .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
@@ -1349,7 +1386,7 @@ ${fontFaceCSS}
               <div class="tech-section">
                 <div class="section-header">
                   <i class="fas fa-exclamation-circle"></i>
-                  <span class="section-title">The Problem</span>
+                  <span class="section-title" style="color: #ff6b6b !important;">The Problem</span>
             </div>
                 <div class="section-content">${formData.problem}</div>
               </div>
@@ -1359,7 +1396,7 @@ ${fontFaceCSS}
               <div class="tech-section">
                 <div class="section-header">
                   <i class="fas fa-tools"></i>
-                  <span class="section-title">The Solution</span>
+                  <span class="section-title" style="color: #4ade80 !important;">The Solution</span>
               </div>
                 <div class="section-content">${formData.solution}</div>
             </div>
@@ -3064,7 +3101,7 @@ ${fontFaceCSS}
                     <div style={{ position: 'relative', width: '648px', height: '1152px' }}>
                     <iframe
                         ref={iframeRefA}
-                        key={`A-${dayKey}-${formData.title}-${formData.description}-${Date.now()}`}
+                        key={`A-${dayKey}-${formData.title}-${formData.description}-${selectedFiles.length}-${selectedFiles.map(f => f.file.name).join(',')}-${Date.now()}`}
                         srcDoc={generateLivePreviewHTML('A')}
                       className="border-0 rounded-lg shadow-lg"
                         style={{ position: 'absolute', top: 0, left: 0, width: '1080px', height: '1920px', transform: 'scale(0.6)', transformOrigin: 'top left' }}
@@ -3091,7 +3128,7 @@ ${fontFaceCSS}
                     <div style={{ position: 'relative', width: '648px', height: '1152px' }}>
                       <iframe
                         ref={iframeRefB}
-                        key={`B-${dayKey}-${formData.title}-${formData.description}-${Date.now()}`}
+                        key={`B-${dayKey}-${formData.title}-${formData.description}-${selectedFiles.length}-${selectedFiles.map(f => f.file.name).join(',')}-arrows-v2-${Date.now()}`}
                         srcDoc={generateLivePreviewHTML('B')}
                         className="border-0 rounded-lg shadow-lg"
                         style={{ position: 'absolute', top: 0, left: 0, width: '1080px', height: '1920px', transform: 'scale(0.6)', transformOrigin: 'top left' }}

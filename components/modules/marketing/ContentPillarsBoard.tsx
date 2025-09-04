@@ -162,6 +162,9 @@ export default function ContentPillarsBoard() {
   const [editingPillar, setEditingPillar] = useState<ContentPillarItem | null>(null);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Progressive loading state for fade-in animation (like marketing kanban)
+  const [columnsVisible, setColumnsVisible] = useState(false);
 
   // Fetch data from API
   useEffect(() => {
@@ -176,8 +179,14 @@ export default function ContentPillarsBoard() {
     
     fetchData();
     
+    // Progressive fade-in animation (like marketing kanban)
+    const timer = setTimeout(() => {
+      setColumnsVisible(true);
+    }, 100);
+    
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
   }, []);
 
@@ -756,8 +765,8 @@ export default function ContentPillarsBoard() {
 
   if (loading) {
     return (
-      <div className="px-2" style={{ height: "calc(100vh - 72px)" }}>
-        <div className="flex gap-1.5 pb-2 w-full h-full overflow-hidden">
+      <div className="fixed inset-0 top-[72px] px-4 overflow-hidden">
+        <div className="flex gap-3 pb-4 w-full h-full">
           {dayColumns.map(col => (
             <SkeletonColumn 
               key={col.key} 
@@ -771,15 +780,19 @@ export default function ContentPillarsBoard() {
   }
 
   return (
-    <div className="px-2" style={{ height: "calc(100vh - 72px)" }}>
-      <div className="flex gap-1.5 pb-2 w-full h-full overflow-hidden">
+    <div className="fixed inset-0 top-[72px] px-4 overflow-hidden">
+      <div className={`flex gap-3 pb-4 w-full h-full transition-all duration-700 ease-out transform ${
+        columnsVisible 
+          ? 'opacity-100 translate-y-0' 
+          : 'opacity-0 translate-y-4'
+      }`}>
         {dayColumns.map(col => (
           <div
             key={col.key}
             className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 flex flex-col flex-1 min-w-0"
           >
             {/* Column Header */}
-            <div className="mb-2 px-1 flex items-center justify-between relative sticky top-0 z-10 bg-black/50 backdrop-blur-sm pb-1.5 pt-0.5">
+            <div className="mb-2 px-1 flex items-center justify-between bg-black/50 backdrop-blur-sm pb-1.5 pt-0.5 flex-shrink-0">
               <div className="flex items-center gap-1.5">
                 {col.icon}
                 <h3 className="text-[10px] font-medium text-white whitespace-nowrap">

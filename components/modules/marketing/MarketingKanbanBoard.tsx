@@ -210,24 +210,26 @@ const SkeletonInstagramCard = () => (
 );
 
 const SkeletonColumn = ({ title, icon }: { title: string; icon: React.ReactNode }) => (
-  <div className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 flex flex-col min-w-0 ${
+  <div className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col flex-1 min-w-0 transition-all duration-300 ${
     title === 'INSTAGRAM FEED PREVIEW' 
       ? 'flex-[1.38] max-w-sm' 
-      : 'flex-1'
+      : ''
   }`}>
-    <div className="mb-2 px-1 flex items-center justify-between relative sticky top-0 z-10 bg-black/50 backdrop-blur-sm pb-1.5 pt-0.5">
-      <div className="flex items-center gap-1.5">
-        {icon}
-        <h3 className="text-[10px] font-medium text-white whitespace-nowrap">
-          {title}
-        </h3>
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-white/10 text-white/70 text-[8px] font-medium animate-pulse">
-          --
-        </span>
+    <div className="mb-3 px-1">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          {icon}
+          <h3 className="text-[10px] font-medium text-white whitespace-nowrap">
+            {title}
+          </h3>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-white/10 text-white/70 text-[8px] font-medium animate-pulse">
+            --
+          </span>
+        </div>
       </div>
     </div>
     
-    <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+    <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
       {title === 'INSTAGRAM FEED PREVIEW' ? (
         <div className="grid grid-cols-3 gap-1">
           {Array.from({ length: 9 }).map((_, i) => (
@@ -374,6 +376,9 @@ export default function MarketingKanbanBoard() {
   const instagramColumnRef = useRef<HTMLDivElement>(null);
   const [columnWidth, setColumnWidth] = useState(360);
   
+  // Progressive loading state for fade-in animation (like inventory kanban)
+  const [columnsVisible, setColumnsVisible] = useState(false);
+  
   // Get permissions and user role
   const { canView, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModulePermissions('marketing');
   const { isAdmin } = useUserRole();
@@ -463,6 +468,13 @@ export default function MarketingKanbanBoard() {
       fetchTasks();
       hasFetchedTasks.current = true;
     }
+    
+    // Progressive fade-in animation (like inventory kanban)
+    const timer = setTimeout(() => {
+      setColumnsVisible(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
 
     // Real-time subscription for live updates across browsers
     const channel = supabase
@@ -954,8 +966,8 @@ export default function MarketingKanbanBoard() {
 
   if (loading) {
     return (
-      <div className="px-2" style={{ height: "calc(100vh - 72px)" }}>
-        <div className="flex gap-1.5 pb-2 w-full h-full overflow-hidden">
+      <div className="fixed inset-0 top-[72px] px-4 overflow-hidden">
+        <div className="flex gap-3 pb-4 w-full h-full">
           {columns
             .filter(col => showArchived || col.key !== 'archived')
             .map(col => (
@@ -971,18 +983,22 @@ export default function MarketingKanbanBoard() {
   }
 
   return (
-    <div className="px-2" style={{ height: "calc(100vh - 72px)" }}>
-      <div className="flex gap-1.5 pb-2 w-full h-full overflow-hidden">
+    <div className="fixed inset-0 top-[72px] px-4 overflow-hidden">
+      <div className={`flex gap-3 pb-4 w-full h-full transition-all duration-700 ease-out transform ${
+        columnsVisible 
+          ? 'opacity-100 translate-y-0' 
+          : 'opacity-0 translate-y-4'
+      }`}>
         {columns
           .filter(col => showArchived || col.key !== 'archived')
           .map(col => (
           <div
             key={col.key}
             ref={col.key === 'instagram_feed_preview' ? instagramColumnRef : undefined}
-            className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-2 flex flex-col transition-shadow min-w-0 ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''} ${
+            className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex flex-col flex-1 min-w-0 transition-all duration-300 ${hovered === col.key ? 'ring-2 ring-gray-300/60' : ''} ${
               col.key === 'instagram_feed_preview' 
                 ? 'flex-[1.38] max-w-sm' 
-                : 'flex-1'
+                : ''
             }`}
             onDragOver={(e) => { onDragOver(e); setHovered(col.key); }}
             onDrop={onDrop(col.key)}
@@ -991,7 +1007,8 @@ export default function MarketingKanbanBoard() {
               if (!e.currentTarget.contains(e.relatedTarget as Node)) setHovered(null); 
             }}
           >
-            <div className="mb-2 px-1 flex items-center justify-between relative sticky top-0 z-10 bg-black/50 backdrop-blur-sm pb-1.5 pt-0.5">
+            <div className="mb-3 px-1">
+              <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
                 {col.icon}
                 <h3 className="text-[10px] font-medium text-white whitespace-nowrap">
@@ -1038,9 +1055,10 @@ export default function MarketingKanbanBoard() {
                   {showArchived ? 'Hide' : 'Show'} Archive
                 </button>
               )}
+              </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
               {col.key === 'instagram_feed_preview' ? (
                 // Virtualized Instagram feed preview layout
                 <div className="h-full">

@@ -123,8 +123,8 @@ function generateFacebookXML(entries: any[]): string {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
 
-    // Format price in USD (Facebook prefers USD)
-    const priceUSD = Math.round(car.advertised_price_aed / 3.67); // AED to USD conversion
+    // Use actual AED price (no conversion needed)
+    const priceAED = car.advertised_price_aed;
 
     // Default body style to SEDAN since we don't have this field
     const bodyStyle = 'SEDAN';
@@ -139,7 +139,7 @@ function generateFacebookXML(entries: any[]): string {
       <url>${car.website_url || 'https://silberarrows.com/inventory/' + car.id}</url>
       <title>${car.model_year} ${make} ${model}</title>
       <body_style>${bodyStyle}</body_style>
-      <price>${priceUSD}.00 USD</price>
+      <price>${priceAED}.00 AED</price>
       <state_of_vehicle>USED</state_of_vehicle>
       <make>${make}</make>
       <model>${model}</model>

@@ -131,7 +131,7 @@ function generateFacebookXML(entries: any[]): string {
 
     return `    <listing>
       <image>
-        <url>${entry.catalog_image_url}</url>
+        <url>${entry.catalog_image_url?.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com') || entry.catalog_image_url}</url>
         <tag>Primary</tag>
       </image>
       <vehicle_id>${car.stock_number || car.id}</vehicle_id>

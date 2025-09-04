@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
     });
 
     const validEntries = catalogEntries?.filter(entry => {
-      const imageUrl = entry.catalog_image_url || imageMap.get(entry.car_id);
+      const rawImageUrl = entry.catalog_image_url || imageMap.get(entry.car_id);
+      const imageUrl = rawImageUrl?.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
       const car = entry.cars as any; // Type assertion to fix build error
       return car && 
              imageUrl &&
@@ -119,8 +120,9 @@ function generateFacebookXML(entries: any[], imageMap: Map<string, string>): str
   const listings = entries.map(entry => {
     const car = entry.cars;
     
-    // Get image URL (prefer catalog image, fallback to primary image)
-    const imageUrl = entry.catalog_image_url || imageMap.get(entry.car_id) || '';
+    // Get image URL (prefer catalog image, fallback to primary image) and replace domain
+    const rawImageUrl = entry.catalog_image_url || imageMap.get(entry.car_id) || '';
+    const imageUrl = rawImageUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
     
     // Extract make and model from vehicle_model field
     const vehicleModel = car.vehicle_model || '';

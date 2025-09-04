@@ -37,9 +37,9 @@ export default function UVCatalogBoard() {
 
   // Get the live XML feed URL
   const getFacebookXmlUrl = () => {
-    // Use permanent Supabase storage URL - always publicly accessible
-    const supabaseStorageBaseUrl = 'https://rrxfvdtubynlsanplbta.supabase.co/storage/v1/object/public/media-files';
-    return `${supabaseStorageBaseUrl}/xml-feeds/facebook-latest.xml`;
+    // Use new database domain - always publicly accessible
+    const storageBaseUrl = 'https://database.silberarrows.com/storage/v1/object/public/media-files';
+    return `${storageBaseUrl}/xml-feeds/facebook-latest.xml`;
   };
   
   const copyXmlUrl = async () => {

@@ -326,16 +326,19 @@ export async function POST(
       }, { status: 500 });
     }
 
-    // Get public URL
+    // Get public URL and replace with new domain
     const { data: { publicUrl } } = supabase.storage
       .from('media-files')
       .getPublicUrl(`catalog-cards/${fileName}`);
+    
+    // Replace old Supabase URL with new domain
+    const updatedPublicUrl = publicUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
 
     // Update UV catalog table with generated image and mark as ready
     const { error: catalogUpdateError } = await supabase
       .from('uv_catalog')
       .update({
-        catalog_image_url: publicUrl,
+        catalog_image_url: updatedPublicUrl,
         status: 'ready',
         last_generated_at: new Date().toISOString(),
         error_message: null
@@ -355,7 +358,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: 'Catalog image generated successfully',
-      imageUrl: publicUrl,
+      imageUrl: updatedPublicUrl,
       carDetails
     });
 

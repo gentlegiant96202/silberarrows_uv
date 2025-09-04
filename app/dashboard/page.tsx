@@ -684,7 +684,7 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
     consignmentOld: 0
   });
   const [loading, setLoading] = useState(false);
-  const [showCarList, setShowCarList] = useState<{ type: string; cars: any[] } | null>(null);
+  const [showCarList, setShowCarList] = useState<{ type: string; cars: any[]; position: { x: number; y: number } } | null>(null);
 
   useEffect(() => {
     async function fetchStockAgeData() {
@@ -757,8 +757,14 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
     fetchStockAgeData();
   }, [year, months]); // Update when filters change to refresh data
 
-  const handleCategoryClick = async (category: 'fresh' | 'aging' | 'old') => {
+  const handleCategoryClick = async (category: 'fresh' | 'aging' | 'old', event: React.MouseEvent) => {
     try {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const position = {
+        x: rect.left + rect.width / 2, // Center horizontally
+        y: rect.top - 10 // Position above the card
+      };
+      
       let minDays = 0;
       let maxDays = 0;
       let title = '';
@@ -795,7 +801,7 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
         return;
       }
 
-      setShowCarList({ type: title, cars: cars || [] });
+      setShowCarList({ type: title, cars: cars || [], position });
     } catch (error) {
       console.error('Error in handleCategoryClick:', error);
     }
@@ -821,7 +827,7 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
           {/* Age Categories - Clickable */}
           <div 
             className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner cursor-pointer hover:bg-white/20 transition-colors"
-            onClick={() => handleCategoryClick('fresh')}
+            onClick={(event) => handleCategoryClick('fresh', event)}
           >
             <p className="text-sm text-white/60">Fresh (0-59d)</p>
             <p className="text-lg font-semibold text-white">{loading ? '—' : ageData.freshCars}</p>
@@ -829,7 +835,7 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
           </div>
           <div 
             className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner cursor-pointer hover:bg-white/20 transition-colors"
-            onClick={() => handleCategoryClick('aging')}
+            onClick={(event) => handleCategoryClick('aging', event)}
           >
             <p className="text-sm text-white/60">Aging (60-89d)</p>
             <p className="text-lg font-semibold text-white">{loading ? '—' : ageData.agingCars}</p>
@@ -837,7 +843,7 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
           </div>
           <div 
             className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/10 shadow-inner cursor-pointer hover:bg-white/20 transition-colors"
-            onClick={() => handleCategoryClick('old')}
+            onClick={(event) => handleCategoryClick('old', event)}
           >
             <p className="text-sm text-white/60">Old (90+ days)</p>
             <p className="text-lg font-semibold text-white">{loading ? '—' : ageData.oldCars}</p>
@@ -846,34 +852,52 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
         </div>
       </div>
 
-      {/* Car List Modal */}
+      {/* Stock Age Cars Overlay */}
       {showCarList && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur flex items-center justify-center z-50 p-4">
-          <div className="bg-black/90 rounded-lg border border-white/20 max-w-4xl w-full max-h-[80vh] overflow-hidden">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">{showCarList.type}</h2>
+        <>
+          {/* Backdrop to close overlay when clicked */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowCarList(null)}
+          />
+          
+          {/* Overlay positioned above the clicked card */}
+          <div 
+            className="fixed z-50 bg-black/95 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl max-w-md w-80 max-h-96 overflow-hidden"
+            style={{
+              left: `${showCarList.position.x}px`,
+              top: `${showCarList.position.y}px`,
+              transform: 'translate(-50%, -100%)'
+            }}
+          >
+            <div className="p-3 border-b border-white/10 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">
+                {showCarList.type}
+              </h3>
               <button 
                 onClick={() => setShowCarList(null)}
-                className="text-white/60 hover:text-white text-xl"
+                className="text-white/60 hover:text-white text-lg leading-none"
               >
                 ✕
               </button>
             </div>
-            <div className="p-4 overflow-y-auto max-h-[60vh]">
+            <div className="p-3 overflow-y-auto max-h-80">
               {showCarList.cars.length === 0 ? (
-                <p className="text-white/60 text-center py-8">No cars found in this category</p>
+                <p className="text-white/60 text-center py-4 text-sm">No cars found in this category</p>
               ) : (
-                <div className="grid gap-3">
+                <div className="space-y-2">
                   {showCarList.cars.map((car) => (
-                    <div key={car.id} className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-center justify-between">
-                      <div>
-                        <div className="text-white font-semibold">{car.stock_number}</div>
-                        <div className="text-white/70 text-sm">{car.model_year} {car.vehicle_model}</div>
-                        <div className="text-white/50 text-xs">{car.ownership_type}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-white font-semibold">AED {car.advertised_price_aed?.toLocaleString()}</div>
-                        <div className="text-white/60 text-sm">{car.stock_age_days} days</div>
+                    <div key={car.id} className="bg-white/5 border border-white/10 rounded-lg p-2 hover:bg-white/10 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-white font-medium text-sm">{car.stock_number}</div>
+                          <div className="text-white/70 text-xs">{car.model_year} {car.vehicle_model}</div>
+                          <div className="text-white/50 text-xs">{car.ownership_type}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-white font-medium text-sm">AED {car.advertised_price_aed?.toLocaleString()}</div>
+                          <div className="text-white/60 text-xs">{car.stock_age_days} days</div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -881,7 +905,7 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
               )}
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   );
@@ -1316,7 +1340,7 @@ const ModelDemandChart: React.FC<{year:number; months:number[]}> = ({year, month
 const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, months}) => {
   const [locationData, setLocationData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showCarList, setShowCarList] = useState<{ location: string; cars: any[] } | null>(null);
+  const [showCarList, setShowCarList] = useState<{ location: string; cars: any[]; position: { x: number; y: number } } | null>(null);
 
   useEffect(() => {
     async function fetchLocationData() {
@@ -1397,10 +1421,17 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
     fetchLocationData();
   }, [year, months]);
 
-  const handleLocationClick = (locationCard: any) => {
+  const handleLocationClick = (locationCard: any, event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const position = {
+      x: rect.left + rect.width / 2, // Center horizontally
+      y: rect.top - 10 // Position above the card
+    };
+    
     setShowCarList({ 
       location: locationCard.location, 
-      cars: locationCard.cars 
+      cars: locationCard.cars,
+      position
     });
   };
 
@@ -1418,7 +1449,7 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
             {locationData.map((locationCard) => (
               <div 
                 key={locationCard.location}
-                onClick={() => handleLocationClick(locationCard)}
+                onClick={(event) => handleLocationClick(locationCard, event)}
                 className={`cursor-pointer transition-all duration-200 rounded-lg p-2 border flex-1 ${
                   locationCard.type === 'unaccounted' 
                     ? 'bg-red-500/10 border-red-400/30 hover:bg-red-500/20 hover:border-red-400/50' 
@@ -1446,36 +1477,52 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
         )}
       </div>
 
-      {/* Location Cars Modal */}
+      {/* Location Cars Overlay */}
       {showCarList && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur flex items-center justify-center z-50 p-4">
-          <div className="bg-black/90 rounded-lg border border-white/20 max-w-4xl w-full max-h-[80vh] overflow-hidden">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">
-                📍 {showCarList.location} - {showCarList.cars.length} vehicles
-              </h2>
+        <>
+          {/* Backdrop to close overlay when clicked */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowCarList(null)}
+          />
+          
+          {/* Overlay positioned above the clicked card */}
+          <div 
+            className="fixed z-50 bg-black/95 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl max-w-md w-80 max-h-96 overflow-hidden"
+            style={{
+              left: `${showCarList.position.x}px`,
+              top: `${showCarList.position.y}px`,
+              transform: 'translate(-50%, -100%)'
+            }}
+          >
+            <div className="p-3 border-b border-white/10 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">
+                📍 {showCarList.location}
+              </h3>
               <button 
                 onClick={() => setShowCarList(null)}
-                className="text-white/60 hover:text-white text-xl"
+                className="text-white/60 hover:text-white text-lg leading-none"
               >
                 ✕
               </button>
             </div>
-            <div className="p-4 overflow-y-auto max-h-[60vh]">
+            <div className="p-3 overflow-y-auto max-h-80">
               {showCarList.cars.length === 0 ? (
-                <p className="text-white/60 text-center py-8">No cars found at this location</p>
+                <p className="text-white/60 text-center py-4 text-sm">No cars found at this location</p>
               ) : (
-                <div className="grid gap-3">
+                <div className="space-y-2">
                   {showCarList.cars.map((car) => (
-                    <div key={car.id} className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-center justify-between">
-                      <div>
-                        <div className="text-white font-semibold">{car.stock_number}</div>
-                        <div className="text-white/70 text-sm">{car.model_year} {car.vehicle_model}</div>
-                        <div className="text-white/50 text-xs">{car.ownership_type}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-white font-semibold">AED {car.advertised_price_aed?.toLocaleString()}</div>
-                        <div className="text-white/60 text-sm">{car.stock_age_days || 0} days</div>
+                    <div key={car.id} className="bg-white/5 border border-white/10 rounded-lg p-2 hover:bg-white/10 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-white font-medium text-sm">{car.stock_number}</div>
+                          <div className="text-white/70 text-xs">{car.model_year} {car.vehicle_model}</div>
+                          <div className="text-white/50 text-xs">{car.ownership_type}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-white font-medium text-sm">AED {car.advertised_price_aed?.toLocaleString()}</div>
+                          <div className="text-white/60 text-xs">{car.stock_age_days || 0} days</div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1483,7 +1530,7 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
               )}
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   );

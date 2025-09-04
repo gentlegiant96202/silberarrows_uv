@@ -155,7 +155,13 @@ export async function GET(request: NextRequest) {
       servicePackage: car.current_service && car.current_service.toLowerCase().includes('silberarrows') 
         ? 'Available' 
         : (car.current_service ? `${warrantyData.date} / ${warrantyData.kmLimit}` : ''),
-      images: car.car_media?.filter((media: any) => media.kind === 'photo').map((media: any) => media.url) || [],
+      images: car.car_media?.filter((media: any) => media.kind === 'photo').map((media: any) => {
+        // Use storage proxy for extension to avoid CORS issues
+        if (media.url?.includes('database.silberarrows.com') || media.url?.includes('.supabase.co')) {
+          return `/api/storage-proxy?url=${encodeURIComponent(media.url)}`;
+        }
+        return media.url;
+      }) || [],
       // Dubizzle-specific fields
       location: 'Dubai', // Default location for UAE
       sellerType: 'Dealer', // Default seller type
@@ -187,18 +193,27 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔌 Extension API: Listing available cars...');
+    const timestamp = new Date().toISOString();
+    console.log(`🔌 Extension API: Listing ALL KANBAN cars (NO LIMIT)... (${timestamp})`);
 
     // Debug: Check what cars exist in production
     const { data: allCars, error: allError } = await supabase
       .from('cars')
       .select('id, stock_number, status, sale_status')
-      .limit(5);
+      .limit(20);
     
     console.log('🔍 PRODUCTION DEBUG: Sample cars:', allCars);
     console.log('🔍 PRODUCTION DEBUG: Error:', allError);
+    
+    // Show status distribution
+    const statusCounts = allCars?.reduce((acc: any, car: any) => {
+      const key = `${car.status}/${car.sale_status}`;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    console.log('🔍 PRODUCTION DEBUG: Status distribution:', statusCounts);
 
-    // Fetch all available cars for the extension dropdown
+    // Fetch all cars in kanban (inventory status with any sale_status)
     const { data: cars, error } = await supabase
       .from('cars')
       .select(`
@@ -207,12 +222,13 @@ export async function POST(request: NextRequest) {
         model_year,
         vehicle_model,
         colour,
-        advertised_price_aed
+        advertised_price_aed,
+        sale_status
       `)
-      .eq('status', 'inventory')
-      // Temporarily allow all sale_status for production testing
-      // .eq('sale_status', 'available')
-      .limit(10) // Limit for testing
+      .eq('status', 'inventory') // All kanban cars have status='inventory'
+      .in('sale_status', ['available', 'reserved', 'sold', 'returned', 'archived'])
+      // No limit - show ALL kanban cars
+      .order('sale_status') // Order by sale_status first
       .order('model_year', { ascending: false })
       .order('vehicle_model');
 
@@ -221,21 +237,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log(`✅ Extension API: Successfully fetched ${cars?.length || 0} available cars`);
+    console.log(`✅ Extension API: Successfully fetched ${cars?.length || 0} kanban cars`);
+    
+    // Debug: Log the actual cars being returned
+    console.log('🔍 EXTENSION DEBUG: Cars being returned to extension:');
+    cars?.forEach(car => {
+      console.log(`  - ${car.stock_number}: ${car.model_year} ${car.vehicle_model} (status: inventory, sale_status: ${car.sale_status})`);
+    });
 
     const formattedCars = cars?.map(car => ({
       id: car.id,
       stockNumber: car.stock_number,
-      displayName: `${car.model_year} ${car.vehicle_model} - ${car.colour} (${car.stock_number})`,
-      price: car.advertised_price_aed
+      displayName: `${car.model_year} ${car.vehicle_model} - ${car.colour} (${car.stock_number}) [${car.sale_status?.toUpperCase()}]`,
+      price: car.advertised_price_aed,
+      saleStatus: car.sale_status
     })) || [];
 
     return NextResponse.json({
       success: true,
       cars: formattedCars,
+      version: "ALL_KANBAN_CARS_UNLIMITED_v3", // Version identifier
+      timestamp: new Date().toISOString(),
       debug: {
-        totalAvailable: cars?.length || 0,
+        totalKanbanCars: cars?.length || 0,
         sampleCars: allCars?.map(c => ({ stock: c.stock_number, status: c.status, sale_status: c.sale_status })) || [],
+        kanbanCarsByStatus: cars?.reduce((acc: any, car: any) => {
+          acc[car.sale_status] = (acc[car.sale_status] || 0) + 1;
+          return acc;
+        }, {}) || {},
         hasError: !!error,
         allCarsError: allError?.message
       }

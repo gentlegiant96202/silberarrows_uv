@@ -17,6 +17,7 @@ app.use(express.static(path.resolve(__dirname, '../public')));
 const templatePath = path.resolve(__dirname, '../public/templates/price-drop-template.html');
 const template45Path = path.resolve(__dirname, '../public/templates/price-drop-template-45.html');
 const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
+const consignmentTemplatePath = path.resolve(__dirname, '../public/templates/consignment-agreement-template.html');
 
 // Content pillar templates
 const contentPillarTemplates = {
@@ -32,6 +33,7 @@ const contentPillarTemplates = {
 let templateHtml = '';
 let template45Html = '';
 let catalogTemplateHtml = '';
+let consignmentTemplateHtml = '';
 let contentPillarHtmls = {};
 
 async function loadTemplate() {
@@ -39,6 +41,7 @@ async function loadTemplate() {
   console.log('📄 Story template path:', templatePath);
   console.log('📄 4:5 template path:', template45Path);
   console.log('📄 Catalog template path:', catalogTemplatePath);
+  console.log('📄 Consignment template path:', consignmentTemplatePath);
   
   try {
     templateHtml = await fs.readFile(templatePath, 'utf-8');
@@ -61,6 +64,14 @@ async function loadTemplate() {
     console.log('✅ Catalog template loaded, length:', catalogTemplateHtml.length);
   } catch (err) {
     console.error('❌ Error loading catalog template:', err);
+    throw err;
+  }
+  
+  try {
+    consignmentTemplateHtml = await fs.readFile(consignmentTemplatePath, 'utf-8');
+    console.log('✅ Consignment template loaded, length:', consignmentTemplateHtml.length);
+  } catch (err) {
+    console.error('❌ Error loading consignment template:', err);
     throw err;
   }
   
@@ -529,6 +540,138 @@ app.post('/render-car-pdf', async (req, res) => {
       success: false, 
       error: err instanceof Error ? err.message : 'Unknown error',
       details: err.stack 
+    });
+  }
+});
+
+// Consignment Agreement PDF generation endpoint
+app.post('/render-consignment-agreement', async (req, res) => {
+  try {
+    console.log('🚀 Consignment Agreement PDF render request received');
+    const { carData } = req.body;
+    
+    if (!carData) {
+      return res.status(400).json({ success: false, error: 'Missing car data' });
+    }
+
+    console.log('📄 Generating Consignment Agreement PDF for car:', carData.stock_number);
+
+    // Get today's date in dd/mm/yyyy format
+    const today = new Date();
+    const todayStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth()+1).padStart(2, '0')}/${today.getFullYear()}`;
+
+    // Format price with commas
+    const formatPrice = (num) => {
+      if (!num) return '';
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    };
+
+    // Format dates for display
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth()+1).padStart(2, '0')}/${date.getFullYear()}`;
+      } catch {
+        return dateStr;
+      }
+    };
+
+    // Prepare template variables
+    const templateVars = {
+      TODAY_DATE: todayStr,
+      CUSTOMER_NAME: carData.customer_name || '',
+      CUSTOMER_PHONE: carData.customer_phone || '',
+      CUSTOMER_EMAIL: carData.customer_email || '',
+      MODEL_YEAR: carData.model_year || '',
+      VEHICLE_MODEL: carData.vehicle_model || '',
+      CHASSIS_NUMBER: carData.chassis_number || '',
+      COLOUR: carData.colour || '',
+      MILEAGE: carData.current_mileage_km ? formatPrice(carData.current_mileage_km) : '',
+      NUMBER_OF_KEYS: carData.number_of_keys || '',
+      ADVERTISED_PRICE: carData.advertised_price_aed ? formatPrice(carData.advertised_price_aed) : '',
+      REGISTRATION_EXPIRY: formatDate(carData.registration_expiry_date),
+      INSURANCE_EXPIRY: formatDate(carData.insurance_expiry_date),
+      
+      // Vehicle history disclosure checkboxes
+      ACCIDENT_YES_CHECKED: carData.customer_disclosed_accident === true ? 'checked' : '',
+      ACCIDENT_NO_CHECKED: carData.customer_disclosed_accident !== true ? 'checked' : '',
+      FLOOD_YES_CHECKED: carData.customer_disclosed_flood_damage === true ? 'checked' : '',
+      FLOOD_NO_CHECKED: carData.customer_disclosed_flood_damage !== true ? 'checked' : '',
+      DAMAGE_DETAILS: carData.damage_disclosure_details || '',
+      
+      // Handover checklist checkboxes
+      SERVICE_RECORDS_CHECKED: carData.service_records_acquired === true ? 'checked' : '',
+      SERVICE_RECORDS_UNCHECKED: carData.service_records_acquired !== true ? 'checked' : '',
+      OWNERS_MANUAL_CHECKED: carData.owners_manual_acquired === true ? 'checked' : '',
+      OWNERS_MANUAL_UNCHECKED: carData.owners_manual_acquired !== true ? 'checked' : '',
+      SPARE_TYRE_CHECKED: carData.spare_tyre_tools_acquired === true ? 'checked' : '',
+      SPARE_TYRE_UNCHECKED: carData.spare_tyre_tools_acquired !== true ? 'checked' : '',
+      FIRE_EXTINGUISHER_CHECKED: carData.fire_extinguisher_acquired === true ? 'checked' : '',
+      FIRE_EXTINGUISHER_UNCHECKED: carData.fire_extinguisher_acquired !== true ? 'checked' : ''
+    };
+
+    // Replace template variables
+    let finalHtml = consignmentTemplateHtml;
+    for (const [key, value] of Object.entries(templateVars)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      finalHtml = finalHtml.replace(regex, value);
+    }
+
+    // Handle conditional sections (if/endif blocks)
+    if (templateVars.DAMAGE_DETAILS) {
+      finalHtml = finalHtml.replace(/{{#if DAMAGE_DETAILS}}/g, '');
+      finalHtml = finalHtml.replace(/{{\/if}}/g, '');
+    } else {
+      // Remove the entire conditional block
+      finalHtml = finalHtml.replace(/{{#if DAMAGE_DETAILS}}[\s\S]*?{{\/if}}/g, '');
+    }
+
+    console.log('📄 Starting PDF generation with Playwright...');
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch({ 
+      headless: true, 
+      args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    });
+    const page = await browser.newPage();
+
+    // Set content and wait for everything to load
+    await page.setContent(finalHtml, { waitUntil: 'networkidle', timeout: 30000 });
+    
+    // Wait for fonts to load
+    await page.evaluate(() => document.fonts && document.fonts.ready);
+    await page.waitForTimeout(1000); // Additional wait for styling
+
+    // Generate PDF with A4 settings
+    console.log('📄 Generating PDF...');
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: 0, bottom: 0, left: 0, right: 0 },
+      preferCSSPageSize: true
+    });
+
+    await browser.close();
+
+    const fileSizeMB = (pdfBuffer.length / (1024 * 1024)).toFixed(2);
+    console.log(`✅ Consignment Agreement PDF generated: ${fileSizeMB}MB`);
+
+    // Return base64 PDF data
+    res.json({
+      success: true,
+      pdfData: pdfBuffer.toString('base64'),
+      fileName: `consignment-agreement-${carData.stock_number || 'draft'}.pdf`,
+      pdfStats: {
+        fileSizeMB,
+        pageCount: 2
+      }
+    });
+
+  } catch (err) {
+    console.error('❌ Consignment Agreement PDF render error:', err);
+    res.status(500).json({ 
+      success: false, 
+      error: err instanceof Error ? err.message : 'Unknown error' 
     });
   }
 });

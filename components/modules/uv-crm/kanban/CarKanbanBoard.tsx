@@ -118,6 +118,10 @@ interface Car {
   customer_phone?: string | null;
   vehicle_details_pdf_url?: string | null;
   archived_at?: string | null; // When the car was archived
+  // Vehicle history disclosure fields
+  customer_disclosed_accident?: boolean | null;
+  customer_disclosed_flood_damage?: boolean | null;
+  damage_disclosure_details?: string | null;
 }
 
 export default function CarKanbanBoard() {
@@ -388,12 +392,24 @@ export default function CarKanbanBoard() {
   };
 
   const loadFullCarData = async (carId: string) => {
-    const { data } = await supabase
-      .from('cars')
-      .select('*')
-      .eq('id', carId)
-      .single();
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('cars')
+        .select('*')
+        .eq('id', carId)
+        .single();
+      
+      if (error) {
+        console.error('❌ Error loading full car data:', error);
+        return null;
+      }
+      
+      console.log('✅ Loaded full car data for:', carId, 'Fields:', Object.keys(data || {}));
+      return data;
+    } catch (error) {
+      console.error('❌ Exception loading full car data:', error);
+      return null;
+    }
   };
 
   // Filter helper functions

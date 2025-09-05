@@ -5,7 +5,14 @@ import React, { useEffect, useState, useRef } from 'react';
 
 import SharedSalesDashboard from '@/components/shared/SalesDashboard';
 import { supabase } from '@/lib/supabaseClient';
-import PulsatingLogo from '@/components/shared/PulsatingLogo';
+import { 
+  SkeletonSalesDashboard, 
+  SkeletonKPIGrid, 
+  SkeletonChart, 
+  SkeletonStockAge, 
+  SkeletonLocationInsights, 
+  SkeletonFunnel 
+} from '@/components/shared/SkeletonLoaders';
 
 import { useSalesData } from '@/lib/useSalesData';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -199,10 +206,9 @@ export default function DashboardPage() {
   const [allSalesTargets, setAllSalesTargets] = useState<any[]>([]);
   const hasFetchedInitialData = useRef(false);
 
-  // Progressive loading states for fade-in animations
+  // Progressive loading states - simplified
   const [salesLoaded, setSalesLoaded] = useState(false);
-  const [showOtherComponents, setShowOtherComponents] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [otherComponentsLoaded, setOtherComponentsLoaded] = useState(false);
 
   // Trend chart data
   const [trendData, setTrendData] = useState<any[]>([]);
@@ -233,49 +239,68 @@ export default function DashboardPage() {
     }
   };
 
-  // Load sales data on component mount with progressive loading
+  // Load sales data first, then other components
   useEffect(() => {
     if (!hasFetchedInitialData.current) {
       async function loadSalesData() {
         try {
           console.log('🚀 Loading sales metrics first...');
           
-          const [salesMetrics, salesTargets] = await Promise.all([
-            fetchSalesMetrics(),
-            fetchAllSalesTargets()
-          ]);
+          // Add retry mechanism for fetch failures
+          let retryCount = 0;
+          const maxRetries = 2;
+          
+          const loadWithRetry = async () => {
+            try {
+              const [salesMetrics, salesTargets] = await Promise.all([
+                fetchSalesMetrics(),
+                fetchAllSalesTargets()
+              ]);
+              return { salesMetrics, salesTargets };
+            } catch (error) {
+              if (retryCount < maxRetries && error instanceof TypeError && error.message === 'fetch failed') {
+                retryCount++;
+                console.log(`🔄 Retry attempt ${retryCount}/${maxRetries} for sales data...`);
+                await new Promise(resolve => setTimeout(resolve, 200)); // Brief delay before retry
+                return loadWithRetry();
+              }
+              throw error;
+            }
+          };
+          
+          const { salesMetrics, salesTargets } = await loadWithRetry();
+          
           setAllSalesMetrics(salesMetrics);
           setAllSalesTargets(salesTargets);
           hasFetchedInitialData.current = true;
           
-          // Wait a minimum time to show the logo, then start fading out
+          console.log('✅ Sales metrics loaded, showing sales dashboard...');
+          setSalesLoaded(true);
+          
+          // Small delay before loading other components to prioritize sales dashboard
           setTimeout(() => {
-            console.log('✅ Sales metrics loaded, starting fade transition...');
-            
-            // Start fading out the logo and fading in the dashboard simultaneously
-            setInitialLoading(false);
-            setSalesLoaded(true);
-            
-            // Show other components after the main dashboard starts fading in
-            setTimeout(() => {
-              setShowOtherComponents(true);
-            }, 400); // Wait for dashboard fade-in to start
-          }, 1200); // Show logo for at least 1.2 seconds
+            setOtherComponentsLoaded(true);
+          }, 100);
           
         } catch (error) {
-          console.error('Error loading sales data:', error);
-          // Still show other components even if sales fails
-          setTimeout(() => {
-            setInitialLoading(false);
-            setSalesLoaded(true);
-            setShowOtherComponents(true);
-          }, 1200);
+          console.error('❌ Error loading sales data after retries:', error);
+          // Show detailed error info for debugging
+          if (error instanceof Error) {
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+          }
+          // Still show components even if sales fails, but with empty data
+          setAllSalesMetrics([]);
+          setAllSalesTargets([]);
+          setSalesLoaded(true);
+          setOtherComponentsLoaded(true);
         }
       }
 
       loadSalesData();
     }
-  }, []); // Remove fetchSalesMetrics dependency
+  }, []);
 
   // trend effect
   useEffect(() => {
@@ -326,28 +351,10 @@ export default function DashboardPage() {
     fetchTrend();
   }, [salesYear, salesMonth]);
 
-  // Show pulsating logo overlay while initial loading
-  const showLogo = initialLoading || !salesLoaded;
-
   return (
     <main className="h-full overflow-y-auto no-scrollbar relative">
-      {/* Pulsating Logo Overlay - Centered on Screen */}
-      {showLogo && (
-        <div className={`fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm transition-all duration-700 ease-out ${
-          initialLoading 
-            ? 'opacity-100' 
-            : 'opacity-0 pointer-events-none'
-        }`}>
-          <PulsatingLogo size={80} text="Loading Dashboard..." />
-        </div>
-      )}
-      
-      {/* Dashboard Content */}
-      <div className={`p-4 text-white text-sm transition-all duration-700 ease-out ${
-        salesLoaded 
-          ? 'opacity-100' 
-          : 'opacity-30'
-      }`}>
+      {/* Dashboard Content - Always Visible */}
+      <div className="p-4 text-white text-sm">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Dashboard</h1>
           <div className="flex items-center gap-4">
@@ -367,72 +374,102 @@ export default function DashboardPage() {
           </div>
         </div>
         
-        {/* Sales Dashboard Section - Loads First with Fade In */}
-        <div className={`mb-6 transition-all duration-700 ease-out transform ${
-          salesLoaded 
-            ? 'opacity-100 translate-y-0' 
-            : 'opacity-0 translate-y-4'
-        }`}>
-          <SharedSalesDashboard 
-            metrics={allSalesMetrics} 
-            targets={allSalesTargets}
-            loading={salesLoading}
-            className="mb-4"
-            salesYear={salesYear}
-            salesMonth={salesMonth}
-          />
+        {/* Sales Dashboard Section - Priority Loading */}
+        <div className="mb-6">
+          {!salesLoaded ? (
+            <div>
+              <SkeletonSalesDashboard className="mb-4" />
+              {/* Show subtle loading indicator during retries */}
+              <div className="text-center text-white/40 text-xs">
+                Loading sales data...
+              </div>
+            </div>
+          ) : (
+            <div className="animate-fadeIn">
+              <SharedSalesDashboard 
+                metrics={allSalesMetrics} 
+                targets={allSalesTargets}
+                loading={salesLoading}
+                className="mb-4"
+                salesYear={salesYear}
+                salesMonth={salesMonth}
+              />
+            </div>
+          )}
         </div>
         
-        {/* Other Components - Load After Sales with Fade In */}
-        <div className={`transition-all duration-700 ease-out transform ${
-          showOtherComponents 
-            ? 'opacity-100 translate-y-0' 
-            : 'opacity-0 translate-y-4'
-        }`}>
-
-          
-          {/* Top row: Lead and Inventory KPIs */}
-          <div className="grid gap-4 lg:grid-cols-2">
-            {/* Left column */}
-            <LeadKPICards year={salesYear} months={[salesMonth]} />
-
-            {/* Right column inventory KPI cards */}
-            <InventoryKPICards year={salesYear} months={[salesMonth]} />
-          </div>
-
-          {/* Second row: Stock Age Insights */}
-          <div className="mt-4">
-            <StockAgeInsights year={salesYear} months={[salesMonth]} />
-          </div>
-
-          {/* Location Insights */}
-          <div className="mt-4">
-            <LocationInsights year={salesYear} months={[salesMonth]} />
-          </div>
-
-          {/* Third row: Charts and Analytics */}
-          <div className="grid gap-4 mt-4 lg:grid-cols-2">
-            {/* Cumulative Lead Funnel */}
-            <div className="lg:col-span-1">
-              <CumulativeFunnel salesYear={salesYear} salesMonth={salesMonth} />
+        {/* Other Components - Progressive Loading with Skeletons */}
+        {!otherComponentsLoaded ? (
+          <>
+            {/* Skeleton for KPI Cards */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <SkeletonKPIGrid />
+              <SkeletonKPIGrid />
             </div>
 
-          {/* Model Demand Chart */}
-          <div className="lg:col-span-1">
-            <ModelDemandChart year={salesYear} months={[salesMonth]} />
-          </div>
-        </div>
+            {/* Skeleton for Stock Age */}
+            <div className="mt-4">
+              <SkeletonStockAge />
+            </div>
 
-        {/* Acquisitions Charts Section */}
-        <div className="mb-6">
-          <div className="grid gap-4 lg:grid-cols-2 mb-4">
-            <StockAcquisitionsChart year={salesYear} months={[salesMonth]} />
-            <ConsignmentAcquisitionsChart year={salesYear} months={[salesMonth]} />
+            {/* Skeleton for Location Insights */}
+            <div className="mt-4">
+              <SkeletonLocationInsights />
+            </div>
+
+            {/* Skeleton for Charts */}
+            <div className="grid gap-4 mt-4 lg:grid-cols-2">
+              <SkeletonFunnel />
+              <SkeletonChart height="h-[260px]" />
+            </div>
+
+            {/* Skeleton for Acquisitions Charts */}
+            <div className="mb-6">
+              <div className="grid gap-4 lg:grid-cols-2 mb-4">
+                <SkeletonChart height="h-[300px]" />
+                <SkeletonChart height="h-[300px]" />
+              </div>
+              <SkeletonChart height="h-[320px]" />
+            </div>
+          </>
+        ) : (
+          <div className="animate-fadeIn">
+            {/* Top row: Lead and Inventory KPIs */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <LeadKPICards year={salesYear} months={[salesMonth]} />
+              <InventoryKPICards year={salesYear} months={[salesMonth]} />
+            </div>
+
+            {/* Second row: Stock Age Insights */}
+            <div className="mt-4">
+              <StockAgeInsights year={salesYear} months={[salesMonth]} />
+            </div>
+
+            {/* Location Insights */}
+            <div className="mt-4">
+              <LocationInsights year={salesYear} months={[salesMonth]} />
+            </div>
+
+            {/* Third row: Charts and Analytics */}
+            <div className="grid gap-4 mt-4 lg:grid-cols-2">
+              <div className="lg:col-span-1">
+                <CumulativeFunnel salesYear={salesYear} salesMonth={salesMonth} />
+              </div>
+              <div className="lg:col-span-1">
+                <ModelDemandChart year={salesYear} months={[salesMonth]} />
+              </div>
+            </div>
+
+            {/* Acquisitions Charts Section */}
+            <div className="mb-6">
+              <div className="grid gap-4 lg:grid-cols-2 mb-4">
+                <StockAcquisitionsChart year={salesYear} months={[salesMonth]} />
+                <ConsignmentAcquisitionsChart year={salesYear} months={[salesMonth]} />
+              </div>
+              <AcquisitionsTrendChart year={salesYear} months={[salesMonth]} />
+            </div>
           </div>
-          <AcquisitionsTrendChart year={salesYear} months={[salesMonth]} />
-        </div>
-        
-        </div> {/* End of Other Components wrapper */}
+        )}
 
       </div>
     </main>

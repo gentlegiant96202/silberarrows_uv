@@ -838,31 +838,31 @@ Entire Agreement: This document constitutes the entire agreement between SilberA
       </html>
     `;
 
-    console.log('📄 Generating complete consignment agreement PDF...');
+    console.log('📄 Generating complete consignment agreement PDF using renderer...');
 
-    const pdfShiftResponse = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
+    // Use your Railway renderer instead of PDF Shift
+    const rendererResponse = await fetch(`${process.env.RENDERER_URL || 'https://your-railway-renderer-url.railway.app'}/render-consignment-agreement`, {
       method: 'POST',
       headers: {
-        'X-API-Key': process.env.PDFSHIFT_API_KEY || '',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        source: htmlContent,
-        landscape: false,
-        format: 'A4',
-        margin: '0mm'
+        carData: car
       })
     });
 
-    if (!pdfShiftResponse.ok) {
-      const errorText = await pdfShiftResponse.text();
-      console.error('PDFShift API Error:', errorText);
-      throw new Error(`PDFShift API Error: ${errorText}`);
+    if (!rendererResponse.ok) {
+      const errorText = await rendererResponse.text();
+      console.error('Renderer API Error:', errorText);
+      throw new Error(`Renderer API Error: ${errorText}`);
     }
 
-    const pdfBuffer = await pdfShiftResponse.arrayBuffer();
-    const fileSizeMB = (pdfBuffer.byteLength / (1024 * 1024)).toFixed(2);
-    
+    const rendererResult = await rendererResponse.json();
+    if (!rendererResult.success) {
+      throw new Error(`Renderer Error: ${rendererResult.error}`);
+    }
+
+    const fileSizeMB = rendererResult.pdfStats?.fileSizeMB || 'Unknown';
     console.log(`📄 Consignment Agreement PDF Generated: ${fileSizeMB}MB`);
 
     // Sanitize filename
@@ -872,12 +872,9 @@ Entire Agreement: This document constitutes the entire agreement between SilberA
       .replace(/^-|-$/g, '');
 
     return NextResponse.json({
-      pdfData: Buffer.from(pdfBuffer).toString('base64'),
-      fileName: `consignment-agreement-${sanitizedStockNumber}.pdf`,
-      pdfStats: {
-        fileSizeMB,
-        pageCount: 2
-      }
+      pdfData: rendererResult.pdfData,
+      fileName: rendererResult.fileName,
+      pdfStats: rendererResult.pdfStats
     });
 
   } catch (error) {

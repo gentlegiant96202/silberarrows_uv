@@ -19,7 +19,15 @@ export function useSalesData() {
       if (filter?.year) params.append('year', filter.year.toString());
       if (filter?.month) params.append('month', filter.month.toString());
 
-      const response = await fetch(`/api/sales-metrics?${params}`);
+      // Add abort controller to prevent race conditions
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(`/api/sales-metrics?${params}`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       const result = await response.json();
 
       if (!response.ok) {
@@ -31,7 +39,20 @@ export function useSalesData() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sales metrics';
       setError(errorMessage);
-      console.error('Error fetching sales metrics:', err);
+      console.error('❌ Error fetching sales metrics:', err);
+      
+      // Log more details for debugging
+      if (err instanceof TypeError && err.message === 'fetch failed') {
+        console.error('🔍 Network error details:', {
+          message: err.message,
+          name: err.name,
+          stack: err.stack
+        });
+        console.log('🔄 This might be a temporary network issue during development');
+      } else if (err instanceof DOMException && err.name === 'AbortError') {
+        console.log('⏰ Request was aborted (timeout or component unmount)');
+      }
+      
       return [];
     } finally {
       setLoading(false);

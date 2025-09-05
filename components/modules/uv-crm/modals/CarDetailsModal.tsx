@@ -54,6 +54,10 @@ export interface CarInfo {
   owners_manual_acquired: boolean | null;
   spare_tyre_tools_acquired: boolean | null;
   fire_extinguisher_acquired: boolean | null;
+  // Vehicle history disclosure fields
+  customer_disclosed_accident: boolean | null;
+  customer_disclosed_flood_damage: boolean | null;
+  damage_disclosure_details: string | null;
   website_url: string | null;
 }
 
@@ -760,6 +764,20 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
             : '—', 
           field: 'insurance_expiry_date' 
         },
+        { 
+          label: 'Customer Disclosed Accident History', 
+          value: localCar.customer_disclosed_accident === true ? 'Yes' : 'No'
+        },
+        { 
+          label: 'Customer Disclosed Flood Damage', 
+          value: localCar.customer_disclosed_flood_damage === true ? 'Yes' : 'No'
+        },
+        { 
+          label: 'Damage Details (Customer Disclosed)', 
+          value: localCar.damage_disclosure_details && localCar.damage_disclosure_details.trim() 
+            ? localCar.damage_disclosure_details 
+            : '—'
+        },
       ],
     });
 
@@ -1312,6 +1330,28 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         ) : (
                           localCar.customer_email ?? '—'
                         )}
+                      </dd>
+                    </div>
+                    
+                    {/* Vehicle History Disclosure Fields */}
+                    <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
+                      <dt className="text-white/70 text-[13px] tracking-wide self-center">Customer Disclosed Accident History</dt>
+                      <dd className="text-white text-[16px] leading-[1.35] text-left">
+                        {localCar.customer_disclosed_accident === true ? 'Yes' : 'No'}
+                      </dd>
+                    </div>
+                    <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
+                      <dt className="text-white/70 text-[13px] tracking-wide self-center">Customer Disclosed Flood Damage</dt>
+                      <dd className="text-white text-[16px] leading-[1.35] text-left">
+                        {localCar.customer_disclosed_flood_damage === true ? 'Yes' : 'No'}
+                      </dd>
+                    </div>
+                    <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
+                      <dt className="text-white/70 text-[13px] tracking-wide self-center">Damage Details (Customer Disclosed)</dt>
+                      <dd className="text-white text-[16px] leading-[1.35] text-left whitespace-normal break-words">
+                        {localCar.damage_disclosure_details && localCar.damage_disclosure_details.trim() 
+                          ? localCar.damage_disclosure_details 
+                          : '—'}
                       </dd>
                     </div>
                   </dl>

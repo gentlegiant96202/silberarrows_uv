@@ -68,6 +68,10 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     owners_manual_acquired: false,
     spare_tyre_tools_acquired: false,
     fire_extinguisher_acquired: false,
+    // Vehicle history disclosure fields
+    customer_disclosed_accident: false,
+    customer_disclosed_flood_damage: false,
+    damage_disclosure_details: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -507,6 +511,15 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     }
     
     setSaving(true);
+    
+    // Get current user for created_by field
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user?.id) {
+      alert('Authentication error: Please log in again');
+      setSaving(false);
+      return;
+    }
+    
     const { data, error } = await supabase.from("cars").insert([
       {
         stock_number: form.stock_number.trim(),
@@ -548,11 +561,15 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         owners_manual_acquired: form.ownership_type === 'consignment' ? form.owners_manual_acquired : null,
         spare_tyre_tools_acquired: form.ownership_type === 'consignment' ? form.spare_tyre_tools_acquired : null,
         fire_extinguisher_acquired: form.ownership_type === 'consignment' ? form.fire_extinguisher_acquired : null,
+        // Vehicle history disclosure fields
+        customer_disclosed_accident: form.ownership_type === 'consignment' ? form.customer_disclosed_accident : null,
+        customer_disclosed_flood_damage: form.ownership_type === 'consignment' ? form.customer_disclosed_flood_damage : null,
+        damage_disclosure_details: form.ownership_type === 'consignment' ? form.damage_disclosure_details.trim() || null : null,
         key_equipment: form.key_equipment.trim(),
         description: form.description.trim(),
         status: "marketing",
         sale_status: "available",
-        created_by: (await supabase.auth.getUser()).data.user?.id,
+        created_by: userData.user.id,
       },
     ]).select().single();
     
@@ -625,13 +642,13 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="w-full max-w-4xl mx-auto py-8">
               {/* Prevent implicit submits; we call handleSubmit manually */}
               <form onSubmit={(e) => { e.preventDefault(); }} className="space-y-6">
             {/* Chassis Tab */}
             {activeTab === 'chassis' && (
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-12 min-h-[500px] flex flex-col justify-center">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 min-h-[500px] flex flex-col justify-center">
                 <div className="text-center space-y-12">
                   <div className="space-y-6">
                     <h3 className="text-white text-4xl font-bold">Vehicle Identification</h3>
@@ -657,7 +674,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
 
             {/* Vehicle Info Tab */}
             {activeTab === 'vehicle' && (
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-12 min-h-[500px] space-y-8">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 min-h-[500px] space-y-8 flex flex-col justify-center">
               <div className="text-center">
                 <h3 className="text-white text-4xl font-bold mb-6">Vehicle Information</h3>
                 <p className="text-white/70 text-xl mb-8">Complete the vehicle details below</p>
@@ -729,8 +746,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
 
             {/* Pricing Tab */}
             {activeTab === 'pricing' && (
-            <div className="p-8">
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 space-y-6">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 space-y-6 min-h-[500px]">
                 <div className="text-center mb-6">
                   <h2 className="text-4xl font-bold text-white mb-4">Pricing & Condition</h2>
                   <p className="text-xl text-white/60">Set the pricing details and condition for this vehicle</p>
@@ -999,6 +1015,106 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                       />
                     </div>
 
+                    {/* Vehicle History Disclosure */}
+                    <div className="col-span-2">
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-4">
+                        <h3 className="text-white/80 text-sm font-semibold mb-3">Customer Vehicle History Disclosure</h3>
+                        <p className="text-white/60 text-xs mb-4">Based on your conversation with the consignment customer, please answer the following:</p>
+                        
+                        {/* Question 1: Accident History */}
+                        <div className="space-y-2">
+                          <label className="block text-white/70 text-xs font-medium">
+                            Has the customer disclosed that the vehicle was ever involved in an accident or collision?
+                          </label>
+                          <div className="flex items-center space-x-6">
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={form.customer_disclosed_accident}
+                                onChange={(e) => setForm(prev => ({ 
+                                  ...prev, 
+                                  customer_disclosed_accident: e.target.checked,
+                                  // Clear details if both questions become false
+                                  damage_disclosure_details: (!e.target.checked && !prev.customer_disclosed_flood_damage) ? "" : prev.damage_disclosure_details
+                                }))}
+                                className="w-4 h-4 text-white bg-black/20 border border-white/20 rounded focus:ring-white/40 focus:ring-2"
+                              />
+                              <span className="text-white/70 text-xs">Yes</span>
+                            </label>
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={!form.customer_disclosed_accident}
+                                onChange={(e) => setForm(prev => ({ 
+                                  ...prev, 
+                                  customer_disclosed_accident: !e.target.checked,
+                                  // Clear details if both questions become false
+                                  damage_disclosure_details: (e.target.checked && !prev.customer_disclosed_flood_damage) ? "" : prev.damage_disclosure_details
+                                }))}
+                                className="w-4 h-4 text-white bg-black/20 border border-white/20 rounded focus:ring-white/40 focus:ring-2"
+                              />
+                              <span className="text-white/70 text-xs">No</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Question 2: Flood Damage */}
+                        <div className="space-y-2">
+                          <label className="block text-white/70 text-xs font-medium">
+                            Has the customer disclosed that the vehicle sustained damage or was affected by flooding/water exposure?
+                          </label>
+                          <div className="flex items-center space-x-6">
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={form.customer_disclosed_flood_damage}
+                                onChange={(e) => setForm(prev => ({ 
+                                  ...prev, 
+                                  customer_disclosed_flood_damage: e.target.checked,
+                                  // Clear details if both questions become false
+                                  damage_disclosure_details: (!e.target.checked && !prev.customer_disclosed_accident) ? "" : prev.damage_disclosure_details
+                                }))}
+                                className="w-4 h-4 text-white bg-black/20 border border-white/20 rounded focus:ring-white/40 focus:ring-2"
+                              />
+                              <span className="text-white/70 text-xs">Yes</span>
+                            </label>
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={!form.customer_disclosed_flood_damage}
+                                onChange={(e) => setForm(prev => ({ 
+                                  ...prev, 
+                                  customer_disclosed_flood_damage: !e.target.checked,
+                                  // Clear details if both questions become false
+                                  damage_disclosure_details: (e.target.checked && !prev.customer_disclosed_accident) ? "" : prev.damage_disclosure_details
+                                }))}
+                                className="w-4 h-4 text-white bg-black/20 border border-white/20 rounded focus:ring-white/40 focus:ring-2"
+                              />
+                              <span className="text-white/70 text-xs">No</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Question 3: Details (Conditional) */}
+                        {(form.customer_disclosed_accident || form.customer_disclosed_flood_damage) && (
+                          <div className="space-y-2">
+                            <label className="block text-white/70 text-xs font-medium">
+                              If you answered 'Yes' to any of the above, please provide the details the customer shared:
+                            </label>
+                            <textarea
+                              name="damage_disclosure_details"
+                              value={form.damage_disclosure_details}
+                              onChange={handleChange}
+                              rows={3}
+                              className={compactFieldClass}
+                              style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                              placeholder="Enter details about the accident or damage as disclosed by the customer..."
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                                          {/* Handover Checklist */}
                      <div className="col-span-2">
                        <label className="block text-white/60 mb-2 text-xs font-semibold">Handover Checklist (Check if acquired)</label>
@@ -1028,14 +1144,12 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                   </>
                 )}
               </div>
-              </div>
             </div>
             )}
 
             {/* Specifications Tab */}
             {activeTab === 'specs' && (
-            <div className="p-8">
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 space-y-6">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 space-y-6 min-h-[500px] flex flex-col justify-center">
                 <div className="text-center mb-6">
                   <h2 className="text-4xl font-bold text-white mb-4">Specifications</h2>
                   <p className="text-xl text-white/60">Enter the technical specifications for this vehicle</p>
@@ -1082,13 +1196,11 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                 ))}
               </div>
               </div>
-            </div>
             )}
 
             {/* Details Tab */}
             {activeTab === 'details' && (
-            <div className="px-8 pt-8 pb-8">
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 space-y-6">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 space-y-6 min-h-[500px] flex flex-col justify-center">
                 <div className="text-center mb-8 mt-8">
                   <h2 className="text-4xl font-bold text-white mb-4">Vehicle Details</h2>
                   <p className="text-xl text-white/60">Add key equipment and description for this vehicle</p>
@@ -1187,7 +1299,6 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                 </div>
               </div>
               </div>
-            </div>
             )}
 
           </form>

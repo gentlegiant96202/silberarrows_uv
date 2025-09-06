@@ -197,7 +197,7 @@
       margin-bottom: 4px;
       color: white;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.8px;
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
       position: relative;
       z-index: 2;
@@ -525,7 +525,7 @@
     <div class="header">
       <div class="title-section">
         <div class="title">VEHICLE CONSIGNMENT AGREEMENT</div>
-        <div class="date-line">Date: {{TODAY_DATE}}</div>
+        <div class="date-line">Date: {{todayStr}}</div>
       </div>
       <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="logo">
     </div>
@@ -537,119 +537,115 @@
         <table class="form-table">
           <tr>
             <td class="label">Full Name:</td>
-            <td class="data"><span class="input-field-large">{{CUSTOMER_NAME}}</span></td>
-            <td class="label">Phone Number:</td>
-            <td class="data"><span class="input-field-large">{{CUSTOMER_PHONE}}</span></td>
-          </tr>
-          <tr>
-            <td class="label">Email:</td>
-            <td class="data-large"><span class="input-field-large">{{CUSTOMER_EMAIL}}</span></td>
-            <td class="label">Emirates ID:</td>
-            <td class="data"><span class="input-field-large"></span></td>
+            <td class="data">{{customer_name}}</td>
+            <td class="label">Contact No.:</td>
+            <td class="data">{{customer_phone}}</td>
+            <td class="label">Email Address:</td>
+            <td class="data-large">{{customer_email}}</td>
           </tr>
         </table>
       </div>
 
-      <!-- VEHICLE INFORMATION -->
-      <div class="section compact-section">
-        <div class="section-title">VEHICLE INFORMATION</div>
+      <!-- VEHICLE DETAILS -->
+      <div class="section compact-section" style="margin-bottom: 12px;">
+        <div class="section-title">VEHICLE DETAILS</div>
         <table class="form-table">
           <tr>
-            <td class="label">Model Year:</td>
-            <td class="data"><span class="input-field-medium">{{MODEL_YEAR}}</span></td>
-            <td class="label">Model:</td>
-            <td class="data-large"><span class="input-field-large">{{VEHICLE_MODEL}}</span></td>
-            <td class="label">Chassis No:</td>
-            <td class="data-large"><span class="input-field-large">{{CHASSIS_NUMBER}}</span></td>
-          </tr>
-          <tr>
-            <td class="label">Colour:</td>
-            <td class="data"><span class="input-field-medium">{{COLOUR}}</span></td>
-            <td class="label">Mileage (km):</td>
-            <td class="data"><span class="input-field-medium">{{MILEAGE}}</span></td>
-            <td class="label">No. of Keys:</td>
-            <td class="data"><span class="input-field-medium">{{NUMBER_OF_KEYS}}</span></td>
+            <td class="label">Year, Make & Model:</td>
+            <td class="data">{{model_year}} {{vehicle_model}}</td>
+            <td class="label">Odometer Reading:</td>
+            <td class="data">{{mileage_display}}</td>
+            <td class="label">Chassis No.:</td>
+            <td class="data-large">{{chassis_number}}</td>
           </tr>
         </table>
       </div>
 
-      <!-- CONSIGNMENT DETAILS -->
-      <div class="section compact-section">
-        <div class="section-title">CONSIGNMENT DETAILS</div>
-        <table class="form-table">
-          <tr>
-            <td class="label">Consignment Period:</td>
-            <td class="data-large"><span class="input-field-large">90 Calendar Days</span></td>
-            <td class="label">Listing Price (AED):</td>
-            <td class="data-large"><span class="input-field-large">{{ADVERTISED_PRICE}}</span></td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- FEE STRUCTURE -->
-      <div class="section compact-section">
-        <div class="section-title">FEE STRUCTURE</div>
-        <div class="fee-structure">
-          <div class="text-content"><strong>SilberArrows Selling Fee:</strong> 5% of the final selling price (inclusive of VAT)</div>
-          
-          <div class="subsection-title">Fees Payable for Early Termination (if applicable):</div>
-          <div class="fee-option">
-            <span class="checkbox checkbox-option"></span> 
-            <span>Within 30 days: AED 2,000</span>
-          </div>
-          <div class="fee-option">
-            <span class="checkbox checkbox-option"></span> 
-            <span>31-60 days: AED 1,500</span>
-          </div>
-          <div class="fee-option">
-            <span class="checkbox checkbox-option"></span> 
-            <span>61-89 days: AED 1,000</span>
-          </div>
-          <div class="fee-option">
-            <span class="checkbox checkbox-option"></span> 
-            <span>90+ days: No fee</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- VEHICLE HISTORY DISCLOSURE -->
-      <div class="section compact-section">
-        <div class="section-title">VEHICLE HISTORY DISCLOSURE</div>
-        <div class="vehicle-history">
-          <div class="text-content">
-            <strong>To your knowledge as the Owner, has the vehicle:</strong>
-          </div>
-          
-          <table style="width: 100%; margin-top: 6px; border-collapse: collapse;">
-            <tr>
-              <td style="width: 70%; padding: 4px 0; color: white; font-size: 10px;">• Ever been involved in an accident or collision?</td>
-              <td style="width: 15%; padding: 4px 0; text-align: center; color: white; font-size: 10px;">Yes <span class="checkbox {{ACCIDENT_YES_CHECKED}}"></span></td>
-              <td style="width: 15%; padding: 4px 0; text-align: center; color: white; font-size: 10px;">No <span class="checkbox {{ACCIDENT_NO_CHECKED}}"></span></td>
-            </tr>
-            <tr>
-              <td style="width: 70%; padding: 4px 0; color: white; font-size: 10px;">• Sustained damage or been affected by flooding/water exposure?</td>
-              <td style="width: 15%; padding: 4px 0; text-align: center; color: white; font-size: 10px;">Yes <span class="checkbox {{FLOOD_YES_CHECKED}}"></span></td>
-              <td style="width: 15%; padding: 4px 0; text-align: center; color: white; font-size: 10px;">No <span class="checkbox {{FLOOD_NO_CHECKED}}"></span></td>
-            </tr>
-          </table>
-          
-          {{#if DAMAGE_DETAILS}}
-          <div class="text-content" style="margin-top: 8px;">
-            <strong>Details:</strong> {{DAMAGE_DETAILS}}
-          </div>
-          {{/if}}
-        </div>
-      </div>
-
-      <!-- VEHICLE CONDITION & HANDOVER -->
-      <div class="section compact-section">
-        <div class="section-title">VEHICLE CONDITION & HANDOVER</div>
+      <!-- VEHICLE HISTORY -->
+      <div class="vehicle-history" style="margin-bottom: 18px;">
         <div class="text-content">
-          <div style="margin-bottom: 8px;">
-            <strong>Registration Expiry:</strong>
-            <span class="input-field-medium">{{REGISTRATION_EXPIRY}}</span>
-            <strong style="margin-left: 20px;">Insurance Expiry:</strong>
-            <span class="input-field-medium">{{INSURANCE_EXPIRY}}</span>
+          <strong>To your knowledge as the Owner, has the vehicle:</strong>
+        </div>
+        <table style="width: 100%; margin-top: 6px; border-collapse: collapse;">
+          <tr>
+            <td style="width: 70%; padding: 2px 0; color: white; font-size: 10px;">• Ever been involved in an accident or collision?</td>
+            <td style="width: 15%; padding: 2px 0; text-align: center; color: white; font-size: 10px;">Yes <span class="checkbox {{accident_yes_checked}}"></span></td>
+            <td style="width: 15%; padding: 2px 0; text-align: center; color: white; font-size: 10px;">No <span class="checkbox {{accident_no_checked}}"></span></td>
+          </tr>
+          <tr>
+            <td style="width: 70%; padding: 2px 0; color: white; font-size: 10px;">• Sustained damage or been affected by flooding/water exposure?</td>
+            <td style="width: 15%; padding: 2px 0; text-align: center; color: white; font-size: 10px;">Yes <span class="checkbox {{flood_yes_checked}}"></span></td>
+            <td style="width: 15%; padding: 2px 0; text-align: center; color: white; font-size: 10px;">No <span class="checkbox {{flood_no_checked}}"></span></td>
+          </tr>
+        </table>
+        <div class="text-content" style="margin-top: 12px;">
+          <strong>If you answered "Yes" to any of the above, please provide details:</strong>
+        </div>
+        <div style="margin-top: 6px; padding: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; min-height: 40px;">
+          <div style="color: white; font-size: 10px;">{{damage_disclosure_details}}</div>
+        </div>
+      </div>
+
+      <!-- MAIN AGREEMENT -->
+      <div class="section" style="margin-bottom: 18px;">
+        <div class="section-title">MAIN AGREEMENT</div>
+        
+        <div class="text-content">
+          <strong>Consignment Period:</strong> The Owner agrees to consign the vehicle to Silber Arrows 1934 Used Car Trading LLC, also referred to as SilberArrows, for a 90-day period starting from the date of signing this agreement. If the vehicle remains unsold at the end of the consignment period, the Owner may collect the vehicle without any additional fees.
+        </div>
+
+        <div class="text-content">
+          <strong>Selling Fee:</strong> SilberArrows' fee for selling the vehicle is based on one of the following structures, to be agreed upon and documented at the time of signing:
+        </div>
+        <table style="width: 100%; margin: 10px 0 0 0; border-collapse: separate; border-spacing: 0 8px;">
+          <tr>
+            <td style="width: 5%; text-align: center;"><span class="checkbox checkbox-option"></span></td>
+            <td style="width: 45%;">A percentage of the final selling price:</td>
+            <td style="width: 30%;"><span class="input-field-large" style="text-align: center;"></span></td>
+            <td style="width: 10%"></td>
+          </tr>
+          <tr>
+            <td style="text-align: center;"><span class="checkbox checkbox-option"></span></td>
+            <td>A fixed fee: AED</td>
+            <td><span class="input-field-large" style="text-align: center;"></span></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td style="text-align: center;"><span class="checkbox checkbox-option"></span></td>
+            <td>A guaranteed return amount to the Owner: AED</td>
+            <td><span class="input-field-large" style="text-align: center;">{{cost_price_formatted}}</span></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td style="font-weight: bold;">The agreed selling price of the vehicle: AED</td>
+            <td><span class="input-field-large" style="text-align: center;">{{advertised_price_formatted}}</span></td>
+            <td></td>
+          </tr>
+        </table>
+        <div class="text-content">
+          This fee will be deducted from the final sale price upon successful completion of the sale.
+          <br />No other selling fees will apply unless specified elsewhere in this agreement.
+        </div>
+
+        <div class="text-content">
+          <strong>Fees Payable for Early Termination:</strong> If the Owner requests to terminate the agreement before the end of the 90-calendar day consignment period, the following fees become payable to SilberArrows prior to the release of the vehicle:
+          <br/>
+          (1) Technical Inspection Fee: AED 1,050.00 &emsp; (2) Professional Detailing Fee: AED 1,000.00 &emsp; (3) Marketing & Advertising Fee: AED 950.00
+        </div>
+
+        <div class="text-content">
+          <strong>Insurance and Registration Details:</strong> The Owner must ensure that the vehicle remains fully registered and insured during the consignment period.
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px 0;">
+          <div style="display: flex; align-items: center;">
+            <span style="margin-right: 8px;"><strong>Registration Expiry Date:</strong></span>
+            <span class="input-field-large" style="text-align: center; width: 180px; display: flex; align-items: center; justify-content: center;">{{registration_expiry_formatted}}</span>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span style="margin-right: 8px;"><strong>Insurance Expiry Date:</strong></span>
+            <span class="input-field-large" style="text-align: center; width: 180px; display: flex; align-items: center; justify-content: center;">{{insurance_expiry_formatted}}</span>
           </div>
         </div>
 
@@ -667,24 +663,25 @@
             </tr>
             <tr>
               <td style="width: 70%; padding: 2px 0; color: white; font-size: 10px;">• Service records</td>
-              <td style="text-align: center;"><span class="checkbox {{SERVICE_RECORDS_CHECKED}}"></span></td>
-              <td style="text-align: center;"><span class="checkbox {{SERVICE_RECORDS_UNCHECKED}}"></span></td>
+              <td style="text-align: center;"><span class="checkbox {{service_records_yes_checked}}"></span></td>
+              <td style="text-align: center;"><span class="checkbox {{service_records_no_checked}}"></span></td>
             </tr>
             <tr>
               <td style="width: 70%; padding: 2px 0; color: white; font-size: 10px;">• Owner's manual</td>
-              <td style="text-align: center;"><span class="checkbox {{OWNERS_MANUAL_CHECKED}}"></span></td>
-              <td style="text-align: center;"><span class="checkbox {{OWNERS_MANUAL_UNCHECKED}}"></span></td>
+              <td style="text-align: center;"><span class="checkbox {{owners_manual_yes_checked}}"></span></td>
+              <td style="text-align: center;"><span class="checkbox {{owners_manual_no_checked}}"></span></td>
             </tr>
             <tr>
               <td style="width: 70%; padding: 2px 0; color: white; font-size: 10px;">• Spare tyre and tools</td>
-              <td style="text-align: center;"><span class="checkbox {{SPARE_TYRE_CHECKED}}"></span></td>
-              <td style="text-align: center;"><span class="checkbox {{SPARE_TYRE_UNCHECKED}}"></span></td>
+              <td style="text-align: center;"><span class="checkbox {{spare_tyre_yes_checked}}"></span></td>
+              <td style="text-align: center;"><span class="checkbox {{spare_tyre_no_checked}}"></span></td>
             </tr>
             <tr>
               <td style="width: 70%; padding: 2px 0; color: white; font-size: 10px;">• Fire extinguisher</td>
-              <td style="text-align: center;"><span class="checkbox {{FIRE_EXTINGUISHER_CHECKED}}"></span></td>
-              <td style="text-align: center;"><span class="checkbox {{FIRE_EXTINGUISHER_UNCHECKED}}"></span></td>
+              <td style="text-align: center;"><span class="checkbox {{fire_extinguisher_yes_checked}}"></span></td>
+              <td style="text-align: center;"><span class="checkbox {{fire_extinguisher_no_checked}}"></span></td>
             </tr>
+
           </table>
         </div>
 

@@ -74,6 +74,7 @@ interface MediaItem {
   kind: string;
   sort_order: number;
   is_primary: boolean;
+  filename?: string; // Optional filename for documents
 }
 
 export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Props) {
@@ -615,6 +616,29 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     }
   };
 
+  // Function to refresh documents list
+  const refreshDocuments = async () => {
+    try {
+      const { data: docRows } = await supabase
+        .from('car_media')
+        .select('*')
+        .eq('car_id', car.id)
+        .eq('kind', 'document')
+        .order('created_at', { ascending: false });
+      
+      if (docRows) {
+        setMedia(prevMedia => {
+          // Update media array with new documents, avoiding duplicates
+          const existingIds = prevMedia.map(m => m.id);
+          const newDocs = docRows.filter(doc => !existingIds.includes(doc.id));
+          return [...newDocs, ...prevMedia.filter(m => m.kind !== 'document'), ...docRows.filter(doc => existingIds.includes(doc.id))];
+        });
+      }
+    } catch (error) {
+      console.error('Failed to refresh documents:', error);
+    }
+  };
+
   const handleGenerateConsignmentAgreement = async () => {
     try {
       console.log('[Consignment] Agreement generation started');
@@ -657,6 +681,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      
+      // Refresh documents to show the auto-saved PDF
+      await refreshDocuments();
       
       setAgreementStatusMsg('Consignment agreement downloaded successfully! Please send to customer for signing.');
       
@@ -1876,7 +1903,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     <h5 className="text-sm font-medium text-white/80">Uploaded Documents</h5>
                     {docs.map(doc => (
                       <div key={doc.id} className="flex items-center justify-between p-2 bg-black/30 rounded">
-                        <span className="text-sm text-white/80">Document</span>
+                        <span className="text-sm text-white/80">{doc.filename || 'Document'}</span>
                         <div className="flex gap-2">
                           <a 
                             href={doc.url} 

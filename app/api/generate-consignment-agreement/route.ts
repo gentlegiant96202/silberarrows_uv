@@ -909,6 +909,7 @@ Entire Agreement: This document constitutes the entire agreement between SilberA
           kind: 'document',
           url: urlData.publicUrl,
           is_primary: false,
+          filename: fileName, // Add filename for display
           created_at: new Date().toISOString()
         });
 

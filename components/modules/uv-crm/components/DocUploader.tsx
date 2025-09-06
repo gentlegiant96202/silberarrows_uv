@@ -38,6 +38,7 @@ export default function DocUploader({ carId, onUploaded, variant = 'default', bu
         kind: 'document',
         url,
         is_primary: false,
+        filename: file.name, // Store original filename
       });
     }
 

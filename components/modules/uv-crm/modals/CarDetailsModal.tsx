@@ -2283,16 +2283,18 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                               >
                                 Download
                               </a>
-                              <button 
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete this consignment agreement?')) {
-                                    handleDeleteConsignmentAgreement(doc);
-                                  }
-                                }}
-                                className="text-sm text-red-400 hover:text-red-300"
-                              >
-                                Delete
-                              </button>
+                              {canDeleteInventory && (
+                                <button 
+                                  onClick={() => {
+                                    if (confirm('Are you sure you want to delete this consignment agreement?')) {
+                                      handleDeleteConsignmentAgreement(doc);
+                                    }
+                                  }}
+                                  className="text-sm text-red-400 hover:text-red-300"
+                                >
+                                  Delete
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}

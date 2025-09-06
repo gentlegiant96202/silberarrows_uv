@@ -1949,10 +1949,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   />
                 </div>
                 
-                {docs.length > 0 && (
+                {docs.filter(doc => !(doc.filename && doc.filename.toLowerCase().includes('consignment-agreement'))).length > 0 && (
                   <div className="mt-4 space-y-2">
                     <h5 className="text-sm font-medium text-white/80">Uploaded Documents</h5>
-                    {docs.map(doc => (
+                    {docs.filter(doc => !(doc.filename && doc.filename.toLowerCase().includes('consignment-agreement'))).map(doc => (
                       <div key={doc.id} className="flex items-center justify-between p-2 bg-black/30 rounded">
                         <span className="text-sm text-white/80">{doc.filename || 'Document'}</span>
                         <div className="flex gap-2">

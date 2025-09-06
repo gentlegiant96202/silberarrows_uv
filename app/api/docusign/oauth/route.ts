@@ -31,17 +31,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Exchange authorization code for access token
+    const requestBody = {
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/docusign/oauth`
+    };
+
+    console.log('🔧 Token exchange request:', {
+      url: 'https://account.docusign.com/oauth/token',
+      body: { ...requestBody, code: code?.substring(0, 10) + '...' }
+    });
+
     const tokenResponse = await fetch('https://account.docusign.com/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Authorization': `Basic ${Buffer.from(`${process.env.DOCUSIGN_INTEGRATION_KEY}:${process.env.DOCUSIGN_CLIENT_SECRET}`).toString('base64')}`
       },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/docusign/oauth`
-      })
+      body: new URLSearchParams(requestBody)
     });
 
     if (!tokenResponse.ok) {

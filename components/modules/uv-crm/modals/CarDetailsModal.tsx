@@ -2217,31 +2217,51 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     <div className="border border-white/15 rounded-md p-4 bg-white/5 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="text-sm font-semibold text-white">Generated Consignment Agreements</h4>
-                        {/* Send for Signing Button - MOVED TO HEADER */}
-                        <button 
-                          onClick={() => {
-                            console.log('🔥 HEADER BUTTON CLICKED!');
-                            console.log('📋 consignmentDocs:', consignmentDocs);
-                            // First try to find an unsigned document
-                            let docToSend = consignmentDocs.find(doc => !doc.docusign_envelope_id);
-                            // If no unsigned document, use the first available document (for resending)
-                            if (!docToSend && consignmentDocs.length > 0) {
-                              docToSend = consignmentDocs[0];
-                              console.log('📄 No unsigned doc found, using first document for resending:', docToSend);
-                            }
-                            console.log('📄 Document to send:', docToSend);
-                            if (docToSend) {
-                              console.log('🚀 Calling handleSendForSigning...');
-                              handleSendForSigning(docToSend);
-                            } else {
-                              console.log('❌ No document found at all');
-                            }
-                          }}
-                          disabled={sendingForSigning !== null}
-                          className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition-colors disabled:opacity-50"
-                        >
-                          {sendingForSigning ? 'Sending...' : 'Send for Signing'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          {/* Status Text - same size as buttons */}
+                          {consignmentDocs.some(doc => doc.docusign_envelope_id) && (
+                            <span className={`px-4 py-2 rounded text-sm font-medium ${
+                              consignmentDocs.some(doc => doc.signing_status === 'completed' || doc.signing_status === 'signed') 
+                                ? 'text-green-400' 
+                                : consignmentDocs.some(doc => doc.signing_status === 'sent' || doc.signing_status === 'delivered')
+                                ? 'text-yellow-400'
+                                : 'text-gray-400'
+                            }`}>
+                              {consignmentDocs.find(doc => doc.signing_status === 'completed' || doc.signing_status === 'signed') ? 'Completed' :
+                               consignmentDocs.find(doc => doc.signing_status === 'sent') ? 'Sent for Signing' :
+                               consignmentDocs.find(doc => doc.signing_status === 'delivered') ? 'Delivered' :
+                               consignmentDocs.find(doc => doc.signing_status === 'signed') ? 'Signed' :
+                               consignmentDocs.find(doc => doc.signing_status === 'declined') ? 'Declined' :
+                               consignmentDocs.find(doc => doc.signing_status === 'voided') ? 'Voided' :
+                               'Ready'}
+                            </span>
+                          )}
+                          {/* Send for Signing Button - same size as Generate Agreement */}
+                          <button 
+                            onClick={() => {
+                              console.log('🔥 HEADER BUTTON CLICKED!');
+                              console.log('📋 consignmentDocs:', consignmentDocs);
+                              // First try to find an unsigned document
+                              let docToSend = consignmentDocs.find(doc => !doc.docusign_envelope_id);
+                              // If no unsigned document, use the first available document (for resending)
+                              if (!docToSend && consignmentDocs.length > 0) {
+                                docToSend = consignmentDocs[0];
+                                console.log('📄 No unsigned doc found, using first document for resending:', docToSend);
+                              }
+                              console.log('📄 Document to send:', docToSend);
+                              if (docToSend) {
+                                console.log('🚀 Calling handleSendForSigning...');
+                                handleSendForSigning(docToSend);
+                              } else {
+                                console.log('❌ No document found at all');
+                              }
+                            }}
+                            disabled={sendingForSigning !== null}
+                            className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                          >
+                            {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         {consignmentDocs.map(doc => (

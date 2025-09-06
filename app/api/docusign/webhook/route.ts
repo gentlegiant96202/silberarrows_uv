@@ -137,15 +137,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`📄 Envelope ${envelopeId} status: ${envelopeStatus}`);
 
-    // Only process completed envelopes
-    if (envelopeStatus !== 'completed') {
+    // Only process completed envelopes (case insensitive)
+    if (envelopeStatus?.toLowerCase() !== 'completed') {
       console.log(`⏳ Envelope not completed yet (${envelopeStatus}), skipping PDF replacement`);
       
-      // Update status in database
+      // Update status in database (normalize to lowercase)
       const { error: updateError } = await supabase
         .from('car_media')
         .update({ 
-          signing_status: envelopeStatus
+          signing_status: envelopeStatus?.toLowerCase()
         })
         .eq('docusign_envelope_id', envelopeId);
 

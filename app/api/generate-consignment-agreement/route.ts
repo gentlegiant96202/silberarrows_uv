@@ -841,7 +841,7 @@ Entire Agreement: This document constitutes the entire agreement between SilberA
     console.log('📄 Generating complete consignment agreement PDF using renderer...');
 
     // Use your Railway renderer instead of PDF Shift
-    const rendererResponse = await fetch(`${process.env.RENDERER_URL || 'https://your-railway-renderer-url.railway.app'}/render-consignment-agreement`, {
+    const rendererResponse = await fetch(`${process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app'}/render-consignment-agreement`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

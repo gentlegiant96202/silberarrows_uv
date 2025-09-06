@@ -14,6 +14,22 @@ export async function GET(request: NextRequest) {
 
     console.log('📧 DocuSign OAuth callback received, exchanging code for token...');
 
+    console.log('🔍 Token exchange debug:', {
+      hasIntegrationKey: !!process.env.DOCUSIGN_INTEGRATION_KEY,
+      hasClientSecret: !!process.env.DOCUSIGN_CLIENT_SECRET,
+      redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/docusign/oauth`,
+      code: code?.substring(0, 10) + '...'
+    });
+
+    // Check if we have required credentials
+    if (!process.env.DOCUSIGN_INTEGRATION_KEY || !process.env.DOCUSIGN_CLIENT_SECRET) {
+      console.error('Missing DocuSign credentials:', {
+        hasIntegrationKey: !!process.env.DOCUSIGN_INTEGRATION_KEY,
+        hasClientSecret: !!process.env.DOCUSIGN_CLIENT_SECRET
+      });
+      return NextResponse.json({ error: 'Missing DocuSign credentials' }, { status: 500 });
+    }
+
     // Exchange authorization code for access token
     const tokenResponse = await fetch('https://account.docusign.com/oauth/token', {
       method: 'POST',
@@ -31,7 +47,12 @@ export async function GET(request: NextRequest) {
     if (!tokenResponse.ok) {
       const error = await tokenResponse.text();
       console.error('DocuSign token exchange failed:', error);
-      return NextResponse.json({ error: 'Token exchange failed' }, { status: 400 });
+      console.error('Response status:', tokenResponse.status);
+      return NextResponse.json({ 
+        error: 'Token exchange failed', 
+        details: error,
+        status: tokenResponse.status 
+      }, { status: 400 });
     }
 
     const tokenData = await tokenResponse.json();

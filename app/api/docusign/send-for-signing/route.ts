@@ -42,21 +42,32 @@ function generateJWT() {
   
   // Ensure proper RSA key format with line breaks
   if (rsaKey) {
-    // Remove any existing formatting
-    let cleanKey = rsaKey.replace(/\r?\n/g, '').replace(/\s+/g, '');
+    // Clean the key - remove all whitespace and line breaks
+    let cleanKey = rsaKey.replace(/\s/g, '');
     
-    // Extract just the key content between headers
-    const beginMarker = '-----BEGINRSAPRIVATEKEY-----';
-    const endMarker = '-----ENDRSAPRIVATEKEY-----';
+    // Check if it has proper headers (with or without spaces)
+    const hasBeginHeader = cleanKey.includes('-----BEGINRSAPRIVATEKEY-----') || cleanKey.includes('-----BEGIN');
+    const hasEndHeader = cleanKey.includes('-----ENDRSAPRIVATEKEY-----') || cleanKey.includes('-----END');
     
-    if (cleanKey.includes(beginMarker) && cleanKey.includes(endMarker)) {
-      const keyContent = cleanKey.split(beginMarker)[1].split(endMarker)[0];
+    if (hasBeginHeader && hasEndHeader) {
+      // Extract the key content (everything between BEGIN and END)
+      const beginIndex = cleanKey.indexOf('-----BEGIN');
+      const endIndex = cleanKey.lastIndexOf('-----END');
       
-      // Add proper line breaks every 64 characters
-      const formattedContent = keyContent.match(/.{1,64}/g)?.join('\n') || keyContent;
-      
-      // Reconstruct with proper headers and line breaks
-      rsaKey = `-----BEGIN RSA PRIVATE KEY-----\n${formattedContent}\n-----END RSA PRIVATE KEY-----`;
+      if (beginIndex !== -1 && endIndex !== -1) {
+        // Get the key content after BEGIN header
+        const afterBegin = cleanKey.substring(beginIndex);
+        const beforeEnd = afterBegin.substring(0, afterBegin.lastIndexOf('-----END'));
+        
+        // Extract just the base64 content
+        const keyContent = beforeEnd.replace('-----BEGINRSAPRIVATEKEY-----', '');
+        
+        // Add proper line breaks every 64 characters
+        const formattedContent = keyContent.match(/.{1,64}/g)?.join('\n') || keyContent;
+        
+        // Reconstruct with proper headers and formatting
+        rsaKey = `-----BEGIN RSA PRIVATE KEY-----\n${formattedContent}\n-----END RSA PRIVATE KEY-----`;
+      }
     }
   }
   

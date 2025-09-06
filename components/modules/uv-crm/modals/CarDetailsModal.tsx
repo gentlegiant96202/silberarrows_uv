@@ -2293,21 +2293,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           <div className="bg-black/90 backdrop-blur-2xl rounded-2xl p-6 relative">
             {/* Gradient overlay for glass effect */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent pointer-events-none rounded-2xl"></div>
-            
-            {/* Close button */}
-            <button
-              onClick={() => {
-                setShowEmailModal(false);
-                setSelectedDoc(null);
-                setCompanyEmail('');
-              }}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
-              aria-label="Close modal"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
 
             {/* Header */}
             <div className="relative z-10 mb-6">
@@ -2374,7 +2359,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
             </div>
           </div>
         </div>
-      </div>, document.body)
+      </div>, 
+      document.body
     )}
     </>
   );

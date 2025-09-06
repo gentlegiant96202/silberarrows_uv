@@ -13,7 +13,7 @@ function generateJWT() {
   const payload = {
     iss: process.env.DOCUSIGN_INTEGRATION_KEY,
     sub: process.env.DOCUSIGN_USER_ID,
-    aud: 'account.docusign.com', // For production environment
+    aud: process.env.NODE_ENV === 'production' ? 'account.docusign.com' : 'account-d.docusign.com', // Environment-based
     iat: now,
     exp: now + 3600, // 1 hour
     scope: 'signature impersonation'
@@ -37,7 +37,7 @@ function generateJWT() {
 async function getAccessToken() {
   const jwt = generateJWT();
   
-  const response = await fetch(`https://account.docusign.com/oauth/token`, {
+  const response = await fetch(`https://${process.env.NODE_ENV === 'production' ? 'account.docusign.com' : 'account-d.docusign.com'}/oauth/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

@@ -88,7 +88,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [sendingForSigning, setSendingForSigning] = useState<string | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<MediaItem | null>(null);
-  const [companyEmail, setCompanyEmail] = useState(''); // Track which doc is being sent
+  const [companyEmail, setCompanyEmail] = useState('');
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null); // Track which doc is being sent
   const [pdfUrl, setPdfUrl] = useState<string | null>(car.vehicle_details_pdf_url || null);
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
@@ -709,6 +710,31 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       // Refresh documents to show updated signing status
       await refetchMedia();
 
+      // Start polling for status updates every 10 seconds (only while modal is open)
+      const interval = setInterval(async () => {
+        console.log('🔄 Polling for DocuSign status updates...');
+        await refetchMedia();
+        
+        // Check if document is completed
+        const updatedDocs = await supabase
+          .from('car_media')
+          .select('*')
+          .eq('id', selectedDoc.id)
+          .single();
+          
+        if (updatedDocs.data?.signing_status === 'completed') {
+          console.log('✅ Document signing completed! Stopping polling.');
+          clearInterval(interval);
+          setPollingInterval(null);
+          
+          // Show completion notification
+          alert('🎉 Consignment agreement has been fully signed! The signed PDF is now available.');
+        }
+      }, 10000); // Poll every 10 seconds
+      
+      setPollingInterval(interval);
+      console.log('🔄 Started DocuSign status polling (10-second intervals)');
+
       alert(`Consignment agreement sent to ${companyEmail} for company approval. Customer will receive email after company signature is completed.`);
 
     } catch (error: any) {
@@ -1179,6 +1205,60 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     }
     return ()=>window.removeEventListener('keydown', escListener);
   },[showGallery, escListener]);
+
+  // Cleanup polling interval when modal closes or unmounts
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        console.log('🛑 Stopping DocuSign polling - modal closing');
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+    };
+  }, [pollingInterval]);
+
+  // Start polling when modal opens if there are pending DocuSign documents
+  useEffect(() => {
+    const pendingDocs = consignmentDocs.filter(doc => 
+      doc.docusign_envelope_id && 
+      doc.signing_status && 
+      doc.signing_status !== 'completed' && 
+      doc.signing_status !== 'declined' && 
+      doc.signing_status !== 'voided'
+    );
+
+    if (pendingDocs.length > 0 && !pollingInterval) {
+      console.log('🔄 Modal opened with pending DocuSign documents - starting polling');
+      
+      const interval = setInterval(async () => {
+        console.log('🔄 Polling for DocuSign status updates...');
+        await refetchMedia();
+        
+        // Check if any documents are completed
+        const updatedDocs = await supabase
+          .from('car_media')
+          .select('*')
+          .eq('car_id', car.id)
+          .not('docusign_envelope_id', 'is', null);
+          
+        const stillPending = updatedDocs.data?.filter(doc => 
+          doc.signing_status && 
+          doc.signing_status !== 'completed' && 
+          doc.signing_status !== 'declined' && 
+          doc.signing_status !== 'voided'
+        );
+        
+        if (!stillPending || stillPending.length === 0) {
+          console.log('✅ All DocuSign documents completed! Stopping polling.');
+          clearInterval(interval);
+          setPollingInterval(null);
+        }
+      }, 10000); // Poll every 10 seconds
+      
+      setPollingInterval(interval);
+      console.log(`🔄 Started DocuSign polling for ${pendingDocs.length} pending documents`);
+    }
+  }, [consignmentDocs, car.id]); // Re-run when consignment docs change
 
   // Removed moveItem helper function - no longer needed with arrow buttons
 

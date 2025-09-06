@@ -2283,24 +2283,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                               >
                                 Download
                               </a>
-                              {/* Show signing status if sent */}
-                              {doc.docusign_envelope_id && (
-                                <span className={`text-sm px-2 py-1 rounded ${
-                                  doc.signing_status === 'completed' || doc.signing_status === 'signed' 
-                                    ? 'bg-green-600 text-white' 
-                                    : doc.signing_status === 'sent' || doc.signing_status === 'delivered'
-                                    ? 'bg-yellow-600 text-white'
-                                    : 'bg-gray-600 text-white'
-                                }`}>
-                                  {doc.signing_status === 'sent' ? 'Sent for Signing' :
-                                   doc.signing_status === 'delivered' ? 'Delivered' :
-                                   doc.signing_status === 'signed' ? 'Signed' :
-                                   doc.signing_status === 'completed' ? 'Completed' :
-                                   doc.signing_status === 'declined' ? 'Declined' :
-                                   doc.signing_status === 'voided' ? 'Voided' :
-                                   'Sent'}
-                                </span>
-                              )}
                               <button 
                                 onClick={() => {
                                   if (confirm('Are you sure you want to delete this consignment agreement?')) {

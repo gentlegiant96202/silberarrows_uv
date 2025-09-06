@@ -84,25 +84,51 @@ function generateJWT() {
   return `${signatureInput}.${signature}`;
 }
 
-// Get access token using JWT
+// Get access token using OAuth 2.0 Client Credentials Grant
 async function getAccessToken() {
-  const jwt = generateJWT();
-  
-  const response = await fetch(`https://${process.env.NODE_ENV === 'production' ? 'account.docusign.com' : 'account-d.docusign.com'}/oauth/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
-  });
+  // For production, use OAuth 2.0 Client Credentials Grant
+  if (process.env.NODE_ENV === 'production') {
+    const response = await fetch('https://account.docusign.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(`${process.env.DOCUSIGN_INTEGRATION_KEY}:${process.env.DOCUSIGN_CLIENT_SECRET}`).toString('base64')}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        scope: 'signature impersonation'
+      })
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`DocuSign authentication failed: ${error}`);
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('OAuth 2.0 authentication failed:', error);
+      throw new Error(`DocuSign OAuth authentication failed: ${error}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ OAuth 2.0 access token obtained');
+    return data.access_token;
+  } else {
+    // For development, use JWT
+    const jwt = generateJWT();
+    
+    const response = await fetch(`https://account-d.docusign.com/oauth/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`DocuSign authentication failed: ${error}`);
+    }
+
+    const data = await response.json();
+    return data.access_token;
   }
-
-  const data = await response.json();
-  return data.access_token;
 }
 
 export async function POST(request: NextRequest) {

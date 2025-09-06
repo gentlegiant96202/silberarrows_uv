@@ -80,6 +80,7 @@ interface MediaItem {
 export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Props) {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [localCar, setLocalCar] = useState<CarInfo>(car);
+  const [consignmentDocs, setConsignmentDocs] = useState<MediaItem[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(car.vehicle_details_pdf_url || null);
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
@@ -227,6 +228,14 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         const primaryPhoto = fixedData.find(m => m.kind === 'photo' && m.is_primary);
         console.log('🎯 Primary photo found:', primaryPhoto ? 'Yes' : 'No', primaryPhoto?.id);
         setMedia(fixedData);
+        
+        // Load consignment documents separately
+        const consignmentData = fixedData.filter(m => 
+          m.kind === 'document' && 
+          m.filename && 
+          m.filename.toLowerCase().includes('consignment-agreement')
+        );
+        setConsignmentDocs(consignmentData);
       }
     } catch (error) {
       console.error('Failed to refetch media:', error);
@@ -633,6 +642,13 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           const newDocs = docRows.filter(doc => !existingIds.includes(doc.id));
           return [...newDocs, ...prevMedia.filter(m => m.kind !== 'document'), ...docRows.filter(doc => existingIds.includes(doc.id))];
         });
+        
+        // Update consignment documents separately
+        const consignmentData = docRows.filter(doc => 
+          doc.filename && 
+          doc.filename.toLowerCase().includes('consignment-agreement')
+        );
+        setConsignmentDocs(consignmentData);
       }
     } catch (error) {
       console.error('Failed to refresh documents:', error);
@@ -1311,6 +1327,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
               {/* Consignment Details - Only for consignment cars */}
             {localCar.ownership_type === 'consignment' && (
+              <div>
                 <div className="border border-white/15 rounded-md p-4 bg-white/5">
                   <h3 className="text-white text-sm font-bold mb-3 uppercase tracking-wide">Consignment Details</h3>
                   <dl className="grid grid-cols-1 gap-y-4">
@@ -1383,7 +1400,41 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     </div>
                   </dl>
                 </div>
-              )}
+
+                {/* Consignment Agreements Section */}
+                <div className="border border-white/15 rounded-md p-4 bg-white/5 mt-6">
+                  <h3 className="text-white text-sm font-bold mb-3 uppercase tracking-wide">Consignment Agreements</h3>
+                  {consignmentDocs.length > 0 ? (
+                    <div className="space-y-2">
+                      {consignmentDocs.map(doc => (
+                        <div key={doc.id} className="flex items-center justify-between p-3 bg-black/30 rounded">
+                          <span className="text-sm text-white/80">{doc.filename || 'Consignment Agreement'}</span>
+                          <div className="flex gap-3">
+                            <a 
+                              href={doc.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-400 hover:text-blue-300 underline"
+                            >
+                              View
+                            </a>
+                            <a
+                              href={`${doc.url}${doc.url.includes('?') ? '&' : '?'}download`}
+                              download
+                              className="text-sm text-green-400 hover:text-green-300 underline"
+                            >
+                              Download
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-white/60 text-sm">No consignment agreements generated yet.</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           )}
 

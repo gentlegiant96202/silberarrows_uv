@@ -2374,5 +2374,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         )}
       </div>
     </div>
+    </>
   );
 } 

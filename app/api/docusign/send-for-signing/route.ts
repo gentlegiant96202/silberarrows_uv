@@ -28,21 +28,45 @@ function generateJWT() {
   const crypto = require('crypto');
   const signer = crypto.createSign('RSA-SHA256');
   signer.update(signatureInput);
-  // Get RSA key and ensure proper formatting
+  // Get RSA key - try multiple sources and formats
   let rsaKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
   
-  // If using base64 encoded key, decode it
+  // If no direct key, try base64 encoded version
   if (!rsaKey && process.env.DOCUSIGN_RSA_PRIVATE_KEY_BASE64) {
-    rsaKey = Buffer.from(process.env.DOCUSIGN_RSA_PRIVATE_KEY_BASE64, 'base64').toString();
+    try {
+      rsaKey = Buffer.from(process.env.DOCUSIGN_RSA_PRIVATE_KEY_BASE64, 'base64').toString();
+    } catch (error) {
+      console.error('Failed to decode base64 RSA key:', error);
+    }
   }
   
-  // If key doesn't have line breaks, add them back for proper RSA format
-  if (rsaKey && !rsaKey.includes('\n')) {
-    // Add line breaks every 64 characters (standard RSA format)
-    const keyBody = rsaKey.replace('-----BEGIN RSA PRIVATE KEY-----', '').replace('-----END RSA PRIVATE KEY-----', '');
-    const formattedKeyBody = keyBody.match(/.{1,64}/g)?.join('\n') || keyBody;
-    rsaKey = `-----BEGIN RSA PRIVATE KEY-----\n${formattedKeyBody}\n-----END RSA PRIVATE KEY-----`;
+  // Ensure proper RSA key format with line breaks
+  if (rsaKey) {
+    // Remove any existing formatting
+    let cleanKey = rsaKey.replace(/\r?\n/g, '').replace(/\s+/g, '');
+    
+    // Extract just the key content between headers
+    const beginMarker = '-----BEGINRSAPRIVATEKEY-----';
+    const endMarker = '-----ENDRSAPRIVATEKEY-----';
+    
+    if (cleanKey.includes(beginMarker) && cleanKey.includes(endMarker)) {
+      const keyContent = cleanKey.split(beginMarker)[1].split(endMarker)[0];
+      
+      // Add proper line breaks every 64 characters
+      const formattedContent = keyContent.match(/.{1,64}/g)?.join('\n') || keyContent;
+      
+      // Reconstruct with proper headers and line breaks
+      rsaKey = `-----BEGIN RSA PRIVATE KEY-----\n${formattedContent}\n-----END RSA PRIVATE KEY-----`;
+    }
   }
+  
+  console.log('🔑 RSA Key Debug:', {
+    hasKey: !!rsaKey,
+    keyLength: rsaKey?.length || 0,
+    hasBegin: rsaKey?.includes('-----BEGIN RSA PRIVATE KEY-----') || false,
+    hasEnd: rsaKey?.includes('-----END RSA PRIVATE KEY-----') || false,
+    hasLineBreaks: rsaKey?.includes('\n') || false
+  });
   
   const signature = signer.sign(rsaKey, 'base64url');
   

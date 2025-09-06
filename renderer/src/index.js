@@ -577,9 +577,22 @@ app.post('/render-consignment-agreement', async (req, res) => {
       }
     };
 
+    // Load main logo as base64
+    const logoPath = path.resolve(__dirname, '../public/main-logo.png');
+    let mainLogoBase64 = '';
+    try {
+      const logoBuffer = await fs.readFile(logoPath);
+      mainLogoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    } catch (error) {
+      console.error('❌ Error loading main logo:', error);
+      // Fallback to original logo
+      mainLogoBase64 = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
+    }
+
     // Prepare template variables - match template lowercase naming
     const templateVars = {
       todayStr: todayStr,
+      main_logo_src: mainLogoBase64,
       customer_name: carData.customer_name || '',
       customer_phone: carData.customer_phone || '',
       customer_email: carData.customer_email || '',

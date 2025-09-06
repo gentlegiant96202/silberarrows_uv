@@ -27,7 +27,23 @@ function generateJWT() {
   const crypto = require('crypto');
   const signer = crypto.createSign('RSA-SHA256');
   signer.update(signatureInput);
-  const signature = signer.sign(process.env.DOCUSIGN_RSA_PRIVATE_KEY!, 'base64url');
+  // Get RSA key and ensure proper formatting
+  let rsaKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
+  
+  // If using base64 encoded key, decode it
+  if (!rsaKey && process.env.DOCUSIGN_RSA_PRIVATE_KEY_BASE64) {
+    rsaKey = Buffer.from(process.env.DOCUSIGN_RSA_PRIVATE_KEY_BASE64, 'base64').toString();
+  }
+  
+  // If key doesn't have line breaks, add them back for proper RSA format
+  if (rsaKey && !rsaKey.includes('\n')) {
+    // Add line breaks every 64 characters (standard RSA format)
+    const keyBody = rsaKey.replace('-----BEGIN RSA PRIVATE KEY-----', '').replace('-----END RSA PRIVATE KEY-----', '');
+    const formattedKeyBody = keyBody.match(/.{1,64}/g)?.join('\n') || keyBody;
+    rsaKey = `-----BEGIN RSA PRIVATE KEY-----\n${formattedKeyBody}\n-----END RSA PRIVATE KEY-----`;
+  }
+  
+  const signature = signer.sign(rsaKey, 'base64url');
   
   return `${signatureInput}.${signature}`;
 }

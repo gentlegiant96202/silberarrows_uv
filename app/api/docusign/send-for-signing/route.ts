@@ -121,11 +121,11 @@ async function getAccessToken() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { carId, documentId } = await request.json();
+    const { carId, documentId, companySignerEmail } = await request.json();
 
-    if (!carId || !documentId) {
+    if (!carId || !documentId || !companySignerEmail) {
       return NextResponse.json(
-        { error: 'Missing carId or documentId' },
+        { error: 'Missing carId, documentId, or companySignerEmail' },
         { status: 400 }
       );
     }
@@ -190,8 +190,8 @@ export async function POST(request: NextRequest) {
       recipients: {
         signers: [
           {
-            email: 'samuel.sanjeev@silberarrows.com',
-            name: 'Samuel Sanjeev',
+            email: companySignerEmail,
+            name: 'Company Representative',
             recipientId: '1',
             routingOrder: '1',
             tabs: {
@@ -200,8 +200,8 @@ export async function POST(request: NextRequest) {
                   documentId: '1',
                   pageNumber: '2',
                   xPosition: '150',
-                  yPosition: '320',
-                  tabLabel: 'SamuelSignature'
+                  yPosition: '750',
+                  tabLabel: 'CompanySignature'
                 }
               ],
               dateSignedTabs: [
@@ -209,60 +209,8 @@ export async function POST(request: NextRequest) {
                   documentId: '1',
                   pageNumber: '2',
                   xPosition: '150',
-                  yPosition: '360',
-                  tabLabel: 'SamuelDate'
-                }
-              ]
-            }
-          },
-          {
-            email: 'nick.hurst@silberarrows.com',
-            name: 'Nick Hurst',
-            recipientId: '2',
-            routingOrder: '1',
-            tabs: {
-              signHereTabs: [
-                {
-                  documentId: '1',
-                  pageNumber: '2',
-                  xPosition: '150',
-                  yPosition: '320',
-                  tabLabel: 'NickSignature'
-                }
-              ],
-              dateSignedTabs: [
-                {
-                  documentId: '1',
-                  pageNumber: '2',
-                  xPosition: '150',
-                  yPosition: '360',
-                  tabLabel: 'NickDate'
-                }
-              ]
-            }
-          },
-          {
-            email: 'glen.hawkins@silberarrows.com',
-            name: 'Glen Hawkins',
-            recipientId: '3',
-            routingOrder: '1',
-            tabs: {
-              signHereTabs: [
-                {
-                  documentId: '1',
-                  pageNumber: '2',
-                  xPosition: '150',
-                  yPosition: '320',
-                  tabLabel: 'GlenSignature'
-                }
-              ],
-              dateSignedTabs: [
-                {
-                  documentId: '1',
-                  pageNumber: '2',
-                  xPosition: '150',
-                  yPosition: '360',
-                  tabLabel: 'GlenDate'
+                  yPosition: '780',
+                  tabLabel: 'CompanyDate'
                 }
               ]
             }
@@ -270,7 +218,7 @@ export async function POST(request: NextRequest) {
           {
             email: car.customer_email,
             name: car.customer_name,
-            recipientId: '4',
+            recipientId: '2',
             routingOrder: '2',
             tabs: {
               signHereTabs: [
@@ -278,7 +226,7 @@ export async function POST(request: NextRequest) {
                   documentId: '1',
                   pageNumber: '2',
                   xPosition: '400',
-                  yPosition: '320',
+                  yPosition: '750',
                   tabLabel: 'CustomerSignature'
                 }
               ],
@@ -287,7 +235,7 @@ export async function POST(request: NextRequest) {
                   documentId: '1',
                   pageNumber: '2',
                   xPosition: '400',
-                  yPosition: '360',
+                  yPosition: '780',
                   tabLabel: 'CustomerDate'
                 }
               ]
@@ -345,7 +293,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       envelopeId,
-      message: `Consignment agreement sent to Samuel, Nick, and Glen for company approval. Only ONE company signature is required. Customer will be notified after company approval. Signed PDF will automatically replace unsigned version when completed.`
+      message: `Consignment agreement sent to ${companySignerEmail} for company approval. Customer will be notified after company signature is completed. Signed PDF will automatically replace unsigned version when completed.`
     });
 
   } catch (error) {

@@ -876,6 +876,32 @@ Entire Agreement: This document constitutes the entire agreement between SilberA
     try {
       console.log('💾 Saving consignment agreement to vehicle documents...');
       
+      // First, delete any existing consignment agreements for this car
+      const { data: existingAgreements } = await supabase
+        .from('car_media')
+        .select('id, url')
+        .eq('car_id', car.id)
+        .eq('kind', 'document')
+        .like('filename', '%consignment-agreement%');
+
+      if (existingAgreements && existingAgreements.length > 0) {
+        console.log(`🗑️ Deleting ${existingAgreements.length} existing consignment agreements...`);
+        
+        // Delete from database
+        const { error: deleteError } = await supabase
+          .from('car_media')
+          .delete()
+          .eq('car_id', car.id)
+          .eq('kind', 'document')
+          .like('filename', '%consignment-agreement%');
+
+        if (deleteError) {
+          console.error('❌ Failed to delete existing agreements:', deleteError);
+        } else {
+          console.log('✅ Existing consignment agreements deleted');
+        }
+      }
+      
       // Convert base64 to buffer
       const pdfBuffer = Buffer.from(rendererResult.pdfData, 'base64');
       

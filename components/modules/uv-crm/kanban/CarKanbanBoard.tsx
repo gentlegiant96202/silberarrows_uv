@@ -175,7 +175,26 @@ export default function CarKanbanBoard() {
       console.log('🚗 CarKanbanBoard: Loading cars with proper permissions...');
       const { data } = await supabase
         .from('cars')
-        .select('*')
+        .select(`
+          id,
+          stock_number,
+          model_year,
+          vehicle_model,
+          colour,
+          advertised_price_aed,
+          status,
+          sale_status,
+          stock_age_days,
+          ownership_type,
+          customer_name,
+          customer_email,
+          customer_phone,
+          vehicle_details_pdf_url,
+          archived_at,
+          customer_disclosed_accident,
+          customer_disclosed_flood_damage,
+          damage_disclosure_details
+        `)
         .order('updated_at', { ascending: false });
       const carRows = (data as any[] || []) as Car[];
       setCars(carRows);

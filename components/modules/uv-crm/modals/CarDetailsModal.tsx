@@ -75,12 +75,17 @@ interface MediaItem {
   sort_order: number;
   is_primary: boolean;
   filename?: string; // Optional filename for documents
+  docusign_envelope_id?: string; // DocuSign envelope ID
+  signing_status?: string; // DocuSign signing status
+  sent_for_signing_at?: string; // When sent for signing
+  signed_at?: string; // When signed
 }
 
 export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Props) {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [localCar, setLocalCar] = useState<CarInfo>(car);
   const [consignmentDocs, setConsignmentDocs] = useState<MediaItem[]>([]);
+  const [sendingForSigning, setSendingForSigning] = useState<string | null>(null); // Track which doc is being sent
   const [pdfUrl, setPdfUrl] = useState<string | null>(car.vehicle_details_pdf_url || null);
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
@@ -224,9 +229,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
             : m.url
         })) || [];
         
-        console.log('Fetched media for car:', car.id, 'Count:', fixedData.length);
-        const primaryPhoto = fixedData.find(m => m.kind === 'photo' && m.is_primary);
-        console.log('🎯 Primary photo found:', primaryPhoto ? 'Yes' : 'No', primaryPhoto?.id);
         setMedia(fixedData);
         
         // Load consignment documents separately
@@ -248,6 +250,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   useEffect(() => {
     refetchMedia();
   }, [car.id]);
+
 
   useEffect(()=>{ setLocalCar(car); },[car]);
 
@@ -625,35 +628,106 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     }
   };
 
-  // Function to refresh documents list
-  const refreshDocuments = async () => {
+  // Function to delete vehicle PDF
+  const handleDeleteVehiclePDF = async () => {
     try {
-      const { data: docRows } = await supabase
-        .from('car_media')
-        .select('*')
-        .eq('car_id', car.id)
-        .eq('kind', 'document')
-        .order('created_at', { ascending: false });
+      setGenerating(true);
       
-      if (docRows) {
-        setMedia(prevMedia => {
-          // Update media array with new documents, avoiding duplicates
-          const existingIds = prevMedia.map(m => m.id);
-          const newDocs = docRows.filter(doc => !existingIds.includes(doc.id));
-          return [...newDocs, ...prevMedia.filter(m => m.kind !== 'document'), ...docRows.filter(doc => existingIds.includes(doc.id))];
-        });
-        
-        // Update consignment documents separately
-        const consignmentData = docRows.filter(doc => 
-          doc.filename && 
-          doc.filename.toLowerCase().includes('consignment-agreement')
-        );
-        setConsignmentDocs(consignmentData);
+      // Update the car record to remove the PDF URL
+      const { error } = await supabase
+        .from('cars')
+        .update({ vehicle_details_pdf_url: null })
+        .eq('id', car.id);
+
+      if (error) {
+        console.error('Failed to delete vehicle PDF:', error);
+        alert('Failed to delete vehicle PDF');
+        return;
       }
+
+      // Update local state
+      setPdfUrl(null);
+      setLocalCar(prev => ({ ...prev, vehicle_details_pdf_url: null }));
+      
+      console.log('✅ Vehicle PDF deleted successfully');
+      
     } catch (error) {
-      console.error('Failed to refresh documents:', error);
+      console.error('Error deleting vehicle PDF:', error);
+      alert('Failed to delete vehicle PDF');
+    } finally {
+      setGenerating(false);
     }
   };
+
+  // Function to send consignment agreement for DocuSign signing
+  const handleSendForSigning = async (doc: MediaItem) => {
+    try {
+      setSendingForSigning(doc.id);
+      console.log('📧 Sending document for signing:', doc.filename);
+
+      const response = await fetch('/api/docusign/send-for-signing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          carId: car.id,
+          documentId: doc.id
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send for signing');
+      }
+
+      const result = await response.json();
+      console.log('✅ Document sent for signing:', result.envelopeId);
+
+      // Refresh documents to show updated signing status
+      await refetchMedia();
+
+      alert(`Consignment agreement sent to Samuel, Nick & Glen for company approval. Only ONE company signature is required. Customer will receive email after company approval.`);
+
+    } catch (error: any) {
+      console.error('Error sending for signing:', error);
+      alert(error.message || 'Failed to send document for signing');
+    } finally {
+      setSendingForSigning(null);
+    }
+  };
+
+  // Function to delete consignment agreement
+  const handleDeleteConsignmentAgreement = async (doc: MediaItem) => {
+    try {
+      setMediaLoading(true);
+      
+      // Delete from car_media table
+      const { error } = await supabase
+        .from('car_media')
+        .delete()
+        .eq('id', doc.id);
+
+      if (error) {
+        console.error('Failed to delete consignment agreement:', error);
+        alert('Failed to delete consignment agreement');
+        return;
+      }
+
+      // Update local state
+      setConsignmentDocs(prev => prev.filter(d => d.id !== doc.id));
+      setMedia(prev => prev.filter(m => m.id !== doc.id));
+      
+      console.log('✅ Consignment agreement deleted successfully');
+      
+    } catch (error) {
+      console.error('Error deleting consignment agreement:', error);
+      alert('Failed to delete consignment agreement');
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
 
   const handleGenerateConsignmentAgreement = async () => {
     try {
@@ -699,7 +773,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       URL.revokeObjectURL(url);
       
       // Refresh documents to show the auto-saved PDF
-      await refreshDocuments();
+      await refetchMedia();
       
       setAgreementStatusMsg('Consignment agreement downloaded successfully! Please send to customer for signing.');
       
@@ -1400,41 +1474,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     </div>
                   </dl>
                 </div>
-
-                {/* Consignment Agreements Section */}
-                <div className="border border-white/15 rounded-md p-4 bg-white/5 mt-6">
-                  <h3 className="text-white text-sm font-bold mb-3 uppercase tracking-wide">Consignment Agreements</h3>
-                  {consignmentDocs.length > 0 ? (
-                    <div className="space-y-2">
-                      {consignmentDocs.map(doc => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 bg-black/30 rounded">
-                          <span className="text-sm text-white/80">{doc.filename || 'Consignment Agreement'}</span>
-                          <div className="flex gap-3">
-                            <a 
-                              href={doc.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-400 hover:text-blue-300 underline"
-                            >
-                              View
-                            </a>
-                            <a
-                              href={`${doc.url}${doc.url.includes('?') ? '&' : '?'}download`}
-                              download
-                              className="text-sm text-green-400 hover:text-green-300 underline"
-                            >
-                              Download
-                            </a>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-white/60 text-sm">No consignment agreements generated yet.</p>
-                  )}
-                </div>
               </div>
             )}
+
           </div>
           )}
 
@@ -1971,14 +2013,16 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                           >
                             Download
                           </a>
-                          {editing && (
-                      <button 
-                              onClick={() => handleDeleteMedia(doc)}
-                              className="text-sm text-red-400 hover:text-red-300"
-                      >
-                              Delete
-                      </button>
-                          )}
+                          <button 
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete this document?')) {
+                                handleDeleteMedia(doc);
+                              }
+                            }}
+                            className="text-sm text-red-400 hover:text-red-300"
+                          >
+                            Delete
+                          </button>
                         </div>
                     </div>
                   ))}
@@ -2021,6 +2065,16 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                           >
                             Download
                           </a>
+                          <button 
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete the vehicle PDF?')) {
+                                handleDeleteVehiclePDF();
+                              }
+                            }}
+                            className="text-sm text-red-400 hover:text-red-300"
+                          >
+                            Delete
+                          </button>
                         </>
                       )}
                     </div>
@@ -2050,6 +2104,92 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   {agreementStatusMsg && (
                     <p className="text-sm text-white/70">{agreementStatusMsg}</p>
                   )}
+                    </div>
+                  )}
+
+                  {/* Consignment Agreements List */}
+                  {localCar.ownership_type === 'consignment' && consignmentDocs.length > 0 && (
+                    <div className="border border-white/15 rounded-md p-4 bg-white/5 mt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-semibold text-white">Generated Consignment Agreements</h4>
+                        {/* Send for Signing Button - MOVED TO HEADER */}
+                        <button 
+                          onClick={() => {
+                            console.log('🔥 HEADER BUTTON CLICKED!');
+                            console.log('📋 consignmentDocs:', consignmentDocs);
+                            // First try to find an unsigned document
+                            let docToSend = consignmentDocs.find(doc => !doc.docusign_envelope_id);
+                            // If no unsigned document, use the first available document (for resending)
+                            if (!docToSend && consignmentDocs.length > 0) {
+                              docToSend = consignmentDocs[0];
+                              console.log('📄 No unsigned doc found, using first document for resending:', docToSend);
+                            }
+                            console.log('📄 Document to send:', docToSend);
+                            if (docToSend) {
+                              console.log('🚀 Calling handleSendForSigning...');
+                              handleSendForSigning(docToSend);
+                            } else {
+                              console.log('❌ No document found at all');
+                            }
+                          }}
+                          disabled={sendingForSigning !== null}
+                          className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition-colors disabled:opacity-50"
+                        >
+                          {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {consignmentDocs.map(doc => (
+                          <div key={doc.id} className="flex items-center justify-between p-2 bg-black/30 rounded">
+                            <span className="text-sm text-white/80">{doc.filename || 'Consignment Agreement'}</span>
+                            <div className="flex gap-2">
+                              <a 
+                                href={doc.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-gray-400 hover:text-white underline"
+                              >
+                                View
+                              </a>
+                              <a
+                                href={`${doc.url}${doc.url.includes('?') ? '&' : '?'}download`}
+                                download
+                                className="text-sm text-gray-400 hover:text-white underline"
+                              >
+                                Download
+                              </a>
+                              {/* Show signing status if sent */}
+                              {doc.docusign_envelope_id && (
+                                <span className={`text-sm px-2 py-1 rounded ${
+                                  doc.signing_status === 'completed' || doc.signing_status === 'signed' 
+                                    ? 'bg-green-600 text-white' 
+                                    : doc.signing_status === 'sent' || doc.signing_status === 'delivered'
+                                    ? 'bg-yellow-600 text-white'
+                                    : 'bg-gray-600 text-white'
+                                }`}>
+                                  {doc.signing_status === 'sent' ? 'Sent for Signing' :
+                                   doc.signing_status === 'delivered' ? 'Delivered' :
+                                   doc.signing_status === 'signed' ? 'Signed' :
+                                   doc.signing_status === 'completed' ? 'Completed' :
+                                   doc.signing_status === 'declined' ? 'Declined' :
+                                   doc.signing_status === 'voided' ? 'Voided' :
+                                   'Sent'}
+                                </span>
+                              )}
+                              <button 
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this consignment agreement?')) {
+                                    handleDeleteConsignmentAgreement(doc);
+                                  }
+                                }}
+                                className="text-sm text-red-400 hover:text-red-300"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
               </div>

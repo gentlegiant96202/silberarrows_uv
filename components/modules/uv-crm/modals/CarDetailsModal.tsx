@@ -2283,98 +2283,99 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
             </div>, document.body)
         )}
 
-        {/* Company Signer Email Selection Modal */}
-        {showEmailModal && createPortal(
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-            <div className="bg-gradient-to-r from-gray-300 via-gray-400 to-gray-500 p-0.5 rounded-2xl w-full max-w-md shadow-2xl">
-              <div className="bg-black/90 backdrop-blur-2xl rounded-2xl p-6 relative">
-                {/* Gradient overlay for glass effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent pointer-events-none rounded-2xl"></div>
-                
-                {/* Close button */}
-                <button
-                  onClick={() => {
-                    setShowEmailModal(false);
-                    setSelectedDoc(null);
-                    setCompanyEmail('');
-                  }}
-                  className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
-                  aria-label="Close modal"
-                >
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+      </div>
+    </div>
 
-                {/* Header */}
-                <div className="relative z-10 mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-2">Select Company Signer</h3>
-                  <p className="text-sm text-white/70">
-                    Choose who should receive the consignment agreement for company approval first.
-                  </p>
-                </div>
+    {/* Company Signer Email Selection Modal */}
+    {showEmailModal && createPortal(
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+        <div className="bg-gradient-to-r from-gray-300 via-gray-400 to-gray-500 p-0.5 rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-black/90 backdrop-blur-2xl rounded-2xl p-6 relative">
+            {/* Gradient overlay for glass effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent pointer-events-none rounded-2xl"></div>
+            
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setShowEmailModal(false);
+                setSelectedDoc(null);
+                setCompanyEmail('');
+              }}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+              aria-label="Close modal"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
 
-                {/* Email Input */}
-                <div className="relative z-10 mb-6">
-                  <label className="block text-sm font-medium text-white mb-3">
-                    Company Signer Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={companyEmail}
-                    onChange={(e) => setCompanyEmail(e.target.value)}
-                    placeholder="Enter email address"
-                    className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 backdrop-blur-sm"
-                    autoFocus
-                  />
-                  
-                  {/* Email Examples */}
-                  <div className="mt-3 space-y-1">
-                    <p className="text-xs text-white/60 mb-2">Quick select:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        'samuel.sanjeev@silberarrows.com',
-                        'nick.hurst@silberarrows.com', 
-                        'glen.hawkins@silberarrows.com'
-                      ].map(email => (
-                        <button
-                          key={email}
-                          onClick={() => setCompanyEmail(email)}
-                          className="text-xs px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors border border-white/20"
-                        >
-                          {email.split('@')[0]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            {/* Header */}
+            <div className="relative z-10 mb-6">
+              <h3 className="text-lg font-semibold text-white mb-2">Select Company Signer</h3>
+              <p className="text-sm text-white/70">
+                Choose who should receive the consignment agreement for company approval first.
+              </p>
+            </div>
 
-                {/* Buttons */}
-                <div className="relative z-10 flex gap-3 justify-end">
-                  <button
-                    onClick={() => {
-                      setShowEmailModal(false);
-                      setSelectedDoc(null);
-                      setCompanyEmail('');
-                    }}
-                    className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleConfirmSendForSigning}
-                    disabled={!companyEmail || sendingForSigning !== null}
-                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {sendingForSigning ? 'Sending...' : 'Send for Signing'}
-                  </button>
+            {/* Email Input */}
+            <div className="relative z-10 mb-6">
+              <label className="block text-sm font-medium text-white mb-3">
+                Company Signer Email Address
+              </label>
+              <input
+                type="email"
+                value={companyEmail}
+                onChange={(e) => setCompanyEmail(e.target.value)}
+                placeholder="Enter email address"
+                className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 backdrop-blur-sm"
+                autoFocus
+              />
+              
+              {/* Email Examples */}
+              <div className="mt-3 space-y-1">
+                <p className="text-xs text-white/60 mb-2">Quick select:</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'samuel.sanjeev@silberarrows.com',
+                    'nick.hurst@silberarrows.com', 
+                    'glen.hawkins@silberarrows.com'
+                  ].map(email => (
+                    <button
+                      key={email}
+                      onClick={() => setCompanyEmail(email)}
+                      className="text-xs px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors border border-white/20"
+                    >
+                      {email.split('@')[0]}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
-          </div>, document.body)
-        )}
-      </div>
-    </div>
+
+            {/* Buttons */}
+            <div className="relative z-10 flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowEmailModal(false);
+                  setSelectedDoc(null);
+                  setCompanyEmail('');
+                }}
+                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSendForSigning}
+                disabled={!companyEmail || sendingForSigning !== null}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>, document.body)
+    )}
     </>
   );
 } 

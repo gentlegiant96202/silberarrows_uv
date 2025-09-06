@@ -199,8 +199,8 @@ export async function POST(request: NextRequest) {
                 {
                   documentId: '1',
                   pageNumber: '2',
-                  xPosition: '150',
-                  yPosition: '750',
+                  xPosition: '100',
+                  yPosition: '720',
                   tabLabel: 'CompanySignature'
                 }
               ],
@@ -208,8 +208,8 @@ export async function POST(request: NextRequest) {
                 {
                   documentId: '1',
                   pageNumber: '2',
-                  xPosition: '150',
-                  yPosition: '780',
+                  xPosition: '100',
+                  yPosition: '750',
                   tabLabel: 'CompanyDate'
                 }
               ]
@@ -225,8 +225,8 @@ export async function POST(request: NextRequest) {
                 {
                   documentId: '1',
                   pageNumber: '2',
-                  xPosition: '400',
-                  yPosition: '750',
+                  xPosition: '350',
+                  yPosition: '720',
                   tabLabel: 'CustomerSignature'
                 }
               ],
@@ -234,8 +234,8 @@ export async function POST(request: NextRequest) {
                 {
                   documentId: '1',
                   pageNumber: '2',
-                  xPosition: '400',
-                  yPosition: '780',
+                  xPosition: '350',
+                  yPosition: '750',
                   tabLabel: 'CustomerDate'
                 }
               ]

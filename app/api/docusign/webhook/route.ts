@@ -99,12 +99,36 @@ export async function POST(request: NextRequest) {
   try {
     console.log('📧 DocuSign webhook received');
     
-    const body = await request.json();
-    console.log('📋 Webhook data:', JSON.stringify(body, null, 2));
+    // Get the raw body first to check content type
+    const rawBody = await request.text();
+    console.log('📋 Raw webhook body preview:', rawBody.substring(0, 100) + '...');
+    
+    let body: any;
+    let envelopeId: string | null = null;
+    let envelopeStatus: string | null = null;
 
-    // Extract envelope information
-    const envelopeId = body.data?.envelopeId || body.envelopeId;
-    const envelopeStatus = body.data?.envelopeSummary?.status || body.status;
+    // Handle both JSON and XML webhook formats
+    if (rawBody.startsWith('<?xml')) {
+      console.log('📄 Processing XML webhook format');
+      
+      // Parse XML to extract envelope info
+      // Look for envelope ID and status in XML
+      const envelopeIdMatch = rawBody.match(/<EnvelopeID>(.*?)<\/EnvelopeID>/i);
+      const statusMatch = rawBody.match(/<Status>(.*?)<\/Status>/i);
+      
+      envelopeId = envelopeIdMatch?.[1] || null;
+      envelopeStatus = statusMatch?.[1] || null;
+      
+      console.log('📋 Extracted from XML:', { envelopeId, envelopeStatus });
+    } else {
+      console.log('📄 Processing JSON webhook format');
+      body = JSON.parse(rawBody);
+      console.log('📋 Webhook data:', JSON.stringify(body, null, 2));
+
+      // Extract envelope information from JSON
+      envelopeId = body.data?.envelopeId || body.envelopeId;
+      envelopeStatus = body.data?.envelopeSummary?.status || body.status;
+    }
 
     if (!envelopeId) {
       console.error('❌ No envelope ID in webhook');

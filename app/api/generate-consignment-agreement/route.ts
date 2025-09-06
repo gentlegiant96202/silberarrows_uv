@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
 // 1. Add a helper for comma formatting
 function formatPrice(num: number | string | null | undefined) {
@@ -870,6 +871,58 @@ Entire Agreement: This document constitutes the entire agreement between SilberA
       .replace(/[^a-zA-Z0-9-_]/g, '-')
       .replace(/--+/g, '-')
       .replace(/^-|-$/g, '');
+
+    // Save PDF to vehicle documents
+    try {
+      console.log('💾 Saving consignment agreement to vehicle documents...');
+      
+      // Convert base64 to buffer
+      const pdfBuffer = Buffer.from(rendererResult.pdfData, 'base64');
+      
+      // Upload to Supabase storage
+      const fileName = `consignment-agreement-${sanitizedStockNumber}-${Date.now()}.pdf`;
+      const storagePath = `${car.id}/${fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('car-media')
+        .upload(storagePath, pdfBuffer, {
+          contentType: 'application/pdf',
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('car-media')
+        .getPublicUrl(storagePath);
+
+      // Save reference in car_media table
+      const { error: dbError } = await supabase
+        .from('car_media')
+        .insert({
+          car_id: car.id,
+          kind: 'document',
+          url: urlData.publicUrl,
+          is_primary: false,
+          created_at: new Date().toISOString()
+        });
+
+      if (dbError) {
+        console.error('❌ Database insert error:', dbError);
+        throw dbError;
+      }
+
+      console.log('✅ Consignment agreement saved to vehicle documents');
+      
+    } catch (saveError) {
+      console.error('⚠️ Failed to save consignment agreement to vehicle documents:', saveError);
+      // Don't fail the main request if saving fails
+    }
 
     return NextResponse.json({
       pdfData: rendererResult.pdfData,

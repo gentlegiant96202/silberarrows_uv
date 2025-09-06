@@ -577,55 +577,56 @@ app.post('/render-consignment-agreement', async (req, res) => {
       }
     };
 
-    // Prepare template variables
+    // Prepare template variables - match template lowercase naming
     const templateVars = {
-      TODAY_DATE: todayStr,
-      CUSTOMER_NAME: carData.customer_name || '',
-      CUSTOMER_PHONE: carData.customer_phone || '',
-      CUSTOMER_EMAIL: carData.customer_email || '',
-      MODEL_YEAR: carData.model_year || '',
-      VEHICLE_MODEL: carData.vehicle_model || '',
-      CHASSIS_NUMBER: carData.chassis_number || '',
-      COLOUR: carData.colour || '',
-      MILEAGE: carData.current_mileage_km ? formatPrice(carData.current_mileage_km) : '',
-      NUMBER_OF_KEYS: carData.number_of_keys || '',
-      ADVERTISED_PRICE: carData.advertised_price_aed ? formatPrice(carData.advertised_price_aed) : '',
-      REGISTRATION_EXPIRY: formatDate(carData.registration_expiry_date),
-      INSURANCE_EXPIRY: formatDate(carData.insurance_expiry_date),
+      todayStr: todayStr,
+      customer_name: carData.customer_name || '',
+      customer_phone: carData.customer_phone || '',
+      customer_email: carData.customer_email || '',
+      model_year: carData.model_year || '',
+      vehicle_model: carData.vehicle_model || '',
+      chassis_number: carData.chassis_number || '',
+      colour: carData.colour || '',
+      mileage_display: carData.current_mileage_km ? `${formatPrice(carData.current_mileage_km)} km` : '',
+      cost_price_formatted: carData.cost_price_aed ? formatPrice(carData.cost_price_aed) : '',
+      advertised_price_formatted: carData.advertised_price_aed ? formatPrice(carData.advertised_price_aed) : '',
+      registration_expiry_formatted: formatDate(carData.registration_expiry_date),
+      insurance_expiry_formatted: formatDate(carData.insurance_expiry_date),
       
       // Vehicle history disclosure checkboxes
-      ACCIDENT_YES_CHECKED: carData.customer_disclosed_accident === true ? 'checked' : '',
-      ACCIDENT_NO_CHECKED: carData.customer_disclosed_accident !== true ? 'checked' : '',
-      FLOOD_YES_CHECKED: carData.customer_disclosed_flood_damage === true ? 'checked' : '',
-      FLOOD_NO_CHECKED: carData.customer_disclosed_flood_damage !== true ? 'checked' : '',
-      DAMAGE_DETAILS: carData.damage_disclosure_details || '',
+      accident_yes_checked: carData.customer_disclosed_accident === true ? 'checked' : '',
+      accident_no_checked: carData.customer_disclosed_accident !== true ? 'checked' : '',
+      flood_yes_checked: carData.customer_disclosed_flood_damage === true ? 'checked' : '',
+      flood_no_checked: carData.customer_disclosed_flood_damage !== true ? 'checked' : '',
+      damage_disclosure_details: carData.damage_disclosure_details || '',
       
       // Handover checklist checkboxes
-      SERVICE_RECORDS_CHECKED: carData.service_records_acquired === true ? 'checked' : '',
-      SERVICE_RECORDS_UNCHECKED: carData.service_records_acquired !== true ? 'checked' : '',
-      OWNERS_MANUAL_CHECKED: carData.owners_manual_acquired === true ? 'checked' : '',
-      OWNERS_MANUAL_UNCHECKED: carData.owners_manual_acquired !== true ? 'checked' : '',
-      SPARE_TYRE_CHECKED: carData.spare_tyre_tools_acquired === true ? 'checked' : '',
-      SPARE_TYRE_UNCHECKED: carData.spare_tyre_tools_acquired !== true ? 'checked' : '',
-      FIRE_EXTINGUISHER_CHECKED: carData.fire_extinguisher_acquired === true ? 'checked' : '',
-      FIRE_EXTINGUISHER_UNCHECKED: carData.fire_extinguisher_acquired !== true ? 'checked' : ''
+      service_records_yes_checked: carData.service_records_acquired === true ? 'checked' : '',
+      service_records_no_checked: carData.service_records_acquired !== true ? 'checked' : '',
+      owners_manual_yes_checked: carData.owners_manual_acquired === true ? 'checked' : '',
+      owners_manual_no_checked: carData.owners_manual_acquired !== true ? 'checked' : '',
+      spare_tyre_yes_checked: carData.spare_tyre_tools_acquired === true ? 'checked' : '',
+      spare_tyre_no_checked: carData.spare_tyre_tools_acquired !== true ? 'checked' : '',
+      fire_extinguisher_yes_checked: carData.fire_extinguisher_acquired === true ? 'checked' : '',
+      fire_extinguisher_no_checked: carData.fire_extinguisher_acquired !== true ? 'checked' : ''
     };
 
     // Replace template variables
     let finalHtml = consignmentTemplateHtml;
+    console.log('🔄 Starting template variable replacement...');
+    console.log('📋 Template variables:', Object.keys(templateVars));
+    
     for (const [key, value] of Object.entries(templateVars)) {
       const regex = new RegExp(`{{${key}}}`, 'g');
-      finalHtml = finalHtml.replace(regex, value);
+      const beforeLength = finalHtml.length;
+      finalHtml = finalHtml.replace(regex, value || '');
+      const afterLength = finalHtml.length;
+      if (beforeLength !== afterLength) {
+        console.log(`✅ Replaced {{${key}}} with "${value}"`);
+      }
     }
-
-    // Handle conditional sections (if/endif blocks)
-    if (templateVars.DAMAGE_DETAILS) {
-      finalHtml = finalHtml.replace(/{{#if DAMAGE_DETAILS}}/g, '');
-      finalHtml = finalHtml.replace(/{{\/if}}/g, '');
-    } else {
-      // Remove the entire conditional block
-      finalHtml = finalHtml.replace(/{{#if DAMAGE_DETAILS}}[\s\S]*?{{\/if}}/g, '');
-    }
+    
+    console.log('✅ Template variable replacement completed');
 
     console.log('📄 Starting PDF generation with Playwright...');
     const { chromium } = await import('playwright');

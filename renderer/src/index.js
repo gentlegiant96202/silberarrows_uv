@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import { chromium } from 'playwright';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +19,7 @@ const templatePath = path.resolve(__dirname, '../public/templates/price-drop-tem
 const template45Path = path.resolve(__dirname, '../public/templates/price-drop-template-45.html');
 const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
 const consignmentTemplatePath = path.resolve(__dirname, '../public/templates/consignment-agreement-template.html');
+const driveWhilstSellTemplatePath = path.resolve(__dirname, '../public/templates/drive-whilst-sell-agreement-template.html');
 
 // Content pillar templates
 const contentPillarTemplates = {
@@ -34,6 +36,8 @@ let templateHtml = '';
 let template45Html = '';
 let catalogTemplateHtml = '';
 let consignmentTemplateHtml = '';
+let driveWhilstSellTemplateHtml = '';
+let mainLogoBase64 = '';
 let contentPillarHtmls = {};
 
 async function loadTemplate() {
@@ -42,6 +46,7 @@ async function loadTemplate() {
   console.log('📄 4:5 template path:', template45Path);
   console.log('📄 Catalog template path:', catalogTemplatePath);
   console.log('📄 Consignment template path:', consignmentTemplatePath);
+  console.log('📄 Drive Whilst Sell template path:', driveWhilstSellTemplatePath);
   
   try {
     templateHtml = await fs.readFile(templatePath, 'utf-8');
@@ -73,6 +78,27 @@ async function loadTemplate() {
   } catch (err) {
     console.error('❌ Error loading consignment template:', err);
     throw err;
+  }
+  
+  try {
+    driveWhilstSellTemplateHtml = await fs.readFile(driveWhilstSellTemplatePath, 'utf-8');
+    console.log('✅ Drive Whilst Sell template loaded, length:', driveWhilstSellTemplateHtml.length);
+  } catch (err) {
+    console.error('❌ Error loading drive whilst sell template:', err);
+    throw err;
+  }
+  
+  // Load main logo as base64 at startup
+  try {
+    const logoPath = path.resolve(__dirname, '../public/main-logo.png');
+    const logoBuffer = await fs.readFile(logoPath);
+    mainLogoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    console.log('✅ Main logo loaded as base64, length:', mainLogoBase64.length);
+  } catch (error) {
+    console.error('❌ Error loading main logo:', error);
+    // Fallback to original logo
+    mainLogoBase64 = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
+    console.log('✅ Using fallback logo URL');
   }
   
   // Load content pillar templates
@@ -548,13 +574,14 @@ app.post('/render-car-pdf', async (req, res) => {
 app.post('/render-consignment-agreement', async (req, res) => {
   try {
     console.log('🚀 Consignment Agreement PDF render request received');
-    const { carData } = req.body;
+    const { carData, agreementType } = req.body;
     
     if (!carData) {
       return res.status(400).json({ success: false, error: 'Missing car data' });
     }
 
-    console.log('📄 Generating Consignment Agreement PDF for car:', carData.stock_number);
+    const isDriveWhilstSell = agreementType === 'drive-whilst-sell';
+    console.log(`📄 Generating ${isDriveWhilstSell ? 'Drive Whilst Sell' : 'Consignment'} Agreement PDF for car:`, carData.stock_number);
 
     // Get today's date in dd/mm/yyyy format
     const today = new Date();
@@ -577,16 +604,19 @@ app.post('/render-consignment-agreement', async (req, res) => {
       }
     };
 
-    // Load main logo as base64
-    const logoPath = path.resolve(__dirname, '../public/main-logo.png');
-    let mainLogoBase64 = '';
-    try {
-      const logoBuffer = await fs.readFile(logoPath);
-      mainLogoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-    } catch (error) {
-      console.error('❌ Error loading main logo:', error);
-      // Fallback to original logo
+    // Use pre-loaded logo (loaded at startup)
+    if (!mainLogoBase64) {
+      console.error('❌ Main logo not loaded at startup, using fallback');
       mainLogoBase64 = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
+    }
+
+    // Use pre-loaded template based on agreement type
+    const htmlTemplate = isDriveWhilstSell 
+      ? driveWhilstSellTemplateHtml
+      : consignmentTemplateHtml;
+    
+    if (!htmlTemplate) {
+      throw new Error(`${isDriveWhilstSell ? 'Drive whilst sell' : 'Consignment'} template not loaded at startup`);
     }
 
     // Prepare template variables - match template lowercase naming
@@ -625,7 +655,7 @@ app.post('/render-consignment-agreement', async (req, res) => {
     };
 
     // Replace template variables
-    let finalHtml = consignmentTemplateHtml;
+    let finalHtml = htmlTemplate;
     console.log('🔄 Starting template variable replacement...');
     console.log('📋 Template variables:', Object.keys(templateVars));
     

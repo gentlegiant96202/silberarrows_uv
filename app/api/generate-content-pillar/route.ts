@@ -323,14 +323,14 @@ Respond with exactly the format above - QUESTION: [statement], ANSWER: [TRUE/FAL
       }
       
       const finalContent = {
-        title: question, // Template A uses title for the question
-        description: `${question}\n\nEXPLANATION: ${explanation}`, // Template B uses description for question + explanation
+        title: question, // Both templates use title for the question
+        description: question, // Keep simple description 
         content_type: contentType,
         day_of_week: dayOfWeek,
         badge_text: 'TRUE OR FALSE',
-        subtitle: `Answer: ${answer}`, // Put answer in subtitle for reference
+        subtitle: `Answer: ${answer}`, // Answer for both templates
         // Additional fields for Template B
-        fact: explanation,
+        fact: explanation, // Explanation for Template B
         problem: question,
         solution: `The answer is ${answer}. ${explanation}`
       };

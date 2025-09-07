@@ -95,6 +95,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [statusMsg, setStatusMsg] = useState<string>('');
   const [generatingAgreement, setGeneratingAgreement] = useState(false);
   const [agreementStatusMsg, setAgreementStatusMsg] = useState<string>('');
+  const [agreementType, setAgreementType] = useState<'standard' | 'drive-whilst-sell'>('standard');
   const [activeTab, setActiveTab] = useState<string>('basic');
   const { user } = useAuth();
   // Monthly payment (UI-only) state with override flags
@@ -235,11 +236,12 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         
         setMedia(fixedData);
         
-        // Load consignment documents separately
+        // Load consignment documents separately (includes both consignment and drive-whilst-sell agreements)
         const consignmentData = fixedData.filter(m => 
           m.kind === 'document' && 
           m.filename && 
-          m.filename.toLowerCase().includes('consignment-agreement')
+          (m.filename.toLowerCase().includes('consignment-agreement') || 
+           m.filename.toLowerCase().includes('drive-whilst-sell-agreement'))
         );
         setConsignmentDocs(consignmentData);
       }
@@ -783,7 +785,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
     try {
       console.log('[Consignment] Agreement generation started');
       setGeneratingAgreement(true);
-      setAgreementStatusMsg('Generating consignment agreement...');
+      setAgreementStatusMsg(`Generating ${agreementType === 'drive-whilst-sell' ? 'drive whilst sell' : 'consignment'} agreement...`);
       
       const response = await fetch('/api/generate-consignment-agreement', {
         method: 'POST',
@@ -791,20 +793,21 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          car: localCar
+          car: localCar,
+          agreementType: agreementType
         }),
       });
       
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to generate consignment agreement');
+        throw new Error(error.error || `Failed to generate ${agreementType} agreement`);
       }
       
       const result = await response.json();
       
       // Log generation stats
       if (result.pdfStats) {
-        console.log('📊 Consignment Agreement Results:', result.pdfStats);
+        console.log('📊 Agreement Results:', result.pdfStats);
       }
       
       // Convert base64 to blob and trigger download
@@ -816,7 +819,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = result.fileName || `Consignment_Agreement_${localCar.stock_number}.pdf`;
+      const agreementTypeLabel = agreementType === 'drive-whilst-sell' ? 'Drive_Whilst_Sell' : 'Consignment';
+      link.download = result.fileName || `${agreementTypeLabel}_Agreement_${localCar.stock_number}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -825,7 +829,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       // Refresh documents to show the auto-saved PDF
       await refetchMedia();
       
-      setAgreementStatusMsg('Consignment agreement downloaded successfully! Please send to customer for signing.');
+      setAgreementStatusMsg(`${agreementType === 'drive-whilst-sell' ? 'Drive whilst sell' : 'Consignment'} agreement downloaded successfully! Please send to customer for signing.`);
       
       // Auto-clear status message after 5 seconds
       setTimeout(() => {
@@ -834,7 +838,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       
     } catch (e: any) {
       console.error('[Consignment] Error:', e);
-      alert(e.message || 'Failed to generate consignment agreement');
+      alert(e.message || `Failed to generate ${agreementType} agreement`);
       setAgreementStatusMsg('Generation failed - please try again');
     } finally {
       setGeneratingAgreement(false);
@@ -2096,10 +2100,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   />
                 </div>
                 
-                {docs.filter(doc => !(doc.filename && doc.filename.toLowerCase().includes('consignment-agreement'))).length > 0 && (
+                {docs.filter(doc => !(doc.filename && (doc.filename.toLowerCase().includes('consignment-agreement') || doc.filename.toLowerCase().includes('drive-whilst-sell-agreement')))).length > 0 && (
                   <div className="mt-4 space-y-2">
                     <h5 className="text-sm font-medium text-white/80">Uploaded Documents</h5>
-                    {docs.filter(doc => !(doc.filename && doc.filename.toLowerCase().includes('consignment-agreement'))).map(doc => (
+                    {docs.filter(doc => !(doc.filename && (doc.filename.toLowerCase().includes('consignment-agreement') || doc.filename.toLowerCase().includes('drive-whilst-sell-agreement')))).map(doc => (
                       <div key={doc.id} className="flex items-center justify-between p-2 bg-black/30 rounded">
                         <span className="text-sm text-white/80">{doc.filename || 'Document'}</span>
                         <div className="flex gap-2">
@@ -2198,13 +2202,23 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                 <div className="border border-white/15 rounded-md p-4 bg-white/5">
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-sm font-semibold text-white">Consignment Agreement</h4>
-                  <button 
-                    onClick={handleGenerateConsignmentAgreement} 
-                      disabled={generatingAgreement}
-                      className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
-                    >
-                      {generatingAgreement ? 'Generating…' : 'Generate Agreement'}
-                  </button>
+                    <div className="flex items-center gap-3">
+                      <select 
+                        value={agreementType}
+                        onChange={(e) => setAgreementType(e.target.value as 'standard' | 'drive-whilst-sell')}
+                        className="text-sm bg-white/10 hover:bg-white/20 text-white px-2 py-1.5 h-9 rounded border border-white/20 transition-colors"
+                      >
+                        <option value="standard" className="bg-gray-800 text-white">Standard Consignment</option>
+                        <option value="drive-whilst-sell" className="bg-gray-800 text-white">Drive Whilst We Sell</option>
+                      </select>
+                      <button 
+                        onClick={handleGenerateConsignmentAgreement} 
+                        disabled={generatingAgreement}
+                        className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                      >
+                        {generatingAgreement ? 'Generating…' : 'Generate Agreement'}
+                      </button>
+                    </div>
                   </div>
                   {agreementStatusMsg && (
                     <p className="text-sm text-white/70">{agreementStatusMsg}</p>

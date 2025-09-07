@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
       tuesday: "tips, tutorials, educational content, how-to guides", 
       wednesday: "behind-the-scenes, team highlights, company culture",
       thursday: "testimonials, success stories, customer spotlights",
-      friday: "celebration, achievements, weekend prep, fun content",
+      friday: "true or false quiz questions about Mercedes automotive facts, technical knowledge, service myths",
       saturday: "lifestyle, relaxation, personal interests, community",
       sunday: "reflection, inspiration, planning ahead, gratitude"
     };
@@ -252,6 +252,94 @@ export async function POST(req: NextRequest) {
 
     // Use the content example prompt as the system prompt
     const systemPrompt = contentExamplesContext;
+
+    // Special handling for Friday "True or False" format
+    if (dayOfWeek === 'friday') {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        temperature: 0.8,
+        max_tokens: 800,
+        messages: [
+          { role: 'system', content: `You are an expert Mercedes-Benz automotive specialist creating engaging true/false quiz questions for social media. Focus on interesting, educational, and sometimes surprising facts about Mercedes vehicles, technology, service, or automotive history.` },
+          { role: 'user', content: `Create a TRUE or FALSE quiz question for Friday content. 
+
+🎯 FORMAT REQUIRED:
+QUESTION: [The true/false statement]
+ANSWER: [TRUE or FALSE]
+EXPLANATION: [2-3 sentences explaining why this is true/false, with interesting facts]
+
+- Generate a statement that can be answered TRUE or FALSE
+- Make it interesting and educational about Mercedes-Benz
+- Keep it engaging for social media audience
+- Focus on automotive facts, service knowledge, or technical details
+- Provide the correct answer AND explanation with facts
+
+${existingPillars && existingPillars.length > 0 ? `
+🚨 AVOID REPETITION - Existing Friday content:
+${existingPillars.filter((p: any) => p.day_of_week === 'friday').map((p: any, i: number) => `${i + 1}. ${p.title || p.description}`).join('\n')}
+` : ''}
+
+Examples of good format:
+QUESTION: Mercedes-AMG engines are hand-built by a single technician
+ANSWER: TRUE
+EXPLANATION: Each AMG engine is indeed hand-built by a single master technician at the AMG facility in Affalterbach, Germany. The technician signs a plaque that goes on the engine, making each one unique and traceable.
+
+QUESTION: All Mercedes vehicles require premium fuel to maintain warranty
+ANSWER: FALSE
+EXPLANATION: Most modern Mercedes engines are designed to run on regular unleaded fuel (91 octane). Only high-performance AMG models specifically require premium fuel to maintain optimal performance and warranty coverage.
+
+Respond with exactly the format above - QUESTION: [statement], ANSWER: [TRUE/FALSE], and EXPLANATION: [facts]` }
+        ]
+      });
+
+      const responseText = completion.choices[0]?.message?.content;
+      
+      if (!responseText) {
+        throw new Error('No response from OpenAI');
+      }
+
+      // Parse the question, answer, and explanation from the response
+      const lines = responseText.trim().split('\n');
+      let question = '';
+      let answer = '';
+      let explanation = '';
+      
+      for (const line of lines) {
+        if (line.startsWith('QUESTION:')) {
+          question = line.replace('QUESTION:', '').trim();
+        } else if (line.startsWith('ANSWER:')) {
+          answer = line.replace('ANSWER:', '').trim();
+        } else if (line.startsWith('EXPLANATION:')) {
+          explanation = line.replace('EXPLANATION:', '').trim();
+        }
+      }
+      
+      // Fallback if parsing fails
+      if (!question || !answer) {
+        question = responseText.trim().replace(/^["']|["']$/g, '');
+        answer = 'TRUE'; // Default fallback
+        explanation = 'Check with a Mercedes specialist for more details.';
+      }
+      
+      const finalContent = {
+        title: `Answer: ${answer}`,
+        description: question,
+        content_type: contentType,
+        day_of_week: dayOfWeek,
+        badge_text: 'TRUE OR FALSE',
+        subtitle: 'Test Your Mercedes Knowledge',
+        // Additional fields for Template B
+        fact: explanation,
+        problem: question, // For Template B display
+        solution: `The answer is ${answer}. ${explanation}`
+      };
+
+      console.log('✅ Successfully generated Friday quiz:', { question, answer });
+      return NextResponse.json({ 
+        success: true, 
+        data: finalContent 
+      }, { status: 201 });
+    }
 
     // Special handling for Monday "Myth-Buster Monday" format
     if (dayOfWeek === 'monday') {

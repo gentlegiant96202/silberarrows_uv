@@ -1011,7 +1011,146 @@ ${fontFaceCSS}
       // Simplified templates for other days
       thursday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Resonate', 'Inter', sans-serif; background: linear-gradient(135deg, #7c2d12, #ea580c); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; } .testimonial { background: rgba(255,255,255,0.15); padding: 25px; border-radius: 15px; margin-bottom: 20px; } .stars { color: #fbbf24; font-size: 1.5rem; margin-bottom: 10px; }</style><div class="content"><div class="badge">💬 CUSTOMER STORIES</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="testimonial"><div class="stars">⭐⭐⭐⭐⭐</div><p>"Exceptional service and premium quality!"</p></div><div>📞 +971 4 380 5515</div></div>`,
       
-      friday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Resonate', 'Inter', sans-serif; background: linear-gradient(135deg, #7c3aed, #a855f7); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: linear-gradient(135deg, #fbbf24, #f59e0b); padding: 12px 25px; border-radius: 25px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; } .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; } .feature { background: rgba(255,255,255,0.15); padding: 20px; border-radius: 12px; }</style><div class="content"><div class="badge">🎉 FRIDAY CELEBRATION</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="features"><div class="feature">🏆<br>Achievement</div><div class="feature">⭐<br>Excellence</div><div class="feature">🚀<br>Success</div></div><div>📞 +971 4 380 5515</div></div>`,
+      friday: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+          <style>
+${fontFaceCSS}
+          </style>
+        </head>
+        <body>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+          
+          body {
+            width: 1080px;
+            height: 1920px;
+            background: #000;
+            color: #fff;
+            font-family: 'Resonate', 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+            position: relative;
+          }
+          
+          .background {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: ${formData.imageFit || 'contain'};
+            object-position: ${formData.imageAlignment || 'center'};
+            transform: scale(${(formData.imageZoom || 100) / 100}) translateY(${formData.imageVerticalPosition || 0}px);
+            z-index: 0;
+            filter: brightness(0.45);
+          }
+          
+          .overlay {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+          }
+          
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            padding: 60px 40px 0 40px;
+          }
+          
+          .badge {
+            background: linear-gradient(135deg, #e5e7eb, #9ca3af, #6b7280);
+            color: #000;
+            padding: 14px 26px;
+            border-radius: 24px;
+            font-size: 22px;
+            font-weight: 500;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+          }
+          
+          .company-logo {
+            height: 80px;
+            width: auto;
+            filter: brightness(1.2) drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            flex-shrink: 0;
+          }
+          
+          .question-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            text-align: center;
+            z-index: 2;
+          }
+          
+          .question-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+          }
+          
+          .question {
+            font-size: ${formData.titleFontSize || 64}px;
+            font-weight: 900;
+            line-height: 1.2;
+            color: #ffffff;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+            font-family: 'Resonate', 'Inter', sans-serif !important;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: none;
+          }
+          
+          h1, h2, h3, h4, h5, h6, p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        </style>
+        
+        <img src="${renderImageUrl}" alt="" class="background">
+        <div class="overlay">
+          <div class="header">
+            <div class="badge">
+              <i class="fas fa-question-circle" style="margin-right:8px;"></i> 
+              TRUE OR FALSE
+            </div>
+            <img src="https://portal.silberarrows.com/MAIN%20LOGO.png" alt="SilberArrows Logo" class="company-logo" />
+          </div>
+          <div class="question-container">
+            <div class="question-box">
+              <div class="question">${formData.description || 'Your True or False question will appear here...'}</div>
+            </div>
+          </div>
+        </div>
+        </body>
+        </html>`,
       
       saturday: `<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Resonate', 'Inter', sans-serif; background: linear-gradient(135deg, #0891b2, #06b6d4); color: #ffffff; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; } .content { padding: 40px; } .badge { background: rgba(255,255,255,0.2); padding: 12px 25px; border-radius: 25px; margin-bottom: 20px; } .title { font-size: 3rem; font-weight: 700; margin-bottom: 15px; } .description { font-size: 1.2rem; margin-bottom: 25px; } .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 25px; } .feature { background: rgba(255,255,255,0.15); padding: 25px; border-radius: 12px; }</style><div class="content"><div class="badge">☀️ WEEKEND LIFESTYLE</div><h1 class="title">${formData.title || 'Your Title Here'}</h1><p class="description">${formData.description || 'Your description will appear here...'}</p><div class="features"><div class="feature">❤️<br>Passion</div><div class="feature">👥<br>Community</div></div><div>📞 +971 4 380 5515</div></div>`,
       
@@ -2227,7 +2366,229 @@ ${fontFaceCSS}
         </html>`,
 
       thursday: templatesA.thursday,
-      friday: templatesA.friday,
+      friday: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+          <style>
+${fontFaceCSS}
+          </style>
+        </head>
+        <body>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+          i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+          
+          body {
+            width: 1080px;
+            height: 1920px;
+            background: #000;
+            color: #fff;
+            font-family: 'Resonate', 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+            position: relative;
+          }
+          
+          .background {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: ${formData.imageFit || 'contain'};
+            object-position: ${formData.imageAlignment || 'center'};
+            transform: scale(${(formData.imageZoom || 100) / 100}) translateY(${formData.imageVerticalPosition || 0}px);
+            z-index: 0;
+            filter: brightness(0.45);
+          }
+          
+          .overlay {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px;
+          }
+          
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            margin-bottom: 20px;
+          }
+          
+          .badge {
+            background: linear-gradient(135deg, #e5e7eb, #9ca3af, #6b7280);
+            color: #000;
+            padding: 14px 26px;
+            border-radius: 24px;
+            font-size: 22px;
+            font-weight: 500;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+          }
+          
+          .company-logo {
+            height: 80px;
+            width: auto;
+            filter: brightness(1.2) drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            flex-shrink: 0;
+          }
+          
+          .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
+          }
+          
+          .question-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 90%;
+          }
+          
+          .question {
+            font-size: ${formData.titleFontSize || 48}px;
+            font-weight: 900;
+            line-height: 1.2;
+            color: #ffffff;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+            font-family: 'Resonate', 'Inter', sans-serif !important;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: none;
+            margin-bottom: 20px;
+          }
+          
+          .answer-box {
+            background: rgba(34, 197, 94, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(34, 197, 94, 0.4);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            text-align: center;
+          }
+          
+          .answer-label {
+            font-size: 28px;
+            font-weight: 700;
+            color: #22c55e;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+          
+          .answer-value {
+            font-size: 48px;
+            font-weight: 900;
+            color: #ffffff;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+          }
+          
+          .explanation-box {
+            background: rgba(59, 130, 246, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 90%;
+          }
+          
+          .explanation-label {
+            font-size: 24px;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          
+          .explanation-text {
+            font-size: 28px;
+            font-weight: 400;
+            color: #ffffff;
+            line-height: 1.4;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: none;
+          }
+          
+          h1, h2, h3, h4, h5, h6, p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        </style>
+        
+        <img src="${renderImageUrl}" alt="" class="background">
+        <div class="overlay">
+          <div class="header">
+            <div class="badge">
+              <i class="fas fa-question-circle" style="margin-right:8px;"></i> 
+              TRUE OR FALSE
+            </div>
+            <img src="https://portal.silberarrows.com/MAIN%20LOGO.png" alt="SilberArrows Logo" class="company-logo" />
+          </div>
+          
+          <div class="content-area">
+            <div class="question-box">
+              <div class="question">${formData.description || 'Your True or False question will appear here...'}</div>
+            </div>
+            
+            <div class="answer-box">
+              <div class="answer-label">
+                <i class="fas fa-check-circle"></i>
+                Answer
+              </div>
+              <div class="answer-value">${(formData.title || 'Answer: TRUE').replace('Answer: ', '')}</div>
+            </div>
+            
+            <div class="explanation-box">
+              <div class="explanation-label">
+                <i class="fas fa-lightbulb"></i>
+                Why?
+              </div>
+              <div class="explanation-text">${formData.fact || 'Explanation will appear here when generated by AI...'}</div>
+            </div>
+          </div>
+        </div>
+        </body>
+        </html>`,
       saturday: templatesA.saturday,
       sunday: templatesA.sunday
     };

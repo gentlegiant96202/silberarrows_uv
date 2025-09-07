@@ -181,24 +181,80 @@ function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
   return html;
 }
 
-function fillContentPillarTemplate({ title, description, imageUrl, dayOfWeek, badgeText, subtitle }) {
+function fillContentPillarTemplate({ title, description, imageUrl, dayOfWeek, badgeText, subtitle, myth, fact, problem, solution, difficulty, tools_needed, warning }) {
   const day = dayOfWeek.toLowerCase();
   if (!contentPillarHtmls[day]) {
     throw new Error(`Template not found for day: ${day}`);
   }
   
   let html = contentPillarHtmls[day];
+  
+  // Basic replacements for all templates
   const replacements = {
     '{{title}}': String(title ?? ''),
     '{{description}}': String(description ?? ''),
     '{{imageUrl}}': String(imageUrl ?? ''),
     '{{badgeText}}': String(badgeText ?? dayOfWeek.toUpperCase()),
+    '{{badge_text}}': String(badgeText ?? dayOfWeek.toUpperCase()), // Alternative naming
     '{{subtitle}}': String(subtitle ?? 'Premium Selection'),
+    
+    // Extended fields for Tuesday (Tech Tips) template
+    '{{myth}}': String(myth ?? ''),
+    '{{fact}}': String(fact ?? ''),
+    '{{problem}}': String(problem ?? ''),
+    '{{solution}}': String(solution ?? ''),
+    '{{difficulty}}': String(difficulty ?? ''),
+    '{{tools_needed}}': String(tools_needed ?? ''),
+    '{{warning}}': String(warning ?? ''),
   };
   
+  // Handle basic replacements
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);
   }
+  
+  // Handle conditional sections for Tuesday template (simplified Handlebars-like logic)
+  if (day === 'tuesday') {
+    // Handle {{#if problem}} sections
+    html = handleConditionalSection(html, 'problem', problem);
+    html = handleConditionalSection(html, 'solution', solution);
+    html = handleConditionalSection(html, 'warning', warning);
+    
+    // Handle nested conditionals for difficulty and tools_needed
+    const hasBothDifficultyAndTools = difficulty && tools_needed;
+    html = handleNestedConditional(html, 'difficulty', 'tools_needed', hasBothDifficultyAndTools);
+  }
+  
+  return html;
+}
+
+// Helper function to handle conditional sections
+function handleConditionalSection(html, fieldName, fieldValue) {
+  const ifPattern = new RegExp(`\\{\\{#if ${fieldName}\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}`, 'g');
+  
+  if (fieldValue && fieldValue.trim()) {
+    // Keep the content, remove the conditional tags
+    html = html.replace(ifPattern, '$1');
+  } else {
+    // Remove the entire conditional block
+    html = html.replace(ifPattern, '');
+  }
+  
+  return html;
+}
+
+// Helper function to handle nested conditionals
+function handleNestedConditional(html, field1, field2, shouldShow) {
+  const nestedPattern = new RegExp(`\\{\\{#if ${field1}\\}\\}\\{\\{#if ${field2}\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}\\{\\{/if\\}\\}`, 'g');
+  
+  if (shouldShow) {
+    // Keep the content, remove the conditional tags
+    html = html.replace(nestedPattern, '$1');
+  } else {
+    // Remove the entire conditional block
+    html = html.replace(nestedPattern, '');
+  }
+  
   return html;
 }
 
@@ -322,9 +378,15 @@ app.post('/render-content-pillar', async (req, res) => {
     console.log('🚀 Content pillar render request received');
     console.log('📊 Request body keys:', Object.keys(req.body || {}));
     
-    const { title, description, imageUrl, dayOfWeek, badgeText, subtitle } = req.body || {};
+    const { 
+      title, description, imageUrl, dayOfWeek, badgeText, subtitle,
+      myth, fact, problem, solution, difficulty, tools_needed, warning 
+    } = req.body || {};
     
-    console.log('📝 Content pillar details:', { title, description, imageUrl: imageUrl ? 'Present' : 'Missing', dayOfWeek, badgeText, subtitle });
+    console.log('📝 Content pillar details:', { 
+      title, description, imageUrl: imageUrl ? 'Present' : 'Missing', dayOfWeek, badgeText, subtitle,
+      hasExtendedFields: !!(myth || fact || problem || solution || difficulty || tools_needed || warning)
+    });
     
     if (!title || !description || !imageUrl || !dayOfWeek) {
       console.error('❌ Missing required fields:', { title: !!title, description: !!description, imageUrl: !!imageUrl, dayOfWeek: !!dayOfWeek });
@@ -332,7 +394,10 @@ app.post('/render-content-pillar', async (req, res) => {
     }
 
     console.log('🎨 Filling content pillar template...');
-    const html = fillContentPillarTemplate({ title, description, imageUrl, dayOfWeek, badgeText, subtitle });
+    const html = fillContentPillarTemplate({ 
+      title, description, imageUrl, dayOfWeek, badgeText, subtitle,
+      myth, fact, problem, solution, difficulty, tools_needed, warning 
+    });
     console.log('✅ Template filled, length:', html.length);
 
             console.log('🎭 Launching Playwright...');

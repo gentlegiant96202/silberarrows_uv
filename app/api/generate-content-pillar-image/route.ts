@@ -18,16 +18,15 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
       
-      // Use PDFShift in production, renderer service in development
-      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-        return await generateFromHTMLPDFShift(html, dayOfWeek);
-      } else {
-        return await generateFromHTML(html, dayOfWeek);
-      }
+      // Always use Railway renderer for content pillars (better font support than PDFShift)
+      return await generateFromHTML(html, dayOfWeek);
       
     } else {
       // Old approach: use template variables (for backward compatibility)
-      const { title, description, imageUrl, dayOfWeek, badgeText, subtitle } = body;
+      const { 
+        title, description, imageUrl, dayOfWeek, badgeText, subtitle,
+        myth, fact, problem, solution, difficulty, tools_needed, warning 
+      } = body;
       
       console.log('🎨 Generating content pillar image:', { title, dayOfWeek, hasImage: !!imageUrl });
       
@@ -38,17 +37,11 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
       
-      // Use PDFShift in production, renderer service in development
-      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-        // For template-based approach in production, we'd need to generate HTML first
-        // For now, return an error suggesting to use the new HTML-based approach
-        return NextResponse.json({
-          success: false,
-          error: 'Template-based generation not supported in production. Please use the HTML-based approach.'
-        }, { status: 400 });
-      } else {
-        return await generateFromTemplate(title, description, imageUrl, dayOfWeek, badgeText, subtitle);
-      }
+      // Always use Railway renderer for content pillars
+      return await generateFromTemplate(
+        title, description, imageUrl, dayOfWeek, badgeText, subtitle,
+        myth, fact, problem, solution, difficulty, tools_needed, warning
+      );
     }
   } catch (error) {
     console.error('❌ Error in generate-content-pillar-image:', error);
@@ -115,8 +108,8 @@ async function generateFromHTMLPDFShift(html: string, dayOfWeek: string) {
 
 // Generate from HTML using renderer service (for development)
 async function generateFromHTML(html: string, dayOfWeek: string) {
-  // Call the renderer service with retry logic
-  const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3001';
+  // Call the Railway renderer service with fallback to local
+  const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || process.env.RENDERER_URL || 'https://story-render-production.up.railway.app';
   
   console.log('📡 Calling renderer service at:', rendererUrl);
   
@@ -193,9 +186,9 @@ async function generateFromHTML(html: string, dayOfWeek: string) {
 }
 
 // Old function to generate from template variables (for backward compatibility)
-async function generateFromTemplate(title: string, description: string, imageUrl: string, dayOfWeek: string, badgeText?: string, subtitle?: string) {
-  // Call the renderer service with retry logic
-  const rendererUrl = process.env.RENDERER_URL || 'http://localhost:3001';
+async function generateFromTemplate(title: string, description: string, imageUrl: string, dayOfWeek: string, badgeText?: string, subtitle?: string, myth?: string, fact?: string, problem?: string, solution?: string, difficulty?: string, tools_needed?: string, warning?: string) {
+  // Call the Railway renderer service with fallback to local
+  const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || process.env.RENDERER_URL || 'https://story-render-production.up.railway.app';
   
   console.log('📡 Calling renderer service at:', rendererUrl);
   
@@ -233,7 +226,14 @@ async function generateFromTemplate(title: string, description: string, imageUrl
           imageUrl,
           dayOfWeek,
           badgeText,
-          subtitle
+          subtitle,
+          myth,
+          fact,
+          problem,
+          solution,
+          difficulty,
+          tools_needed,
+          warning
         }),
         signal: AbortSignal.timeout(30000) // 30 second timeout
       });

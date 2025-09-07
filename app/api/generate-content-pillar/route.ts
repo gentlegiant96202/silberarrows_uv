@@ -260,7 +260,7 @@ export async function POST(req: NextRequest) {
         temperature: 0.9,
         max_tokens: 1000,
         messages: [
-          { role: 'system', content: `You are an expert Mercedes-Benz automotive specialist creating engaging true/false quiz questions for social media. Focus on interesting, educational, and sometimes surprising facts about Mercedes vehicles, technology, service, or automotive history.` },
+          { role: 'system', content: `You are an expert Mercedes-Benz automotive specialist creating engaging true/false quiz questions for social media. Focus on interesting, educational, and sometimes surprising facts about Mercedes vehicles, technology, service, or automotive history. Always maintain a positive brand image for Mercedes-Benz.` },
           { role: 'user', content: `Create a TRUE or FALSE quiz question for Friday content. 
 
 🎯 FORMAT REQUIRED:
@@ -273,11 +273,26 @@ EXPLANATION: [2-3 sentences explaining why this is true/false, with interesting 
 - Keep it engaging for social media audience
 - Focus on automotive facts, service knowledge, or technical details
 - Provide the correct answer AND explanation with facts
-- IMPORTANT: Generate both TRUE and FALSE questions for variety (don't always make them TRUE)
+- IMPORTANT: Generate a balanced mix of TRUE and FALSE questions
+- When creating FALSE questions, ensure they still reflect positively on Mercedes-Benz (e.g., "Mercedes was the FIRST to do X" when they were actually second, or correcting common misconceptions)
+- Avoid negative FALSE statements that could harm brand image
 
 ${existingPillars && existingPillars.length > 0 ? `
 🚨 AVOID REPETITION - Existing Friday content:
-${existingPillars.filter((p: any) => p.day_of_week === 'friday').map((p: any, i: number) => `${i + 1}. ${p.title || p.description}`).join('\n')}
+${(() => {
+  const fridayPillars = existingPillars.filter((p: any) => p.day_of_week === 'friday');
+  const trueCount = fridayPillars.filter((p: any) => p.subtitle?.includes('TRUE')).length;
+  const falseCount = fridayPillars.filter((p: any) => p.subtitle?.includes('FALSE')).length;
+  
+  let balanceNote = '';
+  if (trueCount > falseCount + 1) {
+    balanceNote = '\\n\\n⚖️ BALANCE REQUEST: Please generate a FALSE question this time for variety.';
+  } else if (falseCount > trueCount + 1) {
+    balanceNote = '\\n\\n⚖️ BALANCE REQUEST: Please generate a TRUE question this time for variety.';
+  }
+  
+  return fridayPillars.map((p: any, i: number) => `${i + 1}. ${p.title || p.description} (Answer: ${p.subtitle?.replace('Answer: ', '') || 'Unknown'})`).join('\\n') + balanceNote;
+})()}
 ` : ''}
 
 Examples of good format:
@@ -285,9 +300,13 @@ QUESTION: Mercedes-AMG engines are hand-built by a single technician
 ANSWER: TRUE
 EXPLANATION: Each AMG engine is indeed hand-built by a single master technician at the AMG facility in Affalterbach, Germany. The technician signs a plaque that goes on the engine, making each one unique and traceable.
 
-QUESTION: All Mercedes vehicles require premium fuel to maintain warranty
+QUESTION: Mercedes-Benz invented the first automobile
+ANSWER: FALSE  
+EXPLANATION: While Karl Benz created the first practical automobile in 1885-1886, Mercedes-Benz as a company was formed later through a merger. However, this makes Mercedes-Benz the world's oldest automotive brand, with an unmatched heritage of innovation and engineering excellence.
+
+QUESTION: Mercedes was the first luxury brand to offer all-wheel drive as standard
 ANSWER: FALSE
-EXPLANATION: Most modern Mercedes engines are designed to run on regular unleaded fuel (91 octane). Only high-performance AMG models specifically require premium fuel to maintain optimal performance and warranty coverage.
+EXPLANATION: While Mercedes wasn't the first, their 4MATIC all-wheel drive system, introduced in 1987, became one of the most advanced and reliable systems in the luxury segment, setting new standards for performance and safety that competitors still strive to match.
 
 Respond with exactly the format above - QUESTION: [statement], ANSWER: [TRUE/FALSE], and EXPLANATION: [facts]` }
         ]

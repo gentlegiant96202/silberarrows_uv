@@ -856,6 +856,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         { label: 'Model', value: localCar.vehicle_model, field:'vehicle_model' },
         { label: 'Colour (Exterior)', value: localCar.colour, field:'colour' },
         { label: 'Interior', value: localCar.interior_colour || '—', field:'interior_colour' },
+        { label: 'Regional Specs', value: localCar.regional_specification || '—', field:'regional_specification' },
       ],
     },
     {
@@ -1564,21 +1565,52 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
                       <dt className="text-white/70 text-[13px] tracking-wide self-center">Customer Disclosed Accident History</dt>
                       <dd className="text-white text-[16px] leading-[1.35] text-left">
-                        {localCar.customer_disclosed_accident === true ? 'Yes' : 'No'}
+                        {editing ? (
+                          <select
+                            value={localCar.customer_disclosed_accident === true ? 'Yes' : 'No'}
+                            onChange={(e) => handleFieldChange('customer_disclosed_accident', e.target.value === 'Yes')}
+                            className="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-[14px] focus:border-white/40 focus:outline-none"
+                          >
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                          </select>
+                        ) : (
+                          localCar.customer_disclosed_accident === true ? 'Yes' : 'No'
+                        )}
                       </dd>
                     </div>
                     <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
                       <dt className="text-white/70 text-[13px] tracking-wide self-center">Customer Disclosed Flood Damage</dt>
                       <dd className="text-white text-[16px] leading-[1.35] text-left">
-                        {localCar.customer_disclosed_flood_damage === true ? 'Yes' : 'No'}
+                        {editing ? (
+                          <select
+                            value={localCar.customer_disclosed_flood_damage === true ? 'Yes' : 'No'}
+                            onChange={(e) => handleFieldChange('customer_disclosed_flood_damage', e.target.value === 'Yes')}
+                            className="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-[14px] focus:border-white/40 focus:outline-none"
+                          >
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                          </select>
+                        ) : (
+                          localCar.customer_disclosed_flood_damage === true ? 'Yes' : 'No'
+                        )}
                       </dd>
                     </div>
                     <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
                       <dt className="text-white/70 text-[13px] tracking-wide self-center">Damage Details (Customer Disclosed)</dt>
                       <dd className="text-white text-[16px] leading-[1.35] text-left whitespace-normal break-words">
-                        {localCar.damage_disclosure_details && localCar.damage_disclosure_details.trim() 
-                          ? localCar.damage_disclosure_details 
-                          : '—'}
+                        {editing ? (
+                          <textarea
+                            value={localCar.damage_disclosure_details || ''}
+                            onChange={(e) => handleFieldChange('damage_disclosure_details', e.target.value)}
+                            placeholder="Enter damage details..."
+                            className="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-[14px] focus:border-white/40 focus:outline-none w-full min-h-[60px] resize-vertical"
+                          />
+                        ) : (
+                          localCar.damage_disclosure_details && localCar.damage_disclosure_details.trim() 
+                            ? localCar.damage_disclosure_details 
+                            : '—'
+                        )}
                       </dd>
                     </div>
                   </dl>

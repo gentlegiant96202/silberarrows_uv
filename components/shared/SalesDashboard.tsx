@@ -340,13 +340,13 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
         });
         
         // Use the actual recorded value for this day
-        const actualValue = dayEntry?.gross_profit_month_actual || null;
+        const actualValue = dayEntry?.gross_profit_month_actual;
         
         data.push({
           day: `Day ${day}`,
           dayNumber: day,
           targetPace: Math.round(cumulativeTargetPace),
-          actual: actualValue ? Math.round(actualValue) : null,
+          actual: actualValue !== null && actualValue !== undefined ? Math.round(actualValue) : null,
           isCurrentDay: !!dayEntry && day === (monthlyMetrics.length)
         });
       }

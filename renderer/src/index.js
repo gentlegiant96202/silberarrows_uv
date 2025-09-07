@@ -19,7 +19,7 @@ const templatePath = path.resolve(__dirname, '../public/templates/price-drop-tem
 const template45Path = path.resolve(__dirname, '../public/templates/price-drop-template-45.html');
 const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
 const consignmentTemplatePath = path.resolve(__dirname, '../public/templates/consignment-agreement-template.html');
-const driveWhilstSellTemplatePath = path.resolve(__dirname, '../public/templates/drive-whilst-sell-agreement-template.html');
+const driveWhilstSellTemplatePath = path.resolve(__dirname, '../public/templates/drive-whilst-sell-agreement-template-v2.html');
 
 // Content pillar templates
 const contentPillarTemplates = {

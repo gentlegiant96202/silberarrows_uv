@@ -58,7 +58,8 @@ export async function POST(request: NextRequest) {
       console.log('💾 Saving agreement PDF to database...');
       
       const agreementTypeLabel = isDriveWhilstSell ? 'drive-whilst-sell' : 'consignment';
-      const filename = `${sanitizedStockNumber}-${agreementTypeLabel}-agreement.pdf`;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19); // Format: YYYY-MM-DDTHH-MM-SS
+      const filename = `${sanitizedStockNumber}-${agreementTypeLabel}-agreement-${timestamp}.pdf`;
       
       // First, delete any existing agreements (both consignment and drive-whilst-sell)
       const { data: existingMedia } = await supabase

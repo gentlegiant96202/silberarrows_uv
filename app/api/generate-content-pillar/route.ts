@@ -257,8 +257,8 @@ export async function POST(req: NextRequest) {
     if (dayOfWeek === 'friday') {
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
-        temperature: 0.8,
-        max_tokens: 800,
+        temperature: 0.9,
+        max_tokens: 1000,
         messages: [
           { role: 'system', content: `You are an expert Mercedes-Benz automotive specialist creating engaging true/false quiz questions for social media. Focus on interesting, educational, and sometimes surprising facts about Mercedes vehicles, technology, service, or automotive history.` },
           { role: 'user', content: `Create a TRUE or FALSE quiz question for Friday content. 
@@ -273,6 +273,7 @@ EXPLANATION: [2-3 sentences explaining why this is true/false, with interesting 
 - Keep it engaging for social media audience
 - Focus on automotive facts, service knowledge, or technical details
 - Provide the correct answer AND explanation with facts
+- IMPORTANT: Generate both TRUE and FALSE questions for variety (don't always make them TRUE)
 
 ${existingPillars && existingPillars.length > 0 ? `
 🚨 AVOID REPETITION - Existing Friday content:
@@ -322,15 +323,15 @@ Respond with exactly the format above - QUESTION: [statement], ANSWER: [TRUE/FAL
       }
       
       const finalContent = {
-        title: `Answer: ${answer}`,
-        description: question,
+        title: question, // Template A uses title for the question
+        description: `${question}\n\nEXPLANATION: ${explanation}`, // Template B uses description for question + explanation
         content_type: contentType,
         day_of_week: dayOfWeek,
         badge_text: 'TRUE OR FALSE',
-        subtitle: 'Test Your Mercedes Knowledge',
+        subtitle: `Answer: ${answer}`, // Put answer in subtitle for reference
         // Additional fields for Template B
         fact: explanation,
-        problem: question, // For Template B display
+        problem: question,
         solution: `The answer is ${answer}. ${explanation}`
       };
 

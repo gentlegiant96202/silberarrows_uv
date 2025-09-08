@@ -13,10 +13,35 @@
       box-sizing: border-box;
     }
 
-    /* Use fallback fonts for now - Resonate loading issues */
-    .resonate-fallback {
-      font-family: 'Space Grotesk', 'Inter', sans-serif;
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Black.otf') format('opentype');
       font-weight: 900;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Bold.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Medium.otf') format('opentype');
+      font-weight: 500;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Light.otf') format('opentype');
+      font-weight: 300;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
     }
 
     body {
@@ -95,7 +120,7 @@
     }
 
     .header h1 {
-      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       font-size: 3.2rem; /* Made much bigger */
       font-weight: 900; /* Black weight */
       line-height: 1.0; /* Tighter line height */
@@ -106,9 +131,9 @@
     }
 
     .subtitle {
-      font-size: 1rem; /* Reduced from 1.2rem */
+      font-size: 1.4rem; /* Made bigger */
       color: #aaaaaa;
-      font-weight: 500;
+      font-weight: 400; /* Regular weight */
       margin-bottom: 12px; /* Reduced margin */
     }
 
@@ -138,8 +163,8 @@
     }
 
     .spec-value {
-      font-family: 'Space Grotesk', 'Inter', sans-serif;
-      font-size: 1.8rem; /* Reduced from 2.2rem */
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
+      font-size: 1.8rem; /* Same size for all cards */
       font-weight: 900; /* Black weight */
       margin-bottom: 6px; /* Reduced margin */
       color: #ffffff;
@@ -149,7 +174,7 @@
       font-size: 0.9rem;
       color: #888888;
       text-transform: uppercase;
-      font-weight: 500;
+      font-weight: 400; /* Regular weight */
       letter-spacing: 0.5px;
     }
 
@@ -200,6 +225,16 @@
       color: #ffffff;
       line-height: 1.2;
     }
+    
+    /* Force all elements to use Resonate font like content pillars */
+    *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Space Grotesk', sans-serif !important; font-weight: 400 !important; }
+    h1, h2, h3, h4, h5, h6, p, span, div { font-family: 'Resonate', 'Space Grotesk', sans-serif !important; }
+    
+    /* Specific font weights */
+    .header h1 { font-weight: 900 !important; } /* Black for title */
+    .spec-value { font-weight: 900 !important; } /* Black for values */
+    .spec-label { font-weight: 400 !important; } /* Regular for labels */
+    .subtitle { font-weight: 400 !important; } /* Regular for subtitle */
   </style>
 </head>
 <body>

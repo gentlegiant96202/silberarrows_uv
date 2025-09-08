@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save reference in car_media table
-    const { error: mediaError } = await supabase.from('car_media').insert({
+    console.log('💾 Saving to car_media table:', {
       car_id: carId,
       url: finalImageUrl,
       kind: 'damage_report',
@@ -140,11 +140,27 @@ export async function POST(request: NextRequest) {
       sort_order: 999,
       report_type: 'damage_report'
     });
+    
+    const { data: insertData, error: mediaError } = await supabase.from('car_media').insert({
+      car_id: carId,
+      url: finalImageUrl,
+      kind: 'damage_report',
+      filename: fileName,
+      sort_order: 999,
+      report_type: 'damage_report'
+    }).select();
 
     if (mediaError) {
       console.error('❌ Failed to save media reference:', mediaError);
-      // Don't fail the request, image is still generated and uploaded
+      console.error('❌ This might be because database migration hasn\'t been run yet!');
+      return NextResponse.json({ 
+        error: 'Failed to save media reference - check if database migration was run',
+        details: mediaError.message,
+        imageUrl: finalImageUrl // Return URL anyway
+      }, { status: 500 });
     }
+    
+    console.log('✅ Media reference saved:', insertData);
 
     console.log('✅ Damage report generation completed successfully');
 

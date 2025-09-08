@@ -31,7 +31,7 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       position: relative;
       width: 1080px;
       height: 1350px; /* 4:5 aspect ratio */
-      background: linear-gradient(45deg, #00ff88, #00ccff, #ff00ff, #ffff00);
+      background: linear-gradient(45deg, #ffff00, #ffed4e, #fff700, #ffff00);
       background-size: 400% 400%;
       animation: fluorescent-glow 3s ease-in-out infinite alternate;
       border-radius: 0;
@@ -58,9 +58,10 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       position: relative;
       overflow: hidden;
       background-image: url('${catalogImageUrl}');
-      background-size: cover;
+      background-size: contain; /* Changed from cover to contain to show full image */
       background-position: center;
       background-repeat: no-repeat;
+      background-color: #f5f5f5; /* Light background for better contrast */
     }
 
     .price-badge {
@@ -93,14 +94,14 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       bottom: 0;
       left: 0;
       right: 0;
-      height: 35%;
+      height: 42%; /* Increased height for better content display */
       background: linear-gradient(180deg, 
         rgba(0, 0, 0, 0.1) 0%, 
         rgba(0, 0, 0, 0.7) 40%, 
         rgba(0, 0, 0, 0.9) 100%);
       backdrop-filter: blur(15px);
       border-top: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 25px 30px;
+      padding: 30px 30px; /* Increased padding */
       z-index: 2;
     }
 

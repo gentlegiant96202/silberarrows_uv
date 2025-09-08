@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UV Catalog Template Preview</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+        }
+        .preview-container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        .template-preview {
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #2a2a2a;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #45a049; }
+        .result { 
+            margin-top: 20px; 
+            padding: 10px; 
+            background: #333; 
+            border-radius: 4px;
+        }
+        .sample-data {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <h1>🎨 UV Catalog Template Preview</h1>
+        
+        <div class="template-preview">
+            <h2>New Design Features:</h2>
+            <ul>
+                <li>✨ <strong>4:5 Aspect Ratio</strong> (1080x1350px instead of 1080x1080px)</li>
+                <li>🌈 <strong>Animated Fluorescent Border</strong> with gradient colors</li>
+                <li>🖼️ <strong>Preserved Image Placement</strong> - car image unchanged</li>
+                <li>📱 <strong>Same Content Layout</strong> - black overlay with car info</li>
+            </ul>
+        </div>
+
+        <div class="template-preview">
+            <h3>Sample Car Data for Testing:</h3>
+            <div class="sample-data">
+                <strong>Year:</strong> 2023<br>
+                <strong>Model:</strong> BMW M4 Competition<br>
+                <strong>Mileage:</strong> 15,000 KM<br>
+                <strong>Stock #:</strong> UV2024001<br>
+                <strong>Price:</strong> AED 485,000<br>
+                <strong>Monthly Payment:</strong> AED 6,200
+            </div>
+        </div>
+
+        <div class="template-preview">
+            <h3>🚀 Quick Test Options:</h3>
+            
+            <button onclick="testWithApp()">
+                📱 Test in Marketing Dashboard
+            </button>
+            
+            <button onclick="showApiInstructions()">
+                🔧 Show API Test Instructions
+            </button>
+            
+            <button onclick="viewTemplateCode()">
+                👀 View Template Code
+            </button>
+        </div>
+
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        function testWithApp() {
+            const result = document.getElementById('result');
+            result.style.display = 'block';
+            result.innerHTML = `
+                <h3>📱 Testing in Marketing Dashboard:</h3>
+                <ol>
+                    <li>Navigate to: <code>/marketing/dashboard</code></li>
+                    <li>Click the <strong>"UV CATALOG"</strong> tab</li>
+                    <li>Find any car in the list</li>
+                    <li>Click the <strong>camera icon</strong> to "Generate Image"</li>
+                    <li>Wait for generation to complete</li>
+                    <li>View the new 4:5 format with fluorescent border!</li>
+                </ol>
+                <p><em>This is the easiest way to test with real car data.</em></p>
+            `;
+        }
+
+        function showApiInstructions() {
+            const result = document.getElementById('result');
+            result.style.display = 'block';
+            result.innerHTML = `
+                <h3>🔧 Direct API Test:</h3>
+                <p>Make a POST request to:</p>
+                <code>/api/generate-catalog-image/[CAR_ID]</code>
+                
+                <h4>Steps:</h4>
+                <ol>
+                    <li>Find a car ID from your database</li>
+                    <li>Ensure the car has a primary photo uploaded</li>
+                    <li>Use curl, Postman, or browser dev tools to POST to the endpoint</li>
+                    <li>The API will return the generated image URL</li>
+                </ol>
+                
+                <h4>Example curl command:</h4>
+                <pre style="background: #1a1a1a; padding: 10px; border-radius: 4px; overflow-x: auto;">
+curl -X POST "http://localhost:3000/api/generate-catalog-image/YOUR_CAR_ID" \\
+     -H "Content-Type: application/json"
+                </pre>
+            `;
+        }
+
+        function viewTemplateCode() {
+            const result = document.getElementById('result');
+            result.style.display = 'block';
+            result.innerHTML = `
+                <h3>👀 Template Files Updated:</h3>
+                <ul>
+                    <li><code>renderer/public/templates/xml-catalog-template.html</code> - Main template</li>
+                    <li><code>renderer/src/index.js</code> - Renderer service (viewport size)</li>
+                    <li><code>app/api/generate-catalog-image/[carId]/route.ts</code> - API template</li>
+                </ul>
+                
+                <h4>Key Changes Made:</h4>
+                <ul>
+                    <li>🔄 Changed dimensions from 1080x1080 to 1080x1350</li>
+                    <li>🎨 Added <code>catalog-card-container</code> with fluorescent gradient border</li>
+                    <li>✨ Added CSS animation for glowing border effect</li>
+                    <li>📦 Wrapped existing content in <code>catalog-card-inner</code></li>
+                    <li>🎯 Preserved all existing car information and styling</li>
+                </ul>
+            `;
+        }
+    </script>
+</body>
+</html>

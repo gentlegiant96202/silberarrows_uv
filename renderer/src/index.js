@@ -875,10 +875,10 @@ app.post('/render-damage-report', async (req, res) => {
     // Wait for external image to load
     await page.waitForTimeout(2000);
 
-    // Generate high-quality PNG
+    // Generate high-quality PNG with exact dimensions
     const imageBuffer = await page.screenshot({
       type: 'png',
-      fullPage: true,
+      clip: { x: 0, y: 0, width: 2029, height: 765 },
       omitBackground: false
     });
 

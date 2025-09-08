@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{year}} {{model}} | UV Catalog</title>
   
-  <!-- Preload critical Resonate fonts -->
-  <link rel="preload" href="/Fonts/Resonate-Black.otf" as="font" type="font/otf" crossorigin>
-  <link rel="preload" href="/Fonts/Resonate-Regular.otf" as="font" type="font/otf" crossorigin>
+  <!-- Preload critical Resonate fonts (woff2 first) -->
+  <link rel="preload" href="/Fonts/Resonate-Black.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/Fonts/Resonate-Regular.woff2" as="font" type="font/woff2" crossorigin>
   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -20,35 +20,21 @@
 
     @font-face {
       font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Black.otf') format('opentype');
+      src: url('/Fonts/Resonate-Black.woff2') format('woff2'),
+           url('/Fonts/Resonate-Black.otf') format('opentype');
       font-weight: 900;
       font-style: normal;
-      font-display: block;
+      font-display: swap;
+      font-synthesis: none;
     }
     @font-face {
       font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Bold.otf') format('opentype');
-      font-weight: 700;
-      font-style: normal;
-    }
-    @font-face {
-      font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Medium.otf') format('opentype');
-      font-weight: 500;
-      font-style: normal;
-    }
-    @font-face {
-      font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Light.otf') format('opentype');
-      font-weight: 300;
-      font-style: normal;
-    }
-    @font-face {
-      font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Regular.otf') format('opentype');
+      src: url('/Fonts/Resonate-Regular.woff2') format('woff2'),
+           url('/Fonts/Resonate-Regular.otf') format('opentype');
       font-weight: 400;
       font-style: normal;
-      font-display: block;
+      font-display: swap;
+      font-synthesis: none;
     }
 
     body {
@@ -60,6 +46,8 @@
       padding: 0;
       margin: 0;
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      font-synthesis: none; /* prevent faux bold/italic */
     }
 
     .catalog-card-container {
@@ -100,13 +88,11 @@
       left: 0;
       width: 100%;
       height: calc(100% + 95px); /* Compensate for top offset */
-      object-fit: contain; /* Changed from cover to contain to show full image */
+      object-fit: contain; /* Show full image */
       object-position: center; /* Center positioning */
       z-index: 1;
       background: #f5f5f5; /* Light background for better contrast */
     }
-
-
 
     .content-section {
       position: absolute;
@@ -128,20 +114,21 @@
 
     .header h1 {
       font-family: 'Resonate', 'Space Grotesk', sans-serif;
-      font-size: 3.2rem; /* Made much bigger */
-      font-weight: 900; /* Black weight */
-      line-height: 1.0; /* Tighter line height */
-      margin-bottom: 8px; /* Slightly more margin */
-      color: #ffffff;
+      font-size: 3.2rem; /* Bigger */
+      font-weight: 900; /* Black */
+      line-height: 1.0;
+      margin-bottom: 8px;
+      color: #ffffff; /* solid white so weight shows clearly */
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
       letter-spacing: 1px;
+      font-synthesis: none;
     }
 
     .subtitle {
-      font-size: 1.4rem; /* Made bigger */
+      font-size: 1.4rem; /* Bigger */
       color: #aaaaaa;
-      font-weight: 400; /* Regular weight */
-      margin-bottom: 12px; /* Reduced margin */
+      font-weight: 400; /* Regular */
+      margin-bottom: 12px;
     }
 
     .highlight {
@@ -158,108 +145,53 @@
     }
 
     .spec-item {
-      background: rgba(255, 255, 255, 0.08); /* More glass visibility */
-      padding: 18px 16px; /* Reduced padding */
+      background: rgba(255, 255, 255, 0.08);
+      padding: 18px 16px;
       border-radius: 14px;
       text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.15); /* More visible border */
-      backdrop-filter: blur(20px); /* Stronger blur */
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), /* Deeper shadow */
-                  inset 0 1px 0 rgba(255, 255, 255, 0.2); /* Inner highlight */
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
     .spec-value {
       font-family: 'Resonate', 'Space Grotesk', sans-serif;
-      font-size: 1.8rem; /* Same size for all cards */
-      font-weight: 900; /* Black weight */
-      margin-bottom: 6px; /* Reduced margin */
-      color: #ffffff;
+      font-size: 1.8rem;
+      font-weight: 900; /* Black */
+      margin-bottom: 6px;
+      color: #ffffff; /* solid white */
+      font-synthesis: none;
     }
 
     .spec-label {
       font-size: 0.9rem;
       color: #888888;
       text-transform: uppercase;
-      font-weight: 400; /* Regular weight */
+      font-weight: 400; /* Regular */
       letter-spacing: 0.5px;
     }
 
-    .price-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: stretch; /* Make cards same height */
-      gap: 12px; /* Smaller gap */
-      flex-shrink: 0; /* Prevent shrinking */
-    }
-
-    .price-card {
-      background: rgba(255, 255, 255, 0.08); /* More visible glass */
-      border: 1px solid rgba(255, 255, 255, 0.15); /* More visible border */
-      border-radius: 12px; /* Smaller radius */
-      padding: 12px 16px; /* Smaller padding */
-      backdrop-filter: blur(20px); /* Stronger blur */
-      -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), /* Deeper shadow */
-                  inset 0 1px 0 rgba(255, 255, 255, 0.2); /* Inner highlight */
-      text-align: center;
-      flex: 1;
-      min-height: 60px; /* Ensure minimum height */
-    }
-
-    .price-label {
-      font-size: 0.75rem; /* Even smaller */
-      color: #999999;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px; /* Smaller margin */
-      line-height: 1.1;
-    }
-
-    .price-value {
-      font-family: 'Resonate', 'Space Grotesk', sans-serif;
-      font-size: 1.4rem; /* Further reduced */
-      font-weight: 900; /* Black weight */
-      color: #ffffff;
-      line-height: 1.2;
-    }
-
-    .monthly-value {
-      font-family: 'Resonate', 'Space Grotesk', sans-serif;
-      font-size: 1.2rem; /* Further reduced */
-      font-weight: 900; /* Black weight */
-      color: #ffffff;
-      line-height: 1.2;
-    }
-    
-    /* Force all elements to use Resonate font like content pillars */
+    /* Global Resonate enforcement */
     * { font-family: 'Resonate', 'Space Grotesk', sans-serif !important; }
-    *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Space Grotesk', sans-serif !important; font-weight: 400 !important; }
+    *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Space Grotesk', sans-serif !important; }
     h1, h2, h3, h4, h5, h6, p, span, div { font-family: 'Resonate', 'Space Grotesk', sans-serif !important; }
-    
-    /* Specific font weights - more aggressive */
-    .header h1 { font-family: 'Resonate' !important; font-weight: 900 !important; } /* Black for title */
-    .spec-value { font-family: 'Resonate' !important; font-weight: 900 !important; } /* Black for values */
-    .spec-label { font-family: 'Resonate' !important; font-weight: 400 !important; } /* Regular for labels */
-    .subtitle { font-family: 'Resonate' !important; font-weight: 400 !important; } /* Regular for subtitle */
-    
-    /* Additional enforcement */
-    body { font-family: 'Resonate', 'Space Grotesk', sans-serif !important; }
-    body * { font-family: inherit !important; }
+    .header h1 { font-weight: 900 !important; }
+    .spec-value { font-weight: 900 !important; }
+    .spec-label, .subtitle { font-weight: 400 !important; }
   </style>
 </head>
-<body style="font-family: 'Resonate', 'Inter', sans-serif; -webkit-font-smoothing: antialiased;">
+<body style="font-family: 'Resonate', 'Inter', sans-serif; -webkit-font-smoothing: antialiased; font-synthesis: none;">
   <style>
     /* Inline styles like content pillars for better font loading */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
     h1, h2, h3, h4, h5, h6, p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
     body { font-family: 'Resonate', 'Inter', sans-serif; }
-    
+
     /* Force Resonate Black for specific elements */
-    .header h1 { font-family: 'Resonate' !important; font-weight: 900 !important; }
-    .spec-value { font-family: 'Resonate' !important; font-weight: 900 !important; }
+    .header h1 { font-family: 'Resonate' !important; font-weight: 900 !important; font-synthesis: none !important; }
+    .spec-value { font-family: 'Resonate' !important; font-weight: 900 !important; font-synthesis: none !important; }
   </style>
   <div class="catalog-card-container">
     <div class="catalog-card-inner">

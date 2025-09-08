@@ -740,10 +740,14 @@ app.post('/render-consignment-agreement', async (req, res) => {
       visual_inspection_notes: carData.visual_inspection_notes || 'No specific damage or issues noted during inspection.'
     };
 
-    // Process damage markers if they exist
+    // Process damage markers if they exist AND we don't have a damage report image
+    // (If we have a damage report image, the markers are already included in the image)
     let damageMarkersHtml = '';
-    if (carData.damage_annotations && Array.isArray(carData.damage_annotations) && carData.damage_annotations.length > 0) {
-      console.log(`🎯 Processing ${carData.damage_annotations.length} damage markers`);
+    const hasDamageReportImage = carData.damage_diagram_image_url && 
+                                 !carData.damage_diagram_image_url.includes('Pre uvc-2.jpg');
+    
+    if (carData.damage_annotations && Array.isArray(carData.damage_annotations) && carData.damage_annotations.length > 0 && !hasDamageReportImage) {
+      console.log(`🎯 Processing ${carData.damage_annotations.length} damage markers (no damage report image found)`);
       
       damageMarkersHtml = carData.damage_annotations.map(marker => {
         // Convert pixel coordinates to percentages (assuming 2029x765 diagram)
@@ -758,6 +762,8 @@ app.post('/render-consignment-agreement', async (req, res) => {
       }).join('');
       
       console.log(`✅ Generated damage markers HTML: ${damageMarkersHtml.length} characters`);
+    } else if (hasDamageReportImage) {
+      console.log('ℹ️ Using damage report image - markers already included in image');
     } else {
       console.log('ℹ️ No damage markers found');
     }

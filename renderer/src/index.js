@@ -728,8 +728,39 @@ app.post('/render-consignment-agreement', async (req, res) => {
       spare_tyre_yes_checked: carData.spare_tyre_tools_acquired === true ? 'checked' : '',
       spare_tyre_no_checked: carData.spare_tyre_tools_acquired !== true ? 'checked' : '',
       fire_extinguisher_yes_checked: carData.fire_extinguisher_acquired === true ? 'checked' : '',
-      fire_extinguisher_no_checked: carData.fire_extinguisher_acquired !== true ? 'checked' : ''
+      fire_extinguisher_no_checked: carData.fire_extinguisher_acquired !== true ? 'checked' : '',
+      
+      // Other accessories checkboxes and details
+      other_accessories_yes_checked: carData.other_accessories_acquired === true ? 'checked' : '',
+      other_accessories_no_checked: carData.other_accessories_acquired !== true ? 'checked' : '',
+      other_accessories_details: carData.other_accessories_details || '',
+      
+      // Damage assessment data
+      damage_diagram_image_url: carData.damage_diagram_image_url || '',
+      visual_inspection_notes: carData.visual_inspection_notes || 'No specific damage or issues noted during inspection.'
     };
+
+    // Process damage markers if they exist
+    let damageMarkersHtml = '';
+    if (carData.damage_annotations && Array.isArray(carData.damage_annotations) && carData.damage_annotations.length > 0) {
+      console.log(`🎯 Processing ${carData.damage_annotations.length} damage markers`);
+      
+      damageMarkersHtml = carData.damage_annotations.map(marker => {
+        // Convert pixel coordinates to percentages (assuming 2029x765 diagram)
+        const x_percent = ((marker.x || 0) / 2029 * 100).toFixed(2);
+        const y_percent = ((marker.y || 0) / 765 * 100).toFixed(2);
+        const damage_type_short = marker.damageType || 'D';
+        const severity = marker.severity || 'minor';
+        
+        return `<div style="position: absolute; left: ${x_percent}%; top: ${y_percent}%; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; color: white; font-weight: bold; font-size: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.3); background-color: ${severity === 'minor' ? '#FFA500' : severity === 'moderate' ? '#FF6B35' : '#FF0000'};">
+              ${damage_type_short}
+            </div>`;
+      }).join('');
+      
+      console.log(`✅ Generated damage markers HTML: ${damageMarkersHtml.length} characters`);
+    } else {
+      console.log('ℹ️ No damage markers found');
+    }
 
     // Replace template variables
     let finalHtml = htmlTemplate;
@@ -744,6 +775,22 @@ app.post('/render-consignment-agreement', async (req, res) => {
       if (beforeLength !== afterLength) {
         console.log(`✅ Replaced {{${key}}} with "${value}"`);
       }
+    }
+    
+    // Handle damage markers loop
+    const damageMarkersRegex = /{{#each damage_markers}}[\s\S]*?{{\/each}}/g;
+    finalHtml = finalHtml.replace(damageMarkersRegex, damageMarkersHtml);
+    
+    // Handle conditional other accessories details
+    const otherAccessoriesRegex = /{{#if other_accessories_details}}([\s\S]*?){{\/if}}/g;
+    if (carData.other_accessories_details && carData.other_accessories_details.trim()) {
+      // Keep the content inside the if block
+      finalHtml = finalHtml.replace(otherAccessoriesRegex, '$1');
+      console.log('✅ Other accessories details section included');
+    } else {
+      // Remove the entire if block
+      finalHtml = finalHtml.replace(otherAccessoriesRegex, '');
+      console.log('✅ Other accessories details section removed (no content)');
     }
     
     console.log('✅ Template variable replacement completed');

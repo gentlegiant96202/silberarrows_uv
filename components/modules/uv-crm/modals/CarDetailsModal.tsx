@@ -1741,7 +1741,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                 }
                               } catch (error) {
                                 console.error('❌ Error generating damage report image:', error);
-                                alert(`Error: ${error.message}`);
+                                alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
                               }
                             }}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"

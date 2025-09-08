@@ -20,6 +20,7 @@ const template45Path = path.resolve(__dirname, '../public/templates/price-drop-t
 const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
 const consignmentTemplatePath = path.resolve(__dirname, '../public/templates/consignment-agreement-template.html');
 const driveWhilstSellTemplatePath = path.resolve(__dirname, '../public/templates/drive-whilst-sell-agreement-template-v2.html');
+const damageReportTemplatePath = path.resolve(__dirname, '../public/templates/damage-report-template.html');
 
 // Content pillar templates
 const contentPillarTemplates = {
@@ -37,6 +38,7 @@ let template45Html = '';
 let catalogTemplateHtml = '';
 let consignmentTemplateHtml = '';
 let driveWhilstSellTemplateHtml = '';
+let damageReportTemplateHtml = '';
 let mainLogoBase64 = '';
 let contentPillarHtmls = {};
 
@@ -47,6 +49,7 @@ async function loadTemplate() {
   console.log('📄 Catalog template path:', catalogTemplatePath);
   console.log('📄 Consignment template path:', consignmentTemplatePath);
   console.log('📄 Drive Whilst Sell template path:', driveWhilstSellTemplatePath);
+  console.log('📄 Damage Report template path:', damageReportTemplatePath);
   
   try {
     templateHtml = await fs.readFile(templatePath, 'utf-8');
@@ -85,6 +88,14 @@ async function loadTemplate() {
     console.log('✅ Drive Whilst Sell template loaded, length:', driveWhilstSellTemplateHtml.length);
   } catch (err) {
     console.error('❌ Error loading drive whilst sell template:', err);
+    throw err;
+  }
+  
+  try {
+    damageReportTemplateHtml = await fs.readFile(damageReportTemplatePath, 'utf-8');
+    console.log('✅ Damage Report template loaded, length:', damageReportTemplateHtml.length);
+  } catch (err) {
+    console.error('❌ Error loading damage report template:', err);
     throw err;
   }
   
@@ -786,6 +797,113 @@ app.post('/render-consignment-agreement', async (req, res) => {
 });
 
 // Health check endpoint
+// Damage Report Endpoint
+app.post('/render-damage-report', async (req, res) => {
+  try {
+    console.log('🔧 Damage report render request received');
+    const { carDetails, damageAnnotations, inspectionNotes, diagramImageUrl, timestamp } = req.body;
+
+    if (!damageAnnotations || !diagramImageUrl) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: damageAnnotations and diagramImageUrl' 
+      });
+    }
+
+    console.log('📊 Car details:', carDetails);
+    console.log('🎯 Damage annotations count:', damageAnnotations.length);
+
+    // Convert damage markers to template format with percentage coordinates
+    const damageMarkers = damageAnnotations.map(marker => ({
+      damageType: marker.damageType,
+      severity: marker.severity,
+      x_percent: (marker.x / 2029) * 100, // Convert to percentage
+      y_percent: (marker.y / 765) * 100   // Convert to percentage
+    }));
+
+    console.log('🎯 Converted damage markers:', damageMarkers);
+
+    // Prepare template data
+    const templateData = {
+      DIAGRAM_IMAGE_URL: diagramImageUrl,
+      DAMAGE_MARKERS: damageMarkers,
+      INSPECTION_NOTES: inspectionNotes || ''
+    };
+
+    // Replace template variables
+    let html = damageReportTemplateHtml;
+    
+    // Replace simple variables
+    html = html.replace(/{{DIAGRAM_IMAGE_URL}}/g, templateData.DIAGRAM_IMAGE_URL);
+    html = html.replace(/{{INSPECTION_NOTES}}/g, templateData.INSPECTION_NOTES);
+    
+    // Handle damage markers loop
+    let markersHtml = '';
+    templateData.DAMAGE_MARKERS.forEach(marker => {
+      markersHtml += `
+        <div class="damage-marker ${marker.severity}" 
+             style="left: ${marker.x_percent}%; top: ${marker.y_percent}%;">
+          ${marker.damageType}
+        </div>`;
+    });
+    
+    // Replace the handlebars loop with actual HTML
+    html = html.replace(/{{#each DAMAGE_MARKERS}}[\s\S]*?{{\/each}}/g, markersHtml);
+    
+    // Handle conditional inspection notes
+    if (templateData.INSPECTION_NOTES) {
+      html = html.replace(/{{#if INSPECTION_NOTES}}/g, '');
+      html = html.replace(/{{\/if}}/g, '');
+    } else {
+      // Remove the entire inspection notes section if no notes
+      html = html.replace(/{{#if INSPECTION_NOTES}}[\s\S]*?{{\/if}}/g, '');
+    }
+
+    console.log('🎨 Generating damage report image...');
+
+    // Generate image using Playwright
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch({ 
+      headless: true, 
+      args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    });
+    const page = await browser.newPage();
+
+    // Set content and wait for image to load
+    await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
+    
+    // Wait for external image to load
+    await page.waitForTimeout(2000);
+
+    // Generate high-quality PNG
+    const imageBuffer = await page.screenshot({
+      type: 'png',
+      fullPage: true,
+      omitBackground: false
+    });
+
+    await browser.close();
+
+    // Convert to base64
+    const base64Image = imageBuffer.toString('base64');
+    
+    const fileSizeMB = (imageBuffer.length / (1024 * 1024)).toFixed(2);
+    console.log(`✅ Damage report image generated: ${fileSizeMB}MB`);
+
+    res.json({
+      success: true,
+      damageReportImage: base64Image
+    });
+
+  } catch (error) {
+    console.error('❌ Damage report generation error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 

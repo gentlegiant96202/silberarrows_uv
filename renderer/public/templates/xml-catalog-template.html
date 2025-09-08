@@ -91,10 +91,10 @@
 
     .catalog-bg-image {
       position: absolute;
-      top: 80px; /* Move image 10% lower (1350px * 0.1 = 135px, but using 80px for better positioning) */
+      top: -95px; /* Move image 7% higher - removed black bar */
       left: 0;
       width: 100%;
-      height: calc(100% - 80px); /* Compensate for top offset */
+      height: calc(100% + 95px); /* Compensate for top offset */
       object-fit: contain; /* Changed from cover to contain to show full image */
       object-position: center; /* Center positioning */
       z-index: 1;
@@ -244,7 +244,18 @@
     body * { font-family: inherit !important; }
   </style>
 </head>
-<body>
+<body style="font-family: 'Resonate', 'Inter', sans-serif; -webkit-font-smoothing: antialiased;">
+  <style>
+    /* Inline styles like content pillars for better font loading */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+    h1, h2, h3, h4, h5, h6, p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
+    body { font-family: 'Resonate', 'Inter', sans-serif; }
+    
+    /* Force Resonate Black for specific elements */
+    .header h1 { font-family: 'Resonate' !important; font-weight: 900 !important; }
+    .spec-value { font-family: 'Resonate' !important; font-weight: 900 !important; }
+  </style>
   <div class="catalog-card-container">
     <div class="catalog-card-inner">
       <!-- Full Background Image -->

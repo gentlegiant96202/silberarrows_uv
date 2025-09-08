@@ -956,7 +956,23 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         
         if (typeof file === 'string') {
           fileUrl = file;
-          fileName = `file_${i + 1}`;
+          // Extract filename from URL or generate with proper extension
+          try {
+            const url = new URL(file);
+            const pathSegments = url.pathname.split('/');
+            const urlFilename = pathSegments[pathSegments.length - 1];
+            // If URL has a filename with extension, use it; otherwise extract extension from URL
+            if (urlFilename && urlFilename.includes('.')) {
+              fileName = urlFilename;
+            } else {
+              // Try to determine extension from URL path or default to common extensions
+              const extension = url.pathname.match(/\.(jpg|jpeg|png|gif|webp|mp4|mov|pdf|doc|docx)$/i)?.[1] || 'file';
+              fileName = `file_${i + 1}.${extension}`;
+            }
+          } catch {
+            // Fallback if URL parsing fails
+            fileName = `file_${i + 1}`;
+          }
         } else if (file.file) {
           // This is a selected file that hasn't been uploaded yet
           const fileBlob = new Blob([await file.file.arrayBuffer()]);

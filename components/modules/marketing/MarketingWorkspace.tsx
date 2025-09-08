@@ -1346,7 +1346,22 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         
         if (typeof file === 'string') {
           fileUrl = file;
-          fileName = `media_${i + 1}_${file.split('/').pop() || 'file'}`;
+          // Extract filename from URL with proper extension handling
+          try {
+            const url = new URL(file);
+            const pathSegments = url.pathname.split('/');
+            const urlFilename = pathSegments[pathSegments.length - 1];
+            if (urlFilename && urlFilename.includes('.')) {
+              fileName = urlFilename;
+            } else {
+              const extension = url.pathname.match(/\.(jpg|jpeg|png|gif|webp|mp4|mov|pdf|doc|docx)$/i)?.[1] || 'file';
+              fileName = `media_${i + 1}.${extension}`;
+            }
+          } catch {
+            // Fallback: try simple split method
+            const fallbackName = file.split('/').pop() || 'file';
+            fileName = fallbackName.includes('.') ? fallbackName : `media_${i + 1}`;
+          }
         } else {
           fileUrl = (file as any).url || getOriginalFileUrl(file);
           fileName = (file as any).name || `media_${i + 1}`;

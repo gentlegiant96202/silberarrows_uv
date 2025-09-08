@@ -277,6 +277,14 @@ export default function ContentPillarsBoard() {
   const handleAIRegenerate = async (contentType: 'image' | 'video' | 'text' | 'carousel') => {
     if (!selectedDay) return;
     
+    // Clear existing generated image when regenerating content
+    const pillarKey = `new_${selectedDay}`;
+    setGeneratedImages(prev => {
+      const updated = { ...prev };
+      delete updated[pillarKey];
+      return updated;
+    });
+    
     setAiGenerating(true);
     
     try {
@@ -333,6 +341,15 @@ export default function ContentPillarsBoard() {
     setSelectedDay(dayKey);
     setSelectedDayTitle(dayColumn?.title || dayKey);
     setEditingPillar(null); // Reset editing state for new AI generation
+    
+    // Clear any existing generated image for this day when generating fresh content
+    const pillarKey = `new_${dayKey}`;
+    setGeneratedImages(prev => {
+      const updated = { ...prev };
+      delete updated[pillarKey];
+      return updated;
+    });
+    
     setAiGenerating(true);
     
     try {
@@ -937,13 +954,8 @@ export default function ContentPillarsBoard() {
           setShowAIModal(false);
           setAiGeneratedContent(null);
           setEditingPillar(null);
-          // Clear the generated image for this pillar when closing
-          const pillarKey = editingPillar ? editingPillar.id : `new_${selectedDay}`;
-          setGeneratedImages(prev => {
-            const updated = { ...prev };
-            delete updated[pillarKey];
-            return updated;
-          });
+          // Don't clear generated images on close - let them persist for reuse
+          // Images will only be cleared when user explicitly requests it or creates new content
         }}
         onSave={handleSaveContentPillar}
         onDelete={editingPillar ? handleDeleteContentPillar : undefined}

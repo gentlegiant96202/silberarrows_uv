@@ -3035,17 +3035,14 @@ ${fontFaceCSS}
                         </svg>
                         <span className="text-blue-400">Difficulty</span>
                       </label>
-                      <select
+                      <input
+                        type="text"
                         name="difficulty"
                         value={formData.difficulty}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 text-sm rounded-lg bg-blue-500/10 backdrop-blur-sm border border-blue-500/30 text-white focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all shadow-inner"
-                      >
-                        <option value="">Select difficulty</option>
-                        <option value="DIY">DIY</option>
-                        <option value="Professional Required">Professional Required</option>
-                        <option value="Inspection Only">Inspection Only</option>
-                      </select>
+                        placeholder="e.g., DIY, Professional Required, Beginner, Advanced..."
+                        className="w-full px-3 py-2 text-sm rounded-lg bg-blue-500/10 backdrop-blur-sm border border-blue-500/30 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all shadow-inner"
+                      />
                     </div>
 
                     {/* Tools Needed Field */}

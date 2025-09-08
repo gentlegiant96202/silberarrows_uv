@@ -1666,44 +1666,61 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   />
                 ) : (
                   <div className="space-y-4">
-                    {/* Show existing damage report image if available */}
+                    {/* Show existing damage report image if available, otherwise show interactive diagram */}
                     {(() => {
                       const damageReportMedia = media.find(m => m.kind === 'damage_report');
-                      return damageReportMedia ? (
-                        <div>
-                          <h4 className="text-white/80 text-sm font-medium mb-3">Damage Report</h4>
-                          <div className="border border-white/20 rounded-lg overflow-hidden">
-                            <img 
-                              src={damageReportMedia.url}
-                              alt="Vehicle Damage Report"
-                              className="w-full h-auto"
-                            />
+                      const hasAnnotations = (localCar.damage_annotations?.length || 0) > 0;
+                      
+                      if (damageReportMedia) {
+                        return (
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-white/80 text-sm font-medium mb-3">Damage Report</h4>
+                              <div className="border border-white/20 rounded-lg overflow-hidden">
+                                <img 
+                                  src={damageReportMedia.url}
+                                  alt="Vehicle Damage Report"
+                                  className="w-full h-auto"
+                                />
+                              </div>
+                            </div>
+                            {/* Show inspection notes below the image */}
+                            {localCar.visual_inspection_notes && (
+                              <div>
+                                <h4 className="text-white/80 text-sm font-medium mb-3">Visual Inspection Notes</h4>
+                                <div className="bg-black/20 border border-white/20 rounded-lg p-3">
+                                  <pre className="text-white/80 text-sm whitespace-pre-wrap font-mono">
+                                    {localCar.visual_inspection_notes}
+                                  </pre>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ) : (localCar.damage_annotations?.length || 0) > 0 ? (
-                        <div>
-                          <h4 className="text-white/80 text-sm font-medium mb-3">Damage Annotations</h4>
-                          <p className="text-white/60 text-sm">
-                            {(localCar.damage_annotations?.length || 0)} damage marker{(localCar.damage_annotations?.length || 0) !== 1 ? 's' : ''} recorded. 
-                            Click edit to view/modify damage assessment.
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="text-white/60 text-sm">No damage assessment recorded.</p>
-                      );
+                        );
+                      } else if (hasAnnotations) {
+                        return (
+                          <div>
+                            <h4 className="text-white/80 text-sm font-medium mb-3">
+                              Damage Assessment ({(localCar.damage_annotations?.length || 0)} markers)
+                            </h4>
+                            <div className="border border-white/20 rounded-lg overflow-hidden bg-white p-4">
+                              <DamageMarkingInterface
+                                carId={localCar.id}
+                                initialAnnotations={localCar.damage_annotations || []}
+                                initialInspectionNotes={localCar.visual_inspection_notes || ''}
+                                readOnly={true}
+                                onSave={() => {}} // No-op for read-only mode
+                              />
+                            </div>
+                            <p className="text-white/60 text-xs mt-2">
+                              Click Edit to modify damage assessment or regenerate report image.
+                            </p>
+                          </div>
+                        );
+                      } else {
+                        return <p className="text-white/60 text-sm">No damage assessment recorded.</p>;
+                      }
                     })()}
-                    
-                    {/* Show inspection notes if available */}
-                    {localCar.visual_inspection_notes && (
-                      <div>
-                        <h4 className="text-white/80 text-sm font-medium mb-3">Visual Inspection Notes</h4>
-                        <div className="bg-black/20 border border-white/20 rounded-lg p-3">
-                          <pre className="text-white/80 text-sm whitespace-pre-wrap font-mono">
-                            {localCar.visual_inspection_notes}
-                          </pre>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

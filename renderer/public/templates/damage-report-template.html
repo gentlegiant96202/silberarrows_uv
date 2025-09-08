@@ -12,23 +12,16 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: white;
-            color: #333;
-            line-height: 1.4;
-            padding: 20px;
-        }
-
-        .damage-report {
-            max-width: 1000px;
-            margin: 0 auto;
+            margin: 0;
+            padding: 0;
             background: white;
         }
 
         .car-diagram {
             position: relative;
             display: block;
-            margin-bottom: 30px;
+            width: 100%;
+            height: auto;
         }
 
         .car-diagram img {
@@ -64,52 +57,19 @@
         .damage-marker.major {
             background-color: #FF0000;
         }
-
-        .inspection-notes {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background: #fafafa;
-            padding: 15px;
-        }
-
-        .inspection-notes h3 {
-            font-size: 16px;
-            margin-bottom: 10px;
-            color: #000;
-            font-weight: bold;
-        }
-
-        .inspection-notes pre {
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            color: #333;
-            margin: 0;
-        }
     </style>
 </head>
 <body>
-    <div class="damage-report">
-        <!-- Car Diagram with Damage Markers -->
-        <div class="car-diagram">
-            <img src="{{DIAGRAM_IMAGE_URL}}" alt="Vehicle Damage Diagram">
-            
-            {{#each DAMAGE_MARKERS}}
-            <div class="damage-marker {{severity}}" 
-                 style="left: {{x_percent}}%; top: {{y_percent}}%;">
-                {{damageType}}
-            </div>
-            {{/each}}
+    <!-- Car Diagram with Damage Markers Only -->
+    <div class="car-diagram">
+        <img src="{{DIAGRAM_IMAGE_URL}}" alt="Vehicle Damage Diagram">
+        
+        {{#each DAMAGE_MARKERS}}
+        <div class="damage-marker {{severity}}" 
+             style="left: {{x_percent}}%; top: {{y_percent}}%;">
+            {{damageType}}
         </div>
-
-        <!-- Visual Inspection Notes -->
-        {{#if INSPECTION_NOTES}}
-        <div class="inspection-notes">
-            <h3>Visual Inspection Notes</h3>
-            <pre>{{INSPECTION_NOTES}}</pre>
-        </div>
-        {{/if}}
+        {{/each}}
     </div>
 </body>
 </html>

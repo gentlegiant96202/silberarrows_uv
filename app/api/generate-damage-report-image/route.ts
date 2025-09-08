@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       },
       damageAnnotations,
       inspectionNotes: inspectionNotes || '',
-      diagramImageUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://silberarrows.vercel.app'}/Pre uvc-2.jpg`,
+      diagramImageUrl: `${rendererUrl}/Pre uvc-2.jpg`, // Use Railway's local image
       timestamp: new Date().toISOString()
     };
 

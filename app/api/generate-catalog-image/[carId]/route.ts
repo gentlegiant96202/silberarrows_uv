@@ -120,17 +120,18 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
     }
 
     .car-title {
-      font-family: 'Resonate', sans-serif;
-      font-size: 42px;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
+      font-size: 52px; /* Made much bigger */
       font-weight: 900; /* Black weight */
       background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 25%, #d4d4d4 50%, #f0f0f0 75%, #ffffff 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
       filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4));
       letter-spacing: 2px;
       text-transform: uppercase;
+      line-height: 1.0;
     }
 
     .specs-row {

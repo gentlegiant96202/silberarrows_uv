@@ -15,18 +15,20 @@
 
     @font-face {
       font-family: 'Resonate';
-      src: url('./Fonts/Resonate-Regular.woff2') format('woff2'),
-           url('./Fonts/Resonate-Regular.otf') format('opentype');
+      src: url('/Fonts/Resonate-Regular.woff2') format('woff2'),
+           url('/Fonts/Resonate-Regular.otf') format('opentype');
       font-weight: 400;
       font-style: normal;
+      font-display: swap;
     }
 
     @font-face {
       font-family: 'Resonate';
-      src: url('./Fonts/Resonate-Black.woff2') format('woff2'),
-           url('./Fonts/Resonate-Black.otf') format('opentype');
+      src: url('/Fonts/Resonate-Black.woff2') format('woff2'),
+           url('/Fonts/Resonate-Black.otf') format('opentype');
       font-weight: 900;
       font-style: normal;
+      font-display: swap;
     }
 
     body {
@@ -106,12 +108,13 @@
 
     .header h1 {
       font-family: 'Resonate', 'Space Grotesk', sans-serif;
-      font-size: 2.2rem; /* Reduced from 2.8rem */
+      font-size: 3.2rem; /* Made much bigger */
       font-weight: 900; /* Black weight */
-      line-height: 1.1; /* Tighter line height */
-      margin-bottom: 6px; /* Reduced margin */
+      line-height: 1.0; /* Tighter line height */
+      margin-bottom: 8px; /* Slightly more margin */
       color: #ffffff;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      letter-spacing: 1px;
     }
 
     .subtitle {
@@ -254,16 +257,7 @@
         </div>
       </div>
 
-        <div class="price-footer">
-          <div class="price-card">
-            <div class="price-label">Monthly Payment</div>
-            <div class="monthly-value">AED {{monthlyPayment}}</div>
-          </div>
-          <div class="price-card">
-            <div class="price-label">Cash Price</div>
-            <div class="price-value">AED {{price}}</div>
-          </div>
-        </div>
+      <!-- Removed price footer cards as requested -->
       </div>
     </div>
   </div>

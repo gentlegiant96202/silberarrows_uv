@@ -359,12 +359,22 @@ app.post('/render', async (req, res) => {
 
 app.post('/render-catalog', async (req, res) => {
   try {
+    console.log('🚀 Catalog render request received');
+    console.log('📊 Request body keys:', Object.keys(req.body || {}));
+    
     const { carDetails, catalogImageUrl } = req.body || {};
+    
+    console.log('🚗 Car details received:', JSON.stringify(carDetails, null, 2));
+    console.log('🖼️ Catalog image URL:', catalogImageUrl);
+    
     if (!carDetails || !catalogImageUrl) {
+      console.error('❌ Missing required fields:', { carDetails: !!carDetails, catalogImageUrl: !!catalogImageUrl });
       return res.status(400).json({ success: false, error: 'Missing required fields: carDetails and catalogImageUrl' });
     }
 
+    console.log('🎨 Filling catalog template...');
     const html = fillCatalogTemplate({ carDetails, catalogImageUrl });
+    console.log('✅ Template filled, length:', html.length);
 
     // Prefer Playwright; it exists in this image
     const { chromium } = await import('playwright');

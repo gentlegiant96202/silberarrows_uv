@@ -18,6 +18,35 @@ export async function POST(request: NextRequest) {
     
     console.log(`📄 Generating ${isDriveWhilstSell ? 'drive whilst sell' : 'consignment'} agreement PDF using Railway renderer...`);
 
+    // Fetch damage report image URL if it exists
+    let damageReportImageUrl = '';
+    if (car.id) {
+      console.log('🔍 Looking for damage report image for car:', car.id);
+      const { data: damageReportMedia } = await supabase
+        .from('car_media')
+        .select('url')
+        .eq('car_id', car.id)
+        .eq('kind', 'damage_report')
+        .eq('report_type', 'damage_report')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (damageReportMedia) {
+        damageReportImageUrl = damageReportMedia.url;
+        console.log('✅ Found damage report image:', damageReportImageUrl);
+      } else {
+        console.log('ℹ️ No damage report image found for this car');
+      }
+    }
+
+    // Add damage report image URL to car data (with fallback to base diagram)
+    const fallbackDiagramUrl = `${process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app'}/Pre uvc-2.jpg`;
+    const enhancedCarData = {
+      ...car,
+      damage_diagram_image_url: damageReportImageUrl || fallbackDiagramUrl
+    };
+
     // Railway renderer loads templates from files, so we skip inline HTML generation
     console.log('📄 Calling Railway renderer service...');
 
@@ -28,7 +57,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        carData: car,
+        carData: enhancedCarData,
         agreementType: agreementType
       })
     });

@@ -860,6 +860,9 @@ app.post('/render-damage-report', async (req, res) => {
     }
 
     console.log('🎨 Generating damage report image...');
+    console.log('🔍 Final HTML length:', html.length);
+    console.log('🔍 Markers HTML:', markersHtml);
+    console.log('🔍 Diagram URL:', templateData.DIAGRAM_IMAGE_URL);
 
     // Generate image using Playwright
     const { chromium } = await import('playwright');
@@ -869,16 +872,33 @@ app.post('/render-damage-report', async (req, res) => {
     });
     const page = await browser.newPage();
 
+    // Set viewport to exact dimensions
+    await page.setViewportSize({ width: 2029, height: 765 });
+    
     // Set content and wait for image to load
     await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
     
-    // Wait for external image to load
-    await page.waitForTimeout(2000);
+    // Debug: Check if image loaded and markers are present
+    const debugInfo = await page.evaluate(() => {
+      const img = document.querySelector('.car-diagram img');
+      const markers = document.querySelectorAll('.damage-marker');
+      return {
+        imageLoaded: img ? img.complete && img.naturalWidth > 0 : false,
+        imageUrl: img ? img.src : 'no image',
+        markersCount: markers.length,
+        markersHTML: Array.from(markers).map(m => m.outerHTML)
+      };
+    });
+    
+    console.log('🔍 Debug info:', debugInfo);
+    
+    // Wait extra time for external image to load
+    await page.waitForTimeout(3000);
 
     // Generate high-quality PNG with exact dimensions
     const imageBuffer = await page.screenshot({
       type: 'png',
-      clip: { x: 0, y: 0, width: 2029, height: 765 },
+      fullPage: true,
       omitBackground: false
     });
 

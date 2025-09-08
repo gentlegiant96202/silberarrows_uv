@@ -190,15 +190,15 @@ function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
   const replacements = {
     '{{year}}': String(carDetails.year ?? ''),
     '{{model}}': String(carDetails.model ?? ''),
-    '{{mileage}}': String(carDetails.mileage ?? '') + ' KM',
+    '{{mileage}}': String(carDetails.mileage ?? ''),
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
     '{{price}}': String(carDetails.price ?? ''),
     '{{monthlyPayment}}': String(twentyDownPayment.toLocaleString()),
     '{{catalogImageUrl}}': String(catalogImageUrl ?? ''),
-    '{{specialOffer}}': 'AED ' + String(specialOfferPrice.toLocaleString()),
-    '{{zeroDownPayment}}': 'AED ' + String(zeroDownPayment.toLocaleString()),
-    '{{twentyDownPayment}}': 'AED ' + String(twentyDownPayment.toLocaleString()),
-    '{{horsepower}}': String(carDetails.horsepower ?? '—') + (carDetails.horsepower ? ' HP' : ''),
+    '{{specialOffer}}': String(carDetails.specialOffer ?? '—'),
+    '{{zeroDownPayment}}': String(carDetails.zeroDownPayment ?? '—'),
+    '{{twentyDownPayment}}': String(carDetails.twentyDownPayment ?? '—'),
+    '{{horsepower}}': String(carDetails.horsepower ?? '—'),
     '{{engine}}': String(carDetails.engine ?? '—'),
   };
   for (const [key, value] of Object.entries(replacements)) {

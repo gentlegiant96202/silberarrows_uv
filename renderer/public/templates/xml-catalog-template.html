@@ -13,22 +13,10 @@
       box-sizing: border-box;
     }
 
-    @font-face {
-      font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Regular.woff2') format('woff2'),
-           url('/Fonts/Resonate-Regular.otf') format('opentype');
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-    }
-
-    @font-face {
-      font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Black.woff2') format('woff2'),
-           url('/Fonts/Resonate-Black.otf') format('opentype');
+    /* Use fallback fonts for now - Resonate loading issues */
+    .resonate-fallback {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
       font-weight: 900;
-      font-style: normal;
-      font-display: swap;
     }
 
     body {
@@ -107,7 +95,7 @@
     }
 
     .header h1 {
-      font-family: 'Resonate', 'Space Grotesk', sans-serif;
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
       font-size: 3.2rem; /* Made much bigger */
       font-weight: 900; /* Black weight */
       line-height: 1.0; /* Tighter line height */
@@ -150,7 +138,7 @@
     }
 
     .spec-value {
-      font-family: 'Resonate', 'Space Grotesk', sans-serif;
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
       font-size: 1.8rem; /* Reduced from 2.2rem */
       font-weight: 900; /* Black weight */
       margin-bottom: 6px; /* Reduced margin */
@@ -230,25 +218,25 @@
       <div class="specs-grid">
         <!-- Top Row -->
         <div class="spec-item">
-          <div class="spec-value">{{specialOffer}}</div>
+          <div class="spec-value">AED {{specialOffer}}</div>
           <div class="spec-label">Special Offer</div>
         </div>
         <div class="spec-item">
-          <div class="spec-value">{{zeroDownPayment}}</div>
-          <div class="spec-label">0% Down</div>
+          <div class="spec-value">AED {{zeroDownPayment}}</div>
+          <div class="spec-label">0% Down Payment</div>
         </div>
         <div class="spec-item">
-          <div class="spec-value">{{twentyDownPayment}}</div>
-          <div class="spec-label">20% Down</div>
+          <div class="spec-value">AED {{twentyDownPayment}}</div>
+          <div class="spec-label">20% Down Payment</div>
         </div>
         
         <!-- Bottom Row -->
         <div class="spec-item">
-          <div class="spec-value">{{mileage}}</div>
+          <div class="spec-value">{{mileage}} KM</div>
           <div class="spec-label">Mileage</div>
         </div>
         <div class="spec-item">
-          <div class="spec-value">{{horsepower}}</div>
+          <div class="spec-value">{{horsepower}} HP</div>
           <div class="spec-label">Horsepower</div>
         </div>
         <div class="spec-item">

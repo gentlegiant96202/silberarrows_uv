@@ -170,21 +170,7 @@ function fillTemplate45({ carDetails, pricing, firstImageUrl }) {
 }
 
 function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
-  // Calculate monthly payments for 0% and 20% down
-  const price = parseFloat(String(carDetails.price ?? '0').replace(/,/g, ''));
-  const monthlyRate = 0.05 / 12; // 5% annual rate
-  const months = 60;
-  
-  // 0% down payment
-  const zeroDownLoanAmount = price;
-  const zeroDownPayment = zeroDownLoanAmount > 0 ? Math.round(zeroDownLoanAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months))) : 0;
-  
-  // 20% down payment
-  const twentyDownLoanAmount = price * 0.8; // 80% financed
-  const twentyDownPayment = twentyDownLoanAmount > 0 ? Math.round(twentyDownLoanAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months))) : 0;
-  
-  // Special offer calculation (10% off)
-  const specialOfferPrice = Math.round(price * 0.9);
+  // No discount calculations - use original prices and payments from database
   
   let html = catalogTemplateHtml;
   const replacements = {
@@ -193,9 +179,8 @@ function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
     '{{mileage}}': String(carDetails.mileage ?? ''),
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
     '{{price}}': String(carDetails.price ?? ''),
-    '{{monthlyPayment}}': String(twentyDownPayment.toLocaleString()),
     '{{catalogImageUrl}}': String(catalogImageUrl ?? ''),
-    '{{specialOffer}}': String(carDetails.specialOffer ?? '—'),
+    '{{originalPrice}}': String(carDetails.originalPrice ?? carDetails.price ?? '—'),
     '{{zeroDownPayment}}': String(carDetails.zeroDownPayment ?? '—'),
     '{{twentyDownPayment}}': String(carDetails.twentyDownPayment ?? '—'),
     '{{horsepower}}': String(carDetails.horsepower ?? '—'),

@@ -223,8 +223,8 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       <div class="specs-row">
         <!-- Top Row -->
         <div class="spec-item">
-          <div class="spec-label">Special Offer</div>
-          <div class="spec-value">AED ${carDetails.specialOffer}</div>
+          <div class="spec-label">Cash Price</div>
+          <div class="spec-value">AED ${carDetails.originalPrice}</div>
         </div>
         <div class="spec-item">
           <div class="spec-label">0% Down</div>
@@ -323,10 +323,7 @@ export async function POST(
       catalogMedia = photoMedia;
     }
 
-    // Calculate special offer (10% off advertised price)
-    const specialOfferPrice = car.advertised_price_aed ? Math.round(car.advertised_price_aed * 0.9) : 0;
-    
-    // Prepare car details for renderer
+    // Prepare car details for renderer (no discount, show original price)
     const carDetails = {
       year: car.model_year,
       model: car.vehicle_model,
@@ -335,7 +332,7 @@ export async function POST(
       price: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '0',
       engine: car.engine || '—',
       horsepower: car.horsepower_hp || '—',
-      specialOffer: specialOfferPrice ? specialOfferPrice.toLocaleString() : '—',
+      originalPrice: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '—',
       zeroDownPayment: car.monthly_0_down_aed ? car.monthly_0_down_aed.toLocaleString() : '—',
       twentyDownPayment: car.monthly_20_down_aed ? car.monthly_20_down_aed.toLocaleString() : '—'
     };

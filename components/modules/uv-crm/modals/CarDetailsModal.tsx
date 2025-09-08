@@ -1666,61 +1666,105 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   />
                 ) : (
                   <div className="space-y-4">
-                    {/* Show existing damage report image if available, otherwise show interactive diagram */}
+                    {/* Always show interactive diagram if annotations exist */}
+                    {(localCar.damage_annotations?.length || 0) > 0 && (
+                      <div>
+                        <h4 className="text-white/80 text-sm font-medium mb-3">
+                          Interactive Damage Assessment ({(localCar.damage_annotations?.length || 0)} markers)
+                        </h4>
+                        <div className="border border-white/20 rounded-lg overflow-hidden bg-white p-4">
+                          <DamageMarkingInterface
+                            carId={localCar.id}
+                            initialAnnotations={localCar.damage_annotations || []}
+                            initialInspectionNotes={localCar.visual_inspection_notes || ''}
+                            readOnly={true}
+                            onSave={() => {}} // No-op for read-only mode
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show generated damage report images */}
                     {(() => {
-                      const damageReportMedia = media.find(m => m.kind === 'damage_report');
-                      const hasAnnotations = (localCar.damage_annotations?.length || 0) > 0;
-                      
-                      if (damageReportMedia) {
-                        return (
-                          <div className="space-y-4">
-                            <div>
-                              <h4 className="text-white/80 text-sm font-medium mb-3">Damage Report</h4>
-                              <div className="border border-white/20 rounded-lg overflow-hidden">
+                      const damageReportImages = media.filter(m => m.kind === 'damage_report');
+                      return damageReportImages.length > 0 ? (
+                        <div>
+                          <h4 className="text-white/80 text-sm font-medium mb-3">
+                            Generated Damage Reports ({damageReportImages.length})
+                          </h4>
+                          <div className="grid grid-cols-1 gap-4">
+                            {damageReportImages.map((reportImage, index) => (
+                              <div key={reportImage.id} className="border border-white/20 rounded-lg overflow-hidden">
+                                <div className="bg-black/20 px-3 py-2">
+                                  <p className="text-white/70 text-xs">
+                                    Report #{index + 1} - {reportImage.filename}
+                                  </p>
+                                </div>
                                 <img 
-                                  src={damageReportMedia.url}
-                                  alt="Vehicle Damage Report"
+                                  src={reportImage.url}
+                                  alt={`Vehicle Damage Report ${index + 1}`}
                                   className="w-full h-auto"
                                 />
                               </div>
-                            </div>
-                            {/* Show inspection notes below the image */}
-                            {localCar.visual_inspection_notes && (
-                              <div>
-                                <h4 className="text-white/80 text-sm font-medium mb-3">Visual Inspection Notes</h4>
-                                <div className="bg-black/20 border border-white/20 rounded-lg p-3">
-                                  <pre className="text-white/80 text-sm whitespace-pre-wrap font-mono">
-                                    {localCar.visual_inspection_notes}
-                                  </pre>
-                                </div>
-                              </div>
-                            )}
+                            ))}
                           </div>
-                        );
-                      } else if (hasAnnotations) {
-                        return (
-                          <div>
-                            <h4 className="text-white/80 text-sm font-medium mb-3">
-                              Damage Assessment ({(localCar.damage_annotations?.length || 0)} markers)
-                            </h4>
-                            <div className="border border-white/20 rounded-lg overflow-hidden bg-white p-4">
-                              <DamageMarkingInterface
-                                carId={localCar.id}
-                                initialAnnotations={localCar.damage_annotations || []}
-                                initialInspectionNotes={localCar.visual_inspection_notes || ''}
-                                readOnly={true}
-                                onSave={() => {}} // No-op for read-only mode
-                              />
-                            </div>
-                            <p className="text-white/60 text-xs mt-2">
-                              Click Edit to modify damage assessment or regenerate report image.
-                            </p>
-                          </div>
-                        );
-                      } else {
-                        return <p className="text-white/60 text-sm">No damage assessment recorded.</p>;
-                      }
+                        </div>
+                      ) : (localCar.damage_annotations?.length || 0) > 0 ? (
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 space-y-3">
+                          <p className="text-yellow-300 text-sm">
+                            ⚠️ No generated damage report found. 
+                          </p>
+                          <button
+                            onClick={async () => {
+                              try {
+                                console.log('🔧 Manually generating damage report image...');
+                                const response = await fetch('/api/generate-damage-report-image', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    carId: localCar.id,
+                                    damageAnnotations: localCar.damage_annotations,
+                                    inspectionNotes: localCar.visual_inspection_notes
+                                  })
+                                });
+
+                                const result = await response.json();
+                                console.log('📊 Generation result:', result);
+                                
+                                if (result.success) {
+                                  console.log('✅ Damage report image generated:', result.imageUrl);
+                                  // Reload media to show new image
+                                  refetchMedia();
+                                } else {
+                                  console.error('❌ Failed to generate damage report image:', result.error);
+                                  alert(`Failed to generate image: ${result.error}`);
+                                }
+                              } catch (error) {
+                                console.error('❌ Error generating damage report image:', error);
+                                alert(`Error: ${error.message}`);
+                              }
+                            }}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Generate Report Image Now
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-white/60 text-sm">No damage assessment recorded.</p>
+                      );
                     })()}
+
+                    {/* Show inspection notes */}
+                    {localCar.visual_inspection_notes && (
+                      <div>
+                        <h4 className="text-white/80 text-sm font-medium mb-3">Visual Inspection Notes</h4>
+                        <div className="bg-black/20 border border-white/20 rounded-lg p-3">
+                          <pre className="text-white/80 text-sm whitespace-pre-wrap font-mono">
+                            {localCar.visual_inspection_notes}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -3,6 +3,16 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DocUploader from "@/components/modules/uv-crm/components/DocUploader";
 import ChassisInput from '@/components/modules/uv-crm/components/ChassisInput';
+import DamageMarkingInterface from '@/components/modules/uv-crm/components/DamageMarkingInterface';
+
+interface DamageMarker {
+  id: string;
+  x: number;        // Pixel coordinate (0-2029)
+  y: number;        // Pixel coordinate (0-765)
+  damageType: 'B' | 'BR' | 'C' | 'CR' | 'D' | 'F' | 'FI' | 'L' | 'M' | 'P' | 'PA' | 'PC' | 'R' | 'RU' | 'S' | 'ST';
+  severity: 'minor' | 'moderate' | 'major';
+  description: string;
+}
 
 interface Props {
   onClose: () => void;
@@ -72,6 +82,10 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     customer_disclosed_accident: false,
     customer_disclosed_flood_damage: false,
     damage_disclosure_details: "",
+    // Damage annotations
+    damage_annotations: [] as DamageMarker[],
+    // Visual inspection notes
+    visual_inspection_notes: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -565,6 +579,10 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         customer_disclosed_accident: form.ownership_type === 'consignment' ? form.customer_disclosed_accident : null,
         customer_disclosed_flood_damage: form.ownership_type === 'consignment' ? form.customer_disclosed_flood_damage : null,
         damage_disclosure_details: form.ownership_type === 'consignment' ? form.damage_disclosure_details.trim() || null : null,
+        // Damage annotations
+        damage_annotations: form.ownership_type === 'consignment' ? form.damage_annotations : null,
+        // Visual inspection notes
+        visual_inspection_notes: form.ownership_type === 'consignment' ? form.visual_inspection_notes.trim() || null : null,
         key_equipment: form.key_equipment.trim(),
         description: form.description.trim(),
         status: "marketing",
@@ -579,6 +597,32 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
       return;
     }
     setSavedCar(data);
+    
+    // Generate damage report image if this is a consignment car with damage annotations
+    if (form.ownership_type === 'consignment' && form.damage_annotations.length > 0) {
+      try {
+        console.log('🔧 Generating damage report image for new car:', data.id);
+        const response = await fetch('/api/generate-damage-report-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            carId: data.id,
+            damageAnnotations: form.damage_annotations,
+            inspectionNotes: form.visual_inspection_notes
+          })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          console.log('✅ Damage report image generated for new car:', result.imageUrl);
+        } else {
+          console.error('❌ Failed to generate damage report image:', result.error);
+        }
+      } catch (error) {
+        console.error('❌ Error generating damage report image:', error);
+      }
+    }
+    
     const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', data.id).eq('kind', 'document');
     setDocs(docRows || []);
   };
@@ -1141,6 +1185,27 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                          ))}
                        </div>
                      </div>
+
+                    {/* Vehicle Damage Assessment */}
+                    <div className="col-span-2">
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-6">
+                        <h3 className="text-white/80 text-lg font-semibold mb-4">Vehicle Damage Assessment</h3>
+                        <p className="text-white/60 text-sm mb-6">Mark any existing damage on the vehicle diagram below. This will be included in the consignment agreement.</p>
+                        
+                        <DamageMarkingInterface
+                          carId="temp-car-id" // Will be updated after car is saved
+                          initialAnnotations={form.damage_annotations}
+                          initialInspectionNotes={form.visual_inspection_notes}
+                          onSave={(annotations, inspectionNotes) => {
+                            setForm(prev => ({ 
+                              ...prev, 
+                              damage_annotations: annotations,
+                              visual_inspection_notes: inspectionNotes
+                            }));
+                          }}
+                        />
+                      </div>
+                    </div>
                   </>
                 )}
               </div>

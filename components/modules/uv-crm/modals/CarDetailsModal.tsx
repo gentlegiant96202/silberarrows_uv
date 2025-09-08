@@ -9,6 +9,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { createPortal } from 'react-dom';
 import { Instagram, X } from 'lucide-react';
+import DamageMarkingInterface from '@/components/modules/uv-crm/components/DamageMarkingInterface';
 
 export interface CarInfo {
   id: string;
@@ -58,6 +59,9 @@ export interface CarInfo {
   customer_disclosed_accident: boolean | null;
   customer_disclosed_flood_damage: boolean | null;
   damage_disclosure_details: string | null;
+  // Damage assessment fields
+  damage_annotations: any[] | null;
+  visual_inspection_notes: string | null;
   website_url: string | null;
 }
 
@@ -1615,6 +1619,93 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     </div>
                   </dl>
                 </div>
+              </div>
+            )}
+
+              {/* Vehicle Damage Assessment - Only for consignment cars */}
+            {localCar.ownership_type === 'consignment' && (
+              <div className="border border-white/15 rounded-md p-5 bg-white/5">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-white text-sm font-bold uppercase tracking-wide">Vehicle Damage Assessment</h3>
+                  {!editing && (localCar.damage_annotations?.length || 0) > 0 && (
+                    <span className="text-xs text-white/60">
+                      {(localCar.damage_annotations?.length || 0)} damage marker{(localCar.damage_annotations?.length || 0) !== 1 ? 's' : ''} recorded
+                    </span>
+                  )}
+                </div>
+
+                {editing && canEdit ? (
+                  <DamageMarkingInterface
+                    carId={localCar.id}
+                    initialAnnotations={localCar.damage_annotations || []}
+                    initialInspectionNotes={localCar.visual_inspection_notes || ''}
+                    onSave={async (annotations, inspectionNotes) => {
+                      // Update local car state
+                      setLocalCar(prev => ({
+                        ...prev,
+                        damage_annotations: annotations,
+                        visual_inspection_notes: inspectionNotes
+                      }));
+                      
+                      // Save to database
+                      const { error } = await supabase
+                        .from('cars')
+                        .update({
+                          damage_annotations: annotations,
+                          visual_inspection_notes: inspectionNotes
+                        })
+                        .eq('id', localCar.id);
+                      
+                      if (error) {
+                        console.error('Error saving damage annotations:', error);
+                      } else {
+                        console.log('✅ Damage annotations saved to database');
+                        if (onSaved) onSaved({ ...localCar, damage_annotations: annotations, visual_inspection_notes: inspectionNotes });
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    {/* Show existing damage report image if available */}
+                    {(() => {
+                      const damageReportMedia = media.find(m => m.kind === 'damage_report');
+                      return damageReportMedia ? (
+                        <div>
+                          <h4 className="text-white/80 text-sm font-medium mb-3">Damage Report</h4>
+                          <div className="border border-white/20 rounded-lg overflow-hidden">
+                            <img 
+                              src={damageReportMedia.url}
+                              alt="Vehicle Damage Report"
+                              className="w-full h-auto"
+                            />
+                          </div>
+                        </div>
+                      ) : (localCar.damage_annotations?.length || 0) > 0 ? (
+                        <div>
+                          <h4 className="text-white/80 text-sm font-medium mb-3">Damage Annotations</h4>
+                          <p className="text-white/60 text-sm">
+                            {(localCar.damage_annotations?.length || 0)} damage marker{(localCar.damage_annotations?.length || 0) !== 1 ? 's' : ''} recorded. 
+                            Click edit to view/modify damage assessment.
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-white/60 text-sm">No damage assessment recorded.</p>
+                      );
+                    })()}
+                    
+                    {/* Show inspection notes if available */}
+                    {localCar.visual_inspection_notes && (
+                      <div>
+                        <h4 className="text-white/80 text-sm font-medium mb-3">Visual Inspection Notes</h4>
+                        <div className="bg-black/20 border border-white/20 rounded-lg p-3">
+                          <pre className="text-white/80 text-sm whitespace-pre-wrap font-mono">
+                            {localCar.visual_inspection_notes}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

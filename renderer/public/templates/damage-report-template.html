@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Damage Assessment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: white;
+            color: #333;
+            line-height: 1.4;
+            padding: 20px;
+        }
+
+        .damage-report {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .car-diagram {
+            position: relative;
+            display: block;
+            margin-bottom: 30px;
+        }
+
+        .car-diagram img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .damage-marker {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 3px solid white;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .damage-marker.minor {
+            background-color: #FFA500;
+        }
+
+        .damage-marker.moderate {
+            background-color: #FF6B35;
+        }
+
+        .damage-marker.major {
+            background-color: #FF0000;
+        }
+
+        .inspection-notes {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+            padding: 15px;
+        }
+
+        .inspection-notes h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .inspection-notes pre {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            color: #333;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="damage-report">
+        <!-- Car Diagram with Damage Markers -->
+        <div class="car-diagram">
+            <img src="{{DIAGRAM_IMAGE_URL}}" alt="Vehicle Damage Diagram">
+            
+            {{#each DAMAGE_MARKERS}}
+            <div class="damage-marker {{severity}}" 
+                 style="left: {{x_percent}}%; top: {{y_percent}}%;">
+                {{damageType}}
+            </div>
+            {{/each}}
+        </div>
+
+        <!-- Visual Inspection Notes -->
+        {{#if INSPECTION_NOTES}}
+        <div class="inspection-notes">
+            <h3>Visual Inspection Notes</h3>
+            <pre>{{INSPECTION_NOTES}}</pre>
+        </div>
+        {{/if}}
+    </div>
+</body>
+</html>

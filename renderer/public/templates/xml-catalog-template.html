@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{year}} {{model}} | UV Catalog</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Resonate:wght@400;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     * {
@@ -28,7 +29,7 @@
       position: relative;
       width: 1080px;
       height: 1350px; /* 4:5 aspect ratio */
-      background: linear-gradient(45deg, #ffff00, #ffed4e, #fff700, #ffff00);
+      background: linear-gradient(45deg, #1bfc06, #2eff14, #1bfc06, #0ef800);
       background-size: 400% 400%;
       animation: fluorescent-glow 3s ease-in-out infinite alternate;
       border-radius: 0;
@@ -58,12 +59,12 @@
 
     .catalog-bg-image {
       position: absolute;
-      top: 0;
+      top: -50px; /* Push image higher */
       left: 0;
       width: 100%;
-      height: 100%;
+      height: calc(100% + 50px); /* Compensate for top offset */
       object-fit: contain; /* Changed from cover to contain to show full image */
-      object-position: center;
+      object-position: center top; /* Align to top */
       z-index: 1;
       background: #f5f5f5; /* Light background for better contrast */
     }
@@ -75,12 +76,12 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: 420px; /* Increased height for better content display */
-      padding: 25px 28px 25px 28px; /* More padding for taller overlay */
+      height: 462px; /* 10% bigger than 420px */
+      padding: 30px 28px 30px 28px; /* More padding for taller overlay */
       display: flex;
       flex-direction: column;
       justify-content: space-between; /* Better distribution */
-      gap: 15px; /* Slightly larger gap */
+      gap: 18px; /* Slightly larger gap */
       background: rgba(0, 0, 0, 0.85); /* More transparent for glass effect */
       backdrop-filter: blur(15px); /* Strong glass morphism */
       -webkit-backdrop-filter: blur(15px);
@@ -89,9 +90,9 @@
     }
 
     .header h1 {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       font-size: 2.2rem; /* Reduced from 2.8rem */
-      font-weight: 700;
+      font-weight: 900; /* Black weight */
       line-height: 1.1; /* Tighter line height */
       margin-bottom: 6px; /* Reduced margin */
       color: #ffffff;
@@ -130,9 +131,9 @@
     }
 
     .spec-value {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       font-size: 1.8rem; /* Reduced from 2.2rem */
-      font-weight: 600;
+      font-weight: 900; /* Black weight */
       margin-bottom: 6px; /* Reduced margin */
       color: #ffffff;
     }
@@ -178,17 +179,17 @@
     }
 
     .price-value {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       font-size: 1.4rem; /* Further reduced */
-      font-weight: 700;
+      font-weight: 900; /* Black weight */
       color: #ffffff;
       line-height: 1.2;
     }
 
     .monthly-value {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
       font-size: 1.2rem; /* Further reduced */
-      font-weight: 600;
+      font-weight: 900; /* Black weight */
       color: #ffffff;
       line-height: 1.2;
     }

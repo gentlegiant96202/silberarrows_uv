@@ -9,6 +9,7 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${carDetails.year} ${carDetails.model} | UV Catalog</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Resonate:wght@400;900&display=swap" rel="stylesheet" />
   <style>
     * {
       margin: 0;
@@ -31,7 +32,7 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       position: relative;
       width: 1080px;
       height: 1350px; /* 4:5 aspect ratio */
-      background: linear-gradient(45deg, #ffff00, #ffed4e, #fff700, #ffff00);
+      background: linear-gradient(45deg, #1bfc06, #2eff14, #1bfc06, #0ef800);
       background-size: 400% 400%;
       animation: fluorescent-glow 3s ease-in-out infinite alternate;
       border-radius: 0;
@@ -59,7 +60,7 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       overflow: hidden;
       background-image: url('${catalogImageUrl}');
       background-size: contain; /* Changed from cover to contain to show full image */
-      background-position: center;
+      background-position: center top; /* Push image higher */
       background-repeat: no-repeat;
       background-color: #f5f5f5; /* Light background for better contrast */
     }
@@ -94,20 +95,21 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       bottom: 0;
       left: 0;
       right: 0;
-      height: 42%; /* Increased height for better content display */
+      height: 46%; /* 10% bigger than 42% */
       background: linear-gradient(180deg, 
         rgba(0, 0, 0, 0.1) 0%, 
         rgba(0, 0, 0, 0.7) 40%, 
         rgba(0, 0, 0, 0.9) 100%);
       backdrop-filter: blur(15px);
       border-top: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 30px 30px; /* Increased padding */
+      padding: 35px 30px; /* Increased padding */
       z-index: 2;
     }
 
     .car-title {
+      font-family: 'Resonate', sans-serif;
       font-size: 42px;
-      font-weight: 800;
+      font-weight: 900; /* Black weight */
       background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 25%, #d4d4d4 50%, #f0f0f0 75%, #ffffff 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -148,8 +150,9 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
     }
 
     .spec-value {
+      font-family: 'Resonate', sans-serif;
       font-size: 20px;
-      font-weight: 700;
+      font-weight: 900; /* Black weight */
       background: linear-gradient(135deg, #ffffff 0%, #e8e8e8 50%, #ffffff 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;

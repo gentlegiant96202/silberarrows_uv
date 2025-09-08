@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
               signHereTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '2',
+                  pageNumber: '3',
                   xPosition: '100',
                   yPosition: '720',
                   tabLabel: 'CompanySignature'
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
               dateSignedTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '2',
+                  pageNumber: '3',
                   xPosition: '100',
                   yPosition: '750',
                   tabLabel: 'CompanyDate'
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
               signHereTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '2',
+                  pageNumber: '3',
                   xPosition: '350',
                   yPosition: '720',
                   tabLabel: 'CustomerSignature'
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
               dateSignedTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '2',
+                  pageNumber: '3',
                   xPosition: '350',
                   yPosition: '750',
                   tabLabel: 'CustomerDate'

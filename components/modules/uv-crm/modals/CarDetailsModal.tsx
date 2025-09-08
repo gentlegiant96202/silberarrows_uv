@@ -83,6 +83,7 @@ interface MediaItem {
   signing_status?: string; // DocuSign signing status
   sent_for_signing_at?: string; // When sent for signing
   signed_at?: string; // When signed
+  report_type?: string; // For damage reports
 }
 
 export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Props) {
@@ -239,6 +240,12 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         })) || [];
         
         setMedia(fixedData);
+        
+        // Debug: Log media items to see what's loaded
+        console.log('🔍 Media loaded for car:', car.id);
+        console.log('📊 Total media items:', fixedData.length);
+        const damageReports = fixedData.filter(m => m.kind === 'damage_report');
+        console.log('🎯 Damage report items found:', damageReports.length, damageReports);
         
         // Load consignment documents separately (includes both consignment and drive-whilst-sell agreements)
         const consignmentData = fixedData.filter(m => 

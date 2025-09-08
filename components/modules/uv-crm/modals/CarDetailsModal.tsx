@@ -1678,23 +1678,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   />
                 ) : (
                   <div className="space-y-4">
-                    {/* Always show interactive diagram if annotations exist */}
-                    {(localCar.damage_annotations?.length || 0) > 0 && (
-                      <div>
-                        <h4 className="text-white/80 text-sm font-medium mb-3">
-                          Interactive Damage Assessment ({(localCar.damage_annotations?.length || 0)} markers)
-                        </h4>
-                        <div className="border border-white/20 rounded-lg overflow-hidden bg-white p-4">
-                          <DamageMarkingInterface
-                            carId={localCar.id}
-                            initialAnnotations={localCar.damage_annotations || []}
-                            initialInspectionNotes={localCar.visual_inspection_notes || ''}
-                            readOnly={true}
-                            onSave={() => {}} // No-op for read-only mode
-                          />
-                        </div>
-                      </div>
-                    )}
 
                     {/* Show generated damage report images */}
                     {(() => {
@@ -1727,10 +1710,17 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                           </div>
                         </div>
                       ) : (localCar.damage_annotations?.length || 0) > 0 ? (
-                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 space-y-3">
-                          <p className="text-yellow-300 text-sm">
-                            ⚠️ No generated damage report found. 
-                          </p>
+                        <div className="space-y-3">
+                          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                            <p className="text-blue-300 text-sm mb-2">
+                              📋 {(localCar.damage_annotations?.length || 0)} damage marker{(localCar.damage_annotations?.length || 0) !== 1 ? 's' : ''} recorded
+                            </p>
+                            <p className="text-white/60 text-xs">
+                              Click Edit to view/modify damage assessment or generate report image.
+                            </p>
+                          </div>
+                          
+                          {/* Manual generation button for testing */}
                           <button
                             onClick={async () => {
                               try {
@@ -1761,9 +1751,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                 alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
                               }
                             }}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
                           >
-                            Generate Report Image Now
+                            🔧 Generate Report Image (Debug)
                           </button>
                         </div>
                       ) : (

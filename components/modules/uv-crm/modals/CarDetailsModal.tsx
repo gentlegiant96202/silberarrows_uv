@@ -247,6 +247,11 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         const damageReports = fixedData.filter(m => m.kind === 'damage_report');
         console.log('🎯 Damage report items found:', damageReports.length, damageReports);
         
+        // Debug: Log all media URLs to check processing
+        fixedData.forEach((m, i) => {
+          console.log(`📷 Media ${i + 1}: kind=${m.kind}, url=${m.url}, filename=${m.filename}`);
+        });
+        
         // Load consignment documents separately (includes both consignment and drive-whilst-sell agreements)
         const consignmentData = fixedData.filter(m => 
           m.kind === 'document' && 
@@ -1711,6 +1716,11 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                   src={reportImage.url}
                                   alt={`Vehicle Damage Report ${index + 1}`}
                                   className="w-full h-auto"
+                                  onLoad={() => console.log('✅ Damage report image loaded:', reportImage.url)}
+                                  onError={(e) => {
+                                    console.error('❌ Failed to load damage report image:', reportImage.url);
+                                    console.error('❌ Image error:', e);
+                                  }}
                                 />
                               </div>
                             ))}

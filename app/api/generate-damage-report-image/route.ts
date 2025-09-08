@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Successfully generated damage report image');
+    console.log('🔍 About to save to storage...');
 
     // Convert base64 to buffer for storage
     const imageBuffer = Buffer.from(renderResult.damageReportImage, 'base64');
@@ -114,7 +115,8 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('💾 Image uploaded to storage:', uploadData.path);
+    console.log('💾 Image uploaded to storage successfully:', uploadData.path);
+    console.log('🔍 About to get public URL...');
 
     // Get public URL and replace with new domain
     const { data: publicUrlData } = supabase.storage

@@ -78,6 +78,8 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     owners_manual_acquired: false,
     spare_tyre_tools_acquired: false,
     fire_extinguisher_acquired: false,
+    other_accessories_acquired: false,
+    other_accessories_details: "",
     // Vehicle history disclosure fields
     customer_disclosed_accident: false,
     customer_disclosed_flood_damage: false,
@@ -575,6 +577,8 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         owners_manual_acquired: form.ownership_type === 'consignment' ? form.owners_manual_acquired : null,
         spare_tyre_tools_acquired: form.ownership_type === 'consignment' ? form.spare_tyre_tools_acquired : null,
         fire_extinguisher_acquired: form.ownership_type === 'consignment' ? form.fire_extinguisher_acquired : null,
+        other_accessories_acquired: form.ownership_type === 'consignment' ? form.other_accessories_acquired : null,
+        other_accessories_details: form.ownership_type === 'consignment' ? form.other_accessories_details.trim() || null : null,
         // Vehicle history disclosure fields
         customer_disclosed_accident: form.ownership_type === 'consignment' ? form.customer_disclosed_accident : null,
         customer_disclosed_flood_damage: form.ownership_type === 'consignment' ? form.customer_disclosed_flood_damage : null,
@@ -1168,6 +1172,7 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                            { label: "Owner's Manual Acquired", name: "owners_manual_acquired" },
                            { label: "Spare Tyre & Tools Acquired", name: "spare_tyre_tools_acquired" },
                            { label: "Fire Extinguisher Acquired", name: "fire_extinguisher_acquired" },
+                           { label: "Other Accessories Acquired", name: "other_accessories_acquired" },
                          ].map((checkbox) => (
                            <div key={checkbox.name} className="flex items-center space-x-2">
                              <input
@@ -1184,6 +1189,21 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                            </div>
                          ))}
                        </div>
+                       
+                       {/* Other Accessories Details - Conditional Field */}
+                       {form.other_accessories_acquired && (
+                         <div className="mt-4">
+                           <label className="block text-white/60 mb-2 text-xs font-semibold">Other Accessories Details</label>
+                           <textarea
+                             name="other_accessories_details"
+                             value={form.other_accessories_details}
+                             onChange={handleChange}
+                             placeholder="Describe the other accessories acquired (e.g., car cover, floor mats, phone charger, etc.)"
+                             className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white text-xs placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 resize-y min-h-[60px]"
+                             rows={3}
+                           />
+                         </div>
+                       )}
                      </div>
 
                     {/* Vehicle Damage Assessment */}

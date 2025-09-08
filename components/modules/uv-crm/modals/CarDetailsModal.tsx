@@ -55,6 +55,8 @@ export interface CarInfo {
   owners_manual_acquired: boolean | null;
   spare_tyre_tools_acquired: boolean | null;
   fire_extinguisher_acquired: boolean | null;
+  other_accessories_acquired: boolean | null;
+  other_accessories_details: string | null;
   // Vehicle history disclosure fields
   customer_disclosed_accident: boolean | null;
   customer_disclosed_flood_damage: boolean | null;
@@ -993,8 +995,27 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
           value: localCar.fire_extinguisher_acquired ? '✅ Acquired' : '☐ Not acquired', 
           field: 'fire_extinguisher_acquired' 
         },
+        { 
+          label: 'Other Accessories', 
+          value: localCar.other_accessories_acquired ? '✅ Acquired' : '☐ Not acquired', 
+          field: 'other_accessories_acquired' 
+        },
       ],
     });
+
+    // Add Other Accessories Details as a separate field if acquired
+    if (localCar.other_accessories_acquired) {
+      groups.push({
+        heading: 'Other Accessories Details',
+        rows: [
+          { 
+            label: 'Accessories Description', 
+            value: localCar.other_accessories_details || '—', 
+            field: 'other_accessories_details' 
+          },
+        ],
+      });
+    }
   }
 
   const locations = ['SHOWROOM','YARD','STONE','CAR PARK','SHOWROOM 2','NOT ON SITE','GARGASH','IN SERVICE'];

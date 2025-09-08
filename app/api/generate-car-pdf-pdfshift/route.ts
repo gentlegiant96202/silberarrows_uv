@@ -525,7 +525,6 @@ export async function POST(request: NextRequest) {
               
               .thumbnail {
                   width: 100%;
-                  height: 80px;
                   background: rgba(0, 0, 0, 0.3);
                   border: 1px solid rgba(255, 255, 255, 0.08);
                   border-radius: 8px;
@@ -533,13 +532,13 @@ export async function POST(request: NextRequest) {
                   align-items: center;
                   justify-content: center;
                   overflow: hidden;
-                  aspect-ratio: 3/2;
+                  aspect-ratio: 1.5;
               }
               
               .thumbnail img {
                   width: 100%;
                   height: 100%;
-                  object-fit: cover;
+                  object-fit: contain;
                   border-radius: 7px;
                   /* Force max resolution for PDF optimization */
                   max-width: 400px;

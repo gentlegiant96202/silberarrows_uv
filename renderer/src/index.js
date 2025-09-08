@@ -373,12 +373,33 @@ app.post('/render-catalog', async (req, res) => {
     await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     
-    // Wait for fonts but with shorter timeout
+    // Enhanced font loading like content pillars
     try {
+      console.log('⏳ Waiting for fonts to load...');
       await page.evaluate(() => document.fonts && document.fonts.ready);
-      await page.waitForTimeout(2000); // Wait for image to load
+      
+      // Force load Resonate fonts specifically
+      await page.evaluate(() => {
+        const resonateTest = document.createElement('div');
+        resonateTest.style.fontFamily = 'Resonate, Arial, sans-serif';
+        resonateTest.style.fontSize = '68px';
+        resonateTest.style.fontWeight = '900';
+        resonateTest.style.position = 'absolute';
+        resonateTest.style.left = '-9999px';
+        resonateTest.innerHTML = 'Resonate Font Test';
+        document.body.appendChild(resonateTest);
+        
+        // Force layout calculation
+        resonateTest.offsetHeight;
+        
+        // Remove test element
+        document.body.removeChild(resonateTest);
+      });
+      
+      await page.waitForTimeout(3000); // Extra time for fonts and image
+      console.log('✅ Fonts loaded successfully');
     } catch (e) {
-      console.log('Font loading timeout, proceeding...');
+      console.log('Font loading timeout, proceeding...', e.message);
     }
     
     const catalogBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1350 } });

@@ -488,6 +488,7 @@ export async function POST(request: NextRequest) {
               
               .main-image {
                   width: 100%;
+                  height: 300px;
                   background: rgba(0, 0, 0, 0.3);
                   border: 2px dashed rgba(255, 255, 255, 0.15);
                   border-radius: 12px;
@@ -497,13 +498,13 @@ export async function POST(request: NextRequest) {
                   margin-bottom: 15px;
                   position: relative;
                   overflow: hidden;
-                  aspect-ratio: 1.5;
+                  aspect-ratio: 3/2;
               }
               
               .main-image img {
                   width: 100%;
                   height: 100%;
-                  object-fit: contain;
+                  object-fit: cover;
                   border-radius: 10px;
                   border: none;
               }

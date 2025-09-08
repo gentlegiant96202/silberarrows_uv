@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import DamageAnnotationOverlay from './DamageAnnotationOverlay';
 
 interface DamageMarker {
@@ -18,6 +18,7 @@ interface DamageMarkingInterfaceProps {
   onSave: (annotations: DamageMarker[], inspectionNotes: string) => void;
   readOnly?: boolean;
   initialInspectionNotes?: string;
+  onImageGenerated?: (imageUrl: string, filename: string) => void;
 }
 
 const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
@@ -25,7 +26,8 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
   initialAnnotations = [],
   onSave,
   readOnly = false,
-  initialInspectionNotes = ''
+  initialInspectionNotes = '',
+  onImageGenerated
 }) => {
   const [annotations, setAnnotations] = useState<DamageMarker[]>(initialAnnotations);
   const [isMarking, setIsMarking] = useState(false);
@@ -38,6 +40,14 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
   // Image dimensions
   const IMAGE_WIDTH = 2029;
   const IMAGE_HEIGHT = 765;
+
+  // Auto-generate inspection notes when component loads with existing annotations
+  useEffect(() => {
+    if (initialAnnotations.length > 0 && !initialInspectionNotes) {
+      console.log('🔄 Auto-generating inspection notes for existing annotations...');
+      updateInspectionNotes(initialAnnotations);
+    }
+  }, [initialAnnotations, initialInspectionNotes]);
 
 
   const getSeverityColor = (severity: DamageMarker['severity']) => {
@@ -113,12 +123,14 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
     
     setAnnotations(updatedAnnotations);
     
-    // Auto-update inspection notes
+    // Auto-update inspection notes first
     updateInspectionNotes(updatedAnnotations);
     
-    // Auto-save to parent component
+    // Auto-save to parent component with a delay to ensure notes are updated
     setTimeout(() => {
-      onSave(updatedAnnotations, inspectionNotes);
+      // Use the updated inspection notes that were just generated
+      const updatedNotes = generateInspectionNotesSync(updatedAnnotations);
+      onSave(updatedAnnotations, updatedNotes);
     }, 100);
 
     setShowDamageForm(false);
@@ -131,9 +143,10 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
     setAnnotations(updatedAnnotations);
     // Auto-update inspection notes
     updateInspectionNotes(updatedAnnotations);
-    // Auto-save to parent component
+    // Auto-save to parent component with updated notes
     setTimeout(() => {
-      onSave(updatedAnnotations, inspectionNotes);
+      const updatedNotes = generateInspectionNotesSync(updatedAnnotations);
+      onSave(updatedAnnotations, updatedNotes);
     }, 100);
   };
 
@@ -150,10 +163,10 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
     setIsMarking(false);
   };
 
-  const updateInspectionNotes = (markers: DamageMarker[]) => {
+  // Synchronous function to generate inspection notes (for immediate use)
+  const generateInspectionNotesSync = (markers: DamageMarker[]): string => {
     if (markers.length === 0) {
-      setInspectionNotes('');
-      return;
+      return '';
     }
 
     // Group markers by damage type
@@ -177,8 +190,11 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
       notes += `${label.toUpperCase()} (${severity.toUpperCase()}): ${count} location${count > 1 ? 's' : ''}\n`;
       
       groupMarkers.forEach((marker, index) => {
-        if (marker.description.trim()) {
-          notes += `  ${index + 1}. ${marker.description}\n`;
+        const description = marker.description.trim();
+        if (description) {
+          notes += `  ${index + 1}. ${description}\n`;
+        } else {
+          notes += `  ${index + 1}. [No description provided]\n`;
         }
       });
       notes += '\n';
@@ -189,6 +205,11 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
     const uniqueTypes = Array.from(new Set(markers.map(m => m.damageType)));
     notes += `SUMMARY: ${totalMarkers} total damage marker${totalMarkers > 1 ? 's' : ''} identified across ${uniqueTypes.length} damage type${uniqueTypes.length > 1 ? 's' : ''} (${uniqueTypes.join(', ')}).`;
 
+    return notes;
+  };
+
+  const updateInspectionNotes = (markers: DamageMarker[]) => {
+    const notes = generateInspectionNotesSync(markers);
     setInspectionNotes(notes);
   };
 
@@ -252,7 +273,7 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
 
       {/* Controls */}
       {!readOnly && (
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center flex-wrap">
           <button 
             onClick={(e) => {
               e.preventDefault();
@@ -284,48 +305,120 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
           </button>
 
           {annotations.length > 0 && (
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setAnnotations([]);
-                setInspectionNotes(''); // Clear notes when clearing all markers
-              }}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
-            >
-              Clear All
-            </button>
+            <>
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setAnnotations([]);
+                  setInspectionNotes(''); // Clear notes when clearing all markers
+                }}
+                className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
+              >
+                Clear All
+              </button>
+
+              <button 
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  if (carId === 'temp-car-id') {
+                    alert('Please save the car first before generating report image.');
+                    return;
+                  }
+
+                  try {
+                    console.log('🔧 Generating damage report image from edit mode...');
+                    const response = await fetch('/api/generate-damage-report-image', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        carId,
+                        damageAnnotations: annotations,
+                        inspectionNotes
+                      })
+                    });
+
+                    const result = await response.json();
+                    console.log('📊 Generation result:', result);
+                    
+                    if (result.success) {
+                      console.log('✅ Damage report image generated:', result.imageUrl);
+                      alert('Damage report image generated successfully!');
+                      // Notify parent component about the new image
+                      if (onImageGenerated) {
+                        onImageGenerated(result.imageUrl, result.fileName);
+                      }
+                    } else {
+                      console.error('❌ Failed to generate damage report image:', result.error);
+                      alert(`Failed to generate image: ${result.error}`);
+                    }
+                  } catch (error) {
+                    console.error('❌ Error generating damage report image:', error);
+                    alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                  }
+                }}
+                className="px-6 py-3 bg-gradient-to-r from-gray-400 to-gray-600 hover:from-gray-300 hover:to-gray-500 text-white rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Generate Report
+              </button>
+            </>
           )}
         </div>
       )}
 
       {/* Visual Inspection Notes */}
-      <div className="bg-white/10 rounded-lg p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">
-          Visual Inspection Notes
+      <div className="bg-black/20 backdrop-blur-sm border border-white/15 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-lg font-bold text-white uppercase tracking-wide">
+            Visual Inspection Notes
+          </h4>
           {annotations.length > 0 && (
-            <span className="text-sm font-normal text-white/70 ml-2">
-              ({annotations.length} damage marker{annotations.length !== 1 ? 's' : ''} marked)
-            </span>
-          )}
-        </h4>
-        <textarea
-          value={inspectionNotes}
-          onChange={(e) => setInspectionNotes(e.target.value)}
-          placeholder="Damage markers will automatically appear here, or enter custom inspection notes..."
-          className="w-full h-48 px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
-          readOnly={readOnly}
-        />
-        <div className="flex justify-between items-center mt-2">
-          <div className="text-xs text-white/50">
-            {inspectionNotes.length}/1000 characters
-          </div>
-          {annotations.length > 0 && (
-            <div className="text-xs text-white/60">
-              Damage types marked: {Array.from(new Set(annotations.map(a => a.damageType))).join(', ')}
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-blue-300 text-xs font-semibold">
+                {annotations.length} marker{annotations.length !== 1 ? 's' : ''}
+              </span>
+              <span className="text-xs text-white/60">
+                {Array.from(new Set(annotations.map(a => a.damageType))).join(', ')}
+              </span>
             </div>
           )}
         </div>
+        
+        <div className="relative">
+          <textarea
+            value={inspectionNotes}
+            onChange={(e) => setInspectionNotes(e.target.value)}
+            placeholder="Damage markers will automatically appear here, or enter custom inspection notes..."
+            className="w-full h-48 px-4 py-4 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 resize-y font-mono text-sm leading-relaxed transition-all duration-200"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+            readOnly={readOnly}
+          />
+          
+          {/* Character count overlay */}
+          <div className="absolute bottom-3 right-3 flex items-center gap-3">
+            <div className={`text-xs font-medium px-2 py-1 rounded ${
+              inspectionNotes.length > 1000 
+                ? 'bg-red-500/20 text-red-300 border border-red-500/30' 
+                : 'bg-black/40 text-white/60'
+            }`}>
+              {inspectionNotes.length}/1000
+            </div>
+          </div>
+        </div>
+        
+        {inspectionNotes.length > 1000 && (
+          <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            Notes exceed character limit
+          </p>
+        )}
       </div>
 
       {/* Damage form modal */}
@@ -408,14 +501,14 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleCancelDamageForm}
-                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                className="flex-1 px-4 py-2 bg-black/40 backdrop-blur-sm border border-white/20 hover:bg-black/60 hover:border-white/30 text-white rounded-lg transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleSaveDamageMarker(editingMarker)}
                 disabled={!editingMarker.description.trim()}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-gray-400 to-gray-600 hover:from-gray-300 hover:to-gray-500 disabled:from-gray-500 disabled:to-gray-700 text-white rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 {annotations.find(a => a.id === editingMarker.id) ? 'Update' : 'Add'} Damage
               </button>

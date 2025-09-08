@@ -1675,86 +1675,66 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         if (onSaved) onSaved({ ...localCar, damage_annotations: annotations, visual_inspection_notes: inspectionNotes });
                       }
                     }}
+                    onImageGenerated={(imageUrl, filename) => {
+                      console.log('🔄 Image generated, updating local media state...');
+                      
+                      // Remove old damage reports from local state
+                      const filteredMedia = media.filter(m => m.kind !== 'damage_report');
+                      
+                      // Add new damage report to local state
+                      const newDamageReport = {
+                        id: Date.now().toString(), // Temporary ID
+                        car_id: localCar.id,
+                        url: imageUrl,
+                        kind: 'damage_report',
+                        filename: filename,
+                        sort_order: 999,
+                        is_primary: false,
+                        report_type: 'damage_report',
+                        created_at: new Date().toISOString()
+                      };
+                      
+                      setMedia([...filteredMedia, newDamageReport]);
+                      console.log('✅ Local media state updated with new damage report');
+                    }}
                   />
                 ) : (
                   <div className="space-y-4">
 
-                    {/* Show generated damage report images */}
+                    {/* Show latest generated damage report image */}
                     {(() => {
                       const damageReportImages = media.filter(m => m.kind === 'damage_report');
-                      return damageReportImages.length > 0 ? (
+                      // Get the most recent damage report (highest sort_order or latest created_at)
+                      const latestReport = damageReportImages.sort((a, b) => 
+                        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+                      )[0];
+                      
+                      return latestReport ? (
                         <div>
                           <h4 className="text-white/80 text-sm font-medium mb-3">
-                            Generated Damage Reports ({damageReportImages.length})
+                            Generated Damage Report
                           </h4>
-                          <div className="grid grid-cols-1 gap-4">
-                            {damageReportImages.map((reportImage, index) => (
-                              <div key={reportImage.id} className="border border-white/20 rounded-lg overflow-hidden">
-                                <div className="bg-black/20 px-3 py-2">
-                                  <p className="text-white/70 text-xs">
-                                    Report #{index + 1} - {reportImage.filename}
-                                  </p>
-                                </div>
-                                <img 
-                                  src={reportImage.url}
-                                  alt={`Vehicle Damage Report ${index + 1}`}
-                                  className="w-full h-auto"
-                                  onLoad={() => console.log('✅ Damage report image loaded:', reportImage.url)}
-                                  onError={(e) => {
-                                    console.error('❌ Failed to load damage report image:', reportImage.url);
-                                    console.error('❌ Image error:', e);
-                                  }}
-                                />
-                              </div>
-                            ))}
+                          <div className="border border-white/20 rounded-lg overflow-hidden">
+                            <img 
+                              src={latestReport.url}
+                              alt="Vehicle Damage Report"
+                              className="w-full h-auto"
+                              onLoad={() => console.log('✅ Damage report image loaded:', latestReport.url)}
+                              onError={(e) => {
+                                console.error('❌ Failed to load damage report image:', latestReport.url);
+                                console.error('❌ Image error:', e);
+                              }}
+                            />
                           </div>
                         </div>
                       ) : (localCar.damage_annotations?.length || 0) > 0 ? (
-                        <div className="space-y-3">
-                          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                            <p className="text-blue-300 text-sm mb-2">
-                              📋 {(localCar.damage_annotations?.length || 0)} damage marker{(localCar.damage_annotations?.length || 0) !== 1 ? 's' : ''} recorded
-                            </p>
-                            <p className="text-white/60 text-xs">
-                              Click Edit to view/modify damage assessment or generate report image.
-                            </p>
-                          </div>
-                          
-                          {/* Manual generation button for testing */}
-                          <button
-                            onClick={async () => {
-                              try {
-                                console.log('🔧 Manually generating damage report image...');
-                                const response = await fetch('/api/generate-damage-report-image', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    carId: localCar.id,
-                                    damageAnnotations: localCar.damage_annotations,
-                                    inspectionNotes: localCar.visual_inspection_notes
-                                  })
-                                });
-
-                                const result = await response.json();
-                                console.log('📊 Generation result:', result);
-                                
-                                if (result.success) {
-                                  console.log('✅ Damage report image generated:', result.imageUrl);
-                                  // Reload media to show new image
-                                  refetchMedia();
-                                } else {
-                                  console.error('❌ Failed to generate damage report image:', result.error);
-                                  alert(`Failed to generate image: ${result.error}`);
-                                }
-                              } catch (error) {
-                                console.error('❌ Error generating damage report image:', error);
-                                alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                              }
-                            }}
-                            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
-                          >
-                            🔧 Generate Report Image (Debug)
-                          </button>
+                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                          <p className="text-blue-300 text-sm mb-2">
+                            📋 {(localCar.damage_annotations?.length || 0)} damage marker{(localCar.damage_annotations?.length || 0) !== 1 ? 's' : ''} recorded
+                          </p>
+                          <p className="text-white/60 text-xs">
+                            Click Edit to view/modify damage assessment or generate report image.
+                          </p>
                         </div>
                       ) : (
                         <p className="text-white/60 text-sm">No damage assessment recorded.</p>
@@ -1763,10 +1743,17 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
                     {/* Show inspection notes */}
                     {localCar.visual_inspection_notes && (
-                      <div>
-                        <h4 className="text-white/80 text-sm font-medium mb-3">Visual Inspection Notes</h4>
-                        <div className="bg-black/20 border border-white/20 rounded-lg p-3">
-                          <pre className="text-white/80 text-sm whitespace-pre-wrap font-mono">
+                      <div className="bg-black/20 backdrop-blur-sm border border-white/15 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-lg font-bold text-white uppercase tracking-wide">
+                            Visual Inspection Notes
+                          </h4>
+                          <div className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-green-300 text-xs font-semibold">
+                            Saved Report
+                          </div>
+                        </div>
+                        <div className="bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg p-4">
+                          <pre className="text-white/90 text-sm whitespace-pre-wrap font-mono leading-relaxed">
                             {localCar.visual_inspection_notes}
                           </pre>
                         </div>

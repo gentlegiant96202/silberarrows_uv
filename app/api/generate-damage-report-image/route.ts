@@ -118,6 +118,44 @@ export async function POST(request: NextRequest) {
     console.log('💾 Image uploaded to storage successfully:', uploadData.path);
     console.log('🔍 About to get public URL...');
 
+    // Delete any existing damage report images for this car first
+    console.log('🗑️ Removing old damage report images...');
+    const { data: existingReports } = await supabase
+      .from('car_media')
+      .select('id, url')
+      .eq('car_id', carId)
+      .eq('kind', 'damage_report');
+
+    if (existingReports && existingReports.length > 0) {
+      console.log(`🗑️ Found ${existingReports.length} existing damage reports to remove`);
+      
+      // Delete from car_media table
+      const { error: deleteError } = await supabase
+        .from('car_media')
+        .delete()
+        .eq('car_id', carId)
+        .eq('kind', 'damage_report');
+      
+      if (deleteError) {
+        console.error('❌ Failed to delete old damage reports from database:', deleteError);
+      } else {
+        console.log('✅ Old damage reports removed from database');
+      }
+
+      // Also try to delete old files from storage (best effort)
+      for (const report of existingReports) {
+        try {
+          const pathMatch = report.url.match(/damage-reports\/(.+)$/);
+          if (pathMatch) {
+            await supabase.storage.from('media-files').remove([`damage-reports/${pathMatch[1]}`]);
+            console.log('🗑️ Deleted old file from storage:', pathMatch[1]);
+          }
+        } catch (e) {
+          console.log('⚠️ Could not delete old file from storage (non-critical):', e);
+        }
+      }
+    }
+
     // Get public URL and replace with new domain
     const { data: publicUrlData } = supabase.storage
       .from('media-files')

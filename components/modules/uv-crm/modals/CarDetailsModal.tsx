@@ -84,6 +84,7 @@ interface MediaItem {
   sent_for_signing_at?: string; // When sent for signing
   signed_at?: string; // When signed
   report_type?: string; // For damage reports
+  created_at?: string; // Creation timestamp
 }
 
 export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Props) {

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consignment Agreement Preview</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .preview-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .template-selector {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 5px;
+        }
+        .template-selector select {
+            padding: 8px 12px;
+            margin: 0 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .preview-frame {
+            width: 100%;
+            height: 800px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .instructions code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <h1>🔍 Consignment Agreement Preview Tool</h1>
+        
+        <div class="instructions">
+            <h3>📝 How to Use This Preview Tool:</h3>
+            <ol>
+                <li>Select which agreement template you want to preview from the dropdown</li>
+                <li>The template will load with sample data in the iframe below</li>
+                <li>Make changes to the HTML file in: <code>renderer/public/templates/[template-name].html</code></li>
+                <li>Refresh this page to see your changes instantly</li>
+                <li>Once happy with your changes, deploy to see them in production</li>
+            </ol>
+            <p><strong>💡 Tip:</strong> Keep this page open while editing the templates for instant preview!</p>
+        </div>
+
+        <div class="template-selector">
+            <label for="templateSelect"><strong>Choose Template:</strong></label>
+            <select id="templateSelect" onchange="loadTemplate()">
+                <option value="">-- Select a template --</option>
+                <option value="consignment-agreement-template.html">Standard Consignment Agreement</option>
+                <option value="drive-whilst-sell-agreement-template-v2.html">Drive Whilst Sell Agreement</option>
+            </select>
+            <button onclick="loadTemplate()" style="padding: 8px 16px; margin-left: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Refresh Preview</button>
+        </div>
+
+        <iframe id="previewFrame" class="preview-frame" src="about:blank"></iframe>
+    </div>
+
+    <script>
+        function loadTemplate() {
+            const select = document.getElementById('templateSelect');
+            const frame = document.getElementById('previewFrame');
+            const templateName = select.value;
+            
+            if (!templateName) {
+                frame.src = 'about:blank';
+                return;
+            }
+            
+            // Load the template with sample data
+            frame.src = `preview-template.html?template=${templateName}`;
+        }
+        
+        // Auto-load the first template on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const select = document.getElementById('templateSelect');
+            select.selectedIndex = 1; // Select the first template
+            loadTemplate();
+        });
+    </script>
+</body>
+</html>

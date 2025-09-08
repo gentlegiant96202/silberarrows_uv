@@ -27,11 +27,34 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       overflow: hidden;
     }
 
-    .catalog-card-square {
+    .catalog-card-container {
+      position: relative;
+      width: 1080px;
+      height: 1350px; /* 4:5 aspect ratio */
+      background: linear-gradient(45deg, #00ff88, #00ccff, #ff00ff, #ffff00);
+      background-size: 400% 400%;
+      animation: fluorescent-glow 3s ease-in-out infinite alternate;
+      border-radius: 0;
+      padding: 20px; /* Fluorescent border thickness */
+      box-sizing: border-box;
+    }
+
+    @keyframes fluorescent-glow {
+      0% {
+        background-position: 0% 50%;
+        filter: brightness(1) saturate(1.2);
+      }
+      100% {
+        background-position: 100% 50%;
+        filter: brightness(1.2) saturate(1.5);
+      }
+    }
+
+    .catalog-card-inner {
       display: flex;
       flex-direction: column;
-      width: 1080px;
-      height: 1080px;
+      width: 100%;
+      height: 100%;
       position: relative;
       overflow: hidden;
       background-image: url('${catalogImageUrl}');
@@ -162,39 +185,41 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
   </style>
 </head>
 <body>
-  <div class="catalog-card-square">
-    <!-- Price Badge -->
-    <div class="price-badge">
-      <div class="price-text">AED ${carDetails.price}</div>
-    </div>
-
-    <!-- Bottom Info Panel -->
-    <div class="info-panel">
-      <!-- Car Title -->
-      <div class="car-title">${carDetails.year} ${carDetails.model}</div>
-      
-      <!-- Specs Row -->
-      <div class="specs-row">
-        <div class="spec-item">
-          <div class="spec-label">Mileage</div>
-          <div class="spec-value">${carDetails.mileage} KM</div>
-        </div>
-        <div class="spec-item">
-          <div class="spec-label">Stock</div>
-          <div class="spec-value">${carDetails.stockNumber}</div>
-        </div>
-        <div class="spec-item">
-          <div class="spec-label">Price</div>
-          <div class="spec-value">AED ${carDetails.price}</div>
-        </div>
+  <div class="catalog-card-container">
+    <div class="catalog-card-inner">
+      <!-- Price Badge -->
+      <div class="price-badge">
+        <div class="price-text">AED ${carDetails.price}</div>
       </div>
 
-      <!-- Brand Footer -->
-      <div class="brand-footer">
-        <div class="brand-logo">SilberArrows</div>
-        <div class="contact-info">
-          +971 4 380 5515<br>
-          sales@silberarrows.com
+      <!-- Bottom Info Panel -->
+      <div class="info-panel">
+        <!-- Car Title -->
+        <div class="car-title">${carDetails.year} ${carDetails.model}</div>
+        
+        <!-- Specs Row -->
+        <div class="specs-row">
+          <div class="spec-item">
+            <div class="spec-label">Mileage</div>
+            <div class="spec-value">${carDetails.mileage} KM</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Stock</div>
+            <div class="spec-value">${carDetails.stockNumber}</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Price</div>
+            <div class="spec-value">AED ${carDetails.price}</div>
+          </div>
+        </div>
+
+        <!-- Brand Footer -->
+        <div class="brand-footer">
+          <div class="brand-logo">SilberArrows</div>
+          <div class="contact-info">
+            +971 4 380 5515<br>
+            sales@silberarrows.com
+          </div>
         </div>
       </div>
     </div>

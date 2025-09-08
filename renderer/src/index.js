@@ -357,8 +357,8 @@ app.post('/render-catalog', async (req, res) => {
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
-    // Square format for catalog (1080x1080)
-    await page.setViewportSize({ width: 1080, height: 1080 });
+    // 4:5 aspect ratio for catalog (1080x1350)
+    await page.setViewportSize({ width: 1080, height: 1350 });
     
     // Set shorter timeout and don't wait for network idle for external images
     await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
@@ -372,7 +372,7 @@ app.post('/render-catalog', async (req, res) => {
       console.log('Font loading timeout, proceeding...');
     }
     
-    const catalogBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1080 } });
+    const catalogBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1350 } });
 
     await browser.close();
 

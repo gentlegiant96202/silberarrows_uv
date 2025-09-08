@@ -24,14 +24,36 @@
       overflow: hidden;
     }
 
-    .catalog-card-square {
+    .catalog-card-container {
       position: relative;
       width: 1080px;
-      height: 1080px;
+      height: 1350px; /* 4:5 aspect ratio */
+      background: linear-gradient(45deg, #00ff88, #00ccff, #ff00ff, #ffff00);
+      background-size: 400% 400%;
+      animation: fluorescent-glow 3s ease-in-out infinite alternate;
+      border-radius: 0;
+      padding: 20px; /* Fluorescent border thickness */
+      box-sizing: border-box;
+    }
+
+    @keyframes fluorescent-glow {
+      0% {
+        background-position: 0% 50%;
+        filter: brightness(1) saturate(1.2);
+      }
+      100% {
+        background-position: 100% 50%;
+        filter: brightness(1.2) saturate(1.5);
+      }
+    }
+
+    .catalog-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       background: #000000;
       border-radius: 0;
-      border: none;
     }
 
     .catalog-bg-image {
@@ -172,42 +194,42 @@
   </style>
 </head>
 <body>
-  <div class="catalog-card-square">
-    <!-- Full Square Background Image -->
-    <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" onerror="this.style.display='none';" />
-    
-
-
-    <!-- Content Overlay (Bottom) -->
-    <div class="content-section">
-      <div class="header">
-        <h1>{{year}} {{model}}</h1>
-        <p class="subtitle"><span class="highlight">Premium Selection</span></p>
-      </div>
-
-      <div class="specs-grid">
-        <div class="spec-item">
-          <div class="spec-value">{{mileage}}</div>
-          <div class="spec-label">Kilometers</div>
+  <div class="catalog-card-container">
+    <div class="catalog-card-inner">
+      <!-- Full Background Image -->
+      <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" onerror="this.style.display='none';" />
+      
+      <!-- Content Overlay (Bottom) -->
+      <div class="content-section">
+        <div class="header">
+          <h1>{{year}} {{model}}</h1>
+          <p class="subtitle"><span class="highlight">Premium Selection</span></p>
         </div>
-        <div class="spec-item">
-          <div class="spec-value">{{stockNumber}}</div>
-          <div class="spec-label">Stock #</div>
-        </div>
-        <div class="spec-item">
-          <div class="spec-value">{{year}}</div>
-          <div class="spec-label">Model Year</div>
-        </div>
-      </div>
 
-      <div class="price-footer">
-        <div class="price-card">
-          <div class="price-label">Monthly Payment</div>
-          <div class="monthly-value">AED {{monthlyPayment}}</div>
+        <div class="specs-grid">
+          <div class="spec-item">
+            <div class="spec-value">{{mileage}}</div>
+            <div class="spec-label">Kilometers</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">{{stockNumber}}</div>
+            <div class="spec-label">Stock #</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">{{year}}</div>
+            <div class="spec-label">Model Year</div>
+          </div>
         </div>
-        <div class="price-card">
-          <div class="price-label">Cash Price</div>
-          <div class="price-value">AED {{price}}</div>
+
+        <div class="price-footer">
+          <div class="price-card">
+            <div class="price-label">Monthly Payment</div>
+            <div class="monthly-value">AED {{monthlyPayment}}</div>
+          </div>
+          <div class="price-card">
+            <div class="price-label">Cash Price</div>
+            <div class="price-value">AED {{price}}</div>
+          </div>
         </div>
       </div>
     </div>

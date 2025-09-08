@@ -170,22 +170,36 @@ function fillTemplate45({ carDetails, pricing, firstImageUrl }) {
 }
 
 function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
-  // Calculate monthly payment (assuming 5% interest, 60 months, 20% down payment)
+  // Calculate monthly payments for 0% and 20% down
   const price = parseFloat(String(carDetails.price ?? '0').replace(/,/g, ''));
-  const loanAmount = price * 0.8; // 80% financed
   const monthlyRate = 0.05 / 12; // 5% annual rate
   const months = 60;
-  const monthlyPayment = loanAmount > 0 ? Math.round(loanAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months))) : 0;
+  
+  // 0% down payment
+  const zeroDownLoanAmount = price;
+  const zeroDownPayment = zeroDownLoanAmount > 0 ? Math.round(zeroDownLoanAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months))) : 0;
+  
+  // 20% down payment
+  const twentyDownLoanAmount = price * 0.8; // 80% financed
+  const twentyDownPayment = twentyDownLoanAmount > 0 ? Math.round(twentyDownLoanAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months))) : 0;
+  
+  // Special offer calculation (10% off)
+  const specialOfferPrice = Math.round(price * 0.9);
   
   let html = catalogTemplateHtml;
   const replacements = {
     '{{year}}': String(carDetails.year ?? ''),
     '{{model}}': String(carDetails.model ?? ''),
-    '{{mileage}}': String(carDetails.mileage ?? ''),
+    '{{mileage}}': String(carDetails.mileage ?? '') + ' KM',
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
     '{{price}}': String(carDetails.price ?? ''),
-    '{{monthlyPayment}}': String(monthlyPayment.toLocaleString()),
+    '{{monthlyPayment}}': String(twentyDownPayment.toLocaleString()),
     '{{catalogImageUrl}}': String(catalogImageUrl ?? ''),
+    '{{specialOffer}}': 'AED ' + String(specialOfferPrice.toLocaleString()),
+    '{{zeroDownPayment}}': 'AED ' + String(zeroDownPayment.toLocaleString()),
+    '{{twentyDownPayment}}': 'AED ' + String(twentyDownPayment.toLocaleString()),
+    '{{horsepower}}': String(carDetails.horsepower ?? '—') + (carDetails.horsepower ? ' HP' : ''),
+    '{{engine}}': String(carDetails.engine ?? '—'),
   };
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);

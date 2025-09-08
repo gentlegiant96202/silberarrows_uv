@@ -5,13 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{year}} {{model}} | UV Catalog</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Resonate:wght@400;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+    }
+
+    @font-face {
+      font-family: 'Resonate';
+      src: url('./Fonts/Resonate-Regular.woff2') format('woff2'),
+           url('./Fonts/Resonate-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Resonate';
+      src: url('./Fonts/Resonate-Black.woff2') format('woff2'),
+           url('./Fonts/Resonate-Black.otf') format('opentype');
+      font-weight: 900;
+      font-style: normal;
     }
 
     body {
@@ -114,7 +129,8 @@
     .specs-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+      grid-template-rows: repeat(2, 1fr);
+      gap: 12px;
       margin-bottom: 20px;
     }
 
@@ -208,20 +224,35 @@
           <p class="subtitle"><span class="highlight">Premium Selection</span></p>
         </div>
 
-        <div class="specs-grid">
-          <div class="spec-item">
-            <div class="spec-value">{{mileage}}</div>
-            <div class="spec-label">Kilometers</div>
-          </div>
-          <div class="spec-item">
-            <div class="spec-value">{{stockNumber}}</div>
-            <div class="spec-label">Stock #</div>
-          </div>
-          <div class="spec-item">
-            <div class="spec-value">{{year}}</div>
-            <div class="spec-label">Model Year</div>
-          </div>
+      <div class="specs-grid">
+        <!-- Top Row -->
+        <div class="spec-item">
+          <div class="spec-value">{{specialOffer}}</div>
+          <div class="spec-label">Special Offer</div>
         </div>
+        <div class="spec-item">
+          <div class="spec-value">{{zeroDownPayment}}</div>
+          <div class="spec-label">0% Down</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-value">{{twentyDownPayment}}</div>
+          <div class="spec-label">20% Down</div>
+        </div>
+        
+        <!-- Bottom Row -->
+        <div class="spec-item">
+          <div class="spec-value">{{mileage}}</div>
+          <div class="spec-label">Mileage</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-value">{{horsepower}}</div>
+          <div class="spec-label">Horsepower</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-value">{{engine}}</div>
+          <div class="spec-label">Engine</div>
+        </div>
+      </div>
 
         <div class="price-footer">
           <div class="price-card">

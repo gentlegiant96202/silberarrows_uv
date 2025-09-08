@@ -9,12 +9,25 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${carDetails.year} ${carDetails.model} | UV Catalog</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Resonate:wght@400;900&display=swap" rel="stylesheet" />
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+    }
+
+    @font-face {
+      font-family: 'Resonate';
+      src: url('https://database.silberarrows.com/storage/v1/object/public/media-files/fonts/Resonate-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Resonate';
+      src: url('https://database.silberarrows.com/storage/v1/object/public/media-files/fonts/Resonate-Black.woff2') format('woff2');
+      font-weight: 900;
+      font-style: normal;
     }
 
     body {
@@ -123,8 +136,12 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
     .specs-row {
       display: flex;
       justify-content: space-between;
+      margin-bottom: 15px;
+      gap: 20px;
+    }
+    
+    .specs-row:last-of-type {
       margin-bottom: 20px;
-      gap: 30px;
     }
 
     .spec-item {
@@ -201,21 +218,38 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
         <!-- Car Title -->
         <div class="car-title">${carDetails.year} ${carDetails.model}</div>
         
-        <!-- Specs Row -->
-        <div class="specs-row">
-          <div class="spec-item">
-            <div class="spec-label">Mileage</div>
-            <div class="spec-value">${carDetails.mileage} KM</div>
-          </div>
-          <div class="spec-item">
-            <div class="spec-label">Stock</div>
-            <div class="spec-value">${carDetails.stockNumber}</div>
-          </div>
-          <div class="spec-item">
-            <div class="spec-label">Price</div>
-            <div class="spec-value">AED ${carDetails.price}</div>
-          </div>
+      <!-- Specs Grid - 2 rows of 3 -->
+      <div class="specs-row">
+        <!-- Top Row -->
+        <div class="spec-item">
+          <div class="spec-label">Special Offer</div>
+          <div class="spec-value">AED ${carDetails.specialOffer}</div>
         </div>
+        <div class="spec-item">
+          <div class="spec-label">0% Down</div>
+          <div class="spec-value">AED ${carDetails.zeroDownPayment}</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">20% Down</div>
+          <div class="spec-value">AED ${carDetails.twentyDownPayment}</div>
+        </div>
+      </div>
+      
+      <div class="specs-row">
+        <!-- Bottom Row -->
+        <div class="spec-item">
+          <div class="spec-label">Mileage</div>
+          <div class="spec-value">${carDetails.mileage} KM</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Horsepower</div>
+          <div class="spec-value">${carDetails.horsepower}${carDetails.horsepower !== '—' ? ' HP' : ''}</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Engine</div>
+          <div class="spec-value">${carDetails.engine}</div>
+        </div>
+      </div>
 
         <!-- Brand Footer -->
         <div class="brand-footer">
@@ -248,7 +282,11 @@ export async function POST(
         model_year,
         vehicle_model,
         advertised_price_aed,
-        current_mileage_km
+        current_mileage_km,
+        engine,
+        horsepower_hp,
+        monthly_0_down_aed,
+        monthly_20_down_aed
       `)
       .eq('id', carId)
       .single();
@@ -284,13 +322,21 @@ export async function POST(
       catalogMedia = photoMedia;
     }
 
+    // Calculate special offer (10% off advertised price)
+    const specialOfferPrice = car.advertised_price_aed ? Math.round(car.advertised_price_aed * 0.9) : 0;
+    
     // Prepare car details for renderer
     const carDetails = {
       year: car.model_year,
       model: car.vehicle_model,
       mileage: car.current_mileage_km ? car.current_mileage_km.toLocaleString() : '0',
       stockNumber: car.stock_number,
-      price: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '0'
+      price: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '0',
+      engine: car.engine || '—',
+      horsepower: car.horsepower_hp || '—',
+      specialOffer: specialOfferPrice ? specialOfferPrice.toLocaleString() : '—',
+      zeroDownPayment: car.monthly_0_down_aed ? car.monthly_0_down_aed.toLocaleString() : '—',
+      twentyDownPayment: car.monthly_20_down_aed ? car.monthly_20_down_aed.toLocaleString() : '—'
     };
 
     // Call Railway renderer service to generate catalog image (same as price drop)

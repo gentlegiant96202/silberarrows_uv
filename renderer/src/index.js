@@ -96,7 +96,8 @@ async function loadTemplate() {
     console.log('✅ Damage Report template loaded, length:', damageReportTemplateHtml.length);
   } catch (err) {
     console.error('❌ Error loading damage report template:', err);
-    throw err;
+    console.error('❌ This is non-critical, service will continue without damage report functionality');
+    damageReportTemplateHtml = ''; // Don't fail startup
   }
   
   // Load main logo as base64 at startup
@@ -810,6 +811,13 @@ app.post('/render-damage-report', async (req, res) => {
       });
     }
 
+    if (!damageReportTemplateHtml) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Damage report template not loaded' 
+      });
+    }
+
     console.log('📊 Car details:', carDetails);
     console.log('🎯 Damage annotations count:', damageAnnotations.length);
 
@@ -929,7 +937,8 @@ app.get('/health', (req, res) => {
     status: 'ok', 
     timestamp: new Date().toISOString(),
     port: process.env.PORT || 3000,
-    templatesLoaded: Object.keys(contentPillarTemplates).length
+    templatesLoaded: Object.keys(contentPillarTemplates).length,
+    damageReportTemplateLoaded: !!damageReportTemplateHtml
   });
 });
 

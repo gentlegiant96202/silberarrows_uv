@@ -1334,7 +1334,9 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
   // Get the original file URL (for video playback, not thumbnails)
   const getOriginalFileUrl = (file: any) => {
-    return typeof file === 'string' ? file : file.url;
+    const url = typeof file === 'string' ? file : file.url;
+    // Convert to custom domain to avoid ISP blocking (same as images)
+    return url?.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
   };
 
   // Download all media files

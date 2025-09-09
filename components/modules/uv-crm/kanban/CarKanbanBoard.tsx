@@ -177,7 +177,7 @@ export default function CarKanbanBoard() {
   const load = async () => {
     try {
       console.log('🚗 CarKanbanBoard: Loading cars with proper permissions...');
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('cars')
         .select(`
           id,
@@ -203,11 +203,55 @@ export default function CarKanbanBoard() {
           horsepower_hp
         `)
         .order('updated_at', { ascending: false });
-      const carRows = (data as any[] || []) as Car[];
-      setCars(carRows);
+      
+      let carRows: Car[] = [];
+      
+      if (error) {
+        console.error('❌ CarKanbanBoard: Error loading cars:', error);
+        // If the new fields don't exist, try without them
+        if (error.message?.includes('column') && (error.message?.includes('current_mileage_km') || error.message?.includes('mileage_km') || error.message?.includes('horsepower_hp'))) {
+          console.log('🔄 CarKanbanBoard: Retrying without new fields...');
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('cars')
+            .select(`
+              id,
+              stock_number,
+              model_year,
+              vehicle_model,
+              colour,
+              advertised_price_aed,
+              status,
+              sale_status,
+              stock_age_days,
+              ownership_type,
+              customer_name,
+              customer_email,
+              customer_phone,
+              vehicle_details_pdf_url,
+              archived_at,
+              customer_disclosed_accident,
+              customer_disclosed_flood_damage,
+              damage_disclosure_details
+            `)
+            .order('updated_at', { ascending: false });
+          
+          if (fallbackError) {
+            console.error('❌ CarKanbanBoard: Fallback query also failed:', fallbackError);
+            return;
+          }
+          
+          carRows = (fallbackData as any[] || []) as Car[];
+          setCars(carRows);
+        } else {
+          return;
+        }
+      } else {
+        carRows = (data as any[] || []) as Car[];
+        setCars(carRows);
+      }
 
       // fetch primary thumbnails for these cars
-      const ids = carRows.map(c=>c.id);
+      const ids = carRows.map(c => c.id);
       if(ids.length){
         const { data: mediaRows } = await supabase
           .from('car_media')

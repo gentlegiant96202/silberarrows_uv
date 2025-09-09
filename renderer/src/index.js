@@ -131,11 +131,24 @@ function replaceAll(str, find, replace) {
 
 function fillTemplate({ carDetails, pricing, firstImageUrl }) {
   let html = templateHtml;
+  
+  // Handle mileage - if it's "N/A" or empty, show "N/A"
+  const mileageDisplay = carDetails.mileage && carDetails.mileage !== 'N/A' && carDetails.mileage.trim() !== '' 
+    ? carDetails.mileage 
+    : 'N/A';
+    
+  // Handle horsepower - if it's null, undefined, or empty, show 'N/A'
+  const horsepowerDisplay = carDetails.horsepower && carDetails.horsepower !== null && carDetails.horsepower !== '' 
+    ? String(carDetails.horsepower)
+    : 'N/A';
+  
+  console.log('🔧 Template values - Mileage:', mileageDisplay, 'Horsepower:', horsepowerDisplay);
+  
   const replacements = {
     '{{year}}': String(carDetails.year ?? ''),
     '{{model}}': String(carDetails.model ?? ''),
-    '{{mileage}}': String(carDetails.mileage ?? ''),
-    '{{horsepower}}': String(carDetails.horsepower ?? ''),
+    '{{mileage}}': mileageDisplay,
+    '{{horsepower}}': horsepowerDisplay,
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
     '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
@@ -151,11 +164,22 @@ function fillTemplate({ carDetails, pricing, firstImageUrl }) {
 
 function fillTemplate45({ carDetails, pricing, firstImageUrl }) {
   let html = template45Html;
+  
+  // Handle mileage - if it's "N/A" or empty, show "N/A"
+  const mileageDisplay = carDetails.mileage && carDetails.mileage !== 'N/A' && carDetails.mileage.trim() !== '' 
+    ? carDetails.mileage 
+    : 'N/A';
+    
+  // Handle horsepower - if it's null, undefined, or empty, show 'N/A'
+  const horsepowerDisplay = carDetails.horsepower && carDetails.horsepower !== null && carDetails.horsepower !== '' 
+    ? String(carDetails.horsepower)
+    : 'N/A';
+  
   const replacements = {
     '{{year}}': String(carDetails.year ?? ''),
     '{{model}}': String(carDetails.model ?? ''),
-    '{{mileage}}': String(carDetails.mileage ?? ''),
-    '{{horsepower}}': String(carDetails.horsepower ?? ''),
+    '{{mileage}}': mileageDisplay,
+    '{{horsepower}}': horsepowerDisplay,
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
     '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
@@ -281,6 +305,8 @@ app.post('/render', async (req, res) => {
     const { carDetails, pricing, firstImageUrl, secondImageUrl } = req.body || {};
     
     console.log('🚗 Car details:', carDetails);
+    console.log('🔍 Mileage value:', carDetails.mileage, typeof carDetails.mileage);
+    console.log('🔍 Horsepower value:', carDetails.horsepower, typeof carDetails.horsepower);
     console.log('💰 Pricing:', pricing);
     console.log('🖼️ Image URL:', firstImageUrl ? 'Present' : 'Missing');
     

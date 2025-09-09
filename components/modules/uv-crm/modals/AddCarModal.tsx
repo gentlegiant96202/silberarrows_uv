@@ -1206,10 +1206,10 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                        )}
                      </div>
 
-                    {/* Vehicle Damage Assessment */}
+                    {/* Pre-Used Vehicle Check */}
                     <div className="col-span-2">
                       <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-                        <h3 className="text-white/80 text-lg font-semibold mb-4">Vehicle Damage Assessment</h3>
+                        <h3 className="text-white/80 text-lg font-semibold mb-4">Pre-Used Vehicle Check</h3>
                         <p className="text-white/60 text-sm mb-6">Mark any existing damage on the vehicle diagram below. This will be included in the consignment agreement.</p>
                         
                         <DamageMarkingInterface

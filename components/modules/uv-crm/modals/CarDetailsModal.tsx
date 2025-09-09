@@ -1656,11 +1656,11 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
               </div>
             )}
 
-              {/* Vehicle Damage Assessment - Only for consignment cars */}
+              {/* Pre-Used Vehicle Check - Only for consignment cars */}
             {localCar.ownership_type === 'consignment' && (
               <div className="border border-white/15 rounded-md p-5 bg-white/5">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-white text-sm font-bold uppercase tracking-wide">Vehicle Damage Assessment</h3>
+                  <h3 className="text-white text-sm font-bold uppercase tracking-wide">Pre-Used Vehicle Check</h3>
                   {!editing && (localCar.damage_annotations?.length || 0) > 0 && (
                     <span className="text-xs text-white/60">
                       {(localCar.damage_annotations?.length || 0)} damage marker{(localCar.damage_annotations?.length || 0) !== 1 ? 's' : ''} recorded

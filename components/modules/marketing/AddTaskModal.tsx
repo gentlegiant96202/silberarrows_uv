@@ -733,9 +733,12 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
             idx === globalIndex ? { ...f, uploadProgress: 95 } : f
           ));
           
-          const { data: { publicUrl: url } } = supabase.storage
+          const { data: { publicUrl: rawUrl } } = supabase.storage
             .from('media-files')
             .getPublicUrl(storagePath);
+          
+          // Convert to custom domain to avoid ISP blocking
+          const url = rawUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
           
           publicUrl = url;
           console.log('📤 Direct Supabase upload completed:', publicUrl);

@@ -1002,9 +1002,12 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           // Final progress updates
           setUploadProgress(95);
           
-          const { data: { publicUrl: url } } = supabase.storage
+          const { data: { publicUrl: rawUrl } } = supabase.storage
             .from('media-files')
             .getPublicUrl(storagePath);
+          
+          // Convert to custom domain to avoid ISP blocking
+          const url = rawUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
           
           publicUrl = url;
           console.log('📤 Direct Supabase upload completed:', publicUrl);
@@ -1035,10 +1038,12 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
               .from('media-files')
               .upload(thumbPath, thumbFile, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
             if (!thumbErr) {
-              const { data: { publicUrl: thumbUrl } } = supabase.storage
+              const { data: { publicUrl: rawThumbUrl } } = supabase.storage
                 .from('media-files')
                 .getPublicUrl(thumbPath);
-              fileObject.thumbnail = thumbUrl;
+              
+              // Convert to custom domain to avoid ISP blocking
+              fileObject.thumbnail = rawThumbUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
             } else {
               console.warn('Thumbnail upload error:', thumbErr);
             }

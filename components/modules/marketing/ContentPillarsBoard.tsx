@@ -640,9 +640,12 @@ export default function ContentPillarsBoard() {
             throw new Error(uploadError.message);
           }
           
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl: rawUrl } } = supabase.storage
             .from('media-files')
             .getPublicUrl(storagePath);
+          
+          // Convert to custom domain to avoid ISP blocking
+          const publicUrl = rawUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
           
           const mediaItem = {
             url: publicUrl,

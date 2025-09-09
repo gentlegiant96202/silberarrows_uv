@@ -9,7 +9,6 @@ interface Car {
   brand?: string;
   advertised_price_aed: number;
   current_mileage_km?: number;
-  mileage_km?: number;
   horsepower_hp?: number;
   monthly_0_down_aed?: number | null;
   monthly_20_down_aed?: number | null;
@@ -180,9 +179,8 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
         id: car.id,
         year: car.model_year,
         model: car.vehicle_model,
-        mileage: car.current_mileage_km || car.mileage_km,
+        mileage: car.current_mileage_km,
         current_mileage_km: car.current_mileage_km,
-        mileage_km: car.mileage_km,
         horsepower_hp: car.horsepower_hp,
         stockNumber: car.stock_number
       });

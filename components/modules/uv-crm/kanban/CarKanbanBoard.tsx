@@ -124,7 +124,6 @@ interface Car {
   damage_disclosure_details?: string | null;
   // Fields needed for PriceDropModal
   current_mileage_km?: number;
-  mileage_km?: number;
   horsepower_hp?: number;
 }
 
@@ -199,7 +198,6 @@ export default function CarKanbanBoard() {
           customer_disclosed_flood_damage,
           damage_disclosure_details,
           current_mileage_km,
-          mileage_km,
           horsepower_hp
         `)
         .order('updated_at', { ascending: false });

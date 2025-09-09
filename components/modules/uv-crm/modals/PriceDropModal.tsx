@@ -134,6 +134,24 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       // Ensure font is loaded before generating images
       await loadAcuminFont();
       
+      // First, get the complete car data with all fields (like CarDetailsModal does)
+      console.log('🔄 Loading complete car data...');
+      const { data: fullCarData, error: carError } = await supabase
+        .from('cars')
+        .select('*')
+        .eq('id', car.id)
+        .single();
+      
+      if (carError) {
+        console.error('❌ Error loading full car data:', carError);
+        throw new Error('Failed to load complete car data');
+      }
+      
+      console.log('✅ Full car data loaded:', {
+        current_mileage_km: fullCarData.current_mileage_km,
+        horsepower_hp: fullCarData.horsepower_hp
+      });
+      
       // Get the first catalog image for this car
       console.log('📸 Fetching catalog image...');
       const { data: carMedia, error } = await supabase
@@ -158,7 +176,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       const firstImageUrl = carMedia[0]?.url;
 
       console.log('📷 Catalog image URL:', firstImageUrl);
-      console.log('📊 Car details:', {
+      console.log('📊 Car details (from kanban):', {
         id: car.id,
         year: car.model_year,
         model: car.vehicle_model,
@@ -168,18 +186,22 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
         horsepower_hp: car.horsepower_hp,
         stockNumber: car.stock_number
       });
+      
+      console.log('📊 Full car data (from database):', {
+        current_mileage_km: fullCarData.current_mileage_km,
+        horsepower_hp: fullCarData.horsepower_hp
+      });
 
       const rendererBase = process.env.NEXT_PUBLIC_RENDERER_URL as string | undefined;
       const endpoint = rendererBase ? `${rendererBase.replace(/\/$/, '')}/render` : '/api/generate-price-drop-images';
       
       const payloadToSend = {
         carDetails: {
-          year: car.model_year,
-          model: car.vehicle_model,
-          mileage: car.current_mileage_km ? `${car.current_mileage_km.toLocaleString()} KM` : 
-                   car.mileage_km ? `${car.mileage_km.toLocaleString()} KM` : 'N/A',
-          stockNumber: car.stock_number,
-          horsepower: car.horsepower_hp ?? null
+          year: fullCarData.model_year,
+          model: fullCarData.vehicle_model,
+          mileage: fullCarData.current_mileage_km ? `${fullCarData.current_mileage_km.toLocaleString()} KM` : 'N/A',
+          stockNumber: fullCarData.stock_number,
+          horsepower: fullCarData.horsepower_hp ?? null
         },
         pricing: {
           wasPrice: parseFloat(originalPrice),

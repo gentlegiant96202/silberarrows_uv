@@ -122,6 +122,10 @@ interface Car {
   customer_disclosed_accident?: boolean | null;
   customer_disclosed_flood_damage?: boolean | null;
   damage_disclosure_details?: string | null;
+  // Fields needed for PriceDropModal
+  current_mileage_km?: number;
+  mileage_km?: number;
+  horsepower_hp?: number;
 }
 
 export default function CarKanbanBoard() {
@@ -193,7 +197,10 @@ export default function CarKanbanBoard() {
           archived_at,
           customer_disclosed_accident,
           customer_disclosed_flood_damage,
-          damage_disclosure_details
+          damage_disclosure_details,
+          current_mileage_km,
+          mileage_km,
+          horsepower_hp
         `)
         .order('updated_at', { ascending: false });
       const carRows = (data as any[] || []) as Car[];

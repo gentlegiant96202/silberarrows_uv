@@ -1310,8 +1310,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
   const getImageUrl = (file: any) => {
     // Helper function to convert URLs to custom domain
-    const convertToCustomDomain = (url: string | null): string | null => {
-      if (!url) return null;
+    const convertToCustomDomain = (url: string | null): string | undefined => {
+      if (!url) return undefined;
       // Convert old Supabase URLs to custom domain
       return url.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
     };

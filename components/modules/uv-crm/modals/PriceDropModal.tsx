@@ -163,35 +163,43 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
         year: car.model_year,
         model: car.vehicle_model,
         mileage: car.current_mileage_km || car.mileage_km,
+        current_mileage_km: car.current_mileage_km,
+        mileage_km: car.mileage_km,
+        horsepower_hp: car.horsepower_hp,
         stockNumber: car.stock_number
       });
 
       const rendererBase = process.env.NEXT_PUBLIC_RENDERER_URL as string | undefined;
       const endpoint = rendererBase ? `${rendererBase.replace(/\/$/, '')}/render` : '/api/generate-price-drop-images';
+      
+      const payloadToSend = {
+        carDetails: {
+          year: car.model_year,
+          model: car.vehicle_model,
+          mileage: car.current_mileage_km ? `${car.current_mileage_km.toLocaleString()} KM` : 
+                   car.mileage_km ? `${car.mileage_km.toLocaleString()} KM` : 'N/A',
+          stockNumber: car.stock_number,
+          horsepower: car.horsepower_hp ?? null
+        },
+        pricing: {
+          wasPrice: parseFloat(originalPrice),
+          nowPrice: parseFloat(newPrice),
+          savings: parseFloat(originalPrice) - parseFloat(newPrice),
+          monthlyPayment: newMonthly.isCashOnly ? null : newMonthly.twenty,
+          isCashOnly: newMonthly.isCashOnly
+        },
+        firstImageUrl,
+        secondImageUrl: firstImageUrl
+      };
+      
+      console.log('🚀 Sending to renderer:', JSON.stringify(payloadToSend, null, 2));
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          carDetails: {
-            year: car.model_year,
-            model: car.vehicle_model,
-            mileage: car.current_mileage_km ? `${car.current_mileage_km.toLocaleString()} KM` : 
-                     car.mileage_km ? `${car.mileage_km.toLocaleString()} KM` : 'N/A',
-            stockNumber: car.stock_number,
-            horsepower: car.horsepower_hp ?? null
-          },
-          pricing: {
-            wasPrice: parseFloat(originalPrice),
-            nowPrice: parseFloat(newPrice),
-            savings: parseFloat(originalPrice) - parseFloat(newPrice),
-            monthlyPayment: newMonthly.isCashOnly ? null : newMonthly.twenty,
-            isCashOnly: newMonthly.isCashOnly
-          },
-          firstImageUrl,
-          secondImageUrl: firstImageUrl
-        }),
+        body: JSON.stringify(payloadToSend),
       });
 
       if (!response.ok) {

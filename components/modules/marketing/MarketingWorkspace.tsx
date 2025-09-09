@@ -1512,7 +1512,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
       <div className="flex w-full h-full min-h-0">
         
         {/* Main Canvas Area - Now Full Width */}
-        <div className="flex-1 relative bg-black/10 h-full">
+        <div className="flex-1 relative bg-gradient-to-br from-gray-200 via-gray-300 to-gray-200 h-full">
           {(() => {
             const currentFile: any = allViewableFiles[selectedImageIndex];
             if (!currentFile) return null;
@@ -1544,7 +1544,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
             if (isVideo) {
               // Video - Optimized rendering without zoom/pan for better performance
               return (
-                <div className="relative w-full h-full flex items-center justify-center bg-black/10">
+                <div className="relative w-full h-full flex items-center justify-center bg-transparent">
                   {/* Preload poster for faster first paint */}
                   {typeof currentFile !== 'string' && (currentFile as any)?.thumbnail && (
                     <Head>

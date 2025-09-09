@@ -11,9 +11,16 @@ import Head from 'next/head';
 function getPreviewUrl(mediaFiles: any[] = []): string | null {
   if (!mediaFiles || !mediaFiles.length) return null;
   
+  // Helper function to convert URLs to custom domain
+  const convertToCustomDomain = (url: string | null): string | null => {
+    if (!url) return null;
+    // Convert old Supabase URLs to custom domain
+    return url.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
+  };
+  
   // Prefer thumbnail if present
   const withThumbnail = mediaFiles.find((f: any) => f.thumbnail);
-  if (withThumbnail) return withThumbnail.thumbnail;
+  if (withThumbnail) return convertToCustomDomain(withThumbnail.thumbnail);
   
   // Try to find an image file
   const imageFile = mediaFiles.find((f: any) => {
@@ -24,7 +31,8 @@ function getPreviewUrl(mediaFiles: any[] = []): string | null {
   });
   
   if (imageFile) {
-    return typeof imageFile === 'string' ? imageFile : imageFile.url;
+    const url = typeof imageFile === 'string' ? imageFile : imageFile.url;
+    return convertToCustomDomain(url);
   }
   
   // Fallback: Check for PDF files and return a special indicator
@@ -1301,8 +1309,15 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
   }, []);
 
   const getImageUrl = (file: any) => {
+    // Helper function to convert URLs to custom domain
+    const convertToCustomDomain = (url: string | null): string | null => {
+      if (!url) return null;
+      // Convert old Supabase URLs to custom domain
+      return url.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
+    };
+    
     if (typeof file === 'string') {
-      return file;
+      return convertToCustomDomain(file);
     }
     
     // For video files with thumbnails, return the thumbnail URL for thumbnail display
@@ -1311,10 +1326,10 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                    file.name?.match(/\.(mp4|mov|avi|webm|mkv)$/i);
     
     if (isVideo && file.thumbnail) {
-      return file.thumbnail;
+      return convertToCustomDomain(file.thumbnail);
     }
     
-    return file.url;
+    return convertToCustomDomain(file.url);
   };
 
   // Get the original file URL (for video playback, not thumbnails)

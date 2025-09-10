@@ -138,12 +138,12 @@ const getSilberArrowsSignatureTemplate = (): string => {
     '                                <img src="' + '{{iconPhone}}' + '" width="24" height="24" alt="EMBED PHONE ICON HERE (delete me)" style="display:block;border:0;margin-right:10px;" />{Phone}',
     '                              </td>',
     '                            </tr>',
-    '                            <tr>',
+    '                            {RT}<tr>',
     '                              <td style="font-size: 11px; color: #cccccc; padding: 3px 0; display: flex; align-items: center;">',
     '                                <!-- EMBED:ICON_MOBILE_24 - Delete the next <img> and Insert → Picture → Embedded (24x24 PNG) here -->',
     '                                <img src="' + '{{iconMobile}}' + '" width="24" height="24" alt="EMBED MOBILE ICON HERE (delete me)" style="display:block;border:0;margin-right:10px;" />{Mobile}',
     '                              </td>',
-    '                            </tr>',
+    '                            </tr>{/RT}',
     // Address row moved to a dedicated alignment row below alongside social icons
     '                          </table>',
     '                        </td>',
@@ -648,6 +648,11 @@ export default function EmailSignatureBoard() {
     Object.entries(replacements).forEach(([placeholder, value]) => {
       signature = signature.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value || '');
     });
+
+    // Hide CodeTwo conditional tags in local preview so {RT}{/RT} doesn't render as text
+    if (forPreview) {
+      signature = signature.replace(/\{RT\}/g, '').replace(/\{\/RT\}/g, '');
+    }
     
     return signature;
   };

@@ -543,8 +543,9 @@
 
     .checkbox-item {
       display: flex;
-      align-items: flex-start;
-      gap: 8px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
     }
 
     .agreement-checkbox {
@@ -552,23 +553,28 @@
       color: white;
       min-width: 16px;
       font-weight: bold;
+      position: relative;
     }
 
     .agreement-checkbox.checked {
-      color: white;
+      color: transparent;
     }
 
     .agreement-checkbox.checked::before {
       content: '☑';
       position: absolute;
-      margin-left: -16px;
+      left: 0;
+      top: 0;
+      color: white;
+      font-weight: bold;
     }
 
     .checkbox-label {
       font-size: 10px;
       color: white;
-      line-height: 1.3;
+      line-height: 1.4;
       flex: 1;
+      margin-top: 1px;
     }
   </style>
 </head>

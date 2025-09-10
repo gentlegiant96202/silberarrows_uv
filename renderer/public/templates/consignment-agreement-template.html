@@ -67,6 +67,10 @@
     .page.first-page .header {
       margin: 0 0 18px 0;
     }
+
+    .page.first-page .vehicle-history {
+      margin: 0 0 4px 0;
+    }
     
     .page::before {
       content: '';
@@ -530,6 +534,42 @@
       flex: 1;
       white-space: pre-line;
     }
+
+    .checkbox-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .checkbox {
+      font-size: 14px;
+      color: white;
+      min-width: 16px;
+      font-weight: bold;
+    }
+
+    .checkbox.checked {
+      color: white;
+    }
+
+    .checkbox.checked::before {
+      content: '☑';
+      position: absolute;
+      margin-left: -16px;
+    }
+
+    .checkbox-label {
+      font-size: 10px;
+      color: white;
+      line-height: 1.3;
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -544,8 +584,23 @@
     </div>
 
     <div class="content-container">
+      <!-- AGREEMENT TYPE SELECTION -->
+      <div class="section">
+        <div class="section-title">TYPE OF CONSIGNMENT (tick one):</div>
+        <div class="checkbox-section">
+          <div class="checkbox-item">
+            <span class="checkbox {{standard_checked}}">☐</span>
+            <span class="checkbox-label">Standard Consignment Agreement</span>
+          </div>
+          <div class="checkbox-item">
+            <span class="checkbox {{drive_whilst_sell_checked}}">☐</span>
+            <span class="checkbox-label">Drive It, Whilst We Sell It Consignment Agreement (Clauses 10–14 apply in addition to Clauses 1–9)</span>
+          </div>
+        </div>
+      </div>
+
       <!-- OWNER INFORMATION -->
-      <div class="section compact-section" style="margin-bottom: 15px;">
+      <div class="section compact-section">
         <div class="section-title">OWNER INFORMATION</div>
         <table class="form-table">
           <tr>
@@ -560,7 +615,7 @@
       </div>
 
       <!-- VEHICLE DETAILS -->
-      <div class="section compact-section" style="margin-bottom: 15px;">
+      <div class="section compact-section">
         <div class="section-title">VEHICLE DETAILS</div>
         <table class="form-table">
           <tr>
@@ -575,7 +630,7 @@
       </div>
 
       <!-- VEHICLE HISTORY -->
-      <div class="vehicle-history" style="margin-bottom: 15px;">
+      <div class="vehicle-history">
         <div class="text-content">
           <strong>To your knowledge as the Owner, has the vehicle:</strong>
         </div>
@@ -600,7 +655,7 @@
       </div>
 
       <!-- MAIN AGREEMENT -->
-      <div class="section" style="margin-bottom: 15px;">
+      <div class="section">
         <div class="section-title">MAIN AGREEMENT</div>
         
         <div class="text-content">

@@ -19,7 +19,6 @@ const templatePath = path.resolve(__dirname, '../public/templates/price-drop-tem
 const template45Path = path.resolve(__dirname, '../public/templates/price-drop-template-45.html');
 const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
 const consignmentTemplatePath = path.resolve(__dirname, '../public/templates/consignment-agreement-template.html');
-const driveWhilstSellTemplatePath = path.resolve(__dirname, '../public/templates/drive-whilst-sell-agreement-template-v2.html');
 const damageReportTemplatePath = path.resolve(__dirname, '../public/templates/damage-report-template.html');
 
 // Content pillar templates
@@ -37,7 +36,6 @@ let templateHtml = '';
 let template45Html = '';
 let catalogTemplateHtml = '';
 let consignmentTemplateHtml = '';
-let driveWhilstSellTemplateHtml = '';
 let damageReportTemplateHtml = '';
 let mainLogoBase64 = '';
 let contentPillarHtmls = {};
@@ -48,7 +46,6 @@ async function loadTemplate() {
   console.log('📄 4:5 template path:', template45Path);
   console.log('📄 Catalog template path:', catalogTemplatePath);
   console.log('📄 Consignment template path:', consignmentTemplatePath);
-  console.log('📄 Drive Whilst Sell template path:', driveWhilstSellTemplatePath);
   console.log('📄 Damage Report template path:', damageReportTemplatePath);
   
   try {
@@ -83,13 +80,6 @@ async function loadTemplate() {
     throw err;
   }
   
-  try {
-    driveWhilstSellTemplateHtml = await fs.readFile(driveWhilstSellTemplatePath, 'utf-8');
-    console.log('✅ Drive Whilst Sell template loaded, length:', driveWhilstSellTemplateHtml.length);
-  } catch (err) {
-    console.error('❌ Error loading drive whilst sell template:', err);
-    throw err;
-  }
   
   try {
     damageReportTemplateHtml = await fs.readFile(damageReportTemplatePath, 'utf-8');
@@ -743,10 +733,8 @@ app.post('/render-consignment-agreement', async (req, res) => {
       mainLogoBase64 = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
     }
 
-    // Use pre-loaded template based on agreement type
-    const htmlTemplate = isDriveWhilstSell 
-      ? driveWhilstSellTemplateHtml
-      : consignmentTemplateHtml;
+    // Use unified consignment template for both agreement types
+    const htmlTemplate = consignmentTemplateHtml;
     
     if (!htmlTemplate) {
       throw new Error(`${isDriveWhilstSell ? 'Drive whilst sell' : 'Consignment'} template not loaded at startup`);
@@ -756,6 +744,10 @@ app.post('/render-consignment-agreement', async (req, res) => {
     const templateVars = {
       todayStr: todayStr,
       main_logo_src: mainLogoBase64,
+      
+      // Agreement type checkbox variables
+      standard_checked: !isDriveWhilstSell ? 'checked' : '',
+      drive_whilst_sell_checked: isDriveWhilstSell ? 'checked' : '',
       customer_name: carData.customer_name || '',
       customer_phone: carData.customer_phone || '',
       customer_email: carData.customer_email || '',

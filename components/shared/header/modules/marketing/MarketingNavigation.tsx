@@ -9,7 +9,7 @@ const marketingTabs = [
   { key: 'uv_catalog', title: 'UV CATALOG' },
   { key: 'content_pillars', title: 'CONTENT PILLARS' },
   { key: 'blog', title: 'BLOG' },
-  { key: 'email', title: 'EMAIL' }
+  { key: 'email', title: 'EMAIL SIGNATURE' }
 ];
 
 interface MarketingNavigationProps {

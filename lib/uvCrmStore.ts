@@ -37,16 +37,16 @@ interface Car {
   sale_status: string;
   stock_age_days: number | null;
   ownership_type: string;
-  customer_name?: string;
-  customer_email?: string;
-  customer_phone?: string;
-  vehicle_details_pdf_url?: string;
-  archived_at?: string;
-  customer_disclosed_accident?: boolean;
-  customer_disclosed_flood_damage?: boolean;
-  damage_disclosure_details?: string;
-  current_mileage_km?: number;
-  horsepower_hp?: number;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  vehicle_details_pdf_url?: string | null;
+  archived_at?: string | null;
+  customer_disclosed_accident?: boolean | null;
+  customer_disclosed_flood_damage?: boolean | null;
+  damage_disclosure_details?: string | null;
+  current_mileage_km?: number | null;
+  horsepower_hp?: number | null;
 }
 
 interface UVCrmState {

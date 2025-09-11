@@ -183,38 +183,20 @@ export default function RouteProtector({
   const { user } = useAuth();
   const { canView, isLoading, error } = useModulePermissions(moduleName);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [showContent, setShowContent] = useState(false);
+  const [showContent, setShowContent] = useState(true);
   const [skeletonVisible, setSkeletonVisible] = useState(true);
 
   useEffect(() => {
     // Wait for both user authentication and permissions to load
     if (!isLoading && user) {
       setHasInitialized(true);
-      // Don't redirect - just show access denied screen
-      // This prevents the constant reloading issue
-      
-      // If user has permission, show content immediately
+      // If user has permission, hide skeleton overlay
       if (canView) {
         setSkeletonVisible(false);
         setShowContent(true);
       }
     }
   }, [canView, isLoading, user]);
-
-  // Show skeleton loading while checking authentication and permissions
-  if (!hasInitialized || isLoading || !user) {
-    // Show appropriate skeleton based on module
-    switch (moduleName) {
-      case 'inventory':
-        // Inventory handles its own progressive loading, show minimal loading
-        return <GenericModuleSkeleton moduleName={moduleName} />;
-      case 'uv_crm':
-        // CRM handles its own progressive loading, show minimal loading
-        return <GenericModuleSkeleton moduleName={moduleName} />;
-      default:
-        return <GenericModuleSkeleton moduleName={moduleName} />;
-    }
-  }
 
   // Show access denied if no permission (only after initialization)
   if (hasInitialized && !canView) {
@@ -229,7 +211,7 @@ export default function RouteProtector({
           <div className="flex justify-center">
             <button
               onClick={() => window.history.back()}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors"
+              className="px-6 py-3 bg-white/10 hover:bg_WHITE/20 border border-white/20 rounded-lg transition-colors"
             >
               Back
             </button>
@@ -242,7 +224,7 @@ export default function RouteProtector({
   // Show error state if there was an error
   if (error) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-black text_WHITE flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-8">
           <Shield className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
           <h1 className="text-2xl font-bold mb-2 text-white">Permission Error</h1>
@@ -251,7 +233,7 @@ export default function RouteProtector({
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors"
+            className="px-4 py-2 bg-white/10 hover:bg_WHITE/20 border border-white/20 rounded-lg transition-colors"
           >
             Retry
           </button>
@@ -274,16 +256,15 @@ export default function RouteProtector({
 
   return (
     <div className="relative h-full">
-      {/* Skeleton - fades out */}
+      {/* Skeleton overlay - fades out */}
       <div className={`absolute inset-0 transition-opacity duration-500 ease-out ${
         skeletonVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}>
         {getSkeleton()}
       </div>
-      
-      {/* Real content - fades in */}
-      <div className={`transition-opacity duration-500 ease-out ${
-        showContent ? 'opacity-100' : 'opacity-0'
+      {/* Real content - always mounted */}
+      <div className={`transition-opacity duration-300 ease-out ${
+        showContent ? 'opacity-100' : 'opacity-100'
       }`}>
         {children}
       </div>

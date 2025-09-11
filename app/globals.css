@@ -208,6 +208,32 @@ html::-webkit-scrollbar, body::-webkit-scrollbar{width:0;background:transparent;
   background: #000000;
 }
 
+/* Optimistic loading animations */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Column loading states */
+.column-loading {
+  opacity: 0.7;
+}
+
+.column-loaded {
+  opacity: 1;
+  transition: opacity 0.2s ease-out;
+}
+
 /* Hide scrollbars for Instagram Grid virtualization */
 .instagram-grid-no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */

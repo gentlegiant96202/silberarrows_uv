@@ -176,8 +176,25 @@ export default function KanbanBoard() {
   const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   
-  // Progressive loading states for fade-in animations
-  const [columnsVisible, setColumnsVisible] = useState(false);
+  // Column-by-column optimistic loading states
+  const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
+    new_lead: true,
+    new_customer: true,
+    negotiation: true,
+    won: true,
+    delivered: true,
+    lost: true,
+    archived: true
+  });
+  const [columnData, setColumnData] = useState<Record<ColKey, Lead[]>>({
+    new_lead: [],
+    new_customer: [],
+    negotiation: [],
+    won: [],
+    delivered: [],
+    lost: [],
+    archived: []
+  });
   const hasFetchedLeads = useRef(false);
 
   // Get permissions for archive functionality
@@ -208,45 +225,119 @@ export default function KanbanBoard() {
     );
   };
 
-  // fetch initial data with progressive fade-in
+  // Column-by-column optimistic loading
   useEffect(() => {
     if (!hasFetchedLeads.current) {
-      async function load() {
-        try {
-          console.log('🚀 CRM: Loading leads data...');
-          const leadsResult = await supabase.from("leads").select("*").order("updated_at", { ascending: false });
-          if (leadsResult.data) setLeads(leadsResult.data as unknown as Lead[]);
-          hasFetchedLeads.current = true;
-          
-          // Trigger fade-in animation immediately after data loads
-          // RouteProtector handles the main transition timing
-          setColumnsVisible(true);
-          console.log('✅ CRM: Leads loaded, columns visible');
-          
-        } finally {
-          setLoading(false);
-        }
-      }
-      load();
+      console.log('🚀 CRM: Starting optimistic column loading...');
+      
+      // Define loading priority (most important columns first)
+      const columnPriorities: { key: ColKey; delay: number; status: string[] }[] = [
+        { key: 'new_lead', delay: 0, status: ['new_lead'] },
+        { key: 'new_customer', delay: 80, status: ['new_customer'] },
+        { key: 'negotiation', delay: 160, status: ['negotiation'] },
+        { key: 'won', delay: 240, status: ['won'] },
+        { key: 'delivered', delay: 320, status: ['delivered'] },
+        { key: 'lost', delay: 400, status: ['lost'] },
+        { key: 'archived', delay: 480, status: ['archived'] }
+      ];
+
+      // Load each column progressively
+      columnPriorities.forEach(({ key, delay, status }) => {
+        setTimeout(async () => {
+          try {
+            console.log(`📥 Loading ${key} column...`);
+            const { data } = await supabase
+              .from('leads')
+              .select('*')
+              .in('status', status)
+              .order('updated_at', { ascending: false });
+
+            if (data) {
+              // Update column data
+              setColumnData(prev => ({
+                ...prev,
+                [key]: data as Lead[]
+              }));
+              
+              // Also update main leads array for compatibility
+              setLeads(prev => {
+                const filteredPrev = prev.filter(lead => !status.includes(lead.status));
+                return [...filteredPrev, ...(data as Lead[])];
+              });
+              
+              console.log(`✅ ${key} column loaded with ${data.length} leads`);
+            }
+          } catch (error) {
+            console.error(`❌ Failed to load ${key} column:`, error);
+          } finally {
+            // Mark column as loaded
+            setColumnLoading(prev => ({
+              ...prev,
+              [key]: false
+            }));
+          }
+        }, delay);
+      });
+
+      hasFetchedLeads.current = true;
+      setLoading(false);
     }
 
-    // realtime subscription
+    // realtime subscription - update both leads and columnData
     const channel = supabase
       .channel("leads-stream")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "leads" },
         (payload: any) => {
+          const updateColumnData = (lead: Lead, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => {
+            const normalizedStatus = (lead.status || "")
+              .trim()
+              .toLowerCase()
+              .replace(/\s+/g, "_") as ColKey;
+
+            setColumnData(prev => {
+              const newColumnData = { ...prev };
+              
+              if (eventType === "INSERT") {
+                if (newColumnData[normalizedStatus]) {
+                  newColumnData[normalizedStatus] = [lead, ...newColumnData[normalizedStatus]];
+                }
+              } else if (eventType === "UPDATE") {
+                // Remove from all columns first
+                Object.keys(newColumnData).forEach(key => {
+                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(l => l.id !== lead.id);
+                });
+                // Add to correct column
+                if (newColumnData[normalizedStatus]) {
+                  newColumnData[normalizedStatus] = [lead, ...newColumnData[normalizedStatus]];
+                }
+              } else if (eventType === "DELETE") {
+                Object.keys(newColumnData).forEach(key => {
+                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(l => l.id !== lead.id);
+                });
+              }
+              
+              return newColumnData;
+            });
+          };
+
           setLeads(prev => {
             let newLeads;
             if (payload.eventType === "INSERT") {
-              newLeads = [payload.new as Lead, ...prev];
+              const newLead = payload.new as Lead;
+              updateColumnData(newLead, "INSERT");
+              newLeads = [newLead, ...prev];
             } else if (payload.eventType === "UPDATE") {
-              newLeads = prev.map(l => (l.id === payload.new.id ? (payload.new as Lead) : l));
+              const updatedLead = payload.new as Lead;
+              updateColumnData(updatedLead, "UPDATE");
+              newLeads = prev.map(l => (l.id === updatedLead.id ? updatedLead : l));
             } else if (payload.eventType === "DELETE") {
-              newLeads = prev.filter(l => l.id !== payload.old.id);
+              const deletedLead = payload.old as Lead;
+              updateColumnData(deletedLead, "DELETE");
+              newLeads = prev.filter(l => l.id !== deletedLead.id);
             } else {
-            return prev;
+              return prev;
             }
             
             // Always maintain updated_at DESC sorting to prevent glitching
@@ -263,6 +354,7 @@ export default function KanbanBoard() {
     };
   }, []);
 
+  // Use columnData for progressive loading, apply search filter
   const grouped: Record<ColKey, Lead[]> = {
     new_lead: [],
     new_customer: [],
@@ -272,33 +364,20 @@ export default function KanbanBoard() {
     lost: [],
     archived: [],
   } as const;
-  
-  // Normalise status values so variations like "New Customer" or "NEW_CUSTOMER"
-  // still map to the correct column. Any unrecognised status defaults to the first column.
-  const visibleLeads = leads.filter(
-    l =>
+
+  // Apply search filtering to each column's data
+  (Object.keys(columnData) as ColKey[]).forEach(key => {
+    const columnLeads = columnData[key] || [];
+    const filteredLeads = columnLeads.filter(l =>
       match(l.full_name) ||
       match(l.phone_number) ||
       match(l.model_of_interest)
-  );
-
-  visibleLeads.forEach(l => {
-    const normalisedStatus = (l.status || "")
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "_") as ColKey;
-    if (grouped[normalisedStatus]) {
-      grouped[normalisedStatus].push(l);
-    } else {
-      grouped.new_lead.push(l); // fallback to new lead
-    }
-  });
-
-  // sort each column by updated_at newest first (stacking on top)
-  (Object.keys(grouped) as ColKey[]).forEach(k=>{
-    grouped[k].sort((a,b)=>{
-      return dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf();
-    });
+    );
+    
+    // Sort by updated_at newest first (stacking on top)
+    grouped[key] = filteredLeads.sort((a, b) => 
+      dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf()
+    );
   });
 
   const onDragStart = (lead: Lead) => (e: React.DragEvent) => {
@@ -533,11 +612,7 @@ export default function KanbanBoard() {
   return (
     <div className="px-4">
       <div
-        className={`flex gap-3 pb-4 w-full h-full overflow-hidden transition-all duration-700 ease-out transform ${
-          columnsVisible 
-            ? 'opacity-100 translate-y-0' 
-            : 'opacity-0 translate-y-4'
-        }`}
+        className="flex gap-3 pb-4 w-full h-full overflow-hidden"
         style={{ height: "calc(100vh - 72px)" }}
       >
         {columns
@@ -568,7 +643,7 @@ export default function KanbanBoard() {
               </button>
               ) : (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
-                  {grouped[col.key as ColKey].length}
+                  {columnLoading[col.key as ColKey] ? '--' : grouped[col.key as ColKey].length}
                 </span>
             )}
             </div>
@@ -593,14 +668,39 @@ export default function KanbanBoard() {
             )}
           </div>
           <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
-            {grouped[col.key as ColKey].map(l => (
+            {columnLoading[col.key as ColKey] ? (
+              // Show skeleton while column is loading
+              <div className="space-y-2">
+                {Array.from({ length: col.key === 'new_lead' ? 2 : 1 }).map((_, i) => (
+                  <div key={i} className="backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs bg-white/5 border border-white/10 animate-pulse">
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="h-3 bg-white/10 rounded w-3/4"></div>
+                      <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+                        <div className="h-2 bg-white/10 rounded w-1/2"></div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2.5 h-2.5 bg-white/10 rounded"></div>
+                        <div className="h-2 bg-white/10 rounded w-2/3"></div>
+                      </div>
+                      <div className="h-2 bg-white/10 rounded w-1/4 mt-1"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Show real data when loaded
+              grouped[col.key as ColKey].map(l => (
               <div
                 key={l.id}
                 draggable
                 onDragStart={onDragStart(l)}
                 onDragEnd={onDragEnd}
                 onClick={(e) => handleCardClick(l, e)}
-                className={`${(()=>{
+                className={`animate-fadeIn ${(()=>{
                   // Create precise appointment datetime by combining date and time_slot
                   const appointmentDateTime = l.appointment_date && l.time_slot 
                     ? dayjs(`${l.appointment_date} ${l.time_slot}`)
@@ -706,8 +806,9 @@ export default function KanbanBoard() {
                   </div>
                 </div>
               </div>
-            ))}
-            {grouped[col.key as ColKey].length === 0 && (
+              ))
+            )}
+            {!columnLoading[col.key as ColKey] && grouped[col.key as ColKey].length === 0 && (
               <div className="text-center text-xs text-white/50 py-4">No leads</div>
             )}
           </div>

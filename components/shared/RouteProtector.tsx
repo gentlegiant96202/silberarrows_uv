@@ -193,16 +193,10 @@ export default function RouteProtector({
       // Don't redirect - just show access denied screen
       // This prevents the constant reloading issue
       
-      // If user has permission, start the smooth transition
+      // If user has permission, show content immediately
       if (canView) {
-        // Start fading out skeleton after a brief delay
-        setTimeout(() => {
-          setSkeletonVisible(false);
-          // Show content after skeleton starts fading out
-          setTimeout(() => {
-            setShowContent(true);
-          }, 200); // 200ms for skeleton fade-out
-        }, 300); // 300ms initial delay for data loading
+        setSkeletonVisible(false);
+        setShowContent(true);
       }
     }
   }, [canView, isLoading, user]);
@@ -214,7 +208,8 @@ export default function RouteProtector({
       case 'inventory':
         return <InventorySkeleton />;
       case 'uv_crm':
-        return <CRMSkeleton />;
+        // CRM handles its own progressive loading, show minimal loading
+        return <GenericModuleSkeleton moduleName={moduleName} />;
       default:
         return <GenericModuleSkeleton moduleName={moduleName} />;
     }

@@ -482,8 +482,6 @@ export default function MarketingKanbanBoard() {
       setColumnsVisible(true);
     }, 100);
     
-    return () => clearTimeout(timer);
-
     // Real-time subscription for live updates across browsers
     const channel = supabase
       .channel('marketing-tasks-stream')
@@ -612,8 +610,9 @@ export default function MarketingKanbanBoard() {
       )
       .subscribe();
 
-    // Cleanup subscription on unmount
+    // Cleanup both timer and subscription on unmount
     return () => {
+      clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, []);

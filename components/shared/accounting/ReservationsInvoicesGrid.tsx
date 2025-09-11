@@ -136,22 +136,26 @@ export default function ReservationsInvoicesGrid() {
         windowTints: { count: 0, total: 0 }
       };
       
+      // Only calculate add-on metrics for invoices (not reservations)
       filteredData.forEach((item: any) => {
-        if (item.extended_warranty) {
-          metrics.extendedWarranty.count++;
-          metrics.extendedWarranty.total += Number(item.extended_warranty_price || 0);
-        }
-        if (item.ceramic_treatment) {
-          metrics.ceramicTreatment.count++;
-          metrics.ceramicTreatment.total += Number(item.ceramic_treatment_price || 0);
-        }
-        if (item.service_care) {
-          metrics.serviceCare.count++;
-          metrics.serviceCare.total += Number(item.service_care_price || 0);
-        }
-        if (item.window_tints) {
-          metrics.windowTints.count++;
-          metrics.windowTints.total += Number(item.window_tints_price || 0);
+        // Only count add-ons for invoices, not reservations
+        if (item.document_type === 'invoice') {
+          if (item.extended_warranty) {
+            metrics.extendedWarranty.count++;
+            metrics.extendedWarranty.total += Number(item.extended_warranty_price || 0);
+          }
+          if (item.ceramic_treatment) {
+            metrics.ceramicTreatment.count++;
+            metrics.ceramicTreatment.total += Number(item.ceramic_treatment_price || 0);
+          }
+          if (item.service_care) {
+            metrics.serviceCare.count++;
+            metrics.serviceCare.total += Number(item.service_care_price || 0);
+          }
+          if (item.window_tints) {
+            metrics.windowTints.count++;
+            metrics.windowTints.total += Number(item.window_tints_price || 0);
+          }
         }
       });
       
@@ -432,7 +436,7 @@ export default function ReservationsInvoicesGrid() {
 
       {/* Add-on Services Metrics */}
       <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-        <h3 className="text-lg font-medium text-white mb-4">Add-on Services Sold</h3>
+        <h3 className="text-lg font-medium text-white mb-4">Add-on Services Sold (Invoices Only)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-xl font-bold text-brand">

@@ -206,7 +206,21 @@ export default function DashboardPage() {
   const [allSalesTargets, setAllSalesTargets] = useState<any[]>([]);
   const hasFetchedInitialData = useRef(false);
 
-  // Progressive loading states - simplified
+  // Component-by-component optimistic loading states (top to bottom)
+  const [componentLoading, setComponentLoading] = useState({
+    salesDashboard: true,    // Top: Sales Dashboard  
+    leadKPIs: true,          // Row 1: Lead KPIs
+    inventoryKPIs: true,     // Row 1: Inventory KPIs  
+    stockAge: true,          // Row 2: Stock Age Insights
+    location: true,          // Row 3: Location Insights
+    funnel: true,            // Row 4: Cumulative Funnel
+    modelDemand: true,       // Row 4: Model Demand Chart
+    stockAcquisitions: true, // Row 5: Stock Acquisitions
+    consignmentAcqs: true,   // Row 5: Consignment Acquisitions
+    acquisitionsTrend: true  // Row 6: Acquisitions Trend
+  });
+  
+  // Legacy states for compatibility
   const [salesLoaded, setSalesLoaded] = useState(false);
   const [otherComponentsLoaded, setOtherComponentsLoaded] = useState(false);
 
@@ -274,10 +288,32 @@ export default function DashboardPage() {
           setAllSalesTargets(salesTargets);
           hasFetchedInitialData.current = true;
           
-          console.log('✅ Sales metrics loaded, showing sales dashboard...');
+          console.log('✅ Sales metrics loaded, starting progressive component loading...');
           setSalesLoaded(true);
           
-          // Small delay before loading other components to prioritize sales dashboard
+          // Progressive top-to-bottom component loading
+          const componentPriorities = [
+            { key: 'salesDashboard', delay: 0 },    // Top: Sales Dashboard (already loaded)
+            { key: 'leadKPIs', delay: 100 },        // Row 1: Lead KPIs  
+            { key: 'inventoryKPIs', delay: 150 },   // Row 1: Inventory KPIs
+            { key: 'stockAge', delay: 200 },        // Row 2: Stock Age Insights
+            { key: 'location', delay: 250 },        // Row 3: Location Insights  
+            { key: 'funnel', delay: 300 },          // Row 4: Cumulative Funnel
+            { key: 'modelDemand', delay: 350 },     // Row 4: Model Demand Chart
+            { key: 'stockAcquisitions', delay: 400 }, // Row 5: Stock Acquisitions
+            { key: 'consignmentAcqs', delay: 450 },   // Row 5: Consignment Acquisitions  
+            { key: 'acquisitionsTrend', delay: 500 }  // Row 6: Acquisitions Trend
+          ];
+
+          // Load each component progressively from top to bottom
+          componentPriorities.forEach(({ key, delay }) => {
+            setTimeout(() => {
+              setComponentLoading(prev => ({ ...prev, [key]: false }));
+              console.log(`✅ Dashboard: ${key} component loaded`);
+            }, delay);
+          });
+          
+          // Legacy compatibility
           setTimeout(() => {
             setOtherComponentsLoaded(true);
           }, 100);
@@ -433,40 +469,94 @@ export default function DashboardPage() {
             </div>
           </>
         ) : (
-          <div className="animate-fadeIn">
+          <div>
             {/* Top row: Lead and Inventory KPIs */}
             <div className="grid gap-4 lg:grid-cols-2">
-              <LeadKPICards year={salesYear} months={[salesMonth]} />
-              <InventoryKPICards year={salesYear} months={[salesMonth]} />
+              {componentLoading.leadKPIs ? (
+                <SkeletonKPIGrid />
+              ) : (
+                <div className="animate-fadeIn">
+                  <LeadKPICards year={salesYear} months={[salesMonth]} />
+                </div>
+              )}
+              {componentLoading.inventoryKPIs ? (
+                <SkeletonKPIGrid />
+              ) : (
+                <div className="animate-fadeIn">
+                  <InventoryKPICards year={salesYear} months={[salesMonth]} />
+                </div>
+              )}
             </div>
 
             {/* Second row: Stock Age Insights */}
             <div className="mt-4">
-              <StockAgeInsights year={salesYear} months={[salesMonth]} />
+              {componentLoading.stockAge ? (
+                <SkeletonStockAge />
+              ) : (
+                <div className="animate-fadeIn">
+                  <StockAgeInsights year={salesYear} months={[salesMonth]} />
+                </div>
+              )}
             </div>
 
             {/* Location Insights */}
             <div className="mt-4">
-              <LocationInsights year={salesYear} months={[salesMonth]} />
+              {componentLoading.location ? (
+                <SkeletonLocationInsights />
+              ) : (
+                <div className="animate-fadeIn">
+                  <LocationInsights year={salesYear} months={[salesMonth]} />
+                </div>
+              )}
             </div>
 
             {/* Third row: Charts and Analytics */}
             <div className="grid gap-4 mt-4 lg:grid-cols-2">
               <div className="lg:col-span-1">
-                <CumulativeFunnel salesYear={salesYear} salesMonth={salesMonth} />
+                {componentLoading.funnel ? (
+                  <SkeletonFunnel />
+                ) : (
+                  <div className="animate-fadeIn">
+                    <CumulativeFunnel salesYear={salesYear} salesMonth={salesMonth} />
+                  </div>
+                )}
               </div>
               <div className="lg:col-span-1">
-                <ModelDemandChart year={salesYear} months={[salesMonth]} />
+                {componentLoading.modelDemand ? (
+                  <SkeletonChart height="h-[300px]" />
+                ) : (
+                  <div className="animate-fadeIn">
+                    <ModelDemandChart year={salesYear} months={[salesMonth]} />
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Acquisitions Charts Section */}
             <div className="mb-6">
               <div className="grid gap-4 lg:grid-cols-2 mb-4">
-                <StockAcquisitionsChart year={salesYear} months={[salesMonth]} />
-                <ConsignmentAcquisitionsChart year={salesYear} months={[salesMonth]} />
+                {componentLoading.stockAcquisitions ? (
+                  <SkeletonChart height="h-[300px]" />
+                ) : (
+                  <div className="animate-fadeIn">
+                    <StockAcquisitionsChart year={salesYear} months={[salesMonth]} />
+                  </div>
+                )}
+                {componentLoading.consignmentAcqs ? (
+                  <SkeletonChart height="h-[300px]" />
+                ) : (
+                  <div className="animate-fadeIn">
+                    <ConsignmentAcquisitionsChart year={salesYear} months={[salesMonth]} />
+                  </div>
+                )}
               </div>
-              <AcquisitionsTrendChart year={salesYear} months={[salesMonth]} />
+              {componentLoading.acquisitionsTrend ? (
+                <SkeletonChart height="h-[320px]" />
+              ) : (
+                <div className="animate-fadeIn">
+                  <AcquisitionsTrendChart year={salesYear} months={[salesMonth]} />
+                </div>
+              )}
             </div>
           </div>
         )}

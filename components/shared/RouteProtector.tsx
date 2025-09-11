@@ -148,20 +148,14 @@ const CRMSkeleton = () => {
   ];
 
   return (
-    <div className="h-full">
-      <div className="flex h-full">
-        <div className="flex-1 overflow-auto">
-          <div className="px-4">
-            <div
-              className="flex gap-3 pb-4 w-full h-full overflow-hidden"
-              style={{ height: "calc(100vh - 72px)" }}
-            >
-              {columns.map(col => (
-                <SkeletonCRMColumn key={col.key} title={col.title} icon={col.icon} />
-              ))}
-            </div>
-          </div>
-        </div>
+    <div className="px-4">
+      <div
+        className="flex gap-3 pb-4 w-full h-full overflow-hidden"
+        style={{ height: "calc(100vh - 72px)" }}
+      >
+        {columns.map(col => (
+          <SkeletonCRMColumn key={col.key} title={col.title} icon={col.icon} />
+        ))}
       </div>
     </div>
   );

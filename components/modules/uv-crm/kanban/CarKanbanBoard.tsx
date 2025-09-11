@@ -396,6 +396,16 @@ export default function CarKanbanBoard() {
       if (isDataLoaded() && cars.length > 0) {
         console.log('✅ Car Inventory: Using cached data, skipping load');
         setLoading(false);
+        // Mark all columns as loaded since we have cached data
+        setColumnLoading({
+          marketing: false,
+          qc_ceo: false,
+          inventory: false,
+          reserved: false,
+          sold: false,
+          returned: false,
+          archived: false
+        });
         hasFetchedCars.current = true;
         return;
       }

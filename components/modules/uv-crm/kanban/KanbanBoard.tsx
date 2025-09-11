@@ -227,6 +227,16 @@ export default function KanbanBoard() {
       if (isDataLoaded()) {
         console.log('✅ CRM: Using cached data, skipping load');
         setLoading(false);
+        // Mark all columns as loaded since we have cached data
+        setColumnLoading({
+          new_lead: false,
+          new_customer: false,
+          negotiation: false,
+          won: false,
+          delivered: false,
+          lost: false,
+          archived: false
+        });
         hasFetchedLeads.current = true;
         return;
       }

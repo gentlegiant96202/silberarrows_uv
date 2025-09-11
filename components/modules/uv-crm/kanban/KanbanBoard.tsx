@@ -445,7 +445,7 @@ export default function KanbanBoard() {
   };
 
   const handleLeadUpdated = (updatedLead: Lead) => {
-    setLeads(prev => {
+    setLeads((prev: Lead[]) => {
       const updated = prev.map(l => l.id === updatedLead.id ? updatedLead : l);
       // Maintain sorting after update
       return updated.sort((a, b) => 
@@ -461,7 +461,7 @@ export default function KanbanBoard() {
   };
 
   const handleConversionCompleted = (updatedLead: Lead) => {
-    setLeads(prev => {
+    setLeads((prev: Lead[]) => {
       const updated = prev.map(l => l.id === updatedLead.id ? updatedLead : l);
       // Maintain sorting after update
       return updated.sort((a, b) => 

@@ -45,8 +45,8 @@ interface Car {
   customer_disclosed_accident?: boolean | null;
   customer_disclosed_flood_damage?: boolean | null;
   damage_disclosure_details?: string | null;
-  current_mileage_km?: number | null;
-  horsepower_hp?: number | null;
+  current_mileage_km?: number | null | undefined;
+  horsepower_hp?: number | null | undefined;
 }
 
 interface UVCrmState {
@@ -67,17 +67,17 @@ interface UVCrmState {
   dashboardLoaded: boolean;
   
   // Actions for CRM Leads
-  setLeads: (leads: Lead[]) => void;
-  setColumnData: (columnData: Record<string, Lead[]>) => void;
-  setColumnLoading: (columnLoading: Record<string, boolean>) => void;
+  setLeads: (leads: Lead[] | ((prev: Lead[]) => Lead[])) => void;
+  setColumnData: (columnData: Record<string, Lead[]> | ((prev: Record<string, Lead[]>) => Record<string, Lead[]>)) => void;
+  setColumnLoading: (columnLoading: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>)) => void;
   updateLeadInColumns: (lead: Lead) => void;
   removeLeadFromColumns: (leadId: string) => void;
   
   // Actions for Car Inventory
-  setCars: (cars: Car[]) => void;
-  setCarColumnData: (carColumnData: Record<string, Car[]>) => void;
-  setCarColumnLoading: (carColumnLoading: Record<string, boolean>) => void;
-  setCarThumbs: (carThumbs: Record<string, string>) => void;
+  setCars: (cars: Car[] | ((prev: Car[]) => Car[])) => void;
+  setCarColumnData: (carColumnData: Record<string, Car[]> | ((prev: Record<string, Car[]>) => Record<string, Car[]>)) => void;
+  setCarColumnLoading: (carColumnLoading: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>)) => void;
+  setCarThumbs: (carThumbs: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => void;
   updateCarInColumns: (car: Car) => void;
   removeCarFromColumns: (carId: string) => void;
   
@@ -143,9 +143,15 @@ export const useUVCrmStore = create<UVCrmState>()(
       dashboardLoaded: false,
       
       // CRM Lead Actions
-      setLeads: (leads) => set({ leads }),
-      setColumnData: (columnData) => set({ columnData }),
-      setColumnLoading: (columnLoading) => set({ columnLoading }),
+      setLeads: (leads) => set((state) => ({ 
+        leads: typeof leads === 'function' ? leads(state.leads) : leads 
+      })),
+      setColumnData: (columnData) => set((state) => ({ 
+        columnData: typeof columnData === 'function' ? columnData(state.columnData) : columnData 
+      })),
+      setColumnLoading: (columnLoading) => set((state) => ({ 
+        columnLoading: typeof columnLoading === 'function' ? columnLoading(state.columnLoading) : columnLoading 
+      })),
       
       updateLeadInColumns: (lead) => set((state) => {
         const normalizedStatus = (lead.status || "")
@@ -184,10 +190,18 @@ export const useUVCrmStore = create<UVCrmState>()(
       }),
       
       // Car Inventory Actions
-      setCars: (cars) => set({ cars }),
-      setCarColumnData: (carColumnData) => set({ carColumnData }),
-      setCarColumnLoading: (carColumnLoading) => set({ carColumnLoading }),
-      setCarThumbs: (carThumbs) => set({ carThumbs }),
+      setCars: (cars) => set((state) => ({ 
+        cars: typeof cars === 'function' ? cars(state.cars) : cars 
+      })),
+      setCarColumnData: (carColumnData) => set((state) => ({ 
+        carColumnData: typeof carColumnData === 'function' ? carColumnData(state.carColumnData) : carColumnData 
+      })),
+      setCarColumnLoading: (carColumnLoading) => set((state) => ({ 
+        carColumnLoading: typeof carColumnLoading === 'function' ? carColumnLoading(state.carColumnLoading) : carColumnLoading 
+      })),
+      setCarThumbs: (carThumbs) => set((state) => ({ 
+        carThumbs: typeof carThumbs === 'function' ? carThumbs(state.carThumbs) : carThumbs 
+      })),
       
       updateCarInColumns: (car) => set((state) => {
         let targetColumn: string | null = null;

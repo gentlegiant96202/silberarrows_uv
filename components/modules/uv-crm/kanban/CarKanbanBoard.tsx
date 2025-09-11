@@ -124,8 +124,8 @@ interface Car {
   customer_disclosed_flood_damage?: boolean | null;
   damage_disclosure_details?: string | null;
   // Fields needed for PriceDropModal
-  current_mileage_km?: number;
-  horsepower_hp?: number;
+  current_mileage_km?: number | null;
+  horsepower_hp?: number | null;
 }
 
 export default function CarKanbanBoard() {
@@ -320,7 +320,7 @@ export default function CarKanbanBoard() {
     }
 
     // optimistic update
-    setCars(prev => {
+    setCars((prev: Car[]) => {
       const idx = prev.findIndex(c => c.id === id);
       if (idx === -1) return prev;
 
@@ -473,8 +473,8 @@ export default function CarKanbanBoard() {
               
               const { data: fallbackData } = await fallbackQuery;
               if (fallbackData) {
-                setColumnData(prev => ({ ...prev, [key]: fallbackData as Car[] }));
-                setCars(prev => {
+                setColumnData((prev: Record<string, Car[]>) => ({ ...prev, [key]: fallbackData as Car[] }));
+                setCars((prev: Car[]) => {
                   const filteredPrev = prev.filter(car => 
                     !(car.status === statusFilter.status && 
                       (!statusFilter.sale_status || car.sale_status === statusFilter.sale_status))
@@ -502,17 +502,17 @@ export default function CarKanbanBoard() {
                       newThumbs[m.car_id] = imageUrl;
                     });
                     
-                    setThumbs(prev => ({ ...prev, ...newThumbs }));
+                    setThumbs((prev: Record<string, string>) => ({ ...prev, ...newThumbs }));
                     console.log(`🖼️ ${key} fallback loaded ${mediaRows.length} thumbnails`);
                   }
                 }
               }
             } else if (data) {
               // Update column data
-              setColumnData(prev => ({ ...prev, [key]: data as Car[] }));
+              setColumnData((prev: Record<string, Car[]>) => ({ ...prev, [key]: data as Car[] }));
               
               // Also update main cars array for compatibility
-              setCars(prev => {
+              setCars((prev: Car[]) => {
                 const filteredPrev = prev.filter(car => 
                   !(car.status === statusFilter.status && 
                     (!statusFilter.sale_status || car.sale_status === statusFilter.sale_status))
@@ -541,7 +541,7 @@ export default function CarKanbanBoard() {
                     newThumbs[m.car_id] = imageUrl;
                   });
                   
-                  setThumbs(prev => ({ ...prev, ...newThumbs }));
+                  setThumbs((prev: Record<string, string>) => ({ ...prev, ...newThumbs }));
                   console.log(`🖼️ ${key} column loaded ${mediaRows.length} thumbnails`);
                 }
               }
@@ -552,7 +552,7 @@ export default function CarKanbanBoard() {
             console.error(`❌ Failed to load ${key} column:`, error);
           } finally {
             // Mark column as loaded
-            setColumnLoading(prev => ({ ...prev, [key]: false }));
+            setColumnLoading((prev: Record<string, boolean>) => ({ ...prev, [key]: false }));
           }
         }, delay);
       });
@@ -1117,7 +1117,7 @@ export default function CarKanbanBoard() {
 
       {showPriceDropModal && selectedCarForPriceDrop && (
         <PriceDropModal
-          car={selectedCarForPriceDrop}
+          car={selectedCarForPriceDrop as any}
           isOpen={showPriceDropModal}
           onClose={() => {
             setShowPriceDropModal(false);

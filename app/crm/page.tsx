@@ -6,7 +6,7 @@ export default function CRMPage() {
   return (
     <RouteProtector moduleName="uv_crm">
       <div className="flex h-full">
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-hidden">
           <KanbanBoard />
         </div>
       </div>

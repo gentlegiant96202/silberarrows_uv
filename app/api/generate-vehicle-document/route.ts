@@ -758,6 +758,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for existing PDF and delete it before generating new one
+    console.log('🔍 Checking for existing PDF to delete...');
+    const { data: existingReservation } = await supabase
+      .from('vehicle_reservations')
+      .select('pdf_url')
+      .eq('id', reservationId)
+      .single();
+
+    if (existingReservation?.pdf_url) {
+      console.log('🗑️ Found existing PDF, attempting to delete:', existingReservation.pdf_url);
+      try {
+        // Extract file path from URL
+        const url = new URL(existingReservation.pdf_url);
+        const pathParts = url.pathname.split('/');
+        const bucketIndex = pathParts.findIndex(part => part === 'documents');
+        
+        if (bucketIndex !== -1 && pathParts[bucketIndex + 1]) {
+          const filePath = pathParts.slice(bucketIndex + 1).join('/');
+          console.log('🗑️ Deleting file path:', filePath);
+          
+          const { error: deleteError } = await supabase.storage
+            .from('documents')
+            .remove([filePath]);
+          
+          if (deleteError) {
+            console.warn('⚠️ Failed to delete previous PDF:', deleteError);
+            // Continue with generation even if deletion fails
+          } else {
+            console.log('✅ Previous PDF deleted successfully');
+          }
+        } else {
+          console.warn('⚠️ Could not extract file path from URL:', existingReservation.pdf_url);
+        }
+      } catch (deleteError) {
+        console.warn('⚠️ Error during PDF deletion:', deleteError);
+        // Continue with generation even if deletion fails
+      }
+    } else {
+      console.log('ℹ️ No existing PDF found to delete');
+    }
+
     // Generate HTML content for the reservation/invoice form
     console.log('📄 Generating HTML content...');
     const htmlContent = generateReservationHTML(formData, mode);

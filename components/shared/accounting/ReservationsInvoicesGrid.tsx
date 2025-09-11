@@ -30,14 +30,8 @@ export default function ReservationsInvoicesGrid() {
   const [filters, setFilters] = useState<FilterState>({
     month: new Date().getMonth() + 1 + '', // Current month
     year: new Date().getFullYear() + '', // Current year
-    type: 'all',
+    type: 'invoice', // Default to invoices only
     search: ''
-  });
-  const [addonMetrics, setAddonMetrics] = useState({
-    extendedWarranty: { count: 0, total: 0 },
-    ceramicTreatment: { count: 0, total: 0 },
-    serviceCare: { count: 0, total: 0 },
-    windowTints: { count: 0, total: 0 }
   });
   
   const { role, isLoading: roleLoading } = useUserRole();
@@ -79,15 +73,7 @@ export default function ReservationsInvoicesGrid() {
           document_date,
           sales_executive,
           pdf_url,
-          created_at,
-          extended_warranty,
-          extended_warranty_price,
-          ceramic_treatment,
-          ceramic_treatment_price,
-          service_care,
-          service_care_price,
-          window_tints,
-          window_tints_price
+          created_at
         `)
         .order('created_at', { ascending: false });
 
@@ -127,39 +113,6 @@ export default function ReservationsInvoicesGrid() {
 
       console.log('📊 Fetched data:', { total: filteredData.length, filters });
       setData(filteredData);
-      
-      // Calculate add-on metrics
-      const metrics = {
-        extendedWarranty: { count: 0, total: 0 },
-        ceramicTreatment: { count: 0, total: 0 },
-        serviceCare: { count: 0, total: 0 },
-        windowTints: { count: 0, total: 0 }
-      };
-      
-      // Only calculate add-on metrics for invoices (not reservations)
-      filteredData.forEach((item: any) => {
-        // Only count add-ons for invoices, not reservations
-        if (item.document_type === 'invoice') {
-          if (item.extended_warranty) {
-            metrics.extendedWarranty.count++;
-            metrics.extendedWarranty.total += Number(item.extended_warranty_price || 0);
-          }
-          if (item.ceramic_treatment) {
-            metrics.ceramicTreatment.count++;
-            metrics.ceramicTreatment.total += Number(item.ceramic_treatment_price || 0);
-          }
-          if (item.service_care) {
-            metrics.serviceCare.count++;
-            metrics.serviceCare.total += Number(item.service_care_price || 0);
-          }
-          if (item.window_tints) {
-            metrics.windowTints.count++;
-            metrics.windowTints.total += Number(item.window_tints_price || 0);
-          }
-        }
-      });
-      
-      setAddonMetrics(metrics);
     } catch (error) {
       console.error('Error fetching reservations/invoices:', error);
     } finally {
@@ -412,7 +365,7 @@ export default function ReservationsInvoicesGrid() {
 
       {/* Summary */}
       <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
           <div>
             <p className="text-2xl font-bold text-white">
               {data.filter(item => item.document_type === 'reservation').length}
@@ -425,57 +378,9 @@ export default function ReservationsInvoicesGrid() {
             </p>
             <p className="text-sm text-white/60">Invoices</p>
           </div>
-          <div>
-            <p className="text-2xl font-bold text-white">
-              {formatCurrency(data.reduce((sum, item) => sum + item.invoice_total, 0))}
-            </p>
-            <p className="text-sm text-white/60">Total Value</p>
-          </div>
         </div>
       </div>
 
-      {/* Add-on Services Metrics */}
-      <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-        <h3 className="text-lg font-medium text-white mb-4">Add-on Services Sold (Invoices Only)</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="text-center">
-            <p className="text-xl font-bold text-brand">
-              {addonMetrics.extendedWarranty.count}
-            </p>
-            <p className="text-sm text-white/60 mb-1">Extended Warranty</p>
-            <p className="text-xs text-white/40">
-              {formatCurrency(addonMetrics.extendedWarranty.total)}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-brand">
-              {addonMetrics.ceramicTreatment.count}
-            </p>
-            <p className="text-sm text-white/60 mb-1">Ceramic Treatment</p>
-            <p className="text-xs text-white/40">
-              {formatCurrency(addonMetrics.ceramicTreatment.total)}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-brand">
-              {addonMetrics.serviceCare.count}
-            </p>
-            <p className="text-sm text-white/60 mb-1">Service Care</p>
-            <p className="text-xs text-white/40">
-              {formatCurrency(addonMetrics.serviceCare.total)}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-brand">
-              {addonMetrics.windowTints.count}
-            </p>
-            <p className="text-sm text-white/60 mb-1">Window Tints</p>
-            <p className="text-xs text-white/40">
-              {formatCurrency(addonMetrics.windowTints.total)}
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

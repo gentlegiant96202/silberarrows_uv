@@ -61,7 +61,7 @@ const InventorySkeleton = () => {
           </div>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto space-y-2">
+      <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
         {Array.from({ length: 4 }).map((_, i) => (
           <SkeletonCarCard key={i} isExpanded={false} />
         ))}
@@ -130,7 +130,7 @@ const CRMSkeleton = () => {
           </span>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto space-y-2">
+      <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
         {Array.from({ length: 3 }).map((_, i) => (
           <SkeletonLeadCard key={i} />
         ))}

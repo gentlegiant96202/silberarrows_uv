@@ -7,17 +7,18 @@ import ServiceTargetsManager from '@/components/service/ServiceTargetsManager';
 import SalesDataGrid from '@/components/sales/SalesDataGrid';
 import SalesTargetsManager from '@/components/sales/SalesTargetsManager';
 import SharedSalesDashboard from '@/components/shared/SalesDashboard';
+import ReservationsInvoicesGrid from '@/components/shared/accounting/ReservationsInvoicesGrid';
 import { useServiceData } from '@/lib/useServiceData';
 import { useSalesData } from '@/lib/useSalesData';
 import { supabase } from '@/lib/supabaseClient';
-import { Building2, Grid3X3, Target, TrendingUp, Calculator, Package, DollarSign } from 'lucide-react';
+import { Building2, Grid3X3, Target, TrendingUp, Calculator, Package, DollarSign, FileText } from 'lucide-react';
 import dayjs from 'dayjs';
 import { AccountsTabProvider, useAccountsTab } from '@/lib/AccountsTabContext';
 
 function AccountsDashboardContent() {
   const { activeTab, setActiveTab } = useAccountsTab();
   const [serviceSubTab, setServiceSubTab] = useState<'grid' | 'targets'>('grid');
-  const [salesSubTab, setSalesSubTab] = useState<'dashboard' | 'grid' | 'targets'>('dashboard');
+  const [salesSubTab, setSalesSubTab] = useState<'dashboard' | 'grid' | 'targets' | 'accounting'>('dashboard');
   const [allMetrics, setAllMetrics] = useState<any[]>([]);
   const [allTargets, setAllTargets] = useState<any[]>([]);
   const [allSalesMetrics, setAllSalesMetrics] = useState<any[]>([]);
@@ -148,7 +149,7 @@ function AccountsDashboardContent() {
     return [];
   };
 
-  const handleSalesSubTabChange = async (tab: 'dashboard' | 'grid' | 'targets') => {
+  const handleSalesSubTabChange = async (tab: 'dashboard' | 'grid' | 'targets' | 'accounting') => {
     setSalesSubTab(tab);
     await handleGridRefresh();
   };
@@ -250,6 +251,17 @@ function AccountsDashboardContent() {
                     <Target className="w-4 h-4" />
                     <span>Targets</span>
                   </button>
+                  <button
+                    onClick={() => handleSalesSubTabChange('accounting')}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                      salesSubTab === 'accounting'
+                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Accounting</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -318,6 +330,9 @@ function AccountsDashboardContent() {
                       onRefresh={handleGridRefresh}
                       loading={salesLoading}
                     />
+                  )}
+                  {salesSubTab === 'accounting' && (
+                    <ReservationsInvoicesGrid />
                   )}
                 </>
               ) : (

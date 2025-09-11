@@ -17,6 +17,7 @@ interface InventoryCar {
   model_year: number;
   chassis_number: string;
   colour: string;
+  interior_colour?: string;
   current_mileage_km?: number;
   current_warranty?: string;
   current_service?: string;
@@ -47,7 +48,8 @@ interface FormData {
   makeModel: string;
   modelYear: number;
   chassisNo: string;
-  colour: string;
+  exteriorColour: string;
+  interiorColour: string;
   mileage: number;
   manufacturerWarranty: boolean;
   manufacturerWarrantyExpiryDate: string;
@@ -61,7 +63,7 @@ interface FormData {
   partExchangeMakeModel: string;
   partExchangeModelYear: string;
   partExchangeChassisNo: string;
-  partExchangeColour: string;
+  partExchangeExteriorColour: string;
   partExchangeEngineNo: string;
   partExchangeMileage: string;
   partExchangeValue: number;
@@ -130,7 +132,8 @@ export default function VehicleDocumentModal({
     makeModel: lead.model_of_interest,
     modelYear: 0,
     chassisNo: '',
-    colour: '',
+    exteriorColour: '',
+    interiorColour: '',
     mileage: 0,
     manufacturerWarranty: false,
     manufacturerWarrantyExpiryDate: '',
@@ -144,7 +147,7 @@ export default function VehicleDocumentModal({
     partExchangeMakeModel: '',
     partExchangeModelYear: '',
     partExchangeChassisNo: '',
-    partExchangeColour: '',
+    partExchangeExteriorColour: '',
     partExchangeEngineNo: '',
     partExchangeMileage: '',
     partExchangeValue: 0,
@@ -175,6 +178,9 @@ export default function VehicleDocumentModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
+  const [pdfGenerated, setPdfGenerated] = useState(false);
+  const [documentNumber, setDocumentNumber] = useState<string | null>(null);
 
   // Update sales executive when user changes
   useEffect(() => {
@@ -242,18 +248,25 @@ export default function VehicleDocumentModal({
       return { hasDealer: false, date: '', km: 0 };
     }
 
-    // Parse different formats:
-    // "Dealer warranty until 2025-10-08 or 100000 km"
-    // "GARGASH WARRANTY UNTIL 2026 OR 105,000 KM"
+    // Parse the EXACT format from AddCarModal: "Dealer warranty until 2025-10-08 or 100000 km"
+    // Pattern: "until YYYY-MM-DD or NNNNNN km"
+    const exactMatch = warrantyString.match(/until\s+(\d{4}-\d{2}-\d{2})\s+or\s+(\d+)\s+km/i);
     
-    // Try to extract date (YYYY-MM-DD format)
+    if (exactMatch) {
+      const extractedDate = exactMatch[1];
+      const extractedKm = parseInt(exactMatch[2]) || 0;
+      console.log('Successfully parsed warranty (exact format):', { date: extractedDate, km: extractedKm });
+      return {
+        hasDealer: true,
+        date: extractedDate,
+        km: extractedKm
+      };
+    }
+
+    // Fallback: Try to extract date and mileage separately for other formats
     const dateMatch = warrantyString.match(/(\d{4})-(\d{2})-(\d{2})/);
-    
-    // Try to extract year only if no full date
     const yearMatch = warrantyString.match(/until\s+(\d{4})/i);
-    
-    // Try to extract mileage (handle comma separators)
-    const mileageMatch = warrantyString.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*km/i);
+    const mileageMatch = warrantyString.match(/(\d{1,3}(?:[,\s]\d{3})*(?:\.\d+)?)\s*(?:km|kilometers?|miles?)/i);
     
     let extractedDate = '';
     let extractedKm = 0;
@@ -261,18 +274,16 @@ export default function VehicleDocumentModal({
     if (dateMatch) {
       extractedDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
     } else if (yearMatch) {
-      // If only year is provided, assume end of year
       extractedDate = `${yearMatch[1]}-12-31`;
     }
 
     if (mileageMatch) {
-      // Remove commas and parse
-      const cleanMileage = mileageMatch[1].replace(/,/g, '');
+      const cleanMileage = mileageMatch[1].replace(/[,\s]/g, '');
       extractedKm = parseInt(cleanMileage) || 0;
     }
 
     if (extractedDate || extractedKm > 0) {
-      console.log('Successfully parsed warranty:', { date: extractedDate, km: extractedKm });
+      console.log('Successfully parsed warranty (fallback):', { date: extractedDate, km: extractedKm });
       return {
         hasDealer: true,
         date: extractedDate,
@@ -281,7 +292,6 @@ export default function VehicleDocumentModal({
     }
     
     console.log('Warranty detected but no date/mileage extracted - enabling manual input');
-    // Dealer warranty detected but no parseable date/mileage - still enable the checkbox
     return { hasDealer: true, date: '', km: 0 };
   };
 
@@ -310,18 +320,25 @@ export default function VehicleDocumentModal({
       return { hasDealer: false, date: '', km: 0 };
     }
 
-    // Parse different formats:
-    // "Dealer service package until 2025-10-08 or 100000 km"
-    // "GARGASH SERVICE UNTIL 2026 OR 105,000 KM"
+    // Parse the EXACT format from AddCarModal: "Dealer service package until 2025-10-08 or 100000 km"
+    // Pattern: "until YYYY-MM-DD or NNNNNN km"
+    const exactMatch = serviceString.match(/until\s+(\d{4}-\d{2}-\d{2})\s+or\s+(\d+)\s+km/i);
     
-    // Try to extract date (YYYY-MM-DD format)
+    if (exactMatch) {
+      const extractedDate = exactMatch[1];
+      const extractedKm = parseInt(exactMatch[2]) || 0;
+      console.log('Successfully parsed service (exact format):', { date: extractedDate, km: extractedKm });
+      return {
+        hasDealer: true,
+        date: extractedDate,
+        km: extractedKm
+      };
+    }
+
+    // Fallback: Try to extract date and mileage separately for other formats
     const dateMatch = serviceString.match(/(\d{4})-(\d{2})-(\d{2})/);
-    
-    // Try to extract year only if no full date
     const yearMatch = serviceString.match(/until\s+(\d{4})/i);
-    
-    // Try to extract mileage (handle comma separators)
-    const mileageMatch = serviceString.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*km/i);
+    const mileageMatch = serviceString.match(/(\d{1,3}(?:[,\s]\d{3})*(?:\.\d+)?)\s*(?:km|kilometers?|miles?)/i);
     
     let extractedDate = '';
     let extractedKm = 0;
@@ -329,18 +346,16 @@ export default function VehicleDocumentModal({
     if (dateMatch) {
       extractedDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
     } else if (yearMatch) {
-      // If only year is provided, assume end of year
       extractedDate = `${yearMatch[1]}-12-31`;
     }
 
     if (mileageMatch) {
-      // Remove commas and parse
-      const cleanMileage = mileageMatch[1].replace(/,/g, '');
+      const cleanMileage = mileageMatch[1].replace(/[,\s]/g, '');
       extractedKm = parseInt(cleanMileage) || 0;
     }
 
     if (extractedDate || extractedKm > 0) {
-      console.log('Successfully parsed service:', { date: extractedDate, km: extractedKm });
+      console.log('Successfully parsed service (fallback):', { date: extractedDate, km: extractedKm });
       return {
         hasDealer: true,
         date: extractedDate,
@@ -349,7 +364,6 @@ export default function VehicleDocumentModal({
     }
     
     console.log('Service detected but no date/mileage extracted - enabling manual input');
-    // Dealer service detected but no parseable date/mileage - still enable the checkbox
     return { hasDealer: true, date: '', km: 0 };
   };
 
@@ -370,12 +384,12 @@ export default function VehicleDocumentModal({
         console.log('Raw current_warranty:', JSON.stringify(data.current_warranty));
         console.log('Raw current_service:', JSON.stringify(data.current_service));
         
-        // Parse dealer warranty and service data
+        // Parse warranty and service data with improved patterns
         const warrantyData = parseDealerWarranty(data.current_warranty || '');
         const serviceData = parseDealerService(data.current_service || '');
         
-        console.log('Parsed warranty data:', warrantyData);
-        console.log('Parsed service data:', serviceData);
+        console.log('Final warranty data:', warrantyData);
+        console.log('Final service data:', serviceData);
         
         // Auto-populate vehicle details
         setFormData(prev => ({
@@ -383,7 +397,8 @@ export default function VehicleDocumentModal({
           makeModel: data.vehicle_model || '',
           modelYear: data.model_year || 0,
           chassisNo: data.chassis_number || '',
-          colour: data.colour || '',
+          exteriorColour: data.colour || '',
+          interiorColour: data.interior_colour || '',
           mileage: data.current_mileage_km || 0,
           
           // Auto-populate dealer warranty if available
@@ -412,7 +427,7 @@ export default function VehicleDocumentModal({
       console.log('🔍 Searching for existing reservation for lead_id:', lead.id);
           const { data: existingReservation, error } = await supabase
       .from('vehicle_reservations')
-      .select('*')
+      .select('*, document_number')
       .eq('lead_id', lead.id)
       .maybeSingle();
         
@@ -425,6 +440,28 @@ export default function VehicleDocumentModal({
         console.log('Loading existing reservation data:', existingReservation);
         console.log('Available fields:', Object.keys(existingReservation));
         setIsEditing(true);
+        
+        // Set PDF URL if it exists AND matches the current mode
+        if (existingReservation.pdf_url && existingReservation.document_type === mode) {
+          setGeneratedPdfUrl(existingReservation.pdf_url);
+          setPdfGenerated(true);
+        } else if (existingReservation.pdf_url && existingReservation.document_type !== mode) {
+          // PDF exists but for different document type, so don't show as generated
+          console.log(`PDF exists for ${existingReservation.document_type} but modal is in ${mode} mode`);
+          setPdfGenerated(false);
+          setGeneratedPdfUrl(null);
+        }
+        
+        // Set document number for display in modal
+        if (existingReservation.document_number) {
+          console.log('Document number:', existingReservation.document_number);
+          setDocumentNumber(existingReservation.document_number);
+        } else if (mode === 'invoice' && existingReservation.document_type === 'reservation') {
+          // If opening in invoice mode but record is still a reservation, 
+          // we'll convert it and get an invoice number when form is submitted
+          console.log('Will convert reservation to invoice and generate INV number on submit');
+        }
+        
         setFormData(prev => ({
           ...prev,
           salesExecutive: existingReservation.sales_executive || prev.salesExecutive,
@@ -437,7 +474,8 @@ export default function VehicleDocumentModal({
           makeModel: existingReservation.vehicle_make_model || prev.makeModel,
           modelYear: existingReservation.model_year || prev.modelYear,
           chassisNo: existingReservation.chassis_no || prev.chassisNo,
-          colour: existingReservation.vehicle_colour || prev.colour,
+          exteriorColour: existingReservation.vehicle_exterior_colour || existingReservation.vehicle_colour || prev.exteriorColour,
+          interiorColour: existingReservation.vehicle_interior_colour || prev.interiorColour,
           mileage: existingReservation.vehicle_mileage || prev.mileage,
           manufacturerWarranty: existingReservation.manufacturer_warranty || false,
           manufacturerWarrantyExpiryDate: existingReservation.manufacturer_warranty_expiry_date || '',
@@ -449,7 +487,7 @@ export default function VehicleDocumentModal({
           partExchangeMakeModel: existingReservation.part_exchange_make_model || '',
           partExchangeModelYear: existingReservation.part_exchange_model_year || '',
           partExchangeChassisNo: existingReservation.part_exchange_chassis_no || '',
-          partExchangeColour: existingReservation.part_exchange_colour || '',
+          partExchangeExteriorColour: existingReservation.part_exchange_exterior_colour || existingReservation.part_exchange_colour || '',
           partExchangeEngineNo: existingReservation.part_exchange_engine_no || '',
           partExchangeMileage: existingReservation.part_exchange_mileage || '',
           partExchangeValue: existingReservation.part_exchange_value || 0,
@@ -529,7 +567,8 @@ export default function VehicleDocumentModal({
         vehicle_make_model: formData.makeModel,
         model_year: formData.modelYear,
         chassis_no: formData.chassisNo,
-        vehicle_colour: formData.colour,
+        vehicle_exterior_colour: formData.exteriorColour,
+        vehicle_interior_colour: formData.interiorColour,
         vehicle_mileage: formData.mileage,
         
         // Warranty information
@@ -545,7 +584,7 @@ export default function VehicleDocumentModal({
         part_exchange_make_model: formData.hasPartExchange ? formData.partExchangeMakeModel : null,
         part_exchange_model_year: formData.hasPartExchange ? formData.partExchangeModelYear : null,
         part_exchange_chassis_no: formData.hasPartExchange ? formData.partExchangeChassisNo : null,
-        part_exchange_colour: formData.hasPartExchange ? formData.partExchangeColour : null,
+        part_exchange_exterior_colour: formData.hasPartExchange ? formData.partExchangeExteriorColour : null,
         part_exchange_engine_no: formData.hasPartExchange ? formData.partExchangeEngineNo : null,
         part_exchange_mileage: formData.hasPartExchange ? formData.partExchangeMileage : null,
         part_exchange_value: formData.hasPartExchange ? formData.partExchangeValue : 0,
@@ -579,7 +618,7 @@ export default function VehicleDocumentModal({
       console.log('🔍 Checking for existing reservation before save for lead_id:', lead.id);
       const { data: existingReservation, error: checkError } = await supabase
         .from('vehicle_reservations')
-        .select('id')
+        .select('id, document_type, document_number')
         .eq('lead_id', lead.id)
         .maybeSingle();
         
@@ -587,27 +626,80 @@ export default function VehicleDocumentModal({
 
       let savedReservation;
       if (existingReservation) {
-        // Update existing reservation
-        console.log('Updating existing reservation:', existingReservation.id);
-        const { data, error: updateError } = await supabase
-          .from('vehicle_reservations')
-          .update({
+        // Check if we're converting reservation to invoice
+        const isConvertingToInvoice = existingReservation.document_type === 'reservation' && mode === 'invoice';
+        
+        console.log('🔍 Conversion check:', {
+          existingType: existingReservation.document_type,
+          currentMode: mode,
+          isConverting: isConvertingToInvoice,
+          existingDocNumber: existingReservation.document_number
+        });
+        
+        if (isConvertingToInvoice) {
+          console.log('🔄 Converting reservation to invoice:', existingReservation.id);
+          // When converting to invoice, trigger will generate INV- number automatically
+          const updateData = {
             ...reservationData,
             updated_at: new Date().toISOString()
-          })
-          .eq('id', existingReservation.id)
-          .select()
-          .single();
+          };
+          
+          const { data, error: updateError } = await supabase
+            .from('vehicle_reservations')
+            .update(updateData)
+            .eq('id', existingReservation.id)
+            .select()
+            .single();
 
-        if (updateError) {
-          console.error('Error updating reservation data:', updateError);
-          throw new Error('Failed to update reservation data');
+          if (updateError) {
+            console.error('Error converting reservation to invoice:', updateError);
+            throw new Error('Failed to convert reservation to invoice');
+          }
+          savedReservation = data;
+          console.log('Reservation converted to invoice:', savedReservation);
+          
+          // Fetch the updated record to get the trigger-generated invoice number
+          console.log('🔍 Fetching updated record to get invoice number...');
+          const { data: refreshedData, error: refreshError } = await supabase
+            .from('vehicle_reservations')
+            .select('document_number, document_type')
+            .eq('id', existingReservation.id)
+            .single();
+          
+          console.log('🔍 Refreshed data:', refreshedData);
+          console.log('🔍 Refresh error:', refreshError);
+          
+          if (refreshedData?.document_number) {
+            console.log('🔢 Setting invoice number in modal:', refreshedData.document_number);
+            setDocumentNumber(refreshedData.document_number);
+            // Update the savedReservation with the new document number
+            savedReservation.document_number = refreshedData.document_number;
+          } else {
+            console.warn('⚠️ No document number generated after conversion. Data:', refreshedData);
+          }
+        } else {
+          // Regular update - keep existing document number
+          console.log('Updating existing document:', existingReservation.id);
+          const { data, error: updateError } = await supabase
+            .from('vehicle_reservations')
+            .update({
+              ...reservationData,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingReservation.id)
+            .select()
+            .single();
+
+          if (updateError) {
+            console.error('Error updating document data:', updateError);
+            throw new Error('Failed to update document data');
+          }
+          savedReservation = data;
+          console.log('Document data updated:', savedReservation);
         }
-        savedReservation = data;
-        console.log('Reservation data updated:', savedReservation);
       } else {
-        // Create new reservation
-        console.log('Creating new reservation');
+        // Create new reservation/invoice
+        console.log('Creating new', mode);
         const { data, error: insertError } = await supabase
           .from('vehicle_reservations')
           .insert([reservationData])
@@ -615,11 +707,11 @@ export default function VehicleDocumentModal({
           .single();
 
         if (insertError) {
-          console.error('Error saving reservation data:', insertError);
-          throw new Error('Failed to save reservation data');
+          console.error('Error saving document data:', insertError);
+          throw new Error('Failed to save document data');
         }
         savedReservation = data;
-        console.log('Reservation data saved:', savedReservation);
+        console.log('Document data saved:', savedReservation);
       }
 
       // Step 2: Generate PDF with the saved reservation ID
@@ -649,6 +741,20 @@ export default function VehicleDocumentModal({
             document_status: 'completed'
           })
           .eq('id', savedReservation.id);
+        
+        // Update local state with new PDF URL
+        setGeneratedPdfUrl(result.pdfUrl);
+        setPdfGenerated(true);
+        
+        // Set document number from result if available
+        if (result.documentNumber) {
+          setDocumentNumber(result.documentNumber);
+        }
+        
+        // Also update document number immediately after save for conversions
+        if (savedReservation.document_number) {
+          setDocumentNumber(savedReservation.document_number);
+        }
         
         // Force download the PDF
         try {
@@ -684,12 +790,11 @@ export default function VehicleDocumentModal({
       
       console.log('Document generated successfully:', result);
       
-      // Step 4: Call onSubmit callback (updates lead status)
+      // Step 4: Call onSubmit callback (updates lead status) - but keep modal open
       if (onSubmit) {
         onSubmit();
-      } else {
-        onClose();
       }
+      // Note: Don't close modal automatically - let user close it manually
     } catch (error) {
       console.error('Error generating document:', error);
       alert('Error generating document. Please try again.');
@@ -712,9 +817,16 @@ export default function VehicleDocumentModal({
 
         {/* Header */}
         <div className="mb-4 pr-8">
-          <h2 className="text-base font-semibold text-white mb-0.5">
-            {isEditing ? 'Edit ' : ''}{mode === 'reservation' ? 'Vehicle Reservation Form' : 'Invoice Document'}
-          </h2>
+          <div className="flex items-center gap-3 mb-0.5">
+            <h2 className="text-base font-semibold text-white">
+              {isEditing ? 'Edit ' : ''}{mode === 'reservation' ? 'Vehicle Reservation Form' : 'Invoice Document'}
+            </h2>
+            {documentNumber && mode === 'invoice' && (
+              <div className="px-2 py-1 bg-brand/20 border border-brand/40 rounded text-brand text-xs font-mono font-bold">
+                {documentNumber}
+              </div>
+            )}
+          </div>
           <p className="text-xs text-white/60">
             {isEditing 
               ? `Update the ${mode} details and regenerate the document`
@@ -863,10 +975,19 @@ export default function VehicleDocumentModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-white/80 mb-1">Colour</label>
+                  <label className="block text-xs font-medium text-white/80 mb-1">Exterior Colour</label>
                   <input
                     type="text"
-                    value={formData.colour}
+                    value={formData.exteriorColour}
+                    className="w-full px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-xs"
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-1">Interior Colour</label>
+                  <input
+                    type="text"
+                    value={formData.interiorColour}
                     className="w-full px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-xs"
                     readOnly
                   />
@@ -1008,13 +1129,13 @@ export default function VehicleDocumentModal({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-white/80 mb-1">Colour</label>
+                    <label className="block text-xs font-medium text-white/80 mb-1">Exterior Colour</label>
                     <input
                       type="text"
-                      value={formData.partExchangeColour}
-                      onChange={(e) => handleInputChange('partExchangeColour', e.target.value)}
+                      value={formData.partExchangeExteriorColour}
+                      onChange={(e) => handleInputChange('partExchangeExteriorColour', e.target.value)}
                       className="w-full px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-xs placeholder-white/40"
-                      placeholder="Enter colour"
+                      placeholder="Enter exterior colour"
                     />
                   </div>
                   <div>
@@ -1244,6 +1365,69 @@ export default function VehicleDocumentModal({
               </div>
             </div>
 
+            {/* PDF Generated Section */}
+            {pdfGenerated && generatedPdfUrl && (
+              <div className="bg-green-500/10 backdrop-blur-sm rounded-lg p-3 border border-green-400/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <h3 className="text-sm font-medium text-green-400">
+                      {mode === 'reservation' ? 'Reservation Form' : 'Invoice Document'} Generated Successfully
+                    </h3>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => window.open(generatedPdfUrl, '_blank')}
+                      className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 backdrop-blur-sm border border-blue-400/30 text-blue-300 text-xs rounded transition-all flex items-center gap-1.5"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      View PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const fileName = `${mode}-${formData.customerName.replace(/[^a-zA-Z0-9]/g, '_')}-${formData.date}.pdf`;
+                          const response = await fetch(generatedPdfUrl);
+                          if (response.ok) {
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = fileName;
+                            link.style.display = 'none';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            
+                            window.URL.revokeObjectURL(url);
+                          } else {
+                            window.open(generatedPdfUrl, '_blank');
+                          }
+                        } catch (error) {
+                          window.open(generatedPdfUrl, '_blank');
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 backdrop-blur-sm border border-green-400/30 text-green-300 text-xs rounded transition-all flex items-center gap-1.5"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Download PDF
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-green-300/70">
+                  You can regenerate the document by clicking the button below, or make changes to the form and update it.
+                </div>
+              </div>
+            )}
+
             {/* Submit Buttons */}
             <div className="flex gap-2 pt-4">
               <button
@@ -1265,7 +1449,7 @@ export default function VehicleDocumentModal({
                     Generating...
                   </>
                 ) : (
-                  <>{isEditing ? 'Update' : 'Generate'} {mode === 'reservation' ? 'Reservation Form' : 'Invoice'}</>
+                  <>{pdfGenerated ? 'Regenerate' : isEditing ? 'Update' : 'Generate'} {mode === 'reservation' ? 'Reservation Form' : 'Invoice'}</>
                 )}
               </button>
             </div>

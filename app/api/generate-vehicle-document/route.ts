@@ -415,14 +415,34 @@ function generateReservationHTML(formData: any, mode: string) {
         </div>
 
         <div class="content-container">
-          <!-- SALES EXECUTIVE AND DATE -->
+          <!-- DOCUMENT INFO -->
           <div class="section">
             <table class="form-table">
+              ${isInvoice ? `
+              <tr>
+                <td class="label">Invoice No.:</td>
+                <td class="data">${safeString(formData.documentNumber || 'Pending')}</td>
+                <td class="label">Date:</td>
+                <td class="data">${formatDate(formData.date)}</td>
+              </tr>
+              ` : `
+              <tr>
+                <td class="label">Date:</td>
+                <td class="data">${formatDate(formData.date)}</td>
+                <td class="label">Status:</td>
+                <td class="data">RESERVED</td>
+              </tr>
+              `}
               <tr>
                 <td class="label">Sales Executive:</td>
                 <td class="data">${safeString(formData.salesExecutive)}</td>
-                <td class="label">Date:</td>
-                <td class="data">${formatDate(formData.date)}</td>
+                ${isInvoice ? `
+                <td class="label">Status:</td>
+                <td class="data">PAID IN FULL</td>
+                ` : `
+                <td class="label"></td>
+                <td class="data"></td>
+                `}
               </tr>
             </table>
           </div>
@@ -461,8 +481,14 @@ function generateReservationHTML(formData: any, mode: string) {
               <tr>
                 <td class="label">Chassis No.:</td>
                 <td class="data">${safeString(formData.chassisNo)}</td>
-                <td class="label">Colour:</td>
-                <td class="data">${safeString(formData.colour)}</td>
+                <td class="label">Exterior Colour:</td>
+                <td class="data">${safeString(formData.exteriorColour)}</td>
+              </tr>
+              <tr>
+                <td class="label">Interior Colour:</td>
+                <td class="data">${safeString(formData.interiorColour)}</td>
+                <td class="label"></td>
+                <td class="data"></td>
               </tr>
               <tr>
                 <td class="label">Mileage:</td>
@@ -523,8 +549,8 @@ function generateReservationHTML(formData: any, mode: string) {
               <tr>
                 <td class="label">Chassis No.:</td>
                 <td class="data">${safeString(formData.partExchangeChassisNo)}</td>
-                <td class="label">Colour:</td>
-                <td class="data">${safeString(formData.partExchangeColour)}</td>
+                <td class="label">Exterior Colour:</td>
+                <td class="data">${safeString(formData.partExchangeExteriorColour)}</td>
               </tr>
               <tr>
                 <td class="label">Engine No.:</td>
@@ -758,11 +784,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for existing PDF and delete it before generating new one
-    console.log('🔍 Checking for existing PDF to delete...');
+    // Check for existing PDF and get document number
+    console.log('🔍 Checking for existing PDF to delete and getting document number...');
     const { data: existingReservation } = await supabase
       .from('vehicle_reservations')
-      .select('pdf_url')
+      .select('pdf_url, document_number')
       .eq('id', reservationId)
       .single();
 
@@ -799,9 +825,15 @@ export async function POST(request: NextRequest) {
       console.log('ℹ️ No existing PDF found to delete');
     }
 
+    // Add document number to form data
+    const enhancedFormData = {
+      ...formData,
+      documentNumber: existingReservation?.document_number || 'Pending'
+    };
+
     // Generate HTML content for the reservation/invoice form
     console.log('📄 Generating HTML content...');
-    const htmlContent = generateReservationHTML(formData, mode);
+    const htmlContent = generateReservationHTML(enhancedFormData, mode);
     console.log('📄 HTML content generated, length:', htmlContent.length);
     
     console.log('📄 Generating vehicle document PDF using PDFShift...');
@@ -852,11 +884,19 @@ export async function POST(request: NextRequest) {
       
     console.log('📄 PDF generated and uploaded:', publicUrl);
 
+    // Get the updated document number after generation
+    const { data: updatedReservation } = await supabase
+      .from('vehicle_reservations')
+      .select('document_number')
+      .eq('id', reservationId)
+      .single();
+
     return NextResponse.json({
       success: true,
       pdfUrl: publicUrl,
       documentType: mode,
       reservationId,
+      documentNumber: updatedReservation?.document_number || existingReservation?.document_number,
       message: `${mode} document generated successfully`
     });
 

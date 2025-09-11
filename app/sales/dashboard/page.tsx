@@ -4,14 +4,15 @@ import React, { useState, useEffect } from 'react';
 import RouteProtector from '@/components/shared/RouteProtector';
 import SalesDataGrid from '@/components/sales/SalesDataGrid';
 import SalesTargetsManager from '@/components/sales/SalesTargetsManager';
+import ReservationsInvoicesGrid from '@/components/shared/accounting/ReservationsInvoicesGrid';
 import { useSalesData } from '@/lib/useSalesData';
 import { supabase } from '@/lib/supabaseClient';
-import { Building2, Grid3X3, Target, TrendingUp, Calculator, Package, DollarSign } from 'lucide-react';
+import { Building2, Grid3X3, Target, TrendingUp, Calculator, Package, DollarSign, FileText } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 
 export default function SalesDashboard() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'grid' | 'targets'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'grid' | 'targets' | 'accounting'>('dashboard');
   const [allSalesMetrics, setAllSalesMetrics] = useState<any[]>([]);
   const [allSalesTargets, setAllSalesTargets] = useState<any[]>([]);
   
@@ -24,7 +25,7 @@ export default function SalesDashboard() {
   } = useSalesData();
 
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab as 'dashboard' | 'grid' | 'targets');
+    setActiveTab(tab as 'dashboard' | 'grid' | 'targets' | 'accounting');
   };
 
   const fetchAllSalesTargets = async () => {
@@ -121,6 +122,17 @@ export default function SalesDashboard() {
                   <Target className="w-4 h-4" />
                   <span>Targets</span>
                 </button>
+                <button
+                  onClick={() => handleTabChange('accounting')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    activeTab === 'accounting'
+                      ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Accounting</span>
+                </button>
               </div>
             </div>
 
@@ -185,6 +197,8 @@ export default function SalesDashboard() {
                   loading={loading}
                   error={error}
                 />
+              ) : activeTab === 'accounting' ? (
+                <ReservationsInvoicesGrid />
               ) : (
                 <SalesTargetsManager
                   targets={allSalesTargets}

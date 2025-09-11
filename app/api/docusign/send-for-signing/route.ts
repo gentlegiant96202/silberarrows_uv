@@ -337,7 +337,7 @@ export async function POST(request: NextRequest) {
       message: `Consignment agreement sent to ${companySignerEmail} for company approval. Customer will be notified after company signature is completed. Signed PDF will automatically replace unsigned version when completed.`
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Critical Error in DocuSign API:', {
       errorMessage: error.message,
       errorStack: error.stack,

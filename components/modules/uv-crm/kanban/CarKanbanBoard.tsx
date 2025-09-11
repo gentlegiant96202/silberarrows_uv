@@ -395,7 +395,36 @@ export default function CarKanbanBoard() {
 
   const cleanModel = (model:string) => model.replace(/^(MERCEDES[\s-]*BENZ\s+)/i, '');
 
+  // Load cached data on mount first
   useEffect(() => {
+    const cachedCars = localStorage.getItem('inventory-cars');
+    const cachedThumbs = localStorage.getItem('inventory-thumbs');
+    const cachedColumnData = localStorage.getItem('inventory-column-data');
+    
+    if (cachedCars && cachedThumbs && cachedColumnData) {
+      console.log('🚗 Loading cached inventory data...');
+      setCars(JSON.parse(cachedCars));
+      setThumbs(JSON.parse(cachedThumbs));
+      setColumnData(JSON.parse(cachedColumnData));
+      
+      // Mark all columns as loaded since we have cached data
+      setColumnLoading({
+        marketing: false,
+        qc_ceo: false,
+        inventory: false,
+        reserved: false,
+        sold: false,
+        returned: false,
+        archived: false
+      });
+      
+      setLoading(false);
+      hasFetchedCars.current = true;
+      console.log('✅ Cached inventory data loaded');
+      return;
+    }
+    
+    // If no cache, proceed with normal loading
     if (!hasFetchedCars.current) {
       console.log('🚗 Inventory: Starting optimistic column loading...');
       
@@ -557,7 +586,29 @@ export default function CarKanbanBoard() {
       hasFetchedCars.current = true;
       setLoading(false);
     }
+  }, []);
 
+  // Save data to localStorage when loaded
+  useEffect(() => {
+    if (cars.length > 0) {
+      localStorage.setItem('inventory-cars', JSON.stringify(cars));
+    }
+  }, [cars]);
+
+  useEffect(() => {
+    if (Object.keys(thumbs).length > 0) {
+      localStorage.setItem('inventory-thumbs', JSON.stringify(thumbs));
+    }
+  }, [thumbs]);
+
+  useEffect(() => {
+    const hasData = Object.values(columnData).some(column => column.length > 0);
+    if (hasData) {
+      localStorage.setItem('inventory-column-data', JSON.stringify(columnData));
+    }
+  }, [columnData]);
+
+  useEffect(() => {
     const carsChannel = supabase
       .channel('cars-stream')
       .on(

@@ -203,8 +203,11 @@ export async function POST(request: NextRequest) {
 
     // Create envelope using REST API
     console.log('🔍 Creating DocuSign envelope data...');
+    // DocuSign enforces a 100 character limit on emailSubject
+    const baseSubject = `SilberArrows Consignment Agreement - ${car.vehicle_model} (${car.stock_number}) - Requires Approval`;
+    const safeSubject = baseSubject.length > 100 ? baseSubject.slice(0, 100) : baseSubject;
     const envelopeData = {
-      emailSubject: `SilberArrows Consignment Agreement - ${car.vehicle_model} (${car.stock_number}) - Requires Approval`,
+      emailSubject: safeSubject,
       emailBlurb: `Consignment agreement for ${car.model_year} ${car.vehicle_model} (Stock: ${car.stock_number}).`,
       documents: [
         {

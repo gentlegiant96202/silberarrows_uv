@@ -230,15 +230,15 @@ export default function KanbanBoard() {
     if (!hasFetchedLeads.current) {
       console.log('🚀 CRM: Starting optimistic column loading...');
       
-      // Define loading priority (most important columns first)
+      // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; status: string[] }[] = [
-        { key: 'new_lead', delay: 0, status: ['new_lead'] },
-        { key: 'new_customer', delay: 80, status: ['new_customer'] },
-        { key: 'negotiation', delay: 160, status: ['negotiation'] },
-        { key: 'won', delay: 240, status: ['won'] },
-        { key: 'delivered', delay: 320, status: ['delivered'] },
-        { key: 'lost', delay: 400, status: ['lost'] },
-        { key: 'archived', delay: 480, status: ['archived'] }
+        { key: 'new_lead', delay: 0, status: ['new_lead'] },           // NEW LEAD (leftmost)
+        { key: 'new_customer', delay: 80, status: ['new_customer'] },  // NEW APPOINTMENT
+        { key: 'negotiation', delay: 160, status: ['negotiation'] },   // NEGOTIATION
+        { key: 'won', delay: 240, status: ['won'] },                   // RESERVED
+        { key: 'delivered', delay: 320, status: ['delivered'] },       // DELIVERED
+        { key: 'lost', delay: 400, status: ['lost'] },                 // LOST
+        { key: 'archived', delay: 480, status: ['archived'] }          // ARCHIVED (rightmost)
       ];
 
       // Load each column progressively

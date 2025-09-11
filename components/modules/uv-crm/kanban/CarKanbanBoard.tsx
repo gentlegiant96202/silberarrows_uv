@@ -399,15 +399,15 @@ export default function CarKanbanBoard() {
     if (!hasFetchedCars.current) {
       console.log('🚗 Inventory: Starting optimistic column loading...');
       
-      // Define loading priority for car inventory columns
+      // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: any }[] = [
-        { key: 'inventory', delay: 0, statusFilter: { status: 'inventory', sale_status: 'available' } },
-        { key: 'reserved', delay: 60, statusFilter: { status: 'inventory', sale_status: 'reserved' } },
-        { key: 'marketing', delay: 120, statusFilter: { status: 'marketing' } },
-        { key: 'qc_ceo', delay: 180, statusFilter: { status: 'qc_ceo' } },
-        { key: 'sold', delay: 240, statusFilter: { status: 'inventory', sale_status: 'sold' } },
-        { key: 'returned', delay: 300, statusFilter: { status: 'inventory', sale_status: 'returned' } },
-        { key: 'archived', delay: 360, statusFilter: { status: 'inventory', sale_status: 'archived' } }
+        { key: 'marketing', delay: 0, statusFilter: { status: 'marketing' } },        // QC CHECK CEO (leftmost)
+        { key: 'qc_ceo', delay: 60, statusFilter: { status: 'qc_ceo' } },            // MARKETING  
+        { key: 'inventory', delay: 120, statusFilter: { status: 'inventory', sale_status: 'available' } }, // INVENTORY
+        { key: 'reserved', delay: 180, statusFilter: { status: 'inventory', sale_status: 'reserved' } },   // RESERVED
+        { key: 'sold', delay: 240, statusFilter: { status: 'inventory', sale_status: 'sold' } },          // SOLD
+        { key: 'returned', delay: 300, statusFilter: { status: 'inventory', sale_status: 'returned' } },  // RETURNED
+        { key: 'archived', delay: 360, statusFilter: { status: 'inventory', sale_status: 'archived' } }   // ARCHIVED (rightmost)
       ];
 
       // Load each column progressively

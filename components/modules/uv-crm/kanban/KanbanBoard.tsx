@@ -85,7 +85,6 @@ import LostReasonModal from "../modals/LostReasonModal";
 import VehicleDocumentModal from "../modals/VehicleDocumentModal";
 import { useSearchStore } from "@/lib/searchStore";
 import { useModulePermissions } from "@/lib/useModulePermissions";
-import { useUVCrmStore } from "@/lib/uvCrmStore";
 
 interface Lead {
   id: string;
@@ -164,23 +163,8 @@ const formatTimeForDisplay = (time24: string) => {
 dayjs.extend(relativeTime);
 
 export default function KanbanBoard() {
-  // Zustand global state - replaces all local state!
-  const {
-    leads,
-    columnData,
-    columnLoading,
-    hasFetchedLeads,
-    setLeads,
-    setColumnData,
-    setColumnLoading,
-    setHasFetchedLeads,
-    updateLeadInColumns,
-    removeLeadFromColumns,
-    isDataLoaded
-  } = useUVCrmStore();
-
-  // Local UI state (not shared across tabs)
-  const [loading, setLoading] = useState(!isDataLoaded());
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -192,6 +176,27 @@ export default function KanbanBoard() {
   const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   
+  // Column-by-column optimistic loading states
+  const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
+    new_lead: true,
+    new_customer: true,
+    negotiation: true,
+    won: true,
+    delivered: true,
+    lost: true,
+    archived: true
+  });
+  const [columnData, setColumnData] = useState<Record<ColKey, Lead[]>>({
+    new_lead: [],
+    new_customer: [],
+    negotiation: [],
+    won: [],
+    delivered: [],
+    lost: [],
+    archived: []
+  });
+  const hasFetchedLeads = useRef(false);
+
   // Get permissions for archive functionality
   const { canEdit } = useModulePermissions('uv_crm');
   
@@ -222,25 +227,7 @@ export default function KanbanBoard() {
 
   // Column-by-column optimistic loading
   useEffect(() => {
-    if (!hasFetchedLeads) {
-      // If we have cached CRM data specifically, skip loading and show immediately
-      if (leads.length > 0 || Object.values(columnData).some(col => col.length > 0)) {
-        console.log('✅ CRM: Using cached data, skipping load');
-        setLoading(false);
-        // Mark all columns as loaded since we have cached data
-        setColumnLoading({
-          new_lead: false,
-          new_customer: false,
-          negotiation: false,
-          won: false,
-          delivered: false,
-          lost: false,
-          archived: false
-        });
-        setHasFetchedLeads(true);
-        return;
-      }
-      
+    if (!hasFetchedLeads.current) {
       console.log('🚀 CRM: Starting optimistic column loading...');
       
       // Define loading priority (left to right column order)
@@ -266,13 +253,17 @@ export default function KanbanBoard() {
               .order('updated_at', { ascending: false });
 
             if (data) {
-              // Update column data using Zustand
-              const newColumnData = { ...columnData, [key]: data as Lead[] };
-              setColumnData(newColumnData);
+              // Update column data
+              setColumnData(prev => ({
+                ...prev,
+                [key]: data as Lead[]
+              }));
               
               // Also update main leads array for compatibility
-              const filteredLeads = leads.filter(lead => !status.includes(lead.status));
-              setLeads([...filteredLeads, ...(data as Lead[])]);
+              setLeads(prev => {
+                const filteredPrev = prev.filter(lead => !status.includes(lead.status));
+                return [...filteredPrev, ...(data as Lead[])];
+              });
               
               console.log(`✅ ${key} column loaded with ${data.length} leads`);
             }
@@ -280,13 +271,15 @@ export default function KanbanBoard() {
             console.error(`❌ Failed to load ${key} column:`, error);
           } finally {
             // Mark column as loaded
-            const newColumnLoading = { ...columnLoading, [key]: false };
-            setColumnLoading(newColumnLoading);
+            setColumnLoading(prev => ({
+              ...prev,
+              [key]: false
+            }));
           }
         }, delay);
       });
 
-      setHasFetchedLeads(true);
+      hasFetchedLeads.current = true;
       setLoading(false);
     }
 
@@ -297,19 +290,61 @@ export default function KanbanBoard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "leads" },
         (payload: any) => {
-          // Use Zustand store methods for real-time updates
+          const updateColumnData = (lead: Lead, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => {
+            const normalizedStatus = (lead.status || "")
+              .trim()
+              .toLowerCase()
+              .replace(/\s+/g, "_") as ColKey;
 
-          if (payload.eventType === "INSERT") {
-            const newLead = payload.new as Lead;
-            updateLeadInColumns(newLead);
-            setLeads([newLead, ...leads]);
-          } else if (payload.eventType === "UPDATE") {
-            const updatedLead = payload.new as Lead;
-            updateLeadInColumns(updatedLead);
-          } else if (payload.eventType === "DELETE") {
-            const deletedLead = payload.old as Lead;
-            removeLeadFromColumns(deletedLead.id);
-          }
+            setColumnData(prev => {
+              const newColumnData = { ...prev };
+              
+              if (eventType === "INSERT") {
+                if (newColumnData[normalizedStatus]) {
+                  newColumnData[normalizedStatus] = [lead, ...newColumnData[normalizedStatus]];
+                }
+              } else if (eventType === "UPDATE") {
+                // Remove from all columns first
+                Object.keys(newColumnData).forEach(key => {
+                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(l => l.id !== lead.id);
+                });
+                // Add to correct column
+                if (newColumnData[normalizedStatus]) {
+                  newColumnData[normalizedStatus] = [lead, ...newColumnData[normalizedStatus]];
+                }
+              } else if (eventType === "DELETE") {
+                Object.keys(newColumnData).forEach(key => {
+                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(l => l.id !== lead.id);
+                });
+              }
+              
+              return newColumnData;
+            });
+          };
+
+          setLeads(prev => {
+            let newLeads;
+            if (payload.eventType === "INSERT") {
+              const newLead = payload.new as Lead;
+              updateColumnData(newLead, "INSERT");
+              newLeads = [newLead, ...prev];
+            } else if (payload.eventType === "UPDATE") {
+              const updatedLead = payload.new as Lead;
+              updateColumnData(updatedLead, "UPDATE");
+              newLeads = prev.map(l => (l.id === updatedLead.id ? updatedLead : l));
+            } else if (payload.eventType === "DELETE") {
+              const deletedLead = payload.old as Lead;
+              updateColumnData(deletedLead, "DELETE");
+              newLeads = prev.filter(l => l.id !== deletedLead.id);
+            } else {
+              return prev;
+            }
+            
+            // Always maintain updated_at DESC sorting to prevent glitching
+            return newLeads.sort((a, b) => 
+              dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf()
+            );
+          });
         }
       )
       .subscribe();
@@ -455,7 +490,7 @@ export default function KanbanBoard() {
   };
 
   const handleLeadUpdated = (updatedLead: Lead) => {
-    setLeads((prev: Lead[]) => {
+    setLeads(prev => {
       const updated = prev.map(l => l.id === updatedLead.id ? updatedLead : l);
       // Maintain sorting after update
       return updated.sort((a, b) => 
@@ -471,7 +506,7 @@ export default function KanbanBoard() {
   };
 
   const handleConversionCompleted = (updatedLead: Lead) => {
-    setLeads((prev: Lead[]) => {
+    setLeads(prev => {
       const updated = prev.map(l => l.id === updatedLead.id ? updatedLead : l);
       // Maintain sorting after update
       return updated.sort((a, b) => 

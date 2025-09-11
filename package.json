@@ -43,7 +43,7 @@
     "recharts": "^2.15.4",
     "sharp": "^0.34.3",
     "tailwindcss": "^3.4.17",
-    "zustand": "^5.0.6"
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@types/jszip": "^3.4.0",

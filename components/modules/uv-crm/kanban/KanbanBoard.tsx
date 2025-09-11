@@ -169,9 +169,11 @@ export default function KanbanBoard() {
     leads,
     columnData,
     columnLoading,
+    hasFetchedLeads,
     setLeads,
     setColumnData,
     setColumnLoading,
+    setHasFetchedLeads,
     updateLeadInColumns,
     removeLeadFromColumns,
     isDataLoaded
@@ -190,8 +192,6 @@ export default function KanbanBoard() {
   const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   
-  const hasFetchedLeads = useRef(false);
-
   // Get permissions for archive functionality
   const { canEdit } = useModulePermissions('uv_crm');
   
@@ -222,7 +222,7 @@ export default function KanbanBoard() {
 
   // Column-by-column optimistic loading
   useEffect(() => {
-    if (!hasFetchedLeads.current) {
+    if (!hasFetchedLeads) {
       // If we have cached CRM data specifically, skip loading and show immediately
       if (leads.length > 0 || Object.values(columnData).some(col => col.length > 0)) {
         console.log('✅ CRM: Using cached data, skipping load');
@@ -237,7 +237,7 @@ export default function KanbanBoard() {
           lost: false,
           archived: false
         });
-        hasFetchedLeads.current = true;
+        setHasFetchedLeads(true);
         return;
       }
       
@@ -286,7 +286,7 @@ export default function KanbanBoard() {
         }, delay);
       });
 
-      hasFetchedLeads.current = true;
+      setHasFetchedLeads(true);
       setLoading(false);
     }
 

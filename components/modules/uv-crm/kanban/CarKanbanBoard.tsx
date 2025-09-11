@@ -135,10 +135,12 @@ export default function CarKanbanBoard() {
     carColumnData: columnData,
     carColumnLoading: columnLoading,
     carThumbs: thumbs,
+    hasFetchedCars,
     setCars,
     setCarColumnData: setColumnData,
     setCarColumnLoading: setColumnLoading,
     setCarThumbs: setThumbs,
+    setHasFetchedCars,
     updateCarInColumns,
     removeCarFromColumns,
     isDataLoaded
@@ -149,8 +151,6 @@ export default function CarKanbanBoard() {
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<Car | null>(null);
   const [selectedCarFull, setSelectedCarFull] = useState<CarInfo | null>(null);
-  const hasFetchedCars = useRef(false);
-  
   // Inventory filter state
   const [showInventoryFilters, setShowInventoryFilters] = useState(false);
   const [inventoryExpanded, setInventoryExpanded] = useState(false);
@@ -391,7 +391,7 @@ export default function CarKanbanBoard() {
   const cleanModel = (model:string) => model.replace(/^(MERCEDES[\s-]*BENZ\s+)/i, '');
 
   useEffect(() => {
-    if (!hasFetchedCars.current) {
+    if (!hasFetchedCars) {
       // If we have cached car data specifically, skip loading and show immediately
       if (cars.length > 0 || Object.values(columnData).some(col => col.length > 0)) {
         console.log('✅ Car Inventory: Using cached data, skipping load');
@@ -406,7 +406,7 @@ export default function CarKanbanBoard() {
           returned: false,
           archived: false
         });
-        hasFetchedCars.current = true;
+        setHasFetchedCars(true);
         return;
       }
       
@@ -567,7 +567,7 @@ export default function CarKanbanBoard() {
         }, delay);
       });
 
-      hasFetchedCars.current = true;
+      setHasFetchedCars(true);
       setLoading(false);
     }
 
@@ -600,10 +600,10 @@ export default function CarKanbanBoard() {
       console.log('🔄 CarKanbanBoard: Primary photo changed event received, reloading thumbnails...', event.detail);
       
       // Use a ref to track if component is still mounted
-      if (hasFetchedCars.current) {
+      if (hasFetchedCars) {
         // Debounce the reload to prevent multiple rapid calls
         setTimeout(() => {
-          if (hasFetchedCars.current) { // Check again after timeout
+          if (hasFetchedCars) { // Check again after timeout
             console.log('🔄 CarKanbanBoard: Force reloading after primary photo change...');
             load();
           }
@@ -616,7 +616,7 @@ export default function CarKanbanBoard() {
     return () => { 
       supabase.removeChannel(carsChannel);
       window.removeEventListener('primaryPhotoChanged', handlePrimaryPhotoChange);
-      hasFetchedCars.current = false; // Mark component as unmounted
+      setHasFetchedCars(false); // Mark component as unmounted
     };
   }, []);
 

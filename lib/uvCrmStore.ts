@@ -54,12 +54,14 @@ interface UVCrmState {
   leads: Lead[];
   columnData: Record<string, Lead[]>;
   columnLoading: Record<string, boolean>;
+  hasFetchedLeads: boolean;
   
   // Car Inventory Data
   cars: Car[];
   carColumnData: Record<string, Car[]>;
   carColumnLoading: Record<string, boolean>;
   carThumbs: Record<string, string>;
+  hasFetchedCars: boolean;
   
   // Dashboard Data
   dashboardMetrics: any[];
@@ -72,6 +74,7 @@ interface UVCrmState {
   setColumnLoading: (columnLoading: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>)) => void;
   updateLeadInColumns: (lead: Lead) => void;
   removeLeadFromColumns: (leadId: string) => void;
+  setHasFetchedLeads: (fetched: boolean) => void;
   
   // Actions for Car Inventory
   setCars: (cars: Car[] | ((prev: Car[]) => Car[])) => void;
@@ -80,6 +83,7 @@ interface UVCrmState {
   setCarThumbs: (carThumbs: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => void;
   updateCarInColumns: (car: Car) => void;
   removeCarFromColumns: (carId: string) => void;
+  setHasFetchedCars: (fetched: boolean) => void;
   
   // Actions for Dashboard
   setDashboardMetrics: (metrics: any[]) => void;
@@ -114,6 +118,7 @@ export const useUVCrmStore = create<UVCrmState>()(
         lost: true,
         archived: true
       },
+      hasFetchedLeads: false,
       
       // Initial state - Car Inventory
       cars: [],
@@ -136,6 +141,7 @@ export const useUVCrmStore = create<UVCrmState>()(
         archived: true
       },
       carThumbs: {},
+      hasFetchedCars: false,
       
       // Initial state - Dashboard
       dashboardMetrics: [],
@@ -188,6 +194,8 @@ export const useUVCrmStore = create<UVCrmState>()(
           leads: state.leads.filter(l => l.id !== leadId)
         };
       }),
+      
+      setHasFetchedLeads: (fetched) => set({ hasFetchedLeads: fetched }),
       
       // Car Inventory Actions
       setCars: (cars) => set((state) => ({ 
@@ -245,6 +253,8 @@ export const useUVCrmStore = create<UVCrmState>()(
           cars: state.cars.filter(c => c.id !== carId)
         };
       }),
+      
+      setHasFetchedCars: (fetched) => set({ hasFetchedCars: fetched }),
       
       // Dashboard Actions
       setDashboardMetrics: (metrics) => set({ dashboardMetrics: metrics }),

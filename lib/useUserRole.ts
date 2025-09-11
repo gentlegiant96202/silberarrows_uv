@@ -3,12 +3,13 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
 
 interface UserRole {
-  role: 'admin' | 'sales' | 'marketing' | 'service' | 'leasing';
+  role: 'admin' | 'sales' | 'marketing' | 'service' | 'leasing' | 'accounts';
   isAdmin: boolean;
   isSales: boolean;
   isMarketing: boolean;
   isService: boolean;
   isLeasing: boolean;
+  isAccounts: boolean;
   isLoading: boolean;
   error: string | null;
   
@@ -26,7 +27,7 @@ interface UserRole {
  */
 export function useUserRole(): UserRole {
   const { user } = useAuth();
-  const [role, setRole] = useState<'admin' | 'sales' | 'marketing' | 'service' | 'leasing'>('sales');
+  const [role, setRole] = useState<'admin' | 'sales' | 'marketing' | 'service' | 'leasing' | 'accounts'>('sales');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -104,6 +105,7 @@ export function useUserRole(): UserRole {
     isMarketing: role === 'marketing',
     isService: role === 'service',
     isLeasing: role === 'leasing',
+    isAccounts: role === 'accounts',
     isLoading,
     error,
     

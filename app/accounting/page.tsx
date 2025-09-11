@@ -21,8 +21,8 @@ export default function AccountingPage() {
     );
   }
 
-  // Check if user has access (admin, sales, or service roles can access accounting)
-  const hasAccess = role === 'admin' || role === 'sales' || role === 'service';
+  // Check if user has access (admin, accounts, or sales roles can access accounting)
+  const hasAccess = role === 'admin' || role === 'accounts' || role === 'sales';
 
   if (!hasAccess) {
     return (
@@ -31,7 +31,7 @@ export default function AccountingPage() {
           <Shield className="w-16 h-16 mx-auto mb-4 text-red-400" />
           <h1 className="text-2xl font-bold mb-2 text-white">Access Denied</h1>
           <p className="text-white/70 mb-6">
-            You don't have permission to access the Accounting module. This module is available to Admin, Sales, and Service users only.
+            You don't have permission to access the Accounting module. This module is available to Admin, Accounts, and Sales users only.
           </p>
           <div className="flex justify-center gap-4">
             <button

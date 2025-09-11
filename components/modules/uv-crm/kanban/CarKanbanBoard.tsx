@@ -478,6 +478,31 @@ export default function CarKanbanBoard() {
                   );
                   return [...filteredPrev, ...(fallbackData as Car[])];
                 });
+                
+                // Load thumbnails for fallback data
+                const carIds = fallbackData.map(c => c.id);
+                if (carIds.length > 0) {
+                  const { data: mediaRows } = await supabase
+                    .from('car_media')
+                    .select('car_id,url')
+                    .eq('is_primary', true)
+                    .eq('kind', 'photo')
+                    .in('car_id', carIds);
+                  
+                  if (mediaRows) {
+                    const newThumbs: Record<string, string> = {};
+                    mediaRows.forEach((m: any) => {
+                      let imageUrl = m.url;
+                      if (imageUrl && imageUrl.includes('.supabase.co/storage/')) {
+                        imageUrl = `/api/storage-proxy?url=${encodeURIComponent(m.url)}`;
+                      }
+                      newThumbs[m.car_id] = imageUrl;
+                    });
+                    
+                    setThumbs(prev => ({ ...prev, ...newThumbs }));
+                    console.log(`🖼️ ${key} fallback loaded ${mediaRows.length} thumbnails`);
+                  }
+                }
               }
             } else if (data) {
               // Update column data
@@ -491,6 +516,32 @@ export default function CarKanbanBoard() {
                 );
                 return [...filteredPrev, ...(data as Car[])];
               });
+              
+              // Load thumbnails for this column's cars
+              const carIds = data.map(c => c.id);
+              if (carIds.length > 0) {
+                const { data: mediaRows } = await supabase
+                  .from('car_media')
+                  .select('car_id,url')
+                  .eq('is_primary', true)
+                  .eq('kind', 'photo')
+                  .in('car_id', carIds);
+                
+                if (mediaRows) {
+                  const newThumbs: Record<string, string> = {};
+                  mediaRows.forEach((m: any) => {
+                    // Use storage proxy for images
+                    let imageUrl = m.url;
+                    if (imageUrl && imageUrl.includes('.supabase.co/storage/')) {
+                      imageUrl = `/api/storage-proxy?url=${encodeURIComponent(m.url)}`;
+                    }
+                    newThumbs[m.car_id] = imageUrl;
+                  });
+                  
+                  setThumbs(prev => ({ ...prev, ...newThumbs }));
+                  console.log(`🖼️ ${key} column loaded ${mediaRows.length} thumbnails`);
+                }
+              }
               
               console.log(`✅ ${key} column loaded with ${data.length} cars`);
             }

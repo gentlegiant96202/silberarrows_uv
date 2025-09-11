@@ -225,18 +225,24 @@ export async function POST(request: NextRequest) {
               signHereTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '3',
-                  xPosition: '100',
-                  yPosition: '1100',
+                  anchorString: 'SilberArrows Signature:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '30',
+                  anchorIgnoreIfNotPresent: false,
+                  anchorCaseSensitive: true,
                   tabLabel: 'CompanySignature'
                 }
               ],
               dateSignedTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '3',
-                  xPosition: '100',
-                  yPosition: '1130',
+                  anchorString: 'SilberArrows Signature:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '66',
+                  anchorIgnoreIfNotPresent: false,
+                  anchorCaseSensitive: true,
                   tabLabel: 'CompanyDate'
                 }
               ]
@@ -251,18 +257,24 @@ export async function POST(request: NextRequest) {
               signHereTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '3',
-                  xPosition: '350',
-                  yPosition: '1100',
+                  anchorString: 'Owner/Representative Signature:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '30',
+                  anchorIgnoreIfNotPresent: false,
+                  anchorCaseSensitive: true,
                   tabLabel: 'CustomerSignature'
                 }
               ],
               dateSignedTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '3',
-                  xPosition: '350',
-                  yPosition: '1130',
+                  anchorString: 'Owner/Representative Signature:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '66',
+                  anchorIgnoreIfNotPresent: false,
+                  anchorCaseSensitive: true,
                   tabLabel: 'CustomerDate'
                 }
               ]

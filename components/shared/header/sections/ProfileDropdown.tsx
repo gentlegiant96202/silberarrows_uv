@@ -85,12 +85,12 @@ export default function ProfileDropdown() {
           </div>
         </>
       ) : (
-        <button
-          onClick={() => routerHook.push('/login')}
+        <a
+          href="/login"
           className="px-4 py-1.5 rounded-full bg-brand text-white text-sm font-medium hover:bg-brand/90"
         >
           Login
-        </button>
+        </a>
       )}
     </div>
   );

@@ -53,43 +53,6 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body className="antialiased">
-        {/* Snapshot overlay boot */}
-        <div id="snapshot-overlay" style={{position:'fixed', inset:0 as any, backgroundSize:'cover', backgroundPosition:'center', zIndex:9998, display:'none'}} />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-(function(){
-  try{
-    var key='sa_last_snapshot';
-    var overlay=document.getElementById('snapshot-overlay');
-    // Show snapshot immediately on pageshow if available
-    var showSnap=function(){
-      try{
-        var snap=localStorage.getItem(key);
-        if(!snap||!overlay) return;
-        overlay.style.backgroundImage='url('+snap+')';
-        overlay.style.display='block';
-        overlay.style.opacity='1';
-      }catch(e){}
-    };
-    // Hide snapshot when app signals ready
-    window.addEventListener('sa:appReady',function(){
-      try{
-        if(!overlay) return;
-        overlay.style.transition='opacity 200ms ease-out';
-        overlay.style.opacity='0';
-        setTimeout(function(){ overlay.style.display='none'; overlay.style.backgroundImage=''; },220);
-      }catch(e){}
-    });
-    // On tab show, reveal snapshot fast
-    window.addEventListener('pageshow',function(ev){ if(ev.persisted){ showSnap(); } else { showSnap(); } });
-    document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'){ showSnap(); }});
-    // On tab hide, capture snapshot using CSS paint (fast fallback):
-    // We can't use html2canvas without extra weight; use a small canvas and draw current viewport via drawImage on video capture (skipped). Fallback: skip capture here.
-  }catch(e){}
-})();
-`}}
-        />
         <div className="min-h-screen bg-black">
           <Providers>
             <LayoutWrapper>
@@ -97,13 +60,6 @@ export default function RootLayout({
             </LayoutWrapper>
           </Providers>
         </div>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-// Signal that the app is ready to paint real content
-window.dispatchEvent(new Event('sa:appReady'));
-`}}
-        />
         <SpeedInsights />
       </body>
     </html>

@@ -223,8 +223,8 @@ export default function KanbanBoard() {
   // Column-by-column optimistic loading
   useEffect(() => {
     if (!hasFetchedLeads.current) {
-      // If we have cached data, skip loading and show immediately
-      if (isDataLoaded()) {
+      // If we have cached CRM data specifically, skip loading and show immediately
+      if (leads.length > 0 || Object.values(columnData).some(col => col.length > 0)) {
         console.log('✅ CRM: Using cached data, skipping load');
         setLoading(false);
         // Mark all columns as loaded since we have cached data

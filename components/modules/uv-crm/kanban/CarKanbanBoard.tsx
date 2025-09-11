@@ -392,8 +392,8 @@ export default function CarKanbanBoard() {
 
   useEffect(() => {
     if (!hasFetchedCars.current) {
-      // If we have cached data, skip loading and show immediately
-      if (isDataLoaded() && cars.length > 0) {
+      // If we have cached car data specifically, skip loading and show immediately
+      if (cars.length > 0 || Object.values(columnData).some(col => col.length > 0)) {
         console.log('✅ Car Inventory: Using cached data, skipping load');
         setLoading(false);
         // Mark all columns as loaded since we have cached data

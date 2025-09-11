@@ -8,6 +8,7 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { useSearchStore } from '@/lib/searchStore';
 import { useUserRole } from '@/lib/useUserRole'; // 🆕 NEW ROLE SYSTEM
 import { useModulePermissions } from '@/lib/useModulePermissions';
+import { useUVCrmStore } from '@/lib/uvCrmStore';
 import { Check, Tag, Archive } from 'lucide-react';
 
 // Skeleton Components
@@ -128,33 +129,27 @@ interface Car {
 }
 
 export default function CarKanbanBoard() {
-  const [cars, setCars] = useState<Car[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Zustand global state - replaces car-related local state!
+  const {
+    cars,
+    carColumnData: columnData,
+    carColumnLoading: columnLoading,
+    carThumbs: thumbs,
+    setCars,
+    setCarColumnData: setColumnData,
+    setCarColumnLoading: setColumnLoading,
+    setCarThumbs: setThumbs,
+    updateCarInColumns,
+    removeCarFromColumns,
+    isDataLoaded
+  } = useUVCrmStore();
+
+  // Local UI state (not shared across tabs)
+  const [loading, setLoading] = useState(!isDataLoaded());
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<Car | null>(null);
   const [selectedCarFull, setSelectedCarFull] = useState<CarInfo | null>(null);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const hasFetchedCars = useRef(false);
-  
-  // Column-by-column optimistic loading states
-  const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
-    marketing: true,
-    qc_ceo: true,
-    inventory: true,
-    reserved: true,
-    sold: true,
-    returned: true,
-    archived: true
-  });
-  const [columnData, setColumnData] = useState<Record<ColKey, Car[]>>({
-    marketing: [],
-    qc_ceo: [],
-    inventory: [],
-    reserved: [],
-    sold: [],
-    returned: [],
-    archived: []
-  });
   
   // Inventory filter state
   const [showInventoryFilters, setShowInventoryFilters] = useState(false);
@@ -397,6 +392,14 @@ export default function CarKanbanBoard() {
 
   useEffect(() => {
     if (!hasFetchedCars.current) {
+      // If we have cached data, skip loading and show immediately
+      if (isDataLoaded() && cars.length > 0) {
+        console.log('✅ Car Inventory: Using cached data, skipping load');
+        setLoading(false);
+        hasFetchedCars.current = true;
+        return;
+      }
+      
       console.log('🚗 Inventory: Starting optimistic column loading...');
       
       // Define loading priority (left to right column order)
@@ -564,65 +567,20 @@ export default function CarKanbanBoard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'cars' },
         (payload: any) => {
-          const updateColumnData = (car: Car, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => {
-            // Determine which column this car belongs to
-            let targetColumn: ColKey | null = null;
-            
-            if (car.status === 'marketing') targetColumn = 'marketing';
-            else if (car.status === 'qc_ceo') targetColumn = 'qc_ceo';
-            else if (car.status === 'inventory') {
-              if (car.sale_status === 'available') targetColumn = 'inventory';
-              else if (car.sale_status === 'reserved') targetColumn = 'reserved';
-              else if (car.sale_status === 'sold') targetColumn = 'sold';
-              else if (car.sale_status === 'returned') targetColumn = 'returned';
-              else if (car.sale_status === 'archived') targetColumn = 'archived';
-            }
+          // Use Zustand store methods for real-time updates
 
-            setColumnData(prev => {
-              const newColumnData = { ...prev };
-              
-              if (eventType === 'INSERT' && targetColumn) {
-                if (!newColumnData[targetColumn].some(c => c.id === car.id)) {
-                  newColumnData[targetColumn] = [car, ...newColumnData[targetColumn]];
-                }
-              } else if (eventType === 'UPDATE') {
-                // Remove from all columns first
-                Object.keys(newColumnData).forEach(key => {
-                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(c => c.id !== car.id);
-                });
-                // Add to correct column
-                if (targetColumn) {
-                  newColumnData[targetColumn] = [car, ...newColumnData[targetColumn]];
-                }
-              } else if (eventType === 'DELETE') {
-                Object.keys(newColumnData).forEach(key => {
-                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(c => c.id !== car.id);
-                });
-              }
-              
-              return newColumnData;
-            });
-          };
-
-          setCars(prev => {
-            if (payload.eventType === 'INSERT') {
-              const newCar = payload.new as Car;
-              updateColumnData(newCar, 'INSERT');
-              const exists = prev.some(c => c.id === newCar.id);
-              return exists ? prev : [newCar, ...prev];
-            }
-            if (payload.eventType === 'UPDATE') {
-              const updatedCar = payload.new as Car;
-              updateColumnData(updatedCar, 'UPDATE');
-              return prev.map(c => c.id === updatedCar.id ? updatedCar : c);
-            }
-            if (payload.eventType === 'DELETE') {
-              const deletedCar = payload.old as Car;
-              updateColumnData(deletedCar, 'DELETE');
-              return prev.filter(c => c.id !== deletedCar.id);
-            }
-            return prev;
-          });
+          if (payload.eventType === 'INSERT') {
+            const newCar = payload.new as Car;
+            updateCarInColumns(newCar);
+            const exists = cars.some(c => c.id === newCar.id);
+            if (!exists) setCars([newCar, ...cars]);
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedCar = payload.new as Car;
+            updateCarInColumns(updatedCar);
+          } else if (payload.eventType === 'DELETE') {
+            const deletedCar = payload.old as Car;
+            removeCarFromColumns(deletedCar.id);
+          }
         }
       )
       .subscribe();

@@ -15,6 +15,7 @@ import {
 } from '@/components/shared/SkeletonLoaders';
 
 import { useSalesData } from '@/lib/useSalesData';
+import { useUVCrmStore } from '@/lib/uvCrmStore';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 
@@ -191,6 +192,16 @@ function CumulativeFunnel({ salesYear, salesMonth }: { salesYear: number; salesM
 
 
 export default function DashboardPage() {
+  // Zustand global state for dashboard data
+  const {
+    dashboardMetrics: allSalesMetrics,
+    dashboardTargets: allSalesTargets,
+    dashboardLoaded,
+    setDashboardMetrics: setAllSalesMetrics,
+    setDashboardTargets: setAllSalesTargets,
+    setDashboardLoaded,
+    isDataLoaded
+  } = useUVCrmStore();
 
   // Sales data hooks for the shared component
   const { 
@@ -201,9 +212,6 @@ export default function DashboardPage() {
     deleteSalesData 
   } = useSalesData();
 
-  // Sales dashboard state
-  const [allSalesMetrics, setAllSalesMetrics] = useState<any[]>([]);
-  const [allSalesTargets, setAllSalesTargets] = useState<any[]>([]);
   const hasFetchedInitialData = useRef(false);
 
   // Component-by-component optimistic loading states (top to bottom)
@@ -256,6 +264,15 @@ export default function DashboardPage() {
   // Load sales data first, then other components
   useEffect(() => {
     if (!hasFetchedInitialData.current) {
+      // If we have cached dashboard data, show immediately
+      if (dashboardLoaded && allSalesMetrics.length > 0) {
+        console.log('✅ Dashboard: Using cached data, skipping load');
+        setSalesLoaded(true);
+        setOtherComponentsLoaded(true);
+        hasFetchedInitialData.current = true;
+        return;
+      }
+      
       async function loadSalesData() {
         try {
           console.log('🚀 Loading sales metrics first...');
@@ -286,6 +303,7 @@ export default function DashboardPage() {
           
           setAllSalesMetrics(salesMetrics);
           setAllSalesTargets(salesTargets);
+          setDashboardLoaded(true);
           hasFetchedInitialData.current = true;
           
           console.log('✅ Sales metrics loaded, starting progressive component loading...');

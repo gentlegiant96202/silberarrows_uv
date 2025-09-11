@@ -184,7 +184,8 @@ export default function RouteProtector({
   const { canView, isLoading, error } = useModulePermissions(moduleName);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [showContent, setShowContent] = useState(true);
-  const [skeletonVisible, setSkeletonVisible] = useState(true);
+  // Disable overlay by default for uv_crm and inventory to avoid blank screen on tab switch
+  const [skeletonVisible, setSkeletonVisible] = useState(!(moduleName === 'uv_crm' || moduleName === 'inventory'));
 
   useEffect(() => {
     // Wait for both user authentication and permissions to load
@@ -256,12 +257,14 @@ export default function RouteProtector({
 
   return (
     <div className="relative h-full">
-      {/* Skeleton overlay - fades out */}
-      <div className={`absolute inset-0 transition-opacity duration-500 ease-out ${
-        skeletonVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      }`}>
-        {getSkeleton()}
-      </div>
+      {/* Skeleton overlay - disabled for uv_crm and inventory */}
+      {(moduleName !== 'uv_crm' && moduleName !== 'inventory') && (
+        <div className={`absolute inset-0 transition-opacity duration-500 ease-out ${
+          skeletonVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}>
+          {getSkeleton()}
+        </div>
+      )}
       {/* Real content - always mounted */}
       <div className={`transition-opacity duration-300 ease-out ${
         showContent ? 'opacity-100' : 'opacity-100'

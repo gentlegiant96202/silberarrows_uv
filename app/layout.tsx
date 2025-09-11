@@ -53,6 +53,12 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body className="antialiased">
+        {/* DEBUG: SSR mount banner */}
+        <div className="fixed top-0 left-0 right-0 z-[10000] pointer-events-none">
+          <div className="mx-auto mt-2 w-fit px-2 py-0.5 rounded bg-indigo-600/80 text-[10px] text-white shadow">
+            RootLayout mounted
+          </div>
+        </div>
         <div className="min-h-screen bg-black">
           <Providers>
             <LayoutWrapper>

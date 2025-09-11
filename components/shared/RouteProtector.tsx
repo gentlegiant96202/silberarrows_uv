@@ -206,7 +206,8 @@ export default function RouteProtector({
     // Show appropriate skeleton based on module
     switch (moduleName) {
       case 'inventory':
-        return <InventorySkeleton />;
+        // Inventory handles its own progressive loading, show minimal loading
+        return <GenericModuleSkeleton moduleName={moduleName} />;
       case 'uv_crm':
         // CRM handles its own progressive loading, show minimal loading
         return <GenericModuleSkeleton moduleName={moduleName} />;

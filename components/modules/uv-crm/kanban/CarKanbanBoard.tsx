@@ -136,8 +136,25 @@ export default function CarKanbanBoard() {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const hasFetchedCars = useRef(false);
   
-  // Progressive loading state for fade-in animation
-  const [columnsVisible, setColumnsVisible] = useState(false);
+  // Column-by-column optimistic loading states
+  const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
+    marketing: true,
+    qc_ceo: true,
+    inventory: true,
+    reserved: true,
+    sold: true,
+    returned: true,
+    archived: true
+  });
+  const [columnData, setColumnData] = useState<Record<ColKey, Car[]>>({
+    marketing: [],
+    qc_ceo: [],
+    inventory: [],
+    reserved: [],
+    sold: [],
+    returned: [],
+    archived: []
+  });
   
   // Inventory filter state
   const [showInventoryFilters, setShowInventoryFilters] = useState(false);
@@ -380,15 +397,114 @@ export default function CarKanbanBoard() {
 
   useEffect(() => {
     if (!hasFetchedCars.current) {
-      async function loadWithFadeIn() {
-        await load();
-        // Trigger fade-in animation immediately after data loads
-        // RouteProtector handles the main transition timing
-        setColumnsVisible(true);
-        console.log('✅ Inventory: Cars loaded, columns visible');
-      }
-      loadWithFadeIn();
+      console.log('🚗 Inventory: Starting optimistic column loading...');
+      
+      // Define loading priority for car inventory columns
+      const columnPriorities: { key: ColKey; delay: number; statusFilter: any }[] = [
+        { key: 'inventory', delay: 0, statusFilter: { status: 'inventory', sale_status: 'available' } },
+        { key: 'reserved', delay: 60, statusFilter: { status: 'inventory', sale_status: 'reserved' } },
+        { key: 'marketing', delay: 120, statusFilter: { status: 'marketing' } },
+        { key: 'qc_ceo', delay: 180, statusFilter: { status: 'qc_ceo' } },
+        { key: 'sold', delay: 240, statusFilter: { status: 'inventory', sale_status: 'sold' } },
+        { key: 'returned', delay: 300, statusFilter: { status: 'inventory', sale_status: 'returned' } },
+        { key: 'archived', delay: 360, statusFilter: { status: 'inventory', sale_status: 'archived' } }
+      ];
+
+      // Load each column progressively
+      columnPriorities.forEach(({ key, delay, statusFilter }) => {
+        setTimeout(async () => {
+          try {
+            console.log(`🚗 Loading ${key} column...`);
+            
+            let query = supabase
+              .from('cars')
+              .select(`
+                id,
+                stock_number,
+                model_year,
+                vehicle_model,
+                colour,
+                advertised_price_aed,
+                status,
+                sale_status,
+                stock_age_days,
+                ownership_type,
+                customer_name,
+                customer_email,
+                customer_phone,
+                vehicle_details_pdf_url,
+                archived_at,
+                customer_disclosed_accident,
+                customer_disclosed_flood_damage,
+                damage_disclosure_details,
+                current_mileage_km,
+                horsepower_hp
+              `)
+              .order('updated_at', { ascending: false });
+
+            // Apply column-specific filters
+            if (statusFilter.status) {
+              query = query.eq('status', statusFilter.status);
+            }
+            if (statusFilter.sale_status) {
+              query = query.eq('sale_status', statusFilter.sale_status);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+              console.error(`❌ Failed to load ${key} column:`, error);
+              // Try fallback without new fields
+              const fallbackQuery = supabase
+                .from('cars')
+                .select(`
+                  id, stock_number, model_year, vehicle_model, colour,
+                  advertised_price_aed, status, sale_status, stock_age_days,
+                  ownership_type, customer_name, customer_email, customer_phone,
+                  vehicle_details_pdf_url, archived_at
+                `)
+                .order('updated_at', { ascending: false });
+              
+              if (statusFilter.status) fallbackQuery.eq('status', statusFilter.status);
+              if (statusFilter.sale_status) fallbackQuery.eq('sale_status', statusFilter.sale_status);
+              
+              const { data: fallbackData } = await fallbackQuery;
+              if (fallbackData) {
+                setColumnData(prev => ({ ...prev, [key]: fallbackData as Car[] }));
+                setCars(prev => {
+                  const filteredPrev = prev.filter(car => 
+                    !(car.status === statusFilter.status && 
+                      (!statusFilter.sale_status || car.sale_status === statusFilter.sale_status))
+                  );
+                  return [...filteredPrev, ...(fallbackData as Car[])];
+                });
+              }
+            } else if (data) {
+              // Update column data
+              setColumnData(prev => ({ ...prev, [key]: data as Car[] }));
+              
+              // Also update main cars array for compatibility
+              setCars(prev => {
+                const filteredPrev = prev.filter(car => 
+                  !(car.status === statusFilter.status && 
+                    (!statusFilter.sale_status || car.sale_status === statusFilter.sale_status))
+                );
+                return [...filteredPrev, ...(data as Car[])];
+              });
+              
+              console.log(`✅ ${key} column loaded with ${data.length} cars`);
+            }
+          } catch (error) {
+            console.error(`❌ Failed to load ${key} column:`, error);
+          } finally {
+            // Mark column as loaded
+            setColumnLoading(prev => ({ ...prev, [key]: false }));
+          }
+        }, delay);
+      });
+
       hasFetchedCars.current = true;
+      setLoading(false);
     }
 
     const carsChannel = supabase
@@ -397,16 +513,62 @@ export default function CarKanbanBoard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'cars' },
         (payload: any) => {
+          const updateColumnData = (car: Car, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => {
+            // Determine which column this car belongs to
+            let targetColumn: ColKey | null = null;
+            
+            if (car.status === 'marketing') targetColumn = 'marketing';
+            else if (car.status === 'qc_ceo') targetColumn = 'qc_ceo';
+            else if (car.status === 'inventory') {
+              if (car.sale_status === 'available') targetColumn = 'inventory';
+              else if (car.sale_status === 'reserved') targetColumn = 'reserved';
+              else if (car.sale_status === 'sold') targetColumn = 'sold';
+              else if (car.sale_status === 'returned') targetColumn = 'returned';
+              else if (car.sale_status === 'archived') targetColumn = 'archived';
+            }
+
+            setColumnData(prev => {
+              const newColumnData = { ...prev };
+              
+              if (eventType === 'INSERT' && targetColumn) {
+                if (!newColumnData[targetColumn].some(c => c.id === car.id)) {
+                  newColumnData[targetColumn] = [car, ...newColumnData[targetColumn]];
+                }
+              } else if (eventType === 'UPDATE') {
+                // Remove from all columns first
+                Object.keys(newColumnData).forEach(key => {
+                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(c => c.id !== car.id);
+                });
+                // Add to correct column
+                if (targetColumn) {
+                  newColumnData[targetColumn] = [car, ...newColumnData[targetColumn]];
+                }
+              } else if (eventType === 'DELETE') {
+                Object.keys(newColumnData).forEach(key => {
+                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(c => c.id !== car.id);
+                });
+              }
+              
+              return newColumnData;
+            });
+          };
+
           setCars(prev => {
             if (payload.eventType === 'INSERT') {
-              const exists = prev.some(c => c.id === payload.new.id);
-              return exists ? prev : [payload.new as Car, ...prev];
+              const newCar = payload.new as Car;
+              updateColumnData(newCar, 'INSERT');
+              const exists = prev.some(c => c.id === newCar.id);
+              return exists ? prev : [newCar, ...prev];
             }
             if (payload.eventType === 'UPDATE') {
-              return prev.map(c => c.id === payload.new.id ? (payload.new as Car) : c);
+              const updatedCar = payload.new as Car;
+              updateColumnData(updatedCar, 'UPDATE');
+              return prev.map(c => c.id === updatedCar.id ? updatedCar : c);
             }
             if (payload.eventType === 'DELETE') {
-              return prev.filter(c => c.id !== payload.old.id);
+              const deletedCar = payload.old as Car;
+              updateColumnData(deletedCar, 'DELETE');
+              return prev.filter(c => c.id !== deletedCar.id);
             }
             return prev;
           });
@@ -545,40 +707,20 @@ export default function CarKanbanBoard() {
 
   return (
     <div className="px-4" style={{ height: 'calc(100vh - 72px)' }}>
-      <div className={`flex gap-3 pb-4 w-full h-full transition-all duration-700 ease-out transform ${
-        columnsVisible 
-          ? 'opacity-100 translate-y-0' 
-          : 'opacity-0 translate-y-4'
-      } ${inventoryExpanded ? 'overflow-hidden' : ''}`}>
+      <div className={`flex gap-3 pb-4 w-full h-full ${inventoryExpanded ? 'overflow-hidden' : ''}`}>
         {columns
           .filter(col => showArchived || col.key !== 'archived')
           .map(col => {
-          const listAll = cars.filter(c=> match(c.stock_number) || match(c.vehicle_model));
-          let list = listAll.filter(c => {
-            if (col.key === 'marketing' || col.key === 'qc_ceo') {
-              return c.status === col.key;
-            }
-            if (col.key === 'inventory') {
-              return c.status === 'inventory' && c.sale_status === 'available';
-            }
-            if (col.key === 'reserved') {
-              return c.status === 'inventory' && c.sale_status === 'reserved';
-            }
-            if (col.key === 'sold') {
-              return c.status === 'inventory' && c.sale_status === 'sold';
-            }
-            if (col.key === 'returned') {
-              return c.status === 'inventory' && c.sale_status === 'returned';
-            }
-            if (col.key === 'archived') {
-              return c.status === 'inventory' && c.sale_status === 'archived';
-            }
-            return false;
-          });
-
+          // Use columnData for progressive loading, apply search filter
+          const columnCars = columnData[col.key] || [];
+          const filteredCars = columnCars.filter(c => 
+            match(c.stock_number) || match(c.vehicle_model)
+          );
+          
           // Apply inventory filters only to inventory column
+          let list = filteredCars;
           if (col.key === 'inventory') {
-            list = applyInventoryFilters(list);
+            list = applyInventoryFilters(filteredCars);
           }
 
           // Hide non-inventory columns when expanded
@@ -642,7 +784,7 @@ export default function CarKanbanBoard() {
                   ) : (
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
-                        {list.length}
+                        {columnLoading[col.key] ? '--' : list.length}
                       </span>
                       {/* Archive Toggle Button - Only show on RETURNED column */}
                       {col.key === 'returned' && (
@@ -762,7 +904,23 @@ export default function CarKanbanBoard() {
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
-                {inventoryExpanded && col.key === 'inventory' ? (
+                {columnLoading[col.key] ? (
+                  // Show skeleton while column is loading
+                  <div className="space-y-2">
+                    {Array.from({ length: col.key === 'inventory' ? 3 : 2 }).map((_, i) => (
+                      <div key={i} className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-lg shadow-sm p-1.5 text-xs animate-pulse">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded"></div>
+                          <div className="min-w-0 flex-1">
+                            <div className="h-3 bg-white/10 rounded w-2/3 mb-1"></div>
+                            <div className="h-2 bg-white/10 rounded w-full mb-1"></div>
+                            <div className="h-2 bg-white/10 rounded w-1/2"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : inventoryExpanded && col.key === 'inventory' ? (
                   // Grid layout for expanded inventory view
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                     {list.map(c => (
@@ -780,7 +938,7 @@ export default function CarKanbanBoard() {
                             setSelected(null);
                           }
                         }}
-                        className={`bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-3 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
+                        className={`animate-fadeIn bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-3 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
                       >
                         {/* thumbnail */}
                         <div className="w-full h-36 bg-white/10 rounded overflow-hidden mb-3">
@@ -844,7 +1002,7 @@ export default function CarKanbanBoard() {
                           setSelected(null);
                         }
                       }}
-                      className={`w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)} relative`}
+                      className={`animate-fadeIn w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)} relative`}
                     >
                       {/* PDF Generated Checkmark - Top Right */}
                       {col.key === 'inventory' && c.vehicle_details_pdf_url && (
@@ -909,7 +1067,7 @@ export default function CarKanbanBoard() {
                     </div>
                   ))
                 )}
-                {list.length === 0 && (
+                {!columnLoading[col.key] && list.length === 0 && (
                   <p className="text-center text-white/40 text-[10px] mt-4">No cars</p>
                 )}
               </div>

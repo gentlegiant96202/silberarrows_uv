@@ -251,31 +251,47 @@ export default function KanbanBoard() {
               .select('*')
               .in('status', status);
 
-            // Apply specific sorting for new_customer column (appointments)
-            if (key === 'new_customer') {
-              // Sort appointments by date and time (earliest first)
-              query = query
-                .order('appointment_date', { ascending: true, nullsFirst: false })
-                .order('time_slot', { ascending: true, nullsFirst: false })
-                .order('created_at', { ascending: false }); // fallback for records without appointments
-            } else {
-              // Keep existing sorting for all other columns
-              query = query.order('updated_at', { ascending: false });
-            }
+            // Keep consistent base sorting for all columns
+            query = query.order('updated_at', { ascending: false });
 
             const { data } = await query;
 
             if (data) {
+              let sortedData = data as Lead[];
+
+              // Apply specific sorting for new_customer column (appointments) in JavaScript
+              if (key === 'new_customer') {
+                sortedData = [...data].sort((a, b) => {
+                  // Both have appointment dates - sort by date then time
+                  if (a.appointment_date && b.appointment_date) {
+                    const dateComparison = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
+                    if (dateComparison !== 0) return dateComparison;
+                    
+                    // Same date, sort by time slot
+                    if (a.time_slot && b.time_slot) {
+                      return a.time_slot.localeCompare(b.time_slot);
+                    }
+                  }
+                  
+                  // Handle nulls: appointments with dates come first
+                  if (a.appointment_date && !b.appointment_date) return -1;
+                  if (!a.appointment_date && b.appointment_date) return 1;
+                  
+                  // Fallback sort: created_at (newest first) for records without appointments
+                  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                });
+              }
+
               // Update column data
               setColumnData(prev => ({
                 ...prev,
-                [key]: data as Lead[]
+                [key]: sortedData
               }));
               
               // Also update main leads array for compatibility
               setLeads(prev => {
                 const filteredPrev = prev.filter(lead => !status.includes(lead.status));
-                return [...filteredPrev, ...(data as Lead[])];
+                return [...filteredPrev, ...sortedData];
               });
               
               console.log(`✅ ${key} column loaded with ${data.length} leads`);

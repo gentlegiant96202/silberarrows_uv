@@ -234,12 +234,38 @@ export default function TwoColumnKanban() {
   };
 
   const getLeadsForColumn = (status: string) => {
-    return leads.filter(lead => 
+    const filteredLeads = leads.filter(lead => 
       lead.status === status &&
       (match(lead.full_name) ||
        match(lead.phone_number) ||
        match(lead.model_of_interest))
     );
+
+    // Apply specific sorting for new_customer column (appointments)
+    if (status === 'new_customer') {
+      return filteredLeads.sort((a, b) => {
+        // Primary sort: appointment_date (earliest first)
+        if (a.appointment_date && b.appointment_date) {
+          const dateComparison = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
+          if (dateComparison !== 0) return dateComparison;
+          
+          // Secondary sort: time_slot (earliest first)
+          if (a.time_slot && b.time_slot) {
+            return a.time_slot.localeCompare(b.time_slot);
+          }
+        }
+        
+        // Handle nulls: appointments with dates come first
+        if (a.appointment_date && !b.appointment_date) return -1;
+        if (!a.appointment_date && b.appointment_date) return 1;
+        
+        // Fallback sort: created_at (newest first) for records without appointments
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    }
+
+    // Keep existing order for other columns
+    return filteredLeads;
   };
 
   if (loading) {

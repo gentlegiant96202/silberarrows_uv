@@ -246,11 +246,24 @@ export default function KanbanBoard() {
         setTimeout(async () => {
           try {
             console.log(`📥 Loading ${key} column...`);
-            const { data } = await supabase
+            let query = supabase
               .from('leads')
               .select('*')
-              .in('status', status)
-              .order('updated_at', { ascending: false });
+              .in('status', status);
+
+            // Apply specific sorting for new_customer column (appointments)
+            if (key === 'new_customer') {
+              // Sort appointments by date and time (earliest first)
+              query = query
+                .order('appointment_date', { ascending: true, nullsFirst: false })
+                .order('time_slot', { ascending: true, nullsFirst: false })
+                .order('created_at', { ascending: false }); // fallback for records without appointments
+            } else {
+              // Keep existing sorting for all other columns
+              query = query.order('updated_at', { ascending: false });
+            }
+
+            const { data } = await query;
 
             if (data) {
               // Update column data

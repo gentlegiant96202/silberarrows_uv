@@ -53,8 +53,7 @@ export async function GET(request: NextRequest) {
         current_warranty,
         car_media(url, kind, sort_order)
       `)
-      .eq('status', 'inventory')
-      .eq('sale_status', 'available')
+      // Remove status/sale_status filters so details can be fetched from any column
       .order('sort_order', { ascending: true, foreignTable: 'car_media' });
 
     if (stockNumber) {
@@ -213,7 +212,7 @@ export async function POST(request: NextRequest) {
     }, {});
     console.log('🔍 PRODUCTION DEBUG: Status distribution:', statusCounts);
 
-    // Fetch all cars in kanban (inventory status with any sale_status)
+    // Fetch cars across marketing, qc_ceo, and inventory columns
     const { data: cars, error } = await supabase
       .from('cars')
       .select(`
@@ -222,13 +221,13 @@ export async function POST(request: NextRequest) {
         model_year,
         vehicle_model,
         colour,
+        status,
         advertised_price_aed,
         sale_status
       `)
-      .eq('status', 'inventory') // All kanban cars have status='inventory'
-      .in('sale_status', ['available', 'reserved', 'sold', 'returned', 'archived'])
-      // No limit - show ALL kanban cars
-      .order('sale_status') // Order by sale_status first
+      .in('status', ['marketing', 'qc_ceo', 'inventory'])
+      // No limit - show ALL relevant kanban columns
+      .order('status')
       .order('model_year', { ascending: false })
       .order('vehicle_model');
 
@@ -245,13 +244,17 @@ export async function POST(request: NextRequest) {
       console.log(`  - ${car.stock_number}: ${car.model_year} ${car.vehicle_model} (status: inventory, sale_status: ${car.sale_status})`);
     });
 
-    const formattedCars = cars?.map(car => ({
-      id: car.id,
-      stockNumber: car.stock_number,
-      displayName: `${car.model_year} ${car.vehicle_model} - ${car.colour} (${car.stock_number}) [${car.sale_status?.toUpperCase()}]`,
-      price: car.advertised_price_aed,
-      saleStatus: car.sale_status
-    })) || [];
+    const formattedCars = cars?.map((car: any) => {
+      const displayStatus = (car.status || 'unknown');
+      return {
+        id: car.id,
+        stockNumber: car.stock_number,
+        displayName: `${car.model_year} ${car.vehicle_model} - ${car.colour} (${car.stock_number}) [${String(displayStatus).toUpperCase()}]`,
+        price: car.advertised_price_aed,
+        status: car.status,
+        saleStatus: car.sale_status
+      };
+    }) || [];
 
     return NextResponse.json({
       success: true,

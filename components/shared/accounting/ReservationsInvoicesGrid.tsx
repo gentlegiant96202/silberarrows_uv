@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRole } from '@/lib/useUserRole';
 import { FileText, Download, Eye, Filter, Search, Calendar, Shield } from 'lucide-react';
+import { FilePlus2, Loader2 } from 'lucide-react';
 
 interface ReservationInvoice {
   id: string;
@@ -27,6 +28,7 @@ interface FilterState {
 export default function ReservationsInvoicesGrid() {
   const [data, setData] = useState<ReservationInvoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [taxLoadingId, setTaxLoadingId] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     month: new Date().getMonth() + 1 + '', // Current month
     year: new Date().getFullYear() + '', // Current year
@@ -164,6 +166,112 @@ export default function ReservationsInvoicesGrid() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading PDF:', error);
+    }
+  };
+
+  const handleGenerateTaxInvoice = async (row: ReservationInvoice) => {
+    setTaxLoadingId(row.id);
+    try {
+      // Fetch full reservation details to pass to generator
+      const { data: reservations, error: fetchError } = await supabase
+        .from('vehicle_reservations')
+        .select('*')
+        .eq('id', row.id)
+        .single();
+
+      if (fetchError || !reservations) {
+        console.error('Failed to fetch reservation for tax invoice:', fetchError);
+        setTaxLoadingId(null);
+        return;
+      }
+
+      // Prepare payload for existing endpoint
+      const payload = {
+        mode: 'invoice',
+        leadId: reservations.lead_id,
+        reservationId: row.id,
+        formData: {
+          // The API merges and uses only referenced fields, so we pass what's needed
+          ...reservations,
+          invoiceTotal: reservations.invoice_total,
+          rtaFees: reservations.rta_fees,
+          addOnsTotal: reservations.add_ons_total,
+          vehicleSalePrice: reservations.vehicle_sale_price,
+          date: reservations.document_date,
+          customerName: reservations.customer_name,
+          contactNo: reservations.contact_no,
+          emailAddress: reservations.email_address,
+          customerIdType: reservations.customer_id_type,
+          customerIdNumber: reservations.customer_id_number,
+          salesExecutive: reservations.sales_executive,
+          makeModel: reservations.vehicle_make_model,
+          modelYear: reservations.model_year,
+          exteriorColour: reservations.vehicle_exterior_colour || reservations.vehicle_colour,
+          interiorColour: reservations.vehicle_interior_colour,
+          chassisNo: reservations.chassis_no,
+          mileage: reservations.vehicle_mileage,
+          manufacturerWarranty: reservations.manufacturer_warranty,
+          manufacturerWarrantyExpiryDate: reservations.manufacturer_warranty_expiry_date,
+          manufacturerWarrantyExpiryMileage: reservations.manufacturer_warranty_expiry_mileage,
+          dealerServicePackage: reservations.dealer_service_package,
+          dealerServicePackageExpiryDate: reservations.dealer_service_package_expiry_date,
+          dealerServicePackageExpiryMileage: reservations.dealer_service_package_expiry_mileage,
+          hasPartExchange: reservations.has_part_exchange,
+          partExchangeMakeModel: reservations.part_exchange_make_model,
+          partExchangeModelYear: reservations.part_exchange_model_year,
+          partExchangeChassisNo: reservations.part_exchange_chassis_no,
+          partExchangeExteriorColour: reservations.part_exchange_exterior_colour,
+          partExchangeEngineNo: reservations.part_exchange_engine_no,
+          partExchangeMileage: reservations.part_exchange_mileage,
+          partExchangeValue: reservations.part_exchange_value,
+        },
+        taxInvoice: true,
+      } as any;
+
+      const res = await fetch('/api/generate-vehicle-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        console.error('Tax invoice generation failed:', err);
+        setTaxLoadingId(null);
+        return;
+      }
+
+      const result = await res.json();
+      if (result?.pdfUrl) {
+        // Force download the generated PDF
+        try {
+          const response = await fetch(result.pdfUrl);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+
+          const baseName = row.document_number
+            ? `${row.document_number}-TAX-${row.customer_name.replace(/[^a-zA-Z0-9]/g, '_')}`
+            : `Invoice-TAX-${row.customer_name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${baseName}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        } catch (e) {
+          console.error('Failed to download generated tax invoice:', e);
+          // Fallback: open in a tab if download fails
+          window.open(result.pdfUrl, '_blank');
+        }
+      }
+      // Optionally refresh data to reflect any updates
+      fetchData();
+    } catch (e) {
+      console.error('Error generating tax invoice:', e);
+    } finally {
+      setTaxLoadingId(null);
     }
   };
 
@@ -336,6 +444,24 @@ export default function ReservationsInvoicesGrid() {
                     <td className="px-4 py-3 text-center">
                       {item.pdf_url ? (
                         <div className="flex items-center justify-center gap-2">
+                          {item.document_type === 'invoice' && (
+                            <button
+                              onClick={() => handleGenerateTaxInvoice(item)}
+                              disabled={taxLoadingId === item.id}
+                              className={`p-1.5 border rounded transition-colors ${
+                                taxLoadingId === item.id
+                                  ? 'bg-green-500/10 border-green-500/20 cursor-not-allowed'
+                                  : 'bg-green-500/10 hover:bg-green-500/20 border-green-500/30'
+                              }`}
+                              title="Generate Tax Invoice"
+                            >
+                              {taxLoadingId === item.id ? (
+                                <Loader2 className="w-4 h-4 text-green-400 animate-spin" />
+                              ) : (
+                                <FilePlus2 className="w-4 h-4 text-green-400" />
+                              )}
+                            </button>
+                          )}
                           <button
                             onClick={() => handleViewPDF(item.pdf_url!)}
                             className="p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded transition-colors"

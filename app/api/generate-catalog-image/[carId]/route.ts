@@ -395,7 +395,7 @@ export async function POST(
     // Prepare car details for renderer (no discount, show original price)
     const carDetails = {
       year: car.model_year,
-      model: (car.vehicle_model || '').replace(/\bMercedes[- ]Benz\b/gi, '').trim(),
+      model: (car.vehicle_model || '').replace(/\bMercedes[- ]Benz\b/gi, '').replace(/\bMercedes[- ]AMG\b/gi, '').trim(),
       mileage: car.current_mileage_km ? car.current_mileage_km.toLocaleString() : '0',
       stockNumber: car.stock_number,
       price: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '0',

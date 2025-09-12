@@ -261,14 +261,6 @@ export default function KanbanBoard() {
 
               // Apply specific sorting for new_customer column (appointments) in JavaScript
               if (key === 'new_customer') {
-                console.log(`🔄 Sorting ${data.length} appointments for new_customer column`);
-                
-                // Log each appointment's details clearly
-                console.log('📋 BEFORE SORTING:');
-                data.forEach((d, i) => {
-                  console.log(`${i + 1}. ${d.full_name}: ${d.appointment_date} at ${d.time_slot}`);
-                });
-                
                 sortedData = [...data].sort((a, b) => {
                   // Both have appointment dates - sort by date then time
                   if (a.appointment_date && b.appointment_date) {
@@ -288,11 +280,6 @@ export default function KanbanBoard() {
                   // Fallback sort: created_at (newest first) for records without appointments
                   return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                 });
-                
-                console.log('📋 AFTER SORTING:');
-                sortedData.forEach((d, i) => {
-                  console.log(`${i + 1}. ${d.full_name}: ${d.appointment_date} at ${d.time_slot}`);
-                });
               }
 
               // Update column data
@@ -301,16 +288,6 @@ export default function KanbanBoard() {
                 [key]: sortedData
               }));
 
-              // Debug: Log what we just set for new_customer column
-              if (key === 'new_customer') {
-                console.log('🔄 Column data updated for new_customer. Verifying order...');
-                setTimeout(() => {
-                  console.log('📋 CURRENT COLUMN DATA (after setState):');
-                  sortedData.forEach((d, i) => {
-                    console.log(`${i + 1}. ${d.full_name}: ${d.appointment_date} at ${d.time_slot}`);
-                  });
-                }, 100);
-              }
               
               // Also update main leads array for compatibility
               setLeads(prev => {
@@ -346,8 +323,7 @@ export default function KanbanBoard() {
           const sortColumnData = (leads: Lead[], columnKey: ColKey): Lead[] => {
             // Apply specific sorting for new_customer column (appointments)
             if (columnKey === 'new_customer') {
-              console.log(`🔄 Real-time sorting ${leads.length} appointments for ${columnKey} column`);
-              const sorted = [...leads].sort((a, b) => {
+              return [...leads].sort((a, b) => {
                 // Both have appointment dates - sort by date then time
                 if (a.appointment_date && b.appointment_date) {
                   const dateComparison = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
@@ -366,8 +342,6 @@ export default function KanbanBoard() {
                 // Fallback sort: created_at (newest first) for records without appointments
                 return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
               });
-              console.log('Real-time sorted:', sorted.map(d => `${d.full_name}: ${d.appointment_date} ${d.time_slot}`));
-              return sorted;
             }
             
             // Keep existing order for other columns
@@ -464,7 +438,6 @@ export default function KanbanBoard() {
     // For other columns, sort by updated_at newest first (stacking on top)
     if (key === 'new_customer') {
       grouped[key] = filteredLeads; // Keep the appointment-sorted order from columnData
-      console.log(`📋 GROUPED new_customer (preserving appointment sorting):`, grouped[key].map(d => `${d.full_name}: ${d.appointment_date} at ${d.time_slot}`));
     } else {
       grouped[key] = filteredLeads.sort((a, b) => 
         dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf()

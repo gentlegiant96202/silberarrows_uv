@@ -382,8 +382,8 @@ app.post('/render-catalog', async (req, res) => {
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
-    // 4:5 aspect ratio for catalog (1080x1350)
-    await page.setViewportSize({ width: 1080, height: 1350 });
+    // 1:1 square aspect ratio for catalog (3000x3000)
+    await page.setViewportSize({ width: 3000, height: 3000 });
     
     // Set shorter timeout and don't wait for network idle for external images
     await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });

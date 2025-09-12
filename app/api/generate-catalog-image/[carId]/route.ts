@@ -32,13 +32,17 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
 
     body {
       font-family: 'Inter', sans-serif;
-      background: transparent;
+      background: #0a0a0a;
       color: #ffffff;
       height: 100vh;
       width: 100vw;
       padding: 0;
       margin: 0;
       overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      -webkit-font-smoothing: antialiased;
     }
 
     .catalog-card-container {

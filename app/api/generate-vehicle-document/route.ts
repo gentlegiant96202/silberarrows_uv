@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
 // Generate HTML content for reservation/invoice form
-function generateReservationHTML(formData: any, mode: string) {
+function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
   const isInvoice = mode === 'invoice';
   const documentTitle = isInvoice ? 'INVOICE DOCUMENT' : 'NEW AND PRE-OWNED VEHICLE RESERVATION FORM';
   
@@ -95,14 +97,10 @@ function generateReservationHTML(formData: any, mode: string) {
 
         .page {
           background: rgba(255, 255, 255, 0.02);
-          backdrop-filter: blur(30px);
           border: none;
           padding: 15px 10px 15px 10px;
           width: 210mm;
           height: 297mm;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 
-                      inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-                      0 0 50px rgba(255, 255, 255, 0.02);
           position: relative;
           overflow: hidden;
           box-sizing: border-box;
@@ -130,13 +128,8 @@ function generateReservationHTML(formData: any, mode: string) {
           margin: 0 0 25px 0;
           padding: 10px 15px 8px 15px;
           background: rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(25px);
           border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 15px;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
-                      inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-                      0 8px 32px rgba(0, 0, 0, 0.3),
-                      0 0 0 1px rgba(255, 255, 255, 0.05);
           position: relative;
           z-index: 2;
           width: 100%;
@@ -170,7 +163,6 @@ function generateReservationHTML(formData: any, mode: string) {
           font-size: 21px;
           font-weight: bold;
           color: white;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
           margin-bottom: 8px;
           letter-spacing: 0.5px;
         }
@@ -185,7 +177,6 @@ function generateReservationHTML(formData: any, mode: string) {
         .logo {
           width: 55px;
           height: auto;
-          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4)) brightness(1.1);
           position: relative;
           z-index: 3;
         }
@@ -205,13 +196,9 @@ function generateReservationHTML(formData: any, mode: string) {
         .section {
           margin: 0 0 8px 0;
           background: rgba(255, 255, 255, 0.04);
-          backdrop-filter: blur(20px);
           border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 12px;
           padding: 10px 12px;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
-                      inset 0 -1px 0 rgba(255, 255, 255, 0.02),
-                      0 4px 16px rgba(0, 0, 0, 0.2);
           position: relative;
           width: 100%;
           box-sizing: border-box;
@@ -239,7 +226,6 @@ function generateReservationHTML(formData: any, mode: string) {
           color: white;
           text-transform: uppercase;
           letter-spacing: 1px;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
           position: relative;
           z-index: 2;
           padding-bottom: 2px;
@@ -252,10 +238,8 @@ function generateReservationHTML(formData: any, mode: string) {
           border-spacing: 0;
           margin: 0 0 4px 0;
           background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(15px);
           border-radius: 8px;
           overflow: hidden;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
           position: relative;
           z-index: 2;
           box-sizing: border-box;
@@ -289,11 +273,9 @@ function generateReservationHTML(formData: any, mode: string) {
 
         .form-table .label {
           background: rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(10px);
           font-weight: bold;
           width: 25%;
           color: rgba(255, 255, 255, 0.95);
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
 
         .form-table .data {
@@ -356,6 +338,15 @@ function generateReservationHTML(formData: any, mode: string) {
           width: 100%;
           margin: 5px 0;
           border-radius: 4px;
+          position: relative;
+          display: flex;
+          align-items: flex-end;
+          padding: 5px;
+        }
+
+        .signature-date {
+          font-size: 9px;
+          color: #666;
         }
 
         .text-content {
@@ -428,7 +419,7 @@ function generateReservationHTML(formData: any, mode: string) {
           <div class="title-section">
             <div class="title">${headerTitle}</div>
           </div>
-          <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="logo">
+          <img src="${logoSrc}" alt="SilberArrows Logo" class="logo">
         </div>
 
         <div class="content-container">
@@ -607,16 +598,16 @@ function generateReservationHTML(formData: any, mode: string) {
             <div class="section-title">PAYMENT</div>
             <table class="form-table">
               <tr>
-                <td class="label">RTA Fees:</td>
-                <td class="data">AED ${safeNumber(formData.rtaFees)}</td>
+                <td class="label">RTA + Add-Ons:</td>
+                <td class="data">AED ${safeNumber((Number(formData.rtaFees || 0)) + (Number(formData.addOnsTotal || 0)))}</td>
                 <td class="label">Invoice Total:</td>
                 <td class="data">AED ${safeNumber(formData.invoiceTotal)}</td>
               </tr>
               <tr>
-                <td class="label">Add-Ons Total:</td>
-                <td class="data">AED ${safeNumber(formData.addOnsTotal)}</td>
-                <td class="label">Deposit and/or Part Exchange:</td>
+                <td class="label">Deposit:</td>
                 <td class="data">AED ${safeNumber(formData.deposit)}</td>
+                <td class="label">Part Exchange:</td>
+                <td class="data">AED ${safeNumber(formData.partExchangeValue)}</td>
               </tr>
               <tr>
                 <td class="label">Vehicle Sale Price:</td>
@@ -659,13 +650,15 @@ function generateReservationHTML(formData: any, mode: string) {
             <div class="signature-section" style="margin-top: 8px;">
               <div class="signature-box">
                 <div>SilberArrows Signature:</div>
-                <div class="signature-area"></div>
-                <div style="margin-top: 8px;">Date:</div>
+                <div class="signature-area">
+                  <div class="signature-date">Date:</div>
+                </div>
               </div>
               <div class="signature-box">
                 <div>Customer Signature:</div>
-                <div class="signature-area"></div>
-                <div style="margin-top: 8px;">Date:</div>
+                <div class="signature-area">
+                  <div class="signature-date">Date:</div>
+                </div>
               </div>
             </div>
           </div>
@@ -680,7 +673,7 @@ function generateReservationHTML(formData: any, mode: string) {
           <div class="title-section">
             <div class="title">${termsTitle}</div>
           </div>
-          <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="logo">
+          <img src="${logoSrc}" alt="SilberArrows Logo" class="logo">
         </div>
 
         <div class="content-container" style="flex: 1; display: flex; flex-direction: column; height: calc(100% - 60px);">
@@ -762,13 +755,15 @@ ${isInvoice ? '• Full payment must be received before the vehicle can be rel
             <div class="signature-section" style="margin-top: 6px;">
               <div class="signature-box">
                 <div>SilberArrows Signature:</div>
-                <div class="signature-area" style="height: 50px;"></div>
-                <div style="margin-top: 6px;">Date:</div>
+                <div class="signature-area" style="height: 60px;">
+                  <div class="signature-date">Date:</div>
+                </div>
               </div>
               <div class="signature-box">
                 <div>Customer Signature:</div>
-                <div class="signature-area" style="height: 50px;"></div>
-                <div style="margin-top: 6px;">Date:</div>
+                <div class="signature-area" style="height: 60px;">
+                  <div class="signature-date">Date:</div>
+                </div>
               </div>
             </div>
           </div>
@@ -790,6 +785,24 @@ export async function POST(request: NextRequest) {
     
     console.log('📝 Generating vehicle document:', { mode, leadId, reservationId });
     console.log('📝 Form data received:', JSON.stringify(formData, null, 2));
+    // Resolve logo data URL from local PNG (fallback to cloud if missing)
+    const logoFileCandidates = [
+      path.join(process.cwd(), 'public', 'main-logo.png'),
+      path.join(process.cwd(), 'renderer', 'public', 'main-logo.png')
+    ];
+    let logoSrc = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
+    for (const candidate of logoFileCandidates) {
+      try {
+        if (fs.existsSync(candidate)) {
+          const data = fs.readFileSync(candidate);
+          const b64 = data.toString('base64');
+          logoSrc = `data:image/png;base64,${b64}`;
+          break;
+        }
+      } catch (e) {
+        // continue to next candidate
+      }
+    }
 
     // Validate required data
     if (!mode || !formData || !leadId || !reservationId) {
@@ -859,7 +872,7 @@ export async function POST(request: NextRequest) {
 
     // Generate HTML content for the reservation/invoice form
     console.log('📄 Generating HTML content...');
-    const htmlContent = generateReservationHTML(enhancedFormData, mode);
+    const htmlContent = generateReservationHTML(enhancedFormData, mode, logoSrc);
     console.log('📄 HTML content generated, length:', htmlContent.length);
     
     console.log('📄 Generating vehicle document PDF using PDFShift...');

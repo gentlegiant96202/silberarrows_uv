@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{year}} {{model}} | UV Catalog</title>
+  <title>2024 Porsche Taycan | UV Catalog</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
@@ -17,14 +17,12 @@
       font-family: 'Inter', sans-serif;
       background: #0a0a0a;
       color: #ffffff;
-      height: 100vh;
-      width: 100vw;
-      padding: 0;
-      margin: 0;
-      overflow: hidden;
+      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
     }
 
@@ -42,7 +40,7 @@
       padding: 6px;
       box-sizing: border-box;
       overflow: hidden;
-      box-shadow: 0 0 50px rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 100px rgba(255, 255, 255, 0.05);
     }
 
     .catalog-card-container::before {
@@ -89,7 +87,7 @@
       left: 0;
       width: 100%;
       height: 60%;
-      object-fit: contain;
+      object-fit: cover;
       object-position: center;
       z-index: 1;
       mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 90%);
@@ -270,12 +268,12 @@
     <div class="reflection"></div>
     <div class="catalog-card-inner">
       <!-- Full Background Image -->
-      <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" onerror="this.style.display='none';" />
+      <img src="https://images.unsplash.com/photo-1600259828526-60e17c9de5f3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3000&q=80" alt="2024 Porsche Taycan" class="catalog-bg-image" />
       
       <!-- Content Overlay (Bottom) -->
       <div class="content-section">
         <div class="header">
-          <h1>{{year}} {{model}}</h1>
+          <h1>2024 Porsche Taycan</h1>
           <div class="accent-line"></div>
           <p class="subtitle"><span class="highlight">Premium Selection</span></p>
         </div>
@@ -283,29 +281,29 @@
         <div class="specs-grid">
           <!-- Top Row -->
           <div class="spec-item">
-            <div class="spec-value">AED {{originalPrice}}</div>
+            <div class="spec-value">AED 380,000</div>
             <div class="spec-label">Cash Price</div>
           </div>
           <div class="spec-item">
-            <div class="spec-value">AED {{zeroDownPayment}}</div>
+            <div class="spec-value">AED 3,200</div>
             <div class="spec-label">0% Down Payment</div>
           </div>
           <div class="spec-item">
-            <div class="spec-value">AED {{twentyDownPayment}}</div>
+            <div class="spec-value">AED 2,800</div>
             <div class="spec-label">20% Down Payment</div>
           </div>
           
           <!-- Bottom Row -->
           <div class="spec-item">
-            <div class="spec-value">{{mileage}} KM</div>
+            <div class="spec-value">12,500 KM</div>
             <div class="spec-label">Mileage</div>
           </div>
           <div class="spec-item">
-            <div class="spec-value">{{horsepower}} HP</div>
+            <div class="spec-value">750 HP</div>
             <div class="spec-label">Horsepower</div>
           </div>
           <div class="spec-item">
-            <div class="spec-value">{{engine}}</div>
+            <div class="spec-value">Electric</div>
             <div class="spec-label">Engine</div>
           </div>
         </div>

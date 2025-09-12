@@ -322,8 +322,8 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
             <div class="spec-label">Horsepower</div>
           </div>
           <div class="spec-item">
-            <div class="spec-value">${carDetails.engine}</div>
-            <div class="spec-label">Engine</div>
+            <div class="spec-value">${carDetails.torque}</div>
+            <div class="spec-label">Torque</div>
           </div>
         </div>
       </div>
@@ -354,6 +354,7 @@ export async function POST(
         advertised_price_aed,
         current_mileage_km,
         engine,
+        torque_nm,
         horsepower_hp,
         monthly_0_down_aed,
         monthly_20_down_aed
@@ -400,6 +401,7 @@ export async function POST(
       stockNumber: car.stock_number,
       price: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '0',
       engine: car.engine || '—',
+      torque: car.torque_nm ? `${car.torque_nm} NM` : '—',
       horsepower: car.horsepower_hp || '—',
       originalPrice: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '—',
       zeroDownPayment: car.monthly_0_down_aed ? car.monthly_0_down_aed.toLocaleString() : '—',

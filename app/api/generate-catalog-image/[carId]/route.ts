@@ -106,7 +106,7 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       left: 0;
       width: 100%;
       height: 60%;
-      object-fit: cover;
+      object-fit: contain;
       object-position: center;
       z-index: 1;
       mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 90%);

@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
           engine,
           transmission,
           horsepower_hp,
+          body_style,
           website_url,
           status,
           sale_status
@@ -144,8 +145,8 @@ function generateFacebookXML(entries: any[], imageMap: Map<string, string>): str
     // Use actual AED price (no conversion needed)
     const priceAED = car.advertised_price_aed;
 
-    // Default body style to SEDAN since we don't have this field
-    const bodyStyle = 'SEDAN';
+    // Use actual body style from database, default to SEDAN if not available
+    const bodyStyle = car.body_style || 'SEDAN';
 
     // Add status indicator for enhanced feed
     const statusTag = entry.status === 'ready' ? 'ready' : 'draft';

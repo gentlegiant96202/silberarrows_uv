@@ -393,7 +393,6 @@ app.post('/render-catalog', async (req, res) => {
     try {
       console.log('⏳ Waiting for fonts to load...');
       await page.evaluate(() => document.fonts && document.fonts.ready);
-      
       // Force load Resonate fonts specifically
       await page.evaluate(() => {
         const resonateTest = document.createElement('div');
@@ -413,8 +412,9 @@ app.post('/render-catalog', async (req, res) => {
       console.log('Font loading timeout, proceeding...', e.message);
     }
     
-    // Capture exact 3000x3000 square as per viewport/template
-    const catalogBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 3000, height: 3000 } });
+    // Capture the card element itself to guarantee exact 3000x3000 output
+    const cardEl = await page.$('.catalog-card-container');
+    const catalogBuffer = await cardEl.screenshot({ type: 'png' });
 
     await browser.close();
 

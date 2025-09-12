@@ -43,9 +43,8 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
 
     .catalog-card-container {
       position: relative;
-      width: 1080px;
-      max-width: 100%;
-      height: 1350px;
+      width: 3000px;
+      height: 3000px;
       background: linear-gradient(135deg, 
         #000000 0%, 
         #1a1a1a 25%, 
@@ -53,10 +52,10 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
         #1a1a1a 75%, 
         #000000 100%);
       border-radius: 0;
-      padding: 3px;
+      padding: 6px;
       box-sizing: border-box;
       overflow: hidden;
-      box-shadow: 0 0 50px rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 100px rgba(255, 255, 255, 0.05);
     }
 
     .catalog-card-container::before {
@@ -76,7 +75,7 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       animation: silver-glow 6s ease infinite;
       z-index: 0;
       border-radius: 0;
-      margin: -3px;
+      margin: -6px;
     }
 
     @keyframes silver-glow {
@@ -102,7 +101,7 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       top: 0;
       left: 0;
       width: 100%;
-      height: 65%;
+      height: 60%;
       object-fit: cover;
       object-position: center;
       z-index: 1;
@@ -116,7 +115,7 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
       left: 0;
       right: 0;
       height: 40%;
-      padding: 40px;
+      padding: 120px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -125,26 +124,26 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
     }
 
     .header {
-      margin-bottom: 25px;
+      margin-bottom: 75px;
     }
 
     .header h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 3.6rem;
+      font-size: 9rem;
       font-weight: 700;
       line-height: 1;
-      margin-bottom: 8px;
+      margin-bottom: 20px;
       color: #ffffff;
-      text-shadow: 0 2px 15px rgba(255, 255, 255, 0.1);
-      letter-spacing: -0.5px;
+      text-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
+      letter-spacing: -1px;
     }
 
     .subtitle {
-      font-size: 1.4rem;
+      font-size: 3.5rem;
       color: #aaaaaa;
       font-weight: 400;
-      margin-bottom: 12px;
-      letter-spacing: 1.5px;
+      margin-bottom: 30px;
+      letter-spacing: 3px;
       text-transform: uppercase;
     }
 
@@ -158,41 +157,41 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
     .highlight::after {
       content: '';
       position: absolute;
-      bottom: -4px;
+      bottom: -10px;
       left: 0;
       width: 100%;
-      height: 2px;
+      height: 4px;
       background: linear-gradient(90deg, #cccccc, #888888);
-      border-radius: 2px;
+      border-radius: 4px;
     }
 
     .accent-line {
-      height: 4px;
-      width: 60px;
+      height: 10px;
+      width: 150px;
       background: linear-gradient(90deg, #ffffff, #888888);
-      margin: 15px 0;
-      border-radius: 2px;
+      margin: 35px 0;
+      border-radius: 5px;
     }
 
     .specs-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(2, 1fr);
-      gap: 20px;
-      margin-bottom: 30px;
+      gap: 50px;
+      margin-bottom: 75px;
     }
 
     .spec-item {
       background: rgba(255, 255, 255, 0.05);
-      padding: 22px 16px;
-      border-radius: 16px;
+      padding: 55px 40px;
+      border-radius: 40px;
       text-align: center;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 
-                  inset 0 1px 0 rgba(255, 255, 255, 0.1),
-                  0 0 20px rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      box-shadow: 0 16px 64px rgba(0, 0, 0, 0.3), 
+                  inset 0 2px 0 rgba(255, 255, 255, 0.1),
+                  0 0 40px rgba(255, 255, 255, 0.1);
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
@@ -212,10 +211,10 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
     }
 
     .spec-item:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 
-                  inset 0 1px 0 rgba(255, 255, 255, 0.15),
-                  0 0 30px rgba(255, 255, 255, 0.2);
+      transform: translateY(-10px);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4), 
+                  inset 0 2px 0 rgba(255, 255, 255, 0.15),
+                  0 0 60px rgba(255, 255, 255, 0.2);
     }
 
     .spec-item:hover::before {
@@ -224,9 +223,9 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
 
     .spec-value {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 2rem;
+      font-size: 5rem;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 20px;
       color: #ffffff;
       background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
       -webkit-background-clip: text;
@@ -235,20 +234,20 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
     }
 
     .spec-label {
-      font-size: 0.9rem;
+      font-size: 2.2rem;
       color: #888888;
       text-transform: uppercase;
       font-weight: 400;
-      letter-spacing: 1.2px;
+      letter-spacing: 3px;
     }
 
     .metal-detail {
       position: absolute;
-      bottom: 20px;
+      bottom: 50px;
       left: 50%;
       transform: translateX(-50%);
       width: 80%;
-      height: 2px;
+      height: 4px;
       background: linear-gradient(90deg, 
         transparent, 
         rgba(255, 255, 255, 0.5), 

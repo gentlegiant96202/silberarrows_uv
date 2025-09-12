@@ -262,7 +262,12 @@ export default function KanbanBoard() {
               // Apply specific sorting for new_customer column (appointments) in JavaScript
               if (key === 'new_customer') {
                 console.log(`🔄 Sorting ${data.length} appointments for new_customer column`);
-                console.log('Before sorting:', data.map(d => `${d.full_name}: ${d.appointment_date} ${d.time_slot}`));
+                
+                // Log each appointment's details clearly
+                console.log('📋 BEFORE SORTING:');
+                data.forEach((d, i) => {
+                  console.log(`${i + 1}. ${d.full_name}: ${d.appointment_date} at ${d.time_slot}`);
+                });
                 
                 sortedData = [...data].sort((a, b) => {
                   // Both have appointment dates - sort by date then time
@@ -284,7 +289,10 @@ export default function KanbanBoard() {
                   return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                 });
                 
-                console.log('After sorting:', sortedData.map(d => `${d.full_name}: ${d.appointment_date} ${d.time_slot}`));
+                console.log('📋 AFTER SORTING:');
+                sortedData.forEach((d, i) => {
+                  console.log(`${i + 1}. ${d.full_name}: ${d.appointment_date} at ${d.time_slot}`);
+                });
               }
 
               // Update column data

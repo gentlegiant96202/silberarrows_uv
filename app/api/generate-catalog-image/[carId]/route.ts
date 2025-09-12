@@ -102,12 +102,12 @@ function generateCatalogHTML(carDetails: any, catalogImageUrl: string): string {
 
     .catalog-bg-image {
       position: absolute;
-      top: 0;
+      top: -7%;
       left: 0;
       width: 100%;
-      height: 60%;
-      object-fit: contain;
-      object-position: center;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
       z-index: 1;
       mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 90%);
       -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 90%);

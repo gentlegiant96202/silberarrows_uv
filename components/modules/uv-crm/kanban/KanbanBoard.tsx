@@ -319,6 +319,34 @@ export default function KanbanBoard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "leads" },
         (payload: any) => {
+          const sortColumnData = (leads: Lead[], columnKey: ColKey): Lead[] => {
+            // Apply specific sorting for new_customer column (appointments)
+            if (columnKey === 'new_customer') {
+              return [...leads].sort((a, b) => {
+                // Both have appointment dates - sort by date then time
+                if (a.appointment_date && b.appointment_date) {
+                  const dateComparison = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
+                  if (dateComparison !== 0) return dateComparison;
+                  
+                  // Same date, sort by time slot
+                  if (a.time_slot && b.time_slot) {
+                    return a.time_slot.localeCompare(b.time_slot);
+                  }
+                }
+                
+                // Handle nulls: appointments with dates come first
+                if (a.appointment_date && !b.appointment_date) return -1;
+                if (!a.appointment_date && b.appointment_date) return 1;
+                
+                // Fallback sort: created_at (newest first) for records without appointments
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+              });
+            }
+            
+            // Keep existing order for other columns
+            return leads;
+          };
+
           const updateColumnData = (lead: Lead, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => {
             const normalizedStatus = (lead.status || "")
               .trim()
@@ -330,7 +358,8 @@ export default function KanbanBoard() {
               
               if (eventType === "INSERT") {
                 if (newColumnData[normalizedStatus]) {
-                  newColumnData[normalizedStatus] = [lead, ...newColumnData[normalizedStatus]];
+                  const updatedColumn = [lead, ...newColumnData[normalizedStatus]];
+                  newColumnData[normalizedStatus] = sortColumnData(updatedColumn, normalizedStatus);
                 }
               } else if (eventType === "UPDATE") {
                 // Remove from all columns first
@@ -339,7 +368,8 @@ export default function KanbanBoard() {
                 });
                 // Add to correct column
                 if (newColumnData[normalizedStatus]) {
-                  newColumnData[normalizedStatus] = [lead, ...newColumnData[normalizedStatus]];
+                  const updatedColumn = [lead, ...newColumnData[normalizedStatus]];
+                  newColumnData[normalizedStatus] = sortColumnData(updatedColumn, normalizedStatus);
                 }
               } else if (eventType === "DELETE") {
                 Object.keys(newColumnData).forEach(key => {

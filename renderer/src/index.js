@@ -404,21 +404,17 @@ app.post('/render-catalog', async (req, res) => {
         resonateTest.style.left = '-9999px';
         resonateTest.innerHTML = 'Resonate Font Test';
         document.body.appendChild(resonateTest);
-        
-        // Force layout calculation
         resonateTest.offsetHeight;
-        
-        // Remove test element
         document.body.removeChild(resonateTest);
       });
-      
-      await page.waitForTimeout(3000); // Extra time for fonts and image
+      await page.waitForTimeout(3000);
       console.log('✅ Fonts loaded successfully');
     } catch (e) {
       console.log('Font loading timeout, proceeding...', e.message);
     }
     
-    const catalogBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1350 } });
+    // Capture exact 3000x3000 square as per viewport/template
+    const catalogBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 3000, height: 3000 } });
 
     await browser.close();
 

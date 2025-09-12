@@ -300,6 +300,17 @@ export default function KanbanBoard() {
                 ...prev,
                 [key]: sortedData
               }));
+
+              // Debug: Log what we just set for new_customer column
+              if (key === 'new_customer') {
+                console.log('🔄 Column data updated for new_customer. Verifying order...');
+                setTimeout(() => {
+                  console.log('📋 CURRENT COLUMN DATA (after setState):');
+                  sortedData.forEach((d, i) => {
+                    console.log(`${i + 1}. ${d.full_name}: ${d.appointment_date} at ${d.time_slot}`);
+                  });
+                }, 100);
+              }
               
               // Also update main leads array for compatibility
               setLeads(prev => {
@@ -449,10 +460,16 @@ export default function KanbanBoard() {
       match(l.model_of_interest)
     );
     
-    // Sort by updated_at newest first (stacking on top)
-    grouped[key] = filteredLeads.sort((a, b) => 
-      dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf()
-    );
+    // For new_customer column, preserve the sorted order from columnData (appointment sorting)
+    // For other columns, sort by updated_at newest first (stacking on top)
+    if (key === 'new_customer') {
+      grouped[key] = filteredLeads; // Keep the appointment-sorted order from columnData
+      console.log(`📋 GROUPED new_customer (preserving appointment sorting):`, grouped[key].map(d => `${d.full_name}: ${d.appointment_date} at ${d.time_slot}`));
+    } else {
+      grouped[key] = filteredLeads.sort((a, b) => 
+        dayjs(b.updated_at).valueOf() - dayjs(a.updated_at).valueOf()
+      );
+    }
   });
 
   const onDragStart = (lead: Lead) => (e: React.DragEvent) => {

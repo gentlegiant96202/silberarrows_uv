@@ -261,6 +261,9 @@ export default function KanbanBoard() {
 
               // Apply specific sorting for new_customer column (appointments) in JavaScript
               if (key === 'new_customer') {
+                console.log(`🔄 Sorting ${data.length} appointments for new_customer column`);
+                console.log('Before sorting:', data.map(d => `${d.full_name}: ${d.appointment_date} ${d.time_slot}`));
+                
                 sortedData = [...data].sort((a, b) => {
                   // Both have appointment dates - sort by date then time
                   if (a.appointment_date && b.appointment_date) {
@@ -280,6 +283,8 @@ export default function KanbanBoard() {
                   // Fallback sort: created_at (newest first) for records without appointments
                   return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                 });
+                
+                console.log('After sorting:', sortedData.map(d => `${d.full_name}: ${d.appointment_date} ${d.time_slot}`));
               }
 
               // Update column data
@@ -322,7 +327,8 @@ export default function KanbanBoard() {
           const sortColumnData = (leads: Lead[], columnKey: ColKey): Lead[] => {
             // Apply specific sorting for new_customer column (appointments)
             if (columnKey === 'new_customer') {
-              return [...leads].sort((a, b) => {
+              console.log(`🔄 Real-time sorting ${leads.length} appointments for ${columnKey} column`);
+              const sorted = [...leads].sort((a, b) => {
                 // Both have appointment dates - sort by date then time
                 if (a.appointment_date && b.appointment_date) {
                   const dateComparison = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
@@ -341,6 +347,8 @@ export default function KanbanBoard() {
                 // Fallback sort: created_at (newest first) for records without appointments
                 return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
               });
+              console.log('Real-time sorted:', sorted.map(d => `${d.full_name}: ${d.appointment_date} ${d.time_slot}`));
+              return sorted;
             }
             
             // Keep existing order for other columns

@@ -228,7 +228,6 @@ export default function KanbanBoard() {
   // Column-by-column optimistic loading
   useEffect(() => {
     if (!hasFetchedLeads.current) {
-      console.log('🚀 CRM: Starting optimistic column loading...');
       
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; status: string[] }[] = [
@@ -245,7 +244,6 @@ export default function KanbanBoard() {
       columnPriorities.forEach(({ key, delay, status }) => {
         setTimeout(async () => {
           try {
-            console.log(`📥 Loading ${key} column...`);
             let query = supabase
               .from('leads')
               .select('*')
@@ -295,7 +293,6 @@ export default function KanbanBoard() {
                 return [...filteredPrev, ...sortedData];
               });
               
-              console.log(`✅ ${key} column loaded with ${data.length} leads`);
             }
           } catch (error) {
             console.error(`❌ Failed to load ${key} column:`, error);

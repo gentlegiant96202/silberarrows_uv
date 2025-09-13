@@ -1,0 +1,45 @@
+
+> used-car-sales-crm@0.1.0 scrape:dubizzle
+> tsx lib/scraper/scrape.ts https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/?seller_type=OW&regional_specs=824&regional_specs=827&fuel_type=380&fuel_type=383&kilometers__lte=100000&kilometers__gte=0&year__gte=2015&year__lte=2026 3
+
+🚀 CLICK CALL BUTTON SCRAPER
+🎯 Goal: Get 3 SUCCESSFUL leads with real phone numbers
+🔄 Reverse Round-Robin: Starting from page 5 (11→10→9...→1)
+🔄 Duplicate Detection: Skip listings with existing phone numbers
+[scraper] Starting scrape for https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/?seller_type=OW&regional_specs=824&regional_specs=827&fuel_type=380&fuel_type=383&kilometers__lte=100000&kilometers__gte=0&year__gte=2015&year__lte=2026 (target: 3 leads)
+🤖 Browser mode: Headed (Background) - Required for Dubizzle
+🔍 Visiting search results: https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/?seller_type=OW&regional_specs=824&regional_specs=827&fuel_type=380&fuel_type=383&kilometers__lte=100000&kilometers__gte=0&year__gte=2015&year__lte=2026
+📄 Starting from page 5 (reverse round-robin strategy)
+📄 Scraping page 5: https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/?seller_type=OW&regional_specs=824&regional_specs=827&fuel_type=380&fuel_type=383&kilometers__lte=100000&kilometers__gte=0&year__gte=2015&year__lte=2026&page=5
+  🌐 Loading page: https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/?seller_type=OW&regional_specs=824&regional_specs=827&fuel_type=380&fuel_type=383&kilometers__lte=100000&kilometers__gte=0&year__gte=2015&year__lte=2026&page=5
+  ⚠️  Network idle failed, trying domcontentloaded...
+  ✅ Page loaded - found selector: h1
+[scraper] Popup closed with selector: [data-testid="close-button"]
+  ✅ Found 25 cars on page 5
+📄 Scraping page 6: https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/?seller_type=OW&regional_specs=824&regional_specs=827&fuel_type=380&fuel_type=383&kilometers__lte=100000&kilometers__gte=0&year__gte=2015&year__lte=2026&page=6
+  🌐 Loading page: https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/?seller_type=OW&regional_specs=824&regional_specs=827&fuel_type=380&fuel_type=383&kilometers__lte=100000&kilometers__gte=0&year__gte=2015&year__lte=2026&page=6
+  ⚠️  Network idle failed, trying domcontentloaded...
+❌ Error on page 6: Error: page.goto: Target page, context or browser has been closed
+🎉 TOTAL FOUND: 25 individual car listings across 5 pages
+
+📋 Found 25 cars. Will process until we get 3 successful leads
+
+================================================================================
+🚗 CHECKING CAR 1 | LEADS FOUND: 0/3
+================================================================================
+
+🚗 Visiting: https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/g-class/2025/6/16/dubai-2-280---f0bb8199ea3846e19a82016e4f57ed33/
+  ⚠️  Network idle failed, trying domcontentloaded...
+❌ Error processing https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/g-class/2025/6/16/dubai-2-280---f0bb8199ea3846e19a82016e4f57ed33/: Error: page.goto: Target page, context or browser has been closed
+⚠️  Skipping lead due to missing data: {
+  status: 'new_lead',
+  phone_number: null,
+  vehicle_model: null,
+  asking_price: null,
+  listing_url: 'https://dubai.dubizzle.com/motors/used-cars/mercedes-benz/g-class/2025/6/16/dubai-2-280---f0bb8199ea3846e19a82016e4f57ed33/'
+}
+⏳ Waiting 7.0 seconds...
+[scraper] Error page.waitForTimeout: Target page, context or browser has been closed
+    at scrapeDubizzle (/Users/silberarrowsmarketing/Downloads/silberarrows_uv-main/lib/scraper/scrape.ts:965:20)
+page.waitForTimeout: Target page, context or browser has been closed
+    at scrapeDubizzle (/Users/silberarrowsmarketing/Downloads/silberarrows_uv-main/lib/scraper/scrape.ts:965:20)

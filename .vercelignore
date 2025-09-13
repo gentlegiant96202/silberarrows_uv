@@ -1,0 +1,72 @@
+# Exclude scraper logs and development files
+*.log
+*.pid
+run-scraper.sh
+stop-scraper.sh
+scraper-*.log
+
+# Exclude development files
+.env.local
+.next/
+node_modules/
+
+# Exclude ALL documentation and text files
+*.md
+*.txt
+*.MD
+*.TXT
+docs/
+README*
+CHANGELOG*
+LICENSE*
+CONTRIBUTING*
+
+# Exclude ALL shell scripts and command files
+*.sh
+*.bat
+*.cmd
+*.command
+*.ps1
+
+# Exclude all SQL files (database migration scripts)
+*.sql
+database/
+
+# Exclude development scripts and logs
+scripts/
+debug_*
+test_*
+migration_*
+webhook_*
+
+# Exclude build and cache directories
+.next/
+.vercel/
+.env*
+.DS_Store
+.git/
+.gitignore
+.eslintrc*
+.prettierrc*
+node_modules/
+
+# Exclude temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+*.swp
+*.swo
+
+# Only include essential files for deployment
+!/app/**
+!/components/**
+!/lib/**
+!/types/**
+!/public/**
+!/package.json
+!/next.config.js
+!/tailwind.config.js
+!/postcss.config.js
+!/tsconfig.json 

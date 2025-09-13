@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SilberArrows Car Filler</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 380px;
+      min-height: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      color: white;
+      padding: 0;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #333 0%, #555 100%);
+      padding: 16px;
+      text-align: center;
+      border-bottom: 1px solid #444;
+    }
+    
+    .logo {
+      font-size: 18px;
+      font-weight: bold;
+      color: #e5e5e5;
+      margin-bottom: 4px;
+    }
+    
+    .subtitle {
+      font-size: 12px;
+      color: #aaa;
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #ccc;
+      margin-bottom: 6px;
+    }
+    
+    select, input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #333;
+      border: 1px solid #555;
+      border-radius: 6px;
+      color: white;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    
+    select:focus, input:focus {
+      outline: none;
+      border-color: #777;
+      background: #3a3a3a;
+    }
+    
+    .search-input {
+      margin-bottom: 8px;
+    }
+    
+    .car-select {
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    
+    .car-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #444;
+      font-size: 13px;
+      transition: background 0.2s ease;
+    }
+    
+    .car-option:hover {
+      background: #444;
+    }
+    
+    .car-option.selected {
+      background: #555;
+      border-left: 3px solid #888;
+    }
+    
+    .car-option .name {
+      font-weight: 500;
+      color: #e5e5e5;
+    }
+    
+    .car-option .price {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 2px;
+    }
+    
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #666 0%, #888 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #777 0%, #999 100%);
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: #444;
+      color: #ccc;
+      border: 1px solid #555;
+    }
+    
+    .btn-secondary:hover {
+      background: #555;
+      color: white;
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .status {
+      margin-top: 16px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+    }
+    
+    .status.success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #4ade80;
+    }
+    
+    .status.error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+    
+    .status.loading {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #60a5fa;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    /* Settings Panel Styles */
+    .settings-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      padding: 20px;
+      z-index: 100;
+    }
+    
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #444;
+    }
+    
+    .settings-header h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #e5e5e5;
+    }
+    
+    .btn-back {
+      background: #444;
+      color: #ccc;
+      border: 1px solid #555;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-back:hover {
+      background: #555;
+      color: white;
+    }
+    
+    .help-text {
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+    
+    .form-group label input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+      margin-bottom: 0;
+    }
+    
+    .form-group label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">SilberArrows</div>
+    <div class="subtitle">Car Data Filler</div>
+  </div>
+  
+  <div class="content">
+    <!-- Main Panel -->
+    <div id="mainPanel">
+      <div class="form-group">
+        <label for="search">Search Cars</label>
+        <input type="text" id="search" class="search-input" placeholder="Search by model, year, or stock number...">
+      </div>
+      
+      <div class="form-group">
+        <label>Select Car</label>
+        <div id="carList" class="car-select">
+          <div class="status loading">
+            <span class="loading-spinner"></span>
+            Loading cars...
+          </div>
+        </div>
+      </div>
+      
+      <div class="buttons">
+        <button id="fillBtn" class="btn-primary" disabled>Fill This Page</button>
+        <button id="optionsBtn" class="btn-secondary">Settings</button>
+      </div>
+      
+      <div id="status" class="status hidden"></div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="settings-panel hidden">
+      <div class="settings-header">
+        <h3>Extension Settings</h3>
+        <button id="backBtn" class="btn-back">← Back</button>
+      </div>
+      
+      <div class="form-group">
+        <label for="apiUrl">API Server URL</label>
+        <input type="text" id="apiUrl" placeholder="https://portal.silberarrows.com" value="">
+        <div class="help-text">Change this to your production server URL when deployed</div>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="autoFillEnabled"> Auto-fill enabled
+        </label>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="highlightFields"> Highlight filled fields
+        </label>
+      </div>
+      
+      <div class="buttons">
+        <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+        <button id="resetSettingsBtn" class="btn-secondary">Reset to Default</button>
+      </div>
+      
+      <div id="settingsStatus" class="status hidden"></div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

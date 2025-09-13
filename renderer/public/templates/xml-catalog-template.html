@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{year}} {{model}} | UV Catalog</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0a0a;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .catalog-card-container {
+      position: relative;
+      width: 3000px;
+      height: 3000px;
+      background: linear-gradient(135deg, 
+        #000000 0%, 
+        #1a1a1a 25%, 
+        #2a2a2a 50%, 
+        #1a1a1a 75%, 
+        #000000 100%);
+      border-radius: 0;
+      padding: 6px;
+      box-sizing: border-box;
+      overflow: hidden;
+      box-shadow: 0 0 100px rgba(255, 255, 255, 0.05);
+    }
+
+    .catalog-card-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.2) 25%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        rgba(255, 255, 255, 0.05) 75%, 
+        rgba(255, 255, 255, 0.1) 100%);
+      background-size: 400% 400%;
+      animation: silver-glow 6s ease infinite;
+      z-index: 0;
+      border-radius: 0;
+      margin: -6px;
+    }
+
+    @keyframes silver-glow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .catalog-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0a0a0a;
+      border-radius: 0;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .catalog-bg-image {
+      position: absolute;
+      top: -7%;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      z-index: 1;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 90%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 90%);
+    }
+
+    .content-section {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40%;
+      padding: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: linear-gradient(to top, rgba(10, 10, 10, 0.95) 60%, rgba(10, 10, 10, 0.6) 100%);
+      z-index: 2;
+    }
+
+    .header {
+      margin-bottom: 75px;
+    }
+
+    .header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 20px;
+      color: #ffffff;
+      text-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
+      letter-spacing: -1px;
+    }
+
+    .subtitle {
+      font-size: 3.5rem;
+      color: #aaaaaa;
+      font-weight: 400;
+      margin-bottom: 30px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .highlight {
+      color: #ffffff;
+      font-weight: 600;
+      position: relative;
+      display: inline-block;
+    }
+
+    .highlight::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #cccccc, #888888);
+      border-radius: 4px;
+    }
+
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 50px;
+      margin-bottom: 75px;
+    }
+
+    .spec-item {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 55px 40px;
+      border-radius: 40px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      box-shadow: 0 16px 64px rgba(0, 0, 0, 0.3), 
+                  inset 0 2px 0 rgba(255, 255, 255, 0.1),
+                  0 0 40px rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .spec-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(200, 200, 200, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
+    }
+
+    .spec-item:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4), 
+                  inset 0 2px 0 rgba(255, 255, 255, 0.15),
+                  0 0 60px rgba(255, 255, 255, 0.2);
+    }
+
+    .spec-item:hover::before {
+      opacity: 1;
+    }
+
+    .spec-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 5rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #ffffff;
+      background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .spec-label {
+      font-size: 2.2rem;
+      color: #888888;
+      text-transform: uppercase;
+      font-weight: 400;
+      letter-spacing: 3px;
+    }
+
+    .accent-line {
+      height: 10px;
+      width: 150px;
+      background: linear-gradient(90deg, #ffffff, #888888);
+      margin: 35px 0;
+      border-radius: 5px;
+    }
+
+    .metal-detail {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 4px;
+      background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.5), 
+        rgba(200, 200, 200, 0.8), 
+        rgba(255, 255, 255, 0.5), 
+        transparent);
+      z-index: 2;
+    }
+
+    .reflection {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, 
+        transparent 30%, 
+        rgba(255, 255, 255, 0.03) 50%, 
+        transparent 70%);
+      transform: rotate(25deg);
+      z-index: 1;
+      animation: reflection-move 8s infinite linear;
+    }
+
+    @keyframes reflection-move {
+      0% { transform: rotate(25deg) translateY(-100%); }
+      100% { transform: rotate(25deg) translateY(100%); }
+    }
+  </style>
+</head>
+<body>
+  <div class="catalog-card-container">
+    <div class="reflection"></div>
+    <div class="catalog-card-inner">
+      <!-- Full Background Image -->
+      <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" />
+      
+      <!-- Content Overlay (Bottom) -->
+      <div class="content-section">
+        <div class="header">
+          <h1>{{year}} {{model}}</h1>
+          <div class="accent-line"></div>
+          <p class="subtitle"><span class="highlight">Premium Selection</span></p>
+        </div>
+
+        <div class="specs-grid">
+          <!-- Top Row -->
+          <div class="spec-item">
+            <div class="spec-value">AED {{originalPrice}}</div>
+            <div class="spec-label">Cash Price</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">AED {{zeroDownPayment}}</div>
+            <div class="spec-label">0% Down Payment</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">AED {{twentyDownPayment}}</div>
+            <div class="spec-label">20% Down Payment</div>
+          </div>
+          
+          <!-- Bottom Row -->
+          <div class="spec-item">
+            <div class="spec-value">{{mileage}} KM</div>
+            <div class="spec-label">Mileage</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">{{horsepower}} HP</div>
+            <div class="spec-label">Horsepower</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">{{torque}}</div>
+            <div class="spec-label">Torque</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Metal Detail -->
+      <div class="metal-detail"></div>
+    </div>
+  </div>
+</body>
+</html> 

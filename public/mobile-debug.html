@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Database Debug Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            line-height: 1.6;
+        }
+        .test-container {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            border: 1px solid #444;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background: #1a4a1a; border: 1px solid #4a7c59; }
+        .error { background: #4a1a1a; border: 1px solid #7c4a4a; }
+        .info { background: #1a1a4a; border: 1px solid #4a4a7c; }
+        button {
+            background: linear-gradient(135deg, #c0c0c0, #808080);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+            width: 100%;
+            max-width: 300px;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #d0d0d0, #909090);
+        }
+        .loading {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .url-test {
+            word-break: break-all;
+            background: #333;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        .network-info {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📱 iPhone Database Access Debug Tool</h1>
+    <p>This tool will help diagnose why database.silberarrows.com isn't working on your iPhone.</p>
+
+    <!-- Network Information -->
+    <div class="test-container">
+        <h3>🌐 Network Information</h3>
+        <div id="network-info" class="network-info">
+            <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+            <p><strong>Connection:</strong> <span id="connection-type"></span></p>
+            <p><strong>Online Status:</strong> <span id="online-status"></span></p>
+            <p><strong>Current URL:</strong> <span id="current-url"></span></p>
+        </div>
+    </div>
+
+    <!-- Basic Connectivity Tests -->
+    <div class="test-container">
+        <h3>🔗 Basic Connectivity Tests</h3>
+        <button onclick="testBasicConnectivity()">Test Basic Internet</button>
+        <button onclick="testDNSResolution()">Test DNS Resolution</button>
+        <button onclick="testSSLCertificate()">Test SSL Certificate</button>
+        <div id="connectivity-results"></div>
+    </div>
+
+    <!-- Database URL Tests -->
+    <div class="test-container">
+        <h3>🗄️ Database URL Tests</h3>
+        <button onclick="testDatabaseUrls()">Test All Database URLs</button>
+        <div id="database-results"></div>
+    </div>
+
+    <!-- Image Loading Test -->
+    <div class="test-container">
+        <h3>🖼️ Image Loading Test</h3>
+        <button onclick="testImageLoading()">Test Image Loading</button>
+        <div id="image-results"></div>
+    </div>
+
+    <!-- Alternative Solutions -->
+    <div class="test-container">
+        <h3>🔧 Alternative Solutions</h3>
+        <button onclick="tryProxyAccess()">Try Proxy Access</button>
+        <button onclick="clearAllData()">Clear All Browser Data</button>
+        <div id="solution-results"></div>
+    </div>
+
+    <script>
+        // Display network information
+        function displayNetworkInfo() {
+            document.getElementById('user-agent').textContent = navigator.userAgent;
+            document.getElementById('online-status').textContent = navigator.onLine ? 'Online' : 'Offline';
+            document.getElementById('current-url').textContent = window.location.href;
+            
+            // Connection type (if available)
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            document.getElementById('connection-type').textContent = connection ? 
+                `${connection.effectiveType || 'unknown'} (${connection.downlink || 'unknown'} Mbps)` : 
+                'Not available';
+        }
+
+        // Test basic internet connectivity
+        async function testBasicConnectivity() {
+            const results = document.getElementById('connectivity-results');
+            results.innerHTML = '<div class="test-result info">Testing basic connectivity...</div>';
+
+            const tests = [
+                { name: 'Google DNS', url: 'https://8.8.8.8' },
+                { name: 'Cloudflare DNS', url: 'https://1.1.1.1' },
+                { name: 'Google', url: 'https://google.com' },
+                { name: 'Apple', url: 'https://apple.com' }
+            ];
+
+            for (const test of tests) {
+                try {
+                    const response = await fetch(test.url, { 
+                        method: 'HEAD', 
+                        mode: 'no-cors',
+                        cache: 'no-cache'
+                    });
+                    results.innerHTML += `<div class="test-result success">✅ ${test.name}: Connected</div>`;
+                } catch (error) {
+                    results.innerHTML += `<div class="test-result error">❌ ${test.name}: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Test DNS resolution
+        async function testDNSResolution() {
+            const results = document.getElementById('connectivity-results');
+            results.innerHTML += '<div class="test-result info">Testing DNS resolution...</div>';
+
+            const domains = [
+                'database.silberarrows.com',
+                'rrxfvdtubynlsanplbta.supabase.co',
+                'supabase.co',
+                'google.com'
+            ];
+
+            for (const domain of domains) {
+                try {
+                    const response = await fetch(`https://${domain}`, { 
+                        method: 'HEAD', 
+                        mode: 'no-cors',
+                        cache: 'no-cache'
+                    });
+                    results.innerHTML += `<div class="test-result success">✅ DNS for ${domain}: Resolved</div>`;
+                } catch (error) {
+                    results.innerHTML += `<div class="test-result error">❌ DNS for ${domain}: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Test SSL certificate
+        async function testSSLCertificate() {
+            const results = document.getElementById('connectivity-results');
+            results.innerHTML += '<div class="test-result info">Testing SSL certificates...</div>';
+
+            const secureUrls = [
+                'https://database.silberarrows.com',
+                'https://rrxfvdtubynlsanplbta.supabase.co'
+            ];
+
+            for (const url of secureUrls) {
+                try {
+                    const response = await fetch(url, { 
+                        method: 'HEAD',
+                        cache: 'no-cache'
+                    });
+                    results.innerHTML += `<div class="test-result success">✅ SSL for ${url}: Valid</div>`;
+                } catch (error) {
+                    if (error.message.includes('certificate') || error.message.includes('SSL')) {
+                        results.innerHTML += `<div class="test-result error">❌ SSL for ${url}: Certificate error - ${error.message}</div>`;
+                    } else {
+                        results.innerHTML += `<div class="test-result error">❌ SSL for ${url}: ${error.message}</div>`;
+                    }
+                }
+            }
+        }
+
+        // Test database URLs
+        async function testDatabaseUrls() {
+            const results = document.getElementById('database-results');
+            results.innerHTML = '<div class="test-result info">Testing database URLs...</div>';
+
+            const urls = [
+                'https://database.silberarrows.com',
+                'https://database.silberarrows.com/storage/v1/object/public/',
+                'https://rrxfvdtubynlsanplbta.supabase.co',
+                'https://rrxfvdtubynlsanplbta.supabase.co/storage/v1/object/public/'
+            ];
+
+            for (const url of urls) {
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(url, { 
+                        method: 'GET',
+                        cache: 'no-cache'
+                    });
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+                    
+                    results.innerHTML += `<div class="test-result success">✅ ${url}: ${response.status} (${responseTime}ms)</div>`;
+                } catch (error) {
+                    results.innerHTML += `<div class="test-result error">❌ ${url}: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Test image loading
+        async function testImageLoading() {
+            const results = document.getElementById('image-results');
+            results.innerHTML = '<div class="test-result info">Testing image loading...</div>';
+
+            const imageUrls = [
+                'https://database.silberarrows.com/storage/v1/object/public/media-files/test.jpg',
+                'https://rrxfvdtubynlsanplbta.supabase.co/storage/v1/object/public/media-files/test.jpg'
+            ];
+
+            for (const imageUrl of imageUrls) {
+                try {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    const loadPromise = new Promise((resolve, reject) => {
+                        img.onload = () => resolve('loaded');
+                        img.onerror = (error) => reject(new Error('Image failed to load'));
+                        setTimeout(() => reject(new Error('Timeout')), 10000);
+                    });
+
+                    img.src = imageUrl;
+                    await loadPromise;
+                    
+                    results.innerHTML += `<div class="test-result success">✅ Image from ${imageUrl}: Loaded successfully</div>`;
+                } catch (error) {
+                    results.innerHTML += `<div class="test-result error">❌ Image from ${imageUrl}: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Try proxy access
+        async function tryProxyAccess() {
+            const results = document.getElementById('solution-results');
+            results.innerHTML = '<div class="test-result info">Trying proxy access methods...</div>';
+
+            // Try CORS proxy
+            const proxyUrls = [
+                'https://cors-anywhere.herokuapp.com/https://database.silberarrows.com',
+                'https://api.allorigins.win/get?url=https://database.silberarrows.com'
+            ];
+
+            for (const proxyUrl of proxyUrls) {
+                try {
+                    const response = await fetch(proxyUrl);
+                    results.innerHTML += `<div class="test-result success">✅ Proxy access via ${proxyUrl}: Working</div>`;
+                } catch (error) {
+                    results.innerHTML += `<div class="test-result error">❌ Proxy access via ${proxyUrl}: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Clear all browser data
+        function clearAllData() {
+            const results = document.getElementById('solution-results');
+            
+            try {
+                // Clear localStorage
+                localStorage.clear();
+                results.innerHTML += '<div class="test-result success">✅ LocalStorage cleared</div>';
+                
+                // Clear sessionStorage
+                sessionStorage.clear();
+                results.innerHTML += '<div class="test-result success">✅ SessionStorage cleared</div>';
+                
+                // Clear cookies (limited in scope)
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                results.innerHTML += '<div class="test-result success">✅ Cookies cleared (partial)</div>';
+                
+                results.innerHTML += '<div class="test-result info">ℹ️ Please also manually clear Safari cache: Settings > Safari > Clear History and Website Data</div>';
+                
+            } catch (error) {
+                results.innerHTML += `<div class="test-result error">❌ Error clearing data: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            displayNetworkInfo();
+            
+            // Auto-run basic connectivity test
+            setTimeout(testBasicConnectivity, 1000);
+        });
+
+        // Monitor online status
+        window.addEventListener('online', function() {
+            document.getElementById('online-status').textContent = 'Online';
+            document.getElementById('online-status').style.color = '#4a7c59';
+        });
+
+        window.addEventListener('offline', function() {
+            document.getElementById('online-status').textContent = 'Offline';
+            document.getElementById('online-status').style.color = '#7c4a4a';
+        });
+    </script>
+</body>
+</html>

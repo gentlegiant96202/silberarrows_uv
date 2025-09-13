@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pre-Used Vehicle Check</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: white;
+            width: 2029px;
+            height: 765px;
+            overflow: hidden;
+        }
+
+        .car-diagram {
+            position: relative;
+            display: block;
+            width: 2029px;
+            height: 765px;
+        }
+
+        .car-diagram img {
+            width: 2029px;
+            height: 765px;
+            display: block;
+        }
+
+        .damage-marker {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 4px solid white;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .damage-marker.minor {
+            background-color: #FFA500;
+        }
+
+        .damage-marker.moderate {
+            background-color: #FF6B35;
+        }
+
+        .damage-marker.major {
+            background-color: #FF0000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Car Diagram with Damage Markers Only -->
+    <div class="car-diagram">
+        <img src="{{DIAGRAM_IMAGE_URL}}" alt="Vehicle Damage Diagram">
+        
+        {{#each DAMAGE_MARKERS}}
+        <div class="damage-marker {{severity}}" 
+             style="left: {{x_percent}}%; top: {{y_percent}}%;">
+            {{damageType}}
+        </div>
+        {{/each}}
+    </div>
+</body>
+</html>

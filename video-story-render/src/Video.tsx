@@ -1,0 +1,46 @@
+import { Composition } from 'remotion';
+import { MondayTemplate } from './templates/MondayTemplate';
+import { TuesdayTemplate } from './templates/TuesdayTemplate';
+import { WednesdayTemplate } from './templates/WednesdayTemplate';
+import { ThursdayTemplate } from './templates/ThursdayTemplate';
+import { FridayTemplate } from './templates/FridayTemplate';
+import { SaturdayTemplate } from './templates/SaturdayTemplate';
+import { SundayTemplate } from './templates/SundayTemplate';
+
+const ContentPillarVideo = (props) => {
+  const { dayOfWeek, templateType } = props;
+  
+  // Select template based on day
+  const TemplateComponent = {
+    monday: MondayTemplate,
+    tuesday: TuesdayTemplate,
+    wednesday: WednesdayTemplate,
+    thursday: ThursdayTemplate,
+    friday: FridayTemplate,
+    saturday: SaturdayTemplate,
+    sunday: SundayTemplate,
+  }[dayOfWeek?.toLowerCase()] || MondayTemplate;
+  
+  return <TemplateComponent {...props} />;
+};
+
+export const RemotionRoot = () => {
+  return (
+    <Composition
+      id="ContentPillar"
+      component={ContentPillarVideo}
+      durationInFrames={210} // 7 seconds at 30fps
+      fps={30}
+      width={1080}
+      height={1920}
+      defaultProps={{
+        dayOfWeek: 'monday',
+        templateType: 'A',
+        title: 'Sample Title',
+        description: 'Sample Description',
+        imageUrl: '',
+        badgeText: 'MONDAY'
+      }}
+    />
+  );
+};

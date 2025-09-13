@@ -1,0 +1,460 @@
+import type { ContentPillarFormData } from '../types';
+
+export const generateMondayTemplate = (
+  formData: ContentPillarFormData,
+  renderImageUrl: string,
+  absoluteLogoUrl: string,
+  fontFaceCSS: string,
+  templateType: 'A' | 'B' = 'A'
+): string => {
+  if (templateType === 'A') {
+    // EXACT copy of original Monday Template A from ContentPillarModal.tsx line 691-812
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+        <style>
+${fontFaceCSS}
+        </style>
+      </head>
+      <body>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
+        .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
+        .image-section { position: relative; width: 100%; height: 69.5%; }
+        .background-image { 
+          width: 100%; 
+          height: 100%; 
+          object-fit: ${formData.imageFit || 'cover'}; 
+          object-position: ${formData.imageAlignment || 'center'}; 
+          image-rendering: auto;
+          image-rendering: high-quality;
+          image-rendering: -webkit-optimize-contrast;
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+          transform: translateZ(0) scale(${(formData.imageZoom || 100) / 100}) translateY(${formData.imageVerticalPosition || 0}px);
+        }
+        .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
+        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
+        .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
+        .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+        .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
+        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
+        
+        .content-container {
+          margin-bottom: 24px;
+        }
+        
+        .arrow-indicator {
+          position: fixed;
+          left: 40px;
+          right: 40px;
+          bottom: 120px;
+          z-index: 5;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          background: rgba(255,255,255,0.15);
+          border: 2px solid rgba(255,255,255,0.3);
+          padding: 24px 32px;
+          border-radius: 20px;
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          font-weight: 800;
+          font-size: 32px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        
+        .arrow-indicator i {
+          color: #ffffff;
+          font-size: 26px;
+        }
+        
+        .arrow-text {
+          color: #ffffff;
+          font-weight: 800;
+          font-size: 32px;
+        }
+        
+        /* Update ALL font families for Resonate - but preserve icons */
+        *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+        .badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+        .section-header i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+        body { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        .badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+        .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+        .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+        .description { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+        .arrow-indicator { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+        .arrow-text { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
+      </style>
+
+      <div class="content-card">
+        <div class="image-section">
+          <img src="${renderImageUrl}" class="background-image" referrerpolicy="no-referrer" loading="eager" decoding="sync" />
+        </div>
+        
+        <div class="content">
+          <div class="badge-row">
+            <div class="badge"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i> ${formData.badgeText || 'MYTH BUSTER MONDAY'}</div>
+            <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/MAIN LOGO.png';" />
+          </div>
+          
+          <div class="content-container">
+          <div>
+            <h1 class="title">${(() => {
+              const title = (formData.car_model || formData.title || 'Your Title Here').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
+              return title;
+            })()}</h1>
+              </div>
+          </div>
+        </div>
+            
+        <!-- Arrow indicator positioned like contact box -->
+        <div class="arrow-indicator">
+          <i class="fas fa-arrow-right"></i>
+          <span class="arrow-text">More Details</span>
+        </div>
+      </div>
+      
+      <style>
+        /* FORCE ALL font families to Resonate - but preserve icons */
+        * { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        i, .fas, .far, .fab, .fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+        .badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+        .spotlight-badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+        .spotlight-badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+        .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; font-style: normal !important; }
+        .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; font-style: normal !important; }
+        .contact { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; font-style: normal !important; }
+        p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
+      </style>
+      </body>
+      </html>`;
+  } else {
+    // EXACT copy of original Monday Template B from ContentPillarModal.tsx line 2057-2368
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+        <style>
+${fontFaceCSS}
+        </style>
+      </head>
+      <body>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
+        .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
+        .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
+        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
+        .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
+        .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
+        .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
+        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
+        .contact { position: fixed; left: 40px; right: 40px; bottom: 120px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+        .contact i { color: #ffffff; font-size: 26px; }
+        
+        /* Tech sections styling */
+        .tech-grid { 
+          display: grid; 
+          grid-template-columns: 1fr 1fr; 
+          gap: 24px; 
+          margin: 24px 0; 
+        }
+        
+        .tech-section {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 16px;
+          padding: 32px;
+          margin-bottom: 24px;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .section-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        
+        .section-header i {
+          font-size: 41px;
+          color: #e2e8f0;
+          background: linear-gradient(135deg, #f8fafc, #cbd5e1);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        
+        .section-title {
+          font-size: 41px;
+          font-weight: 700;
+          color: #f1f5f9;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        .section-content {
+          font-size: 37px;
+          color: #e2e8f0;
+          line-height: 1.4;
+        }
+        
+        .myth-section .section-header i {
+          color: #ef4444;
+        }
+        
+        .myth-section .section-title {
+          color: #ef4444;
+        }
+        
+        .fact-section .section-header i {
+          color: #22c55e;
+        }
+        
+        .fact-section .section-title {
+          color: #22c55e;
+        }
+        
+        .info-card {
+          text-align: center;
+          padding: 12px;
+        }
+        
+        .info-icon {
+          font-size: 37px;
+          margin-bottom: 8px;
+          color: #cbd5e1;
+        }
+        
+        .info-label {
+          font-size: 23px;
+          color: #cbd5e1;
+          margin-bottom: 6px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        .info-value {
+          font-size: 32px;
+          color: #f8fafc;
+          font-weight: 700;
+        }
+        
+        .warning-section {
+          background: rgba(255, 100, 100, 0.1);
+          border: 1px solid rgba(255, 150, 150, 0.3);
+          border-radius: 16px;
+          padding: 32px;
+          margin: 24px 0;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .warning-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        
+        .warning-header i {
+          font-size: 32px;
+          color: #ff6b6b;
+        }
+        
+        .warning-title {
+          font-size: 32px;
+          font-weight: 700;
+          color: #ff6b6b;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        .warning-content {
+          font-size: 32px;
+          color: #ffebeb;
+          line-height: 1.4;
+        }
+        
+        .content-container {
+          margin-bottom: 24px;
+        }
+            
+        .background-image-container {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 69.5%;
+          z-index: 0;
+        }
+        
+
+        
+        .background-image-blur {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          filter: blur(8px);
+          opacity: 0.3;
+        }
+        
+        .background-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5));
+        }
+        
+        .content {
+          position: relative;
+          z-index: 1;
+          padding: 20px 40px 40px 40px;
+          height: 30.5%;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start;
+          gap: 12px;
+          overflow: visible;
+        }
+        
+        /* Update ALL font families for Resonate - but preserve icons */
+        *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+        .badge i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+        .section-header i { font-family: "Font Awesome 6 Free" !important; font-weight: 900 !important; }
+        body { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        .badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+        .title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+        .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+        .description { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+        .section-title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+        .section-content { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+        .contact { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+        .info-label { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+        .info-value { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+        .warning-title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+        .warning-content { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
+        
+        /* Template B Monday positioning adjustments */
+        .background-image-container { height: 100% !important; width: 100% !important; left: 0 !important; right: 0 !important; top: 0 !important; }
+        .background-image, .background-image-blur { width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center !important; }
+        .content { 
+          padding: calc(20px + 3vh) 40px 40px 40px !important; 
+          height: 30.5% !important; 
+          gap: 12px !important; 
+        }
+        .badge-row { 
+          margin-top: 60px !important; 
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          margin-bottom: 16px !important;
+        }
+        .spotlight-badge { top: calc(90px + 3vh) !important; }
+        .company-logo-inline { 
+          height: 96px !important; 
+          width: auto !important; 
+          margin-top: 4px !important; 
+          flex-shrink: 0 !important; 
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          z-index: 999 !important;
+          filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)) !important;
+        }
+        .contact { bottom: 120px !important; }
+      </style>
+
+      <div class="content-card">
+        <!-- Background image with blur -->
+        <div class="background-image-container">
+          <img src="${renderImageUrl}" class="background-image-blur" referrerpolicy="no-referrer" />
+          <div class="background-overlay"></div>
+        </div>
+        <div class="content">
+          <div class="badge-row">
+            <div class="badge"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i> ${formData.badgeText || 'MYTH BUSTER MONDAY'}</div>
+            <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/MAIN LOGO.png';" />
+          </div>
+          
+          <div class="content-container">
+            ${formData.myth ? `
+            <div class="tech-section myth-section">
+              <div class="section-header">
+                <i class="fas fa-times-circle"></i>
+                <span class="section-title">The Myth</span>
+          </div>
+              <div class="section-content">${formData.myth}</div>
+        </div>
+            ` : ''}
+
+            ${formData.fact ? `
+            <div class="tech-section fact-section">
+              <div class="section-header">
+                <i class="fas fa-check-circle"></i>
+                <span class="section-title">The Fact</span>
+            </div>
+              <div class="section-content">${formData.fact}</div>
+          </div>
+            ` : ''}
+
+            ${formData.difficulty && formData.tools_needed ? `
+            <div class="tech-grid">
+              <div class="tech-section info-card">
+                <div class="info-icon"><i class="fas fa-gauge-high"></i></div>
+                <div class="info-label">Difficulty</div>
+                <div class="info-value">${formData.difficulty}</div>
+        </div>
+              
+              <div class="tech-section info-card">
+                <div class="info-icon"><i class="fas fa-clock"></i></div>
+                <div class="info-label">Tools Needed</div>
+                <div class="info-value">${formData.tools_needed}</div>
+              </div>
+            </div>
+            ` : ''}
+
+            ${formData.warning ? `
+            <div class="warning-section">
+              <div class="warning-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="warning-title">Important Warning</span>
+              </div>
+              <div class="warning-content">${formData.warning}</div>
+            </div>
+            ` : ''}
+          </div>
+          
+          <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
+        </div>
+      </div>
+      </body>
+      </html>`;
+  }
+};

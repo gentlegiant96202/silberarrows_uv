@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{title}} | Behind the Scenes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Black.otf') format('opentype');
+      font-weight: 900;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Bold.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Medium.otf') format('opentype');
+      font-weight: 500;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Light.otf') format('opentype');
+      font-weight: 300;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+    }
+  </style>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Resonate', 'Inter', sans-serif;
+      background: linear-gradient(135deg, #065f46, #10b981);
+      color: #ffffff;
+      height: 100vh;
+      width: 100vw;
+      padding: 0;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .content-card {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.6;
+    }
+
+    .gradient-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        135deg,
+        rgba(6, 95, 70, 0.9) 0%,
+        rgba(16, 185, 129, 0.7) 50%,
+        rgba(6, 95, 70, 0.9) 100%
+      );
+    }
+
+    .content-overlay {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px;
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .wednesday-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      color: #ffffff;
+      padding: 16px 28px;
+      border-radius: 30px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .main-title {
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
+      font-size: 4rem;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      text-align: center;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .description {
+      font-size: 1.8rem;
+      color: #f0fdf4;
+      line-height: 1.6;
+      margin-bottom: 40px;
+      font-weight: 400;
+    }
+
+    .behind-scenes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 40px;
+      width: 100%;
+    }
+
+    .bts-item {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(15px);
+      padding: 24px;
+      border-radius: 16px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: transform 0.3s ease;
+    }
+
+    .bts-icon {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+      color: #34d399;
+    }
+
+    .bts-title {
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+
+    .bts-subtitle {
+      font-size: 1rem;
+      color: #d1fae5;
+      font-weight: 400;
+    }
+
+    .peek-behind {
+      background: linear-gradient(135deg, #34d399, #10b981);
+      color: #ffffff;
+      padding: 20px 40px;
+      border-radius: 15px;
+      font-weight: 600;
+      font-size: 1.4rem;
+      text-align: center;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 0 auto 40px;
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 8px 25px rgba(52, 211, 153, 0.3);
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-logo {
+      font-family: 'Resonate', 'Space Grotesk', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .contact-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      padding: 16px 24px;
+      border-radius: 25px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .contact-info i {
+      color: #34d399;
+    }
+
+    .arrows-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .arrows-logo {
+      width: 100%;
+      height: 100%;
+      max-width: 1000px;
+      max-height: 1000px;
+      opacity: 0.8;
+      transform: scale(2.0) rotate(-15deg);
+    }
+    
+    /* Update ALL font families for Resonate - but preserve icons */
+    *:not(i):not(.fas):not(.far):not(.fab):not(.fal) { font-family: 'Resonate', 'Inter', sans-serif !important; }
+    i.fas, i.far, i.fab, i.fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+    .wednesday-badge { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 500 !important; }
+    .main-title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+    .bts-title { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+    .peek-behind { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+    .brand-logo { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 900 !important; }
+    .description { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+    .bts-subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 300 !important; }
+    .contact-info { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Resonate', 'Inter', sans-serif !important; }
+    p, span, div { font-family: 'Resonate', 'Inter', sans-serif !important; }
+  </style>
+</head>
+<body>
+  <div class="content-card">
+    <img src="{{imageUrl}}" alt="{{title}}" class="background-image" />
+    <div class="gradient-overlay"></div>
+    
+    <!-- SilberArrows Logo Background -->
+    <div class="arrows-background">
+      <svg viewBox="0 0 400 400" class="arrows-logo">
+        <defs>
+          <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#c0c0c0;stop-opacity:0.4" />
+            <stop offset="50%" style="stop-color:#ffffff;stop-opacity:0.6" />
+            <stop offset="100%" style="stop-color:#c0c0c0;stop-opacity:0.4" />
+          </linearGradient>
+        </defs>
+        <!-- Arrow 1 -->
+        <path d="M80 120 L160 80 L160 100 L280 100 L280 140 L160 140 L160 160 Z" fill="url(#arrowGradient)" />
+        <!-- Arrow 2 -->
+        <path d="M80 180 L160 140 L160 160 L320 160 L320 200 L160 200 L160 220 Z" fill="url(#arrowGradient)" />
+        <!-- Arrow 3 -->
+        <path d="M80 240 L160 200 L160 220 L280 220 L280 260 L160 260 L160 280 Z" fill="url(#arrowGradient)" />
+      </svg>
+    </div>
+    
+    <div class="content-overlay">
+      <div class="header">
+        <div class="wednesday-badge">
+          <i class="fas fa-eye"></i> BEHIND THE SCENES
+        </div>
+      </div>
+      
+      <div class="main-content">
+        <h1 class="main-title">{{title}}</h1>
+        <p class="description">{{description}}</p>
+        
+        <div class="behind-scenes-grid">
+          <div class="bts-item">
+            <div class="bts-icon"><i class="fas fa-users"></i></div>
+            <div class="bts-title">Our Team</div>
+            <div class="bts-subtitle">Meet the experts</div>
+          </div>
+          
+          <div class="bts-item">
+            <div class="bts-icon"><i class="fas fa-cogs"></i></div>
+            <div class="bts-title">The Process</div>
+            <div class="bts-subtitle">How we work</div>
+          </div>
+          
+          <div class="bts-item">
+            <div class="bts-icon"><i class="fas fa-heart"></i></div>
+            <div class="bts-title">Our Passion</div>
+            <div class="bts-subtitle">What drives us</div>
+          </div>
+        </div>
+        
+        <div class="peek-behind">
+          <i class="fas fa-camera"></i>
+          Take a Peek Behind
+        </div>
+      </div>
+      
+      <div class="footer">
+        <div class="brand-logo">SilberArrows</div>
+        <div class="contact-info">
+          <i class="fas fa-phone"></i>
+          <i class="fab fa-whatsapp"></i>
+          +971 4 380 5515
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

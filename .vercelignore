@@ -39,6 +39,9 @@ test_*
 migration_*
 webhook_*
 
+# Exclude video service (separate deployment)
+video-story-render/
+
 # Exclude build and cache directories
 .next/
 .vercel/

@@ -294,17 +294,22 @@ export default function ContentPillarModalRefactored({
 
 
   // Remove existing media file
-  const removeExistingMedia = async (indexToRemove: number) => {
-    const mediaToRemove = existingMedia[indexToRemove];
+  const removeExistingMedia = async (indexToRemove: number, templateType: TemplateType = 'A') => {
+    const currentMedia = templateType === 'A' ? existingMediaA : existingMediaB;
+    const mediaToRemove = currentMedia[indexToRemove];
     if (!mediaToRemove) return;
 
     try {
       // Remove from local state immediately for better UX
-      setExistingMedia(prev => prev.filter((_, index) => index !== indexToRemove));
+      if (templateType === 'A') {
+        setExistingMediaA(prev => prev.filter((_, index) => index !== indexToRemove));
+      } else {
+        setExistingMediaB(prev => prev.filter((_, index) => index !== indexToRemove));
+      }
 
       // If we have an editingItem, we should update it to remove this media
       if (editingItem && onSave) {
-        const updatedMediaFiles = existingMedia.filter((_, index) => index !== indexToRemove);
+        const updatedMediaFiles = currentMedia.filter((_, index) => index !== indexToRemove);
         
         // Update the content pillar in the database
         await onSave({
@@ -317,7 +322,11 @@ export default function ContentPillarModalRefactored({
     } catch (error) {
       console.error('❌ Error removing existing media:', error);
       // Restore the media file if database update failed
-      setExistingMedia(prev => [...prev.slice(0, indexToRemove), mediaToRemove, ...prev.slice(indexToRemove)]);
+      if (templateType === 'A') {
+        setExistingMediaA(prev => [...prev.slice(0, indexToRemove), mediaToRemove, ...prev.slice(indexToRemove)]);
+      } else {
+        setExistingMediaB(prev => [...prev.slice(0, indexToRemove), mediaToRemove, ...prev.slice(indexToRemove)]);
+      }
       alert('Failed to remove media file. Please try again.');
     }
   };

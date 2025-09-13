@@ -25,7 +25,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies with verbose logging
-RUN npm ci --only=production --verbose
+RUN npm ci --omit=dev --verbose
 
 # Copy source code
 COPY . .

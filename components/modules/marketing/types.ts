@@ -18,6 +18,7 @@ export interface ContentPillarFormData {
   tools_needed?: string;
   warning?: string;
   monthly_20_down_aed?: number;
+  monthly_0_down_aed?: number;
   media_files?: any[];
   year?: number;
   make?: string;

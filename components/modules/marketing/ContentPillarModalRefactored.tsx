@@ -358,7 +358,9 @@ export default function ContentPillarModalRefactored({
         engine: selectedCar.engine ?? '3.0L V6 Turbo',
         transmission: selectedCar.transmission ?? '9G-TRONIC Automatic',
         fuel_type: 'Petrol', // Default value
-        features: selectedCar.key_equipment ? selectedCar.key_equipment.split(',').map(f => f.trim()) : []
+        features: selectedCar.key_equipment ? selectedCar.key_equipment.split(',').map(f => f.trim()) : [],
+        // Monthly payment fields
+        monthly_0_down_aed: selectedCar.monthly_0_down_aed ?? undefined
       }));
       
     // Set car image if available - use second social_media image

@@ -108,7 +108,12 @@ app.post('/render-video', async (req, res) => {
 
 const port = process.env.PORT || 3001;
 
-app.listen(port, () => {
-  console.log(`🎬 Video Story Render service listening on :${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`🎬 Video Story Render service listening on 0.0.0.0:${port}`);
   console.log('🚀 Ready to generate content pillar videos!');
+  console.log('🔧 Environment:', {
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT,
+    RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT
+  });
 });

@@ -28,6 +28,33 @@ export async function POST(req: NextRequest) {
     console.log('📡 Forwarding request to video service:', videoServiceUrl);
     console.log('🔧 Raw VIDEO_SERVICE_URL env var:', process.env.VIDEO_SERVICE_URL);
     
+    // First, try to hit the health check endpoint
+    try {
+      console.log('🏥 Testing video service health check...');
+      const healthResponse = await fetch(`${videoServiceUrl}/health`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
+      
+      if (healthResponse.ok) {
+        const healthData = await healthResponse.text();
+        console.log('✅ Health check passed:', healthData);
+      } else {
+        console.log('❌ Health check failed:', healthResponse.status, healthResponse.statusText);
+        return NextResponse.json({ 
+          success: false, 
+          error: `Video service health check failed: ${healthResponse.status} ${healthResponse.statusText}` 
+        }, { status: 503 });
+      }
+    } catch (healthError) {
+      console.error('❌ Health check error:', healthError);
+      return NextResponse.json({ 
+        success: false, 
+        error: `Video service is not available: ${healthError instanceof Error ? healthError.message : 'Unknown error'}` 
+      }, { status: 503 });
+    }
+    
     // Forward request to video service
     const videoServiceResponse = await fetch(`${videoServiceUrl}/render-video`, {
       method: 'POST',
@@ -48,13 +75,17 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('📥 Video service response status:', videoServiceResponse.status);
+    console.log('📥 Video service response headers:', Object.fromEntries(videoServiceResponse.headers.entries()));
 
     if (!videoServiceResponse.ok) {
       const errorText = await videoServiceResponse.text();
       console.error('❌ Video service error:', errorText);
+      console.error('❌ Video service status:', videoServiceResponse.status, videoServiceResponse.statusText);
       return NextResponse.json({ 
         success: false, 
-        error: `Video service error: ${errorText}` 
+        error: `Video service error: ${errorText}`,
+        status: videoServiceResponse.status,
+        statusText: videoServiceResponse.statusText
       }, { status: videoServiceResponse.status });
     }
 

@@ -351,17 +351,14 @@ export default function ContentPillarModalRefactored({
         model: selectedCar.vehicle_model,
         price: selectedCar.advertised_price_aed,
         exterior_color: selectedCar.colour,
-        interior_color: selectedCar.interior_colour || undefined,
+        interior_color: selectedCar.interior_colour ?? undefined,
         // Additional fields for Wednesday Template B
-        mileage: selectedCar.current_mileage_km || 25000,
-        horsepower: selectedCar.horsepower_hp || 300,
-        engine: selectedCar.engine || '3.0L V6 Turbo',
-        transmission: selectedCar.transmission || '9G-TRONIC Automatic',
+        mileage: selectedCar.current_mileage_km ?? 25000,
+        horsepower: selectedCar.horsepower_hp ?? 300,
+        engine: selectedCar.engine ?? '3.0L V6 Turbo',
+        transmission: selectedCar.transmission ?? '9G-TRONIC Automatic',
         fuel_type: 'Petrol', // Default value
-        features: selectedCar.key_equipment ? selectedCar.key_equipment.split(',').map(f => f.trim()) : [],
-        // Monthly payment fields
-        monthly_0_down_aed: selectedCar.monthly_0_down_aed,
-        monthly_20_down_aed: selectedCar.monthly_20_down_aed
+        features: selectedCar.key_equipment ? selectedCar.key_equipment.split(',').map(f => f.trim()) : []
       }));
       
     // Set car image if available - use second social_media image

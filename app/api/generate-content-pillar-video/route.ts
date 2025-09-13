@@ -18,8 +18,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Get video service URL from environment
-    const videoServiceUrl = process.env.VIDEO_SERVICE_URL || 'http://localhost:3001';
+    let videoServiceUrl = process.env.VIDEO_SERVICE_URL || 'http://localhost:3001';
+    
+    // Ensure URL has protocol
+    if (videoServiceUrl && !videoServiceUrl.startsWith('http://') && !videoServiceUrl.startsWith('https://')) {
+      videoServiceUrl = `https://${videoServiceUrl}`;
+    }
+    
     console.log('📡 Forwarding request to video service:', videoServiceUrl);
+    console.log('🔧 Raw VIDEO_SERVICE_URL env var:', process.env.VIDEO_SERVICE_URL);
     
     // Forward request to video service
     const videoServiceResponse = await fetch(`${videoServiceUrl}/render-video`, {

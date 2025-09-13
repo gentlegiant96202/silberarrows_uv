@@ -345,7 +345,7 @@ export default function ContentPillarModalRefactored({
         ...prev,
         car_model: `${selectedCar.model_year} ${selectedCar.vehicle_model}`,
         title: cleanMercedesTitle(`${selectedCar.model_year} ${selectedCar.vehicle_model}`),
-        monthly_20_down_aed: selectedCar.monthly_20_down_aed || 0,
+        monthly_20_down_aed: selectedCar.monthly_20_down_aed ?? undefined,
         year: selectedCar.model_year,
         make: 'Mercedes-Benz',
         model: selectedCar.vehicle_model,

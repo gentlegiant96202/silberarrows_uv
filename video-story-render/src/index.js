@@ -101,6 +101,7 @@ app.post('/render-video', async (req, res) => {
     
     console.log('📤 Sending video response, size:', Math.round(videoBuffer.length / 1024 / 1024), 'MB');
 
+    // Send response (only once)
     res.json({
       success: true,
       videoData: videoBase64,
@@ -112,17 +113,23 @@ app.post('/render-video', async (req, res) => {
       }
     });
 
-    // Close browser
-    await browser.close();
+    // Close browser (ignore errors) after responding
+    try {
+      await browser.close({ silent: true });
+    } catch (closeErr) {
+      console.warn('⚠️ Browser close warning (ignored):', closeErr?.message || closeErr);
+    }
 
   } catch (err) {
     console.error('❌ Video render error:', err);
     console.error('❌ Error stack:', err.stack);
-    res.status(500).json({ 
-      success: false, 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      details: err.stack 
-    });
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error',
+        details: err.stack 
+      });
+    }
   }
 });
 

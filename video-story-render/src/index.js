@@ -54,6 +54,19 @@ app.post('/render-video', async (req, res) => {
         templateType,
         ...formData
       },
+      browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+      chromiumOptions: {
+        args: [
+          '--headless=new',
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu'
+        ]
+      },
     });
     console.log('✅ Composition selected:', composition.id);
 
@@ -69,6 +82,19 @@ app.post('/render-video', async (req, res) => {
         dayOfWeek,
         templateType,
         ...formData
+      },
+      browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+      chromiumOptions: {
+        args: [
+          '--headless=new',
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu'
+        ]
       },
     });
 

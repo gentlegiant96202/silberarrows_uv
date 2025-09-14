@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get video service URL from environment
-    let videoServiceUrl = process.env.VIDEO_SERVICE_URL || 'http://localhost:3001';
+    let videoServiceUrl = process.env.VIDEO_SERVICE_URL || 'https://videostoryrendering-production.up.railway.app';
     
     // Ensure URL has protocol
     if (videoServiceUrl && !videoServiceUrl.startsWith('http://') && !videoServiceUrl.startsWith('https://')) {

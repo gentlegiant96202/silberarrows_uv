@@ -494,6 +494,70 @@ export default function ContentPillarsBoard() {
     };
   };
 
+  // Format content pillar data into structured description
+  const formatContentPillarDescription = (item: ContentPillarItem): string => {
+    const sections: string[] = [];
+    
+    // Basic info
+    if (item.description) {
+      sections.push(`**Description:**\n${item.description}`);
+    }
+    
+    // Badge and subtitle
+    if (item.badge_text) {
+      sections.push(`**Badge:** ${item.badge_text}`);
+    }
+    if (item.subtitle) {
+      sections.push(`**Subtitle:** ${item.subtitle}`);
+    }
+    
+    // Day-specific content based on day_of_week
+    if (item.day_of_week === 'monday') {
+      // Myth Buster Monday fields
+      if (item.myth) {
+        sections.push(`**The Myth:**\n${item.myth}`);
+      }
+      if (item.fact) {
+        sections.push(`**The Fact:**\n${item.fact}`);
+      }
+    } else if (item.day_of_week === 'tuesday') {
+      // Tech Tips Tuesday fields
+      if (item.problem) {
+        sections.push(`**Problem:**\n${item.problem}`);
+      }
+      if (item.solution) {
+        sections.push(`**Solution:**\n${item.solution}`);
+      }
+      if (item.difficulty) {
+        sections.push(`**Difficulty Level:** ${item.difficulty}`);
+      }
+      if (item.tools_needed) {
+        sections.push(`**Tools Needed:** ${item.tools_needed}`);
+      }
+      if (item.warning) {
+        sections.push(`**⚠️ Warning:**\n${item.warning}`);
+      }
+    } else if (item.day_of_week === 'wednesday') {
+      // Spotlight of the Week - might have car-specific info
+      sections.push(`**Content Type:** Spotlight of the Week`);
+    } else if (item.day_of_week === 'thursday') {
+      // Transformation Thursday
+      sections.push(`**Content Type:** Transformation Thursday`);
+    } else if (item.day_of_week === 'friday') {
+      // Fun Friday
+      sections.push(`**Content Type:** Fun Friday`);
+    } else if (item.day_of_week === 'saturday') {
+      // Social Saturday
+      sections.push(`**Content Type:** Social Saturday`);
+    }
+    
+    // Add source info
+    sections.push(`**Source:** Content Pillar - ${item.day_of_week.charAt(0).toUpperCase() + item.day_of_week.slice(1)}`);
+    
+    // Join all sections with double line breaks for proper formatting
+    return sections.filter(Boolean).join('\n\n');
+  };
+
   // Handle pushing content pillar to Creative Hub
   const handlePushToCreativeHub = async (item: ContentPillarItem) => {
     try {
@@ -511,10 +575,14 @@ export default function ContentPillarsBoard() {
       // Prepare media files - preserve full media objects, not just URLs
       const mediaFiles = item.media_files || [];
       
+      // Format all content pillar fields into structured description
+      const formattedDescription = formatContentPillarDescription(item);
+      console.log('📝 Formatted description for Creative Hub:', formattedDescription);
+      
       // Create task data for the Marketing Kanban
       const taskData = {
         title: item.title,
-        description: item.description || `Content pillar from ${item.day_of_week}`,
+        description: formattedDescription,
         status: 'intake', // Always start in intake
         assignee: userName,
         task_type: item.content_type === 'video' ? 'video' : 'design',

@@ -1163,12 +1163,32 @@ export default function ContentPillarModalRefactored({
               {isEditing ? 'Edit content pillar' : 'Create new content pillar'}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-700/50 rounded-lg transition-colors border border-gray-600/30"
-          >
-            <X className="w-5 h-5 text-gray-400 hover:text-white" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSave}
+              disabled={dayKey === 'wednesday' ? !selectedCarId : !formData.title}
+              className="disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-all border border-gray-600/40 flex items-center gap-2"
+              style={{
+                background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.8) 0%, rgba(22, 163, 74, 0.6) 50%, rgba(34, 197, 94, 0.8) 100%)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(34, 197, 94, 0.9) 0%, rgba(22, 163, 74, 0.7) 50%, rgba(34, 197, 94, 0.9) 100%)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(34, 197, 94, 0.8) 0%, rgba(22, 163, 74, 0.6) 50%, rgba(34, 197, 94, 0.8) 100%)';
+              }}
+            >
+              Save
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-700/50 rounded-lg transition-colors border border-gray-600/30"
+            >
+              <X className="w-5 h-5 text-gray-400 hover:text-white" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 flex overflow-hidden">
@@ -1618,25 +1638,6 @@ export default function ContentPillarModalRefactored({
                     Generate Video
                   </>
                 )}
-              </button>
-
-              <button
-                onClick={handleSave}
-                disabled={dayKey === 'wednesday' ? !selectedCarId : !formData.title}
-                className="flex-1 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-all border border-gray-600/40"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(120,120,120,0.8) 0%, rgba(140,140,140,0.6) 50%, rgba(120,120,120,0.8) 100%)',
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(140,140,140,0.9) 0%, rgba(160,160,160,0.7) 50%, rgba(140,140,140,0.9) 100%)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(120,120,120,0.8) 0%, rgba(140,140,140,0.6) 50%, rgba(120,120,120,0.8) 100%)';
-                }}
-              >
-                {isEditing ? 'Update' : 'Save'}
               </button>
             </div>
 

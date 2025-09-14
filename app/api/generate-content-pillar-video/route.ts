@@ -85,11 +85,21 @@ export async function POST(req: NextRequest) {
       const [respA, respB] = await Promise.all([
         fetch(`${videoServiceUrl}/render-video`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ html: htmlA }), signal: AbortSignal.timeout(300000)
+          body: JSON.stringify({ 
+            html: htmlA, 
+            dayOfWeek, 
+            templateType: 'A', 
+            formData 
+          }), signal: AbortSignal.timeout(300000)
         }),
         fetch(`${videoServiceUrl}/render-video`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ html: htmlB || htmlA }), signal: AbortSignal.timeout(300000)
+          body: JSON.stringify({ 
+            html: htmlB || htmlA, 
+            dayOfWeek, 
+            templateType: 'B', 
+            formData 
+          }), signal: AbortSignal.timeout(300000)
         })
       ]);
 

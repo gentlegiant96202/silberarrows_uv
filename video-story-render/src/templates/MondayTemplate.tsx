@@ -1,206 +1,449 @@
-import { useCurrentFrame, useVideoConfig, interpolate, Sequence } from 'remotion';
+import React from 'react';
+import { useCurrentFrame, useVideoConfig, interpolate, Easing } from 'remotion';
 
-export const MondayTemplate = (props) => {
-  const { title, description, imageUrl, myth, fact, badgeText = 'MONDAY' } = props;
+interface MondayTemplateProps {
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  myth?: string;
+  fact?: string;
+  badgeText?: string;
+  imageUrl?: string;
+  logoUrl?: string;
+  templateType?: 'A' | 'B';
+}
+
+export const MondayTemplate: React.FC<MondayTemplateProps> = ({
+  title = 'Sample Title',
+  subtitle = '',
+  description = '',
+  myth = '',
+  fact = '',
+  badgeText = 'MONDAY',
+  imageUrl = '',
+  logoUrl = 'https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png',
+  templateType = 'A'
+}) => {
   const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
-  
-  // 7-second story breakdown:
-  // 0-1s (0-30 frames): Title and badge fade in
-  // 1-3s (30-90 frames): Image zoom and myth reveal
-  // 3-5s (90-150 frames): Fact reveal with transition
-  // 5-7s (150-210 frames): Call to action and outro
-  
-  const titleOpacity = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
-  const badgeScale = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
-  const imageScale = interpolate(frame, [30, 90], [0.8, 1.1], { extrapolateRight: 'clamp' });
-  const mythY = interpolate(frame, [60, 90], [100, 0], { extrapolateRight: 'clamp' });
-  const mythOpacity = interpolate(frame, [60, 90], [0, 1], { extrapolateRight: 'clamp' });
-  const factOpacity = interpolate(frame, [90, 120], [0, 1], { extrapolateRight: 'clamp' });
-  const factScale = interpolate(frame, [90, 120], [0.9, 1], { extrapolateRight: 'clamp' });
-  const ctaOpacity = interpolate(frame, [150, 180], [0, 1], { extrapolateRight: 'clamp' });
-  
+  const { fps } = useVideoConfig();
+
+  // Animation timings (in frames)
+  const badgeStart = 9; // 0.3s
+  const logoStart = 15; // 0.5s
+  const titleStart = 24; // 0.8s
+  const subtitleStart = 30; // 1.0s
+  const descStart = 36; // 1.2s
+  const mythStart = 45; // 1.5s
+  const factStart = 60; // 2.0s
+
+  // Animation functions
+  const slideFromTop = (startFrame: number) => 
+    interpolate(frame, [startFrame, startFrame + 30], [-50, 0], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+      easing: Easing.out(Easing.ease)
+    });
+
+  const slideFromLeft = (startFrame: number) => 
+    interpolate(frame, [startFrame, startFrame + 30], [-50, 0], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+      easing: Easing.out(Easing.ease)
+    });
+
+  const slideFromRight = (startFrame: number) => 
+    interpolate(frame, [startFrame, startFrame + 30], [50, 0], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+      easing: Easing.out(Easing.ease)
+    });
+
+  const fadeIn = (startFrame: number) => 
+    interpolate(frame, [startFrame, startFrame + 30], [0, 1], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+      easing: Easing.out(Easing.ease)
+    });
+
+  const scaleIn = (startFrame: number) => 
+    interpolate(frame, [startFrame, startFrame + 30], [0.8, 1], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+      easing: Easing.out(Easing.ease)
+    });
+
+  // Image zoom effect
+  const imageScale = interpolate(frame, [0, 210], [1.08, 1.0], {
+    easing: Easing.out(Easing.ease)
+  });
+
+  if (templateType === 'A') {
+    return (
+      <div style={{
+        width: '1080px',
+        height: '1920px',
+        background: '#000000',
+        color: '#ffffff',
+        fontFamily: 'Inter, sans-serif',
+        overflow: 'hidden'
+      }}>
+        {/* Background Image */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          height: '69.5%',
+          overflow: 'hidden'
+        }}>
+          <img
+            src={imageUrl || logoUrl}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              transform: `scale(${imageScale})`
+            }}
+            alt="Background"
+          />
+        </div>
+
+        {/* Content Section */}
+        <div style={{
+          padding: '20px 40px 40px 40px',
+          height: '30.5%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-start',
+          gap: '12px'
+        }}>
+          {/* Badge Row */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '16px',
+            marginTop: '20px',
+            transform: `translateY(${slideFromTop(badgeStart)}px)`,
+            opacity: fadeIn(badgeStart)
+          }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1)',
+              color: '#000',
+              padding: '16px 32px',
+              borderRadius: '25px',
+              fontWeight: 900,
+              fontSize: '24px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.8px',
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              boxShadow: '0 6px 20px rgba(255,255,255,0.1)',
+              border: '2px solid rgba(255,255,255,0.2)'
+            }}>
+              📅 {badgeText}
+            </div>
+            <img
+              src={logoUrl}
+              alt="Logo"
+              style={{
+                height: '96px',
+                width: 'auto',
+                filter: 'brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+                marginTop: '4px',
+                transform: `translateX(${slideFromRight(logoStart)}px)`,
+                opacity: fadeIn(logoStart)
+              }}
+            />
+          </div>
+
+          {/* Title */}
+          <h1 style={{
+            fontSize: '72px',
+            fontWeight: 900,
+            color: '#ffffff',
+            lineHeight: '0.9',
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            marginBottom: '12px',
+            transform: `translateX(${slideFromLeft(titleStart)}px)`,
+            opacity: fadeIn(titleStart)
+          }}>
+            {title}
+          </h1>
+
+          {/* Content Container */}
+          <div style={{
+            marginBottom: '24px',
+            transform: `scale(${scaleIn(descStart)})`,
+            opacity: fadeIn(descStart)
+          }}>
+            {subtitle && (
+              <h2 style={{
+                fontSize: '42px',
+                color: '#f1f5f9',
+                marginBottom: '16px',
+                fontWeight: 600,
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)'
+              }}>
+                {subtitle}
+              </h2>
+            )}
+            
+            {description && (
+              <p style={{
+                fontSize: '32px',
+                color: '#f1f5f9',
+                lineHeight: '2.5',
+                textAlign: 'left',
+                margin: '16px 0',
+                maxWidth: '96%',
+                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                fontWeight: 500
+              }}>
+                {description}
+              </p>
+            )}
+          </div>
+
+          {/* Call to Action */}
+          <div style={{
+            position: 'fixed',
+            left: '40px',
+            right: '40px',
+            bottom: '120px',
+            zIndex: 5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '16px',
+            background: 'rgba(255,255,255,0.15)',
+            border: '2px solid rgba(255,255,255,0.3)',
+            padding: '24px 32px',
+            borderRadius: '20px',
+            backdropFilter: 'blur(20px)',
+            fontWeight: 800,
+            fontSize: '32px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            opacity: fadeIn(90) // 3s
+          }}>
+            ➡️ <span>More Details</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Template B with Myth/Fact sections
   return (
     <div style={{
-      width: '100%',
-      height: '100%',
-      background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      fontFamily: 'Arial, sans-serif',
-      color: '#fff',
-      position: 'relative',
+      width: '1080px',
+      height: '1920px',
+      background: '#000000',
+      color: '#ffffff',
+      fontFamily: 'Inter, sans-serif',
       overflow: 'hidden'
     }}>
-      
-      {/* Background Pattern */}
+      {/* Background with overlay */}
       <div style={{
         position: 'absolute',
         top: 0,
         left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundImage: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%)',
+        width: '100%',
+        height: '69.5%',
         zIndex: 0
-      }} />
-
-      {/* Badge */}
-      <Sequence from={0} durationInFrames={210}>
+      }}>
+        <img
+          src={imageUrl || logoUrl}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            filter: 'blur(8px)',
+            opacity: 0.3,
+            transform: `scale(${imageScale})`
+          }}
+          alt="Background"
+        />
         <div style={{
           position: 'absolute',
-          top: '60px',
-          left: '50%',
-          transform: `translateX(-50%) scale(${badgeScale})`,
-          background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
-          padding: '12px 24px',
-          borderRadius: '25px',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          letterSpacing: '2px',
-          zIndex: 10
-        }}>
-          {badgeText}
-        </div>
-      </Sequence>
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5))'
+        }} />
+      </div>
 
-      {/* Title Sequence */}
-      <Sequence from={0} durationInFrames={210}>
+      {/* Content */}
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+        padding: '20px 40px 40px 40px',
+        height: '30.5%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        gap: '12px'
+      }}>
+        {/* Badge Row */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px',
+          marginTop: '60px',
+          transform: `translateY(${slideFromTop(badgeStart)}px)`,
+          opacity: fadeIn(badgeStart)
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1)',
+            color: '#000',
+            padding: '16px 32px',
+            borderRadius: '25px',
+            fontWeight: 900,
+            fontSize: '24px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            whiteSpace: 'nowrap',
+            display: 'inline-flex',
+            alignItems: 'center',
+            boxShadow: '0 6px 20px rgba(255,255,255,0.1)',
+            border: '2px solid rgba(255,255,255,0.2)'
+          }}>
+            ⚠️ {badgeText}
+          </div>
+          <img
+            src={logoUrl}
+            alt="Logo"
+            style={{
+              height: '96px',
+              width: 'auto',
+              filter: 'brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+              marginTop: '4px',
+              transform: `translateX(${slideFromRight(logoStart)}px)`,
+              opacity: fadeIn(logoStart)
+            }}
+          />
+        </div>
+
+        {/* Title */}
         <h1 style={{
-          opacity: titleOpacity,
-          fontSize: '52px',
-          fontWeight: 'bold',
-          textAlign: 'center',
-          margin: '100px 40px 40px',
-          background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          color: 'transparent',
-          lineHeight: '1.2',
-          zIndex: 5
+          fontSize: '72px',
+          fontWeight: 900,
+          color: '#ffffff',
+          lineHeight: '0.9',
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          marginBottom: '12px',
+          transform: `translateX(${slideFromLeft(titleStart)}px)`,
+          opacity: fadeIn(titleStart)
         }}>
           {title}
         </h1>
-      </Sequence>
 
-      {/* Image Sequence */}
-      {imageUrl && (
-        <Sequence from={30} durationInFrames={180}>
-          <img 
-            src={imageUrl}
-            style={{
-              transform: `scale(${imageScale})`,
-              borderRadius: '20px',
-              maxWidth: '70%',
-              maxHeight: '400px',
-              objectFit: 'cover',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-              zIndex: 5
-            }}
-          />
-        </Sequence>
-      )}
-
-      {/* Myth Sequence */}
-      {myth && (
-        <Sequence from={60} durationInFrames={150}>
+        {/* Myth Section */}
+        {myth && (
           <div style={{
-            transform: `translateY(${mythY}px)`,
-            opacity: mythOpacity,
-            background: 'rgba(255, 107, 107, 0.2)',
-            padding: '20px 30px',
-            borderRadius: '15px',
-            margin: '20px 40px',
-            border: '2px solid #ff6b6b',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '16px',
+            padding: '32px',
+            marginBottom: '24px',
             backdropFilter: 'blur(10px)',
-            maxWidth: '80%',
-            zIndex: 5
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+            transform: `translateY(${slideFromTop(mythStart)}px)`,
+            opacity: fadeIn(mythStart)
           }}>
-            <h3 style={{ 
-              color: '#ff6b6b', 
-              margin: '0 0 10px',
-              fontSize: '20px',
-              fontWeight: 'bold'
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '16px'
             }}>
-              MYTH:
-            </h3>
-            <p style={{ 
-              fontSize: '18px', 
-              margin: 0,
+              <span style={{ fontSize: '41px', color: '#ef4444' }}>❌</span>
+              <span style={{
+                fontSize: '41px',
+                fontWeight: 700,
+                color: '#ef4444',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                The Myth
+              </span>
+            </div>
+            <div style={{
+              fontSize: '37px',
+              color: '#e2e8f0',
               lineHeight: '1.4'
             }}>
               {myth}
-            </p>
+            </div>
           </div>
-        </Sequence>
-      )}
+        )}
 
-      {/* Fact Sequence */}
-      {fact && (
-        <Sequence from={90} durationInFrames={120}>
+        {/* Fact Section */}
+        {fact && (
           <div style={{
-            opacity: factOpacity,
-            transform: `scale(${factScale})`,
-            background: 'rgba(78, 205, 196, 0.2)',
-            padding: '20px 30px',
-            borderRadius: '15px',
-            margin: '20px 40px',
-            border: '2px solid #4ecdc4',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '16px',
+            padding: '32px',
+            marginBottom: '24px',
             backdropFilter: 'blur(10px)',
-            maxWidth: '80%',
-            zIndex: 5
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+            transform: `translateY(${slideFromTop(factStart)}px)`,
+            opacity: fadeIn(factStart)
           }}>
-            <h3 style={{ 
-              color: '#4ecdc4', 
-              margin: '0 0 10px',
-              fontSize: '20px',
-              fontWeight: 'bold'
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '16px'
             }}>
-              FACT:
-            </h3>
-            <p style={{ 
-              fontSize: '18px', 
-              margin: 0,
+              <span style={{ fontSize: '41px', color: '#22c55e' }}>✅</span>
+              <span style={{
+                fontSize: '41px',
+                fontWeight: 700,
+                color: '#22c55e',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                The Fact
+              </span>
+            </div>
+            <div style={{
+              fontSize: '37px',
+              color: '#e2e8f0',
               lineHeight: '1.4'
             }}>
               {fact}
-            </p>
+            </div>
           </div>
-        </Sequence>
-      )}
+        )}
 
-      {/* Call to Action */}
-      <Sequence from={150} durationInFrames={60}>
+        {/* Contact Info */}
         <div style={{
-          opacity: ctaOpacity,
-          position: 'absolute',
-          bottom: '80px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          textAlign: 'center',
-          zIndex: 10
+          position: 'fixed',
+          left: '40px',
+          right: '40px',
+          bottom: '120px',
+          zIndex: 5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          background: 'rgba(255,255,255,0.15)',
+          border: '2px solid rgba(255,255,255,0.3)',
+          padding: '24px 32px',
+          borderRadius: '20px',
+          backdropFilter: 'blur(20px)',
+          fontWeight: 800,
+          fontSize: '32px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+          opacity: fadeIn(90) // 3s
         }}>
-          <p style={{
-            fontSize: '24px',
-            fontWeight: 'bold',
-            margin: '0 0 10px',
-            background: 'linear-gradient(45deg, #fff, #ccc)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            color: 'transparent'
-          }}>
-            SilberArrows
-          </p>
-          <p style={{
-            fontSize: '16px',
-            color: '#999',
-            margin: 0
-          }}>
-            Premium Mercedes-Benz Service
-          </p>
+          📞 📱 Call or WhatsApp us at +971 4 380 5515
         </div>
-      </Sequence>
-    </div>
-  );
+      </div>
+    );
+  }
 };

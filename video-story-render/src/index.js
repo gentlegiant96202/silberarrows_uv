@@ -57,9 +57,30 @@ app.post('/render-video', async (req, res) => {
     let outputName = `content-pillar-${dayOfWeek}-${templateType}`;
 
     if (html) {
-      compositionId = 'HTMLVideo';
-      inputProps = { html };
-      outputName = `html-video`;
+      // For Monday templates, use the proper Remotion component for smooth animations
+      if (dayOfWeek === 'monday') {
+        compositionId = 'ContentPillar';
+        // Extract form data from the request if available
+        const extractedProps = req.body.formData || {};
+        inputProps = { 
+          dayOfWeek: 'monday', 
+          templateType: templateType || 'A',
+          title: extractedProps.title || 'Sample Title',
+          subtitle: extractedProps.subtitle || '',
+          description: extractedProps.description || '',
+          myth: extractedProps.myth || '',
+          fact: extractedProps.fact || '',
+          badgeText: extractedProps.badgeText || 'MONDAY',
+          imageUrl: extractedProps.imageUrl || '',
+          logoUrl: 'https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png'
+        };
+        outputName = `monday-${templateType || 'A'}`;
+      } else {
+        // For other days, use HTML rendering
+        compositionId = 'HTMLVideo';
+        inputProps = { html };
+        outputName = `html-video`;
+      }
     } else {
       if (!dayOfWeek || !templateType || !formData) {
         console.error('❌ Missing required fields:', { dayOfWeek: !!dayOfWeek, templateType: !!templateType, formData: !!formData });

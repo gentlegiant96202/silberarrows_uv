@@ -417,7 +417,51 @@ export default function ContentPillarModalRefactored({
       for (const template of supportedTypes) {
         console.log(`📄 Generating Template ${template}...`);
         
-        const htmlContent = generateLivePreviewHTML(template);
+        // For image generation, use direct URLs (not proxy URLs) that Puppeteer can access
+        const selectedFiles = template === 'A' ? selectedFilesA : selectedFilesB;
+        const existingMedia = template === 'A' ? existingMediaA : existingMediaB;
+        
+        // Get direct image URL (not proxy) for image generation
+        const getDirectImageForGeneration = (): string => {
+          // Use existing media with direct URLs
+          if (existingMedia && existingMedia.length > 0) {
+            const firstMedia = existingMedia[0];
+            if (typeof firstMedia === 'string') {
+              return firstMedia;
+            } else if (firstMedia?.url) {
+              return firstMedia.url;
+            }
+          }
+          
+          // Fallback to any uploaded image from either template
+          const allExistingMedia = [...existingMediaA, ...existingMediaB];
+          if (allExistingMedia.length > 0) {
+            const firstMedia = allExistingMedia[0];
+            if (typeof firstMedia === 'string') {
+              return firstMedia;
+            } else if (firstMedia?.url) {
+              return firstMedia.url;
+            }
+          }
+          
+          return getAbsoluteLogoUrl();
+        };
+        
+        const directImageUrl = getDirectImageForGeneration();
+        const renderImageUrl = getCacheBustedImageUrl(directImageUrl);
+        const absoluteLogoUrl = getAbsoluteLogoUrl();
+        const fontFaceCSS = getFontFaceCSS();
+        
+        console.log(`📄 Template ${template} using direct image URL:`, directImageUrl);
+        
+        const htmlContent = getSafeTemplate(
+          dayKey,
+          formData,
+          renderImageUrl,
+          absoluteLogoUrl,
+          fontFaceCSS,
+          template
+        );
         console.log(`📄 Generated HTML for Template ${template}, length:`, htmlContent.length);
         console.log(`📄 HTML preview:`, htmlContent.substring(0, 500) + '...');
         

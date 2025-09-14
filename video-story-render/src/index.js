@@ -65,7 +65,10 @@ app.post('/render-video', async (req, res) => {
       if (dayOfWeek === 'monday') {
         compositionId = 'ContentPillar';
         // Extract form data from the request if available
-        const f = req.body.formData || {};
+        // Use templateType-specific formData (formDataA or formDataB) if available
+        const f = (templateType === 'B' ? req.body.formDataB : req.body.formDataA) || req.body.formData || {};
+        console.log(`🎬 Using formData for Template ${templateType}:`, Object.keys(f));
+        console.log(`🖼️ Template ${templateType} imageUrl:`, f.imageUrl);
         inputProps = { 
           dayOfWeek: 'monday', 
           templateType: templateType || 'A',

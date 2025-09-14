@@ -7,13 +7,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log('📋 Request body:', JSON.stringify(body, null, 2));
     
-    const { dayOfWeek, templateType, formData } = body;
+    const { dayOfWeek, templateType, formData, imageBase64A, imageBase64B, htmlA, htmlB } = body;
     
-    if (!dayOfWeek || !templateType || !formData) {
-      console.error('❌ Missing required fields:', { dayOfWeek: !!dayOfWeek, templateType: !!templateType, formData: !!formData });
+    if (!dayOfWeek || (!imageBase64A && !htmlA && (!templateType || !formData))) {
+      console.error('❌ Missing required fields:', { dayOfWeek: !!dayOfWeek, templateType: !!templateType, formData: !!formData, htmlA: !!htmlA });
       return NextResponse.json({ 
         success: false, 
-        error: 'Missing required fields: dayOfWeek, templateType, formData' 
+        error: 'Missing required fields: dayOfWeek AND (imageBase64A|htmlA|templateType+formData)' 
       }, { status: 400 });
     }
 
@@ -55,8 +55,55 @@ export async function POST(req: NextRequest) {
       }, { status: 503 });
     }
     
-    // Forward request to video service
-    const videoServiceResponse = await fetch(`${videoServiceUrl}/render-video`, {
+    // If caller provided pre-rendered images (from HTML), convert both to videos
+    if (imageBase64A) {
+      const payloadA = { imageBase64: imageBase64A, durationSeconds: 7 };
+      const payloadB = imageBase64B ? { imageBase64: imageBase64B, durationSeconds: 7 } : payloadA;
+
+      const [respA, respB] = await Promise.all([
+        fetch(`${videoServiceUrl}/image-to-video`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadA), signal: AbortSignal.timeout(300000)
+        }),
+        fetch(`${videoServiceUrl}/image-to-video`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadB), signal: AbortSignal.timeout(300000)
+        })
+      ]);
+
+      if (!respA.ok) return NextResponse.json({ success: false, error: await respA.text() }, { status: respA.status });
+      if (!respB.ok) return NextResponse.json({ success: false, error: await respB.text() }, { status: respB.status });
+
+      const resultA = await respA.json();
+      const resultB = await respB.json();
+
+      return NextResponse.json({ success: true, videos: { A: resultA.videoData, B: resultB.videoData } });
+    }
+
+    // If caller provided HTML for A & B, render via HTMLVideo composition on the video service
+    if (htmlA) {
+      const [respA, respB] = await Promise.all([
+        fetch(`${videoServiceUrl}/render-video`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ html: htmlA }), signal: AbortSignal.timeout(300000)
+        }),
+        fetch(`${videoServiceUrl}/render-video`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ html: htmlB || htmlA }), signal: AbortSignal.timeout(300000)
+        })
+      ]);
+
+      if (!respA.ok) return NextResponse.json({ success: false, error: await respA.text() }, { status: respA.status });
+      if (!respB.ok) return NextResponse.json({ success: false, error: await respB.text() }, { status: respB.status });
+
+      const resultA = await respA.json();
+      const resultB = await respB.json();
+
+      return NextResponse.json({ success: true, videos: { A: resultA.videoData, B: resultB.videoData } });
+    }
+
+    // Otherwise render via template A & B on the video service
+    const videoServiceResponseA = await fetch(`${videoServiceUrl}/render-video`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -67,32 +114,46 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         dayOfWeek,
-        templateType,
+        templateType: 'A',
         formData
       }),
       // Set a longer timeout for video generation
       signal: AbortSignal.timeout(300000) // 5 minutes
     });
-
-    console.log('📥 Video service response status:', videoServiceResponse.status);
-    console.log('📥 Video service response headers:', Object.fromEntries(videoServiceResponse.headers.entries()));
-
-    if (!videoServiceResponse.ok) {
-      const errorText = await videoServiceResponse.text();
-      console.error('❌ Video service error:', errorText);
-      console.error('❌ Video service status:', videoServiceResponse.status, videoServiceResponse.statusText);
-      return NextResponse.json({ 
-        success: false, 
-        error: `Video service error: ${errorText}`,
-        status: videoServiceResponse.status,
-        statusText: videoServiceResponse.statusText
-      }, { status: videoServiceResponse.status });
+    
+    if (!videoServiceResponseA.ok) {
+      const errorText = await videoServiceResponseA.text();
+      console.error('❌ Video service A error:', errorText);
+      return NextResponse.json({ success: false, error: `Video A error: ${errorText}` }, { status: videoServiceResponseA.status });
     }
 
-    const result = await videoServiceResponse.json();
-    console.log('✅ Video generation successful, response size:', JSON.stringify(result).length, 'characters');
-    
-    return NextResponse.json(result);
+    const resultA = await videoServiceResponseA.json();
+
+    // Forward request to video service - Template B
+    const videoServiceResponseB = await fetch(`${videoServiceUrl}/render-video`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dayOfWeek, templateType: 'B', formData }),
+      signal: AbortSignal.timeout(300000)
+    });
+
+    if (!videoServiceResponseB.ok) {
+      const errorText = await videoServiceResponseB.text();
+      console.error('❌ Video service B error:', errorText);
+      return NextResponse.json({ success: false, error: `Video B error: ${errorText}` }, { status: videoServiceResponseB.status });
+    }
+
+    const resultB = await videoServiceResponseB.json();
+
+    console.log('✅ Both videos generated successfully');
+
+    return NextResponse.json({
+      success: true,
+      videos: {
+        A: resultA.videoData,
+        B: resultB.videoData,
+      }
+    });
     
   } catch (error) {
     console.error('❌ Video generation API error:', error);

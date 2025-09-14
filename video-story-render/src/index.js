@@ -31,15 +31,7 @@ app.post('/render-video', async (req, res) => {
     console.log('🎬 Video render request received');
     console.log('📊 Request body keys:', Object.keys(req.body || {}));
     
-    const { dayOfWeek, templateType, formData } = req.body || {};
-    
-    if (!dayOfWeek || !templateType || !formData) {
-      console.error('❌ Missing required fields:', { dayOfWeek: !!dayOfWeek, templateType: !!templateType, formData: !!formData });
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Missing required fields: dayOfWeek, templateType, formData' 
-      });
-    }
+    const { dayOfWeek, templateType, formData, html } = req.body || {};
 
     console.log('🎨 Bundling Remotion composition...');
     const bundleLocation = await bundle(path.resolve(__dirname, 'Video.tsx'));
@@ -60,32 +52,43 @@ app.post('/render-video', async (req, res) => {
       }
     });
 
-    console.log('🔍 Selecting composition...');
+    let compositionId = 'ContentPillar';
+    let inputProps = {};
+    let outputName = `content-pillar-${dayOfWeek}-${templateType}`;
+
+    if (html) {
+      compositionId = 'HTMLVideo';
+      inputProps = { html };
+      outputName = `html-video`;
+    } else {
+      if (!dayOfWeek || !templateType || !formData) {
+        console.error('❌ Missing required fields:', { dayOfWeek: !!dayOfWeek, templateType: !!templateType, formData: !!formData });
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required fields: Provide html OR (dayOfWeek, templateType, formData)' 
+        });
+      }
+      inputProps = { dayOfWeek, templateType, ...formData };
+    }
+
+    console.log('🔍 Selecting composition...', compositionId);
     const composition = await selectComposition({
       serveUrl: bundleLocation,
-      id: 'ContentPillar',
-      inputProps: {
-        dayOfWeek,
-        templateType,
-        ...formData
-      },
+      id: compositionId,
+      inputProps,
       browserInstance: browser,
     });
     console.log('✅ Composition selected:', composition.id);
 
     console.log('🎬 Starting video rendering...');
-    const outputPath = `/tmp/content-pillar-${dayOfWeek}-${templateType}-${Date.now()}.mp4`;
+    const outputPath = `/tmp/${outputName}-${Date.now()}.mp4`;
     
     await renderMedia({
       composition,
       serveUrl: bundleLocation,
       codec: 'h264',
       outputLocation: outputPath,
-      inputProps: {
-        dayOfWeek,
-        templateType,
-        ...formData
-      },
+      inputProps,
       browserInstance: browser,
     });
 
@@ -130,6 +133,61 @@ app.post('/render-video', async (req, res) => {
         details: err.stack 
       });
     }
+  }
+});
+
+// Convert a still image (base64) to an MP4 video of given duration
+app.post('/image-to-video', async (req, res) => {
+  try {
+    const { imageBase64, durationSeconds = 7 } = req.body || {};
+    if (!imageBase64) {
+      return res.status(400).json({ success: false, error: 'Missing imageBase64' });
+    }
+
+    // Write image to temp file
+    const fs = await import('fs/promises');
+    const pathMod = await import('path');
+    const tmpDir = '/tmp';
+    const imagePath = pathMod.default.join(tmpDir, `frame-${Date.now()}.png`);
+    const videoPath = pathMod.default.join(tmpDir, `video-${Date.now()}.mp4`);
+
+    const data = imageBase64.replace(/^data:image\/(png|jpeg);base64,/, '');
+    await fs.writeFile(imagePath, Buffer.from(data, 'base64'));
+
+    // Use ffmpeg to create a video from the still image
+    // 1080x1920, H.264, yuv420p, duration as requested
+    const { spawn } = await import('child_process');
+    await new Promise((resolve, reject) => {
+      const args = [
+        '-y',
+        '-loop', '1',
+        '-i', imagePath,
+        '-t', String(durationSeconds),
+        '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920',
+        '-r', '30',
+        '-c:v', 'libx264',
+        '-pix_fmt', 'yuv420p',
+        videoPath,
+      ];
+      const ff = spawn('ffmpeg', args);
+      ff.on('error', reject);
+      ff.stderr.on('data', () => {});
+      ff.on('close', code => {
+        if (code === 0) resolve(); else reject(new Error(`ffmpeg exited with ${code}`));
+      });
+    });
+
+    const videoBuffer = await fs.readFile(videoPath);
+    const videoBase64 = videoBuffer.toString('base64');
+
+    // Cleanup
+    await fs.unlink(imagePath).catch(()=>{});
+    await fs.unlink(videoPath).catch(()=>{});
+
+    return res.json({ success: true, videoData: videoBase64, stats: { fileSizeMB: Math.round(videoBuffer.length/1024/1024), duration: `${durationSeconds} seconds` } });
+  } catch (err) {
+    console.error('❌ image-to-video error:', err);
+    return res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 

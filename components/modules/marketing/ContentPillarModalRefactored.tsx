@@ -454,15 +454,17 @@ export default function ContentPillarModalRefactored({
     try {
       console.log('🎬 Starting video generation...');
       
-      // Prepare video generation request
+      // Generate the exact same HTML used for image templates A & B
+      const htmlA = generateLivePreviewHTML('A');
+      const supportsB = getSafeSupportedTypes(dayKey).includes('B');
+      const htmlB = supportsB ? generateLivePreviewHTML('B') : htmlA;
+
+      // Prepare video generation request using HTML for A & B
       const videoRequest = {
         dayOfWeek: dayKey,
-        templateType: 'A', // For now, always use template A for videos
-        formData: {
-          ...formData,
-          badgeText: getSafeBadgeText(dayKey || ''),
-        }
-      };
+        htmlA,
+        htmlB,
+      } as const;
 
       console.log('📤 Sending video generation request:', videoRequest);
 
@@ -476,12 +478,32 @@ export default function ContentPillarModalRefactored({
       const result = await response.json();
       console.log('📥 Video generation response:', result);
 
-      if (result.success && result.videoData) {
+      if (result?.success && result?.videos) {
+        // New flow: both Template A and B provided
+        const a = result.videos.A as string | undefined;
+        const b = result.videos.B as string | undefined;
+
+        if (a) {
+          downloadVideo(a, `content_pillar_${dayKey}_A_${Date.now()}.mp4`);
+          // Save to modal like images (append lightweight entry)
+          setExistingMediaA?.((prev: any[]) => [
+            ...prev,
+            { name: `Template A Video ${new Date().toLocaleString()}`, type: 'video/mp4', size: a.length }
+          ]);
+        }
+        if (b) {
+          downloadVideo(b, `content_pillar_${dayKey}_B_${Date.now()}.mp4`);
+          setExistingMediaB?.((prev: any[]) => [
+            ...prev,
+            { name: `Template B Video ${new Date().toLocaleString()}`, type: 'video/mp4', size: b.length }
+          ]);
+        }
+
+        alert('Videos (A & B) generated successfully!');
+      } else if (result?.success && result?.videoData) {
+        // Legacy single video path
         console.log('✅ Video generated successfully!');
-        
-        // Download the video
         downloadVideo(result.videoData, `content_pillar_${dayKey}_video_${Date.now()}.mp4`);
-        
         alert('Video generated successfully!');
       } else {
         console.error('❌ Video generation failed:', result.error);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useCurrentFrame, interpolate, Easing, staticFile } from 'remotion';
+import { useCurrentFrame, interpolate, Easing, staticFile, Img } from 'remotion';
 
 interface MondayTemplateProps {
   title?: string;
@@ -167,7 +167,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
         width: '100%',
         height: '69.5%'
       }}>
-        <img
+        <Img
           src={imageUrl || logoUrl}
           style={{
       width: '100%',
@@ -217,7 +217,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
           }}>
             <ExclamationTriangleIcon size={20} color="#000" /> {badgeText}
           </div>
-          <img
+          <Img
             src={logoUrl}
             alt="SilberArrows Logo"
             style={{
@@ -302,7 +302,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
         height: '69.5%',
         zIndex: 0
       }}>
-        <img
+        <Img
           src={imageUrl || logoUrl}
           style={{
             width: '100%',
@@ -364,7 +364,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
           }}>
             <ExclamationTriangleIcon size={20} color="#000" /> {badgeText}
           </div>
-          <img
+          <Img
             src={logoUrl}
             alt="SilberArrows Logo"
             style={{

@@ -47,7 +47,7 @@ app.post('/render-video', async (req, res) => {
 
     // Launch Chromium explicitly with the new Headless mode
     const browser = await openBrowser({
-      browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+      browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
       chromiumOptions: {
         headless: 'new',
         // Hardening flags recommended for containers

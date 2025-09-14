@@ -12,7 +12,23 @@ RUN apk add --no-cache \
     freetype-dev \
     harfbuzz \
     ca-certificates \
-    ttf-freefont
+    ttf-freefont \
+    ttf-liberation \
+    font-noto \
+    font-noto-cjk \
+    libx11 \
+    libxcb \
+    libxcomposite \
+    libxdamage \
+    libxrandr \
+    libxrender \
+    libxext \
+    libxfixes \
+    libxkbcommon \
+    libxss \
+    libxtst \
+    libgbm \
+    libxshmfence
 
 # Set environment variables for Remotion
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true

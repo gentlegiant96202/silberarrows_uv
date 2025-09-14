@@ -7,9 +7,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log('📋 Request body:', JSON.stringify(body, null, 2));
     
-    const { dayOfWeek, templateType, formData, imageBase64A, imageBase64B, htmlA, htmlB } = body;
+    const { dayOfWeek, templateType, formData, formDataA, formDataB, imageBase64A, imageBase64B, htmlA, htmlB } = body;
     
-    if (!dayOfWeek || (!imageBase64A && !htmlA && (!templateType || !formData))) {
+    if (!dayOfWeek || (!imageBase64A && !htmlA && (!templateType || !(formData || (formDataA && formDataB))))) {
       console.error('❌ Missing required fields:', { dayOfWeek: !!dayOfWeek, templateType: !!templateType, formData: !!formData, htmlA: !!htmlA });
       return NextResponse.json({ 
         success: false, 
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
             html: htmlA, 
             dayOfWeek, 
             templateType: 'A', 
-            formData 
+            formData: formDataA || formData 
           }), signal: AbortSignal.timeout(300000)
         }),
         fetch(`${videoServiceUrl}/render-video`, {
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
             html: htmlB || htmlA, 
             dayOfWeek, 
             templateType: 'B', 
-            formData 
+            formData: formDataB || formData 
           }), signal: AbortSignal.timeout(300000)
         })
       ]);
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         dayOfWeek,
         templateType: 'A',
-        formData
+        formData: formDataA || formData
       }),
       // Set a longer timeout for video generation
       signal: AbortSignal.timeout(300000) // 5 minutes
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
     const videoServiceResponseB = await fetch(`${videoServiceUrl}/render-video`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dayOfWeek, templateType: 'B', formData }),
+      body: JSON.stringify({ dayOfWeek, templateType: 'B', formData: formDataB || formData }),
       signal: AbortSignal.timeout(300000)
     });
 

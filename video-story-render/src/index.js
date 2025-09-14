@@ -61,18 +61,32 @@ app.post('/render-video', async (req, res) => {
       if (dayOfWeek === 'monday') {
         compositionId = 'ContentPillar';
         // Extract form data from the request if available
-        const extractedProps = req.body.formData || {};
+        const f = req.body.formData || {};
         inputProps = { 
           dayOfWeek: 'monday', 
           templateType: templateType || 'A',
-          title: extractedProps.title || 'Sample Title',
-          subtitle: extractedProps.subtitle || '',
-          description: extractedProps.description || '',
-          myth: extractedProps.myth || '',
-          fact: extractedProps.fact || '',
-          badgeText: extractedProps.badgeText || 'MONDAY',
-          imageUrl: extractedProps.imageUrl || '',
-          logoUrl: 'https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png'
+          // Core text
+          title: f.title || 'Sample Title',
+          subtitle: f.subtitle || '',
+          description: f.description || '',
+          // Myth/Fact blocks
+          myth: f.myth || '',
+          fact: f.fact || '',
+          // Tech and warnings
+          difficulty: f.difficulty || '',
+          tools_needed: f.tools_needed || '',
+          warning: f.warning || '',
+          // Visuals and branding
+          badgeText: f.badgeText || 'MYTH BUSTER MONDAY',
+          car_model: f.car_model || '',
+          imageUrl: f.imageUrl || '',
+          logoUrl: 'https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png',
+          // Image controls
+          titleFontSize: typeof f.titleFontSize === 'number' ? f.titleFontSize : 72,
+          imageFit: f.imageFit || 'cover',
+          imageAlignment: f.imageAlignment || 'center',
+          imageZoom: typeof f.imageZoom === 'number' ? f.imageZoom : 100,
+          imageVerticalPosition: typeof f.imageVerticalPosition === 'number' ? f.imageVerticalPosition : 0,
         };
         outputName = `monday-${templateType || 'A'}`;
       } else {

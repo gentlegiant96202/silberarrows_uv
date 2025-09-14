@@ -481,11 +481,21 @@ export default function ContentPillarModalRefactored({
       const supportsB = getSafeSupportedTypes(dayKey).includes('B');
       const htmlB = supportsB ? generateLivePreviewHTML('B') : htmlA;
 
+      // Compute image URLs per template so the video service receives them explicitly
+      const imageUrlA = getCacheBustedImageUrl(getImageUrl(selectedFilesA, existingMediaA));
+      const imageUrlB = getCacheBustedImageUrl(getImageUrl(selectedFilesB, existingMediaB));
+
+      const formDataA = { ...formData, imageUrl: imageUrlA } as typeof formData & { imageUrl?: string };
+      const formDataB = { ...formData, imageUrl: imageUrlB } as typeof formData & { imageUrl?: string };
+
       // Prepare video generation request using HTML for A & B
       const videoRequest = {
         dayOfWeek: dayKey,
         htmlA,
         htmlB,
+        // Pass all variables so the video service can populate Remotion props per template
+        formDataA,
+        formDataB,
       } as const;
 
       console.log('📤 Sending video generation request:', videoRequest);

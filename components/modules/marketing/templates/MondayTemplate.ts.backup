@@ -8,7 +8,7 @@ export const generateMondayTemplate = (
   templateType: 'A' | 'B' = 'A'
 ): string => {
   if (templateType === 'A') {
-    // EXACT copy of original Monday Template A with Instagram Story Animations
+    // EXACT copy of original Monday Template A from ContentPillarModal.tsx line 691-812
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -23,37 +23,6 @@ ${fontFaceCSS}
       </head>
       <body>
       <style>
-        /* Instagram Story Animations */
-        @keyframes slideInFromTop {
-          0% { transform: translateY(-50px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        
-        @keyframes slideInFromLeft {
-          0% { transform: translateX(-50px); opacity: 0; }
-          100% { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes slideInFromRight {
-          0% { transform: translateX(50px); opacity: 0; }
-          100% { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes fadeInScale {
-          0% { transform: scale(0.8); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        
-        @keyframes imageZoom {
-          0% { transform: translateZ(0) scale(${((formData.imageZoom || 100) + 8) / 100}) translateY(${formData.imageVerticalPosition || 0}px); }
-          100% { transform: translateZ(0) scale(${(formData.imageZoom || 100) / 100}) translateY(${formData.imageVerticalPosition || 0}px); }
-        }
-        
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
         body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
         .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
@@ -72,16 +41,15 @@ ${fontFaceCSS}
           animation: imageZoom 7s ease-out forwards;
         }
         .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
-        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); animation: slideInFromTop 1s ease-out 0.3s both; }
+        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
         .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
-        .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; animation: slideInFromLeft 1s ease-out 0.8s both; }
+        .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
         .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
-        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; animation: slideInFromRight 1s ease-out 0.5s both; }
+        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
         
         .content-container {
           margin-bottom: 24px;
-          animation: fadeInScale 1s ease-out 1.2s both;
         }
         
         .arrow-indicator {
@@ -140,7 +108,7 @@ ${fontFaceCSS}
         <div class="content">
           <div class="badge-row">
             <div class="badge"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i> ${formData.badgeText || 'MYTH BUSTER MONDAY'}</div>
-            <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png';" />
+            <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/MAIN LOGO.png';" />
           </div>
           
           <div class="content-container">
@@ -176,7 +144,7 @@ ${fontFaceCSS}
       </body>
       </html>`;
   } else {
-    // EXACT copy of original Monday Template B with Instagram Story Animations
+    // EXACT copy of original Monday Template B from ContentPillarModal.tsx line 2057-2368
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -191,47 +159,16 @@ ${fontFaceCSS}
       </head>
       <body>
       <style>
-        /* Instagram Story Animations */
-        @keyframes slideInFromTop {
-          0% { transform: translateY(-50px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        
-        @keyframes slideInFromLeft {
-          0% { transform: translateX(-50px); opacity: 0; }
-          100% { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes slideInFromRight {
-          0% { transform: translateX(50px); opacity: 0; }
-          100% { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes fadeInScale {
-          0% { transform: scale(0.8); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        
-        @keyframes mythFactSlide {
-          0% { transform: translateY(30px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
         body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
         .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
         .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
-        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); animation: slideInFromTop 1s ease-out 0.3s both; }
+        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
         .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
-        .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; animation: slideInFromLeft 1s ease-out 0.8s both; }
+        .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
         .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
-        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; animation: slideInFromRight 1s ease-out 0.5s both; }
+        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
         .contact { position: fixed; left: 40px; right: 40px; bottom: 120px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
         .contact i { color: #ffffff; font-size: 26px; }
         
@@ -283,20 +220,12 @@ ${fontFaceCSS}
           line-height: 1.4;
         }
         
-        .myth-section {
-          animation: mythFactSlide 0.8s ease-out 1.5s both;
-        }
-        
         .myth-section .section-header i {
           color: #ef4444;
         }
         
         .myth-section .section-title {
           color: #ef4444;
-        }
-        
-        .fact-section {
-          animation: mythFactSlide 0.8s ease-out 1.8s both;
         }
         
         .fact-section .section-header i {
@@ -310,7 +239,6 @@ ${fontFaceCSS}
         .info-card {
           text-align: center;
           padding: 12px;
-          animation: fadeInScale 0.8s ease-out 2.1s both;
         }
         
         .info-icon {
@@ -342,7 +270,6 @@ ${fontFaceCSS}
           margin: 24px 0;
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
-          animation: fadeInScale 0.8s ease-out 2.4s both;
         }
         
         .warning-header {
@@ -474,7 +401,7 @@ ${fontFaceCSS}
         <div class="content">
           <div class="badge-row">
             <div class="badge"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i> ${formData.badgeText || 'MYTH BUSTER MONDAY'}</div>
-            <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png';" />
+            <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/MAIN LOGO.png';" />
           </div>
           
           <div class="content-container">

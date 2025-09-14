@@ -54,18 +54,9 @@ export const getFontFaceCSS = (): string => {
 };
 
 export const getAbsoluteLogoUrl = (): string => {
-  const originSafe = (typeof window !== 'undefined' && window.location) 
-    ? `${window.location.protocol}//${window.location.host}` 
-    : '';
-  
-  // Use correct logo path for frontend vs Railway service
-  if (originSafe) {
-    // Frontend preview - use the actual frontend logo path
-    return `${originSafe}/MAIN LOGO.png`;
-  } else {
-    // Railway service - use the Railway logo path
-    return '/main-logo.png';
-  }
+  // Always use a working absolute URL that both frontend and Railway can access
+  // This ensures the logo loads in both preview and generated content
+  return 'https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png';
 };
 
 export const getCacheBustedImageUrl = (imageUrl: string): string => {

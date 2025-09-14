@@ -187,6 +187,7 @@ export default function ContentPillarModalRefactored({
     const fontFaceCSS = getFontFaceCSS();
     
     console.log(`🖼️ Template ${templateType} using image:`, imageUrl);
+    console.log(`🏢 Template ${templateType} using logo:`, absoluteLogoUrl);
     
     return getSafeTemplate(
       dayKey,
@@ -398,7 +399,9 @@ export default function ContentPillarModalRefactored({
     
     try {
       const supportedTypes = getSafeSupportedTypes(dayKey);
+      const generatedImages: { template: TemplateType; imageBase64: string }[] = [];
       
+      // Generate all templates first
       for (const template of supportedTypes) {
         console.log(`📄 Generating Template ${template}...`);
         
@@ -422,17 +425,36 @@ export default function ContentPillarModalRefactored({
         const result = await response.json();
         
         if (result.success && result.imageBase64) {
-          // Save generated image and update state
-          if (onGeneratedImageChange) {
-            onGeneratedImageChange(result.imageBase64);
-          }
-          
-          // Also save as file
-          await saveGeneratedImageAsFile(result.imageBase64, template);
-          
+          generatedImages.push({ template, imageBase64: result.imageBase64 });
           console.log(`✅ Template ${template} generated successfully`);
         }
       }
+      
+      // Now download and save all images
+      for (let i = 0; i < generatedImages.length; i++) {
+        const { template, imageBase64 } = generatedImages[i];
+        
+        // Force download with delay between downloads
+        if (i === 0) {
+          downloadImage(imageBase64, template);
+        } else {
+          setTimeout(() => {
+            downloadImage(imageBase64, template);
+          }, 1500 * i); // Stagger downloads
+        }
+        
+        // Save to modal
+        await saveGeneratedImageAsFile(imageBase64, template);
+        
+        // Update state for first image (backward compatibility)
+        if (i === 0 && onGeneratedImageChange) {
+          onGeneratedImageChange(imageBase64);
+        }
+      }
+      
+      const downloadedCount = generatedImages.length;
+      alert(`Templates generated successfully! Downloaded ${downloadedCount} image(s).`);
+      
     } catch (error) {
       console.error('Error generating template:', error);
       alert('Failed to generate template. Please try again.');
@@ -477,29 +499,66 @@ export default function ContentPillarModalRefactored({
 
       const result = await response.json();
       console.log('📥 Video generation response:', result);
+      console.log('📊 Videos object:', result?.videos);
+      console.log('📊 Video A exists:', !!result?.videos?.A);
+      console.log('📊 Video B exists:', !!result?.videos?.B);
+      console.log('📊 Video A length:', result?.videos?.A?.length);
+      console.log('📊 Video B length:', result?.videos?.B?.length);
 
       if (result?.success && result?.videos) {
         // New flow: both Template A and B provided
         const a = result.videos.A as string | undefined;
         const b = result.videos.B as string | undefined;
 
+        console.log('🎬 About to download videos - A:', !!a, 'B:', !!b);
+
         if (a) {
+          console.log('⬇️ Downloading Template A video...');
           downloadVideo(a, `content_pillar_${dayKey}_A_${Date.now()}.mp4`);
-          // Save to modal like images (append lightweight entry)
-          setExistingMediaA?.((prev: any[]) => [
-            ...prev,
-            { name: `Template A Video ${new Date().toLocaleString()}`, type: 'video/mp4', size: a.length }
-          ]);
+          // Upload to Supabase and save to modal
+          uploadVideoToSupabase(a, 'A').then(videoUrl => {
+            if (videoUrl) {
+              setExistingMediaA?.((prev: any[]) => [
+                ...prev,
+                { 
+                  name: `Template A Video ${new Date().toLocaleString()}`, 
+                  type: 'video/mp4', 
+                  size: Math.round(a.length * 0.75), // Approximate file size
+                  url: videoUrl 
+                }
+              ]);
+            }
+          });
+        } else {
+          console.warn('⚠️ Template A video not found in response');
         }
+        
+        // Add delay between downloads to prevent browser blocking
         if (b) {
-          downloadVideo(b, `content_pillar_${dayKey}_B_${Date.now()}.mp4`);
-          setExistingMediaB?.((prev: any[]) => [
-            ...prev,
-            { name: `Template B Video ${new Date().toLocaleString()}`, type: 'video/mp4', size: b.length }
-          ]);
+          setTimeout(() => {
+            console.log('⬇️ Downloading Template B video...');
+            downloadVideo(b, `content_pillar_${dayKey}_B_${Date.now()}.mp4`);
+            // Upload to Supabase and save to modal
+            uploadVideoToSupabase(b, 'B').then(videoUrl => {
+              if (videoUrl) {
+                setExistingMediaB?.((prev: any[]) => [
+                  ...prev,
+                  { 
+                    name: `Template B Video ${new Date().toLocaleString()}`, 
+                    type: 'video/mp4', 
+                    size: Math.round(b.length * 0.75), // Approximate file size
+                    url: videoUrl 
+                  }
+                ]);
+              }
+            });
+          }, 1500); // 1.5 second delay
+        } else {
+          console.warn('⚠️ Template B video not found in response');
         }
 
-        alert('Videos (A & B) generated successfully!');
+        const downloadedCount = (a ? 1 : 0) + (b ? 1 : 0);
+        alert(`Videos generated successfully! Downloaded ${downloadedCount} video(s).`);
       } else if (result?.success && result?.videoData) {
         // Legacy single video path
         console.log('✅ Video generated successfully!');
@@ -517,23 +576,139 @@ export default function ContentPillarModalRefactored({
     }
   };
 
+  // Upload video to Supabase storage
+  const uploadVideoToSupabase = async (videoBase64: string, templateType: 'A' | 'B'): Promise<string | null> => {
+    try {
+      console.log(`📤 Uploading Template ${templateType} video to Supabase...`);
+      
+      // Convert base64 to blob
+      const byteCharacters = atob(videoBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'video/mp4' });
+      
+      // Generate filename
+      const tempPillarId = editingItem?.id || crypto.randomUUID();
+      const timestamp = Date.now();
+      const filename = `template_${templateType.toLowerCase()}_video_${timestamp}.mp4`;
+      const storagePath = `content-pillars/${tempPillarId}/${filename}`;
+      
+      // Upload to Supabase
+      const { error: uploadError } = await supabase.storage
+        .from('media-files')
+        .upload(storagePath, blob, { 
+          contentType: 'video/mp4', 
+          cacheControl: '3600', 
+          upsert: false 
+        });
+      
+      if (uploadError) {
+        console.error('📤 Supabase video upload error:', uploadError);
+        return null;
+      }
+      
+      // Get public URL
+      const { data: { publicUrl: rawUrl } } = supabase.storage
+        .from('media-files')
+        .getPublicUrl(storagePath);
+      
+      // Convert to custom domain
+      const publicUrl = rawUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
+      
+      console.log(`✅ Template ${templateType} video uploaded successfully:`, publicUrl);
+      return publicUrl;
+      
+    } catch (error) {
+      console.error(`❌ Error uploading Template ${templateType} video:`, error);
+      return null;
+    }
+  };
+
+  // Download image helper
+  const downloadImage = (imageBase64: string, templateType: TemplateType) => {
+    try {
+      const titleForFilename = dayKey === 'wednesday' ? (formData.car_model || 'car') : formData.title;
+      const cleanTitle = titleForFilename
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .replace(/\s+/g, '_')
+        .toLowerCase();
+      
+      const filename = `template_${templateType.toLowerCase()}_${cleanTitle}_${Date.now()}.png`;
+      
+      console.log(`🖼️ Starting download for: ${filename}`);
+      console.log(`📊 Image data length: ${imageBase64.length} characters`);
+      
+      const byteCharacters = atob(imageBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/png' });
+      
+      console.log(`📦 Created blob of size: ${blob.size} bytes`);
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      
+      console.log(`🔗 Created download link for: ${filename}`);
+      link.click();
+      console.log(`✅ Clicked download link for: ${filename}`);
+      
+      // Clean up after a short delay
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        console.log(`🧹 Cleaned up download link for: ${filename}`);
+      }, 1000);
+      
+    } catch (error) {
+      console.error(`❌ Error downloading ${templateType} image:`, error);
+    }
+  };
+
   // Download video helper
   const downloadVideo = (videoBase64: string, filename: string) => {
-    const byteCharacters = atob(videoBase64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    try {
+      console.log(`🎬 Starting download for: ${filename}`);
+      console.log(`📊 Video data length: ${videoBase64.length} characters`);
+      
+      const byteCharacters = atob(videoBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'video/mp4' });
+      
+      console.log(`📦 Created blob of size: ${blob.size} bytes`);
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      
+      console.log(`🔗 Created download link for: ${filename}`);
+      link.click();
+      console.log(`✅ Clicked download link for: ${filename}`);
+      
+      // Clean up after a short delay
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        console.log(`🧹 Cleaned up download link for: ${filename}`);
+      }, 1000);
+      
+    } catch (error) {
+      console.error(`❌ Error downloading ${filename}:`, error);
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: 'video/mp4' });
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
   };
 
   // Save generated image as file

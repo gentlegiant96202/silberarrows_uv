@@ -1,3 +1,4 @@
+import React from 'react';
 import { Composition, registerRoot } from 'remotion';
 import { MondayTemplate } from './templates/MondayTemplate';
 import { TuesdayTemplate } from './templates/TuesdayTemplate';
@@ -26,22 +27,45 @@ const ContentPillarVideo = (props) => {
 
 const RemotionRoot = () => {
   return (
-    <Composition
-      id="ContentPillar"
-      component={ContentPillarVideo}
-      durationInFrames={210} // 7 seconds at 30fps
-      fps={30}
-      width={1080}
-      height={1920}
-      defaultProps={{
-        dayOfWeek: 'monday',
-        templateType: 'A',
-        title: 'Sample Title',
-        description: 'Sample Description',
-        imageUrl: '',
-        badgeText: 'MONDAY'
-      }}
-    />
+    <>
+      <Composition
+        id="ContentPillar"
+        component={ContentPillarVideo}
+        durationInFrames={210} // 7 seconds at 30fps
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          dayOfWeek: 'monday',
+          templateType: 'A',
+          title: 'Sample Title',
+          description: 'Sample Description',
+          imageUrl: '',
+          badgeText: 'MONDAY'
+        }}
+      />
+
+      {/* Render arbitrary HTML for 7s at 1080x1920 */}
+      <Composition
+        id="HTMLVideo"
+        component={({ html }: { html: string }) => (
+          <div
+            style={{
+              width: '1080px',
+              height: '1920px',
+              overflow: 'hidden',
+              background: 'black',
+            }}
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        )}
+        durationInFrames={210}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{ html: '<div />' }}
+      />
+    </>
   );
 };
 

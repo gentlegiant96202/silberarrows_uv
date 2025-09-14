@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    const { title, description, content_type, day_of_week, media_files, badge_text, subtitle, myth, fact, problem, solution, difficulty, tools_needed, warning } = body;
+    const { title, description, content_type, day_of_week, media_files, media_files_a, media_files_b, badge_text, subtitle, myth, fact, problem, solution, difficulty, tools_needed, warning } = body;
     
     console.log('📝 Extracted fields:', { title, subtitle, myth, fact, badge_text });
 
@@ -144,6 +144,8 @@ export async function POST(req: NextRequest) {
       content_type,
       day_of_week,
       media_files: media_files || [],
+      media_files_a: media_files_a || null,
+      media_files_b: media_files_b || null,
       badge_text: badge_text ?? (day_of_week === 'monday' ? 'MYTH BUSTER MONDAY' : (day_of_week === 'tuesday' ? 'TECH TIPS TUESDAY' : day_of_week?.toUpperCase())),
       subtitle: subtitle ?? (day_of_week === 'monday' ? 'Independent Mercedes Service' : (day_of_week === 'tuesday' ? 'Expert Mercedes Knowledge' : 'Premium Selection')),
       myth: myth ?? null,
@@ -183,7 +185,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     console.log('Updating content pillar:', body);
 
-    const { id, title, description, content_type, day_of_week, media_files, badge_text, subtitle, myth, fact, problem, solution, difficulty, tools_needed, warning } = body;
+    const { id, title, description, content_type, day_of_week, media_files, media_files_a, media_files_b, badge_text, subtitle, myth, fact, problem, solution, difficulty, tools_needed, warning } = body;
     
     console.log('📝 PUT - Raw body received:', body);
     console.log('📝 PUT - Extracted fields:', { title, subtitle, myth, fact, badge_text });
@@ -200,6 +202,8 @@ export async function PUT(req: NextRequest) {
       content_type,
       day_of_week,
       media_files: media_files || [],
+      media_files_a: media_files_a ?? undefined,
+      media_files_b: media_files_b ?? undefined,
       badge_text: badge_text ?? (day_of_week === 'monday' ? 'MYTH BUSTER MONDAY' : (day_of_week === 'tuesday' ? 'TECH TIPS TUESDAY' : day_of_week?.toUpperCase())),
       subtitle: subtitle ?? (day_of_week === 'monday' ? 'Independent Mercedes Service' : (day_of_week === 'tuesday' ? 'Expert Mercedes Knowledge' : 'Premium Selection')),
       myth: myth ?? null,

@@ -132,7 +132,7 @@ function MarketingTicketsDropdown() {
         'Content-Type': 'application/json'
       };
 
-      const response = await fetch('/api/design-tasks?user_tickets=true', {
+      const response = await fetch('/api/design-tasks?user_tickets=true&limit=50', {
         headers
       });
 

@@ -188,6 +188,13 @@ export default function ContentPillarModalRefactored({
     
     console.log(`🖼️ Template ${templateType} using image:`, imageUrl);
     console.log(`🏢 Template ${templateType} using logo:`, absoluteLogoUrl);
+    console.log(`🔍 Template ${templateType} existingMedia details:`, existingMedia.map(m => ({ 
+      name: m.name, 
+      type: m.type, 
+      url: m.url?.substring(0, 50) + '...', 
+      isImage: m.type?.startsWith('image/') || m.name?.match(/\.(jpe?g|png|webp|gif)$/i) || m.url?.match(/\.(jpe?g|png|webp|gif)$/i)
+    })));
+    console.log(`🔍 Template ${templateType} selectedFiles:`, selectedFiles.map(f => ({ name: f.file.name, type: f.file.type })));
     
     return getSafeTemplate(
       dayKey,
@@ -201,6 +208,7 @@ export default function ContentPillarModalRefactored({
 
   // File upload handler - upload directly to Supabase
   const handleFileUpload = async (files: FileList, templateType: TemplateType = 'A') => {
+    console.log(`📤 handleFileUpload called with templateType: ${templateType}`);
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       
@@ -246,8 +254,8 @@ export default function ContentPillarModalRefactored({
           .from('media-files')
           .upload(storagePath, file, { 
             contentType: file.type, 
-            cacheControl: '3600', 
-            upsert: false 
+            cacheControl: '31536000', // 1 year cache to prevent deletion
+            upsert: true // Allow overwrite to prevent conflicts
           });
         
         if (uploadError) {
@@ -262,19 +270,23 @@ export default function ContentPillarModalRefactored({
         // Convert to custom domain to avoid ISP blocking
         const publicUrl = rawUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
         
-        // Create media item for existing media
+        // Create media item for existing media (without file property to prevent re-upload)
         const mediaItem = {
           url: publicUrl,
           name: file.name,
           type: file.type,
           size: file.size,
           uploadedAt: new Date().toISOString(),
+          templateType,
+          // NOTE: No 'file' property - this marks it as already uploaded
         };
         
         // Add to appropriate template's existing media and remove from selected files
         const setExistingMediaForTemplate = templateType === 'A' ? setExistingMediaA : setExistingMediaB;
         setExistingMediaForTemplate(prev => [...prev, mediaItem]);
         setSelectedFilesForTemplate(prev => prev.filter((_, i) => i !== currentIndex));
+        
+        console.log(`✅ Added media to Template ${templateType}:`, mediaItem.name);
         
         console.log(`✅ ${file.name} uploaded successfully to Supabase`);
         
@@ -471,6 +483,15 @@ export default function ContentPillarModalRefactored({
         return;
       }
     }
+    
+    // Check if we have any uploaded images (not just local blob files)
+    const hasUploadedImages = existingMediaA.length > 0 || existingMediaB.length > 0;
+    const hasOnlyLocalFiles = selectedFilesA.length > 0 || selectedFilesB.length > 0;
+    
+    if (!hasUploadedImages && hasOnlyLocalFiles) {
+      alert('Please save your uploaded images first before generating videos. Click "Update" to upload them to storage.');
+      return;
+    }
 
     setGeneratingVideo(true);
     try {
@@ -482,8 +503,54 @@ export default function ContentPillarModalRefactored({
       const htmlB = supportsB ? generateLivePreviewHTML('B') : htmlA;
 
       // Compute image URLs per template so the video service receives them explicitly
-      const imageUrlA = getCacheBustedImageUrl(getImageUrl(selectedFilesA, existingMediaA));
-      const imageUrlB = getCacheBustedImageUrl(getImageUrl(selectedFilesB, existingMediaB));
+      // For video generation, we need direct URLs (not proxy URLs) that Railway can access
+      const getDirectImageUrl = (selectedFiles: any[], existingMedia: any[], fallbackToAnyImage: boolean = true): string => {
+        // For video generation, skip selectedFiles (blob URLs) and use only uploaded URLs
+        // Blob URLs like blob:http://localhost:3000/... can't be accessed by Railway
+        
+        // Use existing media but return direct URL (not proxy)
+        if (existingMedia && existingMedia.length > 0) {
+          const firstMedia = existingMedia[0];
+          let imageUrl = '';
+          
+          if (typeof firstMedia === 'string') {
+            imageUrl = firstMedia;
+          } else if (firstMedia?.url) {
+            imageUrl = firstMedia.url;
+          }
+          
+          // Return direct URL for video service
+          if (imageUrl) return imageUrl;
+        }
+        
+        // Fallback: if this template has no image, try to use any image from either template
+        if (fallbackToAnyImage) {
+          // Try the other template's existing media (skip selectedFiles to avoid blob URLs)
+          const allExistingMedia = [...existingMediaA, ...existingMediaB];
+          
+          if (allExistingMedia.length > 0) {
+            const firstMedia = allExistingMedia[0];
+            if (typeof firstMedia === 'string') {
+              return firstMedia;
+            } else if (firstMedia?.url) {
+              return firstMedia.url;
+            }
+          }
+        }
+        
+        // Final fallback to logo
+        return getAbsoluteLogoUrl();
+      };
+      
+      const imageUrlA = getCacheBustedImageUrl(getDirectImageUrl(selectedFilesA, existingMediaA));
+      const imageUrlB = getCacheBustedImageUrl(getDirectImageUrl(selectedFilesB, existingMediaB));
+      
+      console.log('🎬 Video generation - selectedFilesA:', selectedFilesA.length, selectedFilesA.map(f => f.file.name));
+      console.log('🎬 Video generation - existingMediaA:', existingMediaA.length, existingMediaA.map(m => m.name));
+      console.log('🎬 Video generation - selectedFilesB:', selectedFilesB.length, selectedFilesB.map(f => f.file.name));
+      console.log('🎬 Video generation - existingMediaB:', existingMediaB.length, existingMediaB.map(m => m.name));
+      console.log('🎬 Video generation - Image URL A:', imageUrlA);
+      console.log('🎬 Video generation - Image URL B:', imageUrlB);
 
       const formDataA = { ...formData, imageUrl: imageUrlA } as typeof formData & { imageUrl?: string };
       const formDataB = { ...formData, imageUrl: imageUrlB } as typeof formData & { imageUrl?: string };
@@ -534,7 +601,8 @@ export default function ContentPillarModalRefactored({
                   name: `Template A Video ${new Date().toLocaleString()}`, 
                   type: 'video/mp4', 
                   size: Math.round(a.length * 0.75), // Approximate file size
-                  url: videoUrl 
+                  url: videoUrl,
+                  templateType: 'A'
                 }
               ]);
             }
@@ -557,7 +625,8 @@ export default function ContentPillarModalRefactored({
                     name: `Template B Video ${new Date().toLocaleString()}`, 
                     type: 'video/mp4', 
                     size: Math.round(b.length * 0.75), // Approximate file size
-                    url: videoUrl 
+                    url: videoUrl,
+                    templateType: 'B'
                   }
                 ]);
               }
@@ -769,6 +838,37 @@ export default function ContentPillarModalRefactored({
   // Save handler - files already uploaded to Supabase
   const handleSave = async () => {
     try {
+      // Dedupe helpers
+      const dedupeByUrl = (arr: any[]) => {
+        const seen = new Set<string>();
+        return (arr || []).filter((media) => {
+          const url = typeof media === 'string' ? media : media?.url;
+          if (!url) return true;
+          if (seen.has(url)) return false;
+          seen.add(url);
+          return true;
+        });
+      };
+
+      // Prepare separate media arrays with explicit templateType tagging
+      const mediaA = dedupeByUrl(existingMediaA).map((m) => ({
+        ...m,
+        templateType: 'A' // Force Template A
+      }));
+      const mediaB = dedupeByUrl(existingMediaB).map((m) => ({
+        ...m,
+        templateType: 'B' // Force Template B
+      }));
+
+      // Back-compat merged list (but keep templateType distinction)
+      const merged = [...mediaA, ...mediaB];
+      
+      console.log('💾 Saving media - Template A:', mediaA.length, 'files', mediaA.map(m => m.name));
+      console.log('💾 Saving media - Template B:', mediaB.length, 'files', mediaB.map(m => m.name));
+      console.log('💾 Merged media total:', merged.length, 'files');
+      console.log('💾 existingMediaA state:', existingMediaA.length, existingMediaA.map(m => ({name: m.name, templateType: m.templateType})));
+      console.log('💾 existingMediaB state:', existingMediaB.length, existingMediaB.map(m => ({name: m.name, templateType: m.templateType})));
+
       const pillarData = {
         title: formData.title,
         description: formData.description,
@@ -783,7 +883,9 @@ export default function ContentPillarModalRefactored({
         difficulty: formData.difficulty,
         tools_needed: formData.tools_needed,
         warning: formData.warning,
-        media_files: [...existingMediaA, ...existingMediaB], // Combine media from both templates
+        media_files: merged, // Back-compat
+        media_files_a: mediaA,
+        media_files_b: mediaB,
       };
 
       console.log('📤 Saving content pillar data:', pillarData);
@@ -835,8 +937,59 @@ export default function ContentPillarModalRefactored({
   useEffect(() => {
     if (isOpen) {
       fetchInventoryCars();
+      
+      // Load existing media every time modal opens (not just when editingItem changes)
+      if (editingItem) {
+        console.log('🔄 Loading existing media from editingItem:', editingItem.media_files);
+        // Always reload fresh from database to prevent stale state
+        const mediaFiles = editingItem.media_files || [];
+        const mediaFilesA = (editingItem as any).media_files_a || [];
+        const mediaFilesB = (editingItem as any).media_files_b || [];
+        // Prefer explicit A/B arrays if present, otherwise split by templateType strictly
+        const mediaA: any[] = (Array.isArray(mediaFilesA) && mediaFilesA.length > 0)
+          ? mediaFilesA
+          : mediaFiles.filter(m => m?.templateType === 'A');
+        
+        const mediaB: any[] = (Array.isArray(mediaFilesB) && mediaFilesB.length > 0)
+          ? mediaFilesB  
+          : mediaFiles.filter(m => m?.templateType === 'B');
+          
+        console.log('🔄 Loading media - mediaFiles total:', mediaFiles.length);
+        console.log('🔄 Loading media - split A:', mediaA.length, 'B:', mediaB.length);
+        console.log('🔄 Media A items:', mediaA.map(m => ({name: m.name, templateType: m.templateType})));
+        console.log('🔄 Media B items:', mediaB.map(m => ({name: m.name, templateType: m.templateType})));
+        // Dedupe by URL inside each bucket
+        const dedupeByUrl = (arr: any[]) => {
+          const seen = new Set();
+          return arr.filter((item) => {
+            const url = typeof item === 'string' ? item : item?.url;
+            if (!url) return true;
+            if (seen.has(url)) return false;
+            seen.add(url);
+            return true;
+          });
+        };
+        setExistingMediaA(dedupeByUrl(mediaA));
+        setExistingMediaB(dedupeByUrl(mediaB));
+        console.log('✅ Loaded media files:', mediaFiles.length);
+      } else {
+        // Clear existing media when creating new item
+        setExistingMediaA([]);
+        setExistingMediaB([]);
+      }
     }
-  }, [isOpen, dayKey]);
+  }, [isOpen, dayKey, editingItem]);
+
+  // Clear media arrays when modal closes to prevent stale state
+  useEffect(() => {
+    if (!isOpen) {
+      console.log('🧹 Modal closed - clearing media arrays');
+      setExistingMediaA([]);
+      setExistingMediaB([]);
+      setSelectedFilesA([]);
+      setSelectedFilesB([]);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (editingItem) {
@@ -854,11 +1007,6 @@ export default function ContentPillarModalRefactored({
         tools_needed: editingItem.tools_needed || '',
         warning: editingItem.warning || '',
       }));
-      
-      // Split existing media files between templates (for now, put all in Template A)
-      // TODO: Add logic to separate media files by template type if stored in database
-      setExistingMediaA(editingItem.media_files || []);
-      setExistingMediaB([]);
     }
   }, [editingItem, dayKey]);
 
@@ -1206,7 +1354,17 @@ export default function ContentPillarModalRefactored({
                     </div>
                   ))}
                   
-                  {selectedFilesA.map((fileInfo, index) => (
+                  {selectedFilesA
+                    // Hide selected files that have been uploaded and already exist in existingMediaA (match by name+size if possible)
+                    .filter((fileInfo) => {
+                      const match = existingMediaA.some((m) => {
+                        const mName = (m?.name || '').toString();
+                        const mSize = Number(m?.size || 0);
+                        return mName === fileInfo.file.name && mSize === fileInfo.file.size;
+                      });
+                      return !match;
+                    })
+                    .map((fileInfo, index) => (
                     <div key={`new-a-${index}`} className="flex items-center gap-2 p-2 bg-black/30 border border-gray-600/30 rounded-lg backdrop-blur-sm">
                       <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center">
                         {fileInfo.uploading ? (
@@ -1295,7 +1453,16 @@ export default function ContentPillarModalRefactored({
                       </div>
                     ))}
                     
-                    {selectedFilesB.map((fileInfo, index) => (
+                    {selectedFilesB
+                      .filter((fileInfo) => {
+                        const match = existingMediaB.some((m) => {
+                          const mName = (m?.name || '').toString();
+                          const mSize = Number(m?.size || 0);
+                          return mName === fileInfo.file.name && mSize === fileInfo.file.size;
+                        });
+                        return !match;
+                      })
+                      .map((fileInfo, index) => (
                       <div key={`new-b-${index}`} className="flex items-center gap-2 p-2 bg-black/30 border border-gray-600/30 rounded-lg backdrop-blur-sm">
                         <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center">
                           {fileInfo.uploading ? (

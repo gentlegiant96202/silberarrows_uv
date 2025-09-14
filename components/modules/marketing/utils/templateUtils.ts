@@ -86,8 +86,15 @@ export const getImageUrl = (
   existingMedia: any[], 
   fallbackUrl: string = '/MAIN LOGO.png'
 ): string => {
-  // Priority: 1) Existing high-quality image URL, 2) New uploaded file (full quality), 3) Default logo
-  // NOTE: Avoid using thumbnails for final rendering to maintain image quality
+  // Priority: 1) New uploaded file (full quality), 2) Existing high-quality image URL, 3) Default logo
+  // NOTE: Prioritize uploaded files over existing media to avoid 404 issues
+  
+  // First check for new uploaded files
+  if (uploadedFiles[0]) {
+    return URL.createObjectURL(uploadedFiles[0].file);
+  }
+  
+  // Then check existing media for valid image files
   const existingImageFiles = existingMedia.filter(media => {
     if (typeof media === 'string') {
       return media.match(/\.(jpe?g|png|webp|gif)$/i);
@@ -97,9 +104,22 @@ export const getImageUrl = (
            media.url?.match(/\.(jpe?g|png|webp|gif)$/i);
   });
   
-  // Use full-quality images, not thumbnails
-  return existingImageFiles[0]?.url || 
-         (typeof existingImageFiles[0] === 'string' ? existingImageFiles[0] : null) ||
-         (uploadedFiles[0] ? URL.createObjectURL(uploadedFiles[0].file) : null) ||
-         fallbackUrl;
+  // Use the first valid existing image URL
+  const existingImageUrl = existingImageFiles[0]?.url || 
+                          (typeof existingImageFiles[0] === 'string' ? existingImageFiles[0] : null);
+  
+  if (existingImageUrl) {
+    console.log('🔍 Using existing image URL:', existingImageUrl);
+    
+    // If using database.silberarrows.com domain, add fallback to storage proxy
+    if (existingImageUrl.includes('database.silberarrows.com')) {
+      // Return proxy URL that will try both domains
+      return `/api/storage-proxy?url=${encodeURIComponent(existingImageUrl)}`;
+    }
+    
+    return existingImageUrl;
+  }
+  
+  console.log('⚠️ No valid images found, using fallback:', fallbackUrl);
+  return fallbackUrl;
 };

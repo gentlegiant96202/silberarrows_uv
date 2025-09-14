@@ -95,6 +95,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const userTickets = searchParams.get('user_tickets') === 'true';
     const taskId = searchParams.get('id');
+    const limit = parseInt(searchParams.get('limit') || '50'); // Default limit of 50
+    const offset = parseInt(searchParams.get('offset') || '0'); // Default offset of 0
 
     // If fetching a single task by ID
     if (taskId) {
@@ -117,10 +119,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(task);
     }
 
-    // Build query with optional filters
+    // Build query with optional filters - optimize by selecting only needed columns
     let query = supabase
       .from('design_tasks')
-      .select('*');
+      .select('id, title, description, status, requested_by, due_date, task_type, media_files, created_at, updated_at, created_by, acknowledged_at');
 
     // Filter by department if user_tickets=true (for "My Department's Marketing Tickets")
     if (userTickets && authResult.user) {
@@ -154,10 +156,16 @@ export async function GET(req: NextRequest) {
         .is('acknowledged_at', null); // Only show unacknowledged tickets
     }
 
-    // Always order by created_at
-    query = query.order('created_at', { ascending: false });
+    // Always order by created_at and apply pagination
+    query = query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
+    console.log(`🔍 Executing query with limit=${limit}, offset=${offset}`);
+    const queryStart = Date.now();
     const { data: tasks, error } = await query;
+    const queryTime = Date.now() - queryStart;
+    console.log(`⏱️ Database query took ${queryTime}ms`);
 
     if (error) {
       console.error('Error fetching design tasks:', error);
@@ -185,6 +193,17 @@ export async function POST(req: NextRequest) {
     }
 
     const { title, headline, description, status = 'planned', assignee, due_date, task_type = 'design', media_files = [] } = body;
+
+    console.log('📊 Raw media_files received:', media_files);
+    console.log('📊 Media files count:', media_files?.length || 0);
+    console.log('📊 Media files details:', media_files?.map((m: any) => ({
+      name: m.name || 'unknown',
+      type: m.type || 'unknown',
+      url: typeof m === 'string' ? m : m.url,
+      isImage: typeof m === 'string' 
+        ? m.match(/\.(jpe?g|png|webp|gif)$/i)
+        : m.type?.startsWith('image/')
+    })));
 
     const taskData = {
       title: title || headline, // Handle both title and headline fields

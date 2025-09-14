@@ -506,8 +506,8 @@ export default function ContentPillarsBoard() {
         user.email?.split('@')[0]?.replace(/\./g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 
         'Marketing Team';
 
-      // Prepare media files - include all media from the content pillar
-      const mediaFiles = item.media_files?.map(media => media.url || media) || [];
+      // Prepare media files - preserve full media objects, not just URLs
+      const mediaFiles = item.media_files || [];
       
       // Create task data for the Marketing Kanban
       const taskData = {
@@ -631,8 +631,8 @@ export default function ContentPillarsBoard() {
             .from('media-files')
             .upload(storagePath, file, { 
               contentType: file.type, 
-              cacheControl: '3600', 
-              upsert: false 
+              cacheControl: '31536000', // 1 year cache to prevent deletion
+              upsert: true // Allow overwrite to prevent conflicts
             });
           
           if (uploadError) {
@@ -684,6 +684,15 @@ export default function ContentPillarsBoard() {
         // Create a temporary pillar ID for file uploads if creating new pillar
         const tempPillarId = editingPillar?.id || crypto.randomUUID();
         finalMediaFiles = await uploadFilesToStorage(tempPillarId, pillarData.media_files);
+        // Global dedupe by URL across both templates before persisting
+        const seen = new Set<string>();
+        finalMediaFiles = finalMediaFiles.filter((m: any) => {
+          const url = typeof m === 'string' ? m : m?.url;
+          if (!url) return true;
+          if (seen.has(url)) return false;
+          seen.add(url);
+          return true;
+        });
       }
       
       if (editingPillar) {

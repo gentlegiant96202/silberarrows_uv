@@ -414,7 +414,8 @@ export default function MarketingKanbanBoard() {
   const fetchTasks = async () => {
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch('/api/design-tasks', { headers });
+      // Limit to 100 most recent tasks for better performance
+      const response = await fetch('/api/design-tasks?limit=100', { headers });
       if (response.ok) {
         const rawData = await response.json();
         

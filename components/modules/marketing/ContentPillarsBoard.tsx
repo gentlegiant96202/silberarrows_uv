@@ -17,6 +17,8 @@ interface ContentPillarItem {
   created_at: string;
   updated_at: string;
   media_files?: any[];
+  media_files_a?: any[]; // Template A specific media files
+  media_files_b?: any[]; // Template B specific media files
   badge_text?: string;
   subtitle?: string;
   myth?: string;

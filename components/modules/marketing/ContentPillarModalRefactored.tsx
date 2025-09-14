@@ -987,8 +987,8 @@ export default function ContentPillarModalRefactored({
         console.log('🔄 Loading existing media from editingItem:', editingItem.media_files);
         // Always reload fresh from database to prevent stale state
         const mediaFiles = editingItem.media_files || [];
-        const mediaFilesA = (editingItem as any).media_files_a || [];
-        const mediaFilesB = (editingItem as any).media_files_b || [];
+        const mediaFilesA = editingItem.media_files_a || [];
+        const mediaFilesB = editingItem.media_files_b || [];
         // Prefer explicit A/B arrays if present, otherwise split by templateType strictly
         const mediaA: any[] = (Array.isArray(mediaFilesA) && mediaFilesA.length > 0)
           ? mediaFilesA

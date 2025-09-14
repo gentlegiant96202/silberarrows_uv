@@ -639,7 +639,8 @@ export default function ContentPillarModalRefactored({
           // Upload to Supabase and save to modal
           uploadVideoToSupabase(a, 'A').then(videoUrl => {
             if (videoUrl) {
-              setExistingMediaA?.((prev: any[]) => [
+              console.log('✅ Template A video uploaded, adding to modal:', videoUrl);
+              setExistingMediaA((prev: any[]) => [
                 ...prev,
                 { 
                   name: `Template A Video ${new Date().toLocaleString()}`, 
@@ -649,7 +650,11 @@ export default function ContentPillarModalRefactored({
                   templateType: 'A'
                 }
               ]);
+            } else {
+              console.error('❌ Template A video upload failed - no URL returned');
             }
+          }).catch(error => {
+            console.error('❌ Template A video upload promise failed:', error);
           });
         } else {
           console.warn('⚠️ Template A video not found in response');
@@ -663,7 +668,8 @@ export default function ContentPillarModalRefactored({
             // Upload to Supabase and save to modal
             uploadVideoToSupabase(b, 'B').then(videoUrl => {
               if (videoUrl) {
-                setExistingMediaB?.((prev: any[]) => [
+                console.log('✅ Template B video uploaded, adding to modal:', videoUrl);
+                setExistingMediaB((prev: any[]) => [
                   ...prev,
                   { 
                     name: `Template B Video ${new Date().toLocaleString()}`, 
@@ -673,7 +679,11 @@ export default function ContentPillarModalRefactored({
                     templateType: 'B'
                   }
                 ]);
+              } else {
+                console.error('❌ Template B video upload failed - no URL returned');
               }
+            }).catch(error => {
+              console.error('❌ Template B video upload promise failed:', error);
             });
           }, 1500); // 1.5 second delay
         } else {
@@ -725,7 +735,7 @@ export default function ContentPillarModalRefactored({
         .upload(storagePath, blob, { 
           contentType: 'video/mp4', 
           cacheControl: '3600', 
-          upsert: false 
+          upsert: true // Allow overwrite to prevent conflicts
         });
       
       if (uploadError) {

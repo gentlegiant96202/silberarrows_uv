@@ -1,4 +1,4 @@
-import { Composition } from 'remotion';
+import { Composition, registerRoot } from 'remotion';
 import { MondayTemplate } from './templates/MondayTemplate';
 import { TuesdayTemplate } from './templates/TuesdayTemplate';
 import { WednesdayTemplate } from './templates/WednesdayTemplate';
@@ -24,7 +24,7 @@ const ContentPillarVideo = (props) => {
   return <TemplateComponent {...props} />;
 };
 
-export const RemotionRoot = () => {
+const RemotionRoot = () => {
   return (
     <Composition
       id="ContentPillar"
@@ -44,3 +44,6 @@ export const RemotionRoot = () => {
     />
   );
 };
+
+// Register the root component for Remotion v4+
+registerRoot(RemotionRoot);

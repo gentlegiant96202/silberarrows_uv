@@ -56,7 +56,7 @@ app.post('/render-video', async (req, res) => {
       },
       browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
       chromiumOptions: {
-        args: (process.env.PUPPETEER_ARGS || '--headless=new --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --single-process').split(' ')
+        headless: 'new'
       },
     });
     console.log('✅ Composition selected:', composition.id);
@@ -76,7 +76,7 @@ app.post('/render-video', async (req, res) => {
       },
       browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
       chromiumOptions: {
-        args: (process.env.PUPPETEER_ARGS || '--headless=new --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --single-process').split(' ')
+        headless: 'new'
       },
     });
 

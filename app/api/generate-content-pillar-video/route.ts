@@ -82,23 +82,28 @@ export async function POST(req: NextRequest) {
 
     // If caller provided HTML for A & B, render via HTMLVideo composition on the video service
     if (htmlA) {
+      const usePuppeteerForMonday = dayOfWeek === 'monday';
+      const endpoint = usePuppeteerForMonday ? 'render-html-video-puppeteer' : 'render-video';
+
       const [respA, respB] = await Promise.all([
-        fetch(`${videoServiceUrl}/render-video`, {
+        fetch(`${videoServiceUrl}/${endpoint}` , {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            html: htmlA, 
-            dayOfWeek, 
-            templateType: 'A', 
-            formData: formDataA || formData 
+            html: htmlA,
+            dayOfWeek,
+            templateType: 'A',
+            formData: formDataA || formData,
+            width: 1080, height: 1920, fps: 30, duration: 7000
           }), signal: AbortSignal.timeout(300000)
         }),
-        fetch(`${videoServiceUrl}/render-video`, {
+        fetch(`${videoServiceUrl}/${endpoint}` , {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            html: htmlB || htmlA, 
-            dayOfWeek, 
-            templateType: 'B', 
-            formData: formDataB || formData 
+            html: htmlB || htmlA,
+            dayOfWeek,
+            templateType: 'B',
+            formData: formDataB || formData,
+            width: 1080, height: 1920, fps: 30, duration: 7000
           }), signal: AbortSignal.timeout(300000)
         })
       ]);

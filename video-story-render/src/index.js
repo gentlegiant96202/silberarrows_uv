@@ -4,6 +4,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition, openBrowser } from '@remotion/renderer';
+import fsPromises from 'fs/promises';
+import os from 'os';
+import { spawn } from 'child_process';
+import puppeteer from 'puppeteer-core';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -168,6 +172,104 @@ app.post('/render-video', async (req, res) => {
         details: err.stack 
       });
     }
+  }
+});
+
+// Render HTML to MP4 using Puppeteer and FFmpeg (no Remotion)
+app.post('/render-html-video-puppeteer', async (req, res) => {
+  try {
+    const {
+      html,
+      width = 1080,
+      height = 1920,
+      fps = 30,
+      duration = 7000,
+      deviceScaleFactor = 2,
+    } = req.body || {};
+
+    if (!html) {
+      return res.status(400).json({ success: false, error: 'Missing html' });
+    }
+
+    // Prepare temp dirs
+    const tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'puppeteer-render-'));
+    const framesDir = path.join(tmpDir, 'frames');
+    await fsPromises.mkdir(framesDir, { recursive: true });
+    const outputPath = path.join(tmpDir, 'out.mp4');
+
+    // Launch Chromium
+    const browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process',
+      ],
+    });
+
+    const page = await browser.newPage();
+    await page.setViewport({ width, height, deviceScaleFactor });
+
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // Ensure fonts ready and a tiny paint delay
+    try { await page.evaluate(() => (document && document.fonts && document.fonts.ready) ? document.fonts.ready : null); } catch {}
+    await page.waitForTimeout(200);
+
+    // Pause CSS animations and start at 0ms
+    await page.evaluate(() => {
+      const animations = typeof document.getAnimations === 'function' ? document.getAnimations() : [];
+      for (const a of animations) {
+        a.pause();
+        a.currentTime = 0;
+      }
+    });
+
+    const totalFrames = Math.round((fps * duration) / 1000);
+    for (let i = 0; i < totalFrames; i++) {
+      const t = Math.round(i * (1000 / fps));
+      await page.evaluate((ms) => {
+        const animations = typeof document.getAnimations === 'function' ? document.getAnimations() : [];
+        for (const a of animations) {
+          a.currentTime = ms;
+        }
+      }, t);
+      const framePath = path.join(framesDir, `frame-${String(i).padStart(5, '0')}.png`);
+      await page.screenshot({ path: framePath, type: 'png' });
+    }
+
+    await browser.close().catch(() => {});
+
+    // Encode to MP4 via ffmpeg
+    await new Promise((resolve, reject) => {
+      const ff = spawn('ffmpeg', [
+        '-y',
+        '-r', String(fps),
+        '-i', path.join(framesDir, 'frame-%05d.png'),
+        '-vf', `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`,
+        '-c:v', 'libx264',
+        '-pix_fmt', 'yuv420p',
+        '-movflags', '+faststart',
+        outputPath,
+      ]);
+      ff.on('error', reject);
+      ff.on('close', (code) => (code === 0 ? resolve(null) : reject(new Error(`ffmpeg exited ${code}`))));
+      // reduce noise
+      ff.stderr.on('data', () => {});
+    });
+
+    const videoBuffer = await fsPromises.readFile(outputPath);
+    const videoBase64 = videoBuffer.toString('base64');
+
+    // Cleanup temp dir (best effort)
+    await fsPromises.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+
+    return res.json({ success: true, videoData: videoBase64, stats: { fileSizeMB: Math.round(videoBuffer.length/1024/1024), durationMs: duration, fps, width, height } });
+  } catch (err) {
+    console.error('❌ render-html-video-puppeteer error:', err);
+    return res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 

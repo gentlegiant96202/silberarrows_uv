@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { bundle } from '@remotion/bundler';
-import { renderMedia, selectComposition } from '@remotion/renderer';
+import { renderMedia, selectComposition, openBrowser } from '@remotion/renderer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,6 +45,21 @@ app.post('/render-video', async (req, res) => {
     const bundleLocation = await bundle(path.resolve(__dirname, 'Video.tsx'));
     console.log('✅ Bundle created at:', bundleLocation);
 
+    // Launch Chromium explicitly with the new Headless mode
+    const browser = await openBrowser({
+      browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+      chromiumOptions: {
+        headless: 'new',
+        // Hardening flags recommended for containers
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ]
+      }
+    });
+
     console.log('🔍 Selecting composition...');
     const composition = await selectComposition({
       serveUrl: bundleLocation,
@@ -54,10 +69,7 @@ app.post('/render-video', async (req, res) => {
         templateType,
         ...formData
       },
-      browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
-      chromiumOptions: {
-        headless: 'new'
-      },
+      browserInstance: browser,
     });
     console.log('✅ Composition selected:', composition.id);
 
@@ -74,10 +86,7 @@ app.post('/render-video', async (req, res) => {
         templateType,
         ...formData
       },
-      browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
-      chromiumOptions: {
-        headless: 'new'
-      },
+      browserInstance: browser,
     });
 
     console.log('✅ Video rendered successfully:', outputPath);
@@ -102,6 +111,9 @@ app.post('/render-video', async (req, res) => {
         resolution: '1080x1920'
       }
     });
+
+    // Close browser
+    await browser.close();
 
   } catch (err) {
     console.error('❌ Video render error:', err);

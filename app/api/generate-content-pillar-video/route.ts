@@ -80,30 +80,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, videos: { A: resultA.videoData, B: resultB.videoData } });
     }
 
-    // If caller provided HTML for A & B, render via HTMLVideo composition on the video service
+    // If caller provided HTML for A & B, render via Remotion (fast) for Monday, HTMLVideo for others
     if (htmlA) {
-      const usePuppeteerForMonday = dayOfWeek === 'monday';
-      const endpoint = usePuppeteerForMonday ? 'render-html-video-puppeteer' : 'render-video';
-
       const [respA, respB] = await Promise.all([
-        fetch(`${videoServiceUrl}/${endpoint}` , {
+        fetch(`${videoServiceUrl}/render-video`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            html: htmlA,
-            dayOfWeek,
-            templateType: 'A',
-            formData: formDataA || formData,
-            width: 1080, height: 1920, fps: 30, duration: 7000
+            html: htmlA, 
+            dayOfWeek, 
+            templateType: 'A', 
+            formData: formDataA || formData 
           }), signal: AbortSignal.timeout(300000)
         }),
-        fetch(`${videoServiceUrl}/${endpoint}` , {
+        fetch(`${videoServiceUrl}/render-video`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            html: htmlB || htmlA,
-            dayOfWeek,
-            templateType: 'B',
-            formData: formDataB || formData,
-            width: 1080, height: 1920, fps: 30, duration: 7000
+            html: htmlB || htmlA, 
+            dayOfWeek, 
+            templateType: 'B', 
+            formData: formDataB || formData 
           }), signal: AbortSignal.timeout(300000)
         })
       ]);

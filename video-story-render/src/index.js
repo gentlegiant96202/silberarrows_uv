@@ -182,9 +182,9 @@ app.post('/render-html-video-puppeteer', async (req, res) => {
       html,
       width = 1080,
       height = 1920,
-      fps = 30,
-      duration = 7000,
-      deviceScaleFactor = 2,
+      fps = 24,
+      duration = 5000,
+      deviceScaleFactor = 1,
     } = req.body || {};
 
     if (!html) {
@@ -197,7 +197,7 @@ app.post('/render-html-video-puppeteer', async (req, res) => {
     await fsPromises.mkdir(framesDir, { recursive: true });
     const outputPath = path.join(tmpDir, 'out.mp4');
 
-    // Launch Chromium
+    // Launch Chromium with optimizations
     const browser = await puppeteer.launch({
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
       headless: 'new',
@@ -207,6 +207,10 @@ app.post('/render-html-video-puppeteer', async (req, res) => {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--single-process',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-images', // Skip loading images for speed
+        '--disable-javascript', // Skip JS execution after initial load
       ],
     });
 
@@ -216,7 +220,7 @@ app.post('/render-html-video-puppeteer', async (req, res) => {
     await page.setContent(html, { waitUntil: 'networkidle0' });
     // Ensure fonts ready and a tiny paint delay
     try { await page.evaluate(() => (document && document.fonts && document.fonts.ready) ? document.fonts.ready : null); } catch {}
-    await page.waitForTimeout(200);
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     // Pause CSS animations and start at 0ms
     await page.evaluate(() => {

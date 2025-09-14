@@ -866,12 +866,20 @@ export default function ContentPillarModalRefactored({
         uploaded: true
       };
       
-      // Add generated template to Template A files (default behavior)
-      setSelectedFilesA(prev => {
-        // Remove any existing template files for this template type
-        const filtered = prev.filter(f => !f.file.name.includes(`template_${template.toLowerCase()}`));
-        return [...filtered, fileWithThumbnail];
-      });
+      // Add generated template to the correct template's files
+      if (template === 'A') {
+        setSelectedFilesA(prev => {
+          // Remove any existing template files for this template type
+          const filtered = prev.filter(f => !f.file.name.includes(`template_${template.toLowerCase()}`));
+          return [...filtered, fileWithThumbnail];
+        });
+      } else if (template === 'B') {
+        setSelectedFilesB(prev => {
+          // Remove any existing template files for this template type
+          const filtered = prev.filter(f => !f.file.name.includes(`template_${template.toLowerCase()}`));
+          return [...filtered, fileWithThumbnail];
+        });
+      }
       
       console.log(`✅ Template ${template} saved as file: ${filename}`);
     } catch (error) {

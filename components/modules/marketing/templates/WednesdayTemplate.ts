@@ -23,18 +23,44 @@ ${fontFaceCSS}
       </head>
       <body>
       <style>
+        /* Instagram Story Animations */
+        @keyframes slideInFromTop {
+          0% { transform: translateY(-50px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes slideInFromLeft {
+          0% { transform: translateX(-50px); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideInFromRight {
+          0% { transform: translateX(50px); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeInScale {
+          0% { transform: scale(0.8); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes carSlide {
+          0% { transform: translateY(30px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
         body { font-family: 'Resonate', 'Inter', sans-serif; background: #D5D5D5; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
         .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
         .image-section { position: relative; width: 100%; height: 100%; overflow: hidden; }
         .background-image { width: 100%; height: 100%; object-fit: ${formData.imageFit || 'cover'}; object-position: ${formData.imageAlignment || 'center'}; transform: scale(${(formData.imageZoom || 100) / 100}) translateY(${formData.imageVerticalPosition || 0}px); }
         .badge-row { display: flex; align-items: center; justify-content: center; margin-bottom: 24px; gap: 20px; }
-        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
+        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); animation: slideInFromTop 1s ease-out 0.3s both; }
         .content { padding: 40px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; overflow: visible; position: absolute; top: 2%; left: 0; right: 0; z-index: 10; text-align: center; }
-        .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #555555; line-height: 0.8; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); margin-bottom: 2px; font-style: normal; padding: 0 80px; }
+        .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #555555; line-height: 0.8; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); margin-bottom: 2px; font-style: normal; padding: 0 80px; animation: slideInFromLeft 1s ease-out 0.8s both; }
         .subtitle { font-size: 45px; color: #555555; margin-bottom: 8px; font-weight: 700; text-shadow: none; font-style: normal; }
-        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
-        .button-row { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; gap: 16px; }
+        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; animation: slideInFromRight 1s ease-out 0.5s both; }
+        .button-row { position: fixed; left: 40px; right: 40px; bottom: 20px; z-index: 5; display: flex; gap: 16px; animation: fadeInScale 1s ease-out 1.5s both; }
         .contact { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 20px 24px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #555555; }
         .contact i { color: #555555; font-size: 22px; }
         .more-details { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 20px 24px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #555555; }
@@ -69,6 +95,7 @@ ${fontFaceCSS}
           -webkit-backdrop-filter: blur(10px);
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
           text-align: center;
+          animation: carSlide 0.8s ease-out 1.2s both;
         }
         
         .spec-icon {
@@ -225,8 +252,8 @@ ${fontFaceCSS}
         .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
         .content { padding: 32px; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 20px; overflow: visible; position: relative; z-index: 2; }
         .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
-        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
-        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
+        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); animation: slideInFromTop 1s ease-out 0.3s both; }
+        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; animation: slideInFromRight 1s ease-out 0.5s both; }
         .content-container { margin-top: 120px; }
         .title-section { margin-bottom: 20px; }
         .title { font-size: 41px; font-weight: 900; color: #555555; line-height: 1.1; text-shadow: none; margin-bottom: 12px; }

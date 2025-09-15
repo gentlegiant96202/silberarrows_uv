@@ -255,44 +255,30 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
             }}>{cleanTitle}</h1>
           </div>
           
-          {/* Subtitle with Monthly Payment or Cash Payment */}
-          <div style={{
-            transform: `translateY(${slideFromTop(20, 30)}px)`,
-            opacity: fadeIn(20),
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '8px'
-          }}>
-            {monthly_20_down_aed && monthly_20_down_aed > 0 ? (
-              <div style={{
-                fontSize: '45px',
-                color: '#555555',
-                fontWeight: 700,
-                fontFamily: 'Inter, sans-serif',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <AEDSymbol color="#555555" />
-                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, color: '#555555', marginRight: '4px' }}>
-                  {monthly_20_down_aed.toLocaleString()}
-                </span>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, color: '#555555' }}>
-                  PER MONTH
-                </span>
-              </div>
-            ) : (
-              <span style={{ 
-                fontSize: '45px',
-                fontFamily: 'Resonate, Inter, sans-serif', 
-                fontWeight: 300, 
-                color: '#555555' 
-              }}>
-                CASH PAYMENT
-              </span>
-            )}
-          </div>
+          {/* Subtitle with Monthly Payment - exact HTML match */}
+          <div 
+            style={{
+              fontSize: '45px',
+              color: '#555555',
+              marginBottom: '8px',
+              fontWeight: 700,
+              textShadow: 'none',
+              fontStyle: 'normal',
+              fontFamily: 'Resonate, Inter, sans-serif',
+              transform: `translateY(${slideFromTop(20, 30)}px)`,
+              opacity: fadeIn(20)
+            }}
+            dangerouslySetInnerHTML={{
+              __html: (() => {
+                const monthlyPayment = monthly_20_down_aed;
+                if (monthlyPayment && monthlyPayment > 0) {
+                  return `<svg height="0.7em" viewBox="0 0 344.84 299.91" style="display: inline-block; vertical-align: baseline; margin-right: 6px; margin-bottom: -0.02em;" xmlns="http://www.w3.org/2000/svg"><path fill="#555555" d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg><span style="font-family: 'Inter', sans-serif; font-weight: 900; color: #555555;">${monthlyPayment.toLocaleString()}</span><span style="font-family: 'Inter', sans-serif; font-weight: 300; color: #555555;"> PER MONTH</span>`;
+                } else {
+                  return '<span style="font-family: \'Resonate\', \'Inter\', sans-serif; font-weight: 300; color: #555555;">CASH PAYMENT</span>';
+                }
+              })()
+            }}
+          />
         </div>
       </div>
       

@@ -240,9 +240,14 @@ export default function BusinessCardPage() {
                   href={businessCard.google_review_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full bg-black/10 hover:bg-black/20 rounded-xl p-3 transition-all group flex items-center justify-center gap-3"
+                  className="w-full bg-black/10 hover:bg-black/20 rounded-xl p-3 transition-all group flex flex-col items-center justify-center gap-2"
                 >
-                  <Star className="w-5 h-5 text-yellow-600 group-hover:scale-110 transition-transform" />
+                  {/* 5 Solid Stars */}
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className="w-6 h-6 text-yellow-500 fill-yellow-500 group-hover:scale-110 transition-transform" />
+                    ))}
+                  </div>
                   <span className="text-black font-medium">Leave a Google Review</span>
                 </a>
               </div>

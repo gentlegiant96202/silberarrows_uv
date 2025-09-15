@@ -142,7 +142,23 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
       font-style: normal;
       font-display: swap;
     }
-    * { font-family: 'Resonate', 'Inter', sans-serif; }
+    * { font-family: 'Resonate', 'Inter', sans-serif;     }
+    
+    /* CSS classes - same as HTML template */
+    .subtitle { 
+      font-size: 45px; 
+      color: #555555; 
+      margin-bottom: 8px; 
+      font-weight: 700; 
+      text-shadow: none; 
+      font-style: normal; 
+      font-family: 'Resonate', 'Inter', sans-serif !important; 
+    }
+    
+    /* Font overrides - same as HTML template */
+    * { font-family: 'Resonate', 'Inter', sans-serif !important; }
+    i, .fas, .far, .fab, .fal { font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important; font-weight: 900 !important; font-style: normal !important; }
+    .subtitle { font-family: 'Resonate', 'Inter', sans-serif !important; font-weight: 700 !important; font-style: normal !important; }
   `;
 
   // Star icon component for Wednesday badge
@@ -255,16 +271,10 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
             }}>{cleanTitle}</h1>
           </div>
           
-          {/* Subtitle with Monthly Payment - exact HTML match */}
+          {/* Subtitle with Monthly Payment - exact HTML structure with class */}
           <div 
+            className="subtitle"
             style={{
-              fontSize: '45px',
-              color: '#555555',
-              marginBottom: '8px',
-              fontWeight: 700,
-              textShadow: 'none',
-              fontStyle: 'normal',
-              fontFamily: 'Resonate, Inter, sans-serif',
               transform: `translateY(${slideFromTop(20, 30)}px)`,
               opacity: fadeIn(20)
             }}

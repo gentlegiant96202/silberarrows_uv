@@ -19,6 +19,18 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     const params = await context.params;
     console.log('Public API: Looking for business card with slug:', params.slug);
     
+    // Check environment variables
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
+    });
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing environment variables');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+    
     // Fetch business card (public access, no authentication required)
     const { data: businessCard, error } = await supabaseAdmin
       .from('business_cards')
@@ -40,6 +52,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     return NextResponse.json({ businessCard });
   } catch (error) {
     console.error('GET /api/business-cards/public/[slug] error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

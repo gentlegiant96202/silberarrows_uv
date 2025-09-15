@@ -152,7 +152,13 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
         overflow: 'hidden'
       }}>
         <Img
-          src={imageUrl || logoUrl}
+          src={(() => {
+            // Filter out video files - only use image files for background
+            if (imageUrl && imageUrl.includes('.mp4')) {
+              return logoUrl; // Fallback to logo if imageUrl is a video
+            }
+            return imageUrl || logoUrl;
+          })()}
           style={{
             width: '100%',
             height: '100%',

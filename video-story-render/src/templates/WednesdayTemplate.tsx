@@ -152,6 +152,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
       font-weight: 700; 
       text-shadow: none; 
       font-style: normal; 
+      line-height: 0.8;
       font-family: 'Resonate', 'Inter', sans-serif !important; 
     }
     
@@ -263,7 +264,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
               fontSize: `${titleFontSize}px`,
               fontWeight: 900,
               color: '#555555',
-              lineHeight: 0.8,
+              lineHeight: 0.6,
               textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
               marginBottom: '2px',
               padding: '0 80px',
@@ -751,8 +752,14 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
                       .filter(item => item.match(/[A-Za-z]/))
                       .filter(item => !item.match(/^[A-Z]{1,2}$/));
                     
-                    // Take first 10 items and display as vertical list
-                    const selectedEquipment = allEquipment.slice(0, 10);
+                    // Shuffle and pick 10 random items (same as HTML) - but deterministic for video
+                    const shuffled = [...allEquipment].sort((a, b) => {
+                      // Use string hash for deterministic sorting (same result every frame)
+                      const hashA = a.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0);
+                      const hashB = b.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0);
+                      return (hashA % 2) - (hashB % 2);
+                    });
+                    const selectedEquipment = shuffled.slice(0, 10);
                     
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

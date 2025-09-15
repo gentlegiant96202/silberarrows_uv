@@ -1281,6 +1281,50 @@ export default function ContentPillarModalRefactored({
               />
             </div>
 
+            {/* Title Font Size Slider */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Title Font Size: {formData.titleFontSize}px
+              </label>
+              <input
+                type="range"
+                min="24"
+                max="120"
+                value={formData.titleFontSize}
+                onChange={(e) => setFormData(prev => ({ ...prev, titleFontSize: parseInt(e.target.value) }))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${((formData.titleFontSize - 24) / (120 - 24)) * 100}%, #374151 ${((formData.titleFontSize - 24) / (120 - 24)) * 100}%, #374151 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>24px</span>
+                <span>120px</span>
+              </div>
+            </div>
+
+            {/* Image Size Slider */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Image Size: {formData.imageZoom}%
+              </label>
+              <input
+                type="range"
+                min="50"
+                max="200"
+                value={formData.imageZoom}
+                onChange={(e) => setFormData(prev => ({ ...prev, imageZoom: parseInt(e.target.value) }))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #10b981 0%, #10b981 ${((formData.imageZoom - 50) / (200 - 50)) * 100}%, #374151 ${((formData.imageZoom - 50) / (200 - 50)) * 100}%, #374151 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>50%</span>
+                <span>200%</span>
+              </div>
+            </div>
+
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">

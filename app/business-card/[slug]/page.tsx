@@ -24,12 +24,13 @@ interface BusinessCard {
 }
 
 interface BusinessCardPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
-export default function BusinessCardPage({ params }: BusinessCardPageProps) {
+export default async function BusinessCardPage({ params }: BusinessCardPageProps) {
+  const { slug } = await params;
   const [businessCard, setBusinessCard] = useState<BusinessCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -37,7 +38,7 @@ export default function BusinessCardPage({ params }: BusinessCardPageProps) {
   useEffect(() => {
     const loadBusinessCard = async () => {
       try {
-        const response = await fetch(`/api/business-cards/public/${params.slug}`);
+        const response = await fetch(`/api/business-cards/public/${slug}`);
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -58,7 +59,7 @@ export default function BusinessCardPage({ params }: BusinessCardPageProps) {
     };
 
     loadBusinessCard();
-  }, [params.slug]);
+  }, [slug]);
 
   // Generate vCard content
   const generateVCard = () => {

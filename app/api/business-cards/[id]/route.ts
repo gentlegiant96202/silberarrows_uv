@@ -85,8 +85,10 @@ function generateSlug(name: string): string {
 }
 
 // GET - Fetch specific business card
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
+    
     // Validate permissions
     const validation = await validateUserPermissions(request, 'view');
     if ('error' in validation) {
@@ -116,8 +118,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT - Update business card
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
+    
     // Validate permissions
     const validation = await validateUserPermissions(request, 'edit');
     if ('error' in validation) {
@@ -208,8 +212,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE - Delete business card
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
+    
     // Validate permissions
     const validation = await validateUserPermissions(request, 'delete');
     if ('error' in validation) {

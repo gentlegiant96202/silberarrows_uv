@@ -14,8 +14,10 @@ const supabaseAdmin = createClient(
 );
 
 // GET - Fetch public business card by slug
-export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
   try {
+    const params = await context.params;
+    
     // Fetch business card (public access, no authentication required)
     const { data: businessCard, error } = await supabaseAdmin
       .from('business_cards')

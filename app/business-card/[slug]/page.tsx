@@ -38,27 +38,33 @@ export default async function BusinessCardPage({ params }: BusinessCardPageProps
   useEffect(() => {
     const loadBusinessCard = async () => {
       try {
+        console.log('Loading business card for slug:', slug);
         const response = await fetch(`/api/business-cards/public/${slug}`);
+        console.log('Response status:', response.status);
         
         if (!response.ok) {
+          console.error('Response not ok:', response.status, response.statusText);
           if (response.status === 404) {
             setError(true);
             return;
           }
-          throw new Error('Failed to fetch business card');
+          throw new Error(`Failed to fetch business card: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log('Business card data:', result);
         setBusinessCard(result.businessCard);
       } catch (err) {
-        console.error('Error:', err);
+        console.error('Error loading business card:', err);
         setError(true);
       } finally {
         setLoading(false);
       }
     };
 
-    loadBusinessCard();
+    if (slug) {
+      loadBusinessCard();
+    }
   }, [slug]);
 
   // Generate vCard content
@@ -115,7 +121,10 @@ export default async function BusinessCardPage({ params }: BusinessCardPageProps
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white">Loading business card...</div>
+        <div className="text-center">
+          <div className="text-white text-lg mb-2">Loading business card...</div>
+          <div className="text-white/50 text-sm">Slug: {slug}</div>
+        </div>
       </div>
     );
   }

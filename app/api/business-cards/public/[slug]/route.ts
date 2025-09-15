@@ -17,6 +17,7 @@ const supabaseAdmin = createClient(
 export async function GET(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
   try {
     const params = await context.params;
+    console.log('Public API: Looking for business card with slug:', params.slug);
     
     // Fetch business card (public access, no authentication required)
     const { data: businessCard, error } = await supabaseAdmin
@@ -25,6 +26,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
       .eq('slug', params.slug)
       .eq('is_active', true) // Only return active cards
       .single();
+
+    console.log('Public API: Query result - error:', error, 'data:', businessCard);
 
     if (error) {
       if (error.code === 'PGRST116') {

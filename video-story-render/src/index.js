@@ -62,8 +62,8 @@ app.post('/render-video', async (req, res) => {
 
     if (html) {
       console.log('🔍 Checking dayOfWeek for Remotion routing:', dayOfWeek);
-      // For Monday and Tuesday templates, use the proper Remotion component for smooth animations
-      if (dayOfWeek === 'monday' || dayOfWeek === 'tuesday') {
+      // For Monday, Tuesday, and Wednesday templates, use the proper Remotion component for smooth animations
+      if (dayOfWeek === 'monday' || dayOfWeek === 'tuesday' || dayOfWeek === 'wednesday') {
         console.log('✅ Using Remotion ContentPillar composition for', dayOfWeek);
         compositionId = 'ContentPillar';
         // Extract form data from the request if available
@@ -89,10 +89,26 @@ app.post('/render-video', async (req, res) => {
           tools_needed: f.tools_needed || '',
           warning: f.warning || '',
           // Visuals and branding
-          badgeText: f.badgeText || (dayOfWeek === 'monday' ? 'MYTH BUSTER MONDAY' : 'TECH TIPS TUESDAY'),
+          badgeText: f.badgeText || (dayOfWeek === 'monday' ? 'MYTH BUSTER MONDAY' : dayOfWeek === 'tuesday' ? 'TECH TIPS TUESDAY' : 'SPOTLIGHT OF THE WEEK'),
           car_model: f.car_model || '',
           imageUrl: f.imageUrl || '',
           logoUrl: 'https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png',
+          // Wednesday car-specific fields
+          year: f.year || 2023,
+          make: f.make || 'Mercedes-Benz',
+          model: f.model || '',
+          price: f.price || 0,
+          exterior_color: f.exterior_color || '',
+          interior_color: f.interior_color || '',
+          mileage: f.mileage || f.current_mileage_km || 25000,
+          current_mileage_km: f.current_mileage_km || f.mileage || 25000,
+          horsepower_hp: f.horsepower_hp || 300,
+          engine: f.engine || '',
+          transmission: f.transmission || '',
+          fuel_type: f.fuel_type || 'Petrol',
+          features: f.features || [],
+          monthly_0_down_aed: f.monthly_0_down_aed || 0,
+          monthly_20_down_aed: f.monthly_20_down_aed || 0,
           // Image controls
           titleFontSize: typeof f.titleFontSize === 'number' ? f.titleFontSize : 72,
           imageFit: f.imageFit || 'cover',

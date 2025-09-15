@@ -61,8 +61,10 @@ app.post('/render-video', async (req, res) => {
     let outputName = `content-pillar-${dayOfWeek}-${templateType}`;
 
     if (html) {
+      console.log('🔍 Checking dayOfWeek for Remotion routing:', dayOfWeek);
       // For Monday and Tuesday templates, use the proper Remotion component for smooth animations
       if (dayOfWeek === 'monday' || dayOfWeek === 'tuesday') {
+        console.log('✅ Using Remotion ContentPillar composition for', dayOfWeek);
         compositionId = 'ContentPillar';
         // Extract form data from the request if available
         // Use templateType-specific formData (formDataA or formDataB) if available
@@ -101,6 +103,7 @@ app.post('/render-video', async (req, res) => {
         outputName = `${dayOfWeek}-${templateType || 'A'}`;
       } else {
         // For other days, use HTML rendering
+        console.log('❌ Using HTMLVideo composition for', dayOfWeek);
         compositionId = 'HTMLVideo';
         inputProps = { html };
         outputName = `html-video`;

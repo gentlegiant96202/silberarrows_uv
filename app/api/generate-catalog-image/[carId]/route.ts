@@ -401,7 +401,7 @@ export async function POST(
       stockNumber: car.stock_number,
       price: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '0',
       engine: car.engine || '—',
-      regionalSpecification: car.regional_specification || 'GCC SPECIFICATION',
+      regionalSpecification: (car.regional_specification || 'GCC SPECIFICATION').replace(/\s*SPECIFICATION/i, ''),
       horsepower: car.horsepower_hp || '—',
       originalPrice: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '—',
       zeroDownPayment: car.monthly_0_down_aed ? car.monthly_0_down_aed.toLocaleString() : '—',

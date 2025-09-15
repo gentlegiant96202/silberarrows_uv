@@ -198,7 +198,7 @@ function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
     '{{zeroDownPayment}}': String(carDetails.zeroDownPayment ?? '—'),
     '{{twentyDownPayment}}': String(carDetails.twentyDownPayment ?? '—'),
     '{{horsepower}}': String(carDetails.horsepower ?? '—'),
-    '{{regionalSpecification}}': String(carDetails.regionalSpecification ?? '—'),
+    '{{regionalSpecification}}': String(carDetails.regionalSpecification ?? '—').replace(/\s*SPECIFICATION/i, ''),
   };
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);

@@ -637,7 +637,8 @@ export default function ContentPillarModalRefactored({
           console.log('⬇️ Downloading Template A video...');
           downloadVideo(a, `content_pillar_${dayKey}_A_${Date.now()}.mp4`);
           // Upload to Supabase and save to modal
-          uploadVideoToSupabase(a, 'A').then(videoUrl => {
+          try {
+            const videoUrl = await uploadVideoToSupabase(a, 'A');
             if (videoUrl) {
               console.log('✅ Template A video uploaded, adding to modal:', videoUrl);
               setExistingMediaA((prev: any[]) => [
@@ -653,45 +654,44 @@ export default function ContentPillarModalRefactored({
             } else {
               console.error('❌ Template A video upload failed - no URL returned');
             }
-          }).catch(error => {
-            console.error('❌ Template A video upload promise failed:', error);
-          });
+          } catch (error) {
+            console.error('❌ Template A video upload failed:', error);
+          }
         } else {
           console.warn('⚠️ Template A video not found in response');
         }
         
-        // Add delay between downloads to prevent browser blocking
+        // Process Template B video (no setTimeout needed since we're awaiting)
         if (b) {
-          setTimeout(() => {
-            console.log('⬇️ Downloading Template B video...');
-            downloadVideo(b, `content_pillar_${dayKey}_B_${Date.now()}.mp4`);
-            // Upload to Supabase and save to modal
-            uploadVideoToSupabase(b, 'B').then(videoUrl => {
-              if (videoUrl) {
-                console.log('✅ Template B video uploaded, adding to modal:', videoUrl);
-                setExistingMediaB((prev: any[]) => [
-                  ...prev,
-                  { 
-                    name: `Template B Video ${new Date().toLocaleString()}`, 
-                    type: 'video/mp4', 
-                    size: Math.round(b.length * 0.75), // Approximate file size
-                    url: videoUrl,
-                    templateType: 'B'
-                  }
-                ]);
-              } else {
-                console.error('❌ Template B video upload failed - no URL returned');
-              }
-            }).catch(error => {
-              console.error('❌ Template B video upload promise failed:', error);
-            });
-          }, 1500); // 1.5 second delay
+          console.log('⬇️ Downloading Template B video...');
+          downloadVideo(b, `content_pillar_${dayKey}_B_${Date.now()}.mp4`);
+          // Upload to Supabase and save to modal
+          try {
+            const videoUrl = await uploadVideoToSupabase(b, 'B');
+            if (videoUrl) {
+              console.log('✅ Template B video uploaded, adding to modal:', videoUrl);
+              setExistingMediaB((prev: any[]) => [
+                ...prev,
+                { 
+                  name: `Template B Video ${new Date().toLocaleString()}`, 
+                  type: 'video/mp4', 
+                  size: Math.round(b.length * 0.75), // Approximate file size
+                  url: videoUrl,
+                  templateType: 'B'
+                }
+              ]);
+            } else {
+              console.error('❌ Template B video upload failed - no URL returned');
+            }
+          } catch (error) {
+            console.error('❌ Template B video upload failed:', error);
+          }
         } else {
           console.warn('⚠️ Template B video not found in response');
         }
 
         const downloadedCount = (a ? 1 : 0) + (b ? 1 : 0);
-        alert(`Videos generated successfully! Downloaded ${downloadedCount} video(s).`);
+        alert(`Videos generated successfully! Downloaded and saved ${downloadedCount} video(s) to modal.`);
       } else if (result?.success && result?.videoData) {
         // Legacy single video path
         console.log('✅ Video generated successfully!');

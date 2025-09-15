@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, Mail, Globe, Download, Star, Facebook, Instagram, Linkedin, MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 
 interface BusinessCard {
@@ -23,14 +23,9 @@ interface BusinessCard {
   is_active: boolean;
 }
 
-interface BusinessCardPageProps {
-  params: Promise<{
-    slug: string;
-  }>;
-}
-
-export default async function BusinessCardPage({ params }: BusinessCardPageProps) {
-  const { slug } = await params;
+export default function BusinessCardPage() {
+  const params = useParams();
+  const slug = params.slug as string;
   const [businessCard, setBusinessCard] = useState<BusinessCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);

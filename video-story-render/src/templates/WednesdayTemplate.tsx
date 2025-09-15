@@ -261,7 +261,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
             color: '#555555',
             marginBottom: '8px',
             fontWeight: 700,
-            fontFamily: 'Resonate, Inter, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             transform: `translateY(${slideFromTop(20, 30)}px)`,
             opacity: fadeIn(20),
             display: 'flex',

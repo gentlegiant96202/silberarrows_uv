@@ -270,13 +270,14 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
         padding: '24px 32px',
         borderRadius: '20px',
         backdropFilter: 'blur(20px)',
-        fontWeight: 800,
+        fontWeight: 400,
         fontSize: '32px',
         boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
         fontFamily: 'Resonate, Inter, sans-serif',
         opacity: fadeIn(90)
       }}>
-        ➡️ <span>More Details</span>
+        <i className="fas fa-arrow-right" style={{ marginRight: '12px' }}></i>
+        <span>More Details</span>
       </div>
     </div>
   );
@@ -508,11 +509,11 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
                 textAlign: 'center'
               }}>
-                <div style={{
+                <i className="fas fa-gauge-high" style={{
                   fontSize: '37px',
                   marginBottom: '8px',
                   color: '#cbd5e1'
-                }}>⚡</div>
+                }}></i>
                 <div style={{
                   fontSize: '23px',
                   color: '#cbd5e1',
@@ -543,11 +544,11 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
                 textAlign: 'center'
               }}>
-                <div style={{
+                <i className="fas fa-clock" style={{
                   fontSize: '37px',
                   marginBottom: '8px',
                   color: '#cbd5e1'
-                }}>🕐</div>
+                }}></i>
                 <div style={{
                   fontSize: '23px',
                   color: '#cbd5e1',
@@ -589,10 +590,10 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
                 gap: '12px',
                 marginBottom: '16px'
               }}>
-                <span style={{
+                <i className="fas fa-exclamation-triangle" style={{
                   fontSize: '32px',
                   color: '#ff6b6b'
-                }}>⚠️</span>
+                }}></i>
                 <span style={{
                   fontSize: '32px',
                   fontWeight: 700,
@@ -633,13 +634,15 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
           padding: '24px 32px',
           borderRadius: '20px',
           backdropFilter: 'blur(20px)',
-          fontWeight: 800,
+          fontWeight: 400,
           fontSize: '32px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           fontFamily: 'Resonate, Inter, sans-serif',
           opacity: fadeIn(105)
         }}>
-          📞 📱 Call or WhatsApp us at +971 4 380 5515
+          <i className="fas fa-phone" style={{ marginRight: '8px' }}></i>
+          <i className="fab fa-whatsapp" style={{ marginRight: '8px' }}></i>
+          Call or WhatsApp us at +971 4 380 5515
         </div>
       </div>
     </div>

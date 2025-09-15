@@ -209,13 +209,13 @@ ${fontFaceCSS}
       <div class="content-card">
         <div class="image-section">
           <img src="${renderImageUrl}" class="background-image" referrerpolicy="no-referrer" />
-          <div class="spotlight-badge"><i class="fas fa-star" style="margin-right:8px;"></i> HIGHLIGHT OF THE DAY</div>
+          <div class="spotlight-badge"><i class="fas fa-star" style="margin-right:8px;"></i> CAR OF THE DAY</div>
         </div>
         
         <div class="content">
           <div>
             <h1 class="title">${(() => {
-              const title = (formData.car_model || formData.title || '').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
+              const title = (formData.title || formData.car_model || '').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
               return title;
             })()}</h1>
             <div class="subtitle">${(() => {
@@ -251,11 +251,10 @@ ${fontFaceCSS}
         body { font-family: 'Resonate', 'Inter', sans-serif; background: #D5D5D5; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
         .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
         .content { padding: 32px; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 20px; overflow: visible; position: relative; z-index: 2; }
-        .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
-        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); animation: slideInFromTop 1s ease-out 0.3s both; }
-        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; animation: slideInFromRight 1s ease-out 0.5s both; }
-        .content-container { margin-top: 120px; }
-        .title-section { margin-bottom: 20px; }
+        .badge { position: absolute; top: 100px; left: 30px; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; padding: 16px 32px; border-radius: 25px; font-family: 'Resonate', 'Inter', sans-serif; font-weight: 300; font-size: 28px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); animation: slideInFromTop 1s ease-out 0.3s both; }
+        .company-logo-inline { position: absolute; top: 100px; right: 30px; height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); flex-shrink: 0; animation: slideInFromRight 1s ease-out 0.5s both; }
+        .content-container { margin-top: 200px; }
+        .title-section { margin-bottom: 10px; }
         .title { font-size: 41px; font-weight: 900; color: #555555; line-height: 1.1; text-shadow: none; margin-bottom: 12px; }
         .subtitle { font-size: 32px; color: #333333; margin-bottom: 16px; font-weight: 600; text-shadow: none; }
         .contact { position: fixed; left: 32px; right: 32px; bottom: 20px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.15); border: 2px solid rgba(0,0,0,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); color: #555555; }
@@ -266,8 +265,8 @@ ${fontFaceCSS}
           display: grid; 
           grid-template-columns: 1fr 1fr; 
           grid-template-rows: repeat(3, 1fr);
-          gap: 16px; 
-          margin: 16px 0; 
+          gap: 12px; 
+          margin: 12px 0; 
         }
         
         .detail-card {
@@ -321,7 +320,7 @@ ${fontFaceCSS}
           padding: 20px;
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
-          margin: 18px 0;
+          margin: 12px 0;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
         }
         
@@ -369,7 +368,7 @@ ${fontFaceCSS}
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 16px;
           padding: 20px;
-          margin: 18px 0;
+          margin: 12px 0;
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
@@ -439,8 +438,8 @@ ${fontFaceCSS}
         .monthly-payments-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 18px;
-          margin: 18px 0 24px 0;
+          gap: 16px;
+          margin: 12px 0 16px 0;
         }
         
         .monthly-card {
@@ -546,11 +545,17 @@ ${fontFaceCSS}
           <img src="${absoluteLogoUrl}" alt="SilberArrows" class="arrows-logo" />
         </div>
         <div class="content">
+          <!-- Badge positioned like Template A -->
+          <div class="badge">
+            <i class="fas fa-star" style="margin-right:8px;"></i> CAR OF THE DAY
+          </div>
+          <!-- Logo positioned like Template A -->
+          <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" />
           
           <div class="content-container">
             <div class="title-section">
               <h1 class="title">${(() => {
-                const title = (formData.car_model || formData.title || '').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
+                const title = (formData.title || formData.car_model || '').replace(/MERCEDES[-\s]*BENZ\s*/gi, '').replace(/^AMG\s*/gi, 'AMG ');
                 return title;
               })()}</h1>
           </div>
@@ -703,7 +708,6 @@ ${fontFaceCSS}
             return '';
           })()}
           
-          <div class="contact"><i class="fas fa-phone"></i> <i class="fab fa-whatsapp"></i> Call or WhatsApp us at +971 4 380 5515</div>
         </div>
       </div>
       </body>

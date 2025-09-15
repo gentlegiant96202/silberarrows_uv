@@ -1,6 +1,19 @@
 import React from 'react';
 import { useCurrentFrame, interpolate, Easing, staticFile, Img } from 'remotion';
 
+// Icon components
+const StarIcon = ({ size = 24, color = "#fff", marginRight = '8px' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ marginRight }}>
+    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill={color} />
+  </svg>
+);
+
+const AEDSymbol = ({ color = "#555555" }) => (
+  <svg height="0.7em" viewBox="0 0 344.84 299.91" style={{ display: 'inline-block', verticalAlign: 'baseline', marginRight: '6px', marginBottom: '-0.02em' }} xmlns="http://www.w3.org/2000/svg">
+    <path fill={color} d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
+  </svg>
+);
+
 interface WednesdayTemplateProps {
   title?: string;
   subtitle?: string;
@@ -17,6 +30,14 @@ interface WednesdayTemplateProps {
   imageVerticalPosition?: number;
   monthly_20_down_aed?: number;
   monthly_0_down_aed?: number;
+  // Template B specific props
+  current_mileage_km?: number;
+  horsepower?: number;
+  exterior_color?: string;
+  interior_color?: string;
+  engine?: string;
+  transmission?: string;
+  features?: string[] | string;
 }
 
 export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
@@ -34,7 +55,15 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
   imageZoom = 100,
   imageVerticalPosition = 0,
   monthly_20_down_aed = 0,
-  monthly_0_down_aed = 0
+  monthly_0_down_aed = 0,
+  // Template B specific props
+  current_mileage_km = 25000,
+  horsepower = 300,
+  exterior_color = 'Black',
+  interior_color = 'Black',
+  engine = '3.0L V6 Turbo',
+  transmission = '9G-TRONIC Automatic',
+  features = []
 }) => {
   const frame = useCurrentFrame();
   
@@ -60,13 +89,20 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
       easing: Easing.out(Easing.ease)
     });
 
+  const slideFromRight = (startFrame: number, distance: number = 50, duration: number = 30) =>
+    interpolate(frame, [startFrame, startFrame + duration], [distance, 0], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+      easing: Easing.out(Easing.ease)
+    });
+
   // Image zoom effect
   const imageScale = interpolate(frame, [0, 210], [(imageZoom + 8) / 100, imageZoom / 100], {
     easing: Easing.out(Easing.ease)
   });
 
-  // Clean title like in HTML template
-  const cleanTitle = (car_model || title || 'Your Title Here')
+  // Clean title like in HTML template - prioritize manual title input
+  const cleanTitle = (title || car_model || 'Your Title Here')
     .replace(/MERCEDES[-\s]*BENZ\s*/gi, '')
     .replace(/^AMG\s*/gi, 'AMG ');
 
@@ -183,7 +219,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
           transform: `translateY(${slideFromTop(9)}px)`,
           opacity: fadeIn(9)
         }}>
-          <StarIcon size={24} color="#000" /> HIGHLIGHT OF THE DAY
+          <StarIcon size={24} color="#000" /> CAR OF THE DAY
         </div>
         
         {/* Content Overlay - centered like HTML template */}
@@ -204,8 +240,8 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
         }}>
           {/* Title */}
           <div style={{
-            transform: `translateX(${slideFromLeft(24)}px)`,
-            opacity: fadeIn(24)
+            transform: `translateX(${slideFromLeft(15)}px)`,
+            opacity: fadeIn(15)
           }}>
             <h1 style={{
               fontSize: `${titleFontSize}px`,
@@ -226,8 +262,8 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
             marginBottom: '8px',
             fontWeight: 700,
             fontFamily: 'Resonate, Inter, sans-serif',
-            transform: `translateY(${slideFromTop(36, 30)}px)`,
-            opacity: fadeIn(36),
+            transform: `translateY(${slideFromTop(20, 30)}px)`,
+            opacity: fadeIn(20),
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -305,53 +341,54 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
         gap: '20px',
         overflow: 'visible'
       }}>
-        {/* Badge and Logo Row */}
+        {/* Badge positioned exactly like Template A */}
         <div style={{
-          display: 'flex',
+          position: 'absolute',
+          top: '100px',
+          left: '30px',
+          background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
+          color: '#000',
+          padding: '16px 32px',
+          borderRadius: '25px',
+          fontFamily: 'Resonate, Inter, sans-serif',
+          fontWeight: 300,
+          fontSize: '28px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.8px',
+          whiteSpace: 'nowrap',
+          display: 'inline-flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '16px',
-          marginTop: '20px'
+          boxShadow: '0 6px 20px rgba(255,255,255,0.1)',
+          border: '2px solid rgba(255,255,255,0.2)',
+          zIndex: 10,
+          transform: `translateY(${slideFromTop(6)}px)`,
+          opacity: fadeIn(6)
         }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1)',
-            color: '#000',
-            padding: '16px 32px',
-            borderRadius: '25px',
-            fontWeight: 500,
-            fontSize: '24px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.8px',
-            whiteSpace: 'nowrap',
-            display: 'inline-flex',
-            alignItems: 'center',
-            boxShadow: '0 6px 20px rgba(255,255,255,0.1)',
-            border: '2px solid rgba(255,255,255,0.2)',
-            fontFamily: 'Resonate, Inter, sans-serif',
-            transform: `translateY(${slideFromTop(9)}px)`,
-            opacity: fadeIn(9)
-          }}>
-            <StarIcon size={20} color="#000" /> {badgeText}
-          </div>
-          <Img
-            src={logoUrl}
-            alt="SilberArrows Logo"
-            style={{
-              height: '96px',
-              width: 'auto',
-              filter: 'brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-              marginTop: '4px',
-              flexShrink: 0,
-              transform: `translateX(${slideFromRight(15)}px)`,
-              opacity: fadeIn(15)
-            }}
-          />
+          <StarIcon size={20} color="#000" marginRight="8px" /> CAR OF THE DAY
         </div>
         
-        {/* Content Container */}
-        <div style={{ marginTop: '120px' }}>
+        {/* Logo positioned exactly like Template A */}
+        <Img
+          src={logoUrl}
+          alt="SilberArrows Logo"
+          style={{
+            position: 'absolute',
+            top: '100px',
+            right: '30px',
+            height: '96px',
+            width: 'auto',
+            filter: 'brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+            flexShrink: 0,
+            zIndex: 10,
+            transform: `translateX(${slideFromRight(15)}px)`,
+            opacity: fadeIn(15)
+          }}
+        />
+        
+        {/* Content Container - push below badge level */}
+        <div style={{ marginTop: '200px' }}>
           {/* Title Section */}
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '10px' }}>
             <h1 style={{
               fontSize: '41px',
               fontWeight: 900,
@@ -370,10 +407,10 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gridTemplateRows: 'repeat(3, 1fr)',
-            gap: '16px',
-            margin: '16px 0',
-            transform: `translateY(${slideFromTop(36, 30)}px)`,
-            opacity: fadeIn(36)
+            gap: '12px',
+            margin: '12px 0',
+            transform: `translateY(${slideFromTop(20, 30)}px)`,
+            opacity: fadeIn(20)
           }}>
             {/* Mileage Card */}
             <div style={{
@@ -642,10 +679,10 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
               borderRadius: '16px',
               padding: '20px',
               backdropFilter: 'blur(8px)',
-              margin: '18px 0',
+              margin: '12px 0',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
-              transform: `translateY(${slideFromTop(45, 30)}px)`,
-              opacity: fadeIn(45)
+              transform: `translateY(${slideFromTop(25, 30)}px)`,
+              opacity: fadeIn(25)
             }}>
               <div style={{
                 display: 'flex',
@@ -673,15 +710,54 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
                 }}>Key Equipment (highlights)</span>
               </div>
               <div style={{
-                fontSize: '20px',
+                fontSize: '26px',
                 color: '#333333',
-                lineHeight: 1.5,
+                lineHeight: 1.4,
                 marginLeft: '44px',
-                fontFamily: 'Resonate, Inter, sans-serif'
+                fontFamily: 'Resonate, Inter, sans-serif',
+                listStyle: 'none',
+                padding: 0
               }}>
                 {(() => {
                   if (Array.isArray(features)) {
-                    return features.slice(0, 3).join(' • ').replace(/\n/g, ' • ');
+                    // Process features like HTML template
+                    let equipmentText = features.join(', ');
+                    let allEquipment = [];
+                    
+                    // Handle different formats like HTML
+                    if (equipmentText.includes('\n') || equipmentText.includes('↵')) {
+                      allEquipment = equipmentText
+                        .replace(/↵/g, '\n')
+                        .split(/\n/)
+                        .map(item => item.trim());
+                    } else if (equipmentText.includes(',')) {
+                      allEquipment = equipmentText.split(',').map(item => item.trim());
+                    } else {
+                      allEquipment = equipmentText
+                        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+                        .split(/\s{2,}|;|\.|(?=[A-Z][A-Z\s]*[A-Z](?=[a-z]))|(?<=[a-z])(?=[A-Z])/)
+                        .map(item => item.trim());
+                    }
+                    
+                    // Filter and clean like HTML
+                    allEquipment = allEquipment
+                      .filter(item => item.length > 2 && item.length < 120)
+                      .filter(item => item !== '')
+                      .filter(item => item.match(/[A-Za-z]/))
+                      .filter(item => !item.match(/^[A-Z]{1,2}$/));
+                    
+                    // Take first 10 items and display as vertical list
+                    const selectedEquipment = allEquipment.slice(0, 10);
+                    
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {selectedEquipment.map((item, index) => (
+                          <div key={index} style={{ marginBottom: '12px' }}>
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    );
                   }
                   return features.toString().slice(0, 300) + '...';
                 })()}
@@ -695,19 +771,19 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
               display: 'grid',
               gridTemplateColumns: (monthly_0_down_aed && monthly_20_down_aed) ? '1fr 1fr' : '1fr',
               gap: '20px',
-              margin: '32px 0',
-              transform: `translateY(${slideFromTop(60, 30)}px)`,
-              opacity: fadeIn(60)
+              margin: '16px 0',
+              transform: `translateY(${slideFromTop(30, 30)}px)`,
+              opacity: fadeIn(30)
             }}>
               {monthly_0_down_aed && (
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,140,0,0.15))',
-                  border: '1px solid rgba(255,215,0,0.3)',
-                  borderRadius: '20px',
-                  padding: '32px 24px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '16px',
+                  padding: '20px',
                   textAlign: 'center',
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                  backdropFilter: 'blur(8px)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
                 }}>
                   <div style={{
                     display: 'flex',
@@ -718,18 +794,19 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
                   }}>
                     <i className="fas fa-calendar-alt" style={{ color: '#555555', fontSize: '20px' }}></i>
                     <span style={{
-                      fontSize: '20px',
-                      fontWeight: 600,
+                      fontSize: '18px',
+                      fontWeight: 700,
                       color: '#555555',
                       textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
                       fontFamily: 'Resonate, Inter, sans-serif'
                     }}>0% Down</span>
                   </div>
                   <div style={{
-                    fontSize: '32px',
-                    fontWeight: 700,
+                    fontSize: '46px',
                     color: '#555555',
-                    marginBottom: '8px',
+                    fontWeight: 900,
+                    marginBottom: '4px',
                     fontFamily: 'Resonate, Inter, sans-serif',
                     display: 'flex',
                     alignItems: 'center',
@@ -748,13 +825,13 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
               
               {monthly_20_down_aed && (
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,140,0,0.15))',
-                  border: '1px solid rgba(255,215,0,0.3)',
-                  borderRadius: '20px',
-                  padding: '32px 24px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '16px',
+                  padding: '20px',
                   textAlign: 'center',
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                  backdropFilter: 'blur(8px)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
                 }}>
                   <div style={{
                     display: 'flex',
@@ -765,18 +842,19 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
                   }}>
                     <i className="fas fa-calendar-alt" style={{ color: '#555555', fontSize: '20px' }}></i>
                     <span style={{
-                      fontSize: '20px',
-                      fontWeight: 600,
+                      fontSize: '18px',
+                      fontWeight: 700,
                       color: '#555555',
                       textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
                       fontFamily: 'Resonate, Inter, sans-serif'
                     }}>20% Down</span>
                   </div>
                   <div style={{
-                    fontSize: '32px',
-                    fontWeight: 700,
+                    fontSize: '46px',
                     color: '#555555',
-                    marginBottom: '8px',
+                    fontWeight: 900,
+                    marginBottom: '4px',
                     fontFamily: 'Resonate, Inter, sans-serif',
                     display: 'flex',
                     alignItems: 'center',
@@ -796,34 +874,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
           )}
         </div>
 
-        {/* Contact Section - Single contact bar */}
-        <div style={{
-          position: 'fixed',
-          left: '32px',
-          right: '32px',
-          bottom: '20px',
-          zIndex: 5,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '16px',
-          background: 'rgba(0,0,0,0.15)',
-          border: '2px solid rgba(0,0,0,0.3)',
-          padding: '24px 32px',
-          borderRadius: '20px',
-          backdropFilter: 'blur(20px)',
-          fontWeight: 400,
-          fontSize: '32px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          color: '#555555',
-          fontFamily: 'Resonate, Inter, sans-serif',
-          opacity: fadeIn(90)
-        }}>
-          <i className="fas fa-phone" style={{ marginRight: '8px' }}></i>
-          <i className="fab fa-whatsapp" style={{ marginRight: '8px' }}></i>
-          <span style={{ fontWeight: 'bold' }}>Call or WhatsApp us at +971 4 380 5515</span>
         </div>
-      </div>
     </div>
   );
 

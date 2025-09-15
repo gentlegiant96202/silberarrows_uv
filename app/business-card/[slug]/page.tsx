@@ -141,17 +141,17 @@ export default function BusinessCardPage() {
       <div className="container mx-auto px-3 py-4">
         <div className="max-w-sm mx-auto">
           {/* Business Card */}
-          <div className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 rounded-2xl p-6 shadow-2xl border border-white/20">
+          <div className="bg-black rounded-2xl p-6 shadow-2xl border border-gray-600">
             {/* Header Section - Name/Title/Company + Logo */}
             <div className="flex items-center justify-between mb-5">
               {/* Contact Info - Left Aligned */}
               <div className="text-left flex-1">
-                <h1 className="text-xl font-bold text-black leading-tight">{businessCard.name}</h1>
+                <h1 className="text-xl font-bold text-white leading-tight">{businessCard.name}</h1>
                 {businessCard.title && (
-                  <p className="text-black/80 text-base leading-tight">{businessCard.title}</p>
+                  <p className="text-white/80 text-base leading-tight">{businessCard.title}</p>
                 )}
                 {businessCard.company && (
-                  <p className="text-black/70 text-sm leading-tight">{businessCard.company}</p>
+                  <p className="text-white/70 text-sm leading-tight">{businessCard.company}</p>
                 )}
               </div>
 
@@ -176,7 +176,7 @@ export default function BusinessCardPage() {
               {businessCard.landline_phone && (
                 <button
                   onClick={() => handlePhoneCall(businessCard.landline_phone!)}
-                  className="w-full flex items-center gap-3 bg-black/10 hover:bg-black/20 rounded-xl p-3 transition-all group text-left"
+                  className="w-full flex items-center gap-3 bg-gradient-to-br from-gray-300 via-gray-200 to-gray-400 hover:from-gray-200 hover:via-gray-100 hover:to-gray-300 rounded-xl p-3 transition-all group text-left"
                 >
                   <Phone className="w-5 h-5 text-black group-hover:scale-110 transition-transform flex-shrink-0" />
                   <div className="text-left">
@@ -189,7 +189,7 @@ export default function BusinessCardPage() {
               {businessCard.mobile_phone && (
                 <button
                   onClick={() => handlePhoneCall(businessCard.mobile_phone!)}
-                  className="w-full flex items-center gap-3 bg-black/10 hover:bg-black/20 rounded-xl p-3 transition-all group text-left"
+                  className="w-full flex items-center gap-3 bg-gradient-to-br from-gray-300 via-gray-200 to-gray-400 hover:from-gray-200 hover:via-gray-100 hover:to-gray-300 rounded-xl p-3 transition-all group text-left"
                 >
                   <Phone className="w-5 h-5 text-black group-hover:scale-110 transition-transform flex-shrink-0" />
                   <div className="text-left">
@@ -202,7 +202,7 @@ export default function BusinessCardPage() {
               {businessCard.email && (
                 <button
                   onClick={() => handleEmail(businessCard.email!)}
-                  className="w-full flex items-center gap-3 bg-black/10 hover:bg-black/20 rounded-xl p-3 transition-all group text-left"
+                  className="w-full flex items-center gap-3 bg-gradient-to-br from-gray-300 via-gray-200 to-gray-400 hover:from-gray-200 hover:via-gray-100 hover:to-gray-300 rounded-xl p-3 transition-all group text-left"
                 >
                   <Mail className="w-5 h-5 text-black group-hover:scale-110 transition-transform flex-shrink-0" />
                   <span className="text-black font-medium">{businessCard.email}</span>
@@ -212,7 +212,7 @@ export default function BusinessCardPage() {
               {businessCard.website && (
                 <button
                   onClick={() => handleWebsite(businessCard.website!)}
-                  className="w-full flex items-center gap-3 bg-black/10 hover:bg-black/20 rounded-xl p-3 transition-all group text-left"
+                  className="w-full flex items-center gap-3 bg-gradient-to-br from-gray-300 via-gray-200 to-gray-400 hover:from-gray-200 hover:via-gray-100 hover:to-gray-300 rounded-xl p-3 transition-all group text-left"
                 >
                   <Globe className="w-5 h-5 text-black group-hover:scale-110 transition-transform flex-shrink-0" />
                   <span className="text-black font-medium">Visit Website</span>
@@ -223,7 +223,7 @@ export default function BusinessCardPage() {
             {/* Save to Contacts Button */}
             <button
               onClick={downloadVCard}
-              className="w-full bg-black text-white rounded-xl p-4 font-semibold hover:bg-black/90 transition-all flex items-center justify-center gap-3 mb-5 group shadow-lg"
+              className="w-full bg-gradient-to-br from-gray-300 via-gray-200 to-gray-400 text-black rounded-xl p-4 font-semibold hover:from-gray-200 hover:via-gray-100 hover:to-gray-300 transition-all flex items-center justify-center gap-3 mb-5 group shadow-lg"
             >
               <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
               Save to Contacts
@@ -231,13 +231,13 @@ export default function BusinessCardPage() {
 
             {/* Google Reviews Section */}
             {businessCard.google_review_url && (
-              <div className="border-t border-black/20 pt-5 mb-5">
-                <h3 className="text-center text-black font-semibold text-base mb-3">Review Us on Google</h3>
+              <div className="border-t border-gray-600 pt-5 mb-5">
+                <h3 className="text-center text-white font-semibold text-base mb-3">Review Us on Google</h3>
                 <a
                   href={businessCard.google_review_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full bg-black/10 hover:bg-black/20 rounded-xl p-3 transition-all group flex items-center justify-center gap-3"
+                  className="w-full bg-gradient-to-br from-gray-300 via-gray-200 to-gray-400 hover:from-gray-200 hover:via-gray-100 hover:to-gray-300 rounded-xl p-3 transition-all group flex items-center justify-center gap-3"
                 >
                   <Star className="w-5 h-5 text-yellow-600 group-hover:scale-110 transition-transform" />
                   <span className="text-black font-medium">Leave a Google Review</span>
@@ -247,15 +247,15 @@ export default function BusinessCardPage() {
 
             {/* Social Media Links */}
             {(businessCard.facebook_url || businessCard.instagram_url || businessCard.linkedin_url) && (
-              <div className="border-t border-black/20 pt-5">
-                <p className="text-center text-black/70 text-sm mb-3">Follow Us</p>
+              <div className="border-t border-gray-600 pt-5">
+                <p className="text-center text-white/70 text-sm mb-3">Follow Us</p>
                 <div className="flex justify-center gap-4">
                   {businessCard.facebook_url && (
                     <a
                       href={businessCard.facebook_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-10 h-10 bg-black/10 hover:bg-black/20 rounded-full flex items-center justify-center transition-all group"
+                      className="w-10 h-10 bg-gradient-to-br from-gray-300 via-gray-200 to-gray-400 hover:from-gray-200 hover:via-gray-100 hover:to-gray-300 rounded-full flex items-center justify-center transition-all group"
                     >
                       <Facebook className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
                     </a>
@@ -265,7 +265,7 @@ export default function BusinessCardPage() {
                       href={businessCard.instagram_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-10 h-10 bg-black/10 hover:bg-black/20 rounded-full flex items-center justify-center transition-all group"
+                      className="w-10 h-10 bg-gradient-to-br from-gray-300 via-gray-200 to-gray-400 hover:from-gray-200 hover:via-gray-100 hover:to-gray-300 rounded-full flex items-center justify-center transition-all group"
                     >
                       <Instagram className="w-5 h-5 text-pink-600 group-hover:scale-110 transition-transform" />
                     </a>
@@ -275,7 +275,7 @@ export default function BusinessCardPage() {
                       href={businessCard.linkedin_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-10 h-10 bg-black/10 hover:bg-black/20 rounded-full flex items-center justify-center transition-all group"
+                      className="w-10 h-10 bg-gradient-to-br from-gray-300 via-gray-200 to-gray-400 hover:from-gray-200 hover:via-gray-100 hover:to-gray-300 rounded-full flex items-center justify-center transition-all group"
                     >
                       <Linkedin className="w-5 h-5 text-blue-700 group-hover:scale-110 transition-transform" />
                     </a>

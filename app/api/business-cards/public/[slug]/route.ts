@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Create admin client for public access (bypasses RLS)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 // GET - Fetch public business card by slug
 export async function GET(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
@@ -19,17 +7,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     const params = await context.params;
     console.log('Public API: Looking for business card with slug:', params.slug);
     
-    // Check environment variables
-    console.log('Environment check:', {
-      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
-    });
-
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('Missing environment variables');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
+    console.log('Using supabaseAdmin client for public business card access');
     
     // Fetch business card (public access, no authentication required)
     const { data: businessCard, error } = await supabaseAdmin

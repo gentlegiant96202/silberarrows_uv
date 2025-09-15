@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { createClient } from '@supabase/supabase-js';
 
-// Create admin client for permission checking
-const supabaseAdmin = createClient(
+// Create temp admin client for auth validation only
+const tempSupabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   {
@@ -26,14 +27,14 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
     const token = authHeader.replace('Bearer ', '');
     
     // Get user from token using admin client
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: userError } = await tempSupabaseAdmin.auth.getUser(token);
     
     if (userError || !user) {
       return { error: 'Invalid authorization token', status: 401 };
     }
 
     // Get user permissions for marketing module
-    const { data: permissions, error: permError } = await supabaseAdmin
+    const { data: permissions, error: permError } = await tempSupabaseAdmin
       .rpc('get_user_module_permissions', {
         check_user_id: user.id,
         module_name: 'marketing'

@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Plus, Edit, Eye, Globe, ExternalLink, Copy, Trash2, User, Phone, Mail, Building, Star, Facebook, Instagram, Linkedin } from 'lucide-react';
+import { CreditCard, Plus, Edit, Eye, Globe, ExternalLink, Copy, Trash2, User, Phone, Mail, Building, Star, Facebook, Instagram, Linkedin, QrCode, Download, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 import BusinessCardModal from './BusinessCardModal';
 
 interface BusinessCard {
-  id: string;
-  slug: string;
+  id: number; // Simple integer ID
   name: string;
   title: string | null;
   company: string | null;
@@ -23,6 +22,7 @@ interface BusinessCard {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  qr_generated_at?: string | null;
 }
 
 export default function BusinessCardBoard() {
@@ -68,8 +68,8 @@ export default function BusinessCardBoard() {
   }, [user]);
 
   // Copy public URL to clipboard
-  const copyPublicUrl = async (slug: string) => {
-    const url = `${window.location.origin}/business-card/${slug}`;
+  const copyPublicUrl = async (id: number) => {
+    const url = `${window.location.origin}/business-card/${id}`;
     try {
       await navigator.clipboard.writeText(url);
       alert('Public URL copied to clipboard!');
@@ -79,7 +79,7 @@ export default function BusinessCardBoard() {
   };
 
   // Toggle card active status
-  const toggleCardStatus = async (id: string, currentStatus: boolean) => {
+  const toggleCardStatus = async (id: number, currentStatus: boolean) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -107,7 +107,7 @@ export default function BusinessCardBoard() {
   };
 
   // Delete business card
-  const deleteCard = async (id: string) => {
+  const deleteCard = async (id: number) => {
     if (!confirm('Are you sure you want to delete this business card?')) return;
     
     try {
@@ -128,6 +128,42 @@ export default function BusinessCardBoard() {
       await loadBusinessCards();
     } catch (error) {
       console.error('Error deleting card:', error);
+    }
+  };
+
+  // Generate and download QR code
+  const downloadQRCode = async (id: number, name: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(`/api/business-cards/${id}/qr-code`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate QR code');
+      }
+
+      // Download the QR code PNG
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${name.replace(/\s+/g, '_')}_QR.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // Reload cards to update QR status
+      await loadBusinessCards();
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      alert('Failed to generate QR code');
     }
   };
 
@@ -229,13 +265,15 @@ export default function BusinessCardBoard() {
 
                 {/* Public URL */}
                 <div className="bg-black/30 rounded-lg p-3 mb-4">
-                  <p className="text-white/50 text-xs mb-1">Public URL:</p>
+                  <p className="text-white/50 text-xs mb-1">
+                    Public URL {card.qr_generated_at && <Lock className="w-3 h-3 inline text-green-500 ml-1" />}:
+                  </p>
                   <div className="flex items-center gap-2">
                     <code className="text-white/70 text-xs flex-1 truncate">
-                      /business-card/{card.slug}
+                      /business-card/{card.id}
                     </code>
                     <button
-                      onClick={() => copyPublicUrl(card.slug)}
+                      onClick={() => copyPublicUrl(card.id)}
                       className="text-white/50 hover:text-white transition-colors"
                     >
                       <Copy className="w-3 h-3" />
@@ -247,7 +285,7 @@ export default function BusinessCardBoard() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => window.open(`/business-card/${card.slug}`, '_blank')}
+                      onClick={() => window.open(`/business-card/${card.id}`, '_blank')}
                       className="text-white/50 hover:text-white transition-colors"
                       title="Preview"
                     >
@@ -259,6 +297,17 @@ export default function BusinessCardBoard() {
                       title="Edit"
                     >
                       <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => downloadQRCode(card.id, card.name)}
+                      className={`transition-colors ${
+                        card.qr_generated_at 
+                          ? 'text-green-400 hover:text-green-300' 
+                          : 'text-white/50 hover:text-white'
+                      }`}
+                      title={card.qr_generated_at ? 'Download QR Code (Generated)' : 'Generate & Download QR Code'}
+                    >
+                      <QrCode className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => deleteCard(card.id)}

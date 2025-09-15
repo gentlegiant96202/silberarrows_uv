@@ -1,21 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-// GET - Fetch public business card by slug
+// GET - Fetch public business card by ID (simple 5-digit number)
 export async function GET(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
   try {
     const params = await context.params;
-    console.log('Public API: Looking for business card with slug:', params.slug);
+    const identifier = params.slug;
+    console.log('Public API: Looking for business card with identifier:', identifier);
     
     console.log('Using supabaseAdmin client for public business card access');
     
-    // Fetch business card (public access, no authentication required)
-    const { data: businessCard, error } = await supabaseAdmin
+    // Try to parse as integer first (new simple ID system)
+    const isNumericId = /^\d+$/.test(identifier);
+    
+    let query = supabaseAdmin
       .from('business_cards')
       .select('*')
-      .eq('slug', params.slug)
-      .eq('is_active', true) // Only return active cards
-      .single();
+      .eq('is_active', true);
+    
+    if (isNumericId) {
+      // New system: simple integer ID
+      query = query.eq('id', parseInt(identifier));
+      console.log('Using simple ID lookup for:', identifier);
+    } else {
+      // Legacy system: slug-based (for backward compatibility)
+      query = query.eq('slug', identifier);
+      console.log('Using slug lookup for:', identifier);
+    }
+    
+    const { data: businessCard, error } = await query.single();
 
     console.log('Public API: Query result - error:', error, 'data:', businessCard);
 

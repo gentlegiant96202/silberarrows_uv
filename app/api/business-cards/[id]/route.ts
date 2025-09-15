@@ -74,15 +74,7 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
   }
 }
 
-// Helper function to generate unique slug
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single
-    .trim();
-}
+// No longer need slug generation - using simple auto-generated IDs
 
 // GET - Fetch specific business card
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -150,33 +142,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       return NextResponse.json({ error: 'Failed to fetch business card' }, { status: 500 });
     }
 
-    // Handle slug update
-    let slug = body.slug;
-    if (!slug || slug !== existingCard.slug) {
-      slug = body.slug || generateSlug(body.name);
-      
-      // Ensure slug is unique (excluding current card)
-      let slugCounter = 1;
-      let originalSlug = slug;
-      
-      while (true) {
-        const { data: existing } = await supabaseAdmin
-          .from('business_cards')
-          .select('id')
-          .eq('slug', slug)
-          .neq('id', params.id)
-          .single();
-        
-        if (!existing) break;
-        
-        slug = `${originalSlug}-${slugCounter}`;
-        slugCounter++;
-      }
-    }
-
-    // Update business card
+    // Update business card (no slug handling needed with simple IDs)
     const businessCardData = {
-      slug,
       name: body.name,
       title: body.title || null,
       company: body.company || null,

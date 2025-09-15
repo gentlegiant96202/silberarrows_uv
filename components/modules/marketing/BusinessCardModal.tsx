@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Building, Phone, Mail, Globe, Star, Facebook, Instagram, Linkedin, Hash } from 'lucide-react';
+import { X, Save, User, Building, Phone, Mail, Globe, Star, Facebook, Instagram, Linkedin, QrCode, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import QRCode from 'qrcode';
 
 interface BusinessCard {
-  id: string;
-  slug: string;
+  id: number; // Simple integer ID
   name: string;
   title: string | null;
   company: string | null;
@@ -19,6 +19,7 @@ interface BusinessCard {
   instagram_url: string | null;
   linkedin_url: string | null;
   is_active: boolean;
+  qr_generated_at?: string | null;
 }
 
 interface BusinessCardModalProps {
@@ -37,7 +38,6 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
     mobile_phone: '',
     email: '',
     website: '',
-    slug: '',
     google_review_url: '',
     facebook_url: '',
     instagram_url: '',
@@ -46,6 +46,8 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
   });
   const [loading, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const [generatingQR, setGeneratingQR] = useState(false);
 
   // Initialize form data when editing
   useEffect(() => {
@@ -58,7 +60,6 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
         mobile_phone: editingCard.mobile_phone || '',
         email: editingCard.email || '',
         website: editingCard.website || '',
-        slug: editingCard.slug || '',
         google_review_url: editingCard.google_review_url || '',
         facebook_url: editingCard.facebook_url || '',
         instagram_url: editingCard.instagram_url || '',
@@ -75,7 +76,6 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
         mobile_phone: '',
         email: '',
         website: '',
-        slug: '',
         google_review_url: '',
         facebook_url: '',
         instagram_url: '',
@@ -86,18 +86,66 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
     setErrors({});
   }, [editingCard, isOpen]);
 
-  // Auto-generate slug from name
-  useEffect(() => {
-    if (formData.name && !editingCard) {
-      const autoSlug = formData.name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
-      setFormData(prev => ({ ...prev, slug: autoSlug }));
+  // Generate QR code preview
+  const generateQRPreview = async () => {
+    if (!editingCard) return;
+    
+    setGeneratingQR(true);
+    try {
+      const url = `${window.location.origin}/business-card/${editingCard.id}`;
+      const qrDataUrl = await QRCode.toDataURL(url, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'H'
+      });
+      setQrCodeDataUrl(qrDataUrl);
+    } catch (error) {
+      console.error('Error generating QR preview:', error);
+    } finally {
+      setGeneratingQR(false);
     }
-  }, [formData.name, editingCard]);
+  };
+
+  // Download QR code
+  const downloadQRCode = async () => {
+    if (!editingCard) return;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(`/api/business-cards/${editingCard.id}/qr-code`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate QR code');
+      }
+
+      // Download the QR code PNG
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${editingCard.name.replace(/\s+/g, '_')}_QR.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      alert('QR code downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading QR code:', error);
+      alert('Failed to download QR code');
+    }
+  };
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -112,12 +160,6 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
 
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
-    }
-
-    if (!formData.slug.trim()) {
-      newErrors.slug = 'URL slug is required';
-    } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      newErrors.slug = 'URL slug can only contain lowercase letters, numbers, and hyphens';
     }
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -242,24 +284,23 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
               />
             </div>
 
-            {/* URL Slug */}
-            <div>
-              <label className="block text-white/70 text-sm mb-2">
-                <Hash className="w-4 h-4 inline mr-1" />
-                URL Slug *
-              </label>
-              <div className="flex items-center">
-                <span className="text-white/50 text-sm mr-2">/business-card/</span>
-                <input
-                  type="text"
-                  value={formData.slug}
-                  onChange={(e) => handleInputChange('slug', e.target.value.toLowerCase())}
-                  className="flex-1 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:border-white/40 focus:outline-none"
-                  placeholder="john-smith"
-                />
+            {/* Public URL Preview */}
+            {editingCard && (
+              <div>
+                <label className="block text-white/70 text-sm mb-2">
+                  <Globe className="w-4 h-4 inline mr-1" />
+                  Public URL
+                </label>
+                <div className="bg-black/30 rounded-lg p-3">
+                  <code className="text-white/70 text-sm">
+                    /business-card/{editingCard.id}
+                  </code>
+                  {editingCard.qr_generated_at && (
+                    <span className="ml-2 text-green-400 text-xs">🔒 QR Generated</span>
+                  )}
+                </div>
               </div>
-              {errors.slug && <p className="text-red-400 text-sm mt-1">{errors.slug}</p>}
-            </div>
+            )}
           </div>
 
           {/* Contact Info */}
@@ -393,6 +434,62 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
               />
             </div>
           </div>
+
+          {/* QR Code Section (Only for existing cards) */}
+          {editingCard && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-white mb-3">QR Code for Printing</h3>
+              
+              <div className="bg-black/30 rounded-lg p-4">
+                <div className="flex items-start gap-4">
+                  {/* QR Code Preview */}
+                  <div className="flex-shrink-0">
+                    {qrCodeDataUrl ? (
+                      <img 
+                        src={qrCodeDataUrl} 
+                        alt="QR Code" 
+                        className="w-24 h-24 bg-white rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 bg-black/40 border border-white/20 rounded-lg flex items-center justify-center">
+                        <QrCode className="w-8 h-8 text-white/50" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* QR Code Info */}
+                  <div className="flex-1">
+                    <p className="text-white/70 text-sm mb-2">
+                      QR Code URL: <code className="text-white/90">/business-card/{editingCard.id}</code>
+                    </p>
+                    {editingCard.qr_generated_at && (
+                      <p className="text-green-400 text-xs mb-3">
+                        🔒 QR Generated: {new Date(editingCard.qr_generated_at).toLocaleDateString()}
+                      </p>
+                    )}
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={generateQRPreview}
+                        disabled={generatingQR}
+                        className="px-3 py-1.5 bg-white/10 text-white text-sm rounded-lg hover:bg-white/20 transition-all disabled:opacity-50"
+                      >
+                        {generatingQR ? 'Generating...' : 'Preview QR'}
+                      </button>
+                      
+                      <button
+                        onClick={downloadQRCode}
+                        className="px-3 py-1.5 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black text-sm rounded-lg hover:from-gray-300 hover:via-gray-200 hover:to-gray-500 transition-all flex items-center gap-1"
+                      >
+                        <Download className="w-3 h-3" />
+                        Download PNG
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Active Status */}
           <div className="flex items-center gap-3">

@@ -148,11 +148,14 @@ export async function POST(request: NextRequest) {
     // Generate simple ID (no slug needed)
     // The database will auto-generate a unique 5-digit ID
 
+    // Generate simple ID first
+    const newId = await generateSimpleId();
+    
     // Create business card with auto-generated simple ID
     const { data: businessCard, error } = await supabaseAdmin
       .from('business_cards')
       .insert({
-        id: await generateSimpleId(), // Generate simple 5-digit ID
+        id: newId,
         name: body.name,
         title: body.title || null,
         company: body.company || null,
@@ -165,6 +168,7 @@ export async function POST(request: NextRequest) {
         instagram_url: body.instagram_url || null,
         linkedin_url: body.linkedin_url || null,
         is_active: body.is_active !== undefined ? body.is_active : true,
+        qr_generated_at: new Date().toISOString(), // Auto-generate QR timestamp
         created_by: user.id
       })
       .select()

@@ -86,29 +86,37 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
     setErrors({});
   }, [editingCard, isOpen]);
 
-  // Generate QR code preview
-  const generateQRPreview = async () => {
-    if (!editingCard) return;
-    
-    setGeneratingQR(true);
-    try {
-      const url = `${window.location.origin}/business-card/${editingCard.id}`;
-      const qrDataUrl = await QRCode.toDataURL(url, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        },
-        errorCorrectionLevel: 'H'
-      });
-      setQrCodeDataUrl(qrDataUrl);
-    } catch (error) {
-      console.error('Error generating QR preview:', error);
-    } finally {
-      setGeneratingQR(false);
+  // Load QR code preview automatically
+  useEffect(() => {
+    const loadQRPreview = async () => {
+      if (!editingCard) return;
+      
+      setGeneratingQR(true);
+      try {
+        const url = `${window.location.origin}/business-card/${editingCard.id}`;
+        const qrDataUrl = await QRCode.toDataURL(url, {
+          width: 200,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          },
+          errorCorrectionLevel: 'H'
+        });
+        setQrCodeDataUrl(qrDataUrl);
+      } catch (error) {
+        console.error('Error generating QR preview:', error);
+      } finally {
+        setGeneratingQR(false);
+      }
+    };
+
+    if (editingCard && isOpen) {
+      loadQRPreview();
+    } else {
+      setQrCodeDataUrl(null);
     }
-  };
+  }, [editingCard, isOpen]);
 
   // Download QR code
   const downloadQRCode = async () => {
@@ -470,19 +478,11 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
                     
                     <div className="flex gap-2">
                       <button
-                        onClick={generateQRPreview}
-                        disabled={generatingQR}
-                        className="px-3 py-1.5 bg-white/10 text-white text-sm rounded-lg hover:bg-white/20 transition-all disabled:opacity-50"
-                      >
-                        {generatingQR ? 'Generating...' : 'Preview QR'}
-                      </button>
-                      
-                      <button
                         onClick={downloadQRCode}
-                        className="px-3 py-1.5 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black text-sm rounded-lg hover:from-gray-300 hover:via-gray-200 hover:to-gray-500 transition-all flex items-center gap-1"
+                        className="px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-lg font-medium hover:from-gray-300 hover:via-gray-200 hover:to-gray-500 transition-all flex items-center gap-2"
                       >
-                        <Download className="w-3 h-3" />
-                        Download PNG
+                        <Download className="w-4 h-4" />
+                        Download QR Code PNG
                       </button>
                     </div>
                   </div>

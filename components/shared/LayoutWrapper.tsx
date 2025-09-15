@@ -15,7 +15,10 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     '/module-selection'
   ];
   
-  const shouldShowHeader = !noHeaderPages.includes(pathname);
+  // Check if this is a business card public page
+  const isBusinessCardPage = pathname.startsWith('/business-card/');
+  
+  const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage;
   const isAccountsPage = pathname.startsWith('/accounts');
   
   const content = (

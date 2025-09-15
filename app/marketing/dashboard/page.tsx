@@ -7,6 +7,7 @@ import MarketingKanbanBoard from '@/components/modules/marketing/MarketingKanban
 import UVCatalogBoard from '@/components/modules/marketing/UVCatalogBoard';
 import CallLogBoard from '@/components/modules/marketing/CallLogBoard';
 import ContentPillarsBoard from '@/components/modules/marketing/ContentPillarsBoard';
+import BusinessCardBoard from '@/components/modules/marketing/BusinessCardBoard';
 import EmailSignatureBoard from '@/components/modules/marketing/EmailSignatureBoard';
 import RouteProtector from '@/components/shared/RouteProtector';
 
@@ -39,6 +40,10 @@ function MarketingDashboardContent() {
     
     if (activeTab === 'content_pillars') {
       return <ContentPillarsBoard />;
+    }
+    
+    if (activeTab === 'business_cards') {
+      return <BusinessCardBoard />;
     }
     
     if (activeTab === 'email') {

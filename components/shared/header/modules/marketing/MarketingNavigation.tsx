@@ -8,6 +8,7 @@ const marketingTabs = [
   { key: 'call_log', title: 'CALL LOG' },
   { key: 'uv_catalog', title: 'UV CATALOG' },
   { key: 'content_pillars', title: 'CONTENT PILLARS' },
+  { key: 'business_cards', title: 'BUSINESS CARDS' },
   { key: 'blog', title: 'BLOG' },
   { key: 'email', title: 'EMAIL SIGNATURE' }
 ];

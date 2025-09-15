@@ -209,7 +209,7 @@ ${fontFaceCSS}
       <div class="content-card">
         <div class="image-section">
           <img src="${renderImageUrl}" class="background-image" referrerpolicy="no-referrer" />
-          <div class="spotlight-badge"><i class="fas fa-star" style="margin-right:8px;"></i> CAR OF THE DAY</div>
+          <div class="spotlight-badge"><i class="fas fa-star" style="margin-right:8px;"></i> ${formData.badgeText || 'CAR OF THE DAY'}</div>
         </div>
         
         <div class="content">
@@ -547,7 +547,7 @@ ${fontFaceCSS}
         <div class="content">
           <!-- Badge positioned like Template A -->
           <div class="badge">
-            <i class="fas fa-star" style="margin-right:8px;"></i> CAR OF THE DAY
+            <i class="fas fa-star" style="margin-right:8px;"></i> ${formData.badgeText || 'CAR OF THE DAY'}
           </div>
           <!-- Logo positioned like Template A -->
           <img src="${absoluteLogoUrl}" alt="SilberArrows Logo" class="company-logo-inline" />

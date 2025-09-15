@@ -236,7 +236,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
           transform: `translateY(${slideFromTop(9)}px)`,
           opacity: fadeIn(9)
         }}>
-          <StarIcon size={24} color="#000" /> CAR OF THE DAY
+          <StarIcon size={24} color="#000" /> {badgeText || 'CAR OF THE DAY'}
         </div>
         
         {/* Content Overlay - centered like HTML template */}
@@ -370,7 +370,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
           transform: `translateY(${slideFromTop(6)}px)`,
           opacity: fadeIn(6)
         }}>
-          <StarIcon size={20} color="#000" marginRight="8px" /> CAR OF THE DAY
+          <StarIcon size={20} color="#000" marginRight="8px" /> {badgeText || 'CAR OF THE DAY'}
         </div>
         
         {/* Logo positioned exactly like Template A */}

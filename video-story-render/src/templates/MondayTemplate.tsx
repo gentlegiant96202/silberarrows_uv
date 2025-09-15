@@ -93,6 +93,8 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
     .replace(/^AMG\s*/gi, 'AMG ');
 
   const fontsCSS = `
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+    
     @font-face {
       font-family: 'Resonate';
       src: url('${staticFile('fonts/Resonate-Black.woff2')}') format('woff2');
@@ -277,7 +279,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
         opacity: fadeIn(90)
       }}>
         <i className="fas fa-arrow-right" style={{ marginRight: '12px' }}></i>
-        <span>More Details</span>
+        <span style={{ fontWeight: 'bold' }}>More Details</span>
       </div>
     </div>
   );
@@ -642,7 +644,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
         }}>
           <i className="fas fa-phone" style={{ marginRight: '8px' }}></i>
           <i className="fab fa-whatsapp" style={{ marginRight: '8px' }}></i>
-          Call or WhatsApp us at +971 4 380 5515
+          <span style={{ fontWeight: 'bold' }}>Call or WhatsApp us at +971 4 380 5515</span>
         </div>
       </div>
     </div>

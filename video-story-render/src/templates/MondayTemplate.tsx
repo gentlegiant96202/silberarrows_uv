@@ -93,8 +93,6 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
     .replace(/^AMG\s*/gi, 'AMG ');
 
   const fontsCSS = `
-    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
-    
     @font-face {
       font-family: 'Resonate';
       src: url('${staticFile('fonts/Resonate-Black.woff2')}') format('woff2');
@@ -162,6 +160,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
       color: '#ffffff',
       overflow: 'hidden'
     }}>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <style dangerouslySetInnerHTML={{ __html: fontsCSS }} />
       {/* Image Section */}
       <div style={{
@@ -295,6 +294,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
       color: '#ffffff',
       overflow: 'hidden'
     }}>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <style dangerouslySetInnerHTML={{ __html: fontsCSS }} />
       {/* Background image with blur overlay */}
       <div style={{

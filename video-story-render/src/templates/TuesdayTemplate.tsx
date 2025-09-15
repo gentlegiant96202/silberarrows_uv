@@ -221,7 +221,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
               fontSize: `${titleFontSize}px`,
               fontWeight: 900,
               color: '#ffffff',
-              lineHeight: 0.9,
+              lineHeight: 0.8,
               textShadow: '0 2px 4px rgba(0,0,0,0.3)',
               marginBottom: '12px',
               transform: `translateX(${slideFromLeft(24)}px)`,

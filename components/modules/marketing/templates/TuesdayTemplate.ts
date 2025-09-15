@@ -202,6 +202,7 @@ export const generateTuesdayTemplate = (
           font-weight: 800;
           font-size: 32px;
           box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+          animation: fadeInScale 1s ease-out 1.5s both;
         }
         
         .arrow-indicator i {

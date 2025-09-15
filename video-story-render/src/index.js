@@ -61,8 +61,8 @@ app.post('/render-video', async (req, res) => {
     let outputName = `content-pillar-${dayOfWeek}-${templateType}`;
 
     if (html) {
-      // For Monday templates, use the proper Remotion component for smooth animations
-      if (dayOfWeek === 'monday') {
+      // For Monday and Tuesday templates, use the proper Remotion component for smooth animations
+      if (dayOfWeek === 'monday' || dayOfWeek === 'tuesday') {
         compositionId = 'ContentPillar';
         // Extract form data from the request if available
         // Use templateType-specific formData (formDataA or formDataB) if available
@@ -70,21 +70,24 @@ app.post('/render-video', async (req, res) => {
         console.log(`🎬 Using formData for Template ${templateType}:`, Object.keys(f));
         console.log(`🖼️ Template ${templateType} imageUrl:`, f.imageUrl);
         inputProps = { 
-          dayOfWeek: 'monday', 
+          dayOfWeek: dayOfWeek, 
           templateType: templateType || 'A',
           // Core text
           title: f.title || 'Sample Title',
           subtitle: f.subtitle || '',
           description: f.description || '',
-          // Myth/Fact blocks
+          // Myth/Fact blocks (Monday)
           myth: f.myth || '',
           fact: f.fact || '',
+          // Problem/Solution blocks (Tuesday)
+          problem: f.problem || '',
+          solution: f.solution || '',
           // Tech and warnings
           difficulty: f.difficulty || '',
           tools_needed: f.tools_needed || '',
           warning: f.warning || '',
           // Visuals and branding
-          badgeText: f.badgeText || 'MYTH BUSTER MONDAY',
+          badgeText: f.badgeText || (dayOfWeek === 'monday' ? 'MYTH BUSTER MONDAY' : 'TECH TIPS TUESDAY'),
           car_model: f.car_model || '',
           imageUrl: f.imageUrl || '',
           logoUrl: 'https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png',
@@ -95,7 +98,7 @@ app.post('/render-video', async (req, res) => {
           imageZoom: typeof f.imageZoom === 'number' ? f.imageZoom : 100,
           imageVerticalPosition: typeof f.imageVerticalPosition === 'number' ? f.imageVerticalPosition : 0,
         };
-        outputName = `monday-${templateType || 'A'}`;
+        outputName = `${dayOfWeek}-${templateType || 'A'}`;
       } else {
         // For other days, use HTML rendering
         compositionId = 'HTMLVideo';

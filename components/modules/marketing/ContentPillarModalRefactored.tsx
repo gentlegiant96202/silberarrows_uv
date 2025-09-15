@@ -49,6 +49,7 @@ export default function ContentPillarModalRefactored({
   
   // State management
   const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [selectedFilesA, setSelectedFilesA] = useState<FileWithThumbnail[]>([]);
   const [selectedFilesB, setSelectedFilesB] = useState<FileWithThumbnail[]>([]);
   const [existingMediaA, setExistingMediaA] = useState<any[]>([]);
@@ -899,6 +900,7 @@ export default function ContentPillarModalRefactored({
 
   // Save handler - files already uploaded to Supabase
   const handleSave = async () => {
+    setSaving(true);
     try {
       // Dedupe helpers
       const dedupeByUrl = (arr: any[]) => {
@@ -956,6 +958,8 @@ export default function ContentPillarModalRefactored({
     } catch (error) {
       console.error('Error saving content pillar:', error);
       alert('Failed to save content pillar. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1072,6 +1076,26 @@ export default function ContentPillarModalRefactored({
     }
   }, [editingItem, dayKey]);
 
+  // Update form data when aiGeneratedContent changes (missing from refactored version)
+  useEffect(() => {
+    if (aiGeneratedContent && !editingItem) {
+      setFormData(prev => ({
+        ...prev,
+        title: aiGeneratedContent.title || '',
+        description: aiGeneratedContent.description || '',
+        badgeText: aiGeneratedContent.badge_text || getSafeBadgeText(dayKey),
+        subtitle: aiGeneratedContent.subtitle || '',
+        myth: aiGeneratedContent.myth || '',
+        fact: aiGeneratedContent.fact || '',
+        problem: aiGeneratedContent.problem || '',
+        solution: aiGeneratedContent.solution || '',
+        difficulty: aiGeneratedContent.difficulty || '',
+        tools_needed: aiGeneratedContent.tools_needed || '',
+        warning: aiGeneratedContent.warning || '',
+      }));
+    }
+  }, [aiGeneratedContent, dayKey]);
+
   if (!isOpen) return null;
 
   return (
@@ -1166,7 +1190,7 @@ export default function ContentPillarModalRefactored({
           <div className="flex items-center gap-3">
             <button
               onClick={handleSave}
-              disabled={dayKey === 'wednesday' ? !selectedCarId : !formData.title}
+              disabled={saving || (dayKey === 'wednesday' ? !selectedCarId : !formData.title)}
               className="disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-all border border-gray-600/40 flex items-center gap-2"
               style={{
                 background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.8) 0%, rgba(22, 163, 74, 0.6) 50%, rgba(34, 197, 94, 0.8) 100%)',
@@ -1174,13 +1198,20 @@ export default function ContentPillarModalRefactored({
                 boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(34, 197, 94, 0.9) 0%, rgba(22, 163, 74, 0.7) 50%, rgba(34, 197, 94, 0.9) 100%)';
+                if (!saving) e.currentTarget.style.background = 'linear-gradient(135deg, rgba(34, 197, 94, 0.9) 0%, rgba(22, 163, 74, 0.7) 50%, rgba(34, 197, 94, 0.9) 100%)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(34, 197, 94, 0.8) 0%, rgba(22, 163, 74, 0.6) 50%, rgba(34, 197, 94, 0.8) 100%)';
+                if (!saving) e.currentTarget.style.background = 'linear-gradient(135deg, rgba(34, 197, 94, 0.8) 0%, rgba(22, 163, 74, 0.6) 50%, rgba(34, 197, 94, 0.8) 100%)';
               }}
             >
-              Save
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
             </button>
             <button
               onClick={onClose}
@@ -1643,36 +1674,13 @@ export default function ContentPillarModalRefactored({
 
             {/* AI Regenerate Button */}
             {onRegenerate && aiGeneratedContent && !isEditing && (
-              <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-md rounded-xl p-4 border border-purple-500/20 shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-300" />
-                    <span className="text-xs font-medium text-purple-300">AI Generated Content</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-white/50">Regenerate as:</span>
-                    <select
-                      onChange={(e) => onRegenerate(e.target.value as 'image' | 'video' | 'text' | 'carousel')}
-                      className="text-xs bg-black/30 border border-purple-500/30 text-purple-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400"
-                      defaultValue=""
-                    >
-                      <option value="" disabled>Choose type</option>
-                      <option value="image">Image Post</option>
-                      <option value="video">Video Post</option>
-                      <option value="text">Text Post</option>
-                      <option value="carousel">Carousel Post</option>
-                    </select>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRegenerate('image')}
-                  className="w-full px-3 py-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 text-purple-300 hover:text-purple-200 text-xs rounded-lg transition-all font-medium flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  Regenerate AI Content
-                </button>
-              </div>
+              <button
+                onClick={() => onRegenerate('image')}
+                className="w-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Regenerate AI Content
+              </button>
             )}
 
             {/* Delete Button for Editing */}

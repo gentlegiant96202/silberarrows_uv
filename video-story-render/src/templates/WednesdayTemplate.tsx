@@ -38,7 +38,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
 }) => {
   const frame = useCurrentFrame();
 
-  // Animation functions (same as Monday/Tuesday templates)
+  // Animation functions
   const fadeIn = (startFrame: number, duration: number = 30) =>
     interpolate(frame, [startFrame, startFrame + duration], [0, 1], {
       extrapolateLeft: 'clamp',
@@ -55,13 +55,6 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
 
   const slideFromLeft = (startFrame: number, distance: number = 50, duration: number = 30) =>
     interpolate(frame, [startFrame, startFrame + duration], [-distance, 0], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-      easing: Easing.out(Easing.ease)
-    });
-
-  const slideFromRight = (startFrame: number, distance: number = 50, duration: number = 30) =>
-    interpolate(frame, [startFrame, startFrame + duration], [distance, 0], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
       easing: Easing.out(Easing.ease)
@@ -123,13 +116,14 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
     </svg>
   );
 
-  // AED Currency Symbol Component (matching HTML template exactly)
+  // AED Currency Symbol Component (exact match from HTML)
   const AEDSymbol = ({ color = '#555555' }: { color?: string }) => (
     <svg height="0.7em" viewBox="0 0 344.84 299.91" style={{ display: 'inline-block', verticalAlign: 'baseline', marginRight: 6, marginBottom: '-0.02em' }} xmlns="http://www.w3.org/2000/svg">
       <path fill={color} d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
     </svg>
   );
 
+  // TEMPLATE A - Simple car spotlight (NO bottom buttons)
   const templateA = (
     <div style={{
       display: 'flex',
@@ -144,7 +138,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <style dangerouslySetInnerHTML={{ __html: fontsCSS }} />
       
-      {/* Image Section - Full background */}
+      {/* Full Image Background */}
       <div style={{
         position: 'relative',
         width: '100%',
@@ -169,7 +163,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
           alt="Car Spotlight"
         />
         
-        {/* Spotlight Badge - positioned on image like HTML template */}
+        {/* Spotlight Badge - positioned on image (top-right) */}
         <div style={{
           position: 'absolute',
           top: '100px',
@@ -257,66 +251,254 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
         </div>
       </div>
       
-      {/* Bottom Buttons Row - exactly like HTML template */}
+      {/* NO BOTTOM BUTTONS FOR TEMPLATE A - matches HTML exactly */}
+    </div>
+  );
+
+  // TEMPLATE B - Complex with monthly payment cards and contact section
+  const templateB = (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      width: '1080px',
+      height: '1920px',
+      fontFamily: 'Resonate, Inter, sans-serif',
+      background: '#D5D5D5',
+      color: '#ffffff',
+      overflow: 'hidden'
+    }}>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+      <style dangerouslySetInnerHTML={{ __html: fontsCSS }} />
+      
+      {/* Full Image Background */}
       <div style={{
-        position: 'fixed',
-        left: '40px',
-        right: '40px',
-        bottom: '20px',
-        zIndex: 5,
-        display: 'flex',
-        gap: '16px',
-        opacity: fadeIn(90)
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden'
       }}>
-        {/* More Details Button */}
+        <Img
+          src={(() => {
+            // Filter out video files - only use image files for background
+            if (imageUrl && imageUrl.includes('.mp4')) {
+              return logoUrl; // Fallback to logo if imageUrl is a video
+            }
+            return imageUrl || logoUrl;
+          })()}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: imageFit as any,
+            objectPosition: imageAlignment,
+            transform: `scale(${imageScale}) translateY(${imageVerticalPosition}px)`
+          }}
+          alt="Car Spotlight"
+        />
+        
+        {/* Spotlight Badge - positioned on image (top-right) */}
         <div style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px',
-          background: 'rgba(0,0,0,0.15)',
-          border: '2px solid rgba(0,0,0,0.3)',
-          padding: '20px 24px',
-          borderRadius: '20px',
-          backdropFilter: 'blur(20px)',
-          fontWeight: 400,
-          fontSize: '24px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          color: '#555555',
-          fontFamily: 'Resonate, Inter, sans-serif'
+          position: 'absolute',
+          top: '100px',
+          right: '30px',
+          background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
+          color: '#000',
+          padding: '16px 32px',
+          borderRadius: '25px',
+          fontFamily: 'Resonate, Inter, sans-serif',
+          fontWeight: 300,
+          fontSize: '28px',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+          border: '2px solid rgba(255,255,255,0.3)',
+          zIndex: 10,
+          transform: `translateY(${slideFromTop(9)}px)`,
+          opacity: fadeIn(9)
         }}>
-          <i className="fas fa-arrow-right" style={{ marginRight: '8px' }}></i>
-          <span style={{ fontWeight: 'bold' }}>More Details</span>
+          <StarIcon size={24} color="#000" /> HIGHLIGHT OF THE DAY
         </div>
         
-        {/* Call or WhatsApp Button */}
+        {/* Content Overlay - like HTML template */}
         <div style={{
-          flex: 1,
+          position: 'absolute',
+          top: '120px',
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          gap: '16px',
+          padding: '40px',
+          textAlign: 'center'
+        }}>
+          {/* Title */}
+          <div style={{
+            transform: `translateX(${slideFromLeft(24)}px)`,
+            opacity: fadeIn(24)
+          }}>
+            <h1 style={{
+              fontSize: '41px', // Template B uses smaller font
+              fontWeight: 900,
+              color: '#555555',
+              lineHeight: 1.1,
+              textShadow: 'none',
+              marginBottom: '12px',
+              fontFamily: 'Resonate, Inter, sans-serif'
+            }}>{cleanTitle}</h1>
+          </div>
+          
+          {/* Subtitle */}
+          <div style={{
+            fontSize: '32px',
+            color: '#333333',
+            marginBottom: '16px',
+            fontWeight: 600,
+            fontFamily: 'Resonate, Inter, sans-serif',
+            transform: `translateY(${slideFromTop(36, 30)}px)`,
+            opacity: fadeIn(36)
+          }}>{subtitle}</div>
+
+          {/* Monthly Payment Cards (if available) */}
+          {(monthly_0_down_aed || monthly_20_down_aed) && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: (monthly_0_down_aed && monthly_20_down_aed) ? '1fr 1fr' : '1fr',
+              gap: '20px',
+              margin: '32px 0',
+              width: '100%',
+              maxWidth: '600px',
+              transform: `translateY(${slideFromTop(45, 30)}px)`,
+              opacity: fadeIn(45)
+            }}>
+              {monthly_0_down_aed && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,140,0,0.15))',
+                  border: '1px solid rgba(255,215,0,0.3)',
+                  borderRadius: '20px',
+                  padding: '32px 24px',
+                  textAlign: 'center',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '12px'
+                  }}>
+                    <i className="fas fa-calendar-alt" style={{ color: '#555555', fontSize: '20px' }}></i>
+                    <span style={{
+                      fontSize: '20px',
+                      fontWeight: 600,
+                      color: '#555555',
+                      textTransform: 'uppercase',
+                      fontFamily: 'Resonate, Inter, sans-serif'
+                    }}>0% Down</span>
+                  </div>
+                  <div style={{
+                    fontSize: '32px',
+                    fontWeight: 700,
+                    color: '#555555',
+                    marginBottom: '8px',
+                    fontFamily: 'Resonate, Inter, sans-serif',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <AEDSymbol color="#555555" />
+                    {monthly_0_down_aed.toLocaleString()}
+                  </div>
+                  <div style={{
+                    fontSize: '16px',
+                    color: '#666666',
+                    fontFamily: 'Resonate, Inter, sans-serif'
+                  }}>per month</div>
+                </div>
+              )}
+              
+              {monthly_20_down_aed && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,140,0,0.15))',
+                  border: '1px solid rgba(255,215,0,0.3)',
+                  borderRadius: '20px',
+                  padding: '32px 24px',
+                  textAlign: 'center',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '12px'
+                  }}>
+                    <i className="fas fa-calendar-alt" style={{ color: '#555555', fontSize: '20px' }}></i>
+                    <span style={{
+                      fontSize: '20px',
+                      fontWeight: 600,
+                      color: '#555555',
+                      textTransform: 'uppercase',
+                      fontFamily: 'Resonate, Inter, sans-serif'
+                    }}>20% Down</span>
+                  </div>
+                  <div style={{
+                    fontSize: '32px',
+                    fontWeight: 700,
+                    color: '#555555',
+                    marginBottom: '8px',
+                    fontFamily: 'Resonate, Inter, sans-serif',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <AEDSymbol color="#555555" />
+                    {monthly_20_down_aed.toLocaleString()}
+                  </div>
+                  <div style={{
+                    fontSize: '16px',
+                    color: '#666666',
+                    fontFamily: 'Resonate, Inter, sans-serif'
+                  }}>per month</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Contact Section - ONLY for Template B */}
+        <div style={{
+          position: 'fixed',
+          left: '40px',
+          right: '40px',
+          bottom: '120px',
+          zIndex: 5,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '12px',
-          background: 'rgba(0,0,0,0.15)',
-          border: '2px solid rgba(0,0,0,0.3)',
-          padding: '20px 24px',
+          gap: '16px',
+          background: 'rgba(255,255,255,0.15)',
+          border: '2px solid rgba(255,255,255,0.3)',
+          padding: '24px 32px',
           borderRadius: '20px',
           backdropFilter: 'blur(20px)',
           fontWeight: 400,
-          fontSize: '24px',
+          fontSize: '32px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           color: '#555555',
-          fontFamily: 'Resonate, Inter, sans-serif'
+          fontFamily: 'Resonate, Inter, sans-serif',
+          opacity: fadeIn(90)
         }}>
-          <i className="fas fa-phone" style={{ marginRight: '4px' }}></i>
+          <i className="fas fa-phone" style={{ marginRight: '8px' }}></i>
           <i className="fab fa-whatsapp" style={{ marginRight: '8px' }}></i>
           <span style={{ fontWeight: 'bold' }}>Call or WhatsApp us at +971 4 380 5515</span>
         </div>
       </div>
     </div>
   );
-
-  const templateB = templateA; // Template B same as A for Wednesday
 
   return templateType === 'A' ? templateA : templateB;
 };

@@ -20,18 +20,49 @@ export const generateTuesdayTemplate = (
       </head>
       <body>
       <style>
+        /* Instagram Story Animations */
+        @keyframes slideInFromTop {
+          0% { transform: translateY(-50px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes slideInFromLeft {
+          0% { transform: translateX(-50px); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideInFromRight {
+          0% { transform: translateX(50px); opacity: 0; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeInScale {
+          0% { transform: scale(0.8); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes techSlide {
+          0% { transform: translateY(30px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
         body { font-family: 'Resonate', 'Inter', sans-serif; background: #000000; color: #ffffff; height: 100vh; overflow: hidden; margin: 0; padding: 0; width: 1080px; }
         .content-card { display: flex; flex-direction: column; width: 100%; height: 100vh; }
         .image-section { position: relative; width: 100%; height: 69.5%; }
         .background-image { width: 100%; height: 100%; object-fit: ${formData.imageFit || 'cover'}; object-position: ${formData.imageAlignment || 'center'}; }
         .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
-        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
+        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); animation: slideInFromTop 1s ease-out 0.3s both; }
         .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
         .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
         .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
-        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
+        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; animation: slideInFromRight 1s ease-out 0.5s both; }
         
         .tech-grid { 
           display: grid; 
@@ -82,6 +113,7 @@ export const generateTuesdayTemplate = (
         .info-card {
           text-align: center;
           padding: 12px;
+          animation: fadeInScale 0.8s ease-out 2.1s both;
         }
         
         .info-icon {
@@ -113,6 +145,7 @@ export const generateTuesdayTemplate = (
           margin: 24px 0;
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
+          animation: fadeInScale 0.8s ease-out 2.4s both;
         }
         
         .warning-header {
@@ -143,6 +176,11 @@ export const generateTuesdayTemplate = (
         
         .content-container {
           margin-bottom: 24px;
+          animation: fadeInScale 1s ease-out 1.2s both;
+        }
+        
+        .tech-section {
+          animation: techSlide 0.8s ease-out 1.5s both;
         }
         
         .arrow-indicator {
@@ -237,12 +275,12 @@ export const generateTuesdayTemplate = (
         .image-section { position: relative; width: 100%; height: 69.5%; }
         .background-image { width: 100%; height: 100%; object-fit: ${formData.imageFit || 'cover'}; object-position: ${formData.imageAlignment || 'center'}; }
         .badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; margin-top: 20px; }
-        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); }
+        .badge { background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1); color: #000; padding: 16px 32px; border-radius: 25px; font-weight: 900; font-size: 24px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; display: inline-flex; align-items: center; box-shadow: 0 6px 20px rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); animation: slideInFromTop 1s ease-out 0.3s both; }
         .content { padding: 20px 40px 40px 40px; height: 30.5%; display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; overflow: visible; }
         .title { font-size: ${formData.titleFontSize || 72}px; font-weight: 900; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 12px; }
         .subtitle { font-size: 42px; color: #f1f5f9; margin-bottom: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .description { font-size: 32px; color: #f1f5f9; line-height: 2.5; text-align: left; margin: 16px 0; max-width: 96%; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; }
-        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; }
+        .company-logo-inline { height: 96px; width: auto; filter: brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3)); margin-top: 4px; flex-shrink: 0; animation: slideInFromRight 1s ease-out 0.5s both; }
         .contact { position: fixed; left: 40px; right: 40px; bottom: 120px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
         .contact i { color: #ffffff; font-size: 26px; }
         
@@ -297,6 +335,7 @@ export const generateTuesdayTemplate = (
         .info-card {
           text-align: center;
           padding: 12px;
+          animation: fadeInScale 0.8s ease-out 2.1s both;
         }
         
         .info-icon {
@@ -328,6 +367,7 @@ export const generateTuesdayTemplate = (
           margin: 24px 0;
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
+          animation: fadeInScale 0.8s ease-out 2.4s both;
         }
         
         .warning-header {
@@ -358,6 +398,23 @@ export const generateTuesdayTemplate = (
         
         .content-container {
           margin-bottom: 24px;
+          animation: fadeInScale 1s ease-out 1.2s both;
+        }
+        
+        .problem-section {
+          animation: techSlide 0.8s ease-out 1.5s both;
+        }
+        
+        .solution-section {
+          animation: techSlide 0.8s ease-out 1.8s both;
+        }
+        
+        .info-card {
+          animation: fadeInScale 0.8s ease-out 2.1s both;
+        }
+        
+        .warning-section {
+          animation: fadeInScale 0.8s ease-out 2.4s both;
         }
         
         .contact { position: fixed; left: 40px; right: 40px; bottom: 120px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); padding: 24px 32px; border-radius: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-weight: 800; font-size: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
@@ -373,7 +430,7 @@ export const generateTuesdayTemplate = (
           
           <div class="content-container">
             ${formData.problem ? `
-            <div class="tech-section">
+            <div class="tech-section problem-section">
               <div class="section-header">
                 <i class="fas fa-exclamation-circle"></i>
                 <span class="section-title" style="color: #ff6b6b !important;">The Problem</span>
@@ -383,7 +440,7 @@ export const generateTuesdayTemplate = (
             ` : ''}
 
             ${formData.solution ? `
-            <div class="tech-section">
+            <div class="tech-section solution-section">
               <div class="section-header">
                 <i class="fas fa-tools"></i>
                 <span class="section-title" style="color: #4ade80 !important;">The Solution</span>

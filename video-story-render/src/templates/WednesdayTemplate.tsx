@@ -257,29 +257,38 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
           
           {/* Subtitle with Monthly Payment or Cash Payment */}
           <div style={{
-            fontSize: '45px',
-            color: '#555555',
-            marginBottom: '8px',
-            fontWeight: 700,
-            fontFamily: 'Inter, sans-serif',
             transform: `translateY(${slideFromTop(20, 30)}px)`,
             opacity: fadeIn(20),
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            marginBottom: '8px'
           }}>
             {monthly_20_down_aed && monthly_20_down_aed > 0 ? (
-              <>
+              <div style={{
+                fontSize: '45px',
+                color: '#555555',
+                fontWeight: 700,
+                fontFamily: 'Inter, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
                 <AEDSymbol color="#555555" />
-                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, color: '#555555' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, color: '#555555', marginRight: '4px' }}>
                   {monthly_20_down_aed.toLocaleString()}
                 </span>
                 <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, color: '#555555' }}>
-                  {' '}PER MONTH
+                  PER MONTH
                 </span>
-              </>
+              </div>
             ) : (
-              <span style={{ fontFamily: 'Resonate, Inter, sans-serif', fontWeight: 300, color: '#555555' }}>
+              <span style={{ 
+                fontSize: '45px',
+                fontFamily: 'Resonate, Inter, sans-serif', 
+                fontWeight: 300, 
+                color: '#555555' 
+              }}>
                 CASH PAYMENT
               </span>
             )}

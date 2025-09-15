@@ -37,7 +37,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
   monthly_0_down_aed = 0
 }) => {
   const frame = useCurrentFrame();
-
+  
   // Animation functions
   const fadeIn = (startFrame: number, duration: number = 30) =>
     interpolate(frame, [startFrame, startFrame + duration], [0, 1], {
@@ -255,7 +255,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
     </div>
   );
 
-  // TEMPLATE B - Complex with monthly payment cards and contact section
+  // TEMPLATE B - Logo background with detailed car specs (EXACT match to HTML)
   const templateB = (
     <div style={{
       display: 'flex',
@@ -270,107 +270,434 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <style dangerouslySetInnerHTML={{ __html: fontsCSS }} />
       
-      {/* Full Image Background */}
+      {/* SilberArrows Logo Background (NOT car image) */}
       <div style={{
-        position: 'relative',
+        position: 'absolute',
+        top: 0,
+        left: 0,
         width: '100%',
         height: '100%',
-        overflow: 'hidden'
+        zIndex: 1
       }}>
         <Img
-          src={(() => {
-            // Filter out video files - only use image files for background
-            if (imageUrl && imageUrl.includes('.mp4')) {
-              return logoUrl; // Fallback to logo if imageUrl is a video
-            }
-            return imageUrl || logoUrl;
-          })()}
-          style={{
+          src={logoUrl}
+            style={{
             width: '100%',
             height: '100%',
-            objectFit: imageFit as any,
-            objectPosition: imageAlignment,
-            transform: `scale(${imageScale}) translateY(${imageVerticalPosition}px)`
+              objectFit: 'cover',
+            opacity: 0.3,
+            transform: 'scale(1.1)',
+            filter: 'brightness(1.3) contrast(0.8)'
           }}
-          alt="Car Spotlight"
+          alt="SilberArrows"
         />
-        
-        {/* Spotlight Badge - positioned on image (top-right) */}
+      </div>
+      
+      {/* Content Section */}
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        padding: '32px',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        gap: '20px',
+        overflow: 'visible'
+      }}>
+        {/* Badge and Logo Row */}
         <div style={{
-          position: 'absolute',
-          top: '100px',
-          right: '30px',
-          background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
-          color: '#000',
-          padding: '16px 32px',
-          borderRadius: '25px',
-          fontFamily: 'Resonate, Inter, sans-serif',
-          fontWeight: 300,
-          fontSize: '28px',
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-          boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-          border: '2px solid rgba(255,255,255,0.3)',
-          zIndex: 10,
-          transform: `translateY(${slideFromTop(9)}px)`,
-          opacity: fadeIn(9)
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px',
+          marginTop: '20px'
         }}>
-          <StarIcon size={24} color="#000" /> HIGHLIGHT OF THE DAY
+          <div style={{
+            background: 'linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1)',
+            color: '#000',
+            padding: '16px 32px',
+            borderRadius: '25px',
+            fontWeight: 500,
+            fontSize: '24px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            whiteSpace: 'nowrap',
+            display: 'inline-flex',
+            alignItems: 'center',
+            boxShadow: '0 6px 20px rgba(255,255,255,0.1)',
+            border: '2px solid rgba(255,255,255,0.2)',
+            fontFamily: 'Resonate, Inter, sans-serif',
+            transform: `translateY(${slideFromTop(9)}px)`,
+            opacity: fadeIn(9)
+          }}>
+            <StarIcon size={20} color="#000" /> {badgeText}
+          </div>
+          <Img
+            src={logoUrl}
+            alt="SilberArrows Logo"
+            style={{
+              height: '96px',
+              width: 'auto',
+              filter: 'brightness(1.3) drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+              marginTop: '4px',
+              flexShrink: 0,
+              transform: `translateX(${slideFromRight(15)}px)`,
+              opacity: fadeIn(15)
+            }}
+          />
         </div>
         
-        {/* Content Overlay - like HTML template */}
-        <div style={{
-          position: 'absolute',
-          top: '120px',
-          left: 0,
-          right: 0,
-          zIndex: 10,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          gap: '16px',
-          padding: '40px',
-          textAlign: 'center'
-        }}>
-          {/* Title */}
-          <div style={{
-            transform: `translateX(${slideFromLeft(24)}px)`,
-            opacity: fadeIn(24)
-          }}>
+        {/* Content Container */}
+        <div style={{ marginTop: '120px' }}>
+          {/* Title Section */}
+          <div style={{ marginBottom: '20px' }}>
             <h1 style={{
-              fontSize: '41px', // Template B uses smaller font
+              fontSize: '41px',
               fontWeight: 900,
               color: '#555555',
               lineHeight: 1.1,
               textShadow: 'none',
               marginBottom: '12px',
-              fontFamily: 'Resonate, Inter, sans-serif'
+              fontFamily: 'Resonate, Inter, sans-serif',
+              transform: `translateX(${slideFromLeft(24)}px)`,
+              opacity: fadeIn(24)
             }}>{cleanTitle}</h1>
           </div>
           
-          {/* Subtitle */}
+          {/* Car Specifications Grid - 6 cards */}
           <div style={{
-            fontSize: '32px',
-            color: '#333333',
-            marginBottom: '16px',
-            fontWeight: 600,
-            fontFamily: 'Resonate, Inter, sans-serif',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gridTemplateRows: 'repeat(3, 1fr)',
+            gap: '16px',
+            margin: '16px 0',
             transform: `translateY(${slideFromTop(36, 30)}px)`,
             opacity: fadeIn(36)
-          }}>{subtitle}</div>
+          }}>
+            {/* Mileage Card */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '24px',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                minHeight: '40px'
+              }}>
+                <i className="fas fa-tachometer-alt" style={{
+                  fontSize: '28px',
+                  color: '#555555',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}></i>
+                <span style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#555555',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  fontFamily: 'Resonate, Inter, sans-serif'
+                }}>Mileage</span>
+              </div>
+              <div style={{
+                fontSize: '26px',
+                color: '#333333',
+                lineHeight: 1.4,
+                marginLeft: '44px',
+                fontFamily: 'Resonate, Inter, sans-serif'
+              }}>{(current_mileage_km || 25000).toLocaleString()} km</div>
+            </div>
+            
+            {/* Power Card */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '24px',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                minHeight: '40px'
+              }}>
+                <i className="fas fa-bolt" style={{
+                  fontSize: '28px',
+                  color: '#555555',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}></i>
+                <span style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#555555',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  fontFamily: 'Resonate, Inter, sans-serif'
+                }}>Horsepower</span>
+              </div>
+              <div style={{
+                fontSize: '26px',
+                color: '#333333',
+                lineHeight: 1.4,
+                marginLeft: '44px',
+                fontFamily: 'Resonate, Inter, sans-serif'
+              }}>{(horsepower || 300)} HP</div>
+            </div>
+            
+            {/* Exterior Color Card */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '24px',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                minHeight: '40px'
+              }}>
+                <i className="fas fa-paint-brush" style={{
+                  fontSize: '28px',
+                  color: '#555555',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}></i>
+                <span style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#555555',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  fontFamily: 'Resonate, Inter, sans-serif'
+                }}>Exterior Color</span>
+              </div>
+              <div style={{
+                fontSize: '26px',
+                color: '#333333',
+                lineHeight: 1.4,
+                marginLeft: '44px',
+                fontFamily: 'Resonate, Inter, sans-serif'
+              }}>{exterior_color || 'Black'}</div>
+            </div>
+            
+            {/* Interior Color Card */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '24px',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                minHeight: '40px'
+              }}>
+                <i className="fas fa-car-side" style={{
+                  fontSize: '28px',
+                  color: '#555555',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}></i>
+                <span style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#555555',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  fontFamily: 'Resonate, Inter, sans-serif'
+                }}>Interior Color</span>
+              </div>
+              <div style={{
+                fontSize: '26px',
+                color: '#333333',
+                lineHeight: 1.4,
+                marginLeft: '44px',
+                fontFamily: 'Resonate, Inter, sans-serif'
+              }}>{interior_color || 'Black'}</div>
+            </div>
+            
+            {/* Engine Card */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '24px',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                minHeight: '40px'
+              }}>
+                <i className="fas fa-cogs" style={{
+                  fontSize: '28px',
+                  color: '#555555',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}></i>
+                <span style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#555555',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  fontFamily: 'Resonate, Inter, sans-serif'
+                }}>Engine</span>
+              </div>
+              <div style={{
+                fontSize: '26px',
+                color: '#333333',
+                lineHeight: 1.4,
+                marginLeft: '44px',
+                fontFamily: 'Resonate, Inter, sans-serif'
+              }}>{engine || '3.0L V6 Turbo'}</div>
+            </div>
+            
+            {/* Transmission Card */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '24px',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                minHeight: '40px'
+              }}>
+                <i className="fas fa-cog" style={{
+                  fontSize: '28px',
+                  color: '#555555',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}></i>
+                <span style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#555555',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  fontFamily: 'Resonate, Inter, sans-serif'
+                }}>Transmission</span>
+              </div>
+              <div style={{
+                fontSize: '26px',
+                color: '#333333',
+                lineHeight: 1.4,
+                marginLeft: '44px',
+                fontFamily: 'Resonate, Inter, sans-serif'
+              }}>{transmission || '9G-TRONIC Automatic'}</div>
+            </div>
+          </div>
 
-          {/* Monthly Payment Cards (if available) */}
+          {/* Key Equipment Features Section */}
+          {features && features.length > 0 && (
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '20px',
+              backdropFilter: 'blur(8px)',
+              margin: '18px 0',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+              transform: `translateY(${slideFromTop(45, 30)}px)`,
+              opacity: fadeIn(45)
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                minHeight: '40px'
+              }}>
+                <i className="fas fa-list-check" style={{
+                  fontSize: '28px',
+                  color: '#555555',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}></i>
+                <span style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#555555',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  fontFamily: 'Resonate, Inter, sans-serif'
+                }}>Key Equipment (highlights)</span>
+              </div>
+              <div style={{
+                fontSize: '20px',
+                color: '#333333',
+                lineHeight: 1.5,
+                marginLeft: '44px',
+                fontFamily: 'Resonate, Inter, sans-serif'
+              }}>
+                {(() => {
+                  if (Array.isArray(features)) {
+                    return features.slice(0, 3).join(' • ').replace(/\n/g, ' • ');
+                  }
+                  return features.toString().slice(0, 300) + '...';
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* Monthly Payment Cards */}
           {(monthly_0_down_aed || monthly_20_down_aed) && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: (monthly_0_down_aed && monthly_20_down_aed) ? '1fr 1fr' : '1fr',
               gap: '20px',
               margin: '32px 0',
-              width: '100%',
-              maxWidth: '600px',
-              transform: `translateY(${slideFromTop(45, 30)}px)`,
-              opacity: fadeIn(45)
+              transform: `translateY(${slideFromTop(60, 30)}px)`,
+              opacity: fadeIn(60)
             }}>
               {monthly_0_down_aed && (
                 <div style={{
@@ -463,25 +790,25 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
                     color: '#666666',
                     fontFamily: 'Resonate, Inter, sans-serif'
                   }}>per month</div>
-                </div>
+              </div>
               )}
             </div>
           )}
         </div>
-        
-        {/* Contact Section - ONLY for Template B */}
+
+        {/* Contact Section - Single contact bar */}
         <div style={{
           position: 'fixed',
-          left: '40px',
-          right: '40px',
-          bottom: '120px',
+          left: '32px',
+          right: '32px',
+          bottom: '20px',
           zIndex: 5,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: '16px',
-          background: 'rgba(255,255,255,0.15)',
-          border: '2px solid rgba(255,255,255,0.3)',
+          background: 'rgba(0,0,0,0.15)',
+          border: '2px solid rgba(0,0,0,0.3)',
           padding: '24px 32px',
           borderRadius: '20px',
           backdropFilter: 'blur(20px)',

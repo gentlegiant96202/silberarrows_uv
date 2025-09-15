@@ -145,30 +145,33 @@ export default function BusinessCardPage() {
         <div className="max-w-sm mx-auto">
           {/* Business Card */}
           <div className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 rounded-2xl p-6 shadow-2xl border border-white/20">
-            {/* Logo */}
-            <div className="text-center mb-4">
-              <div className="relative inline-block">
-                <Image
-                  src="/MAIN LOGO.png"
-                  alt="SilberArrows Logo"
-                  width={50}
-                  height={50}
-                  className="mx-auto object-contain relative z-10 drop-shadow-lg"
-                />
-                {/* Logo shadow/glow effect */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-black/10 to-black/5 blur-md scale-110 opacity-40"></div>
+            {/* Header Section - Name/Title/Company + Logo */}
+            <div className="flex items-center justify-between mb-5">
+              {/* Contact Info - Left Aligned */}
+              <div className="text-left flex-1">
+                <h1 className="text-xl font-bold text-black leading-tight">{businessCard.name}</h1>
+                {businessCard.title && (
+                  <p className="text-black/80 text-base leading-tight">{businessCard.title}</p>
+                )}
+                {businessCard.company && (
+                  <p className="text-black/70 text-sm leading-tight">{businessCard.company}</p>
+                )}
               </div>
-            </div>
 
-            {/* Contact Info */}
-            <div className="text-center mb-5">
-              <h1 className="text-xl font-bold text-black mb-1">{businessCard.name}</h1>
-              {businessCard.title && (
-                <p className="text-black/80 text-base mb-1">{businessCard.title}</p>
-              )}
-              {businessCard.company && (
-                <p className="text-black/70 text-sm">{businessCard.company}</p>
-              )}
+              {/* Logo - Right Aligned */}
+              <div className="flex-shrink-0 ml-4">
+                <div className="relative inline-block">
+                  <Image
+                    src="/MAIN LOGO.png"
+                    alt="SilberArrows Logo"
+                    width={50}
+                    height={50}
+                    className="object-contain relative z-10 drop-shadow-lg"
+                  />
+                  {/* Logo shadow/glow effect */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-black/10 to-black/5 blur-md scale-110 opacity-40"></div>
+                </div>
+              </div>
             </div>
 
             {/* Contact Actions */}

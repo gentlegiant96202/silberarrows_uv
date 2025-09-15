@@ -1643,13 +1643,36 @@ export default function ContentPillarModalRefactored({
 
             {/* AI Regenerate Button */}
             {onRegenerate && aiGeneratedContent && !isEditing && (
-              <button
-                onClick={() => onRegenerate('image')}
-                className="w-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Regenerate AI Content
-              </button>
+              <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-md rounded-xl p-4 border border-purple-500/20 shadow-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-300" />
+                    <span className="text-xs font-medium text-purple-300">AI Generated Content</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-white/50">Regenerate as:</span>
+                    <select
+                      onChange={(e) => onRegenerate(e.target.value as 'image' | 'video' | 'text' | 'carousel')}
+                      className="text-xs bg-black/30 border border-purple-500/30 text-purple-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Choose type</option>
+                      <option value="image">Image Post</option>
+                      <option value="video">Video Post</option>
+                      <option value="text">Text Post</option>
+                      <option value="carousel">Carousel Post</option>
+                    </select>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRegenerate('image')}
+                  className="w-full px-3 py-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 text-purple-300 hover:text-purple-200 text-xs rounded-lg transition-all font-medium flex items-center justify-center gap-2"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Regenerate AI Content
+                </button>
+              </div>
             )}
 
             {/* Delete Button for Editing */}

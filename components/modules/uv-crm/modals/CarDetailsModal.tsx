@@ -158,12 +158,15 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [processingKeyEquipment, setProcessingKeyEquipment] = useState(false);
 
   // Function to process key equipment (alphabetize and add hyphens)
-  const processKeyEquipment = () => {
+  const processKeyEquipment = async () => {
     if (processingKeyEquipment) return;
     
     setProcessingKeyEquipment(true);
     
     try {
+      // Add a small delay to show the spinner
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const currentEquipment = localCar.key_equipment || '';
       
       // Split by lines, clean up each line, remove empty lines

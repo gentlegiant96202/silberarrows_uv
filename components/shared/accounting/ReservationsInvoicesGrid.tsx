@@ -132,6 +132,41 @@ export default function ReservationsInvoicesGrid() {
     fetchData();
   }, [filters]);
 
+  // Real-time subscription for document updates (including DocuSign status changes)
+  useEffect(() => {
+    console.log('🔄 Setting up real-time subscription for vehicle_reservations...');
+    
+    const subscription = supabase
+      .channel('vehicle_reservations_updates')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'vehicle_reservations'
+      }, (payload) => {
+        console.log('📡 Real-time update received:', payload);
+        
+        // Check if the updated record matches current filters
+        const updatedRecord = payload.new;
+        const currentMonth = parseInt(filters.month);
+        const currentYear = parseInt(filters.year);
+        const recordDate = new Date(updatedRecord.document_date);
+        
+        if (recordDate.getMonth() + 1 === currentMonth && 
+            recordDate.getFullYear() === currentYear &&
+            (filters.type === 'all' || updatedRecord.document_type === filters.type)) {
+          
+          console.log('📊 Updated record matches filters, refreshing data...');
+          fetchData();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      console.log('🔄 Cleaning up real-time subscription...');
+      supabase.removeChannel(subscription);
+    };
+  }, [filters]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       style: 'currency',

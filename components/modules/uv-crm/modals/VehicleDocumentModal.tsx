@@ -788,36 +788,8 @@ export default function VehicleDocumentModal({
             .eq('id', savedReservation.id);
         }
         
-        // Force download the PDF
-        try {
-          const fileName = `${mode}-${formData.customerName.replace(/[^a-zA-Z0-9]/g, '_')}-${formData.date}.pdf`;
-          
-          // Try to fetch the PDF and trigger download
-          const pdfResponse = await fetch(result.pdfUrl);
-          if (pdfResponse.ok) {
-            const blob = await pdfResponse.blob();
-            const url = window.URL.createObjectURL(blob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Clean up the blob URL
-            window.URL.revokeObjectURL(url);
-            console.log('PDF download initiated:', fileName);
-          } else {
-            // Fallback: open in new tab
-            console.log('PDF fetch failed, opening in new tab');
-            window.open(result.pdfUrl, '_blank');
-          }
-        } catch (downloadError) {
-          console.error('Download failed, opening in new tab:', downloadError);
-          window.open(result.pdfUrl, '_blank');
-        }
+        // PDF generated successfully - no auto-download
+        console.log('PDF generated successfully:', result.pdfUrl);
       }
       
       console.log('Document generated successfully:', result);

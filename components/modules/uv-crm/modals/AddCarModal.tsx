@@ -103,8 +103,6 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [generatingDescription, setGeneratingDescription] = useState(false);
-  const [rawEquipmentData, setRawEquipmentData] = useState<any>(null);
-  const [generatingEquipment, setGeneratingEquipment] = useState(false);
 
   // Mercedes-Benz models for dropdown
   const models = [
@@ -316,8 +314,6 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
             const optionDescs = Array.from(new Set(optionDescsArr));
             const optionsText = optionDescs.length ? optionDescs.map(d => `- ${d}`).join('\n') : '';
 
-            // Store raw equipment data for processing
-            setRawEquipmentData(optsObj);
 
             setForm(prev => ({
               ...prev,
@@ -459,34 +455,6 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     }
   };
 
-  const generateKeyEquipment = async () => {
-    if (generatingEquipment || !rawEquipmentData) return;
-    setGeneratingEquipment(true);
-    
-    try {
-      const response = await fetch('/api/process-key-equipment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawEquipment: rawEquipmentData })
-      });
-
-      const result = await response.json();
-      if (result.success && result.equipment) {
-        console.log(`Processed equipment: ${result.equipment.length} characters`);
-        setForm(prev => ({
-          ...prev,
-          key_equipment: result.equipment
-        }));
-      } else {
-        alert('Failed to process key equipment. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error processing key equipment:', error);
-      alert('Failed to process key equipment. Please try again.');
-    } finally {
-      setGeneratingEquipment(false);
-    }
-  };
 
   // Helper function to ensure dates are in yyyy-mm-dd format
   const formatDateForDatabase = (dateString: string): string | null => {
@@ -1294,47 +1262,16 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                 <div>
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-2xl font-bold text-white">Key Equipment</h3>
-                    <div className="flex items-center gap-4">
-                      <button
-                        type="button"
-                        onClick={generateKeyEquipment}
-                        disabled={generatingEquipment || !rawEquipmentData}
-                        className="px-4 py-2 text-sm bg-green-600/20 hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-300 border border-green-500/30 rounded-lg transition-colors flex items-center gap-2"
-                        title={!rawEquipmentData ? "VIN decode first to get equipment data" : "Process raw equipment data"}
-                      >
-                        {generatingEquipment ? (
-                          <>
-                            <div className="w-4 h-4 border border-green-300/30 border-t-green-300 rounded-full animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                            </svg>
-                            Process
-                          </>
-                        )}
-                      </button>
-                      <span className={`text-sm ${form.key_equipment.length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
-                        {form.key_equipment.length}/1800
-                      </span>
-                    </div>
                   </div>
                   <textarea
                     name="key_equipment"
                     value={form.key_equipment}
                     onChange={handleChange}
-                    className={`${fieldClass} resize-y min-h-[200px] ${
-                      form.key_equipment.length > 1800 ? 'border-red-400' : ''
-                    }`}
+                    className={fieldClass}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     rows={8}
                     required
                   />
-                  {form.key_equipment.length > 1800 && (
-                    <p className="text-red-400 text-sm mt-2">Key equipment must be 1800 characters or less</p>
-                  )}
                 </div>
 
                 <div>

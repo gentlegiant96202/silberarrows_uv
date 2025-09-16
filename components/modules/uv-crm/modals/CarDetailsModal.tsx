@@ -1878,20 +1878,20 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                       type="button"
                       onClick={processKeyEquipment}
                       disabled={processingKeyEquipment || !(localCar.key_equipment || '').trim()}
-                      className="px-3 py-1 text-xs bg-green-600/20 hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-300 border border-green-500/30 rounded transition-colors flex items-center gap-2"
+                      className="w-24 px-3 py-1 text-xs bg-green-600/20 hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-300 border border-green-500/30 rounded transition-colors flex items-center justify-center gap-1"
                       title="Alphabetize and format key equipment"
                     >
                       {processingKeyEquipment ? (
                         <>
-                          <div className="w-3 h-3 border border-green-300/30 border-t-green-300 rounded-full animate-spin" />
-                          Processing...
+                          <div className="w-3 h-3 border border-green-300/30 border-t-green-300 rounded-full animate-spin flex-shrink-0" />
+                          <span className="text-xs">Processing</span>
                         </>
                       ) : (
                         <>
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                           </svg>
-                          Process
+                          <span className="text-xs">Process</span>
                         </>
                       )}
                     </button>

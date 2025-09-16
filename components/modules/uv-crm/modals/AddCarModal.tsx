@@ -520,9 +520,9 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     e.preventDefault();
     if (!form.stock_number || !form.model_year || !form.vehicle_model || !form.model_family || !form.colour || !form.chassis_number || !form.advertised_price_aed) return;
     
-    // Check character limits
-    if (form.description.length > 1500 || form.key_equipment.length > 1800) {
-      alert('Please check character limits: Description max 1500, Key Equipment max 1800');
+    // Check character limits for description only
+    if (form.description.length > 1500) {
+      alert('Please check character limits: Description max 1500');
       return;
     }
     
@@ -1331,7 +1331,6 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     rows={8}
                     required
-                    maxLength={1800}
                   />
                   {form.key_equipment.length > 1800 && (
                     <p className="text-red-400 text-sm mt-2">Key equipment must be 1800 characters or less</p>

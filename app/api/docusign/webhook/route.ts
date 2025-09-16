@@ -299,11 +299,12 @@ export async function POST(request: NextRequest) {
         .from('documents')
         .getPublicUrl(fileName);
 
-      // Update the vehicle_reservations record with signed PDF
+      // Update the vehicle_reservations record with signed PDF (replace main PDF)
       const { error: updateError } = await supabase
         .from('vehicle_reservations')
         .update({
-          signed_pdf_url: urlData.publicUrl,
+          pdf_url: urlData.publicUrl,  // Replace main PDF with signed version
+          signed_pdf_url: urlData.publicUrl,  // Also keep in signed_pdf_url for reference
           signing_status: 'completed',
           completed_at: new Date().toISOString()
         })

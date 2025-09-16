@@ -173,7 +173,7 @@ export default function CarKanbanBoard() {
   const [showArchived, setShowArchived] = useState(false);
 
   const columns = [
-    { key: 'marketing',   title: 'QC CHECK CEO' },
+    { key: 'marketing',   title: 'SALES' },
     { key: 'qc_ceo',      title: 'MARKETING' },
     { key: 'inventory',   title: 'INVENTORY' },
     { key: 'reserved',    title: 'RESERVED' },
@@ -401,7 +401,7 @@ export default function CarKanbanBoard() {
       
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: any }[] = [
-        { key: 'marketing', delay: 0, statusFilter: { status: 'marketing' } },        // QC CHECK CEO (leftmost)
+        { key: 'marketing', delay: 0, statusFilter: { status: 'marketing' } },        // SALES (leftmost)
         { key: 'qc_ceo', delay: 60, statusFilter: { status: 'qc_ceo' } },            // MARKETING  
         { key: 'inventory', delay: 120, statusFilter: { status: 'inventory', sale_status: 'available' } }, // INVENTORY
         { key: 'reserved', delay: 180, statusFilter: { status: 'inventory', sale_status: 'reserved' } },   // RESERVED

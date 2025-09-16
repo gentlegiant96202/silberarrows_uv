@@ -71,7 +71,7 @@ const InventorySkeleton = () => {
 
   const columns = [
     { key: 'marketing', title: 'MARKETING' },
-    { key: 'qc_ceo', title: 'QC CHECK CEO' },
+    { key: 'qc_ceo', title: 'SALES' },
     { key: 'inventory', title: 'INVENTORY' },
     { key: 'reserved', title: 'RESERVED' },
     { key: 'sold', title: 'SOLD' },

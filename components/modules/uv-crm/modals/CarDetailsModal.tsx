@@ -154,6 +154,47 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [downloadingSocial, setDownloadingSocial] = useState(false);
   const [downloadingCatalog, setDownloadingCatalog] = useState(false);
   
+  // Key equipment processing state
+  const [processingKeyEquipment, setProcessingKeyEquipment] = useState(false);
+
+  // Function to process key equipment (alphabetize and add hyphens)
+  const processKeyEquipment = () => {
+    if (processingKeyEquipment) return;
+    
+    setProcessingKeyEquipment(true);
+    
+    try {
+      const currentEquipment = localCar.key_equipment || '';
+      
+      // Split by lines, clean up each line, remove empty lines
+      const equipmentLines = currentEquipment
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .map(line => {
+          // Remove existing hyphens and bullets at the start
+          const cleaned = line.replace(/^[-•*]\s*/, '');
+          return cleaned;
+        })
+        .filter(line => line.length > 0); // Remove any lines that became empty after cleaning
+      
+      // Remove duplicates, convert to uppercase, sort alphabetically, and add hyphens
+      const processedEquipment = Array.from(new Set(equipmentLines))
+        .map(item => `- ${item.toUpperCase()}`)
+        .sort()
+        .join('\n');
+
+      // Update the local car state
+      handleFieldChange('key_equipment', processedEquipment);
+      
+    } catch (error) {
+      console.error('Error processing key equipment:', error);
+      alert('Error processing key equipment. Please try again.');
+    } finally {
+      setProcessingKeyEquipment(false);
+    }
+  };
+  
   // Function to get original full-resolution image URL (convert to custom domain to avoid ISP blocking)
   const getOriginalImageUrl = (url: string) => {
     try {
@@ -1049,10 +1090,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       alert('Description must be 1700 characters or less');
       return;
     }
-    if ((localCar.key_equipment || '').length > 1800) {
-      alert('Key equipment must be 1800 characters or less');
-      return;
-    }
+    // Note: Key equipment character limit removed to allow unlimited content
     
     // Before saving, ensure website_url is lowercase
     if (localCar.website_url) {
@@ -1832,9 +1870,32 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-white text-sm font-bold uppercase tracking-wide">Key Equipment</h3>
                 {editing && (
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={processKeyEquipment}
+                      disabled={processingKeyEquipment || !(localCar.key_equipment || '').trim()}
+                      className="px-3 py-1 text-xs bg-green-600/20 hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-300 border border-green-500/30 rounded transition-colors flex items-center gap-2"
+                      title="Alphabetize and format key equipment"
+                    >
+                      {processingKeyEquipment ? (
+                        <>
+                          <div className="w-3 h-3 border border-green-300/30 border-t-green-300 rounded-full animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                          Process
+                        </>
+                      )}
+                    </button>
                     <span className={`text-sm ${(localCar.key_equipment || '').length > 1800 ? 'text-red-400' : 'text-white/60'}`}>
-                    {(localCar.key_equipment || '').length}/1800
-                  </span>
+                      {(localCar.key_equipment || '').length}/1800
+                    </span>
+                  </div>
                 )}
               </div>
                 {editing && canEdit ? (

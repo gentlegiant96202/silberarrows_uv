@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
     let body: any;
     let envelopeId: string | null = null;
     let envelopeStatus: string | null = null;
+    let recipientStatus: any[] = [];
 
     // Handle both JSON and XML webhook formats
     if (rawBody.startsWith('<?xml')) {
@@ -128,6 +129,9 @@ export async function POST(request: NextRequest) {
       // Extract envelope information from JSON
       envelopeId = body.data?.envelopeId || body.envelopeId;
       envelopeStatus = body.data?.envelopeSummary?.status || body.status;
+      recipientStatus = body.data?.envelopeSummary?.recipients?.signers || [];
+      
+      console.log('📋 Recipient status:', recipientStatus);
     }
 
     if (!envelopeId) {
@@ -137,22 +141,45 @@ export async function POST(request: NextRequest) {
 
     console.log(`📄 Envelope ${envelopeId} status: ${envelopeStatus}`);
 
-    // Only process completed envelopes (case insensitive)
+    // Determine signing status based on recipient completion
+    let customStatus = envelopeStatus?.toLowerCase();
+    
+    // Check if only company has signed (for vehicle documents)
+    if (recipientStatus && recipientStatus.length >= 2) {
+      const companySigner = recipientStatus.find(r => r.routingOrder === '1' || r.routingOrder === 1);
+      const customerSigner = recipientStatus.find(r => r.routingOrder === '2' || r.routingOrder === 2);
+      
+      console.log('📋 Signer status check:', {
+        companyStatus: companySigner?.status,
+        customerStatus: customerSigner?.status,
+        companyCompleted: companySigner?.status?.toLowerCase() === 'completed',
+        customerCompleted: customerSigner?.status?.toLowerCase() === 'completed'
+      });
+      
+      // If company completed but customer hasn't
+      if (companySigner?.status?.toLowerCase() === 'completed' && 
+          customerSigner?.status?.toLowerCase() !== 'completed') {
+        customStatus = 'company_signed';
+        console.log('🟠 Company signature completed, waiting for customer');
+      }
+    }
+
+    // Only download PDF when fully completed (all signers)
     if (envelopeStatus?.toLowerCase() !== 'completed') {
-      console.log(`⏳ Envelope not completed yet (${envelopeStatus}), skipping PDF replacement`);
+      console.log(`⏳ Envelope not fully completed yet (${envelopeStatus}), updating status to: ${customStatus}`);
       
       // Update status in both car_media and vehicle_reservations tables
       const { error: updateError1 } = await supabase
         .from('car_media')
         .update({ 
-          signing_status: envelopeStatus?.toLowerCase()
+          signing_status: customStatus
         })
         .eq('docusign_envelope_id', envelopeId);
 
       const { error: updateError2 } = await supabase
         .from('vehicle_reservations')
         .update({ 
-          signing_status: envelopeStatus?.toLowerCase()
+          signing_status: customStatus
         })
         .eq('docusign_envelope_id', envelopeId);
 

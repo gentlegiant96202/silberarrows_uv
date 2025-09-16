@@ -768,6 +768,26 @@ export default function VehicleDocumentModal({
           setDocumentNumber(savedReservation.document_number);
         }
         
+        // Reset DocuSign status when PDF is regenerated
+        if (docusignEnvelopeId) {
+          console.log('🔄 PDF regenerated - resetting DocuSign status');
+          setDocusignEnvelopeId(null);
+          setSigningStatus('pending');
+          setSignedPdfUrl(null);
+          
+          // Clear any existing DocuSign data in database
+          await supabase
+            .from('vehicle_reservations')
+            .update({
+              docusign_envelope_id: null,
+              signing_status: 'pending',
+              signed_pdf_url: null,
+              sent_for_signing_at: null,
+              completed_at: null
+            })
+            .eq('id', savedReservation.id);
+        }
+        
         // Force download the PDF
         try {
           const fileName = `${mode}-${formData.customerName.replace(/[^a-zA-Z0-9]/g, '_')}-${formData.date}.pdf`;
@@ -1549,20 +1569,48 @@ export default function VehicleDocumentModal({
               </div>
             </div>
 
-            {/* PDF Generated Section */}
+            {/* PDF Status Section - Progressive Status */}
             {pdfGenerated && generatedPdfUrl && (
-              <div className="bg-green-500/10 backdrop-blur-sm rounded-lg p-3 border border-green-400/20">
+              <div className={`backdrop-blur-sm rounded-lg p-3 border ${
+                signingStatus === 'completed' 
+                  ? 'bg-green-500/10 border-green-400/20' 
+                  : signingStatus === 'company_signed'
+                  ? 'bg-orange-500/10 border-orange-400/20'
+                  : signingStatus === 'sent' || signingStatus === 'delivered'
+                  ? 'bg-blue-500/10 border-blue-400/20'
+                  : 'bg-yellow-500/10 border-yellow-400/20'
+              }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <h3 className="text-sm font-medium text-green-400">
-                      {mode === 'reservation' ? 'Reservation Form' : 'Invoice Document'} Generated Successfully
+                    <div className={`w-2 h-2 rounded-full ${
+                      signingStatus === 'completed' 
+                        ? 'bg-green-400' 
+                        : signingStatus === 'company_signed'
+                        ? 'bg-orange-400 animate-pulse'
+                        : signingStatus === 'sent' || signingStatus === 'delivered'
+                        ? 'bg-blue-400 animate-pulse'
+                        : 'bg-yellow-400 animate-pulse'
+                    }`}></div>
+                    <h3 className={`text-sm font-medium ${
+                      signingStatus === 'completed' 
+                        ? 'text-green-400' 
+                        : signingStatus === 'company_signed'
+                        ? 'text-orange-400'
+                        : signingStatus === 'sent' || signingStatus === 'delivered'
+                        ? 'text-blue-400'
+                        : 'text-yellow-400'
+                    }`}>
+                      {signingStatus === 'completed' ? 'Document Signed & Completed' :
+                       signingStatus === 'company_signed' ? 'SilberArrows Signature Completed' :
+                       signingStatus === 'sent' ? 'DocuSign Sent for Signing' :
+                       signingStatus === 'delivered' ? 'DocuSign Sent for Signing' :
+                       `${mode === 'reservation' ? 'Reservation Form' : 'Invoice Document'} Created`}
                     </h3>
                   </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => window.open(generatedPdfUrl, '_blank')}
+                      onClick={() => window.open(signedPdfUrl || generatedPdfUrl, '_blank')}
                       className="px-3 py-1.5 bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 backdrop-blur-sm border border-gray-600/50 text-gray-200 text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1575,8 +1623,10 @@ export default function VehicleDocumentModal({
                       type="button"
                       onClick={async () => {
                         try {
-                          const fileName = `${mode}-${formData.customerName.replace(/[^a-zA-Z0-9]/g, '_')}-${formData.date}.pdf`;
-                          const response = await fetch(generatedPdfUrl);
+                          const pdfUrl = signedPdfUrl || generatedPdfUrl;
+                          const suffix = signedPdfUrl ? '-SIGNED' : '';
+                          const fileName = `${mode}-${formData.customerName.replace(/[^a-zA-Z0-9]/g, '_')}-${formData.date}${suffix}.pdf`;
+                          const response = await fetch(pdfUrl);
                           if (response.ok) {
                             const blob = await response.blob();
                             const url = window.URL.createObjectURL(blob);
@@ -1591,10 +1641,10 @@ export default function VehicleDocumentModal({
                             
                             window.URL.revokeObjectURL(url);
                           } else {
-                            window.open(generatedPdfUrl, '_blank');
+                            window.open(pdfUrl, '_blank');
                           }
                         } catch (error) {
-                          window.open(generatedPdfUrl, '_blank');
+                          window.open(signedPdfUrl || generatedPdfUrl, '_blank');
                         }
                       }}
                       className="px-3 py-1.5 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 backdrop-blur-sm border border-gray-500/50 text-gray-100 text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
@@ -1604,8 +1654,8 @@ export default function VehicleDocumentModal({
                       </svg>
                       Download PDF
                     </button>
-                    {/* Send for Signing Button */}
-                    {formData.emailAddress && signingStatus === 'pending' && (
+                    {/* Send for Signing Button - Show when pending or when regenerated */}
+                    {formData.emailAddress && (signingStatus === 'pending' || signingStatus === 'regenerated') && (
                       <button
                         type="button"
                         onClick={handleSendForSigning}
@@ -1624,104 +1674,22 @@ export default function VehicleDocumentModal({
                     )}
                   </div>
                 </div>
-                <div className="mt-2 text-xs text-green-300/70">
-                  You can regenerate the document by clicking the button below, or make changes to the form and update it.
-                  {!formData.emailAddress && (
+                <div className={`mt-2 text-xs ${
+                  signingStatus === 'completed' ? 'text-green-300/70' :
+                  signingStatus === 'company_signed' ? 'text-orange-300/70' :
+                  signingStatus === 'sent' || signingStatus === 'delivered' ? 'text-blue-300/70' :
+                  'text-yellow-300/70'
+                }`}>
+                  {signingStatus === 'completed' && 'Document has been successfully signed by both company and customer.'}
+                  {signingStatus === 'company_signed' && 'Company signature completed. Waiting for customer signature.'}
+                  {signingStatus === 'sent' && 'Document sent to company for signature first, then customer.'}
+                  {signingStatus === 'delivered' && 'Document delivered and awaiting signatures.'}
+                  {signingStatus === 'pending' && 'You can regenerate the document or send for signing.'}
+                  {!formData.emailAddress && signingStatus === 'pending' && (
                     <span className="block mt-1 text-yellow-400/80">
                       💡 Add customer email to enable DocuSign signing.
                     </span>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* DocuSign Status Section */}
-            {docusignEnvelopeId && signingStatus !== 'pending' && (
-              <div className={`backdrop-blur-sm rounded-lg p-3 border ${
-                signingStatus === 'completed' 
-                  ? 'bg-green-500/10 border-green-400/20' 
-                  : signingStatus === 'declined'
-                  ? 'bg-red-500/10 border-red-400/20'
-                  : 'bg-blue-500/10 border-blue-400/20'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      signingStatus === 'completed' 
-                        ? 'bg-green-400' 
-                        : signingStatus === 'declined'
-                        ? 'bg-red-400'
-                        : 'bg-blue-400 animate-pulse'
-                    }`}></div>
-                    <h3 className={`text-sm font-medium ${
-                      signingStatus === 'completed' 
-                        ? 'text-green-400' 
-                        : signingStatus === 'declined'
-                        ? 'text-red-400'
-                        : 'text-blue-400'
-                    }`}>
-                      DocuSign Status: {signingStatus === 'completed' ? 'Signed & Completed' : 
-                                       signingStatus === 'declined' ? 'Declined by Customer' :
-                                       signingStatus === 'sent' ? 'Sent for Signing' :
-                                       signingStatus === 'delivered' ? 'Delivered to Customer' :
-                                       signingStatus.charAt(0).toUpperCase() + signingStatus.slice(1)}
-                    </h3>
-                  </div>
-                  <div className="flex gap-2">
-                    {signedPdfUrl && signingStatus === 'completed' && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => window.open(signedPdfUrl, '_blank')}
-                          className="px-3 py-1.5 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 backdrop-blur-sm border border-gray-500/50 text-gray-100 text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          View Signed PDF
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              const fileName = `${mode}-${formData.customerName.replace(/[^a-zA-Z0-9]/g, '_')}-${formData.date}-SIGNED.pdf`;
-                              const response = await fetch(signedPdfUrl);
-                              if (response.ok) {
-                                const blob = await response.blob();
-                                const url = window.URL.createObjectURL(blob);
-                                
-                                const link = document.createElement('a');
-                                link.href = url;
-                                link.download = fileName;
-                                link.style.display = 'none';
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                
-                                window.URL.revokeObjectURL(url);
-                              } else {
-                                window.open(signedPdfUrl, '_blank');
-                              }
-                            } catch (error) {
-                              window.open(signedPdfUrl, '_blank');
-                            }
-                          }}
-                          className="px-3 py-1.5 bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 backdrop-blur-sm border border-gray-400/50 text-white text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Download Signed PDF
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-white/60">
-                  {signingStatus === 'completed' && 'Document has been successfully signed by the customer.'}
-                  {signingStatus === 'declined' && 'Customer declined to sign the document. You may need to regenerate and resend.'}
-                  {signingStatus === 'sent' && 'Document has been sent to customer via email for signing.'}
-                  {signingStatus === 'delivered' && 'Document has been delivered and is awaiting customer signature.'}
                   {docusignEnvelopeId && (
                     <span className="block mt-1 font-mono text-[10px] text-white/40">
                       Envelope ID: {docusignEnvelopeId}

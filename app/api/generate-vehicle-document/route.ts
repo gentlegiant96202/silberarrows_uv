@@ -113,10 +113,6 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
           padding: 8px 10px 18px 10px;
         }
 
-        .page.first-page .section {
-          margin: 4px 0;
-        }
-
         .page-break {
           page-break-before: always;
         }
@@ -482,20 +478,20 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
               <div class="section-title">VEHICLE</div>
             <table class="form-table">
               <tr>
-                <td class="label">Make & Model:</td>
-                <td class="data">${safeString(formData.makeModel)}</td>
-                <td class="label">Model Year:</td>
-                <td class="data">${safeString(formData.modelYear)}</td>
-              </tr>
-              <tr>
                 <td class="label">Chassis No.:</td>
                 <td class="data">${safeString(formData.chassisNo)}</td>
                 <td class="label">Exterior Colour:</td>
                 <td class="data">${safeString(formData.exteriorColour)}</td>
               </tr>
               <tr>
+                <td class="label">Make & Model:</td>
+                <td class="data">${safeString(formData.makeModel)}</td>
                 <td class="label">Interior Colour:</td>
                 <td class="data">${safeString(formData.interiorColour)}</td>
+              </tr>
+              <tr>
+                <td class="label">Model Year:</td>
+                <td class="data">${safeString(formData.modelYear)}</td>
                 <td class="label">Mileage:</td>
                 <td class="data">${safeNumber(formData.mileage)}</td>
               </tr>

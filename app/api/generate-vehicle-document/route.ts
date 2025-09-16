@@ -492,7 +492,7 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
               <tr>
                 <td class="label">Model Year:</td>
                 <td class="data">${safeString(formData.modelYear)}</td>
-                <td class="label">Mileage:</td>
+                <td class="label">Mileage (Km):</td>
                 <td class="data">${safeNumber(formData.mileage)}</td>
               </tr>
             </table>

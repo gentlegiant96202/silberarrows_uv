@@ -449,58 +449,39 @@ export default function ReservationsInvoicesGrid() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       {item.pdf_url ? (
-                        <div className="flex flex-col items-center gap-1">
-                          {/* DocuSign Status Indicator */}
-                          {item.signing_status && item.signing_status !== 'pending' && (
-                            <div className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                              item.signing_status === 'completed' 
-                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                : item.signing_status === 'company_signed'
-                                ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                                : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                            }`}>
-                              {item.signing_status === 'completed' ? '✅ Signed' :
-                               item.signing_status === 'company_signed' ? '🟠 Co. Signed' :
-                               item.signing_status === 'sent' ? '📧 Sent' :
-                               item.signing_status === 'delivered' ? '📬 Delivered' :
-                               item.signing_status}
-                            </div>
+                        <div className="flex items-center justify-center gap-2">
+                          {item.document_type === 'invoice' && (
+                            <button
+                              onClick={() => handleGenerateTaxInvoice(item)}
+                              disabled={taxLoadingId === item.id}
+                              className={`p-1.5 border rounded transition-colors ${
+                                taxLoadingId === item.id
+                                  ? 'bg-green-500/10 border-green-500/20 cursor-not-allowed'
+                                  : 'bg-green-500/10 hover:bg-green-500/20 border-green-500/30'
+                              }`}
+                              title="Generate Tax Invoice"
+                            >
+                              {taxLoadingId === item.id ? (
+                                <Loader2 className="w-4 h-4 text-green-400 animate-spin" />
+                              ) : (
+                                <FilePlus2 className="w-4 h-4 text-green-400" />
+                              )}
+                            </button>
                           )}
-                          
-                          <div className="flex items-center gap-2">
-                            {item.document_type === 'invoice' && (
-                              <button
-                                onClick={() => handleGenerateTaxInvoice(item)}
-                                disabled={taxLoadingId === item.id}
-                                className={`p-1.5 border rounded transition-colors ${
-                                  taxLoadingId === item.id
-                                    ? 'bg-green-500/10 border-green-500/20 cursor-not-allowed'
-                                    : 'bg-green-500/10 hover:bg-green-500/20 border-green-500/30'
-                                }`}
-                                title="Generate Tax Invoice"
-                              >
-                                {taxLoadingId === item.id ? (
-                                  <Loader2 className="w-4 h-4 text-green-400 animate-spin" />
-                                ) : (
-                                  <FilePlus2 className="w-4 h-4 text-green-400" />
-                                )}
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleViewPDF(item.pdf_url!)}
-                              className="p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded transition-colors"
-                              title={item.signing_status === 'completed' ? 'View Signed PDF' : 'View PDF'}
-                            >
-                              <Eye className="w-4 h-4 text-white/70" />
-                            </button>
-                            <button
-                              onClick={() => handleDownloadPDF(item.pdf_url!, item.document_number, item.customer_name)}
-                              className="p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded transition-colors"
-                              title={item.signing_status === 'completed' ? 'Download Signed PDF' : 'Download PDF'}
-                            >
-                              <Download className="w-4 h-4 text-white/70" />
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleViewPDF(item.pdf_url!)}
+                            className="p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded transition-colors"
+                            title="View PDF"
+                          >
+                            <Eye className="w-4 h-4 text-white/70" />
+                          </button>
+                          <button
+                            onClick={() => handleDownloadPDF(item.pdf_url!, item.document_number, item.customer_name)}
+                            className="p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded transition-colors"
+                            title="Download PDF"
+                          >
+                            <Download className="w-4 h-4 text-white/70" />
+                          </button>
                         </div>
                       ) : (
                         <span className="text-white/40 text-xs">No PDF</span>

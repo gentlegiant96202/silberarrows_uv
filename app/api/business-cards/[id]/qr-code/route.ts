@@ -102,8 +102,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       return NextResponse.json({ error: 'Failed to fetch business card' }, { status: 500 });
     }
 
-    // Generate QR code URL (using ID-based permanent URL)
-    const qrUrl = `${request.nextUrl.origin}/business-card/id/${params.id}`;
+    // Generate QR code URL (using simple ID URL)
+    const qrUrl = `${request.nextUrl.origin}/business-card/${params.id}`;
     
     // Generate QR code as PNG buffer
     const qrCodeBuffer = await QRCode.toBuffer(qrUrl, {
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       return NextResponse.json({ error: 'Failed to fetch business card' }, { status: 500 });
     }
 
-    const qrUrl = `${request.nextUrl.origin}/business-card/id/${params.id}`;
+    const qrUrl = `${request.nextUrl.origin}/business-card/${params.id}`;
 
     return NextResponse.json({
       qr_generated: !!businessCard.qr_generated_at,

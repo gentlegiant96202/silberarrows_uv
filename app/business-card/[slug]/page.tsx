@@ -66,18 +66,24 @@ export default function BusinessCardPage() {
   const generateVCard = () => {
     if (!businessCard) return '';
     
+    // Split name for proper iPhone compatibility
+    const nameParts = businessCard.name.trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    
     const vcard = [
       'BEGIN:VCARD',
       'VERSION:3.0',
-      `FN:${businessCard.name}`,
+      `FN:${businessCard.name}`, // Formatted name
+      `N:${lastName};${firstName};;;`, // Name components (Last;First;Middle;Prefix;Suffix)
       businessCard.title ? `TITLE:${businessCard.title}` : '',
       businessCard.company ? `ORG:${businessCard.company}` : '',
-      businessCard.landline_phone ? `TEL;TYPE=WORK:${businessCard.landline_phone}` : '',
-      businessCard.mobile_phone ? `TEL;TYPE=CELL:${businessCard.mobile_phone}` : '',
-      businessCard.email ? `EMAIL:${businessCard.email}` : '',
+      businessCard.landline_phone ? `TEL;TYPE=WORK,VOICE:${businessCard.landline_phone}` : '',
+      businessCard.mobile_phone ? `TEL;TYPE=CELL,VOICE:${businessCard.mobile_phone}` : '',
+      businessCard.email ? `EMAIL;TYPE=INTERNET:${businessCard.email}` : '',
       businessCard.website ? `URL:${businessCard.website}` : '',
       'END:VCARD'
-    ].filter(line => line !== '').join('\n');
+    ].filter(line => line !== '').join('\r\n'); // Use CRLF for better compatibility
     
     return vcard;
   };

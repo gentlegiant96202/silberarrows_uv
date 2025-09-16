@@ -121,63 +121,45 @@ async function getAccessToken() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 DocuSign API called - parsing request body...');
-    const { carId, documentId, companySignerEmail } = await request.json();
-    console.log('✅ Request body parsed:', { carId, documentId, companySignerEmail });
+    console.log('🔍 Vehicle DocuSign API called - parsing request body...');
+    const { 
+      leadId, 
+      documentType, 
+      customerEmail, 
+      customerName, 
+      companySignerEmail, 
+      documentTitle, 
+      pdfUrl, 
+      formData 
+    } = await request.json();
+    
+    console.log('✅ Request body parsed:', { 
+      leadId, 
+      documentType, 
+      customerEmail, 
+      customerName, 
+      companySignerEmail, 
+      documentTitle 
+    });
 
-    if (!carId || !documentId || !companySignerEmail) {
-      console.error('❌ Missing required parameters:', { carId, documentId, companySignerEmail });
+    if (!leadId || !documentType || !customerEmail || !customerName || !companySignerEmail || !pdfUrl) {
+      console.error('❌ Missing required parameters:', { 
+        leadId: !!leadId, 
+        documentType: !!documentType, 
+        customerEmail: !!customerEmail, 
+        customerName: !!customerName, 
+        companySignerEmail: !!companySignerEmail, 
+        pdfUrl: !!pdfUrl 
+      });
       return NextResponse.json(
-        { error: 'Missing carId, documentId, or companySignerEmail' },
+        { error: 'Missing required parameters' },
         { status: 400 }
       );
     }
 
-    console.log('📧 Sending consignment agreement for DocuSign signing...');
+    console.log('📧 Sending vehicle document for DocuSign signing...');
 
-    // Get car and document details from database
-    console.log('🔍 Fetching car data for ID:', carId);
-    const { data: car, error: carError } = await supabase
-      .from('cars')
-      .select('*')
-      .eq('id', carId)
-      .single();
-
-    if (carError || !car) {
-      console.error('❌ Car not found:', { carId, carError });
-      return NextResponse.json(
-        { error: 'Car not found' },
-        { status: 404 }
-      );
-    }
-    console.log('✅ Car data retrieved:', { id: car.id, stock_number: car.stock_number, customer_name: car.customer_name });
-
-    console.log('🔍 Fetching document data for ID:', documentId);
-    const { data: document, error: docError } = await supabase
-      .from('car_media')
-      .select('*')
-      .eq('id', documentId)
-      .single();
-
-    if (docError || !document) {
-      console.error('❌ Document not found:', { documentId, docError });
-      return NextResponse.json(
-        { error: 'Document not found' },
-        { status: 404 }
-      );
-    }
-    console.log('✅ Document data retrieved:', { id: document.id, filename: document.filename, url: document.url });
-
-    // Validate required customer info
-    console.log('🔍 Validating customer info...');
-    if (!car.customer_name || !car.customer_email) {
-      console.error('❌ Missing customer info:', { customer_name: car.customer_name, customer_email: car.customer_email });
-      return NextResponse.json(
-        { error: 'Customer name and email are required for signing' },
-        { status: 400 }
-      );
-    }
-    console.log('✅ Customer info validated:', { customer_name: car.customer_name, customer_email: car.customer_email });
+    // Vehicle document data is passed directly, no need to fetch from database
 
     // Get access token
     console.log('🔍 Getting DocuSign access token...');
@@ -185,11 +167,11 @@ export async function POST(request: NextRequest) {
     console.log('✅ DocuSign access token obtained');
 
     // Fetch the PDF content
-    console.log('🔍 Fetching PDF content from URL:', document.url);
-    const pdfResponse = await fetch(document.url);
+    console.log('🔍 Fetching PDF content from URL:', pdfUrl);
+    const pdfResponse = await fetch(pdfUrl);
     
     if (!pdfResponse.ok) {
-      console.error('❌ Failed to fetch PDF:', { status: pdfResponse.status, statusText: pdfResponse.statusText, url: document.url });
+      console.error('❌ Failed to fetch PDF:', { status: pdfResponse.status, statusText: pdfResponse.statusText, url: pdfUrl });
       throw new Error(`Failed to fetch PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
     }
     
@@ -204,15 +186,15 @@ export async function POST(request: NextRequest) {
     // Create envelope using REST API
     console.log('🔍 Creating DocuSign envelope data...');
     // DocuSign enforces a 100 character limit on emailSubject
-    const baseSubject = `SilberArrows Consignment Agreement - ${car.vehicle_model} (${car.stock_number}) - Requires Approval`;
+    const baseSubject = `SilberArrows ${documentTitle} - ${customerName} - Requires Signatures`;
     const safeSubject = baseSubject.length > 100 ? baseSubject.slice(0, 100) : baseSubject;
     const envelopeData = {
       emailSubject: safeSubject,
-      emailBlurb: `Consignment agreement for ${car.model_year} ${car.vehicle_model} (Stock: ${car.stock_number}).`,
+      emailBlurb: `${documentTitle} for ${customerName}. Company signature required first, then customer signature.`,
       documents: [
         {
           documentId: '1',
-          name: `Consignment Agreement - ${car.stock_number}`,
+          name: documentTitle,
           fileExtension: 'pdf',
           documentBase64: pdfBase64
         }
@@ -252,15 +234,15 @@ export async function POST(request: NextRequest) {
             }
           },
           {
-            email: car.customer_email,
-            name: car.customer_name,
+            email: customerEmail,
+            name: customerName,
             recipientId: '2',
             routingOrder: '2',
             tabs: {
               signHereTabs: [
                 {
                   documentId: '1',
-                  anchorString: 'Owner/Representative Signature:',
+                  anchorString: 'Customer Signature:',
                   anchorUnits: 'pixels',
                   anchorXOffset: '0',
                   anchorYOffset: '30',
@@ -272,7 +254,7 @@ export async function POST(request: NextRequest) {
               dateSignedTabs: [
                 {
                   documentId: '1',
-                  anchorString: 'Owner/Representative Signature:',
+                  anchorString: 'Customer Signature:',
                   anchorUnits: 'pixels',
                   anchorXOffset: '0',
                   anchorYOffset: '66',
@@ -332,15 +314,16 @@ export async function POST(request: NextRequest) {
     const envelopeId = result.envelopeId;
     console.log('✅ DocuSign envelope created:', envelopeId);
 
-    // Update the car_media record with DocuSign envelope ID
+    // Update the vehicle_reservations record with DocuSign envelope ID
     const { error: updateError } = await supabase
-      .from('car_media')
+      .from('vehicle_reservations')
       .update({ 
         docusign_envelope_id: envelopeId,
         signing_status: 'sent',
         sent_for_signing_at: new Date().toISOString()
       })
-      .eq('id', documentId);
+      .eq('lead_id', leadId)
+      .eq('document_type', documentType);
 
     if (updateError) {
       console.error('Failed to update document with envelope ID:', updateError);
@@ -349,7 +332,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       envelopeId,
-      message: `Consignment agreement sent to ${companySignerEmail} for company approval. Customer will be notified after company signature is completed. Signed PDF will automatically replace unsigned version when completed.`
+      message: `${documentTitle} sent to ${companySignerEmail} for company approval. Customer will be notified after company signature is completed. Signed PDF will automatically replace unsigned version when completed.`
     });
 
   } catch (error: any) {

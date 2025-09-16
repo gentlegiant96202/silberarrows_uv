@@ -629,9 +629,8 @@ export default function KanbanBoard() {
       console.error("Failed to update lead status:", error);
     }
     
-    // Close modal and reset state
-    setShowVehicleDocumentModal(false);
-    setLeadForDocument(null);
+    // Keep modal open - user will close manually when ready
+    // Modal stays open to allow DocuSign workflow or further actions
   };
 
   const handleVehicleDocumentCancel = () => {

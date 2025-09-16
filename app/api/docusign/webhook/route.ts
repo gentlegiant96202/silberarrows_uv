@@ -141,16 +141,26 @@ export async function POST(request: NextRequest) {
     if (envelopeStatus?.toLowerCase() !== 'completed') {
       console.log(`⏳ Envelope not completed yet (${envelopeStatus}), skipping PDF replacement`);
       
-      // Update status in database (normalize to lowercase)
-      const { error: updateError } = await supabase
+      // Update status in both car_media and vehicle_reservations tables
+      const { error: updateError1 } = await supabase
         .from('car_media')
         .update({ 
           signing_status: envelopeStatus?.toLowerCase()
         })
         .eq('docusign_envelope_id', envelopeId);
 
-      if (updateError) {
-        console.error('Failed to update signing status:', updateError);
+      const { error: updateError2 } = await supabase
+        .from('vehicle_reservations')
+        .update({ 
+          signing_status: envelopeStatus?.toLowerCase()
+        })
+        .eq('docusign_envelope_id', envelopeId);
+
+      if (updateError1) {
+        console.error('Failed to update car_media signing status:', updateError1);
+      }
+      if (updateError2) {
+        console.error('Failed to update vehicle_reservations signing status:', updateError2);
       }
 
       return NextResponse.json({ success: true, message: 'Status updated' });
@@ -159,60 +169,128 @@ export async function POST(request: NextRequest) {
     // Envelope is completed - replace with signed PDF
     console.log('✅ Envelope completed! Downloading signed PDF...');
 
-    // Find the document in our database
-    const { data: document, error: docError } = await supabase
+    // Find the document in our database - check both tables
+    let document: any = null;
+    let documentType: 'consignment' | 'vehicle' = 'consignment';
+
+    // First check car_media (consignment documents)
+    const { data: consignmentDoc, error: consignmentError } = await supabase
       .from('car_media')
       .select('*')
       .eq('docusign_envelope_id', envelopeId)
       .single();
 
-    if (docError || !document) {
-      console.error('❌ Document not found in database:', docError);
+    if (consignmentDoc && !consignmentError) {
+      document = consignmentDoc;
+      documentType = 'consignment';
+      console.log('📄 Found consignment document:', document.id);
+    } else {
+      // Check vehicle_reservations (invoice/reservation documents)
+      const { data: vehicleDoc, error: vehicleError } = await supabase
+        .from('vehicle_reservations')
+        .select('*')
+        .eq('docusign_envelope_id', envelopeId)
+        .single();
+
+      if (vehicleDoc && !vehicleError) {
+        document = vehicleDoc;
+        documentType = 'vehicle';
+        console.log('📄 Found vehicle document:', document.id, document.document_type);
+      }
+    }
+
+    if (!document) {
+      console.error('❌ Document not found in database');
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
     // Download the signed PDF from DocuSign
     const signedPdfBuffer = await downloadSignedPDF(envelopeId);
     
-    // Upload the signed PDF to replace the unsigned one
-    const originalPath = document.url.split('/').pop(); // Get filename from URL
-    const signedPath = `${document.car_id}/signed-${originalPath}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('car-media')
-      .upload(signedPath, signedPdfBuffer, {
-        contentType: 'application/pdf',
-        cacheControl: '3600',
-        upsert: true, // Allow overwrite
-      });
+    if (documentType === 'consignment') {
+      // Handle consignment documents (existing logic)
+      console.log('📄 Processing consignment document');
+      const originalPath = document.url.split('/').pop(); // Get filename from URL
+      const signedPath = `${document.car_id}/signed-${originalPath}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('car-media')
+        .upload(signedPath, signedPdfBuffer, {
+          contentType: 'application/pdf',
+          cacheControl: '3600',
+          upsert: true, // Allow overwrite
+        });
 
-    if (uploadError) {
-      console.error('❌ Failed to upload signed PDF:', uploadError);
-      throw uploadError;
+      if (uploadError) {
+        console.error('❌ Failed to upload signed PDF:', uploadError);
+        throw uploadError;
+      }
+
+      // Get the new signed PDF URL
+      const { data: urlData } = supabase.storage
+        .from('car-media')
+        .getPublicUrl(signedPath);
+
+      // Update the database record with signed PDF
+      const { error: updateError } = await supabase
+        .from('car_media')
+        .update({
+          url: urlData.publicUrl,
+          filename: `signed-${document.filename}`,
+          signing_status: 'completed',
+          signed_at: new Date().toISOString()
+        })
+        .eq('id', document.id);
+
+      if (updateError) {
+        console.error('❌ Failed to update consignment document:', updateError);
+        throw updateError;
+      }
+
+      console.log('✅ Consignment document updated with signed PDF');
+      
+    } else {
+      // Handle vehicle documents (reservations/invoices)
+      console.log('📄 Processing vehicle document:', document.document_type);
+      const fileName = `${document.document_type}-${document.id}-signed-${Date.now()}.pdf`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, signedPdfBuffer, {
+          contentType: 'application/pdf',
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('❌ Failed to upload signed vehicle PDF:', uploadError);
+        throw uploadError;
+      }
+
+      // Get the new signed PDF URL
+      const { data: urlData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName);
+
+      // Update the vehicle_reservations record with signed PDF
+      const { error: updateError } = await supabase
+        .from('vehicle_reservations')
+        .update({
+          signed_pdf_url: urlData.publicUrl,
+          signing_status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', document.id);
+
+      if (updateError) {
+        console.error('❌ Failed to update vehicle document:', updateError);
+        throw updateError;
+      }
+
+      console.log('✅ Vehicle document updated with signed PDF');
     }
 
-    // Get the new signed PDF URL
-    const { data: urlData } = supabase.storage
-      .from('car-media')
-      .getPublicUrl(signedPath);
-
-    // Update the database record with signed PDF
-    const { error: updateError } = await supabase
-      .from('car_media')
-      .update({
-        url: urlData.publicUrl,
-        filename: `signed-${document.filename}`,
-        signing_status: 'completed',
-        signed_at: new Date().toISOString()
-      })
-      .eq('id', document.id);
-
-    if (updateError) {
-      console.error('❌ Failed to update document with signed PDF:', updateError);
-      throw updateError;
-    }
-
-    console.log('🎉 Successfully replaced unsigned PDF with signed version!');
+    console.log('🎉 Successfully processed signed document!');
 
     return NextResponse.json({ 
       success: true, 

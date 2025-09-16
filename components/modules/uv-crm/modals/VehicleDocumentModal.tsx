@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 
@@ -181,6 +182,17 @@ export default function VehicleDocumentModal({
   const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [documentNumber, setDocumentNumber] = useState<string | null>(null);
+  
+  // DocuSign state
+  const [docusignEnvelopeId, setDocusignEnvelopeId] = useState<string | null>(null);
+  const [signingStatus, setSigningStatus] = useState<string>('pending');
+  const [signedPdfUrl, setSignedPdfUrl] = useState<string | null>(null);
+  const [sendingForSigning, setSendingForSigning] = useState(false);
+  const [statusPollingInterval, setStatusPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // Company email modal state (matching consignment flow)
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [companyEmail, setCompanyEmail] = useState('');
 
   // Update sales executive when user changes
   useEffect(() => {
@@ -803,6 +815,178 @@ export default function VehicleDocumentModal({
     }
   };
 
+  // DocuSign Functions (matching consignment flow)
+  const handleSendForSigning = () => {
+    if (!generatedPdfUrl || !pdfGenerated) {
+      alert('Please generate the document first before sending for signing.');
+      return;
+    }
+    
+    if (!formData.emailAddress) {
+      alert('Please add customer email address before sending for signing.');
+      return;
+    }
+
+    // Open company email modal (matching consignment flow)
+    setCompanyEmail('');
+    setShowEmailModal(true);
+  };
+
+  // Function to actually send for signing after company email is selected
+  const handleConfirmSendForSigning = async () => {
+    if (!companyEmail) return;
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(companyEmail)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    setSendingForSigning(true);
+    setShowEmailModal(false);
+    
+    try {
+      console.log('🔄 Sending document for DocuSign signing...');
+      console.log('👤 Company signer:', companyEmail);
+      console.log('👤 Customer:', formData.customerName, formData.emailAddress);
+
+      const response = await fetch('/api/docusign/send-for-signing-vehicle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id,
+          documentType: mode,
+          customerEmail: formData.emailAddress,
+          customerName: formData.customerName,
+          companySignerEmail: companyEmail,
+          documentTitle: mode === 'reservation' ? 'Vehicle Reservation Form' : 'Vehicle Invoice',
+          pdfUrl: generatedPdfUrl,
+          formData: formData
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to send for signing: ${error}`);
+      }
+
+      const result = await response.json();
+      
+      // Update local state
+      setDocusignEnvelopeId(result.envelopeId);
+      setSigningStatus('sent');
+      
+      // Start polling for status updates
+      startStatusPolling();
+      
+      console.log('✅ Document sent for signing:', result.envelopeId);
+      
+    } catch (error) {
+      console.error('❌ Error sending for signing:', error);
+      alert('Failed to send document for signing. Please try again.');
+    } finally {
+      setSendingForSigning(false);
+    }
+  };
+
+  const startStatusPolling = () => {
+    // Clear existing interval
+    if (statusPollingInterval) {
+      clearInterval(statusPollingInterval);
+    }
+
+    console.log('🔄 Starting DocuSign status polling...');
+    
+    const interval = setInterval(async () => {
+      try {
+        if (!docusignEnvelopeId) return;
+
+        // Query vehicle_reservations table for updated status
+        const { data: reservation, error } = await supabase
+          .from('vehicle_reservations')
+          .select('signing_status, signed_pdf_url, docusign_envelope_id')
+          .eq('lead_id', lead.id)
+          .eq('document_type', mode)
+          .not('docusign_envelope_id', 'is', null)
+          .single();
+
+        if (error) {
+          console.error('Error polling signing status:', error);
+          return;
+        }
+
+        if (reservation) {
+          setSigningStatus(reservation.signing_status);
+          
+          if (reservation.signed_pdf_url) {
+            setSignedPdfUrl(reservation.signed_pdf_url);
+          }
+
+          // Stop polling if completed
+          if (reservation.signing_status === 'completed') {
+            console.log('✅ Document signing completed!');
+            clearInterval(interval);
+            setStatusPollingInterval(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error during status polling:', error);
+      }
+    }, 10000); // Poll every 10 seconds
+
+    setStatusPollingInterval(interval);
+  };
+
+  // Load existing DocuSign data when modal opens
+  useEffect(() => {
+    if (isOpen && lead.id) {
+      const loadDocuSignData = async () => {
+        try {
+          const { data: reservation, error } = await supabase
+            .from('vehicle_reservations')
+            .select('docusign_envelope_id, signing_status, signed_pdf_url, pdf_url')
+            .eq('lead_id', lead.id)
+            .eq('document_type', mode)
+            .single();
+
+          if (reservation) {
+            setDocusignEnvelopeId(reservation.docusign_envelope_id);
+            setSigningStatus(reservation.signing_status || 'pending');
+            setSignedPdfUrl(reservation.signed_pdf_url);
+            
+            // If PDF exists, mark as generated
+            if (reservation.pdf_url) {
+              setGeneratedPdfUrl(reservation.pdf_url);
+              setPdfGenerated(true);
+            }
+
+            // Start polling if document is sent but not completed
+            if (reservation.docusign_envelope_id && 
+                reservation.signing_status && 
+                reservation.signing_status !== 'completed' &&
+                reservation.signing_status !== 'declined') {
+              startStatusPolling();
+            }
+          }
+        } catch (error) {
+          console.error('Error loading DocuSign data:', error);
+        }
+      };
+
+      loadDocuSignData();
+    }
+  }, [isOpen, lead.id, mode]);
+
+  // Cleanup polling on modal close
+  useEffect(() => {
+    if (!isOpen && statusPollingInterval) {
+      console.log('🛑 Stopping DocuSign polling - modal closing');
+      clearInterval(statusPollingInterval);
+      setStatusPollingInterval(null);
+    }
+  }, [isOpen, statusPollingInterval]);
+
   if (!isOpen) return null;
 
   return (
@@ -1379,7 +1563,7 @@ export default function VehicleDocumentModal({
                     <button
                       type="button"
                       onClick={() => window.open(generatedPdfUrl, '_blank')}
-                      className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 backdrop-blur-sm border border-blue-400/30 text-blue-300 text-xs rounded transition-all flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 backdrop-blur-sm border border-gray-600/50 text-gray-200 text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1413,17 +1597,136 @@ export default function VehicleDocumentModal({
                           window.open(generatedPdfUrl, '_blank');
                         }
                       }}
-                      className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 backdrop-blur-sm border border-green-400/30 text-green-300 text-xs rounded transition-all flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 backdrop-blur-sm border border-gray-500/50 text-gray-100 text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       Download PDF
                     </button>
+                    {/* Send for Signing Button */}
+                    {formData.emailAddress && signingStatus === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={handleSendForSigning}
+                        disabled={sendingForSigning}
+                        className="px-3 py-1.5 bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 backdrop-blur-sm border border-gray-400/50 text-white text-xs rounded transition-all flex items-center gap-1.5 shadow-lg disabled:opacity-50"
+                      >
+                        {sendingForSigning ? (
+                          <div className="animate-spin w-3 h-3 border border-white/30 border-t-white rounded-full"></div>
+                        ) : (
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                        {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-green-300/70">
                   You can regenerate the document by clicking the button below, or make changes to the form and update it.
+                  {!formData.emailAddress && (
+                    <span className="block mt-1 text-yellow-400/80">
+                      💡 Add customer email to enable DocuSign signing.
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* DocuSign Status Section */}
+            {docusignEnvelopeId && signingStatus !== 'pending' && (
+              <div className={`backdrop-blur-sm rounded-lg p-3 border ${
+                signingStatus === 'completed' 
+                  ? 'bg-green-500/10 border-green-400/20' 
+                  : signingStatus === 'declined'
+                  ? 'bg-red-500/10 border-red-400/20'
+                  : 'bg-blue-500/10 border-blue-400/20'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      signingStatus === 'completed' 
+                        ? 'bg-green-400' 
+                        : signingStatus === 'declined'
+                        ? 'bg-red-400'
+                        : 'bg-blue-400 animate-pulse'
+                    }`}></div>
+                    <h3 className={`text-sm font-medium ${
+                      signingStatus === 'completed' 
+                        ? 'text-green-400' 
+                        : signingStatus === 'declined'
+                        ? 'text-red-400'
+                        : 'text-blue-400'
+                    }`}>
+                      DocuSign Status: {signingStatus === 'completed' ? 'Signed & Completed' : 
+                                       signingStatus === 'declined' ? 'Declined by Customer' :
+                                       signingStatus === 'sent' ? 'Sent for Signing' :
+                                       signingStatus === 'delivered' ? 'Delivered to Customer' :
+                                       signingStatus.charAt(0).toUpperCase() + signingStatus.slice(1)}
+                    </h3>
+                  </div>
+                  <div className="flex gap-2">
+                    {signedPdfUrl && signingStatus === 'completed' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => window.open(signedPdfUrl, '_blank')}
+                          className="px-3 py-1.5 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 backdrop-blur-sm border border-gray-500/50 text-gray-100 text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          View Signed PDF
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const fileName = `${mode}-${formData.customerName.replace(/[^a-zA-Z0-9]/g, '_')}-${formData.date}-SIGNED.pdf`;
+                              const response = await fetch(signedPdfUrl);
+                              if (response.ok) {
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = fileName;
+                                link.style.display = 'none';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                
+                                window.URL.revokeObjectURL(url);
+                              } else {
+                                window.open(signedPdfUrl, '_blank');
+                              }
+                            } catch (error) {
+                              window.open(signedPdfUrl, '_blank');
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 backdrop-blur-sm border border-gray-400/50 text-white text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download Signed PDF
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-white/60">
+                  {signingStatus === 'completed' && 'Document has been successfully signed by the customer.'}
+                  {signingStatus === 'declined' && 'Customer declined to sign the document. You may need to regenerate and resend.'}
+                  {signingStatus === 'sent' && 'Document has been sent to customer via email for signing.'}
+                  {signingStatus === 'delivered' && 'Document has been delivered and is awaiting customer signature.'}
+                  {docusignEnvelopeId && (
+                    <span className="block mt-1 font-mono text-[10px] text-white/40">
+                      Envelope ID: {docusignEnvelopeId}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -1456,6 +1759,72 @@ export default function VehicleDocumentModal({
           </form>
         )}
       </div>
+      
+      {/* Company Signer Email Selection Modal */}
+      {showEmailModal && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-gradient-to-r from-gray-300 via-gray-400 to-gray-500 p-0.5 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="bg-black/90 backdrop-blur-2xl rounded-2xl p-6 relative">
+              {/* Gradient overlay for glass effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent pointer-events-none rounded-2xl"></div>
+
+              {/* Header */}
+              <div className="relative z-10 mb-6">
+                <h3 className="text-lg font-semibold text-white mb-2">Select Company Signer</h3>
+                <p className="text-sm text-white/70">
+                  Choose who from SilberArrows will sign this {mode} first, then it will be sent to the customer.
+                </p>
+              </div>
+
+              {/* Email Input */}
+              <div className="relative z-10 mb-6">
+                <label className="block text-sm font-medium text-white mb-2">
+                  Company Signer Email
+                </label>
+                <input
+                  type="email"
+                  value={companyEmail}
+                  onChange={(e) => setCompanyEmail(e.target.value)}
+                  placeholder="Enter company signer email..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                  autoFocus
+                />
+                <p className="text-xs text-white/50 mt-1">
+                  This person will receive the document first for company signature.
+                </p>
+              </div>
+
+              {/* Customer Info Display */}
+              <div className="relative z-10 mb-6 p-3 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-xs text-white/70 mb-1">After company signature, document will be sent to:</p>
+                <p className="text-sm text-white font-medium">{formData.customerName}</p>
+                <p className="text-xs text-white/60">{formData.emailAddress}</p>
+              </div>
+
+              {/* Buttons */}
+              <div className="relative z-10 flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowEmailModal(false);
+                    setCompanyEmail('');
+                  }}
+                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSendForSigning}
+                  disabled={!companyEmail || sendingForSigning}
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white border border-gray-400/50 transition-all disabled:opacity-50 shadow-lg"
+                >
+                  {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 } 

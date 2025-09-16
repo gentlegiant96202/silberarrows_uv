@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
         errorText: errorText,
         url: `${process.env.DOCUSIGN_BASE_URL}/restapi/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes`,
         pdfSizeMB: pdfSizeMB,
-        documentName: `Consignment Agreement - ${car.stock_number}`
+        documentName: documentTitle
       });
       throw new Error(`DocuSign API Error: ${errorText}`);
     }

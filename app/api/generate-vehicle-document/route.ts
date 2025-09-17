@@ -827,14 +827,33 @@ export async function POST(request: NextRequest) {
       .eq('id', reservationId)
       .single();
 
+    // If requested to generate an invoice but the row is still a reservation,
+    // convert it first so the trigger assigns INV-xxxx and preserves RES-xxxx
+    let sourceReservation = existingReservation;
+    if (mode === 'invoice' && existingReservation?.document_type === 'reservation') {
+      console.log('🔄 Server-side conversion: reservation -> invoice before PDF generation');
+      const { data: conv, error: convError } = await supabase
+        .from('vehicle_reservations')
+        .update({ document_type: 'invoice', updated_at: new Date().toISOString() })
+        .eq('id', reservationId)
+        .select('pdf_url, document_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
+        .single();
+      if (convError) {
+        console.warn('⚠️ Conversion update failed; proceeding with existing data:', convError);
+      } else if (conv) {
+        sourceReservation = conv;
+        console.log('✅ Converted server-side. Using updated values:', { document_number: conv.document_number, original_reservation_number: conv.original_reservation_number });
+      }
+    }
+
     // Deletion disabled by policy: always generate a new file and update URL
     console.log('🗑️ Skipping deletion of existing PDFs (policy). A new PDF will be uploaded and URL updated.');
 
-    // Add document number and original reservation number to form data
+    // Add document number and original reservation number to form data (use converted values if applicable)
     const enhancedFormData = {
       ...formData,
-      documentNumber: existingReservation?.document_number || 'Pending',
-      originalReservationNumber: existingReservation?.original_reservation_number || null,
+      documentNumber: sourceReservation?.document_number || 'Pending',
+      originalReservationNumber: sourceReservation?.original_reservation_number || null,
       taxInvoice: !!taxInvoice
     };
 

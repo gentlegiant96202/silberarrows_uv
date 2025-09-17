@@ -457,17 +457,39 @@ export default function VehicleDocumentModal({
         console.log('Available fields:', Object.keys(existingReservation));
         setIsEditing(true);
         
-        // Set PDF URL based on mode using separate columns
+        // If opening in invoice mode but the record is still a reservation, convert first
+        if (mode === 'invoice' && existingReservation.document_type === 'reservation' && existingReservation.id) {
+          try {
+            console.log('🔄 Converting to invoice on modal open (client-side)');
+            const { data: conv, error: convErr } = await supabase
+              .from('vehicle_reservations')
+              .update({ document_type: 'invoice', updated_at: new Date().toISOString() })
+              .eq('id', existingReservation.id)
+              .select('document_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
+              .single();
+            if (convErr) {
+              console.warn('Conversion on open failed:', convErr.message);
+            } else if (conv) {
+              console.log('✅ Converted on open. New values:', conv);
+              if (conv.document_number) setDocumentNumber(conv.document_number);
+              setHasInvoice(true);
+            }
+          } catch (e) {
+            console.warn('Conversion on open exception:', e);
+          }
+        }
+        
+        // Set PDF URL based on mode using separate columns (strict mode matching)
         const relevantPdfUrl = mode === 'reservation' 
-          ? (existingReservation.reservation_pdf_url || existingReservation.pdf_url)
-          : (existingReservation.invoice_pdf_url || existingReservation.pdf_url);
+          ? existingReservation.reservation_pdf_url
+          : existingReservation.invoice_pdf_url;
           
         if (relevantPdfUrl) {
           console.log(`Setting ${mode} PDF URL:`, relevantPdfUrl);
           setGeneratedPdfUrl(relevantPdfUrl);
           setPdfGenerated(true);
         } else {
-          console.log(`No ${mode} PDF found`);
+          console.log(`No ${mode} PDF found - will need to generate`);
           setPdfGenerated(false);
           setGeneratedPdfUrl(null);
         }
@@ -479,7 +501,7 @@ export default function VehicleDocumentModal({
         } else if (mode === 'invoice' && existingReservation.document_type === 'reservation') {
           // If opening in invoice mode but record is still a reservation, 
           // we'll convert it and get an invoice number when form is submitted
-          console.log('Will convert reservation to invoice and generate INV number on submit');
+          console.log('Awaiting conversion-generated INV number');
         }
         
         setFormData(prev => ({
@@ -969,10 +991,10 @@ export default function VehicleDocumentModal({
             setSigningStatus(reservation.signing_status || 'pending');
             setSignedPdfUrl(reservation.signed_pdf_url);
             
-            // Set PDF URL based on mode using separate columns
+            // Set PDF URL based on mode using separate columns (strict mode matching)
             const relevantPdfUrl = mode === 'reservation' 
-              ? (reservation.reservation_pdf_url || reservation.pdf_url)
-              : (reservation.invoice_pdf_url || reservation.pdf_url);
+              ? reservation.reservation_pdf_url
+              : reservation.invoice_pdf_url;
               
             if (relevantPdfUrl) {
               setGeneratedPdfUrl(relevantPdfUrl);

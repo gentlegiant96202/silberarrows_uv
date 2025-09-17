@@ -780,7 +780,7 @@ export default function KanbanBoard() {
               // Show real data when loaded
               grouped[col.key as ColKey].map(l => (
               <div
-                key={l.id}
+                key={`${l.id}-${col.key}`}
                 draggable
                 onDragStart={onDragStart(l)}
                 onDragEnd={onDragEnd}

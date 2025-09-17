@@ -453,13 +453,17 @@ export default function VehicleDocumentModal({
         console.log('Available fields:', Object.keys(existingReservation));
         setIsEditing(true);
         
-        // Set PDF URL if it exists AND matches the current mode
-        if (existingReservation.pdf_url && existingReservation.document_type === mode) {
-          setGeneratedPdfUrl(existingReservation.pdf_url);
+        // Set PDF URL based on mode using separate columns
+        const relevantPdfUrl = mode === 'reservation' 
+          ? (existingReservation.reservation_pdf_url || existingReservation.pdf_url)
+          : (existingReservation.invoice_pdf_url || existingReservation.pdf_url);
+          
+        if (relevantPdfUrl) {
+          console.log(`Setting ${mode} PDF URL:`, relevantPdfUrl);
+          setGeneratedPdfUrl(relevantPdfUrl);
           setPdfGenerated(true);
-        } else if (existingReservation.pdf_url && existingReservation.document_type !== mode) {
-          // PDF exists but for different document type, so don't show as generated
-          console.log(`PDF exists for ${existingReservation.document_type} but modal is in ${mode} mode`);
+        } else {
+          console.log(`No ${mode} PDF found`);
           setPdfGenerated(false);
           setGeneratedPdfUrl(null);
         }
@@ -650,6 +654,11 @@ export default function VehicleDocumentModal({
         
         if (isConvertingToInvoice) {
           console.log('🔄 Converting reservation to invoice:', existingReservation.id);
+          
+          // With separate PDF columns, no need for manual preservation
+          // The database trigger will handle preserving the reservation data
+          console.log('📄 Using separate PDF columns - no manual preservation needed');
+
           // When converting to invoice, trigger will generate INV- number automatically
           const updateData = {
             ...reservationData,
@@ -937,7 +946,7 @@ export default function VehicleDocumentModal({
         try {
           const { data: reservation, error } = await supabase
             .from('vehicle_reservations')
-            .select('docusign_envelope_id, signing_status, signed_pdf_url, pdf_url')
+            .select('docusign_envelope_id, signing_status, signed_pdf_url, pdf_url, reservation_pdf_url, invoice_pdf_url')
             .eq('lead_id', lead.id)
             .eq('document_type', mode)
             .single();
@@ -947,9 +956,13 @@ export default function VehicleDocumentModal({
             setSigningStatus(reservation.signing_status || 'pending');
             setSignedPdfUrl(reservation.signed_pdf_url);
             
-            // If PDF exists, mark as generated
-            if (reservation.pdf_url) {
-              setGeneratedPdfUrl(reservation.pdf_url);
+            // Set PDF URL based on mode using separate columns
+            const relevantPdfUrl = mode === 'reservation' 
+              ? (reservation.reservation_pdf_url || reservation.pdf_url)
+              : (reservation.invoice_pdf_url || reservation.pdf_url);
+              
+            if (relevantPdfUrl) {
+              setGeneratedPdfUrl(relevantPdfUrl);
               setPdfGenerated(true);
             }
 
@@ -997,7 +1010,7 @@ export default function VehicleDocumentModal({
             <h2 className="text-base font-semibold text-white">
               {isEditing ? 'Edit ' : ''}{mode === 'reservation' ? 'Vehicle Reservation Form' : 'Invoice Document'}
             </h2>
-            {documentNumber && mode === 'invoice' && (
+            {documentNumber && (
               <div className="px-2 py-1 bg-brand/20 border border-brand/40 rounded text-brand text-xs font-mono font-bold">
                 {documentNumber}
               </div>

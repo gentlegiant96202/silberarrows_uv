@@ -51,11 +51,11 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
     
   // Different titles for signature section vs terms page
   const signatureTermsTitle = isInvoice
-    ? 'GENERAL TERMS & CONDITIONS FOR<br>NEW & PRE-OWNED VEHICLE SALES'
+    ? '' // Remove title for invoice signature section
     : ''; // Remove title for reservation signature section
     
   const termsContent = isInvoice
-    ? 'Payment has been received in full. Vehicle ownership will be transferred upon completion of RTA procedures. All add-ons and services are confirmed as per this invoice. Vehicle delivery is subject to final inspection and documentation completion.'
+    ? 'This invoice relates to and completes the vehicle reservation previously agreed. I confirm receipt of the above vehicle and acknowledge that the full purchase price has been paid and settled in accordance with this invoice.'
     : '<strong>Acknowledgement</strong>\n\nI confirm that the above vehicle details, price, and payment terms are correct and agreed, and that I have paid the stated reservation deposit.';
   
   // Status-specific labels
@@ -442,11 +442,11 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
                 <td class="label">Sales Executive:</td>
                 <td class="data">${safeString(formData.salesExecutive)}</td>
                 ${isInvoice ? `
-                <td class="label">Status:</td>
-                <td class="data">PAID IN FULL</td>
+                <td class="label">Original Reservation:</td>
+                <td class="data">${safeString(formData.originalReservationNumber || 'Direct Invoice')}</td>
                 ` : `
-                <td class="label"></td>
-                <td class="data"></td>
+                <td class="label">Reservation No.:</td>
+                <td class="data">${safeString(formData.documentNumber || 'Pending')}</td>
                 `}
               </tr>
             </table>
@@ -819,16 +819,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for existing PDF and get document number
-    console.log('🔍 Checking for existing PDF to delete and getting document number...');
+    // Check for existing data and get document number
+    console.log('🔍 Checking for existing reservation data...');
     const { data: existingReservation } = await supabase
       .from('vehicle_reservations')
-      .select('pdf_url, document_number')
+      .select('pdf_url, document_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
       .eq('id', reservationId)
       .single();
 
-    if (!taxInvoice && existingReservation?.pdf_url) {
-      console.log('🗑️ Found existing PDF, attempting to delete:', existingReservation.pdf_url);
+    // Only delete PDF if it's the same document type, not during conversion
+    const shouldDeletePDF = !taxInvoice && existingReservation?.pdf_url && 
+      ((mode === 'reservation' && existingReservation.document_type === 'reservation') ||
+       (mode === 'invoice' && existingReservation.document_type === 'invoice'));
+
+    if (shouldDeletePDF) {
+      console.log('🗑️ Found existing PDF for same document type, attempting to delete:', existingReservation.pdf_url);
       try {
         // Extract file path from URL
         const url = new URL(existingReservation.pdf_url);
@@ -860,10 +865,11 @@ export async function POST(request: NextRequest) {
       console.log('ℹ️ No existing PDF found to delete');
     }
 
-    // Add document number to form data
+    // Add document number and original reservation number to form data
     const enhancedFormData = {
       ...formData,
       documentNumber: existingReservation?.document_number || 'Pending',
+      originalReservationNumber: existingReservation?.original_reservation_number || null,
       taxInvoice: !!taxInvoice
     };
 
@@ -921,10 +927,29 @@ export async function POST(request: NextRequest) {
       
     console.log('📄 PDF generated and uploaded:', publicUrl);
 
+    // Update the database with the new PDF URL using separate columns
+    const pdfUpdateData = mode === 'reservation' 
+      ? { pdf_url: publicUrl, reservation_pdf_url: publicUrl }
+      : { pdf_url: publicUrl, invoice_pdf_url: publicUrl };
+
+    console.log('💾 Updating database with PDF URL for', mode, ':', pdfUpdateData);
+    
+    const { error: updateError } = await supabase
+      .from('vehicle_reservations')
+      .update(pdfUpdateData)
+      .eq('id', reservationId);
+
+    if (updateError) {
+      console.error('❌ Error updating PDF URL:', updateError);
+      // Continue anyway, PDF was generated successfully
+    } else {
+      console.log('✅ PDF URL saved to database successfully');
+    }
+
     // Get the updated document number after generation
     const { data: updatedReservation } = await supabase
       .from('vehicle_reservations')
-      .select('document_number')
+      .select('document_number, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
       .eq('id', reservationId)
       .single();
 
@@ -934,6 +959,7 @@ export async function POST(request: NextRequest) {
       documentType: mode,
       reservationId,
       documentNumber: updatedReservation?.document_number || existingReservation?.document_number,
+      originalReservationNumber: updatedReservation?.original_reservation_number || existingReservation?.original_reservation_number,
       message: `${mode} document generated successfully`
     });
 

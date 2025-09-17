@@ -1,6 +1,8 @@
 "use client";
 import { useState } from 'react';
 import { X, FileText, User, Building, Car, Calendar, Save } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/components/shared/AuthProvider';
 
 interface ServiceContractModalProps {
   isOpen: boolean;
@@ -30,7 +32,8 @@ export interface ServiceContractData {
   model: string;
   modelYear: string;
   currentOdometer: string;
-  vehicleColour: string;
+  exteriorColour: string;
+  interiorColour: string;
   
   // Contract Duration
   startDate: string;
@@ -45,11 +48,14 @@ export interface ServiceContractData {
 }
 
 export default function ServiceContractModal({ isOpen, onClose, onSubmit }: ServiceContractModalProps) {
+  const { user } = useAuth();
+  
   // Generate reference number (SC + 5 random digits)
   const generateReferenceNo = () => {
     const randomNumber = Math.floor(10000 + Math.random() * 90000);
     return `SC${randomNumber}`;
   };
+
 
   const [formData, setFormData] = useState<ServiceContractData>({
     referenceNo: generateReferenceNo(),
@@ -73,7 +79,8 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit }: Serv
     model: '',
     modelYear: '',
     currentOdometer: '',
-    vehicleColour: '',
+    exteriorColour: '',
+    interiorColour: '',
     
     // Contract Duration
     startDate: '',
@@ -108,7 +115,8 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit }: Serv
         model: '',
         modelYear: '',
         currentOdometer: '',
-        vehicleColour: '',
+        exteriorColour: '',
+        interiorColour: '',
         startDate: '',
         endDate: '',
         cutOffKm: '',
@@ -127,6 +135,8 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit }: Serv
       [field]: value
     }));
   };
+
+  // Handle mobile number lookup and auto-population
 
   // Date formatting function for display
   const formatDateToDisplay = (isoDate: string): string => {
@@ -182,14 +192,16 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit }: Serv
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/80 mb-2">Mobile Number *</label>
-                  <input
-                    type="tel"
-                    value={formData.mobileNo}
-                    onChange={(e) => handleInputChange('mobileNo', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-                    placeholder="Enter mobile number"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={formData.mobileNo}
+                      onChange={(e) => handleInputChange('mobileNo', e.target.value)}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                      placeholder="Mobile number"
+                      required
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/80 mb-2">Email Address *</label>
@@ -282,14 +294,24 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit }: Serv
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-white/80 mb-2">Vehicle Colour *</label>
+                  <label className="block text-xs font-medium text-white/80 mb-2">Exterior Colour *</label>
                   <input
                     type="text"
-                    value={formData.vehicleColour}
-                    onChange={(e) => handleInputChange('vehicleColour', e.target.value)}
+                    value={formData.exteriorColour}
+                    onChange={(e) => handleInputChange('exteriorColour', e.target.value)}
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-                    placeholder="Vehicle color"
+                    placeholder="Exterior color"
                     required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-white/80 mb-2">Interior Colour</label>
+                  <input
+                    type="text"
+                    value={formData.interiorColour}
+                    onChange={(e) => handleInputChange('interiorColour', e.target.value)}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    placeholder="Interior color"
                   />
                 </div>
                 <div>

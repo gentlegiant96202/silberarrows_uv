@@ -299,15 +299,38 @@ export async function POST(request: NextRequest) {
         .from('documents')
         .getPublicUrl(fileName);
 
-      // Update the vehicle_reservations record with signed PDF (replace main PDF)
+      // Update the vehicle_reservations record with signed PDF (preserve separate columns)
+      // First get the current document type to determine which column to update
+      const { data: currentDoc } = await supabase
+        .from('vehicle_reservations')
+        .select('document_type')
+        .eq('id', document.id)
+        .single();
+
+      console.log('📄 Document type for signed PDF update:', currentDoc?.document_type);
+
+      // Update appropriate column based on document type, preserving original PDFs
+      const updateData = currentDoc?.document_type === 'reservation' 
+        ? {
+            pdf_url: urlData.publicUrl,           // Legacy column for compatibility
+            reservation_pdf_url: urlData.publicUrl, // Signed reservation PDF
+            signed_pdf_url: urlData.publicUrl,    // Reference to signed version
+            signing_status: 'completed',
+            completed_at: new Date().toISOString()
+          }
+        : {
+            pdf_url: urlData.publicUrl,           // Legacy column for compatibility  
+            invoice_pdf_url: urlData.publicUrl,   // Signed invoice PDF
+            signed_pdf_url: urlData.publicUrl,    // Reference to signed version
+            signing_status: 'completed',
+            completed_at: new Date().toISOString()
+          };
+
+      console.log('💾 Updating vehicle_reservations with signed PDF:', updateData);
+
       const { error: updateError } = await supabase
         .from('vehicle_reservations')
-        .update({
-          pdf_url: urlData.publicUrl,  // Replace main PDF with signed version
-          signed_pdf_url: urlData.publicUrl,  // Also keep in signed_pdf_url for reference
-          signing_status: 'completed',
-          completed_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', document.id);
 
       if (updateError) {

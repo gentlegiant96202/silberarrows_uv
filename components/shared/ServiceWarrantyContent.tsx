@@ -4,7 +4,7 @@ import { useModulePermissions } from '@/lib/useModulePermissions';
 import PulsatingLogo from './PulsatingLogo';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
-import { Wrench, Shield, AlertCircle, Plus, Settings, FileText, DollarSign, Calendar, Eye, Edit, Trash2, Clock, AlertTriangle, X, ChevronDown } from 'lucide-react';
+import { Wrench, Shield, AlertCircle, Plus, Settings, FileText, DollarSign, Calendar, Eye, Edit, Trash2, Clock, AlertTriangle, X, ChevronDown, Download } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import ServiceContractModal, { ServiceContractData } from '@/components/modules/service/ServiceContractModal';
 import ContractDetailsModal from '@/components/modules/service/ContractDetailsModal';
@@ -141,25 +141,29 @@ export default function ServiceWarrantyContent() {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
-          type: 'service', // or 'warranty' based on your form
-          // Contract data
+          type: 'service',
+          // Contract data with new fields (handle empty numeric fields)
           reference_no: data.referenceNo,
           service_type: data.serviceType,
           owner_name: data.ownerName,
           mobile_no: data.mobileNo,
           email: data.email,
+          customer_id_type: data.customerIdType,
+          customer_id_number: data.customerIdNumber,
           dealer_name: data.dealerName,
           dealer_phone: data.dealerPhone,
           dealer_email: data.dealerEmail,
           vin: data.vin,
           make: data.make,
           model: data.model,
-          model_year: data.modelYear,
-          current_odometer: data.currentOdometer,
+          model_year: data.modelYear || null,
+          current_odometer: data.currentOdometer || null,
+          vehicle_colour: data.vehicleColour,
           start_date: data.startDate,
           end_date: data.endDate,
-          cut_off_km: data.cutOffKm,
-          invoice_amount: data.invoiceAmount,
+          cut_off_km: data.cutOffKm || null,
+          invoice_amount: data.invoiceAmount || null,
+          reservation_id: data.reservationId || null,
           status: 'active'
         }),
       });
@@ -189,6 +193,36 @@ export default function ServiceWarrantyContent() {
   const handleViewContract = (contract: Contract) => {
     setSelectedContract(contract);
     setViewModalOpen(true);
+  };
+
+  // Handle PDF download
+  const handleDownloadPDF = async (contract: Contract) => {
+    if (!contract.pdf_url) {
+      alert('No PDF available for this contract');
+      return;
+    }
+
+    try {
+      const response = await fetch(contract.pdf_url);
+      if (!response.ok) throw new Error('Failed to fetch PDF');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `ServiceCare_Agreement_${contract.reference_no}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      // Fallback: open PDF in new tab
+      window.open(contract.pdf_url, '_blank');
+    }
   };
 
   const handleContractUpdated = (updatedContract: Contract) => {
@@ -455,14 +489,13 @@ export default function ServiceWarrantyContent() {
                   )}
                 </td>
                 
-
                 <td className="py-4 px-4">
                   <div className="flex items-center space-x-2">
                     {/* View button - always visible if user can view */}
                     <button 
                       onClick={() => handleViewContract(contract)}
                       className="p-1 hover:bg-gray-700/50 rounded transition-colors group"
-                      title="View Details"
+                      title="View Details & Manage PDF"
                     >
                       <Eye className="h-4 w-4 text-gray-400 group-hover:text-blue-400" />
                     </button>

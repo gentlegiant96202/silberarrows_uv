@@ -12,6 +12,7 @@ WHERE signed_pdf_url IS NOT NULL
 DO $$
 DECLARE
     updated_count INTEGER;
+    rec RECORD;
 BEGIN
     GET DIAGNOSTICS updated_count = ROW_COUNT;
     RAISE NOTICE 'Updated % vehicle reservation records to use signed PDF as main PDF', updated_count;

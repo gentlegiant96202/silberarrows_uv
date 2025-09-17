@@ -29,6 +29,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     owner_name: '',
     mobile_no: '',
     email: '',
+    customer_id_type: 'EID' as 'EID' | 'Passport',
+    customer_id_number: '',
     dealer_name: '',
     dealer_phone: '',
     dealer_email: '',
@@ -37,6 +39,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     model: '',
     model_year: '',
     current_odometer: '',
+    vehicle_colour: '',
     start_date: '',
     end_date: '',
     cut_off_km: '',
@@ -67,6 +70,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         owner_name: contract.owner_name || '',
         mobile_no: contract.mobile_no || '',
         email: contract.email || '',
+        customer_id_type: contract.customer_id_type || 'EID',
+        customer_id_number: contract.customer_id_number || '',
         dealer_name: contract.dealer_name || '',
         dealer_phone: contract.dealer_phone || '',
         dealer_email: contract.dealer_email || '',
@@ -75,6 +80,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         model: contract.model || '',
         model_year: contract.model_year || '',
         current_odometer: contract.current_odometer || '',
+        vehicle_colour: contract.vehicle_colour || '',
         start_date: contract.start_date || '',
         end_date: contract.end_date || '',
         cut_off_km: contract.cut_off_km || '',
@@ -112,12 +118,21 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     try {
       const headers = await getAuthHeaders();
       
+      // Clean up form data - convert empty strings to null for numeric fields
+      const cleanedFormData = {
+        ...formData,
+        invoice_amount: formData.invoice_amount || null,
+        model_year: formData.model_year || null,
+        current_odometer: formData.current_odometer || null,
+        cut_off_km: formData.cut_off_km || null
+      };
+      
       const response = await fetch(`/api/service-contracts/${contract.id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({
           action: 'update_contract',
-          ...formData
+          ...cleanedFormData
         })
       });
 
@@ -132,6 +147,14 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       console.log('API Response:', result);
       console.log('Updated Contract:', updatedContract);
       console.log('Workflow Status in Updated Contract:', updatedContract?.workflow_status);
+      
+      // Add formatted dates to the updated contract
+      if (updatedContract.start_date) {
+        updatedContract.formatted_start_date = new Date(updatedContract.start_date).toLocaleDateString('en-GB');
+      }
+      if (updatedContract.end_date) {
+        updatedContract.formatted_end_date = new Date(updatedContract.end_date).toLocaleDateString('en-GB');
+      }
       
       // Update the contract object with new data
       Object.assign(contract, updatedContract);
@@ -346,8 +369,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-xl md:max-w-3xl lg:max-w-5xl text-xs relative max-h-[95vh] overflow-y-auto shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-2xl border-2 border-white/20 shadow-2xl rounded-2xl p-6 w-full max-w-xl md:max-w-3xl lg:max-w-5xl relative max-h-[95vh] overflow-hidden">
         <button
           onClick={onClose}
           className="absolute top-2 right-2 text-xl leading-none text-white/70 hover:text-white"
@@ -355,13 +378,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           ×
         </button>
         
-        <div className="flex items-start justify-between mb-3 pr-6 gap-4 flex-wrap">
+        <div className="flex items-start justify-between mb-6 pr-8 gap-4 flex-wrap">
           <div className="flex flex-col">
-            <h2 className="text-base font-semibold text-white">
-              {isEditing ? 'Edit Contract' : 'Contract Details'}
+            <h2 className="text-2xl font-bold text-white">
+              {isEditing ? 'Edit ServiceCare Agreement' : 'ServiceCare Agreement Details'}
             </h2>
-            <div className="text-white/70 text-xs mt-1">
-              <span className="text-white/50">Reference:</span> {contract.reference_no}
+            <div className="text-white/70 text-sm mt-2">
+              <span className="text-white/50">Reference:</span> <span className="font-mono font-semibold">{contract.reference_no}</span>
             </div>
           </div>
           <div className="flex gap-1.5 mt-0.5">

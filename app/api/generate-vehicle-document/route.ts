@@ -425,10 +425,10 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
             <table class="form-table">
               ${isInvoice ? `
               <tr>
-                <td class="label">Invoice No.:</td>
-                <td class="data">${safeString(formData.documentNumber || 'Pending')}</td>
                 <td class="label">Date:</td>
                 <td class="data">${formatDate(formData.date)}</td>
+                <td class="label">Invoice No.:</td>
+                <td class="data">${safeString(formData.documentNumber || 'Pending')}</td>
               </tr>
               ` : `
               <tr>
@@ -442,7 +442,7 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
                 <td class="label">Sales Executive:</td>
                 <td class="data">${safeString(formData.salesExecutive)}</td>
                 ${isInvoice ? `
-                <td class="label">Original Reservation:</td>
+                <td class="label">Reservation No.:</td>
                 <td class="data">${safeString(formData.originalReservationNumber || 'Direct Invoice')}</td>
                 ` : `
                 <td class="label">Reservation No.:</td>
@@ -827,43 +827,8 @@ export async function POST(request: NextRequest) {
       .eq('id', reservationId)
       .single();
 
-    // Only delete PDF if it's the same document type, not during conversion
-    const shouldDeletePDF = !taxInvoice && existingReservation?.pdf_url && 
-      ((mode === 'reservation' && existingReservation.document_type === 'reservation') ||
-       (mode === 'invoice' && existingReservation.document_type === 'invoice'));
-
-    if (shouldDeletePDF) {
-      console.log('🗑️ Found existing PDF for same document type, attempting to delete:', existingReservation.pdf_url);
-      try {
-        // Extract file path from URL
-        const url = new URL(existingReservation.pdf_url);
-        const pathParts = url.pathname.split('/');
-        const bucketIndex = pathParts.findIndex(part => part === 'documents');
-        
-        if (bucketIndex !== -1 && pathParts[bucketIndex + 1]) {
-          const filePath = pathParts.slice(bucketIndex + 1).join('/');
-          console.log('🗑️ Deleting file path:', filePath);
-          
-          const { error: deleteError } = await supabase.storage
-            .from('documents')
-            .remove([filePath]);
-          
-          if (deleteError) {
-            console.warn('⚠️ Failed to delete previous PDF:', deleteError);
-            // Continue with generation even if deletion fails
-          } else {
-            console.log('✅ Previous PDF deleted successfully');
-          }
-        } else {
-          console.warn('⚠️ Could not extract file path from URL:', existingReservation.pdf_url);
-        }
-      } catch (deleteError) {
-        console.warn('⚠️ Error during PDF deletion:', deleteError);
-        // Continue with generation even if deletion fails
-      }
-    } else {
-      console.log('ℹ️ No existing PDF found to delete');
-    }
+    // Deletion disabled by policy: always generate a new file and update URL
+    console.log('🗑️ Skipping deletion of existing PDFs (policy). A new PDF will be uploaded and URL updated.');
 
     // Add document number and original reservation number to form data
     const enhancedFormData = {

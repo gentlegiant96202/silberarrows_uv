@@ -200,99 +200,27 @@ export default function ReservationsInvoicesGrid() {
       console.log('🌐 PDF domain:', domain);
       
       // Check if this is a Supabase storage URL
-      const isSupabaseStorage = pdfUrl.includes('supabase') && pdfUrl.includes('storage');
-      
+      const isSupabaseStorage = /\/storage\/v1\/object\//.test(pdfUrl);
+       
       if (isSupabaseStorage) {
-        console.log('📁 Supabase storage detected - using authenticated fetch');
-        
-        // For Supabase storage, we need to handle authentication properly
-        const response = await fetch(pdfUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/pdf,*/*',
-          },
-          credentials: 'include',
-          mode: 'cors'
-        });
-        
-        if (!response.ok) {
-          console.error(`❌ Supabase fetch failed: ${response.status} ${response.statusText}`);
-          
-          // Try alternative approach for Supabase - might need to go through your API
-          console.log('🔄 Trying alternative approach...');
-          const fallbackResponse = await fetch(pdfUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/pdf,*/*',
-              'Cache-Control': 'no-cache'
-            }
-          });
-          
-          if (!fallbackResponse.ok) {
-            throw new Error(`Supabase PDF access failed: ${response.status} - ${response.statusText}`);
+        console.log('📁 Supabase storage detected - opening directly');
+        window.open(pdfUrl, '_blank');
+        return;
+      } else {
+        console.log('🌐 External URL detected - opening directly');
+        try {
+          window.open(pdfUrl, '_blank');
+        } catch (openErr) {
+          console.log('🔄 Fallback to fetch→blob');
+          const response = await fetch(pdfUrl);
+          if (!response.ok) {
+            throw new Error(`External PDF access failed: ${response.status} - ${response.statusText}`);
           }
-          
-          const blob = await fallbackResponse.blob();
+          const blob = await response.blob();
           const url = window.URL.createObjectURL(blob);
           window.open(url, '_blank');
           setTimeout(() => window.URL.revokeObjectURL(url), 2000);
-          return;
         }
-        
-        const blob = await response.blob();
-        console.log('✅ PDF blob created, size:', blob.size);
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url);
-        }, 2000);
-        
-      } else {
-        console.log('🌐 External URL detected - trying direct access');
-        // For external URLs (PDFShift, Cloudinary, etc.)
-        
-        // First try a HEAD request to check if URL is accessible
-        try {
-          const headResponse = await fetch(pdfUrl, { method: 'HEAD' });
-          if (headResponse.ok) {
-            console.log('✅ Direct access available');
-            window.open(pdfUrl, '_blank');
-          } else {
-            console.log('⚠️ Direct access failed, trying fetch approach');
-            throw new Error('Direct access not available');
-          }
-         } catch (headError) {
-           console.log('🔄 Falling back to fetch approach');
-           try {
-             const response = await fetch(pdfUrl);
-             if (!response.ok) {
-               console.error(`❌ Fetch failed: ${response.status} ${response.statusText}`);
-               
-               // If it's a 400 error, the URL might be expired or invalid
-               if (response.status === 400) {
-                 throw new Error(`PDF URL appears to be expired or invalid (400 error). Please regenerate the document or contact support.`);
-               }
-               
-               throw new Error(`External PDF access failed: ${response.status} - ${response.statusText}`);
-             }
-             const blob = await response.blob();
-             const url = window.URL.createObjectURL(blob);
-             window.open(url, '_blank');
-             setTimeout(() => window.URL.revokeObjectURL(url), 2000);
-           } catch (fetchError) {
-             console.error('❌ All PDF access methods failed:', fetchError);
-             
-             // Last resort: try to open directly anyway (sometimes works despite errors)
-             console.log('🎯 Last resort: trying direct window.open');
-             try {
-               window.open(pdfUrl, '_blank');
-               console.log('✅ Direct open succeeded despite fetch errors');
-             } catch (directError) {
-               throw fetchError; // Re-throw the original fetch error
-             }
-           }
-         }
       }
       
     } catch (error) {
@@ -600,7 +528,7 @@ export default function ReservationsInvoicesGrid() {
                       {item.sales_executive}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {item.reservation_pdf_url || item.invoice_pdf_url ? (
+                      {item.reservation_pdf_url || item.invoice_pdf_url || item.pdf_url ? (
                         <div className="flex items-center justify-center gap-2">
                           {item.document_type === 'invoice' && (
                             <button
@@ -622,17 +550,17 @@ export default function ReservationsInvoicesGrid() {
                           )}
                           
                           {/* Reservation PDF - Always show if available */}
-                          {item.reservation_pdf_url && (
+                          {(item.reservation_pdf_url || (item.document_type === 'reservation' && item.pdf_url)) && (
                             <>
                               <button
-                                onClick={() => handleViewPDF(item.reservation_pdf_url!)}
+                                onClick={() => handleViewPDF(item.reservation_pdf_url || item.pdf_url!)}
                                 className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"
                                 title={`View Reservation PDF ${item.original_reservation_number || item.document_number}`}
                               >
                                 <FileText className="w-4 h-4 text-blue-300" />
                               </button>
                               <button
-                                onClick={() => handleDownloadPDF(item.reservation_pdf_url!, item.original_reservation_number || item.document_number, item.customer_name)}
+                                onClick={() => handleDownloadPDF(item.reservation_pdf_url || item.pdf_url!, item.original_reservation_number || item.document_number, item.customer_name)}
                                 className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"
                                 title={`Download Reservation PDF ${item.original_reservation_number || item.document_number}`}
                               >
@@ -642,23 +570,23 @@ export default function ReservationsInvoicesGrid() {
                           )}
                           
                           {/* Invoice PDF - Only show for invoices */}
-                          {item.invoice_pdf_url && (
+                          {(item.invoice_pdf_url || (item.document_type === 'invoice' && item.pdf_url)) && (
                             <>
-                              {item.reservation_pdf_url && <div className="w-px h-6 bg-white/20 mx-1"></div>}
+                              {(item.reservation_pdf_url || (item.document_type === 'reservation' && item.pdf_url)) && <div className="w-px h-6 bg-white/20 mx-1"></div>}
                               <button
-                                onClick={() => handleViewPDF(item.invoice_pdf_url!)}
+                                onClick={() => handleViewPDF(item.invoice_pdf_url || item.pdf_url!)}
                                 className="p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded transition-colors"
                                 title={`View Invoice PDF ${item.document_number}`}
                               >
                                 <Eye className="w-4 h-4 text-white/70" />
                               </button>
                               <button
-                                onClick={() => handleDownloadPDF(item.invoice_pdf_url!, item.document_number, item.customer_name)}
-                                className="p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded transition-colors"
+                                onClick={() => handleDownloadPDF(item.invoice_pdf_url || item.pdf_url!, item.document_number, item.customer_name)}
+                            className="p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded transition-colors"
                                 title={`Download Invoice PDF ${item.document_number}`}
-                              >
-                                <Download className="w-4 h-4 text-white/70" />
-                              </button>
+                          >
+                            <Download className="w-4 h-4 text-white/70" />
+                          </button>
                             </>
                           )}
                         </div>

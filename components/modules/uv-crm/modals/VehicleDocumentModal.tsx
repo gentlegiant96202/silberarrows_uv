@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
+import { useUserRole } from '@/lib/useUserRole';
 
 interface Lead {
   id: string;
@@ -99,6 +100,8 @@ export default function VehicleDocumentModal({
   lead
 }: VehicleDocumentModalProps) {
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
+
   // Get user's display name
   const getUserDisplayName = () => {
     if (!user) return '';
@@ -193,6 +196,7 @@ export default function VehicleDocumentModal({
   // Company email modal state (matching consignment flow)
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [companyEmail, setCompanyEmail] = useState('');
+  const [hasInvoice, setHasInvoice] = useState<boolean>(false);
 
   // Update sales executive when user changes
   useEffect(() => {
@@ -524,6 +528,11 @@ export default function VehicleDocumentModal({
           additionalNotes: existingReservation.additional_notes || ''
         }));
         console.log('Form data updated with existing reservation');
+        
+        // Determine if an invoice exists for this lead
+        const isInvoiceType = existingReservation.document_type === 'invoice';
+        const hasInvoiceSignals = !!(existingReservation.document_number || existingReservation.invoice_pdf_url || existingReservation.pdf_url);
+        setHasInvoice(isInvoiceType && hasInvoiceSignals);
       }
     } catch (error) {
       console.log('No existing reservation found or error loading:', error);
@@ -549,7 +558,10 @@ export default function VehicleDocumentModal({
     }));
   };
 
+  const isLocked = mode === 'invoice' && hasInvoice && !isAdmin;
+
   const handleInputChange = (field: keyof FormData, value: any) => {
+    if (isLocked) return;
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -558,6 +570,7 @@ export default function VehicleDocumentModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) return;
     setSaving(true);
 
     try {

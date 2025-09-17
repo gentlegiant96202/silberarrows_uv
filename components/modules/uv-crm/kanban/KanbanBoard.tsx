@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { MessageSquare, CheckCircle, Car, XCircle, Archive } from 'lucide-react';
+import { useUserRole } from '@/lib/useUserRole';
 
 // Skeleton Components
 const SkeletonLeadCard = () => (
@@ -197,8 +198,9 @@ export default function KanbanBoard() {
   });
   const hasFetchedLeads = useRef(false);
 
-  // Get permissions for archive functionality
+  // Get permissions and role
   const { canEdit } = useModulePermissions('uv_crm');
+  const { isAdmin } = useUserRole();
   
   // Vehicle Document Modal states
   const [showVehicleDocumentModal, setShowVehicleDocumentModal] = useState(false);
@@ -461,6 +463,28 @@ export default function KanbanBoard() {
     const leadToMove = leads.find(l => l.id === id);
     if (!leadToMove) return;
     
+    // Guard: if moving OUT of delivered and invoice exists, block unless admin
+    if (leadToMove.status === 'delivered' && targetCol !== 'delivered') {
+      try {
+        const { data: invoiceRecord, error: invErr } = await supabase
+          .from('vehicle_reservations')
+          .select('id, document_number, pdf_url')
+          .eq('lead_id', leadToMove.id)
+          .eq('document_type', 'invoice')
+          .maybeSingle();
+        if (invErr) {
+          console.warn('Invoice lookup error (allowing move by default):', invErr.message);
+        }
+        const hasInvoice = !!invoiceRecord && (!!invoiceRecord.document_number || !!invoiceRecord.pdf_url);
+        if (hasInvoice && !isAdmin) {
+          alert('This card is locked in DELIVERED because an invoice exists. Only admins can move it.');
+          return;
+        }
+      } catch (guardErr) {
+        console.warn('Guard check failed (allowing move by default):', guardErr);
+      }
+    }
+
     // Special case: converting from new_lead to new_customer (appointment)
     if (leadToMove.status === 'new_lead' && targetCol === 'new_customer') {
       setConvertingLead(leadToMove);

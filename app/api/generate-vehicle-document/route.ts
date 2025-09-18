@@ -581,14 +581,12 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
           </div>
 
           <!-- NOTES SECTION -->
-          ${formData.additionalNotes && formData.additionalNotes.trim() ? `
           <div class="section">
             <div class="section-title">ADDITIONAL NOTES</div>
             <div class="notes-content">
-              ${safeString(formData.additionalNotes).replace(/\n/g, '<br/>')}
+              ${formData.additionalNotes ? safeString(formData.additionalNotes).replace(/\n/g, '<br/>') : ''}
             </div>
           </div>
-          ` : ''}
 
           <!-- PAYMENT SECTION -->
           <div class="section">

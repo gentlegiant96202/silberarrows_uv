@@ -42,7 +42,7 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
   
   // Invoice-specific customizations
   const headerTitle = isInvoice 
-    ? 'NEW AND PRE-OWNED VEHICLE<br>SALES - TAX INVOICE'
+    ? 'NEW AND PRE-OWNED VEHICLE<br>TAX INVOICE'
     : 'NEW AND PRE-OWNED VEHICLE<br>RESERVATION FORM';
     
   const termsTitle = isInvoice

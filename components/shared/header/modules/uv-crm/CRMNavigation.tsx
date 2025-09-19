@@ -17,7 +17,7 @@ export default function CRMNavigation() {
     if (pathname.startsWith('/inventory')) return 'INVENTORY';
     if (pathname.startsWith('/consignments')) return 'CONSIGNMENTS';
     if (pathname.startsWith('/service')) return 'SERVICE';
-    if (pathname.startsWith('/accounting')) return 'ACCOUNTING';
+    if (pathname.startsWith('/accounting')) return 'ACCOUNTS';
     return 'DASHBOARD'; // Default fallback
   };
   
@@ -88,16 +88,16 @@ export default function CRMNavigation() {
         SERVICE & WARRANTY
       </button>
       
-      {/* ACCOUNTING - Shared accounting module */}
+      {/* ACCOUNTS - Shared accounting module */}
       <button
         onClick={() => routerHook.push('/accounting')}
         className={`px-3 py-1.5 rounded-full font-medium text-xs transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 whitespace-nowrap ${
-          activeTab === 'ACCOUNTING'
+          activeTab === 'ACCOUNTS'
             ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg border-gray-300'
             : 'text-white/70 hover:text-white hover:bg-black/60'
         }`}
       >
-        ACCOUNTING
+        ACCOUNTS
       </button>
     </div>
   );

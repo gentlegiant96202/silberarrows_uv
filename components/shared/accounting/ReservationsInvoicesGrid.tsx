@@ -25,8 +25,8 @@ interface ReservationInvoice {
 }
 
 interface FilterState {
-  month: string;
-  year: string;
+  month: string | 'all';
+  year: string | 'all';
   type: 'all' | 'reservation' | 'invoice';
   search: string;
 }
@@ -36,8 +36,8 @@ export default function ReservationsInvoicesGrid() {
   const [loading, setLoading] = useState(true);
   const [taxLoadingId, setTaxLoadingId] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>({
-    month: new Date().getMonth() + 1 + '', // Current month
-    year: new Date().getFullYear() + '', // Current year
+    month: 'all', // Default to all months
+    year: 'all', // Default to all years
     type: 'invoice', // Default to invoices only
     search: ''
   });
@@ -45,6 +45,7 @@ export default function ReservationsInvoicesGrid() {
   const { role, isLoading: roleLoading } = useUserRole();
 
   const months = [
+    { value: 'all', label: 'All Months' },
     { value: '1', label: 'January' },
     { value: '2', label: 'February' },
     { value: '3', label: 'March' },
@@ -59,10 +60,13 @@ export default function ReservationsInvoicesGrid() {
     { value: '12', label: 'December' }
   ];
 
-  const years = [2024, 2025, 2026, 2027].map(year => ({ 
-    value: year.toString(), 
-    label: year.toString() 
-  }));
+  const years = [
+    { value: 'all', label: 'All Years' },
+    ...Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => ({ 
+      value: year.toString(), 
+      label: year.toString() 
+    }))
+  ];
 
   const fetchData = async () => {
     try {
@@ -96,14 +100,29 @@ export default function ReservationsInvoicesGrid() {
         query = query.eq('document_type', filters.type);
       }
 
-      // Apply month/year filter
-      const startOfMonth = `${filters.year}-${filters.month.padStart(2, '0')}-01`;
-      const nextMonth = parseInt(filters.month) === 12 
-        ? `${parseInt(filters.year) + 1}-01-01`
-        : `${filters.year}-${(parseInt(filters.month) + 1).toString().padStart(2, '0')}-01`;
-      
-      query = query.gte('document_date', startOfMonth);
-      query = query.lt('document_date', nextMonth);
+      // Apply month/year filter (only if not "all")
+      if (filters.month !== 'all' && filters.year !== 'all') {
+        // Both month and year specified
+        const startOfMonth = `${filters.year}-${filters.month.padStart(2, '0')}-01`;
+        const nextMonth = parseInt(filters.month) === 12 
+          ? `${parseInt(filters.year) + 1}-01-01`
+          : `${filters.year}-${(parseInt(filters.month) + 1).toString().padStart(2, '0')}-01`;
+        
+        query = query.gte('document_date', startOfMonth);
+        query = query.lt('document_date', nextMonth);
+      } else if (filters.year !== 'all' && filters.month === 'all') {
+        // Only year specified, show entire year
+        const startOfYear = `${filters.year}-01-01`;
+        const nextYear = `${parseInt(filters.year) + 1}-01-01`;
+        
+        query = query.gte('document_date', startOfYear);
+        query = query.lt('document_date', nextYear);
+      } else if (filters.month !== 'all' && filters.year === 'all') {
+        // Only month specified across all years - filter by month number
+        // This is more complex as we need to match month across all years
+        // For now, we'll handle this in post-processing
+      }
+      // If both are "all", no date filtering is applied
 
       const { data: reservationsData, error } = await query;
 
@@ -113,6 +132,15 @@ export default function ReservationsInvoicesGrid() {
       }
 
       let filteredData = reservationsData || [];
+
+      // Apply month-only filter if year is "all" but month is specified
+      if (filters.month !== 'all' && filters.year === 'all') {
+        filteredData = filteredData.filter(item => {
+          const itemDate = new Date(item.document_date);
+          const itemMonth = (itemDate.getMonth() + 1).toString();
+          return itemMonth === filters.month;
+        });
+      }
 
       // Apply search filter
       if (filters.search) {

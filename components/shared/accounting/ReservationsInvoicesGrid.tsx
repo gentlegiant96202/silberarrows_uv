@@ -36,8 +36,8 @@ export default function ReservationsInvoicesGrid() {
   const [loading, setLoading] = useState(true);
   const [taxLoadingId, setTaxLoadingId] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>({
-    month: 'all', // Default to all months
-    year: 'all', // Default to all years
+    month: new Date().getMonth() + 1 + '', // Current month
+    year: new Date().getFullYear() + '', // Current year
     type: 'invoice', // Default to invoices only
     search: ''
   });

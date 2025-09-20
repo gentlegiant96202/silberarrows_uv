@@ -15,6 +15,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   const { user } = useAuth();
   
   const [isEditing, setIsEditing] = useState(false);
+  const [localContract, setLocalContract] = useState(contract);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
@@ -76,27 +77,27 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   const initializeFormData = () => {
     if (contract) {
       setFormData({
-        service_type: contract.service_type || 'standard',
-        owner_name: contract.owner_name || '',
-        mobile_no: contract.mobile_no || '',
-        email: contract.email || '',
-        customer_id_type: contract.customer_id_type || 'EID',
-        customer_id_number: contract.customer_id_number || '',
-        dealer_name: contract.dealer_name || '',
-        dealer_phone: contract.dealer_phone || '',
-        dealer_email: contract.dealer_email || '',
-        vin: contract.vin || '',
-        make: contract.make || '',
-        model: contract.model || '',
-        model_year: contract.model_year || '',
-        current_odometer: contract.current_odometer || '',
-        exterior_colour: contract.exterior_colour || '',
-        interior_colour: contract.interior_colour || '',
-        start_date: contract.start_date || '',
-        end_date: contract.end_date || '',
-        cut_off_km: contract.cut_off_km || '',
-        workflow_status: contract.workflow_status || 'created',
-        invoice_amount: contract.invoice_amount || ''
+        service_type: displayContract.service_type || 'standard',
+        owner_name: displayContract.owner_name || '',
+        mobile_no: displayContract.mobile_no || '',
+        email: displayContract.email || '',
+        customer_id_type: displayContract.customer_id_type || 'EID',
+        customer_id_number: displayContract.customer_id_number || '',
+        dealer_name: displayContract.dealer_name || '',
+        dealer_phone: displayContract.dealer_phone || '',
+        dealer_email: displayContract.dealer_email || '',
+        vin: displayContract.vin || '',
+        make: displayContract.make || '',
+        model: displayContract.model || '',
+        model_year: displayContract.model_year || '',
+        current_odometer: displayContract.current_odometer || '',
+        exterior_colour: displayContract.exterior_colour || '',
+        interior_colour: displayContract.interior_colour || '',
+        start_date: displayContract.start_date || '',
+        end_date: displayContract.end_date || '',
+        cut_off_km: displayContract.cut_off_km || '',
+        workflow_status: displayContract.workflow_status || 'created',
+        invoice_amount: displayContract.invoice_amount || ''
       });
     }
   };
@@ -109,19 +110,22 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   // Load DocuSign data when modal opens (matching vehicle documents)
   useEffect(() => {
     if (isOpen && contract) {
+      // Update local contract state
+      setLocalContract(contract);
+      
       // Initialize form data from contract
       initializeFormData();
       
       // Initialize DocuSign state from contract data
-      setDocusignEnvelopeId(contract.docusign_envelope_id || null);
-      setSigningStatus(contract.signing_status || 'pending');
-      setSignedPdfUrl(contract.signed_pdf_url || null);
+      setDocusignEnvelopeId(displayContract.docusign_envelope_id || null);
+      setSigningStatus(displayContract.signing_status || 'pending');
+      setSignedPdfUrl(displayContract.signed_pdf_url || null);
 
       // Start polling if document is sent but not completed
-      if (contract.docusign_envelope_id && 
-          contract.signing_status && 
-          contract.signing_status !== 'completed' &&
-          contract.signing_status !== 'declined') {
+      if (displayContract.docusign_envelope_id && 
+          displayContract.signing_status && 
+          displayContract.signing_status !== 'completed' &&
+          displayContract.signing_status !== 'declined') {
         startStatusPolling();
       }
     }
@@ -151,19 +155,27 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     setLoading(true);
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`/api/service-contracts/${contract.id}`, {
+      const response = await fetch(`/api/service-contracts/${displayContract.id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({
           action: 'update_contract',
           ...formData,
-          type: contract.contract_type || 'service'
+          type: displayContract.contract_type || 'service'
         })
       });
 
       if (response.ok) {
-      const result = await response.json();
-        if (onUpdated) onUpdated(result.contract);
+        const result = await response.json();
+        
+        // Update local contract state immediately
+        setLocalContract(result.contract);
+        
+        if (onUpdated) {
+          onUpdated(result.contract);
+          // Force a small delay to ensure parent component updates
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
         setSaved(true);
         setTimeout(() => {
           setSaved(false);
@@ -181,11 +193,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     setGeneratingPdf(true);
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`/api/service-contracts/${contract.id}/generate-pdf`, {
+      const response = await fetch(`/api/service-contracts/${displayContract.id}/generate-pdf`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          type: contract.contract_type || 'service'
+          type: displayContract.contract_type || 'service'
         })
       });
 
@@ -196,14 +208,14 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `${contract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'}_Agreement_${contract.reference_no}.pdf`;
+        a.download = `${displayContract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'}_Agreement_${displayContract.reference_no}.pdf`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
         // Refresh contract data from server to get updated PDF URL
-        const refreshResponse = await fetch(`/api/service-contracts/${contract.id}`, {
+        const refreshResponse = await fetch(`/api/service-contracts/${displayContract.id}`, {
           headers
         });
         
@@ -227,10 +239,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   };
 
   const handleDownloadPDF = async () => {
-    if (!contract.pdf_url) return;
+    if (!displayContract.pdf_url) return;
 
     try {
-      const response = await fetch(contract.pdf_url);
+      const response = await fetch(displayContract.pdf_url);
       if (!response.ok) throw new Error('Failed to fetch PDF');
 
       const blob = await response.blob();
@@ -238,14 +250,14 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `ServiceCare_Agreement_${contract.reference_no}.pdf`;
+      a.download = `ServiceCare_Agreement_${displayContract.reference_no}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error downloading PDF:', error);
-      window.open(contract.pdf_url, '_blank');
+      window.open(displayContract.pdf_url, '_blank');
     }
   };
 
@@ -265,11 +277,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       try {
         if (!docusignEnvelopeId) return;
 
-        const tableName = contract.contract_type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
+        const tableName = displayContract.contract_type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
         const { data: contractData, error } = await supabase
           .from(tableName)
           .select('signing_status, signed_pdf_url, docusign_envelope_id')
-          .eq('id', contract.id)
+          .eq('id', displayContract.id)
           .not('docusign_envelope_id', 'is', null)
           .single();
 
@@ -301,12 +313,12 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   };
 
   const handleSendForSigning = () => {
-    if (!contract.pdf_url) {
+    if (!displayContract.pdf_url) {
       alert('Please generate the PDF first before sending for signing.');
       return;
     }
 
-    if (!contract.email) {
+    if (!displayContract.email) {
       alert('Please add customer email address before sending for signing.');
       return;
     }
@@ -331,19 +343,19 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     try {
       console.log('🔄 Sending contract for DocuSign signing...');
       console.log('👤 Company signer:', companyEmail);
-      console.log('👤 Customer:', contract.owner_name, contract.email);
+      console.log('👤 Customer:', displayContract.owner_name, displayContract.email);
 
       const response = await fetch('/api/docusign/send-for-signing-service', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contractId: contract.id,
-          contractType: contract.contract_type || 'service',
-          customerEmail: contract.email,
-          customerName: contract.owner_name,
+          contractId: displayContract.id,
+          contractType: displayContract.contract_type || 'service',
+          customerEmail: displayContract.email,
+          customerName: displayContract.owner_name,
           companySignerEmail: companyEmail,
-          documentTitle: `${contract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'} Agreement`,
-          pdfUrl: contract.pdf_url
+          documentTitle: `${displayContract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'} Agreement`,
+          pdfUrl: displayContract.pdf_url
         })
       });
 
@@ -379,10 +391,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     try {
       const formData = new FormData();
       formData.append('pdf', file);
-      formData.append('type', contract.contract_type || 'service');
+      formData.append('type', displayContract.contract_type || 'service');
 
       const headers = await getAuthHeaders();
-      const response = await fetch(`/api/service-contracts/${contract.id}/pdf`, {
+      const response = await fetch(`/api/service-contracts/${displayContract.id}/pdf`, {
         method: 'POST',
         headers: {
           'Authorization': headers.Authorization || ''
@@ -404,6 +416,9 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   };
 
   if (!isOpen || !contract) return null;
+
+  // Use localContract for display, fallback to contract prop
+  const displayContract = localContract || contract;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -432,10 +447,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         <div className="flex items-start justify-between mb-6 pr-8 gap-4 flex-wrap">
           <div className="flex flex-col">
             <h2 className="text-2xl font-bold text-white">
-              {contract?.contract_type === 'warranty' ? 'Warranty Agreement' : 'ServiceCare Agreement'}
+              {displayContract?.contract_type === 'warranty' ? 'Warranty Agreement' : 'ServiceCare Agreement'}
             </h2>
             <div className="text-white/70 text-sm mt-2">
-              <span className="text-white/50">Reference:</span> <span className="font-mono font-semibold">{contract?.reference_no}</span>
+              <span className="text-white/50">Reference:</span> <span className="font-mono font-semibold">{displayContract?.reference_no}</span>
             </div>
           </div>
         </div>
@@ -466,11 +481,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                     disabled={generatingPdf}
                     className="w-full h-10 flex items-center justify-center px-4 bg-gradient-to-r from-white to-gray-200 hover:from-gray-100 hover:to-white text-black text-sm font-medium rounded-lg transition-all shadow-sm disabled:opacity-50"
                         >
-                    <span>{generatingPdf ? 'Generating...' : contract.pdf_url ? 'Regenerate PDF' : 'Generate PDF'}</span>
+                    <span>{generatingPdf ? 'Generating...' : displayContract.pdf_url ? 'Regenerate PDF' : 'Generate PDF'}</span>
                         </button>
                         
                   {/* DocuSign Status Section (matching vehicle documents) */}
-                  {contract.pdf_url && (
+                  {displayContract.pdf_url && (
                     <div className={`backdrop-blur-sm rounded-lg p-3 border ${
                       signingStatus === 'completed' 
                         ? 'bg-green-500/10 border-green-400/20' 
@@ -504,13 +519,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                              signingStatus === 'company_signed' ? 'SilberArrows Signature Completed' :
                              signingStatus === 'sent' ? 'DocuSign Sent for Signing' :
                              signingStatus === 'delivered' ? 'DocuSign Sent for Signing' :
-                             `${contract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'} Agreement Created`}
+                             `${displayContract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'} Agreement Created`}
                           </h3>
                         </div>
                         <div className="flex gap-2">
                         <button
                           type="button"
-                            onClick={() => window.open(signedPdfUrl || contract.pdf_url, '_blank')}
+                            onClick={() => window.open(signedPdfUrl || displayContract.pdf_url, '_blank')}
                             className="px-3 py-1.5 bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 backdrop-blur-sm border border-gray-600/50 text-gray-200 text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -530,7 +545,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                             Download PDF
                         </button>
                           {/* Send for Signing Button */}
-                          {contract.email && (signingStatus === 'pending' || signingStatus === 'regenerated') && (
+                          {displayContract.email && (signingStatus === 'pending' || signingStatus === 'regenerated') && (
                         <button
                           type="button"
                               onClick={handleSendForSigning}
@@ -578,7 +593,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">Sales Executive</label>
                   <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-black/20 border border-white/10 rounded-lg">
-                    {contract.sales_executive || 'System'}
+                    {displayContract.sales_executive || 'System'}
               </div>
             </div>
 
@@ -594,7 +609,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.owner_name}
+                      {displayContract.owner_name}
                     </div>
                     )}
                   </div>
@@ -611,7 +626,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.mobile_no}
+                      {displayContract.mobile_no}
                     </div>
                     )}
                   </div>
@@ -628,7 +643,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.email}
+                      {displayContract.email}
                     </div>
                     )}
                   </div>
@@ -646,7 +661,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       </select>
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.customer_id_type || 'EID'}
+                      {displayContract.customer_id_type || 'EID'}
                 </div>
                     )}
                 </div>
@@ -663,7 +678,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.customer_id_number || 'Not provided'}
+                      {displayContract.customer_id_number || 'Not provided'}
                     </div>
                     )}
                 </div>
@@ -695,7 +710,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg font-mono">
-                      {contract.vin}
+                      {displayContract.vin}
                     </div>
                     )}
                   </div>
@@ -711,7 +726,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.make}
+                      {displayContract.make}
                     </div>
                     )}
                   </div>
@@ -727,7 +742,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.model}
+                      {displayContract.model}
                 </div>
                     )}
                   </div>
@@ -746,7 +761,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.model_year}
+                      {displayContract.model_year}
                     </div>
                     )}
                   </div>
@@ -763,7 +778,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.current_odometer ? `${contract.current_odometer} km` : 'Not provided'}
+                      {displayContract.current_odometer ? `${displayContract.current_odometer} km` : 'Not provided'}
                     </div>
                     )}
             </div>
@@ -780,7 +795,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.exterior_colour || 'Not provided'}
+                      {displayContract.exterior_colour || 'Not provided'}
                   </div>
                     )}
                   </div>
@@ -797,7 +812,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.interior_colour || 'Not provided'}
+                      {displayContract.interior_colour || 'Not provided'}
                   </div>
                     )}
                   </div>
@@ -845,7 +860,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       </select>
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.service_type === 'premium' ? 'Premium (48 Months)' : 'Standard (24 Months)'}
+                      {displayContract.service_type === 'premium' ? 'Premium (48 Months)' : 'Standard (24 Months)'}
                     </div>
                     )}
                   </div>
@@ -863,7 +878,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.cut_off_km ? `${contract.cut_off_km} km` : 'Not provided'}
+                      {displayContract.cut_off_km ? `${displayContract.cut_off_km} km` : 'Not provided'}
                     </div>
                     )}
             </div>
@@ -879,7 +894,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.formatted_start_date}
+                      {displayContract.formatted_start_date}
                     </div>
                     )}
                   </div>
@@ -894,7 +909,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.formatted_end_date}
+                      {displayContract.formatted_end_date}
                 </div>
                     )}
                   </div>
@@ -913,7 +928,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {contract.invoice_amount ? `AED ${parseFloat(contract.invoice_amount).toLocaleString()}` : 'Not provided'}
+                      {displayContract.invoice_amount ? `AED ${parseFloat(displayContract.invoice_amount).toLocaleString()}` : 'Not provided'}
                     </div>
                     )}
                   </div>

@@ -109,13 +109,12 @@ function generateFacebookXML(entries: any[]): string {
   const listings = entries.map(entry => {
     const car = entry.cars;
     
-    // Use standardized make and model from catalog (ALL CAPS)
-    const catalogMake = entry.make || 'MERCEDES-BENZ'; // Use catalog make, default to Mercedes-Benz
-    const catalogModel = entry.model || car.vehicle_model || 'UNKNOWN';
+    // Use same logic as catalog image generation - clean model without make
+    const cleanModel = (car.vehicle_model || '').replace(/\bMercedes[- ]Benz\b/gi, '').replace(/\bMercedes[- ]AMG\b/gi, '').trim();
     
-    // Ensure consistent ALL CAPS formatting
-    const make = catalogMake.toUpperCase();
-    const model = catalogModel.toUpperCase();
+    // For XML, we still need separate make and model fields, but title should match image
+    const make = 'MERCEDES-BENZ'; // Default make for XML structure
+    const model = cleanModel.toUpperCase();
     
     // Clean and format description
     const description = entry.description || `${car.model_year} ${make} ${model} in ${car.colour}. ${car.regional_specification || 'GCC SPECIFICATION'}. Contact SilberArrows for more details.`;
@@ -142,7 +141,7 @@ function generateFacebookXML(entries: any[]): string {
       <vehicle_id>${car.stock_number || car.id}</vehicle_id>
       <description>${cleanDescription}</description>
       <url>${car.website_url || 'https://silberarrows.com/inventory/' + car.id}</url>
-      <title>${car.model_year} ${make} ${model}</title>
+      <title>${car.model_year} ${model}</title>
       <body_style>${bodyStyle}</body_style>
       <price>${priceAED}.00 AED</price>
       <state_of_vehicle>USED</state_of_vehicle>

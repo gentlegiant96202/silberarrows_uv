@@ -17,3 +17,4 @@ BEGIN
     RAISE NOTICE 'Now allows: pending, sent, delivered, company_signed, completed, declined, voided';
     RAISE NOTICE 'This fixes the DocuSign webhook issue for vehicle documents';
 END $$;
+

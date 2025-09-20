@@ -111,7 +111,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [monthlyTwenty, setMonthlyTwenty] = useState<string>('');
   const [monthlyZeroOverridden, setMonthlyZeroOverridden] = useState<boolean>(false);
   const [monthlyTwentyOverridden, setMonthlyTwentyOverridden] = useState<boolean>(false);
-  const [isCashOnly, setIsCashOnly] = useState<boolean>(false);
+  const [isCashOnly, setIsCashOnly] = useState<boolean>(
+    car.monthly_0_down_aed === null && car.monthly_20_down_aed === null
+  );
 
   const computeMonthly = (advertisedPrice: number, downPercent: number): number => {
     const price = (advertisedPrice || 0) * (1 - downPercent);

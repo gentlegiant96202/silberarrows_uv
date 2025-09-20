@@ -52,7 +52,7 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
   }
 
   return (
-    <header className={`sticky top-0 z-50 ${isModuleSelectionPage ? 'bg-transparent' : 'bg-black'} border-b ${isModuleSelectionPage ? 'border-white/5' : 'border-white/10'} overflow-visible`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 ${isModuleSelectionPage ? 'bg-transparent' : 'bg-black'} border-b ${isModuleSelectionPage ? 'border-white/5' : 'border-white/10'} overflow-visible`}>
       <div className="px-4 overflow-visible relative">
         <div className="flex flex-nowrap items-center py-3 overflow-x-auto overflow-y-visible custom-scrollbar-black">
           

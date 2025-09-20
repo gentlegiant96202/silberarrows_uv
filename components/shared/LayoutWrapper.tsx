@@ -23,11 +23,11 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   
   const content = (
     <>
-      {/* Persistent Header - never re-mounts, eliminates glitching */}
+      {/* Persistent Header - fixed at top */}
       {shouldShowHeader && <Header />}
       
-      {/* Page Content */}
-      <div className={shouldShowHeader ? 'min-h-[calc(100vh-72px)]' : 'min-h-screen'}>
+      {/* Page Content - add top padding equal to header height */}
+      <div className={shouldShowHeader ? 'pt-[72px] min-h-[calc(100vh-72px)]' : 'min-h-screen'}>
         {children}
       </div>
     </>

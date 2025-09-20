@@ -6,8 +6,7 @@ import ServiceWarrantyContent from '@/components/shared/ServiceWarrantyContent';
 export default function ServiceWarrantyPage() {
   return (
     <RouteProtector moduleName="service">
-      <div className="h-screen bg-black flex flex-col overflow-hidden">
-
+      <div className="min-h-screen bg-black flex flex-col">
         <ServiceWarrantyContent />
       </div>
     </RouteProtector>

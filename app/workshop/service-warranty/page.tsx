@@ -50,8 +50,7 @@ export default function WorkshopServiceWarrantyPage() {
 
   return (
     <RouteProtector moduleName="workshop">
-      <div className="h-screen bg-black flex flex-col overflow-hidden">
-
+      <div className="min-h-screen bg-black flex flex-col">
         <ServiceWarrantyContent />
       </div>
     </RouteProtector>

@@ -422,11 +422,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-2xl border-2 border-white/20 shadow-2xl rounded-2xl w-full max-w-xl md:max-w-3xl lg:max-w-5xl h-[95vh] flex flex-col">
+      <div className="bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-2xl border-2 border-white/20 shadow-2xl rounded-2xl p-6 w-full max-w-xl md:max-w-3xl lg:max-w-5xl relative max-h-[95vh] overflow-y-auto">
         
-        {/* FIXED HEADER */}
-        <div className="flex-shrink-0 relative">
-          <div className="absolute top-4 right-4 flex items-center gap-3 z-10">
+        {/* FIXED HEADER - STICKY */}
+        <div className="sticky top-0 bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-xl z-10 -mx-6 -mt-6 px-6 pt-6 pb-4 mb-6 border-b border-white/10">
+          <div className="absolute top-4 right-4 flex items-center gap-3">
             {isEditing && (
               <select
                 value={formData.workflow_status}
@@ -447,7 +447,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
             </button>
           </div>
           
-          <div className="p-6 pr-20">
+          <div className="pr-20">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex flex-col">
                 <h2 className="text-2xl font-bold text-white">
@@ -462,10 +462,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         </div>
 
         {/* SCROLLABLE CONTENT */}
-        <div className="flex-1 overflow-hidden">
-          <form className="h-full flex flex-col">
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
-              <div className="space-y-6">
+        <form className="flex flex-col">
+          <div className="space-y-6">
             
             {/* PDF WORKFLOW WITH DOCUSIGN STATUS - EDIT MODE ONLY */}
             {isEditing && (
@@ -944,58 +942,56 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                 </div>
               </div>
             </div>
-            </div>
-            
-            {/* FIXED FOOTER */}
-            <div className="flex-shrink-0 px-6 py-4 border-t border-white/15">
-              <div className="flex items-center justify-end gap-4">
-                {!isEditing ? (
-                  <button
-                    type="button"
-                    onClick={handleEdit}
-                    className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg border border-white/30 flex items-center gap-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Edit Contract Details
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleCancelEdit}
-                      className="px-6 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-sm rounded transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={loading}
-                      className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed border border-white/30 flex items-center gap-2"
-                    >
-                      {loading ? (
-                        <>
-                          <div className="animate-spin w-4 h-4 border border-black/30 border-t-black rounded-full"></div>
-                          Saving...
-                        </>
-                      ) : saved ? (
-                        <>
-                          <div className="w-4 h-4 text-green-600">✓</div>
-                          Saved!
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </form>
+          
+          {/* STICKY FOOTER */}
+          <div className="sticky bottom-0 bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-xl -mx-6 -mb-6 px-6 py-4 border-t border-white/10">
+          <div className="flex items-center justify-end gap-4">
+            {!isEditing ? (
+              <button
+                type="button"
+                onClick={handleEdit}
+                className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg border border-white/30 flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Edit Contract Details
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-6 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-sm rounded transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed border border-white/30 flex items-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border border-black/30 border-t-black rounded-full"></div>
+                      Saving...
+                    </>
+                  ) : saved ? (
+                    <>
+                      <div className="w-4 h-4 text-green-600">✓</div>
+                      Saved!
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+          </div>
         </div>
+        </form>
 
         {/* Hidden file input */}
         <input
@@ -1005,7 +1001,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           onChange={handleFileSelect}
           className="hidden"
         />
-          </div>
+      </div>
 
       {/* Company Email Modal (matching vehicle documents) */}
       {showCompanyEmailModal && (

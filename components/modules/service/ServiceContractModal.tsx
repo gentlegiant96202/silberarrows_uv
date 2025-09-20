@@ -511,13 +511,14 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Interior Colour</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">Interior Colour *</label>
                   <input
                     type="text"
                     value={formData.interiorColour}
                     onChange={(e) => handleInputChange('interiorColour', e.target.value)}
                     className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                     placeholder="Interior color"
+                    required
                   />
                 </div>
                 <div>
@@ -681,33 +682,36 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Dealer Name</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">Dealer Name *</label>
                   <input
                     type="text"
                     value={formData.dealerName}
                     onChange={(e) => handleInputChange('dealerName', e.target.value)}
                     className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                     placeholder="Enter dealer name"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Phone Number</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">Phone Number *</label>
                   <input
                     type="tel"
                     value={formData.dealerPhone}
                     onChange={(e) => handleInputChange('dealerPhone', e.target.value)}
                     className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                     placeholder="Enter phone number"
+                    required
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-white/80 mb-2">Email Address</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">Email Address *</label>
                   <input
                     type="email"
                     value={formData.dealerEmail}
                     onChange={(e) => handleInputChange('dealerEmail', e.target.value)}
                     className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                     placeholder="Enter email address"
+                    required
                   />
                 </div>
               </div>

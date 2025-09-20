@@ -422,41 +422,50 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-2xl border-2 border-white/20 shadow-2xl rounded-2xl p-6 w-full max-w-xl md:max-w-3xl lg:max-w-5xl relative max-h-[95vh] overflow-hidden">
-        <div className="absolute top-4 right-4 flex items-center gap-3">
-          {isEditing && (
-            <select
-              value={formData.workflow_status}
-              onChange={(e) => handleInputChange('workflow_status', e.target.value)}
-              className="h-8 px-3 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-            >
-              <option value="created" className="bg-gray-900">Created</option>
-              <option value="sent_for_signing" className="bg-gray-900">Sent for Signing</option>
-              <option value="card_issued" className="bg-gray-900">Issued</option>
-            </select>
-          )}
-          
-        <button
-          onClick={onClose}
-            className="text-2xl leading-none text-white/70 hover:text-white transition-colors duration-200"
-        >
-          ×
-        </button>
-        </div>
+      <div className="bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-2xl border-2 border-white/20 shadow-2xl rounded-2xl w-full max-w-xl md:max-w-3xl lg:max-w-5xl h-[95vh] flex flex-col">
         
-        <div className="flex items-start justify-between mb-6 pr-8 gap-4 flex-wrap">
-          <div className="flex flex-col">
-            <h2 className="text-2xl font-bold text-white">
-              {displayContract?.contract_type === 'warranty' ? 'Warranty Agreement' : 'ServiceCare Agreement'}
-            </h2>
-            <div className="text-white/70 text-sm mt-2">
-              <span className="text-white/50">Reference:</span> <span className="font-mono font-semibold">{displayContract?.reference_no}</span>
+        {/* FIXED HEADER */}
+        <div className="flex-shrink-0 relative">
+          <div className="absolute top-4 right-4 flex items-center gap-3 z-10">
+            {isEditing && (
+              <select
+                value={formData.workflow_status}
+                onChange={(e) => handleInputChange('workflow_status', e.target.value)}
+                className="h-8 px-3 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+              >
+                <option value="created" className="bg-gray-900">Created</option>
+                <option value="sent_for_signing" className="bg-gray-900">Sent for Signing</option>
+                <option value="card_issued" className="bg-gray-900">Issued</option>
+              </select>
+            )}
+            
+            <button
+              onClick={onClose}
+              className="text-2xl leading-none text-white/70 hover:text-white transition-colors duration-200"
+            >
+              ×
+            </button>
+          </div>
+          
+          <div className="p-6 pr-20">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex flex-col">
+                <h2 className="text-2xl font-bold text-white">
+                  {displayContract?.contract_type === 'warranty' ? 'Warranty Agreement' : 'ServiceCare Agreement'}
+                </h2>
+                <div className="text-white/70 text-sm mt-2">
+                  <span className="text-white/50">Reference:</span> <span className="font-mono font-semibold">{displayContract?.reference_no}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <form className="flex flex-col h-full">
-          <div className="flex flex-col gap-6 max-h-[75vh] overflow-y-auto space-y-6 relative">
+        {/* SCROLLABLE CONTENT */}
+        <div className="flex-1 overflow-hidden">
+          <form className="h-full flex flex-col">
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
+              <div className="space-y-6">
             
             {/* PDF WORKFLOW WITH DOCUSIGN STATUS - EDIT MODE ONLY */}
             {isEditing && (
@@ -935,54 +944,58 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                 </div>
               </div>
             </div>
-
-          {/* Footer with action buttons - EXACTLY LIKE CREATE MODAL */}
-          <div className="flex items-center justify-end gap-4 pt-6 border-t border-white/15 mt-6 flex-shrink-0">
-            {!isEditing ? (
-              <button
-                type="button"
-                onClick={handleEdit}
-                className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg border border-white/30 flex items-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                Edit Contract Details
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={handleCancelEdit}
-                  className="px-6 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-sm rounded transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed border border-white/30 flex items-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin w-4 h-4 border border-black/30 border-t-black rounded-full"></div>
-                      Saving...
-                    </>
-                  ) : saved ? (
-                    <>
-                      <div className="w-4 h-4 text-green-600">✓</div>
-                      Saved!
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
-              </>
-            )}
-          </div>
-        </form>
+            </div>
+            
+            {/* FIXED FOOTER */}
+            <div className="flex-shrink-0 px-6 py-4 border-t border-white/15">
+              <div className="flex items-center justify-end gap-4">
+                {!isEditing ? (
+                  <button
+                    type="button"
+                    onClick={handleEdit}
+                    className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg border border-white/30 flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Edit Contract Details
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="px-6 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-white text-sm rounded transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={loading}
+                      className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed border border-white/30 flex items-center gap-2"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 border border-black/30 border-t-black rounded-full"></div>
+                          Saving...
+                        </>
+                      ) : saved ? (
+                        <>
+                          <div className="w-4 h-4 text-green-600">✓</div>
+                          Saved!
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </form>
+        </div>
 
         {/* Hidden file input */}
         <input

@@ -1084,8 +1084,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       const p = localCar.advertised_price_aed || 0;
       setMonthlyZero(formatMonthly(computeMonthly(p, 0)));
       setMonthlyTwenty(formatMonthly(computeMonthly(p, 0.2)));
-      setMonthlyZeroOverridden(false);
-      setMonthlyTwentyOverridden(false);
+      setMonthlyZeroOverridden(true);  // Set to true so calculated values get saved
+      setMonthlyTwentyOverridden(true); // Set to true so calculated values get saved
     }
   };
 

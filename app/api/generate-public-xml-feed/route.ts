@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
         description,
         catalog_image_url,
         status,
+        make,
+        model,
         cars!inner (
           id,
           stock_number,
@@ -107,14 +109,16 @@ function generateFacebookXML(entries: any[]): string {
   const listings = entries.map(entry => {
     const car = entry.cars;
     
-    // Extract make and model from vehicle_model field
-    const vehicleModel = car.vehicle_model || '';
-    const modelParts = vehicleModel.split(' ');
-    const make = modelParts[0] || 'Unknown';
-    const model = modelParts.slice(1).join(' ') || vehicleModel;
+    // Use standardized make and model from catalog (ALL CAPS)
+    const catalogMake = entry.make || 'MERCEDES-BENZ'; // Use catalog make, default to Mercedes-Benz
+    const catalogModel = entry.model || car.vehicle_model || 'UNKNOWN';
+    
+    // Ensure consistent ALL CAPS formatting
+    const make = catalogMake.toUpperCase();
+    const model = catalogModel.toUpperCase();
     
     // Clean and format description
-    const description = entry.description || `${car.model_year} ${vehicleModel} in ${car.colour}. ${car.regional_specification || 'GCC SPECIFICATION'}. Contact SilberArrows for more details.`;
+    const description = entry.description || `${car.model_year} ${make} ${model} in ${car.colour}. ${car.regional_specification || 'GCC SPECIFICATION'}. Contact SilberArrows for more details.`;
     
     // Clean description for XML
     const cleanDescription = description

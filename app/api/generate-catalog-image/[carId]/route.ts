@@ -485,25 +485,28 @@ export async function POST(
     // Replace old Supabase URL with new domain
     const updatedPublicUrl = publicUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
 
-    // Update UV catalog table with generated image and mark as ready
+    // Update or create UV catalog entry with generated image
     const { error: catalogUpdateError } = await supabase
       .from('uv_catalog')
-      .update({
+      .upsert({
+        car_id: carId,
+        title: catalogData?.title || `${car.model_year} ${car.vehicle_model}`,
+        description: catalogData?.description || `Premium ${car.model_year} ${car.vehicle_model} in excellent condition`,
+        make: catalogData?.make || 'MERCEDES-BENZ',
+        model: catalogData?.model || car.vehicle_model,
+        year: car.model_year,
+        mileage_km: car.current_mileage_km || 0,
+        price_aed: car.advertised_price_aed,
         catalog_image_url: updatedPublicUrl,
         status: 'ready',
         last_generated_at: new Date().toISOString(),
         error_message: null
-      })
-      .eq('car_id', carId);
+      });
 
     if (catalogUpdateError) {
-      console.error('UV catalog table error:', catalogUpdateError);
-      console.error('Full error details:', JSON.stringify(catalogUpdateError, null, 2));
-      return NextResponse.json({ 
-        error: 'Failed to update catalog record',
-        details: catalogUpdateError.message || catalogUpdateError,
-        fullError: catalogUpdateError
-      }, { status: 500 });
+      console.error('UV catalog upsert error:', catalogUpdateError);
+      // Don't fail the whole request if catalog update fails - the image was generated successfully
+      console.warn('Catalog update failed but image generation succeeded');
     }
 
     return NextResponse.json({

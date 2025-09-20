@@ -400,10 +400,10 @@ export async function POST(
       catalogMedia = photoMedia;
     }
 
-    // Prepare car details for renderer (fallback to original working logic)
+    // Prepare car details for renderer (keep original format for images - no make)
     const carDetails = {
       year: car.model_year,
-      model: catalogData?.title || `${car.model_year} ${car.vehicle_model}`, // Use catalog title if available, otherwise fallback
+      model: (car.vehicle_model || '').replace(/\bMercedes[- ]Benz\b/gi, '').replace(/\bMercedes[- ]AMG\b/gi, '').trim(), // Remove make for images
       mileage: car.current_mileage_km ? car.current_mileage_km.toLocaleString() : '0',
       stockNumber: car.stock_number,
       price: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '0',

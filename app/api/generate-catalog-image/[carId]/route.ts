@@ -343,7 +343,7 @@ export async function POST(
   try {
     const { carId } = await params;
 
-    // Fetch car data
+    // Fetch car data with catalog information
     const { data: car, error: carError } = await supabase
       .from('cars')
       .select(`
@@ -360,6 +360,13 @@ export async function POST(
         monthly_20_down_aed
       `)
       .eq('id', carId)
+      .single();
+      
+    // Also get catalog data for standardized title
+    const { data: catalogData } = await supabase
+      .from('uv_catalog')
+      .select('title, make, model')
+      .eq('car_id', carId)
       .single();
 
     if (carError || !car) {
@@ -393,10 +400,10 @@ export async function POST(
       catalogMedia = photoMedia;
     }
 
-    // Prepare car details for renderer (no discount, show original price)
+    // Prepare car details for renderer using standardized catalog data
     const carDetails = {
       year: car.model_year,
-      model: (car.vehicle_model || '').replace(/\bMercedes[- ]Benz\b/gi, '').replace(/\bMercedes[- ]AMG\b/gi, '').trim(),
+      model: catalogData?.title || `${car.model_year} ${car.vehicle_model}`, // Use standardized catalog title
       mileage: car.current_mileage_km ? car.current_mileage_km.toLocaleString() : '0',
       stockNumber: car.stock_number,
       price: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '0',

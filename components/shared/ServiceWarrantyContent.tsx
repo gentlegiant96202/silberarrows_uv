@@ -525,14 +525,14 @@ export default function ServiceWarrantyContent() {
         {/* Fixed Header Section - completely outside scroll area */}
         <div className="flex-shrink-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
           {/* Page Header with Search and Actions */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2">ServiceCare and Extended Warranty Management</h1>
+          <div className="flex items-start justify-between mb-6 min-w-0">
+            <div className="flex-1 min-w-0 pr-4">
+              <h1 className="text-3xl font-bold text-white mb-2 truncate">ServiceCare and Extended Warranty Management</h1>
               <p className="text-white/60">Contract Management System</p>
             </div>
             
-            {/* Search and Actions - Inline with Header */}
-            <div className="flex items-center space-x-4">
+            {/* Search and Actions - Flexible width */}
+            <div className="flex items-center space-x-4 flex-shrink-0">
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-white/40" />

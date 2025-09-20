@@ -28,9 +28,10 @@ function generateJWT() {
   const crypto = require('crypto');
   const signer = crypto.createSign('RSA-SHA256');
   signer.update(signatureInput);
-  
+  // Get RSA key - try multiple sources and formats
   let rsaKey = process.env.DOCUSIGN_RSA_PRIVATE_KEY;
   
+  // If no direct key, try base64 encoded version
   if (!rsaKey && process.env.DOCUSIGN_RSA_PRIVATE_KEY_BASE64) {
     try {
       rsaKey = Buffer.from(process.env.DOCUSIGN_RSA_PRIVATE_KEY_BASE64, 'base64').toString();
@@ -39,24 +40,36 @@ function generateJWT() {
     }
   }
   
+  // Ensure proper RSA key format with line breaks
   if (rsaKey) {
+    // Remove all whitespace first
     let cleanKey = rsaKey.replace(/\s/g, '');
+    
+    // Check if headers exist
     const hasBeginHeader = cleanKey.includes('-----BEGINRSAPRIVATEKEY-----') || cleanKey.includes('-----BEGIN');
     const hasEndHeader = cleanKey.includes('-----ENDRSAPRIVATEKEY-----') || cleanKey.includes('-----END');
     
+    // Add headers if missing
     if (!hasBeginHeader || !hasEndHeader) {
       cleanKey = `-----BEGIN RSA PRIVATE KEY-----${cleanKey}-----END RSA PRIVATE KEY-----`;
     }
     
+    // Add line breaks every 64 characters
     rsaKey = cleanKey.replace(/(.{64})/g, '$1\n');
+    
+    // Fix header formatting
     rsaKey = rsaKey.replace('-----BEGIN RSA PRIVATE KEY-----\n', '-----BEGIN RSA PRIVATE KEY-----\n');
     rsaKey = rsaKey.replace('\n-----END RSA PRIVATE KEY-----', '\n-----END RSA PRIVATE KEY-----');
+    
+    // Clean up any double line breaks
+    rsaKey = rsaKey.replace(/\n\n/g, '\n');
   }
   
   if (!rsaKey) {
     throw new Error('DocuSign RSA private key not found in environment variables');
   }
 
+  
   const signature = signer.sign(rsaKey, 'base64url');
   return `${signatureInput}.${signature}`;
 }
@@ -64,9 +77,18 @@ function generateJWT() {
 // Get DocuSign access token
 async function getAccessToken() {
   const jwt = generateJWT();
+  
+  // Use production or demo endpoints based on environment
   const authUrl = process.env.NODE_ENV === 'production' 
     ? 'https://account.docusign.com/oauth/token'
     : 'https://account-d.docusign.com/oauth/token';
+  
+  console.log('🔐 Using JWT authentication with:', {
+    environment: process.env.NODE_ENV || 'development',
+    authUrl,
+    hasIntegrationKey: !!process.env.DOCUSIGN_INTEGRATION_KEY,
+    hasUserId: !!process.env.DOCUSIGN_USER_ID
+  });
 
   const response = await fetch(authUrl, {
     method: 'POST',
@@ -204,10 +226,10 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Envelope data created');
 
-    // Send to DocuSign
-    const docusignApiUrl = process.env.NODE_ENV === 'production' 
-      ? `https://na3.docusign.net/restapi/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes`
-      : `https://demo.docusign.net/restapi/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes`;
+    // Send to DocuSign - use DOCUSIGN_BASE_URL from environment
+    const docusignApiUrl = `${process.env.DOCUSIGN_BASE_URL}/restapi/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes`;
+    
+    console.log('🔗 DocuSign URL:', docusignApiUrl);
 
     console.log('🔍 Sending envelope to DocuSign API...');
     const docusignResponse = await fetch(docusignApiUrl, {
@@ -219,10 +241,19 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(envelopeData)
     });
 
+    console.log('📨 DocuSign API response status:', docusignResponse.status);
+
     if (!docusignResponse.ok) {
-      const error = await docusignResponse.text();
-      console.error('❌ DocuSign API error:', error);
-      throw new Error(`DocuSign API error: ${docusignResponse.status} - ${error}`);
+      const errorText = await docusignResponse.text();
+      console.error('❌ DocuSign API Error Details:', {
+        status: docusignResponse.status,
+        statusText: docusignResponse.statusText,
+        errorText: errorText,
+        url: docusignApiUrl,
+        pdfSizeMB: pdfSizeMB,
+        documentName: documentTitle
+      });
+      throw new Error(`DocuSign API Error: ${errorText}`);
     }
 
     const docusignResult = await docusignResponse.json();

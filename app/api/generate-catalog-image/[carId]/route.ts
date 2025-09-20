@@ -365,7 +365,7 @@ export async function POST(
     // Also get catalog data for standardized title
     const { data: catalogData } = await supabase
       .from('uv_catalog')
-      .select('title, make, model')
+      .select('title, make, model, description')
       .eq('car_id', carId)
       .single();
 

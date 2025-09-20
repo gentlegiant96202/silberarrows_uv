@@ -42,28 +42,42 @@ function generateJWT() {
   
   // Ensure proper RSA key format with line breaks
   if (rsaKey) {
-    // Remove all whitespace first
+    // Clean the key - remove all whitespace and line breaks
     let cleanKey = rsaKey.replace(/\s/g, '');
     
-    // Check if headers exist
+    // Check if it has proper headers (with or without spaces)
     const hasBeginHeader = cleanKey.includes('-----BEGINRSAPRIVATEKEY-----') || cleanKey.includes('-----BEGIN');
     const hasEndHeader = cleanKey.includes('-----ENDRSAPRIVATEKEY-----') || cleanKey.includes('-----END');
     
-    // Add headers if missing
-    if (!hasBeginHeader || !hasEndHeader) {
-      cleanKey = `-----BEGIN RSA PRIVATE KEY-----${cleanKey}-----END RSA PRIVATE KEY-----`;
+    if (hasBeginHeader && hasEndHeader) {
+      // Extract the key content (everything between BEGIN and END)
+      const beginIndex = cleanKey.indexOf('-----BEGIN');
+      const endIndex = cleanKey.lastIndexOf('-----END');
+      
+      if (beginIndex !== -1 && endIndex !== -1) {
+        // Get the key content after BEGIN header
+        const afterBegin = cleanKey.substring(beginIndex);
+        const beforeEnd = afterBegin.substring(0, afterBegin.lastIndexOf('-----END'));
+        
+        // Extract just the base64 content
+        const keyContent = beforeEnd.replace('-----BEGINRSAPRIVATEKEY-----', '');
+        
+        // Add proper line breaks every 64 characters
+        const formattedContent = keyContent.match(/.{1,64}/g)?.join('\n') || keyContent;
+        
+        // Reconstruct with proper headers and formatting
+        rsaKey = `-----BEGIN RSA PRIVATE KEY-----\n${formattedContent}\n-----END RSA PRIVATE KEY-----`;
+      }
     }
-    
-    // Add line breaks every 64 characters
-    rsaKey = cleanKey.replace(/(.{64})/g, '$1\n');
-    
-    // Fix header formatting
-    rsaKey = rsaKey.replace('-----BEGIN RSA PRIVATE KEY-----\n', '-----BEGIN RSA PRIVATE KEY-----\n');
-    rsaKey = rsaKey.replace('\n-----END RSA PRIVATE KEY-----', '\n-----END RSA PRIVATE KEY-----');
-    
-    // Clean up any double line breaks
-    rsaKey = rsaKey.replace(/\n\n/g, '\n');
   }
+  
+  console.log('🔑 RSA Key Debug:', {
+    hasKey: !!rsaKey,
+    keyLength: rsaKey?.length || 0,
+    hasBegin: rsaKey?.includes('-----BEGIN RSA PRIVATE KEY-----') || false,
+    hasEnd: rsaKey?.includes('-----END RSA PRIVATE KEY-----') || false,
+    hasLineBreaks: rsaKey?.includes('\n') || false
+  });
   
   if (!rsaKey) {
     throw new Error('DocuSign RSA private key not found in environment variables');

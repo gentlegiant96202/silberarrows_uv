@@ -166,7 +166,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       });
 
       if (response.ok) {
-        const result = await response.json();
+      const result = await response.json();
         
         // Update local contract state immediately
         setLocalContract(result.contract);
@@ -421,64 +421,58 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   const displayContract = localContract || contract;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-2xl border-2 border-white/20 shadow-2xl rounded-2xl p-6 w-full max-w-xl md:max-w-3xl lg:max-w-5xl relative max-h-[95vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      <div className="bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-2xl border-2 border-white/20 shadow-2xl rounded-2xl p-6 w-full max-w-xl md:max-w-3xl lg:max-w-5xl relative max-h-[95vh] overflow-hidden">
         
-        {/* FIXED HEADER - STICKY */}
-        <div className="sticky top-0 bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-xl z-10 -mx-6 -mt-6 px-6 pt-6 pb-4 mb-6 border-b border-white/10">
-          <div className="absolute top-4 right-4 flex items-center gap-3">
-            {isEditing && (
-              <select
-                value={formData.workflow_status}
-                onChange={(e) => handleInputChange('workflow_status', e.target.value)}
-                className="h-8 px-3 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-              >
-                <option value="created" className="bg-gray-900">Created</option>
-                <option value="sent_for_signing" className="bg-gray-900">Sent for Signing</option>
-                <option value="card_issued" className="bg-gray-900">Issued</option>
-              </select>
-            )}
-            
-            <button
-              onClick={onClose}
-              className="text-2xl leading-none text-white/70 hover:text-white transition-colors duration-200"
+        {/* FIXED HEADER - MATCHING CREATE MODAL */}
+        <div className="absolute top-4 right-4 flex items-center gap-3">
+          {isEditing && (
+            <select
+              value={formData.workflow_status}
+              onChange={(e) => handleInputChange('workflow_status', e.target.value)}
+              className="h-8 px-3 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
             >
-              ×
-            </button>
-          </div>
+              <option value="created" className="bg-gray-900">Created</option>
+              <option value="sent_for_signing" className="bg-gray-900">Sent for Signing</option>
+              <option value="card_issued" className="bg-gray-900">Issued</option>
+            </select>
+          )}
           
-          <div className="pr-20">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex flex-col">
-                <h2 className="text-2xl font-bold text-white">
-                  {displayContract?.contract_type === 'warranty' ? 'Warranty Agreement' : 'ServiceCare Agreement'}
-                </h2>
-                <div className="text-white/70 text-sm mt-2">
-                  <span className="text-white/50">Reference:</span> <span className="font-mono font-semibold">{displayContract?.reference_no}</span>
-                </div>
-              </div>
+        <button
+          onClick={onClose}
+            className="text-2xl leading-none text-white/70 hover:text-white transition-colors duration-200"
+        >
+          ×
+        </button>
+        </div>
+        
+        <div className="flex items-start justify-between mb-6 pr-20 gap-4 flex-wrap">
+          <div className="flex flex-col">
+            <h2 className="text-2xl font-bold text-white">
+              {displayContract?.contract_type === 'warranty' ? 'Warranty Agreement' : 'ServiceCare Agreement'}
+            </h2>
+            <div className="text-white/70 text-sm mt-2">
+              <span className="text-white/50">Reference:</span> <span className="font-mono font-semibold">{displayContract?.reference_no}</span>
             </div>
           </div>
         </div>
 
-        {/* SCROLLABLE CONTENT */}
-        <form className="flex flex-col">
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="flex flex-col h-full">
+          {/* SCROLLABLE CONTENT - MATCHING CREATE MODAL */}
+          <div className="flex flex-col gap-6 max-h-[75vh] overflow-y-auto space-y-6 relative">
           <div className="space-y-6">
             
             {/* PDF WORKFLOW WITH DOCUSIGN STATUS - EDIT MODE ONLY */}
             {isEditing && (
               <div className="bg-gradient-to-br from-black/40 via-gray-900/30 to-black/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border-2 border-white/30">
-                    <span className="text-white text-sm font-bold">1</span>
-                        </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium text-white">Document Management</h3>
+                    <h3 className="text-lg font-medium text-white">Contract Management</h3>
                     <div className="text-sm text-white/70 mt-1">
                       Generate, sign, and manage contract documents
                     </div>
-                        </div>
-                      </div>
+                  </div>
+                </div>
                       
                 <div className="space-y-3">
                   {/* Generate PDF Button */}
@@ -587,14 +581,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
             {/* CUSTOMER INFORMATION - EXACTLY LIKE CREATE MODAL */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
-                  <span className="text-white text-sm font-bold">4</span>
-                  </div>
-                <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                  <User className="h-5 w-5" />
+                <h3 className="text-lg font-medium text-white">
                   Customer Information
                 </h3>
-                </div>
+              </div>
                       
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
@@ -695,11 +685,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
             {/* VEHICLE INFORMATION - EXACTLY LIKE CREATE MODAL */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
-                  <span className="text-white text-sm font-bold">5</span>
-                </div>
-                <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                  <Car className="h-5 w-5" />
+                <h3 className="text-lg font-medium text-white">
                   Vehicle Information
                 </h3>
               </div>
@@ -829,14 +815,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
             {/* CONTRACT PERIOD - EXACTLY LIKE CREATE MODAL */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
-                  <span className="text-white text-sm font-bold">6</span>
-              </div>
-                <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+                <h3 className="text-lg font-medium text-white">
                   Contract Period
                 </h3>
-            </div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
@@ -942,10 +924,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                 </div>
               </div>
             </div>
-          
-          {/* STICKY FOOTER */}
-          <div className="sticky bottom-0 bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-xl -mx-6 -mb-6 px-6 py-4 border-t border-white/10">
-          <div className="flex items-center justify-end gap-4">
+
+          </div>
+
+          {/* FIXED FOOTER - MATCHING CREATE MODAL */}
+          <div className="flex items-center justify-end gap-4 pt-4">
             {!isEditing ? (
               <button
                 type="button"
@@ -990,7 +973,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
               </>
             )}
           </div>
-        </div>
+
         </form>
 
         {/* Hidden file input */}
@@ -1001,12 +984,12 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           onChange={handleFileSelect}
           className="hidden"
         />
-      </div>
+        </div>
 
       {/* Company Email Modal (matching vehicle documents) */}
       {showCompanyEmailModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70]"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowCompanyEmailModal(false);
@@ -1039,7 +1022,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
             >
               {sendingForSigning ? 'Sending...' : 'Send for Signing'}
             </button>
-        </div>
+      </div>
       </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Car, Download, Eye, Edit, FileText, Image as ImageIcon, RefreshCw, Plus, Zap, Globe, ExternalLink, Copy } from 'lucide-react';
+import { Car, Download, Eye, Edit, FileText, Image as ImageIcon, RefreshCw, Plus, Zap, Globe, ExternalLink, Copy, X } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 
@@ -193,6 +193,33 @@ export default function UVCatalogBoard() {
       supabase.removeChannel(catalogSubscription);
     };
   }, [fetchEntries]);
+
+  const handleRemoveFromCatalog = async (entry: CatalogEntry) => {
+    if (!confirm(`Remove "${entry.title}" from UV Catalog?\n\nThis will exclude it from future XML feeds.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('uv_catalog')
+        .delete()
+        .eq('car_id', entry.car_id);
+
+      if (error) {
+        console.error('Error removing from catalog:', error);
+        alert('Failed to remove car from catalog');
+        return;
+      }
+
+      // Refresh the catalog entries
+      await fetchEntries();
+      alert(`✅ "${entry.title}" removed from UV Catalog!`);
+
+    } catch (error) {
+      console.error('Error removing from catalog:', error);
+      alert('Failed to remove car from catalog');
+    }
+  };
 
   const handleGenerateCatalogImage = async (entry: CatalogEntry) => {
     try {
@@ -527,15 +554,25 @@ export default function UVCatalogBoard() {
                   )}
                 </button>
                 
-                {(entry.catalog_image_url || entry.primary_image_url) && (
+                <div className="flex items-center gap-2">
+                  {(entry.catalog_image_url || entry.primary_image_url) && (
+                    <button
+                      onClick={() => window.open(entry.catalog_image_url || entry.primary_image_url, '_blank')}
+                      className="p-3 bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-lg transition-all duration-300 border border-white/10"
+                      title="View Image"
+                    >
+                      <Eye className="w-5 h-5 text-gray-300" />
+                    </button>
+                  )}
+                  
                   <button
-                    onClick={() => window.open(entry.catalog_image_url || entry.primary_image_url, '_blank')}
-                    className="p-3 bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-lg transition-all duration-300 border border-white/10"
-                    title="View Image"
+                    onClick={() => handleRemoveFromCatalog(entry)}
+                    className="p-3 bg-red-500/20 backdrop-blur-md hover:bg-red-500/30 rounded-lg transition-all duration-300 border border-red-400/20 hover:border-red-400/40"
+                    title="Remove from Catalog"
                   >
-                    <Eye className="w-5 h-5 text-gray-300" />
+                    <X className="w-5 h-5 text-red-400" />
                   </button>
-                )}
+                </div>
               </div>
             </div>
 

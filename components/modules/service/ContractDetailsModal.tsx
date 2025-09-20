@@ -109,6 +109,9 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   // Load DocuSign data when modal opens (matching vehicle documents)
   useEffect(() => {
     if (isOpen && contract) {
+      // Initialize form data from contract
+      initializeFormData();
+      
       // Initialize DocuSign state from contract data
       setDocusignEnvelopeId(contract.docusign_envelope_id || null);
       setSigningStatus(contract.signing_status || 'pending');

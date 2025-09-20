@@ -74,7 +74,6 @@ export async function GET(request: NextRequest) {
         .select(`
           id,
           reference_no,
-          status,
           service_type,
           workflow_status,
           owner_name,
@@ -95,7 +94,13 @@ export async function GET(request: NextRequest) {
           notes,
           pdf_url,
           created_at,
-          updated_at
+          updated_at,
+          sales_executive,
+          docusign_envelope_id,
+          signing_status,
+          signed_pdf_url,
+          sent_for_signing_at,
+          completed_at
         `);
     } else if (contractType === 'warranty') {
       query = supabase
@@ -103,7 +108,6 @@ export async function GET(request: NextRequest) {
         .select(`
           id,
           reference_no,
-          status,
           workflow_status,
           owner_name,
           mobile_no,
@@ -123,7 +127,13 @@ export async function GET(request: NextRequest) {
           notes,
           pdf_url,
           created_at,
-          updated_at
+          updated_at,
+          sales_executive,
+          docusign_envelope_id,
+          signing_status,
+          signed_pdf_url,
+          sent_for_signing_at,
+          completed_at
         `);
     } else {
       return NextResponse.json(
@@ -132,12 +142,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Apply filters
+    // Apply filters (status field no longer exists)
     if (status) {
-      query = query.eq('status', status);
-    } else {
-      // By default, exclude cancelled contracts (soft deleted)
-      query = query.neq('status', 'cancelled');
+      console.warn('Status filtering is no longer supported - status field removed');
     }
 
     // Apply pagination and sorting
@@ -155,27 +162,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Add calculated fields (handle date calculations in JavaScript)
+    // Add calculated fields (simplified - no health status)
     const contractsWithCalculations = contracts?.map(contract => {
-      const endDate = new Date(contract.end_date);
-      const currentDate = new Date();
-      
-      // Calculate days until expiry
-      const timeDiff = endDate.getTime() - currentDate.getTime();
-      const daysUntilExpiry = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-      
-      // Determine contract health
-      let contractHealth = 'Active';
-      if (endDate < currentDate) {
-        contractHealth = 'Expired';
-      } else if (daysUntilExpiry <= 30) {
-        contractHealth = 'Expiring Soon';
-      }
-
       return {
         ...contract,
-        contract_health: contractHealth,
-        days_until_expiry: daysUntilExpiry,
         formatted_start_date: new Date(contract.start_date).toLocaleDateString('en-GB'),
         formatted_end_date: new Date(contract.end_date).toLocaleDateString('en-GB'),
         vehicle_info: `${contract.make} ${contract.model} (${contract.model_year})`
@@ -219,18 +209,29 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const { type, ...contractData } = data;
 
+    // Get user information for sales_executive field
+    const { user } = validation;
+    const userEmail = user?.email || 'Unknown User';
+    const userName = user?.user_metadata?.full_name || userEmail.split('@')[0];
+    
+    // Add sales_executive field (auto-populated, cannot be changed)
+    const contractWithSalesExec = {
+      ...contractData,
+      sales_executive: userName
+    };
+
     let result;
     
     if (type === 'service') {
       result = await supabase
         .from('service_contracts')
-        .insert(contractData)
+        .insert(contractWithSalesExec)
         .select()
         .single();
     } else if (type === 'warranty') {
       result = await supabase
         .from('warranty_contracts')
-        .insert(contractData)
+        .insert(contractWithSalesExec)
         .select()
         .single();
     } else {
@@ -248,20 +249,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log activity
-    await supabase
-      .from('contract_activities')
-      .insert({
-        contract_id: result.data.id,
-        contract_type: type,
-        activity_type: 'created',
-        activity_description: `${type} contract ${contractData.reference_no} created for ${contractData.owner_name}`,
-        activity_data: {
-          reference_no: contractData.reference_no,
-          vehicle: `${contractData.make} ${contractData.model} (${contractData.model_year})`,
-          vin: contractData.vin
-        }
-      });
+    // Activity logging removed - contract_activities table deleted
 
     return NextResponse.json({
       contract: result.data,

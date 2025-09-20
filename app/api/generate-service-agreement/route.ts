@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export async function POST(request: NextRequest) {
   console.log('🚀 SERVICE AGREEMENT API CALLED');
@@ -27,14 +29,38 @@ export async function POST(request: NextRequest) {
     const serviceTypeDisplay = (data.serviceType === 'premium') ? 'PREMIUM' : 'STANDARD';
     const amount = data.invoiceAmount || '0.00';
 
+    // Resolve logo data URL from local PNG (same as consignment form)
+    const logoFileCandidates = [
+      path.join(process.cwd(), 'public', 'main-logo.png'),
+      path.join(process.cwd(), 'renderer', 'public', 'main-logo.png')
+    ];
+    let logoSrc = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
+    for (const candidate of logoFileCandidates) {
+      try {
+        if (fs.existsSync(candidate)) {
+          const logoData = fs.readFileSync(candidate);
+          const b64 = logoData.toString('base64');
+          logoSrc = `data:image/png;base64,${b64}`;
+          break;
+        }
+      } catch (e) {
+        // continue to next candidate
+      }
+    }
+
     const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ServiceCare Prepaid Receipt - ${data.referenceNo}</title>
+        <title>ServiceCare Agreement Form - ${data.referenceNo}</title>
         <style>
+          @page {
+            margin: 0;
+            background: #000000;
+          }
+          
           * {
             margin: 0;
             padding: 0;
@@ -42,309 +68,408 @@ export async function POST(request: NextRequest) {
           }
           
           body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #000000 100%);
+            background: #000000;
             color: white;
-            min-height: 100vh;
-            padding: 30px 60px;
-            line-height: 1.4;
-          }
-          
-          @page {
-            margin: 0;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #000000 100%);
-          }
-          
-          html, body {
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #000000 100%);
+            font-family: 'Arial', sans-serif;
+            font-size: 10px;
+            line-height: 1.25;
+            width: 210mm;
+            height: 297mm;
             margin: 0;
             padding: 0;
+            overflow: hidden;
+            box-sizing: border-box;
           }
-          
-          .content-container {
-            page-break-inside: avoid;
-            padding: 20px 40px;
+
+          .page {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(30px);
+            border: none;
+            padding: 8px 10px 18px 10px;
+            width: 210mm;
+            height: 297mm;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 
+                        inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+                        0 0 50px rgba(255, 255, 255, 0.02);
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            min-height: calc(100vh - 60px);
-            margin: auto 0;
+            justify-content: space-between;
           }
-          
-          .content-container {
-            max-width: 1400px;
-            margin: 0 auto;
+
+          .page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+              rgba(255, 255, 255, 0.03) 0%, 
+              rgba(255, 255, 255, 0.01) 50%, 
+              rgba(255, 255, 255, 0.03) 100%);
+            pointer-events: none;
           }
-          
+
           .header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin: 0 0 20px 0;
+            padding: 10px 15px 8px 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
             position: relative;
             z-index: 2;
+            width: 100%;
+            box-sizing: border-box;
           }
-          
-          .main-title {
-            font-size: 32px;
-            font-weight: bold;
+
+          .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+              rgba(255, 255, 255, 0.1) 0%, 
+              rgba(255, 255, 255, 0.02) 50%, 
+              rgba(255, 255, 255, 0.08) 100%);
+            border-radius: 15px;
+            pointer-events: none;
+          }
+
+          .title-section {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            position: relative;
+            z-index: 3;
+          }
+
+          .title {
+            font-size: 21px;
+            font-weight: 900;
             color: white;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
-            letter-spacing: 2px;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+            line-height: 1.0;
           }
-          
-          .sub-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.9);
-            letter-spacing: 1px;
-            margin-bottom: 16px;
+
+          .date-line {
+            font-size: 21px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            line-height: 1.0;
           }
-          
+
           .logo {
-            width: 60px;
+            width: 55px;
             height: auto;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4)) brightness(1.1);
-            margin: 0 auto 8px auto;
+            position: relative;
+            z-index: 3;
           }
-          
+
+          .content-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            flex: 1 1 auto;
+            overflow: visible;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+          }
+
           .section {
-            margin-bottom: 16px;
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 14px 18px;
+            margin: 0 0 12px 0;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 10px 12px;
             position: relative;
             width: 100%;
             box-sizing: border-box;
           }
-          
+
+          .section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+              rgba(255, 255, 255, 0.06) 0%, 
+              rgba(255, 255, 255, 0.01) 50%, 
+              rgba(255, 255, 255, 0.04) 100%);
+            border-radius: 12px;
+            pointer-events: none;
+          }
+
           .section-title {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
-            margin-bottom: 12px;
+            margin-bottom: 4px;
             color: white;
             text-transform: uppercase;
             letter-spacing: 1px;
+            position: relative;
+            z-index: 2;
+            padding-bottom: 2px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-            padding-bottom: 6px;
           }
-          
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            align-items: center;
-          }
-          
-          .info-label {
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 11px;
-            min-width: 80px;
-          }
-          
-          .info-value {
-            color: white;
-            font-size: 11px;
-            flex: 1;
-            margin-left: 16px;
-          }
-          
-          .product-table {
+
+          .form-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            margin: 12px 0;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 6px;
-            overflow: hidden;
-          }
-          
-          .product-table th {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 10px 12px;
-            text-align: left;
-            font-weight: bold;
-            color: white;
-            font-size: 11px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          }
-          
-          .product-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: white;
-            font-size: 11px;
-          }
-          
-          .product-table .total-row {
-            background: rgba(255, 255, 255, 0.05);
-            font-weight: bold;
-          }
-          
-          .message-section {
-            background: rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 0 0 4px 0;
+            background: rgba(255, 255, 255, 0.03);
             border-radius: 8px;
-            padding: 18px;
-            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+            z-index: 2;
+            box-sizing: border-box;
+          }
+
+          .form-table td {
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 6px 10px;
+            vertical-align: middle;
+            color: white;
+            font-size: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            position: relative;
+          }
+
+          .form-table td:first-child {
+            border-left: none;
+          }
+
+          .form-table td:last-child {
+            border-right: none;
+          }
+
+          .form-table tr:first-child td {
+            border-top: none;
+          }
+
+          .form-table tr:last-child td {
+            border-bottom: none;
+          }
+
+          .form-table .label {
+            background: rgba(255, 255, 255, 0.08);
+            font-weight: bold;
+            width: 25%;
+            color: rgba(255, 255, 255, 0.95);
+          }
+
+          .form-table .data {
+            width: 25%;
+          }
+
+          .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: auto;
+            margin-bottom: 20px;
+            gap: 30px;
+            position: relative;
+            z-index: 2;
+          }
+
+          .signature-box {
+            flex: 1;
+            font-size: 10px;
+            color: white;
+          }
+
+          .signature-area {
+            border: 1px solid #cccccc;
+            background-color: #f5f5f5;
+            height: 80px;
+            width: 100%;
+            margin: 5px 0;
+            border-radius: 4px;
+            position: relative;
+            padding: 5px;
+          }
+
+          .signature-date {
+            font-size: 9px;
+            color: #666;
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+          }
+
+          .text-content {
             color: rgba(255, 255, 255, 0.9);
-            line-height: 1.6;
-            font-size: 11px;
+            font-size: 10px;
+            line-height: 1.4;
+            margin: 8px 0;
+            position: relative;
+            z-index: 2;
             text-align: justify;
           }
-          
-          .signature-section {
-            margin-top: auto;
-            padding-top: 20px;
-          }
-          
-          .signature-text {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 11px;
-            margin-bottom: 12px;
-          }
-          
-          .signature-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 8px;
-            min-height: 60px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-          }
-          
-          .signature-line {
-            border-top: 1px solid rgba(255, 255, 255, 0.4);
-            margin-top: 30px;
-            width: 200px;
-          }
-          
+
           .footer {
-            margin-top: auto;
             text-align: center;
-            font-size: 10px;
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 16px 8px 8px 8px;
+            margin-top: 8px;
+            padding-top: 8px;
+            font-size: 8px;
             color: rgba(255, 255, 255, 0.7);
-            line-height: 1.4;
-          }
-          
-          .brand-signature {
-            text-align: right;
-            font-style: italic;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 12px;
-            margin: 16px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.25);
+            position: relative;
+            z-index: 2;
           }
         </style>
     </head>
     <body>
-        <div class="content-container">
+        <div class="page">
             <!-- Header -->
             <div class="header">
-                <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="SilberArrows Logo" class="logo">
-                <div class="main-title">SERVICECARE</div>
-                <div class="sub-title">PREPAID RECEIPT</div>
+                <div class="title-section">
+                    <div class="title">SERVICECARE</div>
+                    <div class="date-line">AGREEMENT FORM</div>
+                </div>
+                <img src="${logoSrc}" alt="SilberArrows Logo" class="logo">
             </div>
 
-            <!-- Owner Information -->
-            <div class="section">
-                <div class="section-title">Owner Information</div>
-                <div class="info-row">
-                    <span class="info-label">Name:</span>
-                    <span class="info-value">${data.ownerName}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Date:</span>
-                    <span class="info-value">${currentDate}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Mobile No.:</span>
-                    <span class="info-value">${data.mobileNo}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value">${data.email}</span>
-                </div>
-            </div>
-
-            <!-- Vehicle Information -->
-            <div class="section">
-                <div class="section-title">Vehicle Information</div>
-                <div class="info-row">
-                    <span class="info-label">Chassis No.:</span>
-                    <span class="info-value">${data.vin}</span>
-                </div>
-            </div>
-
-            <!-- Product Details -->
-            <div class="section">
-                <div class="section-title">Product Details</div>
-                <table class="product-table">
-                    <thead>
-                        <tr>
-                            <th>Description</th>
-                            <th>Cover Type</th>
-                            <th style="text-align: right;">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>ServiceCare</td>
-                            <td>${serviceTypeDisplay}</td>
-                            <td style="text-align: right;">AED ${amount}</td>
-                        </tr>
-                        <tr class="total-row">
-                            <td colspan="2"><strong>Total</strong></td>
-                            <td style="text-align: right;"><strong>AED ${amount}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Thank You Message -->
-            <div class="message-section">
-                <p><strong>Thank you for purchasing the SilberArrows ServiceCare contract.</strong></p>
-                <p>You've made a smart choice – your Mercedes-Benz will now receive expert servicing using genuine parts, all at a preferred rate.</p>
-                <br>
-                <p>This commitment not only brings peace of mind and convenience, but also helps protect the long-term value of your vehicle.</p>
-                <br>
-                <p>You'll be able to view the full scope of coverage by scanning the QR code on your ServiceCare card, which will be issued separately.</p>
-                <br>
-                <p>We appreciate your trust in SilberArrows and look forward to keeping your drive smooth, safe, and hassle-free.</p>
-            </div>
-
-            <div class="brand-signature">~ SilberArrows</div>
-
-            <!-- Signature Section -->
-            <div class="signature-section">
-                <div class="signature-text">This document confirms receipt of payment.</div>
-                <div class="signature-box">
-                    <div>
-                        <strong>Signed by:</strong><br>
-                        SilberArrows
-                    </div>
-                    <div>
-                        <strong>Date:</strong> ${currentDate}
-                        <div class="signature-line"></div>
+            <div class="content-container">
+                <!-- Reference Number -->
+                <div class="section">
+                    <div style="position: relative; z-index: 2;">
+                        <strong>Reference No.:</strong> ${data.referenceNo}
                     </div>
                 </div>
-            </div>
 
-            <!-- Footer -->
-            <div class="footer">
-                Tel: +971 4 380 5515 | service@silberarrows.com | www.silberarrows.com
+                <!-- Customer Information -->
+                <div class="section">
+                    <div class="section-title">Customer Information</div>
+                    <table class="form-table">
+                        <tr>
+                            <td class="label">Owner's Name:</td>
+                            <td class="data">${data.ownerName}</td>
+                            <td class="label">ID Number:</td>
+                            <td class="data">${data.customerIdNumber || ''}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Mobile No.:</td>
+                            <td class="data">${data.mobileNo}</td>
+                            <td class="label">Email:</td>
+                            <td class="data">${data.email}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Dealer Information -->
+                <div class="section">
+                    <div class="section-title">Dealer Information</div>
+                    <table class="form-table">
+                        <tr>
+                            <td class="label">Dealer Name:</td>
+                            <td class="data">${data.dealerName}</td>
+                            <td class="label">Phone No.:</td>
+                            <td class="data">${data.dealerPhone}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Vehicle Information -->
+                <div class="section">
+                    <div class="section-title">Vehicle Information</div>
+                    <table class="form-table">
+                        <tr>
+                            <td class="label">VIN:</td>
+                            <td class="data">${data.vin}</td>
+                            <td class="label">Model year & Make:</td>
+                            <td class="data">${data.modelYear} ${data.make}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Model:</td>
+                            <td class="data">${data.model}</td>
+                            <td class="label">Kilometers:</td>
+                            <td class="data">${data.currentOdometer || ''}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Exterior Colour:</td>
+                            <td class="data">${data.exteriorColour || ''}</td>
+                            <td class="label">Interior Colour:</td>
+                            <td class="data">${data.interiorColour || ''}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Duration of Agreement -->
+                <div class="section">
+                    <div class="section-title">Duration of the Agreement</div>
+                    <table class="form-table">
+                        <tr>
+                            <td class="label">ServiceCare Start Date:</td>
+                            <td class="data">${formattedStartDate}</td>
+                            <td class="label">ServiceCare End Date:</td>
+                            <td class="data">${formattedEndDate}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">ServiceCare cut off KM:</td>
+                            <td class="data">${data.cutOffKm}</td>
+                            <td class="label"></td>
+                            <td class="data"></td>
+                        </tr>
+                    </table>
+                    <div class="text-content" style="font-style: italic; margin-top: 4px;">
+                        <strong>IMPORTANT:</strong> Agreement expires whichever comes first, date or kilometers.
+                    </div>
+                </div>
+
+                <!-- Customer Declaration -->
+                <div class="section">
+                    <div class="section-title">Customer Declaration</div>
+                    <div class="text-content">
+                        By my signature below, I confirm that I have thoroughly read & understood the terms & conditions of this Agreement as stated in the attached ServiceCare Information Booklet, that I have received a completed copy of this Agreement & the associated Information Booklet. I agree to be bound by the terms & conditions noted in this Booklet.
+                    </div>
+                </div>
+
+                <!-- Dealer Declaration -->
+                <div class="section">
+                    <div class="section-title">Dealer Declaration</div>
+                    <div class="text-content">
+                        We hereby declare that all the details set out in this Agreement are accurate & correct. The terms & conditions of this ServiceCare are explained in the attached Information Booklet.
+                    </div>
+                </div>
+
+                <!-- Spacer for bottom positioning -->
+                <div style="flex: 1;"></div>
+
+                <!-- Signatures -->
+                <div class="signature-section">
+                    <div class="signature-box">
+                        <div><strong>Dealer Signature:</strong></div>
+                        <div class="signature-area">
+                            <div class="signature-date">Date:</div>
+                        </div>
+                    </div>
+                    <div class="signature-box">
+                        <div><strong>Customer Signature:</strong></div>
+                        <div class="signature-area">
+                            <div class="signature-date">Date:</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer">
+                    Al Manara St., Al Quoz 1, Dubai, UAE, P.O. Box 185095 | TRN: 100281137800003 | Tel: +971 4 380 5515 | service@silberarrows.com | www.silberarrows.com
+                </div>
             </div>
         </div>
     </body>

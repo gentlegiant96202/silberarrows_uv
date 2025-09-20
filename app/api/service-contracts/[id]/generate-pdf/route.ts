@@ -96,6 +96,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       ownerName: contract.owner_name,
       mobileNo: contract.mobile_no,
       email: contract.email,
+      customerIdType: contract.customer_id_type,
+      customerIdNumber: contract.customer_id_number,
       dealerName: contract.dealer_name || 'SilberArrows',
       dealerPhone: contract.dealer_phone || '+971 4 380 5515',
       dealerEmail: contract.dealer_email || 'service@silberarrows.com',
@@ -104,9 +106,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       model: contract.model,
       modelYear: contract.model_year,
       currentOdometer: contract.current_odometer,
+      exteriorColour: contract.exterior_colour,
+      interiorColour: contract.interior_colour,
+      serviceType: contract.service_type,
       startDate: contract.start_date,
       endDate: contract.end_date,
       cutOffKm: contract.cut_off_km,
+      invoiceAmount: contract.invoice_amount,
+      salesExecutive: contract.sales_executive,
       notes: contract.notes || ''
     };
 

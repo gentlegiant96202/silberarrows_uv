@@ -147,6 +147,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         owner_name,
         mobile_no,
         email,
+        customer_id_type,
+        customer_id_number,
         dealer_name,
         dealer_phone,
         dealer_email,
@@ -155,6 +157,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         model,
         model_year,
         current_odometer,
+        exterior_colour,
+        interior_colour,
         start_date,
         end_date,
         cut_off_km,
@@ -169,6 +173,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ...(owner_name !== undefined && { owner_name }),
         ...(mobile_no !== undefined && { mobile_no }),
         ...(email !== undefined && { email }),
+        ...(customer_id_type !== undefined && { customer_id_type }),
+        ...(customer_id_number !== undefined && { customer_id_number }),
         ...(dealer_name !== undefined && { dealer_name }),
         ...(dealer_phone !== undefined && { dealer_phone }),
         ...(dealer_email !== undefined && { dealer_email }),
@@ -177,6 +183,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ...(model !== undefined && { model }),
         ...(model_year !== undefined && { model_year }),
         ...(current_odometer !== undefined && { current_odometer }),
+        ...(exterior_colour !== undefined && { exterior_colour }),
+        ...(interior_colour !== undefined && { interior_colour }),
         ...(start_date !== undefined && { start_date }),
         ...(end_date !== undefined && { end_date }),
         ...(cut_off_km !== undefined && { cut_off_km }),
@@ -193,21 +201,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         updated_at: new Date().toISOString()
       };
     } else {
-      // Status change only (backward compatibility)
-      const { status, notes } = body;
-      
-      updateData.status = status;
-      if (notes) updateData.notes = notes;
-
-      activityType = 'status_changed';
-      activityDescription = `Contract status changed to ${status} by ${validation.user.email}`;
-      activityData = {
-        old_status: body.old_status || 'unknown',
-        new_status: status,
-        notes: notes || null,
-        changed_by: validation.user.email,
-        changed_at: new Date().toISOString()
-      };
+      // Legacy status change - no longer supported
+      return NextResponse.json(
+        { error: 'Status changes are no longer supported. Use workflow_status instead.' },
+        { status: 400 }
+      );
     }
 
     // Update contract
@@ -226,27 +224,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
-    // Log activity
-    try {
-      await supabase
-        .from('contract_activities')
-        .insert({
-          contract_id: contractId,
-          contract_type: type,
-          activity_type: activityType,
-          activity_description: activityDescription,
-          activity_data: activityData
-        });
-    } catch (activityError) {
-      console.error('Failed to log activity:', activityError);
-      // Continue without failing
-    }
+    // Activity logging removed - contract_activities table deleted
 
-    console.log('API returning updated contract:', updatedContract);
-    console.log('Updated contract workflow_status:', updatedContract?.workflow_status);
+    // Add calculated fields (same as GET endpoint)
+    const enhancedContract = {
+      ...updatedContract,
+      formatted_start_date: updatedContract.start_date ? new Date(updatedContract.start_date).toLocaleDateString('en-GB') : '',
+      formatted_end_date: updatedContract.end_date ? new Date(updatedContract.end_date).toLocaleDateString('en-GB') : '',
+      vehicle_info: `${updatedContract.make} ${updatedContract.model} (${updatedContract.model_year})`
+    };
+
+    console.log('API returning updated contract:', enhancedContract);
+    console.log('Updated contract workflow_status:', enhancedContract?.workflow_status);
 
     return NextResponse.json({
-      contract: updatedContract,
+      contract: enhancedContract,
       message: 'Contract updated successfully'
     });
 
@@ -295,23 +287,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
-    // Add calculated fields
-    const endDate = new Date(contract.end_date);
-    const currentDate = new Date();
-    const timeDiff = endDate.getTime() - currentDate.getTime();
-    const daysUntilExpiry = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    
-    let contractHealth = 'Active';
-    if (endDate < currentDate) {
-      contractHealth = 'Expired';
-    } else if (daysUntilExpiry <= 30) {
-      contractHealth = 'Expiring Soon';
-    }
-
+    // Add calculated fields (simplified - no health status)
     const enhancedContract = {
       ...contract,
-      contract_health: contractHealth,
-      days_until_expiry: daysUntilExpiry,
       formatted_start_date: new Date(contract.start_date).toLocaleDateString('en-GB'),
       formatted_end_date: new Date(contract.end_date).toLocaleDateString('en-GB'),
       vehicle_info: `${contract.make} ${contract.model} (${contract.model_year})`
@@ -350,13 +328,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Determine which table to update
     const tableName = type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
 
-    // Soft delete by updating status to cancelled
+    // Hard delete since status field no longer exists
     const { data: deletedContract, error: deleteError } = await supabase
       .from(tableName)
-      .update({ 
-        status: 'cancelled',
-        updated_at: new Date().toISOString()
-      })
+      .delete()
       .eq('id', contractId)
       .select()
       .single();
@@ -369,25 +344,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       );
     }
 
-    // Log deletion activity
-    try {
-      await supabase
-        .from('contract_activities')
-        .insert({
-          contract_id: contractId,
-          contract_type: type,
-          activity_type: 'deleted',
-          activity_description: `Contract deleted by ${validation.user.email}`,
-          activity_data: {
-            action: 'delete',
-            deleted_by: validation.user.email,
-            deleted_at: new Date().toISOString()
-          }
-        });
-    } catch (activityError) {
-      console.error('Failed to log activity:', activityError);
-      // Continue without failing
-    }
+    // Activity logging removed - contract_activities table deleted
 
     return NextResponse.json({
       contract: deletedContract,

@@ -4,7 +4,7 @@ import { useModulePermissions } from '@/lib/useModulePermissions';
 import PulsatingLogo from './PulsatingLogo';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
-import { Wrench, Shield, AlertCircle, Plus, Settings, FileText, DollarSign, Calendar, Eye, Edit, Trash2, Clock, AlertTriangle, X, ChevronDown, Download } from 'lucide-react';
+import { Wrench, Shield, AlertCircle, Plus, Settings, FileText, DollarSign, Calendar, Eye, Edit, Trash2, Clock, AlertTriangle, X, ChevronDown, Download, Search } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import ServiceContractModal, { ServiceContractData } from '@/components/modules/service/ServiceContractModal';
 import ContractDetailsModal from '@/components/modules/service/ContractDetailsModal';
@@ -12,7 +12,6 @@ import ContractDetailsModal from '@/components/modules/service/ContractDetailsMo
 interface Contract {
   id: string;
   reference_no: string;
-  status: string;
   workflow_status: string;
   service_type: 'standard' | 'premium';
   owner_name: string;
@@ -31,8 +30,6 @@ interface Contract {
   notes?: string;
   created_at: string;
   updated_at: string;
-  contract_health: string;
-  days_until_expiry: number;
   formatted_start_date: string;
   formatted_end_date: string;
   vehicle_info: string;
@@ -141,7 +138,7 @@ export default function ServiceWarrantyContent() {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
-          type: 'service',
+          type: activeTab,
           // Contract data with new fields (handle empty numeric fields)
           reference_no: data.referenceNo,
           service_type: data.serviceType,
@@ -164,8 +161,7 @@ export default function ServiceWarrantyContent() {
           end_date: data.endDate,
           cut_off_km: data.cutOffKm || null,
           invoice_amount: data.invoiceAmount || null,
-          reservation_id: data.reservationId || null,
-          status: 'active'
+          reservation_id: data.reservationId || null
         }),
       });
 
@@ -356,19 +352,19 @@ export default function ServiceWarrantyContent() {
   const filteredServiceContracts = filterContracts(serviceContracts);
   const filteredWarrantyContracts = filterContracts(warrantyContracts);
 
-  // Calculate stats
+  // Calculate stats (simplified without status complexity)
   const serviceStats = {
-    active: serviceContracts.filter(c => c.status === 'active').length,
-    expiring: serviceContracts.filter(c => c.contract_health === 'Expiring Soon').length,
-    expired: serviceContracts.filter(c => c.contract_health === 'Expired').length,
-    total: serviceContracts.length
+    total: serviceContracts.length,
+    created: serviceContracts.filter(c => c.workflow_status === 'created').length,
+    signing: serviceContracts.filter(c => c.workflow_status === 'sent_for_signing').length,
+    issued: serviceContracts.filter(c => c.workflow_status === 'card_issued').length
   };
 
   const warrantyStats = {
-    active: warrantyContracts.filter(c => c.status === 'active').length,
-    expiring: warrantyContracts.filter(c => c.contract_health === 'Expiring Soon').length,
-    expired: warrantyContracts.filter(c => c.contract_health === 'Expired').length,
-    total: warrantyContracts.length
+    total: warrantyContracts.length,
+    created: warrantyContracts.filter(c => c.workflow_status === 'created').length,
+    signing: warrantyContracts.filter(c => c.workflow_status === 'sent_for_signing').length,
+    issued: warrantyContracts.filter(c => c.workflow_status === 'card_issued').length
   };
 
   // Remove loading screen - RouteProtector handles access control
@@ -394,229 +390,199 @@ export default function ServiceWarrantyContent() {
   }
 
   const ContractTable = ({ contracts, type }: { contracts: Contract[], type: 'service' | 'warranty' }) => {
-    // No workflow filter needed
+    if (contracts.length === 0) {
+      return (
+        <div className="p-8 text-center">
+          <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
+          <p className="text-white/60">
+            {searchTerm 
+              ? `No ${type} contracts match your search criteria` 
+              : `No ${type} contracts found`}
+          </p>
+        </div>
+      );
+    }
 
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          {/* Sticky Header with Workflow Filter */}
-          <thead className="sticky top-0 z-10 bg-black/80 backdrop-blur-md">
-            <tr className="border-b border-gray-700/50">
-              <th className="text-left py-3 px-4 text-gray-300 font-medium">Reference</th>
-              <th className="text-left py-3 px-4 text-gray-300 font-medium">Customer</th>
-              <th className="text-left py-3 px-4 text-gray-300 font-medium">Vehicle</th>
-              <th className="text-left py-3 px-4 text-gray-300 font-medium">Type</th>
-              <th className="text-left py-3 px-4 text-gray-300 font-medium">Period</th>
-              <th className="text-left py-3 px-4 text-gray-300 font-medium">Workflow</th>
-              <th className="text-left py-3 px-4 text-gray-300 font-medium">Status</th>
-              <th className="text-left py-3 px-4 text-gray-300 font-medium">Actions</th>
-            </tr>
-          </thead>
-          
-          {/* Table Body with Alternating Row Colors */}
-          <tbody>
-            {contracts.map((contract, index) => (
-              <tr 
-                key={contract.id} 
-                className={`border-b border-gray-800/50 hover:bg-gray-700/30 transition-colors ${
-                  index % 2 === 0 ? 'bg-gray-900/20' : 'bg-gray-800/20'
-                }`}
-              >
-                <td className="py-4 px-4">
-                  <div className="font-medium text-white">{contract.reference_no}</div>
-                  <div className="text-sm text-gray-400">
-                    {new Date(contract.created_at).toLocaleDateString()}
-                  </div>
-                </td>
-                <td className="py-4 px-4">
-                  <div className="font-medium text-white">{contract.owner_name}</div>
-                  <div className="text-sm text-gray-400">{contract.mobile_no}</div>
-                </td>
-                <td className="py-4 px-4">
-                  <div className="font-medium text-white">{contract.vehicle_info}</div>
-                  <div className="text-sm text-gray-400">VIN: {contract.vin.slice(-6)}</div>
-                </td>
-                <td className="py-4 px-4">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    contract.service_type === 'premium' 
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                  }`}>
-                    {contract.service_type === 'premium' ? 'Premium' : 'Standard'}
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-white/10">
+            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+              Reference #
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+              Customer
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+              Vehicle
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+              Type
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+              Period
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+              Workflow
+            </th>
+            <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/10">
+          {contracts.map((contract) => (
+            <tr key={contract.id} className="hover:bg-white/5 transition-colors">
+              <td className="px-4 py-3">
+                {contract.reference_no ? (
+                  <span className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs font-mono font-bold">
+                    {contract.reference_no}
                   </span>
-                </td>
-                <td className="py-4 px-4">
-                  <div className="text-sm text-white">{contract.formatted_start_date}</div>
-                  <div className="text-sm text-gray-400">to {contract.formatted_end_date}</div>
-                </td>
-
-                {/* Workflow Status Column */}
-                <td className="py-4 px-4">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    contract.workflow_status === 'card_issued' 
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                    : contract.workflow_status === 'sent_for_signing'
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                    : contract.workflow_status === 'created'
-                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                      : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                  }`}>
-                    {contract.workflow_status === 'card_issued' ? 'Card Issued' :
-                     contract.workflow_status === 'sent_for_signing' ? 'Sent for Signing' :
-                     contract.workflow_status === 'created' ? 'Created' :
-                     contract.workflow_status || 'Unknown'}
-                  </span>
-                </td>
-                
-                {/* Status Column (Contract Health) */}
-                <td className="py-4 px-4">
-                  <div className="flex items-center space-x-2">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      contract.contract_health === 'Active' 
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : contract.contract_health === 'Expiring Soon'
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    }`}>
-                      {contract.contract_health === 'Expiring Soon' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                      {contract.contract_health === 'Expired' && <Clock className="h-3 w-3 mr-1" />}
-                      {contract.contract_health}
-                    </span>
-                  </div>
-                  {contract.contract_health !== 'Expired' && (
-                    <div className="text-xs text-gray-400 mt-1">
-                      {contract.days_until_expiry} days left
-                    </div>
-                  )}
-                </td>
-                
-                <td className="py-4 px-4">
-                  <div className="flex items-center space-x-2">
-                    {/* View button - always visible if user can view */}
+                ) : (
+                  <span className="text-white/40 text-xs">No reference</span>
+                )}
+                <div className="text-xs text-white/40 mt-1">
+                  {new Date(contract.created_at).toLocaleDateString()}
+                </div>
+              </td>
+              <td className="px-4 py-3">
+                <div className="text-white text-sm">{contract.owner_name}</div>
+                <div className="text-white/60 text-xs">{contract.mobile_no}</div>
+              </td>
+              <td className="px-4 py-3">
+                <div className="text-white/80 text-sm">{contract.vehicle_info}</div>
+                <div className="text-white/40 text-xs">VIN: {contract.vin.slice(-6)}</div>
+              </td>
+              <td className="px-4 py-3">
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  contract.service_type === 'premium'
+                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                }`}>
+                  {contract.service_type === 'premium' ? 'Premium' : 'Standard'}
+                </span>
+              </td>
+              <td className="px-4 py-3">
+                <div className="text-white/80 text-sm">{contract.formatted_start_date}</div>
+                <div className="text-white/60 text-xs">to {contract.formatted_end_date}</div>
+              </td>
+              <td className="px-4 py-3">
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  contract.workflow_status === 'card_issued' 
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : contract.workflow_status === 'sent_for_signing'
+                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  : contract.workflow_status === 'created'
+                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                }`}>
+                  {contract.workflow_status === 'card_issued' ? 'Issued' :
+                   contract.workflow_status === 'sent_for_signing' ? 'Sent for Signing' :
+                   contract.workflow_status === 'created' ? 'Created' :
+                   contract.workflow_status || 'Unknown'}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => handleViewContract(contract)}
+                    className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"
+                    title="View Details & Manage PDF"
+                  >
+                    <Eye className="w-4 h-4 text-blue-300" />
+                  </button>
+                  
+                  {canDelete && (
                     <button 
-                      onClick={() => handleViewContract(contract)}
-                      className="p-1 hover:bg-gray-700/50 rounded transition-colors group"
-                      title="View Details & Manage PDF"
+                      onClick={() => handleDeleteContract(contract)}
+                      className="p-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-400/30 rounded transition-colors"
+                      title="Delete Contract"
                     >
-                      <Eye className="h-4 w-4 text-gray-400 group-hover:text-blue-400" />
+                      <Trash2 className="w-4 h-4 text-red-300" />
                     </button>
-                    
-                    {/* Delete button - only visible if user can delete */}
-                    {canDelete && (
-                      <button 
-                        onClick={() => handleDeleteContract(contract)}
-                        className="p-1 hover:bg-gray-700/50 rounded transition-colors group"
-                        title="Delete Contract"
-                      >
-                        <Trash2 className="h-4 w-4 text-gray-400 group-hover:text-red-400" />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        
-        {contracts.length === 0 && (
-          <div className="text-center py-12">
-            <div className={`p-4 bg-gradient-to-br from-gray-800 to-black rounded-xl border border-gray-600/30 w-16 h-16 mx-auto mb-4 flex items-center justify-center`}>
-              {type === 'service' ? <Wrench className="h-8 w-8 text-silver-300" /> : <Shield className="h-8 w-8 text-silver-300" />}
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">No {type} contracts found</h3>
-            <p className="text-gray-400 text-sm">
-              {searchTerm 
-                ? 'No contracts match your search criteria.' 
-                : `Start by creating your first ${type} contract.`}
-            </p>
-          </div>
-        )}
-      </div>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     );
   };
 
   return (
-    <div className="flex-1 flex flex-col w-full px-2 py-4 overflow-hidden">
+    <div className="min-h-screen bg-black text-white p-6">
       
-      {/* Page Header with Glass Morphism */}
-      <div className="mb-4 bg-gradient-to-r from-black/40 via-gray-900/30 to-black/40 backdrop-blur-md border border-gray-700/50 rounded-xl p-4 mx-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-gradient-to-br from-gray-800 to-black rounded-lg border border-gray-600/50">
-              <Wrench className="h-8 w-8 text-silver-300" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                Service & Warranty
-              </h1>
-              <p className="text-gray-400">Contract Management System</p>
-            </div>
-          </div>
-          
-          {/* Action Buttons */}
-          <div className="flex items-center space-x-3">
+      {/* Page Header with Search and Actions */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Service & Warranty Management</h1>
+          <p className="text-white/60">Contract Management System</p>
+        </div>
+        
+        {/* Search and Actions - Inline with Header */}
+        <div className="flex items-center space-x-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-white/40" />
             <input
               type="text"
-              placeholder="Search contracts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-4 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:border-silver-500 focus:outline-none transition-colors w-64"
+              placeholder="Reference, customer, vehicle..."
+              className="w-64 h-[42px] pl-10 pr-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm placeholder-white/40 focus:outline-none focus:border-white/40"
             />
-            
-            {/* New Contract button - only visible if user can create */}
-            {canCreate && (
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                disabled={isCreatingContract}
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-silver-700 to-gray-800 hover:from-silver-600 hover:to-gray-700 border border-silver-500/50 rounded-lg text-white transition-all duration-200 disabled:opacity-50"
-              >
-                <Plus className="h-4 w-4" />
-                <span>{isCreatingContract ? 'Creating...' : 'New Contract'}</span>
-              </button>
-            )}
-            
-            <button className="p-2 bg-gradient-to-r from-gray-800 to-black hover:from-gray-700 hover:to-gray-900 border border-gray-600/50 rounded-lg text-gray-300 hover:text-white transition-all duration-200">
-              <Settings className="h-5 w-5" />
-            </button>
           </div>
+
+          {/* New Contract Button */}
+          {canCreate && (
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              disabled={isCreatingContract}
+              className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded text-white transition-all duration-200 disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              <span>{isCreatingContract ? 'Creating...' : 'New Contract'}</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Tab Navigation with Glass Morphism */}
-      <div className="mb-4 mx-4 flex-shrink-0">
-        <div className="flex space-x-1 bg-black/80 backdrop-blur-md border border-gray-800/50 rounded-lg p-1">
+      {/* Full Width Tabs */}
+      <div className="mb-6">
+        <div className="flex bg-white/5 backdrop-blur border border-white/10 rounded-lg p-1">
           <button
             onClick={() => setActiveTab('service')}
-            className={`flex-1 flex items-center justify-center space-x-2 py-3 px-6 rounded-md font-medium transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-all duration-200 ${
               activeTab === 'service'
-                ? 'bg-gradient-to-r from-gray-300 via-gray-400 to-gray-500 text-black shadow-lg border border-gray-300/50'
-                : 'text-gray-400 hover:text-gray-300 hover:bg-black/50'
+                ? 'bg-white/20 text-white shadow-lg border border-white/30'
+                : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
           >
             <Wrench className="h-5 w-5" />
-            <span>SERVICE CONTRACTS</span>
+            <span>ServiceCare</span>
             <span className={`px-2 py-1 rounded-full text-xs ${
               activeTab === 'service' 
-                ? 'bg-black/20 text-black' 
-                : 'bg-gray-700/30 text-gray-300'
+                ? 'bg-black/20 text-white' 
+                : 'bg-white/20 text-white/70'
             }`}>
               {serviceStats.total}
             </span>
           </button>
           <button
             onClick={() => setActiveTab('warranty')}
-            className={`flex-1 flex items-center justify-center space-x-2 py-3 px-6 rounded-md font-medium transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-all duration-200 ${
               activeTab === 'warranty'
-                ? 'bg-gradient-to-r from-gray-300 via-gray-400 to-gray-500 text-black shadow-lg border border-gray-300/50'
-                : 'text-gray-400 hover:text-gray-300 hover:bg-black/50'
+                ? 'bg-white/20 text-white shadow-lg border border-white/30'
+                : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
           >
             <Shield className="h-5 w-5" />
-            <span>WARRANTY CONTRACTS</span>
+            <span>Extended Warranty</span>
             <span className={`px-2 py-1 rounded-full text-xs ${
               activeTab === 'warranty' 
-                ? 'bg-black/20 text-black' 
-                : 'bg-gray-700/30 text-gray-300'
+                ? 'bg-black/20 text-white' 
+                : 'bg-white/20 text-white/70'
             }`}>
               {warrantyStats.total}
             </span>
@@ -624,117 +590,19 @@ export default function ServiceWarrantyContent() {
         </div>
       </div>
 
-      {/* Content Area - Full Height */}
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        {/* Service Contracts Tab */}
-        {activeTab === 'service' && (
-          <div className="flex-1 flex flex-col mx-4 overflow-hidden">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 flex-shrink-0">
-              {[
-                { title: 'Active Contracts', value: serviceStats.active.toString(), icon: FileText, color: 'green' },
-                { title: 'Expiring Soon', value: serviceStats.expiring.toString(), icon: AlertTriangle, color: 'amber' },
-                { title: 'Expired', value: serviceStats.expired.toString(), icon: Clock, color: 'red' },
-                { title: 'Total Contracts', value: serviceStats.total.toString(), icon: Plus, color: 'blue' }
-              ].map((stat, index) => (
-                <div key={index} className="bg-gradient-to-br from-black/40 via-gray-900/30 to-black/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-sm">{stat.title}</p>
-                      <p className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                        {stat.value}
-                      </p>
-                    </div>
-                    <div className="p-2 bg-gradient-to-br from-gray-800 to-black rounded-lg border border-gray-600/30">
-                      <stat.icon className="h-5 w-5 text-silver-300" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Service Contracts Table - Full Height */}
-            <div className="flex-1 w-full bg-gradient-to-br from-black/40 via-gray-900/30 to-black/60 backdrop-blur-md border border-gray-700/50 rounded-xl overflow-hidden flex flex-col min-h-0">
-              <div className="flex items-center justify-between p-4 border-b border-gray-700/50 flex-shrink-0">
-                <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent flex items-center space-x-2">
-                  <Wrench className="h-6 w-6 text-silver-300" />
-                  <span>Service Contracts</span>
-                </h2>
-                <div className="text-gray-400 text-sm">
-                  {filteredServiceContracts.length} of {serviceStats.total} contracts
-                  {searchTerm && (
-                    <span className="text-amber-400 ml-1">(filtered)</span>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex-1 overflow-auto custom-scrollbar">
-                {loading ? (
-                  <div className="flex items-center justify-center p-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-silver-400"></div>
-                    <span className="ml-3 text-gray-400">Loading contracts...</span>
-                  </div>
-                ) : (
-                  <ContractTable contracts={filteredServiceContracts} type="service" />
-                )}
-              </div>
-            </div>
+      {/* Main Content Area - Accounting Style */}
+      <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
+            <p className="text-white/60">Loading contracts...</p>
           </div>
-        )}
-
-        {/* Warranty Contracts Tab */}
-        {activeTab === 'warranty' && (
-          <div className="flex-1 flex flex-col mx-4 overflow-hidden">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 flex-shrink-0">
-              {[
-                { title: 'Active Warranties', value: warrantyStats.active.toString(), icon: Shield, color: 'green' },
-                { title: 'Expiring Soon', value: warrantyStats.expiring.toString(), icon: AlertTriangle, color: 'amber' },
-                { title: 'Expired', value: warrantyStats.expired.toString(), icon: Clock, color: 'red' },
-                { title: 'Total Warranties', value: warrantyStats.total.toString(), icon: Plus, color: 'blue' }
-              ].map((stat, index) => (
-                <div key={index} className="bg-gradient-to-br from-black/40 via-gray-900/30 to-black/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-sm">{stat.title}</p>
-                      <p className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                        {stat.value}
-                      </p>
-                    </div>
-                    <div className="p-2 bg-gradient-to-br from-gray-800 to-black rounded-lg border border-gray-600/30">
-                      <stat.icon className="h-5 w-5 text-silver-300" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Warranty Contracts Table - Full Height */}
-            <div className="flex-1 w-full bg-gradient-to-br from-black/40 via-gray-900/30 to-black/60 backdrop-blur-md border border-gray-700/50 rounded-xl overflow-hidden flex flex-col min-h-0">
-              <div className="flex items-center justify-between p-4 border-b border-gray-700/50 flex-shrink-0">
-                <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent flex items-center space-x-2">
-                  <Shield className="h-6 w-6 text-silver-300" />
-                  <span>Warranty Contracts</span>
-                </h2>
-                <div className="text-gray-400 text-sm">
-                  {filteredWarrantyContracts.length} of {warrantyStats.total} contracts
-                  {searchTerm && (
-                    <span className="text-amber-400 ml-1">(filtered)</span>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex-1 overflow-auto custom-scrollbar">
-                {loading ? (
-                  <div className="flex items-center justify-center p-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-silver-400"></div>
-                    <span className="ml-3 text-gray-400">Loading contracts...</span>
-                  </div>
-                ) : (
-                  <ContractTable contracts={filteredWarrantyContracts} type="warranty" />
-                )}
-              </div>
-            </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <ContractTable 
+              contracts={activeTab === 'service' ? filteredServiceContracts : filteredWarrantyContracts} 
+              type={activeTab} 
+            />
           </div>
         )}
       </div>
@@ -745,6 +613,7 @@ export default function ServiceWarrantyContent() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleCreateContract}
+          contractType={activeTab}
         />
       )}
 

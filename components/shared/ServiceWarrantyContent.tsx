@@ -523,9 +523,9 @@ export default function ServiceWarrantyContent() {
         style={{ height: "calc(100vh - 72px)" }}
       >
         {/* Fixed Header Section - completely outside scroll area */}
-        <div className="flex-shrink-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
+        <div className="flex-shrink-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 overflow-hidden">
           {/* Page Header with Search and Actions */}
-          <div className="flex items-start justify-between mb-6 min-w-0">
+          <div className="flex items-start justify-between mb-6 min-w-0 overflow-hidden">
             <div className="flex-1 min-w-0 pr-4">
               <h1 className="text-3xl font-bold text-white mb-2 truncate">ServiceCare and Extended Warranty Management</h1>
               <p className="text-white/60">Contract Management System</p>
@@ -560,7 +560,7 @@ export default function ServiceWarrantyContent() {
           </div>
 
           {/* Full Width Tabs */}
-          <div className="flex bg-white/5 backdrop-blur border border-white/10 rounded-lg p-1">
+          <div className="flex bg-white/5 backdrop-blur border border-white/10 rounded-lg p-1 overflow-hidden">
             <button
               onClick={() => setActiveTab('service')}
               className={`flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-all duration-200 ${

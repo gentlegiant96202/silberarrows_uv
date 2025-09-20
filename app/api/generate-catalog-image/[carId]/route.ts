@@ -400,10 +400,10 @@ export async function POST(
       catalogMedia = photoMedia;
     }
 
-    // Prepare car details for renderer using standardized catalog data
+    // Prepare car details for renderer (fallback to original working logic)
     const carDetails = {
       year: car.model_year,
-      model: catalogData?.title || `${car.model_year} ${car.vehicle_model}`, // Use standardized catalog title
+      model: catalogData?.title || `${car.model_year} ${car.vehicle_model}`, // Use catalog title if available, otherwise fallback
       mileage: car.current_mileage_km ? car.current_mileage_km.toLocaleString() : '0',
       stockNumber: car.stock_number,
       price: car.advertised_price_aed ? car.advertised_price_aed.toLocaleString() : '0',

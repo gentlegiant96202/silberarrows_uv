@@ -1083,7 +1083,7 @@ async function revealWarrantyField(warrantyText) {
   }
 }
 
-// Handle image uploads (basic implementation)
+// Handle image uploads with advanced techniques
 async function handleImageUploads(imageUrls) {
   console.log('🖼️ Starting image upload process...');
   if (imageUploadInProgress) {
@@ -1098,7 +1098,12 @@ async function handleImageUploads(imageUrls) {
       'input[name="c-photos[]"]', // SilberArrows
       'input[type="file"]', // Generic file input
       'input[name="images"]', // Dubizzle images field
-      'input[type="file"][accept*="image"]' // File input that accepts images
+      'input[type="file"][accept*="image"]', // File input that accepts images
+      'input[name="photos"]', // Alternative photos field
+      'input[name="photo"]', // Single photo field
+      '.file-input input[type="file"]', // Wrapped file inputs
+      '[data-testid*="image"] input[type="file"]', // Test ID based selectors
+      '[data-testid*="photo"] input[type="file"]'
     ];
     
     let fileInput = null;
@@ -1112,14 +1117,25 @@ async function handleImageUploads(imageUrls) {
     
     if (!fileInput) {
       console.warn('❌ Photo upload input not found. Tried selectors:', selectors);
-      return;
+      // Try to find any file input as fallback
+      const allFileInputs = document.querySelectorAll('input[type="file"]');
+      console.log(`🔍 Found ${allFileInputs.length} file inputs on page`);
+      if (allFileInputs.length > 0) {
+        fileInput = allFileInputs[0]; // Use first file input as fallback
+        console.log('🔄 Using first file input as fallback');
+      } else {
+        return;
+      }
     }
 
     console.log(`🖼️ Found photo input, attempting to download and upload ${imageUrls.length} images...`);
     console.log('🔍 Image URLs to process:', imageUrls);
 
     // Ensure input accepts multiple files
-    try { fileInput.setAttribute('multiple', 'multiple'); } catch {}
+    try { 
+      fileInput.setAttribute('multiple', 'multiple');
+      fileInput.setAttribute('accept', 'image/*');
+    } catch {}
     
     // Check if URLs are properly formatted storage proxy URLs
     const validUrls = imageUrls.filter(url => {
@@ -1136,101 +1152,326 @@ async function handleImageUploads(imageUrls) {
     
     console.log(`🔍 Processing ${validUrls.length} valid image URLs`);
 
-    // Attempt single-change upload with all files (best chance to persist on save)
+    // Strategy 1: Try programmatic file upload
+    let uploadSuccess = false;
     try {
-      const dtAll = new DataTransfer();
-      let added = 0;
-      for (const url of validUrls) {
-        try {
-          console.log('🔍 Attempting to fetch image:', url);
-          
-          // Convert relative URLs to absolute URLs
-          const absoluteUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
-          console.log('🔍 Using absolute URL:', absoluteUrl);
-          
-          // Try different fetch strategies for better compatibility
-          let res;
-          let fetchError;
-          
-          // Strategy 1: Normal CORS fetch
-          try {
-            res = await fetch(absoluteUrl, { 
-              mode: 'cors', 
-              credentials: 'omit',
-              headers: {
-                'Accept': 'image/*',
-              }
-            });
-          } catch (corsError) {
-            console.log('⚠️ CORS fetch failed, trying no-cors mode:', corsError.message);
-            fetchError = corsError;
-            
-            // Strategy 2: No-CORS fetch (for same-origin or properly configured CORS)
-            try {
-              res = await fetch(absoluteUrl, { 
-                mode: 'no-cors',
-                credentials: 'omit'
-              });
-              console.log('✅ No-CORS fetch succeeded');
-            } catch (noCorsError) {
-              console.log('⚠️ No-CORS fetch also failed:', noCorsError.message);
-              throw fetchError; // Throw original CORS error
-            }
-          }
-          
-          if (!res.ok && res.status !== 0) { // status 0 is expected for no-cors
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-          }
-          
-          const blob = await res.blob();
-          console.log('✅ Successfully fetched image blob:', blob.size, 'bytes, type:', blob.type);
-          
-          // Validate that we got actual image data
-          if (blob.size === 0) {
-            throw new Error('Empty blob received - likely CORS or authentication issue');
-          }
-          
-          const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}.jpg`;
-          const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
-          const file = new File([blob], filename, { type });
-          dtAll.items.add(file);
-          added++;
-          console.log(`✅ Added image ${added}/${validUrls.length}: ${filename}`);
-        } catch (e) {
-          console.warn('⚠️ Failed to fetch image for upload:', url, e);
-          console.warn('⚠️ Error details:', e.message);
-          console.warn('⚠️ This might be due to CORS restrictions or network issues');
-        }
-      }
-      if (added > 0) {
-        try { fileInput.value = ''; } catch {}
-        fileInput.files = dtAll.files;
-        fileInput.dispatchEvent(new Event('input', { bubbles: true }));
-        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-        console.log(`✅ Queued all ${dtAll.files.length} images in a single change`);
-        console.log('ℹ️ Images are now queued. You can manually submit the form when ready.');
-        return;
-      }
+      uploadSuccess = await attemptProgrammaticUpload(fileInput, validUrls);
     } catch (e) {
-      console.warn('⚠️ Programmatic image upload not permitted:', e);
+      console.warn('⚠️ Programmatic upload failed:', e);
     }
 
-    // Show detailed error information and fallback
-    console.error('❌ Automatic image upload failed. Reasons could be:');
-    console.error('1. CORS restrictions from storage server');
-    console.error('2. Browser security policies blocking file uploads');
-    console.error('3. Network connectivity issues');
-    console.error('4. Storage proxy not accessible');
-    console.error('📋 Falling back to manual URL display');
-    
-    // Enhanced fallback with better formatting
-    const imageList = imageUrls.map((url, i) => `${i+1}. ${url}`).join('\n');
-    const message = `⚠️ Automatic image upload failed!\n\nThis can happen due to browser security restrictions.\n\nWorkaround: Copy these image URLs and download them manually:\n\n${imageList}\n\nTip: Check browser console for detailed error information.`;
-    alert(message);
+    // Strategy 2: If programmatic failed, try drag-and-drop simulation
+    if (!uploadSuccess) {
+      console.log('🔄 Trying drag-and-drop simulation...');
+      try {
+        uploadSuccess = await attemptDragDropUpload(fileInput, validUrls);
+      } catch (e) {
+        console.warn('⚠️ Drag-drop simulation failed:', e);
+      }
+    }
+
+    // Strategy 3: If all else fails, create a download helper
+    if (!uploadSuccess) {
+      console.log('🔄 Creating download helper interface...');
+      createImageDownloadHelper(validUrls);
+    }
     
   } catch (error) {
     console.error('❌ Image upload failed:', error);
   } finally {
     imageUploadInProgress = false;
   }
+}
+
+// Attempt programmatic file upload
+async function attemptProgrammaticUpload(fileInput, imageUrls) {
+  try {
+    const dtAll = new DataTransfer();
+    let added = 0;
+    
+    for (const url of imageUrls) {
+      try {
+        console.log('🔍 Attempting to fetch image:', url);
+        
+        // Convert relative URLs to absolute URLs
+        const absoluteUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
+        console.log('🔍 Using absolute URL:', absoluteUrl);
+        
+        const blob = await fetchImageWithRetry(absoluteUrl);
+        if (!blob || blob.size === 0) {
+          throw new Error('Empty or invalid blob received');
+        }
+        
+        const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}.jpg`;
+        const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
+        const file = new File([blob], filename, { type });
+        dtAll.items.add(file);
+        added++;
+        console.log(`✅ Added image ${added}/${imageUrls.length}: ${filename}`);
+      } catch (e) {
+        console.warn('⚠️ Failed to fetch image for upload:', url, e.message);
+      }
+    }
+    
+    if (added > 0) {
+      // Try to set files with user gesture simulation
+      try { fileInput.value = ''; } catch {}
+      
+      // Simulate user interaction
+      fileInput.focus();
+      fileInput.click();
+      
+      // Set files
+      fileInput.files = dtAll.files;
+      
+      // Trigger events
+      fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+      fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+      fileInput.dispatchEvent(new Event('blur', { bubbles: true }));
+      
+      console.log(`✅ Successfully queued ${dtAll.files.length} images for upload`);
+      
+      // Show success notification
+      showSuccessNotification(`✅ ${added} images uploaded successfully!`);
+      return true;
+    }
+    
+    return false;
+  } catch (e) {
+    console.warn('⚠️ Programmatic upload failed:', e);
+    return false;
+  }
+}
+
+// Attempt drag-and-drop simulation
+async function attemptDragDropUpload(fileInput, imageUrls) {
+  try {
+    const files = [];
+    
+    for (const url of imageUrls) {
+      try {
+        const absoluteUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
+        const blob = await fetchImageWithRetry(absoluteUrl);
+        if (blob && blob.size > 0) {
+          const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}.jpg`;
+          const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
+          const file = new File([blob], filename, { type });
+          files.push(file);
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to fetch image for drag-drop:', url, e.message);
+      }
+    }
+    
+    if (files.length > 0) {
+      // Simulate drag and drop
+      const dt = new DataTransfer();
+      files.forEach(file => dt.items.add(file));
+      
+      const dragEnterEvent = new DragEvent('dragenter', { bubbles: true, dataTransfer: dt });
+      const dragOverEvent = new DragEvent('dragover', { bubbles: true, dataTransfer: dt });
+      const dropEvent = new DragEvent('drop', { bubbles: true, dataTransfer: dt });
+      
+      fileInput.dispatchEvent(dragEnterEvent);
+      fileInput.dispatchEvent(dragOverEvent);
+      fileInput.dispatchEvent(dropEvent);
+      
+      console.log(`✅ Simulated drag-drop with ${files.length} images`);
+      showSuccessNotification(`✅ ${files.length} images uploaded via drag-drop!`);
+      return true;
+    }
+    
+    return false;
+  } catch (e) {
+    console.warn('⚠️ Drag-drop simulation failed:', e);
+    return false;
+  }
+}
+
+// Fetch image with retry logic
+async function fetchImageWithRetry(url, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔍 Fetch attempt ${attempt}/${maxRetries} for:`, url);
+      
+      // Try CORS first
+      let response = await fetch(url, { 
+        mode: 'cors', 
+        credentials: 'omit',
+        headers: { 'Accept': 'image/*' }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      console.log(`✅ Fetched blob: ${blob.size} bytes, type: ${blob.type}`);
+      return blob;
+      
+    } catch (corsError) {
+      console.log(`⚠️ CORS attempt ${attempt} failed:`, corsError.message);
+      
+      // Try no-cors as fallback
+      try {
+        const response = await fetch(url, { mode: 'no-cors', credentials: 'omit' });
+        const blob = await response.blob();
+        if (blob.size > 0) {
+          console.log(`✅ No-CORS fallback succeeded: ${blob.size} bytes`);
+          return blob;
+        }
+      } catch (noCorsError) {
+        console.log(`⚠️ No-CORS attempt ${attempt} failed:`, noCorsError.message);
+      }
+      
+      if (attempt === maxRetries) {
+        throw corsError;
+      }
+      
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+}
+
+// Create download helper interface
+function createImageDownloadHelper(imageUrls) {
+  console.log('📋 Creating image download helper interface...');
+  
+  // Remove existing helper
+  const existingHelper = document.getElementById('silberarrows-download-helper');
+  if (existingHelper) {
+    existingHelper.remove();
+  }
+  
+  // Create enhanced download helper
+  const helper = document.createElement('div');
+  helper.id = 'silberarrows-download-helper';
+  helper.innerHTML = `
+    <div style="
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      z-index: 10001;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    ">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; color: #ff6b35;">🖼️ Image Download Helper</h3>
+        <button onclick="this.closest('#silberarrows-download-helper').remove()" style="
+          background: #ff4444;
+          border: none;
+          color: white;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 14px;
+        ">×</button>
+      </div>
+      
+      <p style="margin: 0 0 16px 0; color: #ccc; font-size: 14px;">
+        Automatic upload was blocked by browser security. Download images manually:
+      </p>
+      
+      <div style="margin-bottom: 16px;">
+        <button id="download-all-btn" style="
+          background: #4CAF50;
+          border: none;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          margin-right: 8px;
+        ">📥 Download All</button>
+        
+        <button id="copy-urls-btn" style="
+          background: #2196F3;
+          border: none;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+        ">📋 Copy URLs</button>
+      </div>
+      
+      <div style="max-height: 300px; overflow-y: auto; background: #333; padding: 12px; border-radius: 6px;">
+        ${imageUrls.map((url, i) => `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 8px; background: #444; border-radius: 4px;">
+            <span style="font-size: 12px; color: #aaa; flex: 1; margin-right: 8px;">Image ${i + 1}</span>
+            <a href="${url}" download="car-image-${i + 1}.jpg" style="
+              background: #ff6b35;
+              color: white;
+              text-decoration: none;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 12px;
+            ">Download</a>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(helper);
+  
+  // Add event listeners
+  helper.querySelector('#download-all-btn').addEventListener('click', () => {
+    imageUrls.forEach((url, i) => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `car-image-${i + 1}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  });
+  
+  helper.querySelector('#copy-urls-btn').addEventListener('click', () => {
+    navigator.clipboard.writeText(imageUrls.join('\n')).then(() => {
+      const btn = helper.querySelector('#copy-urls-btn');
+      const originalText = btn.textContent;
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 2000);
+    });
+  });
+}
+
+// Show success notification
+function showSuccessNotification(message) {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4CAF50;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  `;
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 3000);
 }

@@ -359,15 +359,12 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   const docs = media.filter((m:any)=>m.kind==='document');
   
-  // Primary-first display logic: show primary photo first, then sort by sort_order
+  // Pure sort_order logic: maintain exact inventory grid order
   const gallery = media
     .filter((m:any)=>m.kind==='photo' || m.kind==='video')
     .sort((a, b) => {
-      // Primary photos come first
-      if (a.is_primary && !b.is_primary) return -1;
-      if (!a.is_primary && b.is_primary) return 1;
-      
-      // Then sort by sort_order
+      // Sort ONLY by sort_order to maintain inventory grid order
+      // Primary image stays in its actual sort_order position
       const aOrder = a.sort_order ?? 999999;
       const bOrder = b.sort_order ?? 999999;
       return aOrder - bOrder;

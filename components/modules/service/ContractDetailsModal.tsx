@@ -230,8 +230,19 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         // Update local state first
         setLocalContract(updatedContract);
         
-        // Reset signing status in component state
+        // Reset signing status in component state and stop polling
         setSigningStatus('pending');
+        
+        // Stop any existing DocuSign polling since we have a new PDF
+        if (statusPollingInterval) {
+          clearInterval(statusPollingInterval);
+          setStatusPollingInterval(null);
+          console.log('🛑 Stopped DocuSign polling - new PDF generated');
+        }
+        
+        // Clear DocuSign state since we have a new PDF
+        setDocusignEnvelopeId(null);
+        setSignedPdfUrl(null);
         
         // Notify parent component
         if (onUpdated) {

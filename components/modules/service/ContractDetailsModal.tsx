@@ -255,6 +255,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         
         // Update local state first
         setLocalContract(updatedContract);
+        console.log('📝 Updated localContract with new PDF URL:', updatedContract.pdf_url);
         
         // Reset DocuSign state completely for new PDF
         const resetDocusignState = {
@@ -276,6 +277,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         setDocusignState(resetDocusignState);
         setManuallyUpdated(true);
         console.log('✅ DocuSign state reset to pending - marked as manually updated');
+        console.log('📊 Current displayContract.pdf_url:', displayContract.pdf_url);
+        console.log('📊 Current localContract.pdf_url:', updatedContract.pdf_url);
         
         // Notify parent component
         if (onUpdated) {
@@ -573,7 +576,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         </button>
                         
                   {/* DocuSign Status Section (matching vehicle documents) */}
-                  {displayContract.pdf_url && (
+                  {(displayContract.pdf_url || localContract?.pdf_url) && (
                     <div className={`backdrop-blur-sm rounded-lg p-3 border ${
                       docusignState.signingStatus === 'completed' 
                         ? 'bg-green-500/10 border-green-400/20' 

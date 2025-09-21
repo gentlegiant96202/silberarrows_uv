@@ -23,11 +23,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   const [deletingPdf, setDeletingPdf] = useState(false);
   
   // DocuSign state (matching vehicle documents)
-  const [docusignEnvelopeId, setDocusignEnvelopeId] = useState<string | null>(null);
-  const [signingStatus, setSigningStatus] = useState<string>('pending');
-  const [signedPdfUrl, setSignedPdfUrl] = useState<string | null>(null);
-  const [sendingForSigning, setSendingForSigning] = useState(false);
-  const [statusPollingInterval, setStatusPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [docusignState, setDocusignState] = useState({
+    envelopeId: null as string | null,
+    signingStatus: 'pending' as string,
+    signedPdfUrl: null as string | null,
+    sendingForSigning: false,
+    pollingInterval: null as NodeJS.Timeout | null
+  });
   const [companyEmail, setCompanyEmail] = useState('');
   const [showCompanyEmailModal, setShowCompanyEmailModal] = useState(false);
   
@@ -117,9 +119,15 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       initializeFormData();
       
       // Initialize DocuSign state from contract data
-      setDocusignEnvelopeId(displayContract.docusign_envelope_id || null);
-      setSigningStatus(displayContract.signing_status || 'pending');
-      setSignedPdfUrl(displayContract.signed_pdf_url || null);
+      const newDocusignState = {
+        envelopeId: displayContract.docusign_envelope_id || null,
+        signingStatus: displayContract.signing_status || 'pending',
+        signedPdfUrl: displayContract.signed_pdf_url || null,
+        sendingForSigning: false,
+        pollingInterval: null
+      };
+      
+      setDocusignState(newDocusignState);
 
       // Start polling if document is sent but not completed
       if (displayContract.docusign_envelope_id && 
@@ -133,12 +141,12 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
   // Cleanup polling on modal close
   useEffect(() => {
-    if (!isOpen && statusPollingInterval) {
+    if (!isOpen && docusignState.pollingInterval) {
       console.log('🛑 Stopping DocuSign polling - modal closing');
-      clearInterval(statusPollingInterval);
-      setStatusPollingInterval(null);
+      clearInterval(docusignState.pollingInterval);
+      setDocusignState(prev => ({ ...prev, pollingInterval: null }));
     }
-  }, [isOpen, statusPollingInterval]);
+  }, [isOpen, docusignState.pollingInterval]);
 
   const handleCancelEdit = () => {
     setIsEditing(false);
@@ -230,19 +238,24 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         // Update local state first
         setLocalContract(updatedContract);
         
-        // Reset signing status in component state and stop polling
-        setSigningStatus('pending');
+        // Reset DocuSign state completely for new PDF
+        const resetDocusignState = {
+          envelopeId: null,
+          signingStatus: 'pending',
+          signedPdfUrl: null,
+          sendingForSigning: false,
+          pollingInterval: docusignState.pollingInterval // Keep current interval to clear it
+        };
         
         // Stop any existing DocuSign polling since we have a new PDF
-        if (statusPollingInterval) {
-          clearInterval(statusPollingInterval);
-          setStatusPollingInterval(null);
+        if (docusignState.pollingInterval) {
+          clearInterval(docusignState.pollingInterval);
+          resetDocusignState.pollingInterval = null;
           console.log('🛑 Stopped DocuSign polling - new PDF generated');
         }
         
-        // Clear DocuSign state since we have a new PDF
-        setDocusignEnvelopeId(null);
-        setSignedPdfUrl(null);
+        // Update DocuSign state atomically
+        setDocusignState(resetDocusignState);
         
         // Notify parent component
         if (onUpdated) {
@@ -301,15 +314,21 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
   // DocuSign Functions (matching vehicle documents)
   const startStatusPolling = () => {
-    if (statusPollingInterval) {
-      clearInterval(statusPollingInterval);
+    // Clear any existing polling
+    if (docusignState.pollingInterval) {
+      clearInterval(docusignState.pollingInterval);
     }
 
     console.log('🔄 Starting DocuSign status polling...');
     
     const interval = setInterval(async () => {
       try {
-        if (!docusignEnvelopeId) return;
+        if (!docusignState.envelopeId) {
+          console.log('🛑 No envelope ID, stopping polling');
+          clearInterval(interval);
+          setDocusignState(prev => ({ ...prev, pollingInterval: null }));
+          return;
+        }
 
         const tableName = displayContract.contract_type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
         const { data: contractData, error } = await supabase
@@ -325,25 +344,25 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         }
 
         if (contractData) {
-          setSigningStatus(contractData.signing_status);
-          
-          if (contractData.signed_pdf_url) {
-            setSignedPdfUrl(contractData.signed_pdf_url);
-          }
+          setDocusignState(prev => ({
+            ...prev,
+            signingStatus: contractData.signing_status,
+            signedPdfUrl: contractData.signed_pdf_url || prev.signedPdfUrl
+          }));
 
           // Stop polling if completed
           if (contractData.signing_status === 'completed') {
             console.log('✅ Contract signing completed!');
             clearInterval(interval);
-            setStatusPollingInterval(null);
+            setDocusignState(prev => ({ ...prev, pollingInterval: null }));
           }
         }
-    } catch (error) {
+      } catch (error) {
         console.error('Error during status polling:', error);
       }
     }, 10000); // Poll every 10 seconds
 
-    setStatusPollingInterval(interval);
+    setDocusignState(prev => ({ ...prev, pollingInterval: interval }));
   };
 
   const handleSendForSigning = () => {
@@ -371,7 +390,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       return;
     }
 
-    setSendingForSigning(true);
+    setDocusignState(prev => ({ ...prev, sendingForSigning: true }));
     setShowCompanyEmailModal(false);
     
     try {
@@ -400,9 +419,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
       const result = await response.json();
       
-      // Update local state
-      setDocusignEnvelopeId(result.envelopeId);
-      setSigningStatus('sent');
+      // Update DocuSign state
+      setDocusignState(prev => ({
+        ...prev,
+        envelopeId: result.envelopeId,
+        signingStatus: 'sent',
+        sendingForSigning: false
+      }));
       
       // Start polling for status updates
       startStatusPolling();
@@ -413,7 +436,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       console.error('❌ Error sending for signing:', error);
       alert('Failed to send contract for signing. Please try again.');
     } finally {
-      setSendingForSigning(false);
+      setDocusignState(prev => ({ ...prev, sendingForSigning: false }));
     }
   };
 
@@ -522,45 +545,45 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                   {/* DocuSign Status Section (matching vehicle documents) */}
                   {displayContract.pdf_url && (
                     <div className={`backdrop-blur-sm rounded-lg p-3 border ${
-                      signingStatus === 'completed' 
+                      docusignState.signingStatus === 'completed' 
                         ? 'bg-green-500/10 border-green-400/20' 
-                        : signingStatus === 'company_signed'
+                        : docusignState.signingStatus === 'company_signed'
                         ? 'bg-orange-500/10 border-orange-400/20'
-                        : signingStatus === 'sent' || signingStatus === 'delivered'
+                        : docusignState.signingStatus === 'sent' || docusignState.signingStatus === 'delivered'
                         ? 'bg-blue-500/10 border-blue-400/20'
                         : 'bg-yellow-500/10 border-yellow-400/20'
                     }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${
-                            signingStatus === 'completed' 
+                            docusignState.signingStatus === 'completed' 
                               ? 'bg-green-400' 
-                              : signingStatus === 'company_signed'
+                              : docusignState.signingStatus === 'company_signed'
                               ? 'bg-orange-400 animate-pulse'
-                              : signingStatus === 'sent' || signingStatus === 'delivered'
+                              : docusignState.signingStatus === 'sent' || docusignState.signingStatus === 'delivered'
                               ? 'bg-blue-400 animate-pulse'
                               : 'bg-yellow-400 animate-pulse'
                           }`}></div>
                           <h3 className={`text-sm font-medium ${
-                            signingStatus === 'completed' 
+                            docusignState.signingStatus === 'completed' 
                               ? 'text-green-400' 
-                              : signingStatus === 'company_signed'
+                              : docusignState.signingStatus === 'company_signed'
                               ? 'text-orange-400'
-                              : signingStatus === 'sent' || signingStatus === 'delivered'
+                              : docusignState.signingStatus === 'sent' || docusignState.signingStatus === 'delivered'
                               ? 'text-blue-400'
                               : 'text-yellow-400'
                           }`}>
-                            {signingStatus === 'completed' ? 'Document Signed & Completed' :
-                             signingStatus === 'company_signed' ? 'SilberArrows Signature Completed' :
-                             signingStatus === 'sent' ? 'DocuSign Sent for Signing' :
-                             signingStatus === 'delivered' ? 'DocuSign Sent for Signing' :
+                            {docusignState.signingStatus === 'completed' ? 'Document Signed & Completed' :
+                             docusignState.signingStatus === 'company_signed' ? 'SilberArrows Signature Completed' :
+                             docusignState.signingStatus === 'sent' ? 'DocuSign Sent for Signing' :
+                             docusignState.signingStatus === 'delivered' ? 'DocuSign Sent for Signing' :
                              `${displayContract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'} Agreement Created`}
                           </h3>
                         </div>
                         <div className="flex gap-2">
                         <button
                           type="button"
-                            onClick={() => window.open(signedPdfUrl || displayContract.pdf_url, '_blank')}
+                            onClick={() => window.open(docusignState.signedPdfUrl || displayContract.pdf_url, '_blank')}
                             className="px-3 py-1.5 bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 backdrop-blur-sm border border-gray-600/50 text-gray-200 text-xs rounded transition-all flex items-center gap-1.5 shadow-lg"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -580,30 +603,30 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                             Download PDF
                         </button>
                           {/* Send for Signing Button */}
-                          {displayContract.email && (signingStatus === 'pending' || signingStatus === 'regenerated') && (
+                          {displayContract.email && (docusignState.signingStatus === 'pending' || docusignState.signingStatus === 'regenerated') && (
                         <button
                           type="button"
                               onClick={handleSendForSigning}
-                              disabled={sendingForSigning}
+                              disabled={docusignState.sendingForSigning}
                               className="px-3 py-1.5 bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 backdrop-blur-sm border border-gray-400/50 text-white text-xs rounded transition-all flex items-center gap-1.5 shadow-lg disabled:opacity-50"
                             >
-                              {sendingForSigning ? (
+                              {docusignState.sendingForSigning ? (
                                 <div className="animate-spin w-3 h-3 border border-white/30 border-t-white rounded-full"></div>
                               ) : (
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
                               )}
-                              <span>{sendingForSigning ? 'Sending...' : 'Send for Signing'}</span>
+                              <span>{docusignState.sendingForSigning ? 'Sending...' : 'Send for Signing'}</span>
                         </button>
                           )}
                       </div>
                     </div>
                       
                       {/* Show envelope ID when signed */}
-                      {signingStatus === 'completed' && docusignEnvelopeId && (
+                      {docusignState.signingStatus === 'completed' && docusignState.envelopeId && (
                         <div className="text-xs text-green-400/80 mt-2">
-                          Envelope ID: {docusignEnvelopeId}
+                          Envelope ID: {docusignState.envelopeId}
                 </div>
                       )}
               </div>
@@ -1051,10 +1074,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
             <button
               type="button"
               onClick={handleConfirmSendForSigning}
-              disabled={!companyEmail || sendingForSigning}
+              disabled={!companyEmail || docusignState.sendingForSigning}
               className="w-full px-4 py-2 bg-gradient-to-r from-white to-gray-200 hover:from-gray-100 hover:to-white text-black text-sm font-medium rounded transition-all disabled:opacity-50"
             >
-              {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+                              {docusignState.sendingForSigning ? 'Sending...' : 'Send for Signing'}
             </button>
       </div>
       </div>

@@ -1124,7 +1124,7 @@ async function handleImageUploads(imageUrls) {
         fileInput = allFileInputs[0]; // Use first file input as fallback
         console.log('🔄 Using first file input as fallback');
       } else {
-        return;
+      return;
       }
     }
 
@@ -1213,13 +1213,13 @@ async function attemptProgrammaticUpload(fileInput, imageUrls) {
         }
         
         const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}_${index}.jpg`;
-        const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
-        const file = new File([blob], filename, { type });
+          const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
+          const file = new File([blob], filename, { type });
         
         console.log(`✅ [${index + 1}/${imageUrls.length}] Downloaded: ${filename} (${blob.size} bytes)`);
         return { file, index, success: true };
         
-      } catch (e) {
+        } catch (e) {
         console.warn(`⚠️ [${index + 1}/${imageUrls.length}] Failed to fetch image:`, url, e.message);
         return { file: null, index, success: false, error: e.message };
       }
@@ -1247,23 +1247,34 @@ async function attemptProgrammaticUpload(fileInput, imageUrls) {
       }
     }
     
-    if (added > 0) {
+      if (added > 0) {
+      console.log(`🎯 Attempting sequential upload to preserve order and avoid rate limits...`);
+      
+      // Try sequential upload approach to maintain order
+      const success = await attemptSequentialUpload(fileInput, sortedResults.filter(r => r.success));
+      if (success) {
+        return true;
+      }
+      
+      // Fallback to bulk upload if sequential fails
+      console.log(`🔄 Sequential upload failed, falling back to bulk upload...`);
+      
       // Try to set files with user gesture simulation
-      try { fileInput.value = ''; } catch {}
+        try { fileInput.value = ''; } catch {}
       
       // Simulate user interaction
       fileInput.focus();
       fileInput.click();
       
       // Set files
-      fileInput.files = dtAll.files;
+        fileInput.files = dtAll.files;
       
       // Trigger events
-      fileInput.dispatchEvent(new Event('input', { bubbles: true }));
-      fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
       fileInput.dispatchEvent(new Event('blur', { bubbles: true }));
       
-      console.log(`✅ Successfully queued ${dtAll.files.length} images for upload`);
+      console.log(`✅ Successfully queued ${dtAll.files.length} images for bulk upload`);
       
       // Show success notification
       showSuccessNotification(`✅ ${added} images uploaded successfully!`);
@@ -1271,8 +1282,83 @@ async function attemptProgrammaticUpload(fileInput, imageUrls) {
     }
     
     return false;
-  } catch (e) {
+    } catch (e) {
     console.warn('⚠️ Programmatic upload failed:', e);
+    return false;
+  }
+}
+
+// Attempt sequential upload to preserve order and avoid rate limits
+async function attemptSequentialUpload(fileInput, successfulResults) {
+  try {
+    console.log(`🔄 Starting sequential upload of ${successfulResults.length} images...`);
+    
+    // Check if the file input supports multiple files
+    const supportsMultiple = fileInput.hasAttribute('multiple');
+    if (!supportsMultiple) {
+      console.log('⚠️ File input does not support multiple files, using single file approach');
+      // For single file inputs, just use the first image
+      if (successfulResults.length > 0) {
+        const dt = new DataTransfer();
+        dt.items.add(successfulResults[0].file);
+        fileInput.files = dt.files;
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        console.log('✅ Uploaded first image to single-file input');
+        showSuccessNotification(`✅ 1 image uploaded (single file limit)`);
+        return true;
+      }
+      return false;
+    }
+    
+    // For multiple file inputs, try to add files one by one with delays
+    console.log('🎯 Using sequential addition with rate limiting...');
+    
+    let uploadedCount = 0;
+    const dt = new DataTransfer();
+    
+    for (let i = 0; i < successfulResults.length; i++) {
+      const result = successfulResults[i];
+      
+      try {
+        console.log(`📤 [${i + 1}/${successfulResults.length}] Adding image to upload queue: ${result.file.name}`);
+        
+        // Add file to DataTransfer
+        dt.items.add(result.file);
+        
+        // Set files and trigger change event
+        fileInput.files = dt.files;
+        fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        uploadedCount++;
+        
+        // Add delay between uploads to respect rate limits (except for last image)
+        if (i < successfulResults.length - 1) {
+          const delay = Math.min(500 + (i * 100), 2000); // Progressive delay: 500ms, 600ms, 700ms... up to 2s
+          console.log(`⏳ Waiting ${delay}ms before next image to avoid rate limits...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    
+  } catch (error) {
+        console.warn(`❌ Failed to add image ${i + 1}:`, error);
+      }
+    }
+    
+    // Final trigger to ensure all files are processed
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+    fileInput.dispatchEvent(new Event('blur', { bubbles: true }));
+    
+    console.log(`✅ Sequential upload completed: ${uploadedCount}/${successfulResults.length} images`);
+    
+    if (uploadedCount > 0) {
+      showSuccessNotification(`✅ ${uploadedCount} images uploaded sequentially!`);
+      return true;
+    }
+    
+    return false;
+    
+  } catch (error) {
+    console.warn('⚠️ Sequential upload failed:', error);
     return false;
   }
 }

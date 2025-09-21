@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   console.log('🚀 SERVICE AGREEMENT API CALLED');
   
@@ -477,6 +480,7 @@ export async function POST(request: NextRequest) {
     `;
 
     console.log('📄 HTML content generated, calling PDFShift API...');
+    console.log('🔐 PDFShift key present:', !!process.env.PDFSHIFT_API_KEY);
 
     // Call PDFShift API with corrected parameters
     const pdfResponse = await fetch('https://api.pdfshift.io/v3/convert/pdf', {

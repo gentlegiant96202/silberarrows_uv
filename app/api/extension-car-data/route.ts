@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
         : (car.current_service ? `${warrantyData.date} / ${warrantyData.kmLimit}` : ''),
       images: car.car_media?.filter((media: any) => media.kind === 'photo').map((media: any) => {
         // Use storage proxy for extension to avoid CORS issues
-        if (media.url?.includes('database.silberarrows.com') || media.url?.includes('.supabase.co')) {
+        if (media.url?.includes('database.silberarrows.com') || media.url?.includes('.supabase.co') || media.url?.includes('storage/v1/object')) {
           return `/api/storage-proxy?url=${encodeURIComponent(media.url)}`;
         }
         return media.url;

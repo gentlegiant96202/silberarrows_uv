@@ -13,6 +13,8 @@
     "http://localhost:3000/*",
     "https://portal.silberarrows.com/*",
     "https://*.silberarrows.com/*",
+    "https://database.silberarrows.com/*",
+    "https://*.supabase.co/*",
     "https://*.dubizzle.com/*"
   ],
   "background": {

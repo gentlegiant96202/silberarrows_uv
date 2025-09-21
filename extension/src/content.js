@@ -1126,15 +1126,31 @@ async function handleImageUploads(imageUrls) {
       let added = 0;
       for (const url of imageUrls) {
         try {
-          const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+          console.log('🔍 Attempting to fetch image:', url);
+          const res = await fetch(url, { 
+            mode: 'cors', 
+            credentials: 'omit',
+            headers: {
+              'Accept': 'image/*',
+            }
+          });
+          
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+          
           const blob = await res.blob();
+          console.log('✅ Successfully fetched image blob:', blob.size, 'bytes, type:', blob.type);
+          
           const filename = url.split('/').pop() || `photo_${Date.now()}.jpg`;
           const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
           const file = new File([blob], filename, { type });
           dtAll.items.add(file);
           added++;
+          console.log(`✅ Added image ${added}/${imageUrls.length}: ${filename}`);
         } catch (e) {
           console.warn('⚠️ Failed to fetch image for upload:', url, e);
+          console.warn('⚠️ Error details:', e.message);
         }
       }
       if (added > 0) {

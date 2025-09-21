@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const urlsToTry = [
       imageUrl, // Original URL
       imageUrl.replace(/https:\/\/[^.]+\.supabase\.co/, 'https://database.silberarrows.com'), // Custom domain
+      imageUrl.replace('https://database.silberarrows.com', process.env.NEXT_PUBLIC_SUPABASE_URL + '/storage/v1/object/public'), // Fallback to direct supabase
     ];
 
     let response: Response | null = null;

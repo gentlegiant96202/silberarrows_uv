@@ -166,12 +166,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const publicUrl = urlData.publicUrl;
     console.log('🔗 Public URL generated:', publicUrl);
 
-    // Update contract with PDF URL
+    // Update contract with PDF URL and reset signing status
+    // When regenerating PDF, reset all signing-related fields so it can be sent for signing again
     const { error: updateError } = await supabase
       .from(tableName)
       .update({ 
         pdf_url: publicUrl,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        // Reset DocuSign fields for new PDF
+        signing_status: 'pending',
+        docusign_envelope_id: null,
+        signed_pdf_url: null,
+        sent_for_signing_at: null
       })
       .eq('id', contractId);
 
@@ -179,7 +185,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.error('Database update error:', updateError);
       // Continue without failing - PDF is still generated
     } else {
-      console.log('✅ Contract updated with PDF URL');
+      console.log('✅ Contract updated with PDF URL and signing status reset to pending');
     }
 
     // Log activity

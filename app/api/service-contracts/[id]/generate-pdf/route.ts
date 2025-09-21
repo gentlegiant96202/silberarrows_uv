@@ -192,21 +192,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Update contract with PDF URL and reset signing status
     // When regenerating PDF, we need to reset all signing-related fields
     // so the contract can be sent for signing again with the new PDF
+    console.log('🔄 Attempting database update for contract:', contractId, 'in table:', tableName);
+    
+    const updateData = { 
+      pdf_url: publicUrl,
+      updated_at: new Date().toISOString(),
+      // Reset signing fields when new PDF is generated
+      signing_status: 'pending',
+      docusign_envelope_id: null,
+      signed_pdf_url: null,
+      sent_for_signing_at: null
+    };
+    
+    console.log('📝 Update data:', updateData);
+    
     const { error: updateError } = await supabase
       .from(tableName)
-      .update({ 
-        pdf_url: publicUrl,
-        updated_at: new Date().toISOString(),
-        // Reset signing fields when new PDF is generated
-        signing_status: 'pending',
-        docusign_envelope_id: null,
-        signed_pdf_url: null,
-        sent_for_signing_at: null
-      })
+      .update(updateData)
       .eq('id', contractId);
 
     if (updateError) {
-      console.error('Database update error:', updateError);
+      console.error('💥 Database update error:', updateError);
+      console.error('💥 Update error details:', {
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint,
+        code: updateError.code,
+        tableName,
+        contractId
+      });
       // Continue without failing - PDF is still generated
     } else {
       console.log('✅ Contract updated with PDF URL and signing status reset to pending');
@@ -246,11 +260,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    console.error('💥 Error generating PDF:', error);
+    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('💥 Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      contractId,
+      type: body?.type || 'unknown',
+      timestamp: new Date().toISOString()
+    });
+    
     return NextResponse.json(
       { 
         error: 'Failed to generate PDF',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        contractId,
+        timestamp: new Date().toISOString()
       },
       { status: 500 }
     );

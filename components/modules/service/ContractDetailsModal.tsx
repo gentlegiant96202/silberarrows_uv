@@ -285,28 +285,9 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           onUpdated(updatedContract);
         }
         
-        // Try to refresh from server to get the actual PDF URL (non-blocking)
-        try {
-          const refreshResponse = await fetch(`/api/service-contracts/${displayContract.id}`, {
-            headers
-          });
-          
-          if (refreshResponse.ok) {
-            const refreshedContract = await refreshResponse.json();
-            setLocalContract(refreshedContract);
-            
-            // Only update parent if the server has the reset signing status
-            // Otherwise keep our manual state
-            if (refreshedContract.signing_status === 'pending') {
-              if (onUpdated) onUpdated(refreshedContract);
-              console.log('✅ Server confirmed signing status reset');
-            } else {
-              console.log('⏳ Server hasn\'t updated signing status yet, keeping manual state');
-            }
-          }
-        } catch (refreshError) {
-          console.log('Server refresh failed, but PDF was generated successfully:', refreshError);
-        }
+        // Skip server refresh - database update should be immediate
+        // and we already have the correct local state
+        console.log('⏭️ Skipping server refresh - using local state with reset signing status');
         
       }
     } catch (error) {

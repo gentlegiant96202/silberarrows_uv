@@ -22,17 +22,15 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [deletingPdf, setDeletingPdf] = useState(false);
   
-  // DocuSign state (matching vehicle documents)
+  // DocuSign state - completely independent, never auto-initialized
   const [docusignState, setDocusignState] = useState({
     envelopeId: null as string | null,
     signingStatus: 'pending' as string,
     signedPdfUrl: null as string | null,
     sendingForSigning: false,
-    pollingInterval: null as NodeJS.Timeout | null
+    pollingInterval: null as NodeJS.Timeout | null,
+    initialized: false // Track if we've set it up for this contract
   });
-  
-  // Flag to prevent state override after manual updates
-  const [manuallyUpdated, setManuallyUpdated] = useState(false);
   const [companyEmail, setCompanyEmail] = useState('');
   const [showCompanyEmailModal, setShowCompanyEmailModal] = useState(false);
   
@@ -123,23 +121,18 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     }
   }, [isOpen, contract]);
 
-  // Initialize DocuSign state only once when modal opens
-  const [docusignInitialized, setDocusignInitialized] = useState(false);
-  
+  // Initialize DocuSign state only when needed (manual control)
   useEffect(() => {
-    if (isOpen && contract && !docusignInitialized) {
-      // Initialize DocuSign state from contract data (only once per modal session)
-      const newDocusignState = {
+    if (isOpen && contract && !docusignState.initialized) {
+      // Initialize DocuSign state from contract data
+      setDocusignState(prev => ({
+        ...prev,
         envelopeId: contract.docusign_envelope_id || null,
         signingStatus: contract.signing_status || 'pending',
         signedPdfUrl: contract.signed_pdf_url || null,
-        sendingForSigning: false,
-        pollingInterval: null
-      };
-      
-      setDocusignState(newDocusignState);
-      setDocusignInitialized(true);
-      console.log('🔄 Initialized DocuSign state from contract (once):', newDocusignState.signingStatus);
+        initialized: true
+      }));
+      console.log('🔄 Initialized DocuSign state from contract:', contract.signing_status || 'pending');
 
       // Start polling if document is sent but not completed
       if (contract.docusign_envelope_id && 
@@ -150,12 +143,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       }
     }
     
-    // Reset initialization flag when modal closes
+    // Reset when modal closes
     if (!isOpen) {
-      setDocusignInitialized(false);
-      setManuallyUpdated(false);
+      setDocusignState(prev => ({ ...prev, initialized: false }));
     }
-  }, [isOpen, contract, docusignInitialized]);
+  }, [isOpen, contract?.id]); // Only depend on modal open and contract ID change
 
   // Cleanup polling on modal close
   useEffect(() => {
@@ -246,7 +238,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           signingStatus: 'pending',
           signedPdfUrl: null,
           sendingForSigning: false,
-          pollingInterval: docusignState.pollingInterval
+          pollingInterval: docusignState.pollingInterval,
+          initialized: true // Keep initialized to prevent useEffect override
         };
         
         // Stop any existing DocuSign polling since we have a new PDF
@@ -258,8 +251,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         
         // Update DocuSign state first (most important)
         setDocusignState(resetDocusignState);
-        setManuallyUpdated(true);
-        console.log('✅ DocuSign state reset to pending - marked as manually updated');
+        console.log('✅ DocuSign state reset to pending - locked from useEffect override');
         
         // Get the updated contract from server to get real PDF URL
         try {
@@ -446,7 +438,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         signingStatus: 'sent',
         sendingForSigning: false
       }));
-      setManuallyUpdated(true);
       console.log('✅ DocuSign state updated to sent - marked as manually updated');
       
       // Start polling for status updates

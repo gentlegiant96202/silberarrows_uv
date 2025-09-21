@@ -156,16 +156,6 @@ export async function GET(request: NextRequest) {
         : (car.current_service ? `${warrantyData.date} / ${warrantyData.kmLimit}` : ''),
       images: car.car_media
         ?.filter((media: any) => media.kind === 'photo')
-        .sort((a: any, b: any) => {
-          // Primary photos come first (same logic as CarDetailsModal)
-          if (a.is_primary && !b.is_primary) return -1;
-          if (!a.is_primary && b.is_primary) return 1;
-          
-          // Then sort by sort_order
-          const aOrder = a.sort_order ?? 999999;
-          const bOrder = b.sort_order ?? 999999;
-          return aOrder - bOrder;
-        })
         .map((media: any) => {
           // Use storage proxy for extension to avoid CORS issues
           if (media.url?.includes('database.silberarrows.com') || media.url?.includes('.supabase.co') || media.url?.includes('storage/v1/object')) {

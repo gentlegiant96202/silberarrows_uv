@@ -358,15 +358,23 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   const docs = media.filter((m:any)=>m.kind==='document');
   
-  // Pure sort_order logic: maintain exact inventory grid order
+  // Display logic: primary first, then exact sort_order (matches legacy inventory UI)
   const gallery = media
     .filter((m:any)=>m.kind==='photo' || m.kind==='video')
     .sort((a, b) => {
-      // Sort ONLY by sort_order to maintain inventory grid order
-      // Primary image stays in its actual sort_order position
+      // Primary photos come first
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      
+      // Then sort by sort_order
       const aOrder = a.sort_order ?? 999999;
       const bOrder = b.sort_order ?? 999999;
-      return aOrder - bOrder;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+
+      // Stable tiebreaker: created_at oldest first (preserves prior visual ordering)
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return aTime - bTime;
     });
 
   // Social Media content
@@ -407,20 +415,44 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         return;
       }
 
+      // Normalize ordering for ZIP: strict sort_order only (primary stays at its position)
+      const ordered = [...items]
+        .sort((a, b) => {
+          const aOrder = a.sort_order ?? 999999;
+          const bOrder = b.sort_order ?? 999999;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return aTime - bTime;
+        });
+
       // Multiple files – package into ZIP
       // @ts-ignore – dynamic import, jszip type optional
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
       // Fetch each file as blob and add to zip
-      await Promise.all(items.map(async (it: any, idx: number) => {
+      await Promise.all(ordered.map(async (it: any, idx: number) => {
         try {
           const base = it.url;
           const dl = base.includes('?') ? `${base}&download` : `${base}?download`;
           const res = await fetch(dl);
           const blob = await res.blob();
-          const nameFromUrl = decodeURIComponent(base.split('/').pop() || `file_${idx}`);
-          zip.file(nameFromUrl, blob);
+          // Derive a clean filename and prefix with index to enforce ordering inside ZIP
+          let originalName = '';
+          if (base.includes('/api/storage-proxy')) {
+            try {
+              const urlObj = new URL(base, window.location.origin);
+              const target = decodeURIComponent(urlObj.searchParams.get('url') || '');
+              originalName = target.split('?')[0].split('/').pop() || '';
+            } catch { /* ignore */ }
+          }
+          if (!originalName) {
+            originalName = decodeURIComponent(base.split('?')[0].split('/').pop() || `file_${idx+1}.jpg`);
+          }
+          const indexPrefix = String(idx + 1).padStart(3, '0');
+          const zipNameEntry = `${indexPrefix}_${originalName}`;
+          zip.file(zipNameEntry, blob);
         } catch (e) {
           console.error('Failed to fetch', it.url, e);
         }

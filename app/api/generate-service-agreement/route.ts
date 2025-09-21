@@ -339,6 +339,15 @@ export async function POST(request: NextRequest) {
 
     console.log('📄 HTML content generated, length:', htmlContent.length);
     
+    // Debug: Check if signature strings are in HTML
+    const hasSilberArrowsSignature = htmlContent.includes('SilberArrows Signature:');
+    const hasCustomerSignature = htmlContent.includes('Customer Signature:');
+    console.log('🔍 Signature strings in HTML:', { 
+      hasSilberArrowsSignature, 
+      hasCustomerSignature,
+      signatureSection: htmlContent.includes('signature-section')
+    });
+    
     console.log('📄 Generating service agreement PDF using PDFShift...');
 
     // Call PDFShift API
@@ -559,7 +568,8 @@ export async function POST(request: NextRequest) {
       success: true,
       pdfUrl: pdfUrl,
       referenceNo: data.referenceNo,
-      message: 'Service agreement generated successfully'
+      message: 'Service agreement generated successfully',
+      timestamp: new Date().toISOString() // Add timestamp to help identify new PDFs
     };
 
     // Add contract ID if database operations were performed
@@ -567,6 +577,7 @@ export async function POST(request: NextRequest) {
       response.contractId = contractData.id;
     }
 
+    console.log('📤 Returning response with PDF URL:', pdfUrl);
     return NextResponse.json(response);
 
   } catch (error) {

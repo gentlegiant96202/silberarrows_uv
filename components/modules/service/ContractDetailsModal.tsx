@@ -215,14 +215,23 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         document.body.removeChild(a);
         
         // Update local state immediately - PDF was successfully generated
+        // Reset signing status since we have a new PDF
         const updatedContract = { 
           ...displayContract, 
           pdf_url: `generated_${Date.now()}`, // Use timestamp to ensure UI updates
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          // Reset signing fields for new PDF
+          signing_status: 'pending',
+          docusign_envelope_id: null,
+          signed_pdf_url: null,
+          sent_for_signing_at: null
         };
         
         // Update local state first
         setLocalContract(updatedContract);
+        
+        // Reset signing status in component state
+        setSigningStatus('pending');
         
         // Notify parent component
         if (onUpdated) {

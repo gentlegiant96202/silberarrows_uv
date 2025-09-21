@@ -485,13 +485,20 @@ export async function POST(request: NextRequest) {
     console.log('🎉 SERVICE AGREEMENT PROCESS COMPLETED');
     console.log('📊 Final status: PDF URL =', pdfUrl ? 'SAVED TO CLOUD' : 'LOCAL DOWNLOAD ONLY');
 
-    return new NextResponse(Buffer.from(pdfBuffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="ServiceCare_Receipt_${data.referenceNo}.pdf"`,
-      },
-    });
+    // Return JSON response with PDF URL for local state updates
+    const response: any = {
+      success: true,
+      pdfUrl: pdfUrl,
+      referenceNo: data.referenceNo,
+      message: 'Service agreement generated successfully'
+    };
+
+    // Add contract ID if database operations were performed
+    if (!skipDatabase && contractData) {
+      response.contractId = contractData.id;
+    }
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('❌ Error generating service agreement:', error);

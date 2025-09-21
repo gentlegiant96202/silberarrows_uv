@@ -306,9 +306,25 @@ export async function POST(request: NextRequest) {
 
     // Validate required data
     if (!data.referenceNo || !data.ownerName) {
-      console.error('❌ Missing required parameters:', { referenceNo: !!data.referenceNo, ownerName: !!data.ownerName });
+      console.error('❌ Missing required parameters:', { 
+        referenceNo: !!data.referenceNo, 
+        ownerName: !!data.ownerName,
+        receivedData: Object.keys(data)
+      });
       return NextResponse.json(
-        { error: 'Missing required parameters' },
+        { error: 'Missing required parameters: referenceNo and ownerName are required' },
+        { status: 400 }
+      );
+    }
+
+    // Additional validation for database operations
+    if (!skipDatabase && (!data.startDate || !data.endDate)) {
+      console.error('❌ Missing required date parameters for database operations:', { 
+        startDate: !!data.startDate, 
+        endDate: !!data.endDate 
+      });
+      return NextResponse.json(
+        { error: 'Missing required parameters: startDate and endDate are required for database operations' },
         { status: 400 }
       );
     }
@@ -354,46 +370,100 @@ export async function POST(request: NextRequest) {
     const pdfBuffer = await pdfResponse.arrayBuffer();
     console.log('✅ PDF generated successfully:', { sizeBytes: pdfBuffer.byteLength, sizeMB: (pdfBuffer.byteLength / 1024 / 1024).toFixed(2) });
 
-    // Save contract data to database first (skip if this is PDF-only generation)
+    // Handle database operations (skip if this is PDF-only generation)
     let contractData = null;
     if (!skipDatabase) {
       try {
-        console.log('💾 Saving contract to database...');
-        
-        const { data: dbData, error: dbError } = await supabase
+        // Check if contract already exists by reference number
+        console.log('🔍 Checking if contract already exists...');
+        const { data: existingContract, error: checkError } = await supabase
           .from('service_contracts')
-          .insert({
-            reference_no: data.referenceNo,
-            owner_name: data.ownerName,
-            mobile_no: data.mobileNo,
-            email: data.email,
-            dealer_name: data.dealerName,
-            dealer_phone: data.dealerPhone,
-            dealer_email: data.dealerEmail,
-            vin: data.vin,
-            make: data.make,
-            model: data.model,
-            model_year: data.modelYear,
-            current_odometer: data.currentOdometer,
-            start_date: data.startDate,
-            end_date: data.endDate,
-            cut_off_km: data.cutOffKm,
-            status: 'active'
-          })
-          .select()
+          .select('*')
+          .eq('reference_no', data.referenceNo)
           .single();
 
-        if (dbError) {
-          console.error('❌ Database error:', dbError);
-          throw new Error('Failed to save contract to database');
+        if (checkError && checkError.code !== 'PGRST116') {
+          // PGRST116 is "not found" error, which is expected for new contracts
+          console.error('❌ Error checking existing contract:', checkError);
+          throw new Error('Failed to check existing contract');
         }
 
-        contractData = dbData;
-        console.log('✅ Contract saved to database successfully, ID:', contractData.id);
+        if (existingContract) {
+          // Contract exists, update it
+          console.log('📝 Updating existing contract...');
+          const { data: dbData, error: dbError } = await supabase
+            .from('service_contracts')
+            .update({
+              owner_name: data.ownerName,
+              mobile_no: data.mobileNo,
+              email: data.email,
+              dealer_name: data.dealerName,
+              dealer_phone: data.dealerPhone,
+              dealer_email: data.dealerEmail,
+              vin: data.vin,
+              make: data.make,
+              model: data.model,
+              model_year: data.modelYear,
+              current_odometer: data.currentOdometer,
+              start_date: data.startDate,
+              end_date: data.endDate,
+              cut_off_km: data.cutOffKm,
+              updated_at: new Date().toISOString()
+            })
+            .eq('reference_no', data.referenceNo)
+            .select()
+            .single();
+
+          if (dbError) {
+            console.error('❌ Database update error:', dbError);
+            throw new Error('Failed to update contract in database');
+          }
+
+          contractData = dbData;
+          console.log('✅ Contract updated successfully, ID:', contractData.id);
+        } else {
+          // Contract doesn't exist, create new one
+          console.log('💾 Creating new contract...');
+          const { data: dbData, error: dbError } = await supabase
+            .from('service_contracts')
+            .insert({
+              reference_no: data.referenceNo,
+              owner_name: data.ownerName,
+              mobile_no: data.mobileNo,
+              email: data.email,
+              dealer_name: data.dealerName,
+              dealer_phone: data.dealerPhone,
+              dealer_email: data.dealerEmail,
+              vin: data.vin,
+              make: data.make,
+              model: data.model,
+              model_year: data.modelYear,
+              current_odometer: data.currentOdometer,
+              start_date: data.startDate,
+              end_date: data.endDate,
+              cut_off_km: data.cutOffKm,
+              status: 'active'
+            })
+            .select()
+            .single();
+
+          if (dbError) {
+            console.error('❌ Database insert error:', dbError);
+            throw new Error('Failed to save contract to database');
+          }
+
+          contractData = dbData;
+          console.log('✅ Contract created successfully, ID:', contractData.id);
+        }
 
       } catch (dbError) {
-        console.error('❌ Failed to save contract to database:', dbError);
-        throw new Error('Failed to save contract to database');
+        console.error('❌ Failed to handle contract database operations:', dbError);
+        console.error('❌ Contract data that failed:', {
+          referenceNo: data.referenceNo,
+          ownerName: data.ownerName,
+          email: data.email
+        });
+        throw new Error('Failed to handle contract database operations');
       }
     } else {
       console.log('⏭️ Skipping database operations (PDF-only generation)');

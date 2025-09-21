@@ -1116,41 +1116,90 @@ async function handleImageUploads(imageUrls) {
     }
 
     console.log(`🖼️ Found photo input, attempting to download and upload ${imageUrls.length} images...`);
+    console.log('🔍 Image URLs to process:', imageUrls);
 
     // Ensure input accepts multiple files
     try { fileInput.setAttribute('multiple', 'multiple'); } catch {}
+    
+    // Check if URLs are properly formatted storage proxy URLs
+    const validUrls = imageUrls.filter(url => {
+      const isValid = url && (url.startsWith('/api/storage-proxy') || url.startsWith('http'));
+      if (!isValid) {
+        console.warn('⚠️ Invalid image URL detected:', url);
+      }
+      return isValid;
+    });
+    
+    if (validUrls.length !== imageUrls.length) {
+      console.warn(`⚠️ ${imageUrls.length - validUrls.length} invalid URLs filtered out`);
+    }
+    
+    console.log(`🔍 Processing ${validUrls.length} valid image URLs`);
 
     // Attempt single-change upload with all files (best chance to persist on save)
     try {
       const dtAll = new DataTransfer();
       let added = 0;
-      for (const url of imageUrls) {
+      for (const url of validUrls) {
         try {
           console.log('🔍 Attempting to fetch image:', url);
-          const res = await fetch(url, { 
-            mode: 'cors', 
-            credentials: 'omit',
-            headers: {
-              'Accept': 'image/*',
-            }
-          });
           
-          if (!res.ok) {
+          // Convert relative URLs to absolute URLs
+          const absoluteUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
+          console.log('🔍 Using absolute URL:', absoluteUrl);
+          
+          // Try different fetch strategies for better compatibility
+          let res;
+          let fetchError;
+          
+          // Strategy 1: Normal CORS fetch
+          try {
+            res = await fetch(absoluteUrl, { 
+              mode: 'cors', 
+              credentials: 'omit',
+              headers: {
+                'Accept': 'image/*',
+              }
+            });
+          } catch (corsError) {
+            console.log('⚠️ CORS fetch failed, trying no-cors mode:', corsError.message);
+            fetchError = corsError;
+            
+            // Strategy 2: No-CORS fetch (for same-origin or properly configured CORS)
+            try {
+              res = await fetch(absoluteUrl, { 
+                mode: 'no-cors',
+                credentials: 'omit'
+              });
+              console.log('✅ No-CORS fetch succeeded');
+            } catch (noCorsError) {
+              console.log('⚠️ No-CORS fetch also failed:', noCorsError.message);
+              throw fetchError; // Throw original CORS error
+            }
+          }
+          
+          if (!res.ok && res.status !== 0) { // status 0 is expected for no-cors
             throw new Error(`HTTP ${res.status}: ${res.statusText}`);
           }
           
           const blob = await res.blob();
           console.log('✅ Successfully fetched image blob:', blob.size, 'bytes, type:', blob.type);
           
-          const filename = url.split('/').pop() || `photo_${Date.now()}.jpg`;
+          // Validate that we got actual image data
+          if (blob.size === 0) {
+            throw new Error('Empty blob received - likely CORS or authentication issue');
+          }
+          
+          const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}.jpg`;
           const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
           const file = new File([blob], filename, { type });
           dtAll.items.add(file);
           added++;
-          console.log(`✅ Added image ${added}/${imageUrls.length}: ${filename}`);
+          console.log(`✅ Added image ${added}/${validUrls.length}: ${filename}`);
         } catch (e) {
           console.warn('⚠️ Failed to fetch image for upload:', url, e);
           console.warn('⚠️ Error details:', e.message);
+          console.warn('⚠️ This might be due to CORS restrictions or network issues');
         }
       }
       if (added > 0) {
@@ -1166,9 +1215,18 @@ async function handleImageUploads(imageUrls) {
       console.warn('⚠️ Programmatic image upload not permitted:', e);
     }
 
-    // Fallback: present URLs to user
+    // Show detailed error information and fallback
+    console.error('❌ Automatic image upload failed. Reasons could be:');
+    console.error('1. CORS restrictions from storage server');
+    console.error('2. Browser security policies blocking file uploads');
+    console.error('3. Network connectivity issues');
+    console.error('4. Storage proxy not accessible');
+    console.error('📋 Falling back to manual URL display');
+    
+    // Enhanced fallback with better formatting
     const imageList = imageUrls.map((url, i) => `${i+1}. ${url}`).join('\n');
-    alert(`Copy these image URLs to download manually:\n\n${imageList}`);
+    const message = `⚠️ Automatic image upload failed!\n\nThis can happen due to browser security restrictions.\n\nWorkaround: Copy these image URLs and download them manually:\n\n${imageList}\n\nTip: Check browser console for detailed error information.`;
+    alert(message);
     
   } catch (error) {
     console.error('❌ Image upload failed:', error);

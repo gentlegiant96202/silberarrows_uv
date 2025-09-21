@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
-// Helper: Generate Service Agreement PDF and return as Buffer
+// Helper: Generate Service Agreement PDF and return as Buffer  
 export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
   // Format dates to DD/MM/YYYY
   const formatDate = (dateString: string) => {
@@ -36,7 +36,7 @@ export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
   }
 
   // Build HTML (trimmed to rely on existing template structure)
-  const htmlContent = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ServiceCare Agreement Form - ${data.referenceNo}</title><style>@page{margin:0;background:#000}*{margin:0;padding:0;box-sizing:border-box}body{background:#000;color:#fff;font-family:'Arial',sans-serif;font-size:10px;line-height:1.25;width:210mm;height:297mm;margin:0;padding:0;overflow:hidden}.page{background:rgba(255,255,255,.02);padding:8px 10px 18px 10px;width:210mm;height:297mm;position:relative;display:flex;flex-direction:column}.content-container{display:flex;flex-direction:column;gap:10px;flex:1}.signatures-bottom{margin-top:auto}.header{display:flex;justify-content:space-between;align-items:flex-start;margin:0 0 20px 0;padding:10px 15px 8px 15px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:15px}.title{font-size:21px;font-weight:900}.date-line{font-size:21px;font-weight:900}.logo{width:55px;height:auto}.section{margin:0 0 12px 0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px}.section-title{font-size:12px;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}.form-table{width:100%;border-collapse:separate;border-spacing:0;margin:0 0 4px 0}.form-table td{border:1px solid rgba(255,255,255,.15);padding:6px 10px;font-size:10px;background:rgba(255,255,255,.02)}.signature-section{display:flex;justify-content:space-between;gap:30px}.signature-box{flex:1}.signature-area{border:1px solid #ccc;background:#f5f5f5;height:80px;width:100%;margin:5px 0;border-radius:4px;position:relative;padding:5px}.signature-date{font-size:9px;color:#666;position:absolute;bottom:5px;left:5px}.text-content{color:rgba(255,255,255,.9);font-size:10px;line-height:1.4;margin:8px 0;text-align:justify}.footer{text-align:center;margin-top:8px;padding-top:8px;font-size:8px;color:rgba(255,255,255,.7);border-top:1px solid rgba(255,255,255,.25)}</style></head><body><div class="page"><div class="header"><div class="title-section"><div class="title">SERVICECARE</div><div class="date-line">AGREEMENT FORM</div></div><img src="${logoSrc}" alt="SilberArrows Logo" class="logo"></div><div class="content-container"><div class="section"><div><strong>Reference No.:</strong> ${data.referenceNo}</div></div><div class="section"><div class="section-title">Customer Information</div><table class="form-table"><tr><td class="label">Owner's Name:</td><td class="data">${data.ownerName}</td><td class="label">ID Number:</td><td class="data">${data.customerIdNumber || ''}</td></tr><tr><td class="label">Mobile No.:</td><td class="data">${data.mobileNo}</td><td class="label">Email:</td><td class="data">${data.email}</td></tr></table></div><div class="section"><div class="section-title">Dealer Information</div><table class="form-table"><tr><td class="label">Dealer Name:</td><td class="data">${data.dealerName}</td><td class="label">Phone No.:</td><td class="data">${data.dealerPhone}</td></tr></table></div><div class="section"><div class="section-title">Vehicle Information</div><table class="form-table"><tr><td class="label">VIN:</td><td class="data">${data.vin}</td><td class="label">Model year & Make:</td><td class="data">${data.modelYear} ${data.make}</td></tr><tr><td class="label">Model:</td><td class="data">${data.model}</td><td class="label">Kilometers:</td><td class="data">${data.currentOdometer || ''}</td></tr><tr><td class="label">Exterior Colour:</td><td class="data">${data.exteriorColour || ''}</td><td class="label">Interior Colour:</td><td class="data">${data.interiorColour || ''}</td></tr></table></div><div class="section"><div class="section-title">Duration of the Agreement</div><table class="form-table"><tr><td class="label">ServiceCare Start Date:</td><td class="data">${formattedStartDate}</td><td class="label">ServiceCare End Date:</td><td class="data">${formattedEndDate}</td></tr><tr><td class="label">ServiceCare cut off KM:</td><td class="data">${data.cutOffKm}</td><td class="label"></td><td class="data"></td></tr></table><div class="text-content" style="font-style: italic; margin-top: 4px;"><strong>IMPORTANT:</strong> Agreement expires whichever comes first, date or kilometers.</div></div><div class="section"><div class="section-title">Customer Declaration</div><div class="text-content">By my signature below, I confirm that I have thoroughly read & understood the terms & conditions of this Agreement as stated in the attached ServiceCare Information Booklet, that I have received a completed copy of this Agreement & the associated Information Booklet. I agree to be bound by the terms & conditions noted in this Booklet.</div></div><div class="section"><div class="section-title">Dealer Declaration</div><div class="text-content">We hereby declare that all the details set out in this Agreement are accurate & correct. The terms & conditions of this ServiceCare are explained in the attached Information Booklet.</div></div></div><div class="signatures-bottom"><div class="signature-section"><div class="signature-box"><div>SilberArrows Signature:</div><div class="signature-area"><div class="signature-date">Date:</div></div></div><div class="signature-box"><div>Customer Signature:</div><div class="signature-area"><div class="signature-date">Date:</div></div></div></div><div class="footer">Al Manara St., Al Quoz 1, Dubai, UAE, P.O. Box 185095 | TRN: 100281137800003 | Tel: +971 4 380 5515 | service@silberarrows.com | www.silberarrows.com</div></div></div></body></html>`;
+  const htmlContent = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ServiceCare Agreement Form - ${data.referenceNo}</title><style>@page{margin:0;background:#000}*{margin:0;padding:0;box-sizing:border-box}body{background:#000;color:#fff;font-family:'Arial',sans-serif;font-size:10px;line-height:1.25;width:210mm;height:297mm;margin:0;padding:0;overflow:hidden}.page{background:rgba(255,255,255,.02);padding:8px 10px 18px 10px;width:210mm;height:297mm;position:relative;display:flex;flex-direction:column}.content-container{display:flex;flex-direction:column;gap:10px;flex:1}.signatures-bottom{margin-top:auto}.header{display:flex;justify-content:space-between;align-items:flex-start;margin:0 0 20px 0;padding:10px 15px 8px 15px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:15px}.title{font-size:21px;font-weight:900}.date-line{font-size:21px;font-weight:900}.logo{width:55px;height:auto}.section{margin:0 0 12px 0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px}.section-title{font-size:12px;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}.form-table{width:100%;border-collapse:separate;border-spacing:0;margin:0 0 4px 0}.form-table td{border:1px solid rgba(255,255,255,.15);padding:6px 10px;font-size:10px;background:rgba(255,255,255,.02)}.form-table .label{background:rgba(255,255,255,0.08);font-weight:bold;width:25%;color:rgba(255,255,255,0.95)}.form-table .data{width:25%}.signature-section{display:flex;justify-content:space-between;gap:30px}.signature-box{flex:1}.signature-area{border:1px solid #ccc;background:#f5f5f5;height:80px;width:100%;margin:5px 0;border-radius:4px;position:relative;padding:5px}.signature-date{font-size:9px;color:#666;position:absolute;bottom:5px;left:5px}.text-content{color:rgba(255,255,255,.9);font-size:10px;line-height:1.4;margin:8px 0;text-align:justify}.footer{text-align:center;margin-top:8px;padding-top:8px;font-size:8px;color:rgba(255,255,255,.7);border-top:1px solid rgba(255,255,255,.25)}</style></head><body><div class="page"><div class="header"><div class="title-section"><div class="title">SERVICECARE</div><div class="date-line">AGREEMENT FORM</div></div><img src="${logoSrc}" alt="SilberArrows Logo" class="logo"></div><div class="content-container"><div class="section"><table class="form-table"><tr><td class="label">Date:</td><td class="data">${formatDate(new Date().toISOString())}</td><td class="label">Reference No.:</td><td class="data">${data.referenceNo}</td></tr><tr><td class="label">Sales Executive:</td><td class="data">N/A</td><td class="label">Status:</td><td class="data">ACTIVE</td></tr></table></div><div class="section"><div class="section-title">Customer Information</div><table class="form-table"><tr><td class="label">Owner's Name:</td><td class="data">${data.ownerName}</td><td class="label">ID Number:</td><td class="data">${data.customerIdNumber || ''}</td></tr><tr><td class="label">Mobile No.:</td><td class="data">${data.mobileNo}</td><td class="label">Email:</td><td class="data">${data.email}</td></tr></table></div><div class="section"><div class="section-title">Dealer Information</div><table class="form-table"><tr><td class="label">Dealer Name:</td><td class="data">${data.dealerName}</td><td class="label">Phone No.:</td><td class="data">${data.dealerPhone}</td></tr></table></div><div class="section"><div class="section-title">Vehicle Information</div><table class="form-table"><tr><td class="label">VIN:</td><td class="data">${data.vin}</td><td class="label">Model year & Make:</td><td class="data">${data.modelYear} ${data.make}</td></tr><tr><td class="label">Model:</td><td class="data">${data.model}</td><td class="label">Kilometers:</td><td class="data">${data.currentOdometer || ''}</td></tr><tr><td class="label">Exterior Colour:</td><td class="data">${data.exteriorColour || ''}</td><td class="label">Interior Colour:</td><td class="data">${data.interiorColour || ''}</td></tr></table></div><div class="section"><div class="section-title">Duration of the Agreement</div><table class="form-table"><tr><td class="label">ServiceCare Start Date:</td><td class="data">${formattedStartDate}</td><td class="label">ServiceCare End Date:</td><td class="data">${formattedEndDate}</td></tr><tr><td class="label">ServiceCare cut off KM:</td><td class="data">${data.cutOffKm}</td><td class="label"></td><td class="data"></td></tr></table><div class="text-content" style="font-style: italic; margin-top: 4px;"><strong>IMPORTANT:</strong> Agreement expires whichever comes first, date or kilometers.</div></div><div class="section"><div class="section-title">Customer Declaration</div><div class="text-content">By my signature below, I confirm that I have thoroughly read & understood the terms & conditions of this Agreement as stated in the attached ServiceCare Information Booklet, that I have received a completed copy of this Agreement & the associated Information Booklet. I agree to be bound by the terms & conditions noted in this Booklet.</div></div><div class="section"><div class="section-title">Dealer Declaration</div><div class="text-content">We hereby declare that all the details set out in this Agreement are accurate & correct. The terms & conditions of this ServiceCare are explained in the attached Information Booklet.</div></div></div><div class="signatures-bottom"><div class="signature-section"><div class="signature-box"><div>SilberArrows Signature:</div><div class="signature-area"><div class="signature-date">Date:</div></div></div><div class="signature-box"><div>Customer Signature:</div><div class="signature-area"><div class="signature-date">Date:</div></div></div></div><div class="footer">Al Manara St., Al Quoz 1, Dubai, UAE, P.O. Box 185095 | TRN: 100281137800003 | Tel: +971 4 380 5515 | service@silberarrows.com | www.silberarrows.com</div></div></div></body></html>`;
 
   const resp = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
     method: 'POST',
@@ -116,55 +116,269 @@ export async function POST(request: NextRequest) {
         <style>
           @page {
             margin: 0;
-            background: #000000;
+            background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 70%, #000000 100%);
           }
-          * { margin: 0; padding: 0; box-sizing: border-box; }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
           body {
-            background: #000000;
+            background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 70%, #000000 100%);
             color: white;
             font-family: 'Arial', sans-serif;
             font-size: 10px;
             line-height: 1.25;
-            width: 210mm; height: 297mm;
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
+            box-sizing: border-box;
           }
+
           .page {
-            padding: 8px 10px 18px 10px;
-            width: 210mm; height: 297mm;
+            background: rgba(255, 255, 255, 0.02);
+            border: none;
+            padding: 15px 10px 15px 10px;
+            width: 210mm;
+            height: 297mm;
             position: relative;
-            display: flex; flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
           }
+
+          .page.first-page {
+            padding: 8px 10px 18px 10px;
+          }
+
           .header {
-            display: flex; justify-content: space-between; align-items: flex-start;
-            margin: 0 0 12px 0; padding: 10px 15px 8px 15px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin: 0 0 25px 0;
+            padding: 10px 15px 8px 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 15px;
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            box-sizing: border-box;
           }
-          .title { font-size: 21px; font-weight: 900; color: #fff; margin-bottom: 2px; letter-spacing: .5px; line-height: 1; }
-          .date-line { font-size: 21px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); line-height: 1; }
-          .logo { width: 55px; height: auto; }
 
-          .content-container { display: flex; flex-direction: column; gap: 10px; flex: 1; }
-          .signatures-bottom { margin-top: auto; }
+          .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+              rgba(255, 255, 255, 0.1) 0%, 
+              rgba(255, 255, 255, 0.02) 50%, 
+              rgba(255, 255, 255, 0.08) 100%);
+            border-radius: 15px;
+            pointer-events: none;
+          }
 
-          .section { margin: 0; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 10px 12px; }
-          .section-title { font-size: 12px; font-weight: 700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
-          .form-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 0; }
-          .form-table td { border: 1px solid rgba(255,255,255,0.15); padding: 6px 10px; vertical-align: middle; color: #fff; font-size: 10px; background: rgba(255,255,255,0.02); }
+          .title-section {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            position: relative;
+            z-index: 3;
+          }
 
-          /* Signatures at bottom */
-          .signature-section { display: flex; justify-content: space-between; gap: 30px; }
-          .signature-box { flex: 1; font-size: 10px; color: #fff; }
-          .signature-area { border: 1px solid #cccccc; background-color: #f5f5f5; height: 80px; width: 100%; margin: 5px 0; border-radius: 4px; position: relative; padding: 5px; }
-          .signature-date { font-size: 9px; color: #666; position: absolute; bottom: 5px; left: 5px; }
+          .title {
+            font-size: 21px;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            line-height: 1.1;
+          }
 
-          .text-content { color: rgba(255,255,255,0.9); font-size: 10px; line-height: 1.4; margin: 8px 0; text-align: justify; }
-          .footer { text-align: center; margin-top: 8px; padding-top: 8px; font-size: 8px; color: rgba(255,255,255,0.7); border-top: 1px solid rgba(255,255,255,0.25); }
+          .date-line {
+            font-size: 12px;
+            font-weight: 400;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+          }
+
+          .logo {
+            width: 55px;
+            height: auto;
+            position: relative;
+            z-index: 3;
+          }
+
+          .content-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            flex: 1 1 auto;
+            overflow: visible;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+          }
+
+          .signatures-bottom { 
+            margin-top: auto; 
+          }
+
+          .section {
+            margin: 0 0 8px 0;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 10px 12px;
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
+          }
+
+          .section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+              rgba(255, 255, 255, 0.06) 0%, 
+              rgba(255, 255, 255, 0.01) 50%, 
+              rgba(255, 255, 255, 0.04) 100%);
+            border-radius: 12px;
+            pointer-events: none;
+          }
+
+          .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 2;
+            padding-bottom: 2px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+          }
+
+          .form-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 0 0 4px 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            z-index: 2;
+            box-sizing: border-box;
+          }
+
+          .form-table td {
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 6px 10px;
+            vertical-align: middle;
+            color: white;
+            font-size: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            position: relative;
+          }
+
+          .form-table td:first-child {
+            border-left: none;
+          }
+
+          .form-table td:last-child {
+            border-right: none;
+          }
+
+          .form-table tr:first-child td {
+            border-top: none;
+          }
+
+          .form-table tr:last-child td {
+            border-bottom: none;
+          }
+
+          .form-table .label {
+            background: rgba(255, 255, 255, 0.08);
+            font-weight: bold;
+            width: 25%;
+            color: rgba(255, 255, 255, 0.95);
+          }
+
+          .form-table .data {
+            width: 25%;
+          }
+
+          .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            gap: 30px;
+            position: relative;
+            z-index: 2;
+          }
+
+          .signature-box {
+            flex: 1;
+            font-size: 10px;
+            color: white;
+          }
+
+          .signature-area {
+            border: 1px solid #cccccc;
+            background-color: #f5f5f5;
+            height: 60px;
+            width: 100%;
+            margin: 5px 0;
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding: 5px;
+          }
+
+          .signature-date {
+            font-size: 9px;
+            color: #666;
+          }
+
+          .text-content {
+            color: white;
+            font-size: 9px;
+            line-height: 1.3;
+            margin: 4px 0;
+            position: relative;
+            z-index: 2;
+            text-align: justify;
+            white-space: pre-line;
+          }
+
+          .footer {
+            text-align: center;
+            margin-top: 8px;
+            padding-top: 8px;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.7);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 2;
+          }
         </style>
     </head>
     <body>
-        <div class="page">
+        <div class="page first-page">
             <!-- Header -->
             <div class="header">
                 <div class="title-section">
@@ -175,9 +389,22 @@ export async function POST(request: NextRequest) {
             </div>
 
             <div class="content-container">
-                <!-- Reference Number -->
+                <!-- Document Information -->
                 <div class="section">
-                    <div><strong>Reference No.:</strong> ${data.referenceNo}</div>
+                    <table class="form-table">
+                        <tr>
+                            <td class="label">Date:</td>
+                            <td class="data">${formatDate(new Date().toISOString())}</td>
+                            <td class="label">Reference No.:</td>
+                            <td class="data">${data.referenceNo}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Sales Executive:</td>
+                            <td class="data">${data.salesExecutive || 'N/A'}</td>
+                            <td class="label">Status:</td>
+                            <td class="data">ACTIVE</td>
+                        </tr>
+                    </table>
                 </div>
 
                 <!-- Customer Information -->
@@ -208,6 +435,12 @@ export async function POST(request: NextRequest) {
                             <td class="data">${data.dealerName}</td>
                             <td class="label">Phone No.:</td>
                             <td class="data">${data.dealerPhone}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Dealer Email:</td>
+                            <td class="data">${data.dealerEmail || 'service@silberarrows.com'}</td>
+                            <td class="label"></td>
+                            <td class="data"></td>
                         </tr>
                     </table>
                 </div>

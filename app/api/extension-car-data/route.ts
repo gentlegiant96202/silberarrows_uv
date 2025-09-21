@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         current_service,
         model_family,
         current_warranty,
-        car_media(url, kind, sort_order)
+        car_media(url, kind, sort_order, is_primary)
       `)
       // Remove status/sale_status filters so details can be fetched from any column
       .order('sort_order', { ascending: true, foreignTable: 'car_media' });
@@ -154,13 +154,25 @@ export async function GET(request: NextRequest) {
       servicePackage: car.current_service && car.current_service.toLowerCase().includes('silberarrows') 
         ? 'Available' 
         : (car.current_service ? `${warrantyData.date} / ${warrantyData.kmLimit}` : ''),
-      images: car.car_media?.filter((media: any) => media.kind === 'photo').map((media: any) => {
-        // Use storage proxy for extension to avoid CORS issues
-        if (media.url?.includes('database.silberarrows.com') || media.url?.includes('.supabase.co') || media.url?.includes('storage/v1/object')) {
-          return `/api/storage-proxy?url=${encodeURIComponent(media.url)}`;
-        }
-        return media.url;
-      }) || [],
+      images: car.car_media
+        ?.filter((media: any) => media.kind === 'photo')
+        .sort((a: any, b: any) => {
+          // Primary photos come first (same logic as CarDetailsModal)
+          if (a.is_primary && !b.is_primary) return -1;
+          if (!a.is_primary && b.is_primary) return 1;
+          
+          // Then sort by sort_order
+          const aOrder = a.sort_order ?? 999999;
+          const bOrder = b.sort_order ?? 999999;
+          return aOrder - bOrder;
+        })
+        .map((media: any) => {
+          // Use storage proxy for extension to avoid CORS issues
+          if (media.url?.includes('database.silberarrows.com') || media.url?.includes('.supabase.co') || media.url?.includes('storage/v1/object')) {
+            return `/api/storage-proxy?url=${encodeURIComponent(media.url)}`;
+          }
+          return media.url;
+        }) || [],
       // Dubizzle-specific fields
       location: 'Dubai', // Default location for UAE
       sellerType: 'Dealer', // Default seller type

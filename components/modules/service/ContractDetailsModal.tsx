@@ -240,30 +240,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        // Update local state immediately - PDF was successfully generated
-        // Reset signing status since we have a new PDF
-        const updatedContract = { 
-          ...displayContract, 
-          pdf_url: `generated_${Date.now()}`, // Use timestamp to ensure UI updates
-          updated_at: new Date().toISOString(),
-          // Reset signing fields for new PDF
-          signing_status: 'pending',
-          docusign_envelope_id: null,
-          signed_pdf_url: null,
-          sent_for_signing_at: null
-        };
-        
-        // Update local state first
-        setLocalContract(updatedContract);
-        console.log('📝 Updated localContract with new PDF URL:', updatedContract.pdf_url);
-        
-        // Reset DocuSign state completely for new PDF
+        // Reset DocuSign state immediately (before any async operations)
         const resetDocusignState = {
           envelopeId: null,
           signingStatus: 'pending',
           signedPdfUrl: null,
           sendingForSigning: false,
-          pollingInterval: docusignState.pollingInterval // Keep current interval to clear it
+          pollingInterval: docusignState.pollingInterval
         };
         
         // Stop any existing DocuSign polling since we have a new PDF
@@ -273,21 +256,46 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           console.log('🛑 Stopped DocuSign polling - new PDF generated');
         }
         
-        // Update DocuSign state atomically and mark as manually updated
+        // Update DocuSign state first (most important)
         setDocusignState(resetDocusignState);
         setManuallyUpdated(true);
         console.log('✅ DocuSign state reset to pending - marked as manually updated');
-        console.log('📊 Current displayContract.pdf_url:', displayContract.pdf_url);
-        console.log('📊 Current localContract.pdf_url:', updatedContract.pdf_url);
         
-        // Notify parent component
-        if (onUpdated) {
-          onUpdated(updatedContract);
+        // Get the updated contract from server to get real PDF URL
+        try {
+          const headers = await getAuthHeaders();
+          const refreshResponse = await fetch(`/api/service-contracts/${displayContract.id}`, {
+            headers
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshedContract = await refreshResponse.json();
+            console.log('📝 Got updated contract from server with real PDF URL:', refreshedContract.pdf_url);
+            
+            // Update local contract with real data but keep our manual DocuSign state
+            setLocalContract(refreshedContract);
+            
+            // Notify parent with updated contract
+            if (onUpdated) {
+              onUpdated(refreshedContract);
+            }
+          } else {
+            // Fallback: update with fake URL if server fails
+            const updatedContract = { 
+              ...displayContract, 
+              pdf_url: `generated_${Date.now()}`,
+              updated_at: new Date().toISOString(),
+              signing_status: 'pending',
+              docusign_envelope_id: null,
+              signed_pdf_url: null,
+              sent_for_signing_at: null
+            };
+            setLocalContract(updatedContract);
+            if (onUpdated) onUpdated(updatedContract);
+          }
+        } catch (refreshError) {
+          console.error('Error getting updated contract:', refreshError);
         }
-        
-        // Skip server refresh - database update should be immediate
-        // and we already have the correct local state
-        console.log('⏭️ Skipping server refresh - using local state with reset signing status');
         
       }
     } catch (error) {

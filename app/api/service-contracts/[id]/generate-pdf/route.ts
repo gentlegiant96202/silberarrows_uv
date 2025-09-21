@@ -69,7 +69,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const body = await request.json();
     const type = body.type || 'service';
 
-    console.log('🔄 Generating PDF for existing contract:', contractId);
+    console.log('🔄 Generating PDF for existing contract:', contractId, '- DocuSign fields ready');
 
     // Get contract data from database
     const tableName = type === 'warranty' ? 'warranty_contracts' : 'service_contracts';

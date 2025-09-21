@@ -132,7 +132,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         : `https://${request.headers.get('host')}`;
     
     console.log('🌐 Base URL for PDF service:', baseUrl);
-    const pdfServiceUrl = `${baseUrl}/api/generate-service-agreement`;
+    let pdfServiceUrl = `${baseUrl}/api/generate-service-agreement`;
+
+    // Append Vercel protection bypass token if available (fixes auth page issue)
+    const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS;
+    if (bypass) {
+      const sep = pdfServiceUrl.includes('?') ? '&' : '?';
+      pdfServiceUrl = `${pdfServiceUrl}${sep}x-vercel-set-bypass-cookie=true&x-vercel-protection-bypass=${encodeURIComponent(bypass)}`;
+      console.log('🛡️ Using Vercel bypass token for internal request');
+    }
+
     console.log('🔗 PDF service URL:', pdfServiceUrl);
     
     const pdfResponse = await fetch(pdfServiceUrl, {

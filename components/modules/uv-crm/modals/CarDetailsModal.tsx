@@ -273,8 +273,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
         .from('car_media')
         .select('*')
         .eq('car_id', car.id)
-        .order('sort_order', { ascending: true })
-        .order('created_at');
+        .order('sort_order', { ascending: true });
       
       if (error) {
         console.error('Supabase error fetching media:', error);
@@ -2357,7 +2356,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                     variant="button"
                     buttonLabel="Upload"
                     onUploaded={async ()=>{
-                      const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('created_at');
+                      const { data: docRows } = await supabase.from('car_media').select('*').eq('car_id', car.id).order('sort_order', { ascending: true });
                       if(docRows) setMedia(docRows);
                     }}
                   />

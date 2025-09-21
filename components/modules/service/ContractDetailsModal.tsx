@@ -30,6 +30,9 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     sendingForSigning: false,
     pollingInterval: null as NodeJS.Timeout | null
   });
+  
+  // Flag to prevent state override after manual updates
+  const [manuallyUpdated, setManuallyUpdated] = useState(false);
   const [companyEmail, setCompanyEmail] = useState('');
   const [showCompanyEmailModal, setShowCompanyEmailModal] = useState(false);
   
@@ -112,22 +115,30 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   // Load DocuSign data when modal opens (matching vehicle documents)
   useEffect(() => {
     if (isOpen && contract) {
+      // Reset manual update flag when opening modal fresh
+      setManuallyUpdated(false);
+      
       // Update local contract state
       setLocalContract(contract);
       
       // Initialize form data from contract
       initializeFormData();
       
-      // Initialize DocuSign state from contract data
-      const newDocusignState = {
-        envelopeId: displayContract.docusign_envelope_id || null,
-        signingStatus: displayContract.signing_status || 'pending',
-        signedPdfUrl: displayContract.signed_pdf_url || null,
-        sendingForSigning: false,
-        pollingInterval: null
-      };
-      
-      setDocusignState(newDocusignState);
+      // Initialize DocuSign state from contract data (only if not manually updated)
+      if (!manuallyUpdated) {
+        const newDocusignState = {
+          envelopeId: displayContract.docusign_envelope_id || null,
+          signingStatus: displayContract.signing_status || 'pending',
+          signedPdfUrl: displayContract.signed_pdf_url || null,
+          sendingForSigning: false,
+          pollingInterval: null
+        };
+        
+        setDocusignState(newDocusignState);
+        console.log('🔄 Initialized DocuSign state from contract:', newDocusignState.signingStatus);
+      } else {
+        console.log('⏭️ Skipping DocuSign state initialization - manually updated');
+      }
 
       // Start polling if document is sent but not completed
       if (displayContract.docusign_envelope_id && 
@@ -254,8 +265,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           console.log('🛑 Stopped DocuSign polling - new PDF generated');
         }
         
-        // Update DocuSign state atomically
+        // Update DocuSign state atomically and mark as manually updated
         setDocusignState(resetDocusignState);
+        setManuallyUpdated(true);
+        console.log('✅ DocuSign state reset to pending - marked as manually updated');
         
         // Notify parent component
         if (onUpdated) {
@@ -426,6 +439,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         signingStatus: 'sent',
         sendingForSigning: false
       }));
+      setManuallyUpdated(true);
+      console.log('✅ DocuSign state updated to sent - marked as manually updated');
       
       // Start polling for status updates
       startStatusPolling();

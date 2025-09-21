@@ -214,20 +214,34 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        // Refresh contract data from server to get updated PDF URL
-        const refreshResponse = await fetch(`/api/service-contracts/${displayContract.id}`, {
-          headers
-        });
+        // Update local state immediately - PDF was successfully generated
+        const updatedContract = { 
+          ...displayContract, 
+          pdf_url: `generated_${Date.now()}`, // Use timestamp to ensure UI updates
+          updated_at: new Date().toISOString()
+        };
         
-        if (refreshResponse.ok) {
-          const refreshedContract = await refreshResponse.json();
-          if (onUpdated) onUpdated(refreshedContract);
-        } else {
-          // Fallback - just mark as having PDF
-          if (onUpdated) {
-            const updatedContract = { ...contract, pdf_url: 'generated' };
-            onUpdated(updatedContract);
+        // Update local state first
+        setLocalContract(updatedContract);
+        
+        // Notify parent component
+        if (onUpdated) {
+          onUpdated(updatedContract);
+        }
+        
+        // Try to refresh from server to get the actual PDF URL (non-blocking)
+        try {
+          const refreshResponse = await fetch(`/api/service-contracts/${displayContract.id}`, {
+            headers
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshedContract = await refreshResponse.json();
+            setLocalContract(refreshedContract);
+            if (onUpdated) onUpdated(refreshedContract);
           }
+        } catch (refreshError) {
+          console.log('Server refresh failed, but PDF was generated successfully:', refreshError);
         }
         
       }

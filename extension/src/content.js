@@ -1183,43 +1183,67 @@ async function handleImageUploads(imageUrls) {
   }
 }
 
-// Attempt programmatic file upload
+// Attempt programmatic file upload with preserved order
 async function attemptProgrammaticUpload(fileInput, imageUrls) {
   try {
-    const dtAll = new DataTransfer();
-    let added = 0;
+    console.log('🔍 Starting ordered image download to preserve inventory sequence...');
     
-    for (const url of imageUrls) {
+    // Download all images in parallel but preserve order
+    const imagePromises = imageUrls.map(async (url, index) => {
       try {
-        console.log('🔍 Attempting to fetch image:', url);
+        console.log(`🔍 [${index + 1}/${imageUrls.length}] Downloading image:`, url);
         
-          // Convert relative URLs to absolute URLs pointing to SilberArrows server
-          let absoluteUrl;
-          if (url.startsWith('/api/storage-proxy')) {
-            // Force storage proxy URLs to use SilberArrows server, not current domain
-            absoluteUrl = `https://portal.silberarrows.com${url}`;
-            console.log('🔍 Using SilberArrows storage proxy URL:', absoluteUrl);
-          } else if (url.startsWith('/')) {
-            absoluteUrl = `${window.location.origin}${url}`;
-            console.log('🔍 Using current domain absolute URL:', absoluteUrl);
-          } else {
-            absoluteUrl = url;
-            console.log('🔍 Using provided absolute URL:', absoluteUrl);
-          }
+        // Convert relative URLs to absolute URLs pointing to SilberArrows server
+        let absoluteUrl;
+        if (url.startsWith('/api/storage-proxy')) {
+          // Force storage proxy URLs to use SilberArrows server, not current domain
+          absoluteUrl = `https://portal.silberarrows.com${url}`;
+          console.log(`🔍 [${index + 1}] Using SilberArrows portal URL:`, absoluteUrl);
+        } else if (url.startsWith('/')) {
+          absoluteUrl = `${window.location.origin}${url}`;
+          console.log(`🔍 [${index + 1}] Using current domain absolute URL:`, absoluteUrl);
+        } else {
+          absoluteUrl = url;
+          console.log(`🔍 [${index + 1}] Using provided absolute URL:`, absoluteUrl);
+        }
         
         const blob = await fetchImageWithRetry(absoluteUrl);
         if (!blob || blob.size === 0) {
           throw new Error('Empty or invalid blob received');
         }
         
-        const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}.jpg`;
+        const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}_${index}.jpg`;
         const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
         const file = new File([blob], filename, { type });
-        dtAll.items.add(file);
-        added++;
-        console.log(`✅ Added image ${added}/${imageUrls.length}: ${filename}`);
+        
+        console.log(`✅ [${index + 1}/${imageUrls.length}] Downloaded: ${filename} (${blob.size} bytes)`);
+        return { file, index, success: true };
+        
       } catch (e) {
-        console.warn('⚠️ Failed to fetch image for upload:', url, e.message);
+        console.warn(`⚠️ [${index + 1}/${imageUrls.length}] Failed to fetch image:`, url, e.message);
+        return { file: null, index, success: false, error: e.message };
+      }
+    });
+    
+    // Wait for all downloads to complete
+    console.log('⏳ Waiting for all image downloads to complete...');
+    const results = await Promise.all(imagePromises);
+    
+    // Sort results by original index to maintain inventory order
+    const sortedResults = results.sort((a, b) => a.index - b.index);
+    
+    // Add files to DataTransfer in correct order
+    const dtAll = new DataTransfer();
+    let added = 0;
+    
+    console.log('📋 Adding images to upload queue in inventory order:');
+    for (const result of sortedResults) {
+      if (result.success && result.file) {
+        dtAll.items.add(result.file);
+        added++;
+        console.log(`✅ [Position ${result.index + 1}] Added to upload queue: ${result.file.name}`);
+      } else {
+        console.warn(`❌ [Position ${result.index + 1}] Skipped due to error: ${result.error}`);
       }
     }
     
@@ -1253,12 +1277,13 @@ async function attemptProgrammaticUpload(fileInput, imageUrls) {
   }
 }
 
-// Attempt drag-and-drop simulation
+// Attempt drag-and-drop simulation with preserved order
 async function attemptDragDropUpload(fileInput, imageUrls) {
   try {
-    const files = [];
+    console.log('🔍 Starting ordered drag-drop image download...');
     
-    for (const url of imageUrls) {
+    // Download all images in parallel but preserve order (same as programmatic upload)
+    const imagePromises = imageUrls.map(async (url, index) => {
       try {
         // Convert relative URLs to absolute URLs pointing to SilberArrows server
         let absoluteUrl;
@@ -1273,15 +1298,28 @@ async function attemptDragDropUpload(fileInput, imageUrls) {
         
         const blob = await fetchImageWithRetry(absoluteUrl);
         if (blob && blob.size > 0) {
-          const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}.jpg`;
+          const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}_${index}.jpg`;
           const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
           const file = new File([blob], filename, { type });
-          files.push(file);
+          return { file, index, success: true };
         }
+        return { file: null, index, success: false, error: 'Empty blob' };
       } catch (e) {
-        console.warn('⚠️ Failed to fetch image for drag-drop:', url, e.message);
+        console.warn(`⚠️ Failed to fetch image ${index + 1} for drag-drop:`, url, e.message);
+        return { file: null, index, success: false, error: e.message };
       }
-    }
+    });
+    
+    // Wait for all downloads and sort by original order
+    const results = await Promise.all(imagePromises);
+    const sortedResults = results.sort((a, b) => a.index - b.index);
+    
+    // Extract files in correct order
+    const files = sortedResults
+      .filter(result => result.success && result.file)
+      .map(result => result.file);
+    
+    console.log(`📋 Prepared ${files.length} images for drag-drop in inventory order`);
     
     if (files.length > 0) {
       // Simulate drag and drop

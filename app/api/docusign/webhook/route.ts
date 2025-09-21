@@ -168,27 +168,19 @@ export async function POST(request: NextRequest) {
     if (envelopeStatus?.toLowerCase() !== 'completed') {
       console.log(`⏳ Envelope not fully completed yet (${envelopeStatus}), updating status to: ${customStatus}`);
       
-      // Update status in both car_media and vehicle_reservations tables
-      const { error: updateError1 } = await supabase
-        .from('car_media')
-        .update({ 
-          signing_status: customStatus
-        })
-        .eq('docusign_envelope_id', envelopeId);
+      // Update status in car_media, vehicle_reservations, service_contracts, warranty_contracts
+      const updates = await Promise.allSettled([
+        supabase.from('car_media').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
+        supabase.from('vehicle_reservations').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
+        supabase.from('service_contracts').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
+        supabase.from('warranty_contracts').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
+      ]);
 
-      const { error: updateError2 } = await supabase
-        .from('vehicle_reservations')
-        .update({ 
-          signing_status: customStatus
-        })
-        .eq('docusign_envelope_id', envelopeId);
-
-      if (updateError1) {
-        console.error('Failed to update car_media signing status:', updateError1);
-      }
-      if (updateError2) {
-        console.error('Failed to update vehicle_reservations signing status:', updateError2);
-      }
+      updates.forEach((res, idx) => {
+        if (res.status === 'rejected') {
+          console.error('Interim status update failed for table idx', idx, res.reason);
+        }
+      });
 
       return NextResponse.json({ success: true, message: 'Status updated' });
     }
@@ -196,30 +188,30 @@ export async function POST(request: NextRequest) {
     // Envelope is completed - replace with signed PDF
     console.log('✅ Envelope completed! Downloading signed PDF...');
 
-    // Find the document in our database - check both tables
+    // Find the document in our database - check car_media, vehicle_reservations, then service/warranty contracts
     let document: any = null;
-    let documentType: 'consignment' | 'vehicle' = 'consignment';
+    let documentType: 'consignment' | 'vehicle' | 'service' | 'warranty' | null = null;
 
     // First check car_media (consignment documents)
-    const { data: consignmentDoc, error: consignmentError } = await supabase
+    const { data: consignmentDoc } = await supabase
       .from('car_media')
       .select('*')
       .eq('docusign_envelope_id', envelopeId)
       .single();
 
-    if (consignmentDoc && !consignmentError) {
+    if (consignmentDoc) {
       document = consignmentDoc;
       documentType = 'consignment';
       console.log('📄 Found consignment document:', document.id);
-    } else {
-      // Check vehicle_reservations (invoice/reservation documents)
-      const { data: vehicleDoc, error: vehicleError } = await supabase
+    }
+
+    if (!document) {
+      const { data: vehicleDoc } = await supabase
         .from('vehicle_reservations')
         .select('*')
         .eq('docusign_envelope_id', envelopeId)
         .single();
-
-      if (vehicleDoc && !vehicleError) {
+      if (vehicleDoc) {
         document = vehicleDoc;
         documentType = 'vehicle';
         console.log('📄 Found vehicle document:', document.id, document.document_type);
@@ -227,6 +219,32 @@ export async function POST(request: NextRequest) {
     }
 
     if (!document) {
+      const { data: serviceDoc } = await supabase
+        .from('service_contracts')
+        .select('*')
+        .eq('docusign_envelope_id', envelopeId)
+        .single();
+      if (serviceDoc) {
+        document = serviceDoc;
+        documentType = 'service';
+        console.log('📄 Found service contract:', document.id);
+      }
+    }
+
+    if (!document) {
+      const { data: warrantyDoc } = await supabase
+        .from('warranty_contracts')
+        .select('*')
+        .eq('docusign_envelope_id', envelopeId)
+        .single();
+      if (warrantyDoc) {
+        document = warrantyDoc;
+        documentType = 'warranty';
+        console.log('📄 Found warranty contract:', document.id);
+      }
+    }
+
+    if (!document || !documentType) {
       console.error('❌ Document not found in database');
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
@@ -276,7 +294,7 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Consignment document updated with signed PDF');
       
-    } else {
+    } else if (documentType === 'vehicle') {
       // Handle vehicle documents (reservations/invoices)
       console.log('📄 Processing vehicle document:', document.document_type);
       const fileName = `${document.document_type}-${document.id}-signed-${Date.now()}.pdf`;
@@ -299,29 +317,19 @@ export async function POST(request: NextRequest) {
         .from('documents')
         .getPublicUrl(fileName);
 
-      // Update the vehicle_reservations record with signed PDF (preserve separate columns)
-      // First get the current document type to determine which column to update
-      const { data: currentDoc } = await supabase
-        .from('vehicle_reservations')
-        .select('document_type')
-        .eq('id', document.id)
-        .single();
-
-      console.log('📄 Document type for signed PDF update:', currentDoc?.document_type);
-
-      // Update appropriate column based on document type, preserving original PDFs
-      const updateData = currentDoc?.document_type === 'reservation' 
+      // Update vehicle_reservations record with signed PDF
+      const updateData = document.document_type === 'reservation' 
         ? {
-            pdf_url: urlData.publicUrl,           // Legacy column for compatibility
-            reservation_pdf_url: urlData.publicUrl, // Signed reservation PDF
-            signed_pdf_url: urlData.publicUrl,    // Reference to signed version
+            pdf_url: urlData.publicUrl,
+            reservation_pdf_url: urlData.publicUrl,
+            signed_pdf_url: urlData.publicUrl,
             signing_status: 'completed',
             completed_at: new Date().toISOString()
           }
         : {
-            pdf_url: urlData.publicUrl,           // Legacy column for compatibility  
-            invoice_pdf_url: urlData.publicUrl,   // Signed invoice PDF
-            signed_pdf_url: urlData.publicUrl,    // Reference to signed version
+            pdf_url: urlData.publicUrl,
+            invoice_pdf_url: urlData.publicUrl,
+            signed_pdf_url: urlData.publicUrl,
             signing_status: 'completed',
             completed_at: new Date().toISOString()
           };
@@ -339,6 +347,45 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('✅ Vehicle document updated with signed PDF');
+    } else if (documentType === 'service' || documentType === 'warranty') {
+      // Handle service and warranty contracts
+      console.log('📄 Processing', documentType, 'contract:', document.id);
+      const fileName = `${documentType}_contract_${document.id}_signed_${Date.now()}.pdf`;
+      const bucket = 'service-documents';
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, signedPdfBuffer, {
+          contentType: 'application/pdf',
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('❌ Failed to upload signed service/warranty PDF:', uploadError);
+        throw uploadError;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(fileName);
+
+      const tableName = documentType === 'service' ? 'service_contracts' : 'warranty_contracts';
+      const { error: updateError } = await supabase
+        .from(tableName)
+        .update({
+          pdf_url: urlData.publicUrl,
+          signed_pdf_url: urlData.publicUrl,
+          signing_status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', document.id);
+
+      if (updateError) {
+        console.error('❌ Failed to update', documentType, 'contract:', updateError);
+        throw updateError;
+      }
+
+      console.log('✅', documentType, 'contract updated with signed PDF');
     }
 
     console.log('🎉 Successfully processed signed document!');

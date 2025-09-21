@@ -119,277 +119,52 @@ export async function POST(request: NextRequest) {
             margin: 0;
             background: #000000;
           }
-          
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
+          * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
             background: #000000;
             color: white;
             font-family: 'Arial', sans-serif;
             font-size: 10px;
             line-height: 1.25;
-            width: 210mm;
-            height: 297mm;
-            margin: 0;
-            padding: 0;
+            width: 210mm; height: 297mm;
             overflow: hidden;
-            box-sizing: border-box;
           }
-
           .page {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(30px);
-            border: none;
             padding: 8px 10px 18px 10px;
-            width: 210mm;
-            height: 297mm;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 
-                        inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-                        0 0 50px rgba(255, 255, 255, 0.02);
+            width: 210mm; height: 297mm;
             position: relative;
-            overflow: hidden;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            display: flex; flex-direction: column;
+            justify-content: flex-start; /* ensure content starts at top */
+            gap: 10px; /* minimal spacing between sections */
           }
-
-          .page::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.03) 0%, 
-              rgba(255, 255, 255, 0.01) 50%, 
-              rgba(255, 255, 255, 0.03) 100%);
-            pointer-events: none;
-          }
-
           .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin: 0 0 20px 0;
-            padding: 10px 15px 8px 15px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin: 0 0 12px 0; padding: 10px 15px 8px 15px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
             border-radius: 15px;
-            position: relative;
-            z-index: 2;
-            width: 100%;
-            box-sizing: border-box;
           }
+          .title { font-size: 21px; font-weight: 900; color: #fff; margin-bottom: 2px; letter-spacing: .5px; line-height: 1; }
+          .date-line { font-size: 21px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); line-height: 1; }
+          .logo { width: 55px; height: auto; }
 
-          .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.1) 0%, 
-              rgba(255, 255, 255, 0.02) 50%, 
-              rgba(255, 255, 255, 0.08) 100%);
-            border-radius: 15px;
-            pointer-events: none;
-          }
+          .content-container { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 
-          .title-section {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            position: relative;
-            z-index: 3;
-          }
+          .section { margin: 0; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 10px 12px; }
+          .section-title { font-size: 12px; font-weight: 700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+          .form-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 0; }
+          .form-table td { border: 1px solid rgba(255,255,255,0.15); padding: 6px 10px; vertical-align: middle; color: #fff; font-size: 10px; background: rgba(255,255,255,0.02); }
 
-          .title {
-            font-size: 21px;
-            font-weight: 900;
-            color: white;
-            margin-bottom: 2px;
-            letter-spacing: 0.5px;
-            line-height: 1.0;
-          }
+          /* Push only the signatures to page bottom */
+          .footer-spacer { flex: 1 1 auto; }
+          .signature-section { display: flex; justify-content: space-between; gap: 30px; margin-top: auto; }
+          .signature-box { flex: 1; font-size: 10px; color: #fff; }
+          .anchor-label { font-size: 10px; font-weight: 700; color: #ddd; margin-bottom: 4px; }
+          .signature-area { border: 1px solid #cccccc; background-color: #f5f5f5; height: 80px; width: 100%; margin: 5px 0; border-radius: 4px; position: relative; padding: 5px; }
+          .signature-date { font-size: 9px; color: #666; position: absolute; bottom: 5px; left: 5px; }
 
-          .date-line {
-            font-size: 21px;
-            font-weight: 900;
-            color: white;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-            line-height: 1.0;
-          }
-
-          .logo {
-            width: 55px;
-            height: auto;
-            position: relative;
-            z-index: 3;
-          }
-
-          .content-container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            flex: 1 1 auto;
-            overflow: visible;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-          }
-
-          .section {
-            margin: 0 0 12px 0;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 12px;
-            padding: 10px 12px;
-            position: relative;
-            width: 100%;
-            box-sizing: border-box;
-          }
-
-          .section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.06) 0%, 
-              rgba(255, 255, 255, 0.01) 50%, 
-              rgba(255, 255, 255, 0.04) 100%);
-            border-radius: 12px;
-            pointer-events: none;
-          }
-
-          .section-title {
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 4px;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-            z-index: 2;
-            padding-bottom: 2px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-          }
-
-          .form-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            margin: 0 0 4px 0;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-            z-index: 2;
-            box-sizing: border-box;
-          }
-
-          .form-table td {
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 6px 10px;
-            vertical-align: middle;
-            color: white;
-            font-size: 10px;
-            background: rgba(255, 255, 255, 0.02);
-            position: relative;
-          }
-
-          .form-table td:first-child {
-            border-left: none;
-          }
-
-          .form-table td:last-child {
-            border-right: none;
-          }
-
-          .form-table tr:first-child td {
-            border-top: none;
-          }
-
-          .form-table tr:last-child td {
-            border-bottom: none;
-          }
-
-          .form-table .label {
-            background: rgba(255, 255, 255, 0.08);
-            font-weight: bold;
-            width: 25%;
-            color: rgba(255, 255, 255, 0.95);
-          }
-
-          .form-table .data {
-            width: 25%;
-          }
-
-          .signature-section {
-            display: flex;
-            justify-content: space-between;
-            margin-top: auto;
-            margin-bottom: 20px;
-            gap: 30px;
-            position: relative;
-            z-index: 2;
-          }
-
-          .signature-box {
-            flex: 1;
-            font-size: 10px;
-            color: white;
-          }
-
-          .signature-area {
-            border: 1px solid #cccccc;
-            background-color: #f5f5f5;
-            height: 80px;
-            width: 100%;
-            margin: 5px 0;
-            border-radius: 4px;
-            position: relative;
-            padding: 5px;
-          }
-
-          .signature-date {
-            font-size: 9px;
-            color: #666;
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-          }
-
-          .text-content {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 10px;
-            line-height: 1.4;
-            margin: 8px 0;
-            position: relative;
-            z-index: 2;
-            text-align: justify;
-          }
-
-          .footer {
-            text-align: center;
-            margin-top: 8px;
-            padding-top: 8px;
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.7);
-            border-top: 1px solid rgba(255, 255, 255, 0.25);
-            position: relative;
-            z-index: 2;
-          }
+          .text-content { color: rgba(255,255,255,0.9); font-size: 10px; line-height: 1.4; margin: 8px 0; text-align: justify; }
+          .footer { text-align: center; margin-top: 8px; padding-top: 8px; font-size: 8px; color: rgba(255,255,255,0.7); border-top: 1px solid rgba(255,255,255,0.25); }
         </style>
     </head>
     <body>
@@ -406,9 +181,7 @@ export async function POST(request: NextRequest) {
             <div class="content-container">
                 <!-- Reference Number -->
                 <div class="section">
-                    <div style="position: relative; z-index: 2;">
-                        <strong>Reference No.:</strong> ${data.referenceNo}
-                    </div>
+                    <div><strong>Reference No.:</strong> ${data.referenceNo}</div>
                 </div>
 
                 <!-- Customer Information -->
@@ -468,7 +241,7 @@ export async function POST(request: NextRequest) {
                     </table>
                 </div>
 
-                <!-- Duration of Agreement -->
+                <!-- Duration of the Agreement -->
                 <div class="section">
                     <div class="section-title">Duration of the Agreement</div>
                     <table class="form-table">
@@ -506,19 +279,18 @@ export async function POST(request: NextRequest) {
                     </div>
                 </div>
 
-                <!-- Spacer for bottom positioning -->
-                <div style="flex: 1;"></div>
+                <div class="footer-spacer"></div>
 
-                <!-- Signatures -->
+                <!-- Signatures (anchored for DocuSign) -->
                 <div class="signature-section">
                     <div class="signature-box">
-                        <div><strong>Dealer Signature:</strong></div>
+                        <div class="anchor-label">SilberArrows Signature:</div>
                         <div class="signature-area">
                             <div class="signature-date">Date:</div>
                         </div>
                     </div>
                     <div class="signature-box">
-                        <div><strong>Customer Signature:</strong></div>
+                        <div class="anchor-label">Customer Signature:</div>
                         <div class="signature-area">
                             <div class="signature-date">Date:</div>
                         </div>
@@ -536,7 +308,6 @@ export async function POST(request: NextRequest) {
     `;
 
     console.log('📄 HTML content generated, calling PDFShift API...');
-    console.log('🔐 PDFShift key present:', !!process.env.PDFSHIFT_API_KEY);
 
     // Call PDFShift API with corrected parameters
     const pdfResponse = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
@@ -635,12 +406,6 @@ export async function POST(request: NextRequest) {
         if (uploadError) {
           console.error('❌ Storage upload error:', uploadError);
           console.error('🔍 Error details:', JSON.stringify(uploadError, null, 2));
-          
-          // Check if bucket exists
-          if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('bucket does not exist')) {
-            console.error('❌ STORAGE BUCKET MISSING: Please create "service-documents" bucket in Supabase Dashboard');
-            console.error('📋 Instructions: Go to Supabase Dashboard → Storage → Create Bucket → Name: "service-documents" → Public: YES');
-          }
           
           // Continue without failing - PDF will still download
           console.log('⚠️ PDF will be downloaded locally but not stored in cloud');

@@ -1193,9 +1193,19 @@ async function attemptProgrammaticUpload(fileInput, imageUrls) {
       try {
         console.log('🔍 Attempting to fetch image:', url);
         
-        // Convert relative URLs to absolute URLs
-        const absoluteUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
-        console.log('🔍 Using absolute URL:', absoluteUrl);
+          // Convert relative URLs to absolute URLs pointing to SilberArrows server
+          let absoluteUrl;
+          if (url.startsWith('/api/storage-proxy')) {
+            // Force storage proxy URLs to use SilberArrows server, not current domain
+            absoluteUrl = `https://portal.silberarrows.com${url}`;
+            console.log('🔍 Using SilberArrows storage proxy URL:', absoluteUrl);
+          } else if (url.startsWith('/')) {
+            absoluteUrl = `${window.location.origin}${url}`;
+            console.log('🔍 Using current domain absolute URL:', absoluteUrl);
+          } else {
+            absoluteUrl = url;
+            console.log('🔍 Using provided absolute URL:', absoluteUrl);
+          }
         
         const blob = await fetchImageWithRetry(absoluteUrl);
         if (!blob || blob.size === 0) {
@@ -1250,7 +1260,17 @@ async function attemptDragDropUpload(fileInput, imageUrls) {
     
     for (const url of imageUrls) {
       try {
-        const absoluteUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
+        // Convert relative URLs to absolute URLs pointing to SilberArrows server
+        let absoluteUrl;
+        if (url.startsWith('/api/storage-proxy')) {
+          // Force storage proxy URLs to use SilberArrows server, not current domain
+          absoluteUrl = `https://portal.silberarrows.com${url}`;
+        } else if (url.startsWith('/')) {
+          absoluteUrl = `${window.location.origin}${url}`;
+        } else {
+          absoluteUrl = url;
+        }
+        
         const blob = await fetchImageWithRetry(absoluteUrl);
         if (blob && blob.size > 0) {
           const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}.jpg`;
@@ -1312,16 +1332,26 @@ async function fetchImageWithRetry(url, maxRetries = 3) {
     } catch (corsError) {
       console.log(`⚠️ CORS attempt ${attempt} failed:`, corsError.message);
       
-      // Try no-cors as fallback
+      // Skip no-cors fallback as it can't read response bodies
+      console.log(`⚠️ Skipping no-CORS fallback (can't read response body)`);
+      
+      // Try with different credentials mode
       try {
-        const response = await fetch(url, { mode: 'no-cors', credentials: 'omit' });
-        const blob = await response.blob();
-        if (blob.size > 0) {
-          console.log(`✅ No-CORS fallback succeeded: ${blob.size} bytes`);
-          return blob;
+        const response = await fetch(url, { 
+          mode: 'cors', 
+          credentials: 'include',
+          headers: { 'Accept': 'image/*' }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-      } catch (noCorsError) {
-        console.log(`⚠️ No-CORS attempt ${attempt} failed:`, noCorsError.message);
+        
+        const blob = await response.blob();
+        console.log(`✅ CORS with credentials succeeded: ${blob.size} bytes, type: ${blob.type}`);
+        return blob;
+      } catch (credentialsError) {
+        console.log(`⚠️ CORS with credentials attempt ${attempt} failed:`, credentialsError.message);
       }
       
       if (attempt === maxRetries) {

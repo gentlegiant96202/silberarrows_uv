@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // Helper function to validate user permissions
 async function validateUserPermissions(request: NextRequest, requiredPermission: 'edit') {
   try {

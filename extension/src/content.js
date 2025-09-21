@@ -1333,8 +1333,6 @@ async function attemptDragDropUpload(fileInput, imageUrls) {
           // Make filenames deterministic with index to avoid duplicates and preserve order in targets that sort by name
           const baseName = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}_${index}.jpg`;
           const filename = `${String(index + 1).padStart(3,'0')}_${baseName}`;
-          const baseName = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}_${index}.jpg`;
-          const filename = `${String(index + 1).padStart(3,'0')}_${baseName}`;
           const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
           const file = new File([blob], filename, { type });
           return { file, index, success: true };

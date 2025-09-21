@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import * as fs from 'fs';
-import * as path from 'path';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+import fs from 'fs';
+import path from 'path';
+import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
 // Helper: Generate Service Agreement PDF and return as Buffer
 export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
@@ -49,9 +46,11 @@ export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
     },
     body: JSON.stringify({
       source: htmlContent,
+      format: 'A4',
+      margin: '0',
       landscape: false,
-      use_print: false,
-      margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' }
+      use_print: true,
+      delay: 1000
     }),
   });
   if (!resp.ok) {
@@ -63,12 +62,12 @@ export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 SERVICE AGREEMENT API CALLED');
-  
   try {
     const data = await request.json();
     const skipDatabase = data.skipDatabase || false; // New flag to skip database operations
-    console.log('📝 Contract data received:', { referenceNo: data.referenceNo, ownerName: data.ownerName, skipDatabase });
+    
+    console.log('📝 Generating service agreement:', { referenceNo: data.referenceNo, ownerName: data.ownerName, skipDatabase });
+    console.log('📝 Form data received:', JSON.stringify(data, null, 2));
     
     // Format dates to DD/MM/YYYY
     const formatDate = (dateString: string) => {
@@ -88,7 +87,7 @@ export async function POST(request: NextRequest) {
     const serviceTypeDisplay = (data.serviceType === 'premium') ? 'PREMIUM' : 'STANDARD';
     const amount = data.invoiceAmount || '0.00';
 
-    // Resolve logo data URL from local PNG (same as consignment form)
+    // Resolve logo data URL from local PNG (fallback to cloud if missing)
     const logoFileCandidates = [
       path.join(process.cwd(), 'public', 'main-logo.png'),
       path.join(process.cwd(), 'renderer', 'public', 'main-logo.png')
@@ -97,8 +96,8 @@ export async function POST(request: NextRequest) {
     for (const candidate of logoFileCandidates) {
       try {
         if (fs.existsSync(candidate)) {
-          const logoData = fs.readFileSync(candidate);
-          const b64 = logoData.toString('base64');
+          const data = fs.readFileSync(candidate);
+          const b64 = data.toString('base64');
           logoSrc = `data:image/png;base64,${b64}`;
           break;
         }
@@ -305,9 +304,29 @@ export async function POST(request: NextRequest) {
     </html>
     `;
 
-    console.log('📄 HTML content generated, calling PDFShift API...');
+    // Validate required data
+    if (!data.referenceNo || !data.ownerName) {
+      console.error('❌ Missing required parameters:', { referenceNo: !!data.referenceNo, ownerName: !!data.ownerName });
+      return NextResponse.json(
+        { error: 'Missing required parameters' },
+        { status: 400 }
+      );
+    }
 
-    // Call PDFShift API with corrected parameters
+    // Validate PDFShift API key
+    if (!process.env.PDFSHIFT_API_KEY) {
+      console.error('❌ PDFShift API key not configured');
+      return NextResponse.json(
+        { error: 'PDFShift API key not configured' },
+        { status: 500 }
+      );
+    }
+
+    console.log('📄 HTML content generated, length:', htmlContent.length);
+    
+    console.log('📄 Generating service agreement PDF using PDFShift...');
+
+    // Call PDFShift API
     const pdfResponse = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
       method: 'POST',
       headers: {
@@ -316,14 +335,11 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         source: htmlContent,
+        format: 'A4',
+        margin: '0',
         landscape: false,
-        use_print: false,
-        margin: {
-          top: '0.5in',
-          bottom: '0.5in',
-          left: '0.5in',
-          right: '0.5in'
-        }
+        use_print: true,
+        delay: 1000
       }),
     });
 
@@ -336,7 +352,7 @@ export async function POST(request: NextRequest) {
     }
 
     const pdfBuffer = await pdfResponse.arrayBuffer();
-    console.log('✅ PDF generated successfully, size:', pdfBuffer.byteLength, 'bytes');
+    console.log('✅ PDF generated successfully:', { sizeBytes: pdfBuffer.byteLength, sizeMB: (pdfBuffer.byteLength / 1024 / 1024).toFixed(2) });
 
     // Save contract data to database first (skip if this is PDF-only generation)
     let contractData = null;
@@ -344,7 +360,7 @@ export async function POST(request: NextRequest) {
       try {
         console.log('💾 Saving contract to database...');
         
-        const { data: dbData, error: dbError } = await supabaseAdmin
+        const { data: dbData, error: dbError } = await supabase
           .from('service_contracts')
           .insert({
             reference_no: data.referenceNo,
@@ -394,7 +410,7 @@ export async function POST(request: NextRequest) {
         console.log('📁 File path:', filePath);
         console.log('📄 PDF size:', pdfBuffer.byteLength, 'bytes');
 
-        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('service-documents')
           .upload(filePath, pdfBuffer, {
             contentType: 'application/pdf',
@@ -411,16 +427,16 @@ export async function POST(request: NextRequest) {
           console.log('✅ PDF uploaded successfully:', uploadData);
           
           // Get public URL for the uploaded file
-          const { data: urlData } = supabaseAdmin.storage
+          const { data: urlData } = supabase.storage
             .from('service-documents')
             .getPublicUrl(filePath);
           
           pdfUrl = urlData.publicUrl;
-          console.log('🔗 PDF public URL generated:', pdfUrl);
+          console.log('📄 PDF generated and uploaded:', pdfUrl);
 
           // Update contract record with PDF URL
           console.log('💾 Updating contract with PDF URL...');
-          const { error: updateError } = await supabaseAdmin
+          const { error: updateError } = await supabase
             .from('service_contracts')
             .update({ pdf_url: pdfUrl })
             .eq('id', contractData.id);
@@ -443,7 +459,7 @@ export async function POST(request: NextRequest) {
     if (!skipDatabase && contractData) {
       try {
         console.log('📝 Logging contract activity...');
-        await supabaseAdmin
+        await supabase
           .from('contract_activities')
           .insert({
             contract_id: contractData.id,
@@ -478,12 +494,61 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Error generating ServiceCare Agreement PDF:', error);
+    console.error('❌ Error generating service agreement:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       { 
-        error: 'Failed to generate ServiceCare Agreement PDF',
+        error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
+      { status: 500 }
+    );
+  }
+}
+
+// GET method to retrieve existing service contracts
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const contractId = searchParams.get('contractId');
+    const referenceNo = searchParams.get('referenceNo');
+
+    if (!contractId && !referenceNo) {
+      return NextResponse.json(
+        { error: 'Either contractId or referenceNo is required' },
+        { status: 400 }
+      );
+    }
+
+    let query = supabase
+      .from('service_contracts')
+      .select('*');
+
+    if (contractId) {
+      query = query.eq('id', contractId);
+    } else if (referenceNo) {
+      query = query.eq('reference_no', referenceNo);
+    }
+
+    const { data: contracts, error } = await query.order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching service contracts:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch service contracts' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      contracts
+    });
+
+  } catch (error) {
+    console.error('Error fetching service contracts:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

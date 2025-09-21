@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
         signers: [
           {
             email: companySignerEmail,
-            name: 'SilberArrows Representative',
+            name: 'Company Representative',
             recipientId: '1',
             routingOrder: '1',
             tabs: {
@@ -267,18 +267,27 @@ export async function POST(request: NextRequest) {
           }
         ]
       },
+      eventNotification: {
+        url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/docusign/webhook`,
+        loggingEnabled: 'true',
+        requireAcknowledgment: 'true',
+        envelopeEvents: [
+          { envelopeEventStatusCode: 'completed' },
+          { envelopeEventStatusCode: 'declined' },
+          { envelopeEventStatusCode: 'voided' }
+        ]
+      },
       status: 'sent'
     };
 
-    console.log('✅ Envelope data created');
+    console.log('✅ Envelope data created, document count:', envelopeData.documents.length);
+    console.log('✅ Envelope data created, recipients count:', envelopeData.recipients.signers.length);
 
-    // Send to DocuSign - use DOCUSIGN_BASE_URL from environment
-    const docusignApiUrl = `${process.env.DOCUSIGN_BASE_URL}/restapi/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes`;
-    
-    console.log('🔗 DocuSign URL:', docusignApiUrl);
-
+    // Send envelope creation request
     console.log('🔍 Sending envelope to DocuSign API...');
-    const docusignResponse = await fetch(docusignApiUrl, {
+    console.log('🔗 DocuSign URL:', `${process.env.DOCUSIGN_BASE_URL}/restapi/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes`);
+    
+    const createResponse = await fetch(`${process.env.DOCUSIGN_BASE_URL}/restapi/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -287,23 +296,24 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(envelopeData)
     });
 
-    console.log('📨 DocuSign API response status:', docusignResponse.status);
+    console.log('📨 DocuSign API response status:', createResponse.status);
 
-    if (!docusignResponse.ok) {
-      const errorText = await docusignResponse.text();
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
       console.error('❌ DocuSign API Error Details:', {
-        status: docusignResponse.status,
-        statusText: docusignResponse.statusText,
+        status: createResponse.status,
+        statusText: createResponse.statusText,
         errorText: errorText,
-        url: docusignApiUrl,
+        url: `${process.env.DOCUSIGN_BASE_URL}/restapi/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes`,
         pdfSizeMB: pdfSizeMB,
         documentName: documentTitle
       });
       throw new Error(`DocuSign API Error: ${errorText}`);
     }
 
-    const docusignResult = await docusignResponse.json();
-    console.log('✅ DocuSign envelope created:', docusignResult.envelopeId);
+    const result = await createResponse.json();
+    const envelopeId = result.envelopeId;
+    console.log('✅ DocuSign envelope created:', envelopeId);
 
     // Update database with DocuSign information
     const tableName = contractType === 'warranty' ? 'warranty_contracts' : 'service_contracts';
@@ -312,7 +322,7 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await supabase
       .from(tableName)
       .update({
-        docusign_envelope_id: docusignResult.envelopeId,
+        docusign_envelope_id: envelopeId,
         signing_status: 'sent',
         sent_for_signing_at: new Date().toISOString()
       })
@@ -327,17 +337,19 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      envelopeId: docusignResult.envelopeId,
-      message: 'Contract sent for signing successfully'
+      envelopeId,
+      message: `${documentTitle} sent to ${companySignerEmail} for company approval. Customer will be notified after company signature is completed. Signed PDF will automatically replace unsigned version when completed.`
     });
 
-  } catch (error) {
-    console.error('💥 Error in service contract DocuSign API:', error);
+  } catch (error: any) {
+    console.error('❌ Critical Error in DocuSign API:', {
+      errorMessage: error.message,
+      errorStack: error.stack,
+      errorName: error.name,
+      timestamp: new Date().toISOString()
+    });
     return NextResponse.json(
-      { 
-        error: 'Failed to send contract for signing',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: `Failed to send document for signing: ${error.message}` },
       { status: 500 }
     );
   }

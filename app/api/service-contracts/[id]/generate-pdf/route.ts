@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
+import { generateServiceAgreementPdf } from '@/app/api/generate-service-agreement/route';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -122,57 +123,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       notes: contract.notes || ''
     };
 
-    console.log('📄 Calling PDF generation service...');
-
-    // Generate PDF using the existing service agreement generator
-    const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
-      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-      : process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:3000'
-        : `https://${request.headers.get('host')}`;
-    
-    console.log('🌐 Base URL for PDF service:', baseUrl);
-    let pdfServiceUrl = `${baseUrl}/api/generate-service-agreement`;
-
-    // Append Vercel protection bypass token if available (fixes auth page issue)
-    const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS;
-    if (bypass) {
-      const sep = pdfServiceUrl.includes('?') ? '&' : '?';
-      pdfServiceUrl = `${pdfServiceUrl}${sep}x-vercel-set-bypass-cookie=true&x-vercel-protection-bypass=${encodeURIComponent(bypass)}`;
-      console.log('🛡️ Using Vercel bypass token for internal request');
-    }
-
-    console.log('🔗 PDF service URL:', pdfServiceUrl);
-    
-    const pdfResponse = await fetch(pdfServiceUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...pdfData,
-        skipDatabase: true // Skip database operations since contract already exists
-      }),
+    console.log('📄 Generating PDF directly (no internal HTTP)...');
+    const buffer = await generateServiceAgreementPdf({
+      ...pdfData
     });
-
-    if (!pdfResponse.ok) {
-      const errorText = await pdfResponse.text();
-      console.error('❌ PDF generation failed:', {
-        status: pdfResponse.status,
-        statusText: pdfResponse.statusText,
-        error: errorText
-      });
-      return NextResponse.json(
-        { error: 'Failed to generate PDF', details: errorText },
-        { status: 500 }
-      );
-    }
-
-    console.log('✅ PDF generated successfully');
-
-    // Get the PDF as buffer
-    const pdfBuffer = await pdfResponse.arrayBuffer();
-    const buffer = Buffer.from(pdfBuffer);
 
     // Generate unique filename for storage
     const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '');

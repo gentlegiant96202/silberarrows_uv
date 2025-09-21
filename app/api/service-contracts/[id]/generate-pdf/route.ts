@@ -260,6 +260,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
   } catch (error) {
+    const { id } = await params;
+    const contractId = id;
+    const body = await request.json().catch(() => ({}));
+    
     console.error('💥 Error generating PDF:', error);
     console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     console.error('💥 Error details:', {

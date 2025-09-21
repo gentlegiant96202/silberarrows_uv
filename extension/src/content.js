@@ -1137,13 +1137,21 @@ async function handleImageUploads(imageUrls) {
       fileInput.setAttribute('accept', 'image/*');
     } catch {}
     
-    // Check if URLs are properly formatted storage proxy URLs
+    // Check if URLs are properly formatted storage proxy URLs and deduplicate
+    const seen = new Set();
     const validUrls = imageUrls.filter(url => {
       const isValid = url && (url.startsWith('/api/storage-proxy') || url.startsWith('http'));
       if (!isValid) {
         console.warn('⚠️ Invalid image URL detected:', url);
+        return false;
       }
-      return isValid;
+      const key = url.split('?')[0];
+      if (seen.has(key)) {
+        console.warn('⚠️ Duplicate image URL filtered:', url);
+        return false;
+      }
+      seen.add(key);
+      return true;
     });
     
     if (validUrls.length !== imageUrls.length) {
@@ -1248,26 +1256,50 @@ async function attemptProgrammaticUpload(fileInput, imageUrls) {
     }
     
     if (added > 0) {
-      // Try to set files with user gesture simulation
-      try { fileInput.value = ''; } catch {}
+      const isDubizzle = window.location.hostname.includes('dubizzle.com');
       
-      // Simulate user interaction
-      fileInput.focus();
-      fileInput.click();
-      
-      // Set files (now in correct inventory order from API)
-      fileInput.files = dtAll.files;
-      
-      // Trigger events
-      fileInput.dispatchEvent(new Event('input', { bubbles: true }));
-      fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-      fileInput.dispatchEvent(new Event('blur', { bubbles: true }));
-      
-      console.log(`✅ Successfully queued ${dtAll.files.length} images in correct inventory order`);
-      
-      // Show success notification
-      showSuccessNotification(`✅ ${added} images uploaded in inventory order!`);
-      return true;
+      if (isDubizzle) {
+        // Domain-specific batching for Dubizzle to avoid 429 and missed files
+        const batchSize = 4; // small batches to respect server limits
+        const batchDelayMs = 1800; // wait between batches for server to accept next set
+        console.log(`🧩 Dubizzle detected. Uploading in batches of ${batchSize} with ${batchDelayMs}ms delay between batches...`);
+        
+        const filesArray = Array.from(dtAll.files);
+        for (let start = 0; start < filesArray.length; start += batchSize) {
+          const batch = filesArray.slice(start, start + batchSize);
+          const dtBatch = new DataTransfer();
+          batch.forEach(f => dtBatch.items.add(f));
+          
+          try { fileInput.value = ''; } catch {}
+          fileInput.focus();
+          fileInput.click();
+          fileInput.files = dtBatch.files;
+          fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+          fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+          
+          console.log(`📤 Queued batch ${(start / batchSize) + 1} containing ${dtBatch.files.length} images`);
+          
+          if (start + batchSize < filesArray.length) {
+            await new Promise(resolve => setTimeout(resolve, batchDelayMs));
+          }
+        }
+        
+        console.log(`✅ All ${filesArray.length} images queued in ${Math.ceil(filesArray.length / batchSize)} batches`);
+        showSuccessNotification(`✅ ${filesArray.length} images queued in batches to avoid rate limits`);
+        return true;
+      } else {
+        // Default: single bulk selection
+        try { fileInput.value = ''; } catch {}
+        fileInput.focus();
+        fileInput.click();
+        fileInput.files = dtAll.files;
+        fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        fileInput.dispatchEvent(new Event('blur', { bubbles: true }));
+        console.log(`✅ Successfully queued ${dtAll.files.length} images in correct inventory order`);
+        showSuccessNotification(`✅ ${added} images uploaded in inventory order!`);
+        return true;
+      }
     }
     
     return false;
@@ -1298,7 +1330,11 @@ async function attemptDragDropUpload(fileInput, imageUrls) {
         
         const blob = await fetchImageWithRetry(absoluteUrl);
         if (blob && blob.size > 0) {
-          const filename = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}_${index}.jpg`;
+          // Make filenames deterministic with index to avoid duplicates and preserve order in targets that sort by name
+          const baseName = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}_${index}.jpg`;
+          const filename = `${String(index + 1).padStart(3,'0')}_${baseName}`;
+          const baseName = url.split('/').pop()?.split('?')[0] || `photo_${Date.now()}_${index}.jpg`;
+          const filename = `${String(index + 1).padStart(3,'0')}_${baseName}`;
           const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
           const file = new File([blob], filename, { type });
           return { file, index, success: true };

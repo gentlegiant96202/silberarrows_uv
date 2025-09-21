@@ -49,25 +49,32 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
 // POST - Generate PDF for existing contract
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // Validate edit permissions (generating PDF is considered editing)
-  const validation = await validateUserPermissions(request, 'edit');
-  if ('error' in validation) {
-    return NextResponse.json(
-      { error: validation.error },
-      { status: validation.status }
-    );
-  }
-
+  console.log('🚀 PDF generation API called - starting...');
+  
   try {
+    // Validate edit permissions (generating PDF is considered editing)
+    console.log('🔐 Validating user permissions...');
+    const validation = await validateUserPermissions(request, 'edit');
+    if ('error' in validation) {
+      console.error('❌ Permission validation failed:', validation.error);
+      return NextResponse.json(
+        { error: validation.error },
+        { status: validation.status }
+      );
+    }
+    console.log('✅ User permissions validated');
+
     const { id } = await params;
     const contractId = id;
     const body = await request.json();
     const type = body.type || 'service';
 
-    console.log('🔄 Generating PDF for existing contract:', contractId);
+    console.log('🔄 Generating PDF for existing contract:', contractId, 'type:', type);
 
     // Get contract data from database
+    console.log('📋 Fetching contract data from database...');
     const tableName = type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
+    console.log('📋 Using table:', tableName);
     
     const { data: contract, error: fetchError } = await supabase
       .from(tableName)
@@ -76,7 +83,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .single();
 
     if (fetchError) {
-      console.error('Error fetching contract:', fetchError);
+      console.error('❌ Error fetching contract:', fetchError);
       return NextResponse.json(
         { error: 'Contract not found', details: fetchError.message },
         { status: 404 }
@@ -121,7 +128,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ? 'http://localhost:3000'
         : `https://${request.headers.get('host')}`;
     
-    const pdfResponse = await fetch(`${baseUrl}/api/generate-service-agreement`, {
+    console.log('🌐 Base URL for PDF service:', baseUrl);
+    const pdfServiceUrl = `${baseUrl}/api/generate-service-agreement`;
+    console.log('🔗 PDF service URL:', pdfServiceUrl);
+    
+    const pdfResponse = await fetch(pdfServiceUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -133,9 +144,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     if (!pdfResponse.ok) {
-      console.error('PDF generation failed:', await pdfResponse.text());
+      const errorText = await pdfResponse.text();
+      console.error('❌ PDF generation failed:', {
+        status: pdfResponse.status,
+        statusText: pdfResponse.statusText,
+        error: errorText
+      });
       return NextResponse.json(
-        { error: 'Failed to generate PDF' },
+        { error: 'Failed to generate PDF', details: errorText },
         { status: 500 }
       );
     }

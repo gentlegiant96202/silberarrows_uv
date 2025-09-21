@@ -211,26 +211,63 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     setGeneratingPdf(true);
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`/api/service-contracts/${displayContract.id}/generate-pdf`, {
+      const response = await fetch('/api/generate-service-agreement', {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          type: displayContract.contract_type || 'service'
+          referenceNo: displayContract.reference_no,
+          ownerName: displayContract.owner_name,
+          mobileNo: displayContract.mobile_no,
+          email: displayContract.email,
+          customerIdType: displayContract.customer_id_type,
+          customerIdNumber: displayContract.customer_id_number,
+          dealerName: displayContract.dealer_name || 'SilberArrows',
+          dealerPhone: displayContract.dealer_phone || '+971 4 380 5515',
+          dealerEmail: displayContract.dealer_email || 'service@silberarrows.com',
+          vin: displayContract.vin,
+          make: displayContract.make,
+          model: displayContract.model,
+          modelYear: displayContract.model_year,
+          currentOdometer: displayContract.current_odometer,
+          exteriorColour: displayContract.exterior_colour,
+          interiorColour: displayContract.interior_colour,
+          serviceType: displayContract.service_type,
+          startDate: displayContract.start_date,
+          endDate: displayContract.end_date,
+          cutOffKm: displayContract.cut_off_km,
+          invoiceAmount: displayContract.invoice_amount,
+          salesExecutive: displayContract.sales_executive,
+          notes: displayContract.notes || '',
+          skipDatabase: false // We want to update the database
         })
       });
 
       if (response.ok) {
-        // Force download the generated PDF
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `${displayContract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'}_Agreement_${displayContract.reference_no}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // Handle JSON response instead of PDF blob
+        const result = await response.json();
+        
+        if (result.success && result.pdfUrl) {
+          console.log('✅ PDF generated successfully:', result.pdfUrl);
+          
+          // Optional: Download the PDF from the URL
+          if (result.pdfUrl) {
+            const pdfResponse = await fetch(result.pdfUrl);
+            if (pdfResponse.ok) {
+              const blob = await pdfResponse.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = url;
+              a.download = `${displayContract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'}_Agreement_${displayContract.reference_no}.pdf`;
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+            }
+          }
+        } else {
+          throw new Error(result.message || 'Failed to generate PDF');
+        }
         
         // Reset DocuSign state immediately (before any async operations)
         const resetDocusignState = {
@@ -253,40 +290,23 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         setDocusignState(resetDocusignState);
         console.log('✅ DocuSign state reset to pending - locked from useEffect override');
         
-        // Get the updated contract from server to get real PDF URL
-        try {
-          const headers = await getAuthHeaders();
-          const refreshResponse = await fetch(`/api/service-contracts/${displayContract.id}`, {
-            headers
-          });
-          
-          if (refreshResponse.ok) {
-            const refreshedContract = await refreshResponse.json();
-            console.log('📝 Got updated contract from server with real PDF URL:', refreshedContract.pdf_url);
-            
-            // Update local contract with real data but keep our manual DocuSign state
-            setLocalContract(refreshedContract);
-            
-            // Notify parent with updated contract
-            if (onUpdated) {
-              onUpdated(refreshedContract);
-            }
-          } else {
-            // Fallback: update with fake URL if server fails
-            const updatedContract = { 
-              ...displayContract, 
-              pdf_url: `generated_${Date.now()}`,
-              updated_at: new Date().toISOString(),
-              signing_status: 'pending',
-              docusign_envelope_id: null,
-              signed_pdf_url: null,
-              sent_for_signing_at: null
-            };
-            setLocalContract(updatedContract);
-            if (onUpdated) onUpdated(updatedContract);
-          }
-        } catch (refreshError) {
-          console.error('Error getting updated contract:', refreshError);
+        // Update local contract with the PDF URL from generation response
+        const updatedContract = { 
+          ...displayContract, 
+          pdf_url: result.pdfUrl,
+          updated_at: new Date().toISOString(),
+          signing_status: 'pending',
+          docusign_envelope_id: null,
+          signed_pdf_url: null,
+          sent_for_signing_at: null
+        };
+        
+        setLocalContract(updatedContract);
+        console.log('📝 Updated local contract with generated PDF URL:', result.pdfUrl);
+        
+        // Notify parent with updated contract
+        if (onUpdated) {
+          onUpdated(updatedContract);
         }
         
       }

@@ -210,9 +210,25 @@ export async function POST(request: NextRequest) {
               signHereTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '1',
-                  xPosition: '100',
-                  yPosition: '500'
+                  anchorString: 'SilberArrows Signature:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '30',
+                  anchorIgnoreIfNotPresent: false,
+                  anchorCaseSensitive: true,
+                  tabLabel: 'CompanySignature'
+                }
+              ],
+              dateSignedTabs: [
+                {
+                  documentId: '1',
+                  anchorString: 'SilberArrows Signature:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '66',
+                  anchorIgnoreIfNotPresent: false,
+                  anchorCaseSensitive: true,
+                  tabLabel: 'CompanyDate'
                 }
               ]
             }
@@ -226,9 +242,25 @@ export async function POST(request: NextRequest) {
               signHereTabs: [
                 {
                   documentId: '1',
-                  pageNumber: '1',
-                  xPosition: '400',
-                  yPosition: '500'
+                  anchorString: 'Customer Signature:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '30',
+                  anchorIgnoreIfNotPresent: false,
+                  anchorCaseSensitive: true,
+                  tabLabel: 'CustomerSignature'
+                }
+              ],
+              dateSignedTabs: [
+                {
+                  documentId: '1',
+                  anchorString: 'Customer Signature:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '66',
+                  anchorIgnoreIfNotPresent: false,
+                  anchorCaseSensitive: true,
+                  tabLabel: 'CustomerDate'
                 }
               ]
             }

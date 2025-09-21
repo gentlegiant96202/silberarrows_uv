@@ -134,8 +134,7 @@ export async function POST(request: NextRequest) {
             width: 210mm; height: 297mm;
             position: relative;
             display: flex; flex-direction: column;
-            justify-content: flex-start; /* ensure content starts at top */
-            gap: 10px; /* minimal spacing between sections */
+            justify-content: space-between; /* content at top, signatures at bottom */
           }
           .header {
             display: flex; justify-content: space-between; align-items: flex-start;
@@ -148,16 +147,15 @@ export async function POST(request: NextRequest) {
           .date-line { font-size: 21px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); line-height: 1; }
           .logo { width: 55px; height: auto; }
 
-          .content-container { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+          .content-container { display: flex; flex-direction: column; gap: 10px; }
 
           .section { margin: 0; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 10px 12px; }
           .section-title { font-size: 12px; font-weight: 700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
           .form-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 0; }
           .form-table td { border: 1px solid rgba(255,255,255,0.15); padding: 6px 10px; vertical-align: middle; color: #fff; font-size: 10px; background: rgba(255,255,255,0.02); }
 
-          /* Push only the signatures to page bottom */
-          .footer-spacer { flex: 1 1 auto; }
-          .signature-section { display: flex; justify-content: space-between; gap: 30px; margin-top: auto; }
+          /* Signatures at bottom */
+          .signature-section { display: flex; justify-content: space-between; gap: 30px; }
           .signature-box { flex: 1; font-size: 10px; color: #fff; }
           .anchor-label { font-size: 10px; font-weight: 700; color: #ddd; margin-bottom: 4px; }
           .signature-area { border: 1px solid #cccccc; background-color: #f5f5f5; height: 80px; width: 100%; margin: 5px 0; border-radius: 4px; position: relative; padding: 5px; }
@@ -279,23 +277,23 @@ export async function POST(request: NextRequest) {
                     </div>
                 </div>
 
-                <div class="footer-spacer"></div>
+            </div>
 
-                <!-- Signatures (anchored for DocuSign) -->
-                <div class="signature-section">
-                    <div class="signature-box">
-                        <div class="anchor-label">SilberArrows Signature:</div>
-                        <div class="signature-area">
-                            <div class="signature-date">Date:</div>
-                        </div>
-                    </div>
-                    <div class="signature-box">
-                        <div class="anchor-label">Customer Signature:</div>
-                        <div class="signature-area">
-                            <div class="signature-date">Date:</div>
-                        </div>
+            <!-- Signatures (anchored for DocuSign) -->
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div class="anchor-label">SilberArrows Signature:</div>
+                    <div class="signature-area">
+                        <div class="signature-date">Date:</div>
                     </div>
                 </div>
+                <div class="signature-box">
+                    <div class="anchor-label">Customer Signature:</div>
+                    <div class="signature-area">
+                        <div class="signature-date">Date:</div>
+                    </div>
+                </div>
+            </div>
 
                 <!-- Footer -->
                 <div class="footer">

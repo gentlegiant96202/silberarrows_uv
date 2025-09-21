@@ -656,11 +656,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       </div>
                     </div>
                       
-                      {/* Show envelope ID when signed */}
-                      {docusignState.signingStatus === 'completed' && docusignState.envelopeId && (
-                        <div className="text-xs text-green-400/80 mt-2">
+                      {/* Show envelope ID when available */}
+                      {docusignState.envelopeId && (
+                        <div className="mt-1 font-mono text-[10px] text-white/40">
                           Envelope ID: {docusignState.envelopeId}
-                </div>
+                        </div>
                       )}
               </div>
                     )}

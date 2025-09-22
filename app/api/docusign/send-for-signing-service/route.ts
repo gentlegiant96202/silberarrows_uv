@@ -252,9 +252,13 @@ export async function POST(request: NextRequest) {
                 },
                 {
                   documentId: '1',
-                  pageNumber: '5',
-                  xPosition: '100',
-                  yPosition: '600',
+                  anchorString: 'Signature:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '30',
+                  anchorIgnoreIfNotPresent: true,
+                  anchorCaseSensitive: false,
+                  anchorMatchWholeWord: false,
                   tabLabel: 'CustomerSignatureBooklet'
                 }
               ],
@@ -271,9 +275,13 @@ export async function POST(request: NextRequest) {
                 },
                 {
                   documentId: '1',
-                  pageNumber: '5',
-                  xPosition: '100',
-                  yPosition: '650',
+                  anchorString: 'Date:',
+                  anchorUnits: 'pixels',
+                  anchorXOffset: '0',
+                  anchorYOffset: '20',
+                  anchorIgnoreIfNotPresent: true,
+                  anchorCaseSensitive: false,
+                  anchorMatchWholeWord: false,
                   tabLabel: 'CustomerDateBooklet'
                 }
               ]

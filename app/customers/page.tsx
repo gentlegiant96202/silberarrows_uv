@@ -55,6 +55,7 @@ export default function CustomersPage() {
   const [hasNext, setHasNext] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const fetchRows = async () => {
     setLoading(true);
@@ -91,6 +92,101 @@ export default function CustomersPage() {
     setLoading(false);
   };
 
+  const buildFilteredQuery = () => {
+    let query = supabase
+      .from('leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (model) query = query.eq('model_of_interest', model);
+    if (selectedStatuses.length > 0) query = query.in('status', selectedStatuses);
+    if (maxAge) query = query.eq('max_age', maxAge);
+
+    const isLostOrArchivedActive =
+      selectedStatuses.includes('lost') ||
+      selectedStatuses.includes('archived');
+
+    if (lostReason && isLostOrArchivedActive) query = query.eq('lost_reason', lostReason);
+
+    return query;
+  };
+
+  const exportToCSV = async () => {
+    try {
+      setExporting(true);
+
+      const pageSize = 1000;
+      let from = 0;
+      let to = from + pageSize - 1;
+      let allRows: LeadRow[] = [];
+
+      // Fetch in batches until fewer than pageSize returned
+      // Use a fresh query each loop to avoid compounding .range calls
+      // Range upper bound in Supabase is inclusive
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        let query = buildFilteredQuery();
+        const { data } = await query.range(from, to);
+        const batch = (data as LeadRow[]) || [];
+        allRows = allRows.concat(batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+        to += pageSize;
+      }
+
+      if (allRows.length === 0) {
+        alert('No data to export');
+        return;
+      }
+
+      const headers = [
+        'Name',
+        'Phone',
+        'Model',
+        'Status', 
+        'Max Age',
+        'Payment Type',
+        'Budget',
+        'Created Date',
+        'Lost Reason',
+        'Lost Notes',
+        'Lost Date'
+      ];
+
+      const csvData = allRows.map(row => [
+        row.full_name,
+        `${row.country_code} ${row.phone_number}`,
+        row.model_of_interest,
+        row.status.replace('_', ' '),
+        row.max_age,
+        row.payment_type,
+        row.payment_type === 'monthly' 
+          ? `AED ${row.monthly_budget?.toLocaleString() || 0}/mo`
+          : `AED ${row.total_budget?.toLocaleString() || 0}`,
+        new Date(row.created_at).toLocaleDateString(),
+        row.lost_reason || '',
+        row.lost_reason_notes || '',
+        row.lost_at ? new Date(row.lost_at).toLocaleDateString() : ''
+      ]);
+
+      const csvContent = [headers, ...csvData]
+        .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `leads-export-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const fetchModels = useCallback(async () => {
     const { data } = await supabase.from('leads').select('model_of_interest');
     if (data) {
@@ -123,58 +219,6 @@ export default function CustomersPage() {
       setLostReason('');
     }
   }, [selectedStatuses]);
-
-  // CSV Export functionality
-  const exportToCSV = () => {
-    if (rows.length === 0) {
-      alert('No data to export');
-      return;
-    }
-
-    const headers = [
-      'Name',
-      'Phone',
-      'Model',
-      'Status', 
-      'Max Age',
-      'Payment Type',
-      'Budget',
-      'Created Date',
-      'Lost Reason',
-      'Lost Notes',
-      'Lost Date'
-    ];
-
-    const csvData = rows.map(row => [
-      row.full_name,
-      `${row.country_code} ${row.phone_number}`,
-      row.model_of_interest,
-      row.status.replace('_', ' '),
-      row.max_age,
-      row.payment_type,
-      row.payment_type === 'monthly' 
-        ? `AED ${row.monthly_budget?.toLocaleString() || 0}/mo`
-        : `AED ${row.total_budget?.toLocaleString() || 0}`,
-      new Date(row.created_at).toLocaleDateString(),
-      row.lost_reason || '',
-      row.lost_reason_notes || '',
-      row.lost_at ? new Date(row.lost_at).toLocaleDateString() : ''
-    ]);
-
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `leads-export-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   return (
     <div className="h-full">
@@ -303,14 +347,21 @@ export default function CustomersPage() {
           {/* CSV Export Button - Small Excel Icon */}
           <button
             onClick={exportToCSV}
-            disabled={loading || rows.length === 0}
-            title="Export to Excel"
+            disabled={loading || exporting}
+            title={exporting ? 'Exporting…' : 'Export to Excel'}
             className="p-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded w-[38px] h-[38px] flex items-center justify-center"
           >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-              <path d="M15.5 11L13.5 13L15.5 15L14 16.5L12 14.5L10 16.5L8.5 15L10.5 13L8.5 11L10 9.5L12 11.5L14 9.5L15.5 11Z" />
-            </svg>
+            {exporting ? (
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-20" />
+                <path d="M4 12a8 8 0 018-8" strokeWidth="4" className="opacity-80" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                <path d="M15.5 11L13.5 13L15.5 15L14 16.5L12 14.5L10 16.5L8.5 15L10.5 13L8.5 11L10 9.5L12 11.5L14 9.5L15.5 11Z" />
+              </svg>
+            )}
           </button>
         </div>
 

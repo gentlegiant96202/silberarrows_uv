@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
                 },
                 {
                   documentId: '1',
-                  anchorString: 'Signature:',
+                  anchorString: "Customer's Signature:",
                   anchorUnits: 'pixels',
                   anchorXOffset: '0',
                   anchorYOffset: '30',
@@ -272,17 +272,6 @@ export async function POST(request: NextRequest) {
                   anchorIgnoreIfNotPresent: false,
                   anchorCaseSensitive: true,
                   tabLabel: 'CustomerDateAgreement'
-                },
-                {
-                  documentId: '1',
-                  anchorString: 'Date:',
-                  anchorUnits: 'pixels',
-                  anchorXOffset: '0',
-                  anchorYOffset: '20',
-                  anchorIgnoreIfNotPresent: true,
-                  anchorCaseSensitive: false,
-                  anchorMatchWholeWord: false,
-                  tabLabel: 'CustomerDateBooklet'
                 }
               ]
             }

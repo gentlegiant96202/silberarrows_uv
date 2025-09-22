@@ -27,6 +27,7 @@ const statusOptions = [
   'won',
   'delivered',
   'lost',
+  'archived',
 ];
 
 const maxAgeOptions = ['1yr', '2yrs', '3yrs', '4yrs', '5yrs', '6yrs', '7yrs', '8yrs', '9yrs', '10yrs'];
@@ -47,12 +48,13 @@ export default function CustomersPage() {
   const [rows, setRows] = useState<LeadRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [model, setModel] = useState('');
-  const [status, setStatus] = useState('');
   const [maxAge, setMaxAge] = useState('');
   const [lostReason, setLostReason] = useState('');
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
 
   const fetchRows = async () => {
     setLoading(true);
@@ -67,9 +69,20 @@ export default function CustomersPage() {
       .range(from, to);
 
     if (model) query = query.eq('model_of_interest', model);
-    if (status) query = query.eq('status', status);
+
+    if (selectedStatuses.length > 0) {
+      query = query.in('status', selectedStatuses);
+    }
+
     if (maxAge) query = query.eq('max_age', maxAge);
-    if (lostReason) query = query.eq('lost_reason', lostReason);
+
+    const isLostOrArchivedActive =
+      selectedStatuses.includes('lost') ||
+      selectedStatuses.includes('archived');
+
+    if (lostReason && isLostOrArchivedActive) {
+      query = query.eq('lost_reason', lostReason);
+    }
 
     const { data } = await query;
     const fetched = (data as LeadRow[]) || [];
@@ -94,19 +107,22 @@ export default function CustomersPage() {
   // initial + whenever page or filters change
   useEffect(() => {
     fetchRows();
-  }, [model, status, maxAge, lostReason, page]);
+  }, [model, maxAge, lostReason, page, selectedStatuses]);
 
   // reset page to 0 when filters change
   useEffect(() => {
     setPage(0);
-  }, [model, status, maxAge, lostReason]);
+  }, [model, maxAge, lostReason, selectedStatuses]);
 
-  // Reset lost reason when status changes to non-lost
+  // Reset lost reason when neither lost nor archived is active
   useEffect(() => {
-    if (status !== 'lost') {
+    const lostOrArchivedActive =
+      selectedStatuses.includes('lost') ||
+      selectedStatuses.includes('archived');
+    if (!lostOrArchivedActive) {
       setLostReason('');
     }
-  }, [status]);
+  }, [selectedStatuses]);
 
   // CSV Export functionality
   const exportToCSV = () => {
@@ -195,22 +211,66 @@ export default function CustomersPage() {
             ))}
           </select>
 
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded min-w-[120px]"
-          >
-            <option value="">Status (Any)</option>
-            {statusOptions.map((s) => (
-              <option key={s} value={s}>
-                {s.replace('_', ' ')}
-              </option>
-            ))}
-          </select>
+          {/* Status Multi-select Dropdown */}
+          <div className="relative min-w-[220px]">
+            <button
+              type="button"
+              onClick={() => setIsStatusDropdownOpen((o) => !o)}
+              className="w-full bg-black border border-white/10 text-white text-sm px-4 py-2 rounded text-left flex items-center justify-between"
+            >
+              <span>
+                {selectedStatuses.length === 0
+                  ? 'Status (Any)'
+                  : selectedStatuses.map((s) => s.replace('_', ' ')).join(', ')}
+              </span>
+              <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {isStatusDropdownOpen && (
+              <div className="absolute mt-1 w-full bg-black border border-white/10 rounded shadow-lg z-20 p-2">
+                <div className="max-h-56 overflow-auto custom-scrollbar pr-1">
+                  {statusOptions.map((s) => (
+                    <label key={s} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-white/5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-white"
+                        checked={selectedStatuses.includes(s)}
+                        onChange={(e) => {
+                          setSelectedStatuses((prev) =>
+                            e.target.checked
+                              ? Array.from(new Set([...prev, s]))
+                              : prev.filter((x) => x !== s)
+                          );
+                        }}
+                      />
+                      <span className="capitalize">{s.replace('_', ' ')}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-2">
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 bg-white/10 rounded hover:bg-white/20"
+                    onClick={() => setSelectedStatuses([])}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 bg-white/10 rounded hover:bg-white/20"
+                    onClick={() => setIsStatusDropdownOpen(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Always reserve space for Lost Reason Filter to prevent layout shift */}
           <div className="min-w-[140px]">
-            {status === 'lost' ? (
+            {(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) ? (
               <select
                 value={lostReason}
                 onChange={(e) => setLostReason(e.target.value)}
@@ -231,9 +291,9 @@ export default function CustomersPage() {
           <button
             onClick={() => {
               setModel('');
-              setStatus('');
               setMaxAge('');
               setLostReason('');
+              setSelectedStatuses([]);
             }}
             className="px-4 py-2 bg-white/10 text-white text-sm rounded hover:bg-white/20 transition-colors min-w-[100px]"
           >
@@ -267,7 +327,7 @@ export default function CustomersPage() {
                 <th className="px-4 py-2">Payment</th>
                 <th className="px-4 py-2">Budget</th>
                 {/* Always reserve space for Lost Reason column to prevent layout shift */}
-                <th className={`px-4 py-2 ${status !== 'lost' ? 'text-transparent' : ''}`}>
+                <th className={`px-4 py-2 ${!(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) ? 'text-transparent' : ''}`}>
                   Lost Reason
                 </th>
               </tr>
@@ -329,8 +389,8 @@ export default function CustomersPage() {
                         : `AED ${r.total_budget?.toLocaleString() || 0}`}
                     </td>
                     {/* Always include Lost Reason cell to prevent layout shift */}
-                    <td className={`px-4 py-2 ${status !== 'lost' ? 'text-transparent' : ''}`}>
-                      {status === 'lost' && (
+                    <td className={`px-4 py-2 ${!(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) ? 'text-transparent' : ''}`}>
+                      {(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) && (
                         <div className="max-w-xs">
                           {r.lost_reason && (
                             <div className="text-xs">
@@ -352,7 +412,7 @@ export default function CustomersPage() {
                           )}
                         </div>
                       )}
-                      {status !== 'lost' && (
+                      {!(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) && (
                         <div className="h-6"></div> // Reserve space when not showing
                       )}
                     </td>

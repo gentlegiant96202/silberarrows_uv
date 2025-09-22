@@ -248,7 +248,14 @@ export async function POST(request: NextRequest) {
                   anchorYOffset: '30',
                   anchorIgnoreIfNotPresent: false,
                   anchorCaseSensitive: true,
-                  tabLabel: 'CustomerSignature'
+                  tabLabel: 'CustomerSignatureAgreement'
+                },
+                {
+                  documentId: '1',
+                  pageNumber: '5',
+                  xPosition: '100',
+                  yPosition: '600',
+                  tabLabel: 'CustomerSignatureBooklet'
                 }
               ],
               dateSignedTabs: [
@@ -260,7 +267,14 @@ export async function POST(request: NextRequest) {
                   anchorYOffset: '66',
                   anchorIgnoreIfNotPresent: false,
                   anchorCaseSensitive: true,
-                  tabLabel: 'CustomerDate'
+                  tabLabel: 'CustomerDateAgreement'
+                },
+                {
+                  documentId: '1',
+                  pageNumber: '5',
+                  xPosition: '100',
+                  yPosition: '650',
+                  tabLabel: 'CustomerDateBooklet'
                 }
               ]
             }

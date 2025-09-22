@@ -127,12 +127,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         make,
         model,
         model_year,
-        current_odometer,
+        current_odometer: current_odometer || null,
         start_date,
         end_date,
-        cut_off_km,
+        cut_off_km: cut_off_km || null,
         workflow_status,
-        notes
+        notes: notes || null
       };
 
       activityType = 'updated';
@@ -187,15 +187,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ...(make !== undefined && { make }),
         ...(model !== undefined && { model }),
         ...(model_year !== undefined && { model_year }),
-        ...(current_odometer !== undefined && { current_odometer }),
+        ...(current_odometer !== undefined && { current_odometer: current_odometer || null }),
         ...(exterior_colour !== undefined && { exterior_colour }),
         ...(interior_colour !== undefined && { interior_colour }),
         ...(start_date !== undefined && { start_date }),
         ...(end_date !== undefined && { end_date }),
-        ...(cut_off_km !== undefined && { cut_off_km }),
+        ...(cut_off_km !== undefined && { cut_off_km: cut_off_km || null }),
         ...(workflow_status !== undefined && { workflow_status }),
-        ...(invoice_amount !== undefined && { invoice_amount }),
-        ...(notes !== undefined && { notes })
+        ...(invoice_amount !== undefined && { invoice_amount: invoice_amount || null }),
+        ...(notes !== undefined && { notes: notes || null })
       };
 
       activityType = 'contract_updated';
@@ -205,6 +205,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         updated_by: validation.user.email,
         updated_at: new Date().toISOString()
       };
+
+      // Debug logging for notes field
+      console.log('🔍 Notes field debugging:', {
+        notes_in_body: notes,
+        notes_type: typeof notes,
+        notes_in_updateData: updateData.notes,
+        all_updateData_keys: Object.keys(updateData)
+      });
     } else {
       // Legacy status change - no longer supported
       return NextResponse.json(

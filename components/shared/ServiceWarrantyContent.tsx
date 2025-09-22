@@ -61,6 +61,10 @@ export default function ServiceWarrantyContent() {
   const [warrantyContracts, setWarrantyContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedActiveStatus, setSelectedActiveStatus] = useState<string>('');
   
   // No workflow filter needed for service contracts
 
@@ -335,8 +339,41 @@ export default function ServiceWarrantyContent() {
     }
   };
 
-  // Filter contracts based on search term and status filter
-  const filterContracts = (contracts: Contract[]) => {
+  // Calculate days remaining for a contract
+  const calculateDaysRemaining = React.useCallback((endDate: string): number => {
+    if (!endDate) return 0;
+    const today = new Date();
+    const end = new Date(endDate);
+    const diffTime = end.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }, []);
+
+  // Format days remaining text with color coding
+  const formatDaysRemaining = React.useCallback((endDate: string): JSX.Element => {
+    const daysRemaining = calculateDaysRemaining(endDate);
+    let text = '';
+    let colorClass = '';
+
+    if (daysRemaining < 0) {
+      text = `(${Math.abs(daysRemaining)} days ago)`;
+      colorClass = 'text-red-400'; // Expired - red
+    } else if (daysRemaining === 0) {
+      text = '(expires today)';
+      colorClass = 'text-orange-400'; // Today - orange
+    } else if (daysRemaining <= 30) {
+      text = `(${daysRemaining} days left)`;
+      colorClass = 'text-yellow-400'; // Soon - yellow
+    } else {
+      text = `(${daysRemaining} days left)`;
+      colorClass = 'text-green-400'; // Safe - green
+    }
+
+    return <span className={colorClass}>{text}</span>;
+  }, [calculateDaysRemaining]);
+
+  // Filter contracts based on search term and filters
+  const filterContracts = React.useCallback((contracts: Contract[]) => {
     return contracts.filter(contract => {
       // Search term filter
       const matchesSearch = !searchTerm || (
@@ -346,12 +383,58 @@ export default function ServiceWarrantyContent() {
         contract.vin.toLowerCase().includes(searchTerm.toLowerCase())
       );
 
-      return matchesSearch;
-    });
-  };
+      // Status filter
+      const matchesStatus = !selectedStatus || contract.workflow_status === selectedStatus;
 
-  const filteredServiceContracts = filterContracts(serviceContracts);
-  const filteredWarrantyContracts = filterContracts(warrantyContracts);
+      // Month filter (based on created_at)
+      const matchesMonth = !selectedMonth || (() => {
+        const contractDate = new Date(contract.created_at);
+        return (contractDate.getMonth() + 1).toString() === selectedMonth;
+      })();
+
+      // Year filter (based on created_at)
+      const matchesYear = !selectedYear || (() => {
+        const contractDate = new Date(contract.created_at);
+        return contractDate.getFullYear().toString() === selectedYear;
+      })();
+
+      // Active/Expired filter (based on end_date)
+      const matchesActiveStatus = !selectedActiveStatus || (() => {
+        const daysRemaining = calculateDaysRemaining(contract.end_date);
+        if (selectedActiveStatus === 'active') {
+          return daysRemaining >= 0; // Active (green/yellow/orange)
+        } else if (selectedActiveStatus === 'expired') {
+          return daysRemaining < 0; // Expired (red)
+        }
+        return true;
+      })();
+
+      return matchesSearch && matchesStatus && matchesMonth && matchesYear && matchesActiveStatus;
+    });
+  }, [searchTerm, selectedStatus, selectedMonth, selectedYear, selectedActiveStatus, calculateDaysRemaining]);
+
+  const filteredServiceContracts = React.useMemo(() => 
+    filterContracts(serviceContracts), 
+    [filterContracts, serviceContracts]
+  );
+  
+  const filteredWarrantyContracts = React.useMemo(() => 
+    filterContracts(warrantyContracts), 
+    [filterContracts, warrantyContracts]
+  );
+
+  // Get available years from contracts
+  const availableYears = React.useMemo(() => {
+    const allContracts = [...serviceContracts, ...warrantyContracts];
+    const years = new Set<number>();
+    
+    allContracts.forEach(contract => {
+      const year = new Date(contract.created_at).getFullYear();
+      years.add(year);
+    });
+    
+    return Array.from(years).sort((a, b) => b - a); // Sort descending (newest first)
+  }, [serviceContracts, warrantyContracts]);
 
   // Calculate stats (simplified without status complexity)
   const serviceStats = {
@@ -396,8 +479,8 @@ export default function ServiceWarrantyContent() {
         <div className="p-8 text-center">
           <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
           <p className="text-white/60">
-            {searchTerm 
-              ? `No ${type} contracts match your search criteria` 
+            {(searchTerm || selectedMonth || selectedYear || selectedStatus || selectedActiveStatus)
+              ? `No ${type} contracts match your search and filter criteria` 
               : `No ${type} contracts found`}
           </p>
         </div>
@@ -471,7 +554,9 @@ export default function ServiceWarrantyContent() {
               </td>
               <td className="w-36 px-4 py-3">
                 <div className="text-white/80 text-sm">{contract.formatted_start_date}</div>
-                <div className="text-white/60 text-xs">to {contract.formatted_end_date}</div>
+                <div className="text-white/60 text-xs">
+                  to {contract.formatted_end_date} {formatDaysRemaining(contract.end_date)}
+                </div>
               </td>
               <td className="w-32 px-4 py-3">
                 <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -532,8 +617,8 @@ export default function ServiceWarrantyContent() {
               <p className="text-white/60">Contract Management System</p>
             </div>
             
-            {/* Search and Actions - Flexible width */}
-            <div className="flex items-center space-x-4 flex-shrink-0">
+            {/* Search and Filters - Flexible width */}
+            <div className="flex items-center space-x-3 flex-shrink-0">
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-white/40" />
@@ -545,6 +630,82 @@ export default function ServiceWarrantyContent() {
                   className="w-64 h-[42px] pl-10 pr-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm placeholder-white/40 focus:outline-none focus:border-white/40"
                 />
               </div>
+
+              {/* Month Filter */}
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40"
+              >
+                <option value="" className="bg-gray-900">All Months</option>
+                <option value="1" className="bg-gray-900">January</option>
+                <option value="2" className="bg-gray-900">February</option>
+                <option value="3" className="bg-gray-900">March</option>
+                <option value="4" className="bg-gray-900">April</option>
+                <option value="5" className="bg-gray-900">May</option>
+                <option value="6" className="bg-gray-900">June</option>
+                <option value="7" className="bg-gray-900">July</option>
+                <option value="8" className="bg-gray-900">August</option>
+                <option value="9" className="bg-gray-900">September</option>
+                <option value="10" className="bg-gray-900">October</option>
+                <option value="11" className="bg-gray-900">November</option>
+                <option value="12" className="bg-gray-900">December</option>
+              </select>
+
+              {/* Year Filter */}
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40"
+              >
+                <option value="" className="bg-gray-900">All Years</option>
+                {availableYears.map(year => (
+                  <option key={year} value={year.toString()} className="bg-gray-900">
+                    {year}
+                  </option>
+                ))}
+              </select>
+
+              {/* Status Filter */}
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40"
+              >
+                <option value="" className="bg-gray-900">All Status</option>
+                <option value="created" className="bg-gray-900">Created</option>
+                <option value="sent_for_signing" className="bg-gray-900">Sent for Signing</option>
+                <option value="card_issued" className="bg-gray-900">Card Issued</option>
+              </select>
+
+              {/* Active/Expired Filter */}
+              <select
+                value={selectedActiveStatus}
+                onChange={(e) => setSelectedActiveStatus(e.target.value)}
+                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40"
+              >
+                <option value="" className="bg-gray-900">All Contracts</option>
+                <option value="active" className="bg-gray-900">🟢 Active</option>
+                <option value="expired" className="bg-gray-900">🔴 Expired</option>
+              </select>
+
+              {/* Clear Filters Button */}
+              {(searchTerm || selectedMonth || selectedYear || selectedStatus || selectedActiveStatus) && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedMonth('');
+                    setSelectedYear('');
+                    setSelectedStatus('');
+                    setSelectedActiveStatus('');
+                  }}
+                  className="h-[42px] px-3 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded text-red-400 text-sm transition-colors flex items-center gap-2"
+                  title="Clear all filters"
+                >
+                  <X className="w-4 h-4" />
+                  Clear
+                </button>
+              )}
 
               {/* New Contract Button */}
               {canCreate && (

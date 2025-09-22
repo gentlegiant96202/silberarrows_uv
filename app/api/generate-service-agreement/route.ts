@@ -1,7 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+// Dynamic import for pdf-lib to avoid module resolution issues
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
+
+// Helper: Merge Service Agreement with ServiceCare Booklet
+async function mergeWithServiceCareBooklet(agreementPdfBuffer: Buffer): Promise<Buffer> {
+  try {
+    console.log('🔄 Starting PDF merge process...');
+    
+    // Dynamic import for pdf-lib
+    const { PDFDocument } = await import('pdf-lib');
+    
+    // Load the generated service agreement PDF
+    const mergedPdf = await PDFDocument.create();
+    const agreementPdf = await PDFDocument.load(agreementPdfBuffer);
+    
+    // Copy service agreement pages (portrait) - should be 1 page
+    const agreementPages = await mergedPdf.copyPages(agreementPdf, agreementPdf.getPageIndices());
+    agreementPages.forEach(page => mergedPdf.addPage(page));
+    console.log(`✅ Added ${agreementPages.length} agreement page(s)`);
+    
+    // Load ServiceCare booklet from public folder
+    const bookletPath = path.join(process.cwd(), 'public', 'SILBERARROWS SERVICECARE.pdf');
+    
+    if (!fs.existsSync(bookletPath)) {
+      console.error('❌ ServiceCare booklet not found at:', bookletPath);
+      throw new Error('ServiceCare booklet not found');
+    }
+    
+    const bookletBuffer = fs.readFileSync(bookletPath);
+    const bookletPdf = await PDFDocument.load(bookletBuffer);
+    
+    // Copy all booklet pages (landscape) - should be 10 pages  
+    const bookletPages = await mergedPdf.copyPages(bookletPdf, bookletPdf.getPageIndices());
+    bookletPages.forEach(page => mergedPdf.addPage(page));
+    console.log(`✅ Added ${bookletPages.length} booklet page(s)`);
+    
+    // Generate final merged PDF
+    const finalPdfBuffer = await mergedPdf.save();
+    console.log(`✅ PDF merge completed - Total pages: ${agreementPages.length + bookletPages.length}`);
+    
+    return Buffer.from(finalPdfBuffer);
+    
+  } catch (error) {
+    console.error('❌ Error merging PDFs:', error);
+    throw error;
+  }
+}
 
 // Helper: Generate Service Agreement PDF and return as Buffer  
 export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
@@ -382,7 +428,7 @@ export async function POST(request: NextRequest) {
             <!-- Header -->
             <div class="header">
                 <div class="title-section">
-                    <div class="title">SERVICECARE</div>
+                    <div class="title">SERVICE-CARE</div>
                     <div class="date-line">AGREEMENT FORM</div>
                 </div>
                 <img src="${logoSrc}" alt="SilberArrows Logo" class="logo">
@@ -492,29 +538,11 @@ export async function POST(request: NextRequest) {
                     </div>
                 </div>
 
-                ${data.notes ? `
                 <!-- Additional Notes -->
-                <div class="section">
+                <div class="section" style="min-height: 80px; padding: 15px 12px;">
                     <div class="section-title">Additional Notes</div>
-                    <div class="text-content">
-                        ${data.notes}
-                    </div>
-                </div>
-                ` : ''}
-
-                <!-- Customer Declaration -->
-                <div class="section">
-                    <div class="section-title">Customer Declaration</div>
-                    <div class="text-content">
-                        By my signature below, I confirm that I have thoroughly read & understood the terms & conditions of this Agreement as stated in the attached ServiceCare Information Booklet, that I have received a completed copy of this Agreement & the associated Information Booklet. I agree to be bound by the terms & conditions noted in this Booklet.
-                    </div>
-                </div>
-
-                <!-- Dealer Declaration -->
-                <div class="section">
-                    <div class="section-title">Dealer Declaration</div>
-                    <div class="text-content">
-                        We hereby declare that all the details set out in this Agreement are accurate & correct. The terms & conditions of this ServiceCare are explained in the attached Information Booklet.
+                    <div class="text-content" style="min-height: 50px; padding-top: 8px;">
+                        ${data.notes || 'No additional notes'}
                     </div>
                 </div>
 
@@ -522,6 +550,13 @@ export async function POST(request: NextRequest) {
 
             <!-- Signatures at bottom (anchored for DocuSign) -->
             <div class="signatures-bottom">
+                <!-- Joint Acknowledgment -->
+                <div class="section" style="margin-bottom: 15px;">
+                    <div class="section-title">Joint Acknowledgment</div>
+                    <div class="text-content">
+                        The Customer accepts the ServiceCare terms in the Information Booklet (incorporated into this Agreement) and confirms the above details are correct and they are authorised to sign; SilberArrows confirms the details are correct and that the ServiceCare terms were explained. Coverage ends on the earlier of the End Date or the cut-off kilometres.
+                    </div>
+                </div>
                 <div class="signature-section">
                     <div class="signature-box">
                         <div>SilberArrows Signature:</div>
@@ -619,8 +654,13 @@ export async function POST(request: NextRequest) {
       throw new Error(`PDFShift API error: ${pdfResponse.status} - ${errorText}`);
     }
 
-    const pdfBuffer = await pdfResponse.arrayBuffer();
-    console.log('✅ PDF generated successfully:', { sizeBytes: pdfBuffer.byteLength, sizeMB: (pdfBuffer.byteLength / 1024 / 1024).toFixed(2) });
+    const agreementPdfBuffer = await pdfResponse.arrayBuffer();
+    console.log('✅ Service Agreement PDF generated successfully:', { sizeBytes: agreementPdfBuffer.byteLength, sizeMB: (agreementPdfBuffer.byteLength / 1024 / 1024).toFixed(2) });
+
+    // Merge with ServiceCare booklet
+    console.log('🔄 Merging with ServiceCare booklet...');
+    const pdfBuffer = await mergeWithServiceCareBooklet(Buffer.from(agreementPdfBuffer));
+    console.log('✅ Merged PDF created successfully:', { sizeBytes: pdfBuffer.byteLength, sizeMB: (pdfBuffer.byteLength / 1024 / 1024).toFixed(2) });
 
     // Handle database operations (skip if this is PDF-only generation)
     let contractData = null;

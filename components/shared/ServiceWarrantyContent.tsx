@@ -196,12 +196,6 @@ export default function ServiceWarrantyContent() {
 
   // Handle contract actions
   const handleViewContract = (contract: Contract) => {
-    // Check if user has permission to edit contracts
-    if (!isAdmin && !isAccounts) {
-      alert('You do not have permission to edit contracts. Only admin and accounts users can edit contract details.');
-      return;
-    }
-    
     setSelectedContract(contract);
     setViewModalOpen(true);
   };
@@ -585,15 +579,13 @@ export default function ServiceWarrantyContent() {
               </td>
               <td className="w-24 px-4 py-3 text-center">
                 <div className="flex items-center justify-center gap-2">
-                  {(isAdmin || isAccounts) && (
-                    <button 
-                      onClick={() => handleViewContract(contract)}
-                      className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"
-                      title="View Details & Edit Contract"
-                    >
-                      <Eye className="w-4 h-4 text-blue-300" />
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => handleViewContract(contract)}
+                    className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"
+                    title={(isAdmin || isAccounts) ? "View Details & Edit Contract" : "View Contract Details"}
+                  >
+                    <Eye className="w-4 h-4 text-blue-300" />
+                  </button>
                   
                   {canDelete && (
                     <button 
@@ -811,6 +803,7 @@ export default function ServiceWarrantyContent() {
         }}
         contract={selectedContract}
         onUpdated={handleContractUpdated}
+        canEdit={isAdmin || isAccounts}
       />
 
     </div>

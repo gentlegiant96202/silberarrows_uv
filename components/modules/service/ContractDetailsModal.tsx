@@ -9,9 +9,10 @@ interface ContractDetailsModalProps {
   onClose: () => void;
   contract: any;
   onUpdated?: (updatedContract: any) => void;
+  canEdit?: boolean;
 }
 
-export default function ContractDetailsModal({ isOpen, onClose, contract, onUpdated }: ContractDetailsModalProps) {
+export default function ContractDetailsModal({ isOpen, onClose, contract, onUpdated, canEdit = true }: ContractDetailsModalProps) {
   const { user } = useAuth();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -1041,7 +1042,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
           {/* FIXED FOOTER - MATCHING CREATE MODAL */}
           <div className="flex items-center justify-end gap-4 pt-4">
-            {!isEditing ? (
+            {!isEditing && canEdit ? (
               <button
                 type="button"
                 onClick={handleEdit}
@@ -1049,6 +1050,15 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
               >
                 <FileText className="h-4 w-4" />
                 Edit Contract Details
+              </button>
+            ) : !isEditing && !canEdit ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded text-white text-sm font-bold transition-all duration-200 flex items-center gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                Close View
               </button>
             ) : (
               <>

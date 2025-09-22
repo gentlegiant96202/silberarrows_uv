@@ -1051,16 +1051,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                 <FileText className="h-4 w-4" />
                 Edit Contract Details
               </button>
-            ) : !isEditing && !canEdit ? (
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded text-white text-sm font-bold transition-all duration-200 flex items-center gap-2"
-              >
-                <Eye className="h-4 w-4" />
-                Close View
-              </button>
-            ) : (
+            ) : isEditing ? (
               <>
                 <button
                   type="button"
@@ -1093,7 +1084,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                   )}
                 </button>
               </>
-            )}
+            ) : null}
           </div>
 
         </form>

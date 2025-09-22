@@ -167,13 +167,24 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ URLs converted to original Supabase domains');
     
-    // Use ALL images - no limit needed with our own renderer service
-    const limitedPhotos = optimizedPhotos;
-    console.log(`📸 Using all ${optimizedPhotos.length} images for PDF generation`);
+    // Apply server-side ordering to guarantee consistent PDF order
+    // Order: primary first, then sort_order ASC, then created_at ASC
+    const orderedPhotos = [...optimizedPhotos].sort((a: any, b: any) => {
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      const aOrder = typeof a.sort_order === 'number' ? a.sort_order : 999999;
+      const bOrder = typeof b.sort_order === 'number' ? b.sort_order : 999999;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return aTime - bTime;
+    });
+    console.log('🧭 Photos sorted server-side (primary → sort_order → created_at)');
+    console.log(`📸 Using all ${orderedPhotos.length} images for PDF generation`);
     
         // Split images: first 5 for main pages, rest for gallery pages (2 per page)  
-    let mainPhotos = limitedPhotos.slice(0, 5);
-    let galleryPhotos = limitedPhotos.slice(5);
+    let mainPhotos = orderedPhotos.slice(0, 5);
+    let galleryPhotos = orderedPhotos.slice(5);
     
     console.log(`📸 Image distribution: ${mainPhotos.length} main photos, ${galleryPhotos.length} gallery photos`);
     console.log(`📄 Gallery pages needed: ${Math.ceil(galleryPhotos.length / 2)} pages`);

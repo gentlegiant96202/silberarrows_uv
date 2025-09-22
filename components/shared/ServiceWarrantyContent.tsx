@@ -55,7 +55,10 @@ export default function ServiceWarrantyContent() {
   } = useModulePermissions('service');
   
   // Get user role to check for admin/accounts access
-  const { isAdmin, isAccounts } = useUserRole();
+  const { isAdmin, isAccounts, role } = useUserRole();
+  
+  // Debug logging for role detection
+  console.log('🔍 User role debug:', { isAdmin, isAccounts, role, userEmail: user?.email });
   
   const [activeTab, setActiveTab] = useState<'service' | 'warranty'>('service');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -580,7 +583,10 @@ export default function ServiceWarrantyContent() {
               <td className="w-24 px-4 py-3 text-center">
                 <div className="flex items-center justify-center gap-2">
                   <button 
-                    onClick={() => handleViewContract(contract)}
+                    onClick={() => {
+                      console.log('🔍 Edit permission debug:', { isAdmin, isAccounts, role, canEditCheck: isAdmin || isAccounts });
+                      handleViewContract(contract);
+                    }}
                     className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"
                     title={(isAdmin || isAccounts) ? "View Details & Edit Contract" : "View Contract Details"}
                   >

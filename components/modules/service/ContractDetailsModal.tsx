@@ -15,6 +15,9 @@ interface ContractDetailsModalProps {
 export default function ContractDetailsModal({ isOpen, onClose, contract, onUpdated, canEdit = true }: ContractDetailsModalProps) {
   const { user } = useAuth();
   
+  // Debug logging for edit permissions
+  console.log('🔍 ContractDetailsModal canEdit:', { canEdit, userEmail: user?.email });
+  
   const [isEditing, setIsEditing] = useState(false);
   const [localContract, setLocalContract] = useState(contract);
   const [loading, setLoading] = useState(false);

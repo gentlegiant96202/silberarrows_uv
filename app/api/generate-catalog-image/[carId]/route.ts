@@ -501,12 +501,20 @@ export async function POST(
         status: 'ready',
         last_generated_at: new Date().toISOString(),
         error_message: null
+      }, {
+        onConflict: 'car_id'
       });
 
     if (catalogUpdateError) {
-      console.error('UV catalog upsert error:', catalogUpdateError);
-      // Don't fail the whole request if catalog update fails - the image was generated successfully
-      console.warn('Catalog update failed but image generation succeeded');
+      console.error('❌ CRITICAL: UV catalog upsert error:', catalogUpdateError);
+      console.error('❌ Database update failed for car:', carId, 'with URL:', updatedPublicUrl);
+      // Return error since catalog update is critical for frontend display
+      return NextResponse.json({ 
+        error: 'Failed to update catalog database',
+        details: catalogUpdateError.message,
+        imageUrl: updatedPublicUrl,
+        note: 'Image was generated but not saved to database'
+      }, { status: 500 });
     }
 
     return NextResponse.json({

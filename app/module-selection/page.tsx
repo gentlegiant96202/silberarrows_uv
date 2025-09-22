@@ -5,6 +5,7 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { useAllModulePermissions } from '@/lib/useModulePermissions';
 import Header from '@/components/shared/header/Header';
 import LightRays from '@/components/shared/LightRays';
+import LiquidEther from '@/components/shared/LiquidEther';
 import Image from 'next/image';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
 import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
@@ -172,8 +173,8 @@ export default function ModuleSelectionPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black relative overflow-hidden">
-        {/* Light Rays Background */}
-        <div className="absolute inset-0">
+        {/* Light Rays Background - HIDDEN (uncomment to switch back) */}
+        {/* <div className="absolute inset-0">
           <LightRays
             raysOrigin="top-center"
             raysColor="#ffffff"
@@ -186,6 +187,45 @@ export default function ModuleSelectionPage() {
             distortion={0.03}
             fadeDistance={1.0}
             saturation={1.0}
+          />
+        </div> */}
+        
+        {/* Liquid Ether Layer - PRIMARY BACKGROUND */}
+        <div className="absolute inset-0">
+          <LiquidEther
+            colors={[ '#ffffff', '#f5f5f5', '#d9d9d9' ]}
+            mouseForce={28}
+            cursorSize={120}
+            isViscous={false}
+            viscous={30}
+            iterationsViscous={32}
+            iterationsPoisson={32}
+            resolution={0.5}
+            isBounce={false}
+            autoDemo={false}
+            autoSpeed={0.7}
+            autoIntensity={2.8}
+            takeoverDuration={0.15}
+            autoResumeDelay={2000}
+            autoRampDuration={0.4}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
+        {/* Soft white glow overlay (above ether, below content) */}
+        <div className="absolute inset-0 z-[2] pointer-events-none">
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background:
+                'radial-gradient(1000px 500px at 50% -10%, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%)'
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              background:
+                'radial-gradient(900px 450px at 50% 110%, rgba(255,255,255,0.16), rgba(255,255,255,0) 60%)'
+            }}
           />
         </div>
         
@@ -287,8 +327,8 @@ export default function ModuleSelectionPage() {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* WebGL Light Rays Background */}
-      <div className="absolute inset-0 z-0">
+      {/* WebGL Light Rays Background - HIDDEN (uncomment to switch back) */}
+      {/* <div className="absolute inset-0 z-0">
         <LightRays
           raysOrigin="top-center"
           raysColor="#ffffff"
@@ -301,6 +341,45 @@ export default function ModuleSelectionPage() {
           distortion={0.03}
           fadeDistance={1.0}
           saturation={1.0}
+        />
+      </div> */}
+      
+      {/* Liquid Ether Layer - PRIMARY BACKGROUND */}
+      <div className="absolute inset-0 z-0">
+        <LiquidEther
+          colors={[ '#ffffff', '#f5f5f5', '#d9d9d9' ]}
+          mouseForce={28}
+          cursorSize={120}
+          isViscous={false}
+          viscous={30}
+          iterationsViscous={32}
+          iterationsPoisson={32}
+          resolution={0.5}
+          isBounce={false}
+          autoDemo={false}
+          autoSpeed={0.7}
+          autoIntensity={2.8}
+          takeoverDuration={0.15}
+          autoResumeDelay={2000}
+          autoRampDuration={0.4}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      {/* Soft white glow overlay (above ether, below content) */}
+      <div className="absolute inset-0 z-[2] pointer-events-none">
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            background:
+              'radial-gradient(1000px 500px at 50% -10%, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%)'
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            background:
+              'radial-gradient(900px 450px at 50% 110%, rgba(255,255,255,0.16), rgba(255,255,255,0) 60%)'
+          }}
         />
       </div>
 

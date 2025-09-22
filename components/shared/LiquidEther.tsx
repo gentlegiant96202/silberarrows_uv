@@ -89,7 +89,7 @@ export default function LiquidEther({
 	useEffect(() => {
 		if (!mountRef.current) return;
 
-		function makePaletteTexture(stops: string[]): THREE.DataTexture {
+		function makePaletteTexture(stops: string[]) {
 			let arr: string[];
 			if (Array.isArray(stops) && stops.length > 0) {
 				arr = stops.length === 1 ? [stops[0], stops[0]] : stops;

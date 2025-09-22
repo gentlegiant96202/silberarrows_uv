@@ -161,6 +161,7 @@ export default function ServiceWarrantyContent() {
           end_date: data.endDate,
           cut_off_km: data.cutOffKm || null,
           invoice_amount: data.invoiceAmount || null,
+          notes: data.notes || null,
           reservation_id: data.reservationId || null
         }),
       });

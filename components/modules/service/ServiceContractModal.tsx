@@ -45,6 +45,9 @@ export interface ServiceContractData {
   // Financial Information
   invoiceAmount: string;
   
+  // Notes
+  notes: string;
+  
   // Optional relationship link
   reservationId?: string;
 }
@@ -105,7 +108,10 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       cutOffKm: '30000',
       
       // Financial Information
-      invoiceAmount: ''
+      invoiceAmount: '',
+      
+      // Notes
+      notes: ''
     };
   };
 
@@ -671,6 +677,30 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                 <p className="text-amber-400 text-xs font-semibold">
                   <strong>Note:</strong> Agreement expires whichever comes first, date or kilometers.
                 </p>
+              </div>
+            </div>
+
+            {/* STEP 6: NOTES */}
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
+                  <span className="text-white text-sm font-bold">6</span>
+                </div>
+                <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Additional Notes
+                </h3>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">Contract Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 resize-none"
+                  placeholder="Add any additional notes or special terms for this contract..."
+                  rows={4}
+                />
+                <p className="text-white/50 text-xs mt-2">These notes will appear on the contract PDF and be stored with the contract record.</p>
               </div>
             </div>
 

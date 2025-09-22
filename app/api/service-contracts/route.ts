@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
         .from('service_contracts')
         .select(`
           id,
+          contract_type,
           reference_no,
           service_type,
           workflow_status,
@@ -107,6 +108,7 @@ export async function GET(request: NextRequest) {
         .from('warranty_contracts')
         .select(`
           id,
+          contract_type,
           reference_no,
           workflow_status,
           owner_name,
@@ -207,6 +209,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const data = await request.json();
+    console.log('📝 Create contract payload received:', {
+      keys: Object.keys(data),
+      type: (data as any)?.type,
+      hasNotes: 'notes' in (data || {}),
+      notesPreview: (data as any)?.notes?.slice?.(0, 120) || (data as any)?.notes || null
+    });
     const { type, ...contractData } = data;
 
     // Get user information for sales_executive field
@@ -217,6 +225,8 @@ export async function POST(request: NextRequest) {
     // Add sales_executive field (auto-populated, cannot be changed)
     const contractWithSalesExec = {
       ...contractData,
+      // Ensure notes is explicitly passed (avoid accidental drops)
+      notes: (contractData as any)?.notes ?? null,
       sales_executive: userName
     };
 
@@ -250,6 +260,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Activity logging removed - contract_activities table deleted
+
+    console.log('✅ Contract inserted. Notes field persisted as:', (result.data as any)?.notes ?? null);
 
     return NextResponse.json({
       contract: result.data,

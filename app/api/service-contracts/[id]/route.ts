@@ -74,9 +74,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json();
     const { action, type = 'service' } = body;
 
-    console.log('PUT request received for contract:', contractId);
-    console.log('Action:', action);
-    console.log('Body data:', body);
+    console.log('🛠️ Update contract PUT:', {
+      contractId,
+      action,
+      type,
+      keys: Object.keys(body || {}),
+      hasNotes: 'notes' in (body || {}),
+      notesPreview: body?.notes?.slice?.(0, 120) || body?.notes || null
+    });
 
     // Determine which table to update
     const tableName = type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
@@ -217,7 +222,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .single();
 
     if (updateError) {
-      console.error('Database update error:', updateError);
+      console.error('❌ Database update error:', {
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint,
+        code: (updateError as any).code,
+        tableName,
+        fieldsAttempted: Object.keys(updateData)
+      });
       return NextResponse.json(
         { error: 'Failed to update contract', details: updateError.message },
         { status: 500 }
@@ -234,8 +246,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       vehicle_info: `${updatedContract.make} ${updatedContract.model} (${updatedContract.model_year})`
     };
 
-    console.log('API returning updated contract:', enhancedContract);
-    console.log('Updated contract workflow_status:', enhancedContract?.workflow_status);
+    console.log('✅ Contract updated. Notes now:', (enhancedContract as any)?.notes ?? null);
 
     return NextResponse.json({
       contract: enhancedContract,

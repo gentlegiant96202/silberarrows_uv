@@ -58,7 +58,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     end_date: '',
     cut_off_km: '',
     workflow_status: '',
-    invoice_amount: ''
+    invoice_amount: '',
+    notes: ''
   });
 
   // Helper function to get authorization headers
@@ -100,7 +101,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         end_date: displayContract.end_date || '',
         cut_off_km: displayContract.cut_off_km || '',
         workflow_status: displayContract.workflow_status || 'created',
-        invoice_amount: displayContract.invoice_amount || ''
+        invoice_amount: displayContract.invoice_amount || '',
+        notes: displayContract.notes || ''
       });
     }
   };
@@ -179,7 +181,9 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         body: JSON.stringify({
           action: 'update_contract',
           ...formData,
-          type: displayContract.contract_type || 'service'
+          // Ensure notes is always explicit to avoid being dropped by spread
+          notes: formData.notes ?? '',
+          type: (displayContract as any)?.contract_type || 'service'
         })
       });
 
@@ -1011,6 +1015,24 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                     </div>
                     )}
                   </div>
+                
+                {/* Notes Field - Full Width */}
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">Additional Notes</label>
+                    {isEditing ? (
+                      <textarea
+                        value={formData.notes}
+                        onChange={(e) => handleInputChange('notes', e.target.value)}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 resize-none"
+                        placeholder="Add any additional notes or special terms for this contract..."
+                        rows={4}
+                      />
+                    ) : (
+                      <div className="min-h-[100px] flex items-start text-white text-sm px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                        {displayContract.notes || 'No additional notes provided'}
+                      </div>
+                    )}
+                </div>
                 </div>
               </div>
             </div>

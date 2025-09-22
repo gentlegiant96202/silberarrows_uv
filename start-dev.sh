@@ -144,7 +144,7 @@ fi
 
 echo ""
 echo "🔄 Starting development server..."
-echo "📍 Server will be available at: http://localhost:3000"
+echo "📍 Server will be available at: http://127.0.0.1:3000 (localhost)"
 if [ "$PYTHON_AVAILABLE" = true ]; then
     echo "🐍 Python scraper will be available for 'Find Leads' functionality"
 else
@@ -156,27 +156,31 @@ echo "   (Press Ctrl+C to stop the server)"
 echo ""
 
 # Start the development server in the background
-"$NPM_PATH" run dev &
+CURSOR_SNAP_ENV_VARS=""
+export NODE_OPTIONS=""
+HOST=127.0.0.1 PORT=3000 "$NPM_PATH" run dev:local > dev-server.log 2>&1 &
 SERVER_PID=$!
 
 # Wait a bit longer for the server to fully start
 sleep 5
 
 # Check if server is responding
-if curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 | grep -q "200"; then
+if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000 | grep -q "200"; then
     echo "✅ Server is running successfully!"
     
     # Open the browser
     if command_exists open; then
-        open http://localhost:3000
+        open http://127.0.0.1:3000/service
     elif command_exists xdg-open; then
-        xdg-open http://localhost:3000
+        xdg-open http://127.0.0.1:3000/service
     else
-        echo "🌐 Please open http://localhost:3000 in your browser"
+        echo "🌐 Please open http://127.0.0.1:3000/service in your browser"
     fi
 else
     echo "⚠️  Server may still be starting... please wait a moment"
-    echo "🌐 Try opening http://localhost:3000 in your browser"
+    echo "🌐 Try opening http://127.0.0.1:3000/service in your browser"
+    echo "📄 Recent logs:"
+    tail -n 50 dev-server.log || true
 fi
 
 # Wait for the server process

@@ -54,6 +54,9 @@ export default function ServiceWarrantyContent() {
     canDelete 
   } = useModulePermissions('service');
   
+  // Get user role to check for admin/accounts access
+  const { isAdmin, isAccounts } = useUserRole();
+  
   const [activeTab, setActiveTab] = useState<'service' | 'warranty'>('service');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreatingContract, setIsCreatingContract] = useState(false);
@@ -193,6 +196,12 @@ export default function ServiceWarrantyContent() {
 
   // Handle contract actions
   const handleViewContract = (contract: Contract) => {
+    // Check if user has permission to edit contracts
+    if (!isAdmin && !isAccounts) {
+      alert('You do not have permission to edit contracts. Only admin and accounts users can edit contract details.');
+      return;
+    }
+    
     setSelectedContract(contract);
     setViewModalOpen(true);
   };
@@ -576,13 +585,15 @@ export default function ServiceWarrantyContent() {
               </td>
               <td className="w-24 px-4 py-3 text-center">
                 <div className="flex items-center justify-center gap-2">
-                  <button 
-                    onClick={() => handleViewContract(contract)}
-                    className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"
-                    title="View Details & Manage PDF"
-                  >
-                    <Eye className="w-4 h-4 text-blue-300" />
-                  </button>
+                  {(isAdmin || isAccounts) && (
+                    <button 
+                      onClick={() => handleViewContract(contract)}
+                      className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"
+                      title="View Details & Edit Contract"
+                    >
+                      <Eye className="w-4 h-4 text-blue-300" />
+                    </button>
+                  )}
                   
                   {canDelete && (
                     <button 

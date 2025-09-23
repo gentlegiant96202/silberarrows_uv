@@ -414,8 +414,8 @@ export default function MarketingKanbanBoard() {
   const fetchTasks = async () => {
     try {
       const headers = await getAuthHeaders();
-      // Limit to 100 most recent tasks for better performance
-      const response = await fetch('/api/design-tasks?limit=100', { headers });
+      // Fetch all tasks (increased from 100 to accommodate all 179+ tasks)
+      const response = await fetch('/api/design-tasks?limit=200', { headers });
       if (response.ok) {
         const rawData = await response.json();
         
@@ -446,6 +446,10 @@ export default function MarketingKanbanBoard() {
             previewUrl: getPreviewUrl(baseTask.media_files)
           };
         });
+        
+        console.log(`✅ Successfully fetched ${transformedTasks.length} tasks`);
+        console.log('Raw API response length:', rawData.length);
+        console.log('Database total should be 179, API returned:', rawData.length);
         
         setTasks(transformedTasks);
       } else {

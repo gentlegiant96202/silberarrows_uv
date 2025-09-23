@@ -81,9 +81,8 @@ export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
     } catch {}
   }
 
-  // Use the detailed template below - skip simplified template
-  // The detailed template will be used by the POST function
-}
+  // Generate PDF using the detailed template below
+  const htmlContent = `
 
 export async function POST(request: NextRequest) {
   try {
@@ -580,6 +579,42 @@ export async function POST(request: NextRequest) {
     </body>
     </html>
     `;
+
+  // Call PDFShift API to generate PDF
+  const resp = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
+    method: 'POST',
+    headers: {
+      'X-API-Key': process.env.PDFSHIFT_API_KEY || '',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      source: htmlContent,
+      format: 'A4',
+      margin: '0',
+      landscape: true,
+      use_print: true,
+      delay: 1000
+    }),
+  });
+  
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`PDFShift API error: ${resp.status} - ${errText}`);
+  }
+  
+  const arrayBuf = await resp.arrayBuffer();
+  return Buffer.from(arrayBuf);
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const data = await request.json();
+    const skipDatabase = data.skipDatabase || false;
+    
+    console.log('📝 Generating service agreement:', { referenceNo: data.referenceNo, ownerName: data.ownerName, skipDatabase });
+    
+    // Generate PDF using the helper function
+    const buffer = await generateServiceAgreementPdf(data);
 
     // Validate required data
     if (!data.referenceNo || !data.ownerName) {

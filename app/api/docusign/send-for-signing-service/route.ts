@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
                   documentId: '1',
                   anchorString: "Customer's Signature:",
                   anchorUnits: 'pixels',
-                  anchorXOffset: '50',
+                  anchorXOffset: '65',
                   anchorYOffset: '-10',
                   anchorIgnoreIfNotPresent: true,
                   anchorCaseSensitive: false,

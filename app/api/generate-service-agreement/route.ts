@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
         <style>
           @page {
             margin: 0;
-            background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 70%, #000000 100%);
+            background: #000000;
           }
           
           * {
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
           }
           
           body {
-            background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 70%, #000000 100%);
+            background: #000000;
             color: white;
             font-family: 'Arial', sans-serif;
             font-size: 10px;
@@ -224,10 +224,7 @@ export async function POST(request: NextRequest) {
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.1) 0%, 
-              rgba(255, 255, 255, 0.02) 50%, 
-              rgba(255, 255, 255, 0.08) 100%);
+            background: rgba(255, 255, 255, 0.08);
             border-radius: 15px;
             pointer-events: none;
           }
@@ -296,10 +293,7 @@ export async function POST(request: NextRequest) {
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.06) 0%, 
-              rgba(255, 255, 255, 0.01) 50%, 
-              rgba(255, 255, 255, 0.04) 100%);
+            background: rgba(255, 255, 255, 0.04);
             border-radius: 12px;
             pointer-events: none;
           }

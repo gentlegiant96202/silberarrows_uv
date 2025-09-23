@@ -375,6 +375,9 @@ export default function MarketingKanbanBoard() {
   const [showModal, setShowModal] = useState(false);
   const [showWorkspace, setShowWorkspace] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [archivedTasks, setArchivedTasks] = useState<MarketingTask[]>([]);
+  const [loadingArchived, setLoadingArchived] = useState(false);
+  const [archivedFetched, setArchivedFetched] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MarketingTask | null>(null);
   const [draggedTask, setDraggedTask] = useState<MarketingTask | null>(null);
   const [hovered, setHovered] = useState<ColKey | null>(null);
@@ -414,8 +417,9 @@ export default function MarketingKanbanBoard() {
   const fetchTasks = async () => {
     try {
       const headers = await getAuthHeaders();
-      // Fetch all tasks (increased from 100 to accommodate all 179+ tasks)
-      const response = await fetch('/api/design-tasks?limit=200', { headers });
+      // Fetch all non-archived tasks (increased from 100 to accommodate all tasks)
+      // Archived tasks will be fetched separately on-demand
+      const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true', { headers });
       if (response.ok) {
         const rawData = await response.json();
         
@@ -447,9 +451,7 @@ export default function MarketingKanbanBoard() {
           };
         });
         
-        console.log(`✅ Successfully fetched ${transformedTasks.length} tasks`);
-        console.log('Raw API response length:', rawData.length);
-        console.log('Database total should be 179, API returned:', rawData.length);
+        console.log(`✅ Successfully fetched ${transformedTasks.length} non-archived tasks`);
         
         setTasks(transformedTasks);
       } else {
@@ -625,7 +627,12 @@ export default function MarketingKanbanBoard() {
   // Group tasks by status with search filtering and optimized sorting logic (memoized for performance)
   const grouped = useMemo(() => {
     return columns.reduce((acc, col) => {
-      let filteredTasks = tasks.filter(task => task.status === col.key);
+      // Combine regular tasks with archived tasks when showing archived
+      const allTasks = col.key === 'archived' && showArchived 
+        ? archivedTasks 
+        : tasks;
+      
+      let filteredTasks = allTasks.filter(task => task.status === col.key);
       
       // Apply search filter if search query exists
       if (searchQuery && searchQuery.trim()) {
@@ -657,7 +664,7 @@ export default function MarketingKanbanBoard() {
       
       return acc;
     }, {} as Record<ColKey, MarketingTask[]>);
-  }, [tasks, columns, searchQuery]);
+  }, [tasks, archivedTasks, showArchived, columns, searchQuery]);
 
   // Optimized drag and drop handlers (memoized for performance)
   const onDragStart = useCallback((task: MarketingTask) => {
@@ -915,6 +922,65 @@ export default function MarketingKanbanBoard() {
     }
   };
 
+  // Fetch archived tasks on-demand
+  const fetchArchivedTasks = async () => {
+    if (archivedFetched) {
+      // If already fetched, just ensure they're visible
+      setShowArchived(true);
+      return;
+    }
+
+    try {
+      setLoadingArchived(true);
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/design-tasks?limit=100&status=archived', { headers });
+      
+      if (response.ok) {
+        const rawData = await response.json();
+        
+        // Transform archived tasks the same way as regular tasks
+        const transformedArchivedTasks = rawData.map((rawTask: any) => {
+          const baseTask = {
+            id: rawTask.id,
+            title: rawTask.title,
+            description: rawTask.description,
+            status: rawTask.status,
+            assignee: rawTask.requested_by || rawTask.assignee,
+            due_date: rawTask.due_date,
+            created_at: rawTask.created_at,
+            updated_at: rawTask.updated_at,
+            media_files: rawTask.media_files || [],
+            annotations: rawTask.annotations || [],
+            pinned: rawTask.pinned || false,
+            task_type: rawTask.task_type || 'design',
+            priority: rawTask.priority || 'medium',
+            content_type: rawTask.content_type || 'post',
+            tags: rawTask.tags || [],
+            created_by: rawTask.created_by,
+            acknowledged_at: rawTask.acknowledged_at
+          };
+          
+          return {
+            ...baseTask,
+            previewUrl: getPreviewUrl(baseTask.media_files)
+          };
+        });
+        
+        setArchivedTasks(transformedArchivedTasks);
+        setArchivedFetched(true);
+        setShowArchived(true);
+        
+        console.log(`✅ Successfully fetched ${transformedArchivedTasks.length} archived tasks`);
+      } else {
+        console.error('Failed to fetch archived tasks:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching archived tasks:', error);
+    } finally {
+      setLoadingArchived(false);
+    }
+  };
+
   // Archive task function
   const handleArchiveTask = async (taskId: string) => {
     try {
@@ -1026,6 +1092,35 @@ export default function MarketingKanbanBoard() {
                 <h3 className="text-[10px] font-medium text-white whitespace-nowrap">
                   {col.title}
                 </h3>
+                {col.key === 'archived' && (
+                  <button
+                    onClick={fetchArchivedTasks}
+                    disabled={loadingArchived}
+                    className={`
+                      inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[8px] font-medium transition-all duration-200
+                      ${archivedFetched 
+                        ? 'bg-green-600/20 text-green-300 border border-green-500/30' 
+                        : 'bg-blue-600/20 text-blue-300 border border-blue-500/30 hover:bg-blue-600/30'
+                      }
+                      ${loadingArchived ? 'opacity-50 cursor-not-allowed' : ''}
+                    `}
+                    title={
+                      loadingArchived 
+                        ? 'Loading archived tasks...' 
+                        : archivedFetched 
+                          ? 'Archived tasks loaded'
+                          : 'Fetch archived tasks'
+                    }
+                  >
+                    <Archive className={`w-2.5 h-2.5 ${loadingArchived ? 'animate-spin' : ''}`} />
+                    {loadingArchived 
+                      ? 'Loading...' 
+                      : archivedFetched 
+                        ? 'Loaded'
+                        : 'Fetch'
+                    }
+                  </button>
+                )}
                 {col.key === 'intake' && canCreate ? (
                   <button
                     onClick={handleCreateTask}

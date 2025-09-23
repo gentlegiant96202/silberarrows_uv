@@ -97,6 +97,8 @@ export async function GET(req: NextRequest) {
     const taskId = searchParams.get('id');
     const limit = parseInt(searchParams.get('limit') || '50'); // Default limit of 50
     const offset = parseInt(searchParams.get('offset') || '0'); // Default offset of 0
+    const excludeArchived = searchParams.get('exclude_archived') === 'true';
+    const statusFilter = searchParams.get('status'); // Filter by specific status
 
     // If fetching a single task by ID
     if (taskId) {
@@ -156,12 +158,22 @@ export async function GET(req: NextRequest) {
         .is('acknowledged_at', null); // Only show unacknowledged tickets
     }
 
+    // Apply status filtering
+    if (statusFilter) {
+      query = query.eq('status', statusFilter);
+    }
+
+    // Exclude archived tasks if requested
+    if (excludeArchived) {
+      query = query.neq('status', 'archived');
+    }
+
     // Always order by created_at and apply pagination
     query = query
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    console.log(`🔍 Executing query with limit=${limit}, offset=${offset}`);
+    console.log(`🔍 Executing query with limit=${limit}, offset=${offset}, excludeArchived=${excludeArchived}, statusFilter=${statusFilter}`);
     const queryStart = Date.now();
     const { data: tasks, error } = await query;
     const queryTime = Date.now() - queryStart;

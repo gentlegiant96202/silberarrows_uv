@@ -61,6 +61,10 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     planned_lease_pricing: existingVehicle?.planned_lease_pricing?.toString() || "",
     monthly_lease_rate: existingVehicle?.monthly_lease_rate?.toString() || "",
     security_deposit: existingVehicle?.security_deposit?.toString() || "",
+    lease_term_months: existingVehicle?.lease_term_months?.toString() || "",
+    max_mileage_per_year: existingVehicle?.max_mileage_per_year?.toString() || "",
+    condition: existingVehicle?.condition || "",
+    condition_notes: existingVehicle?.condition_notes || "",
     
     // Mileage tracking
     current_mileage_km: existingVehicle?.current_mileage_km?.toString() || "",
@@ -76,6 +80,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     
     // Financial tracking
     acquired_cost: existingVehicle?.acquired_cost?.toString() || "",
+    acquisition_cost: existingVehicle?.acquisition_cost?.toString() || "",
     monthly_depreciation: existingVehicle?.monthly_depreciation?.toString() || "",
     excess_usage_depreciation: existingVehicle?.excess_usage_depreciation?.toString() || "0",
     accumulated_depreciation: existingVehicle?.accumulated_depreciation?.toString() || "0",
@@ -97,6 +102,10 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     horsepower_hp: existingVehicle?.horsepower_hp?.toString() || "",
     torque_nm: existingVehicle?.torque_nm?.toString() || "",
     cubic_capacity_cc: existingVehicle?.cubic_capacity_cc?.toString() || "",
+    
+    // Operational
+    location: existingVehicle?.location || "",
+    parking_spot: existingVehicle?.parking_spot || "",
     
     // Notes
     description: existingVehicle?.notes || "",

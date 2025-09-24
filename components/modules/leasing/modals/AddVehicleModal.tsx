@@ -294,32 +294,64 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
 
     try {
       const vehicleData = {
+        // Required/basic
         stock_number: form.stock_number.toUpperCase(),
         vin_number: form.chassis_number.toUpperCase(),
-        make: "Mercedes-Benz",
+        make: 'Mercedes-Benz',
         model: form.model_family,
         model_year: parseInt(form.model_year),
-        body_style: form.body_style,
-        exterior_color: form.colour,
-        interior_color: form.interior_colour,
-        engine_type: form.engine,
-        transmission: form.transmission,
-        fuel_type: form.fuel_type,
-        mileage_km: form.current_mileage_km ? parseInt(form.current_mileage_km) : null,
-        monthly_lease_rate: form.monthly_lease_rate ? parseFloat(form.monthly_lease_rate) : null,
-        security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
-        lease_term_months: parseInt(form.lease_term_months),
-        max_mileage_per_year: parseInt(form.max_mileage_per_year),
-        condition: form.condition,
-        condition_notes: form.condition_notes,
-        // acquisition_cost removed from UI; using acquired_cost as the canonical field
-        location: form.location,
-        parking_spot: form.parking_spot,
-        notes: form.description,
-        status: 'available',
-        available_from: new Date().toISOString().split('T')[0],
-        updated_at: new Date().toISOString()
-      };
+        category: form.category || null,
+        exterior_color: form.colour || null,
+        interior_color: form.interior_colour || null,
+        body_style: form.body_style || null,
+        plate_number: form.plate_number || null,
+        engine_number: form.engine_number || null,
+        purchase_date: form.purchase_date || null,
+
+        // Status mapping: UI "MARKETING" column corresponds to DB 'marketing'
+        status: 'marketing',
+
+        // Current status/location (optional)
+        current_customer_name: form.current_customer_name || null,
+        current_parking_location: form.current_parking_location || null,
+        release_date_out: form.release_date_out || null,
+        expected_return_date: form.expected_return_date || null,
+        lease_to_own_option: !!form.lease_to_own_option,
+
+        // Rates and mileage
+        daily_rate_customer: form.daily_rate_customer ? parseFloat(form.daily_rate_customer) : null,
+        daily_rate_vehicle: form.daily_rate_vehicle ? parseFloat(form.daily_rate_vehicle) : null,
+        planned_lease_pricing: form.planned_lease_pricing ? parseFloat(form.planned_lease_pricing) : null,
+        current_mileage_km: form.current_mileage_km ? parseInt(form.current_mileage_km) : null,
+        excess_mileage_whole_lease: form.excess_mileage_whole_lease ? parseInt(form.excess_mileage_whole_lease) : 0,
+        excess_mileage_previous_billing: form.excess_mileage_previous_billing ? parseInt(form.excess_mileage_previous_billing) : 0,
+        mylocator_mileage: form.mylocator_mileage ? parseInt(form.mylocator_mileage) : null,
+
+        // Service
+        first_service_date: form.first_service_date || null,
+        second_service_date: form.second_service_date || null,
+        last_service_date: form.last_service_date || null,
+        next_service_due: form.next_service_due || null,
+
+        // Financial
+        acquired_cost: form.acquired_cost ? parseFloat(form.acquired_cost) : null,
+        monthly_depreciation: form.monthly_depreciation ? parseFloat(form.monthly_depreciation) : null,
+        excess_usage_depreciation: form.excess_usage_depreciation ? parseFloat(form.excess_usage_depreciation) : 0,
+        accumulated_depreciation: form.accumulated_depreciation ? parseFloat(form.accumulated_depreciation) : 0,
+        carrying_value: form.carrying_value ? parseFloat(form.carrying_value) : null,
+        buyout_price: form.buyout_price ? parseFloat(form.buyout_price) : null,
+        current_market_value: form.current_market_value ? parseFloat(form.current_market_value) : null,
+        unrealized_gain_loss: form.unrealized_gain_loss ? parseFloat(form.unrealized_gain_loss) : null,
+
+        // Compliance
+        warranty_expiry_date: form.warranty_expiry_date || null,
+        registration_date: form.registration_date || null,
+        months_registered: form.months_registered ? parseInt(form.months_registered) : null,
+
+        // Misc
+        remarks: form.remarks || null,
+        updated_at: new Date().toISOString(),
+      } as any;
 
       let result;
       if (mode === 'edit' && existingVehicle) {

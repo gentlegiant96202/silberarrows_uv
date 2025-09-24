@@ -1,5 +1,6 @@
 "use client";
 import { usePathname } from 'next/navigation';
+import { Suspense } from 'react';
 import Logo from './sections/Logo';
 import SearchBar from './sections/SearchBar';
 import WeatherClock from './sections/WeatherClock';
@@ -78,7 +79,9 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
                     <MarketingNavigation />
                   )}
                   {currentModule === 'leasing' && (
-                    <LeasingNavigation />
+                    <Suspense fallback={<div className="text-white/60 text-xs px-2">Loading…</div>}>
+                      <LeasingNavigation />
+                    </Suspense>
                   )}
                   {currentModule === 'accounts' && (
                     <AccountsNavigation 

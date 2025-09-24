@@ -80,7 +80,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     
     // Financial tracking
     acquired_cost: existingVehicle?.acquired_cost?.toString() || "",
-    acquisition_cost: existingVehicle?.acquisition_cost?.toString() || "",
     monthly_depreciation: existingVehicle?.monthly_depreciation?.toString() || "",
     excess_usage_depreciation: existingVehicle?.excess_usage_depreciation?.toString() || "0",
     accumulated_depreciation: existingVehicle?.accumulated_depreciation?.toString() || "0",
@@ -313,7 +312,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         max_mileage_per_year: parseInt(form.max_mileage_per_year),
         condition: form.condition,
         condition_notes: form.condition_notes,
-        acquisition_cost: form.acquisition_cost ? parseFloat(form.acquisition_cost) : null,
+        // acquisition_cost removed from UI; using acquired_cost as the canonical field
         location: form.location,
         parking_spot: form.parking_spot,
         notes: form.description,
@@ -652,20 +651,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                     <option value="Japanese">Japanese</option>
                   </select>
                 </div>
-                <div>
-                  <label className={labelClass}>Acquisition Cost (AED)</label>
-                  <input
-                    type="number"
-                    name="acquisition_cost"
-                    value={form.acquisition_cost}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="180000"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+                
               </div>
               </div>
             )}
@@ -765,6 +751,17 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     placeholder="150000"
                     step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Purchase Date</label>
+                  <input
+                    type="date"
+                    name="purchase_date"
+                    value={form.purchase_date}
+                    onChange={handleChange}
+                    className={fieldClass}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                   />
                 </div>
               </div>
@@ -1020,17 +1017,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                       placeholder="28291481004341"
                     />
                   </div>
-                  <div>
-                    <label className={labelClass}>Purchase Date</label>
-                    <input
-                      type="date"
-                      name="purchase_date"
-                      value={form.purchase_date}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    />
-                  </div>
+                  
                 </div>
 
                 <div>

@@ -220,7 +220,7 @@ export default function LeasingInventoryBoard() {
             const newVehicle = payload.new;
             setColumnData(prev => ({
               ...prev,
-              [newVehicle.status]: [...(prev[newVehicle.status] || []), newVehicle]
+              [newVehicle.status as ColKey]: [...(prev[newVehicle.status as ColKey] || []), newVehicle]
             }));
             setVehicles(prev => [...prev, newVehicle]);
           } else if (payload.eventType === 'UPDATE') {
@@ -233,13 +233,13 @@ export default function LeasingInventoryBoard() {
               
               // Remove from old status column
               if (oldVehicle.status !== updatedVehicle.status) {
-                newData[oldVehicle.status] = (newData[oldVehicle.status] || [])
-                  .filter(v => v.id !== updatedVehicle.id);
+                newData[oldVehicle.status as ColKey] = (newData[oldVehicle.status as ColKey] || [])
+                  .filter((v: any) => v.id !== updatedVehicle.id);
               }
               
               // Add/update in new status column
-              const targetColumn = newData[updatedVehicle.status] || [];
-              const existingIndex = targetColumn.findIndex(v => v.id === updatedVehicle.id);
+              const targetColumn = newData[updatedVehicle.status as ColKey] || [];
+              const existingIndex = targetColumn.findIndex((v: any) => v.id === updatedVehicle.id);
               
               if (existingIndex >= 0) {
                 targetColumn[existingIndex] = updatedVehicle;
@@ -247,7 +247,7 @@ export default function LeasingInventoryBoard() {
                 targetColumn.push(updatedVehicle);
               }
               
-              newData[updatedVehicle.status] = targetColumn;
+              newData[updatedVehicle.status as ColKey] = targetColumn;
               return newData;
             });
             
@@ -256,8 +256,8 @@ export default function LeasingInventoryBoard() {
             const deletedVehicle = payload.old;
             setColumnData(prev => ({
               ...prev,
-              [deletedVehicle.status]: (prev[deletedVehicle.status] || [])
-                .filter(v => v.id !== deletedVehicle.id)
+              [deletedVehicle.status as ColKey]: (prev[deletedVehicle.status as ColKey] || [])
+                .filter((v: any) => v.id !== deletedVehicle.id)
             }));
             setVehicles(prev => prev.filter(v => v.id !== deletedVehicle.id));
           }

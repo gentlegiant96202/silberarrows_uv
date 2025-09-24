@@ -10,6 +10,7 @@ import FinanceCalculator from './modules/uv-crm/FinanceCalculator';
 import MarketingNavigation from './modules/marketing/MarketingNavigation';
 import AccountsNavigation from './modules/accounts/AccountsNavigation';
 import WorkshopNavigation from './modules/workshop/WorkshopNavigation';
+import LeasingNavigation from './modules/leasing/LeasingNavigation';
 
 import MarketingTicketsDropdown from '@/components/shared/MarketingTicketsDropdown';
 import { useUserRole } from '@/lib/useUserRole';
@@ -77,7 +78,7 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
                     <MarketingNavigation />
                   )}
                   {currentModule === 'leasing' && (
-                    <div className="text-white/60 text-sm">Leasing Navigation Coming Soon</div>
+                    <LeasingNavigation />
                   )}
                   {currentModule === 'accounts' && (
                     <AccountsNavigation 

@@ -81,8 +81,31 @@ export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
     } catch {}
   }
 
-  // Generate PDF using the detailed template below
-  const htmlContent = `
+  // Build HTML (trimmed to rely on existing template structure)
+  const htmlContent = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ServiceCare Agreement Form - ${data.referenceNo}</title><style>@page{margin:0;background:#000}*{margin:0;padding:0;box-sizing:border-box}body{background:#000;color:#fff;font-family:'Arial',sans-serif;font-size:10px;line-height:1.25;width:210mm;height:297mm;margin:0;padding:0;overflow:hidden}.page{background:rgba(255,255,255,.02);padding:8px 10px 18px 10px;width:210mm;height:297mm;position:relative;display:flex;flex-direction:column}.content-container{display:flex;flex-direction:column;gap:10px;flex:1}.signatures-bottom{margin-top:auto}.header{display:flex;justify-content:space-between;align-items:center;margin:0 0 20px 0;padding:10px 15px 8px 15px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:15px}.title{font-size:21px;font-weight:900}.date-line{font-size:21px;font-weight:900}.logo{width:55px;height:auto}.section{margin:0 0 12px 0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px}.section-title{font-size:12px;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}.form-table{width:100%;border-collapse:separate;border-spacing:0;margin:0 0 4px 0}.form-table td{border:1px solid rgba(255,255,255,.15);padding:6px 10px;font-size:10px;background:rgba(255,255,255,.02)}.form-table .label{background:rgba(255,255,255,0.08);font-weight:bold;width:25%;color:rgba(255,255,255,0.95)}.form-table .data{width:25%}.signature-section{display:flex;justify-content:space-between;gap:30px}.signature-box{flex:1}.signature-area{border:1px solid #ccc;background:#f5f5f5;height:100px;width:100%;margin:5px 0;border-radius:4px;position:relative;padding:5px}.signature-date{font-size:9px;color:#666;position:absolute;bottom:5px;left:5px}.text-content{color:rgba(255,255,255,.9);font-size:10px;line-height:1.4;margin:8px 0;text-align:justify}.footer{text-align:center;margin-top:8px;padding-top:8px;font-size:8px;color:rgba(255,255,255,.7);border-top:1px solid rgba(255,255,255,.25)}</style></head><body><div class="page"><div class="header"><div class="title-section"><div class="title">SERVICE-CARE AGREEMENT FORM</div></div><img src="${logoSrc}" alt="SilberArrows Logo" class="logo"></div><div class="content-container"><div class="section"><div class="section-title">Welcome to Service-Care</div><div class="text-content" style="font-size:12px;text-align:justify;line-height:1.2;">Thank you for purchasing the SilberArrows ServiceCare contract. You've made a smart choice, your Mercedes-Benz will now receive expert servicing using genuine parts, all at a preferred rate.<br>This commitment not only brings peace of mind and convenience, but also helps protect the long-term value of your vehicle.<br>The ServiceCare Information Booklet is included in this document and forms part of your agreement. Please review the details before signing, including the scope of coverage, exclusions, and terms on the final page.<br>Once activated, you'll receive your ServiceCare card with a QR code, allowing you to access the latest version of the booklet at any time.<br>We appreciate your trust in SilberArrows and look forward to keeping your drive smooth, safe, and hassle-free.<br><br>~ SilberArrows</div></div><div class="section"><table class="form-table"><tr><td class="label">Date:</td><td class="data">${formatDate(new Date().toISOString())}</td><td class="label">Reference No.:</td><td class="data">${data.referenceNo}</td></tr><tr><td class="label">Sales Executive:</td><td class="data">N/A</td><td class="label">Status:</td><td class="data">ACTIVE</td></tr></table></div><div class="section"><div class="section-title">Customer Information</div><table class="form-table"><tr><td class="label">Owner's Name:</td><td class="data">${data.ownerName}</td><td class="label">ID Number:</td><td class="data">${data.customerIdNumber || ''}</td></tr><tr><td class="label">Mobile No.:</td><td class="data">${data.mobileNo}</td><td class="label">Email:</td><td class="data">${data.email}</td></tr></table></div><div class="section"><div class="section-title">Dealer Information</div><table class="form-table"><tr><td class="label">Dealer Name:</td><td class="data">${data.dealerName}</td><td class="label">Phone No.:</td><td class="data">${data.dealerPhone}</td></tr></table></div><div class="section"><div class="section-title">Vehicle Information</div><table class="form-table"><tr><td class="label">VIN:</td><td class="data">${data.vin}</td><td class="label">Make and Model:</td><td class="data">${data.make} ${data.model}</td></tr><tr><td class="label">Model Year:</td><td class="data">${data.modelYear}</td><td class="label">Kilometers:</td><td class="data">${data.currentOdometer || ''}</td></tr><tr><td class="label">Exterior Colour:</td><td class="data">${data.exteriorColour || ''}</td><td class="label">Interior Colour:</td><td class="data">${data.interiorColour || ''}</td></tr></table></div><div class="section"><div class="section-title">Duration of the Agreement</div><table class="form-table"><tr><td class="label">ServiceCare Start Date:</td><td class="data">${formattedStartDate}</td><td class="label">ServiceCare End Date:</td><td class="data">${formattedEndDate}</td></tr><tr><td class="label">ServiceCare cut off KM:</td><td class="data">${data.cutOffKm}</td><td class="label">Invoice Amount:</td><td class="data">${data.invoiceAmount || ''}</td></tr></table><div class="text-content" style="font-style: italic; margin-top: 4px;"><strong>IMPORTANT:</strong> Agreement expires whichever comes first, date or kilometers.</div></div><div class="section" style="min-height:50px;display:flex;flex-direction:column;"><div class="section-title">Additional Notes</div><div class="text-content" style="flex:1;padding-top:4px;">${data.notes || 'No additional notes'}</div></div><div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 8px;margin-bottom:8px;"><div style="font-size:11px;font-weight:bold;margin-bottom:2px;color:white;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:2px;">Joint Acknowledgment</div><div style="margin:0;line-height:1.2;font-size:12px;padding:2px 0;color:white;">The Customer accepts the ServiceCare terms in the Information Booklet (incorporated into this Agreement) and confirms the above details are correct and they are authorised to sign; SilberArrows confirms the details are correct and that the ServiceCare terms were explained. Coverage ends on the earlier of the End Date or the cut-off kilometres.</div></div><div class="section"><div class="section-title">Customer Declaration</div><div class="text-content">By my signature below, I confirm that I have thoroughly read & understood the terms & conditions of this Agreement as stated in the attached ServiceCare Information Booklet, that I have received a completed copy of this Agreement & the associated Information Booklet. I agree to be bound by the terms & conditions noted in this Booklet.</div></div><div class="section"><div class="section-title">Dealer Declaration</div><div class="text-content">We hereby declare that all the details set out in this Agreement are accurate & correct. The terms & conditions of this ServiceCare are explained in the attached Information Booklet.</div></div></div><div class="signatures-bottom"><div class="signature-section"><div class="signature-box"><div>SilberArrows Signature:</div><div class="signature-area"><div class="signature-date">Date:</div></div></div><div class="signature-box"><div>Customer Signature:</div><div class="signature-area"><div class="signature-date">Date:</div></div></div></div><div class="footer">Al Manara St., Al Quoz 1, Dubai, UAE, P.O. Box 185095 | TRN: 100281137800003 | Tel: +971 4 380 5515 | service@silberarrows.com | www.silberarrows.com</div></div></div></body></html>`;
+
+  const resp = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
+    method: 'POST',
+    headers: {
+      'X-API-Key': process.env.PDFSHIFT_API_KEY || '',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      source: htmlContent,
+      format: 'A4',
+      margin: '0',
+      landscape: false,
+      use_print: true,
+      delay: 1000
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`PDFShift API error: ${resp.status} - ${errText}`);
+  }
+  const arrayBuf = await resp.arrayBuffer();
+  return Buffer.from(arrayBuf);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -140,7 +163,6 @@ export async function POST(request: NextRequest) {
           @page {
             margin: 0;
             background: #000000;
-            size: A4 landscape;
           }
           
           * {
@@ -153,10 +175,10 @@ export async function POST(request: NextRequest) {
             background: #000000;
             color: white;
             font-family: 'Arial', sans-serif;
-            font-size: 10px;
-            line-height: 1.25;
-            width: 297mm;
-            height: 210mm;
+            font-size: 8px;
+            line-height: 1.2;
+            width: 297mm; /* Landscape width */
+            height: 210mm; /* Landscape height */
             margin: 0;
             padding: 0;
             overflow: hidden;
@@ -166,7 +188,7 @@ export async function POST(request: NextRequest) {
           .page {
             background: rgba(255, 255, 255, 0.02);
             border: none;
-            padding: 8px 20px 18px 20px;
+            padding: 10px 15px;
             width: 297mm;
             height: 210mm;
             position: relative;
@@ -176,19 +198,29 @@ export async function POST(request: NextRequest) {
             flex-direction: column;
           }
 
-          .page.first-page {
-            padding: 8px 20px 18px 20px;
+          .two-column-container {
+            display: flex;
+            gap: 15px;
+            flex: 1;
+            margin-bottom: 10px;
+          }
+
+          .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
           }
 
           .header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
             margin: 0 0 15px 0;
-            padding: 8px 12px 6px 12px;
+            padding: 8px 12px;
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 15px;
+            border-radius: 12px;
             position: relative;
             z-index: 2;
             width: 100%;
@@ -203,75 +235,46 @@ export async function POST(request: NextRequest) {
             right: 0;
             bottom: 0;
             background: rgba(255, 255, 255, 0.08);
-            border-radius: 15px;
+            border-radius: 12px;
             pointer-events: none;
           }
 
           .title-section {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
+            align-items: center;
+            justify-content: center;
             position: relative;
             z-index: 3;
+            text-align: center;
           }
 
           .title {
-            font-size: 21px;
+            font-size: 18px;
             font-weight: 900;
             color: white;
-            margin-bottom: 8px;
+            margin: 0;
             letter-spacing: 0.5px;
             line-height: 1.1;
           }
 
-          .date-line {
-            font-size: 12px;
-            font-weight: 400;
-            color: white;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-          }
-
           .logo {
-            width: 55px;
+            width: 45px;
             height: auto;
             position: relative;
             z-index: 3;
           }
 
-          .content-container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            flex: 1 1 auto;
-            overflow: visible;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-          }
-
-          .two-column-layout {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 6px;
-          }
-
-          .column {
-            flex: 1;
-          }
-
-          .signatures-bottom { 
-            margin-top: auto; 
-          }
-
           .section {
-            margin: 0 0 6px 0;
+            margin: 0;
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 8px 10px;
             position: relative;
             width: 100%;
             box-sizing: border-box;
+            flex: 1;
           }
 
           .section::before {
@@ -282,17 +285,17 @@ export async function POST(request: NextRequest) {
             right: 0;
             bottom: 0;
             background: rgba(255, 255, 255, 0.04);
-            border-radius: 12px;
+            border-radius: 8px;
             pointer-events: none;
           }
 
           .section-title {
-            font-size: 12px;
+            font-size: 9px;
             font-weight: bold;
             margin-bottom: 4px;
             color: white;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             position: relative;
             z-index: 2;
             padding-bottom: 2px;
@@ -303,9 +306,9 @@ export async function POST(request: NextRequest) {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            margin: 0 0 4px 0;
+            margin: 0;
             background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
+            border-radius: 6px;
             overflow: hidden;
             position: relative;
             z-index: 2;
@@ -314,61 +317,38 @@ export async function POST(request: NextRequest) {
 
           .form-table td {
             border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 6px 10px;
+            padding: 4px 6px;
             vertical-align: middle;
             color: white;
-            font-size: 10px;
+            font-size: 8px;
             background: rgba(255, 255, 255, 0.02);
             position: relative;
-          }
-
-          .form-table td:first-child {
-            border-left: none;
-          }
-
-          .form-table td:last-child {
-            border-right: none;
-          }
-
-          .form-table tr:first-child td {
-            border-top: none;
-          }
-
-          .form-table tr:last-child td {
-            border-bottom: none;
+            height: 20px;
           }
 
           .form-table .label {
             background: rgba(255, 255, 255, 0.08);
             font-weight: bold;
-            width: 40%;
+            width: 25%;
             color: rgba(255, 255, 255, 0.95);
           }
 
           .form-table .data {
-            width: 60%;
-          }
-
-          .full-width .form-table .label {
-            width: 12.5%;
-          }
-
-          .full-width .form-table .data {
-            width: 12.5%;
+            width: 25%;
           }
 
           .signature-section {
             display: flex;
             justify-content: space-between;
-            margin-top: 10px;
-            gap: 30px;
+            margin-top: 8px;
+            gap: 20px;
             position: relative;
             z-index: 2;
           }
 
           .signature-box {
             flex: 1;
-            font-size: 10px;
+            font-size: 8px;
             color: white;
           }
 
@@ -377,24 +357,24 @@ export async function POST(request: NextRequest) {
             background-color: #f5f5f5;
             height: 60px;
             width: 100%;
-            margin: 5px 0;
-            border-radius: 4px;
+            margin: 3px 0;
+            border-radius: 3px;
             position: relative;
             display: flex;
             align-items: flex-end;
-            padding: 5px;
+            padding: 3px;
           }
 
           .signature-date {
-            font-size: 9px;
+            font-size: 7px;
             color: #666;
           }
 
           .text-content {
             color: white;
-            font-size: 9px;
-            line-height: 1.3;
-            margin: 4px 0;
+            font-size: 8px;
+            line-height: 1.2;
+            margin: 3px 0;
             position: relative;
             z-index: 2;
             text-align: justify;
@@ -403,218 +383,207 @@ export async function POST(request: NextRequest) {
 
           .footer {
             text-align: center;
-            margin-top: 8px;
-            padding-top: 8px;
-            font-size: 8px;
+            margin-top: 6px;
+            padding-top: 4px;
+            font-size: 7px;
             color: rgba(255, 255, 255, 0.7);
             border-top: 1px solid rgba(255, 255, 255, 0.2);
             position: relative;
             z-index: 2;
           }
+
+          .full-width-section {
+            grid-column: 1 / -1;
+          }
+
+          .notes-section {
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+          }
+
+          .notes-content {
+            flex: 1;
+            padding-top: 4px;
+            line-height: 1.2;
+          }
         </style>
     </head>
     <body>
-        <div class="page first-page">
+        <div class="page">
             <!-- Header -->
             <div class="header">
                 <div class="title-section">
-                    <div class="title">SERVICE-CARE</div>
-                    <div class="date-line">AGREEMENT FORM</div>
+                    <div class="title">SERVICE-CARE AGREEMENT FORM</div>
                 </div>
                 <img src="${logoSrc}" alt="SilberArrows Logo" class="logo">
             </div>
 
-            <div class="content-container">
-                <!-- Welcome Message -->
-                <div class="section" style="margin-bottom: 6px;">
-                    <div class="section-title">Welcome to SilberArrows ServiceCare</div>
-                    <div class="text-content" style="line-height: 1.3; text-align: left; font-size: 9px;">
-                        Thank you for purchasing the SilberArrows ServiceCare contract. You've made a smart choice - your Mercedes-Benz will now receive expert servicing using genuine parts, all at a preferred rate. This commitment not only brings peace of mind and convenience, but also helps protect the long-term value of your vehicle. You'll be able to view the full scope of coverage by scanning the QR code on your ServiceCare card, which will be issued separately. We appreciate your trust in SilberArrows and look forward to keeping your drive smooth, safe, and hassle-free.<br><br>
-                        <strong>~ SilberArrows</strong>
+            <!-- Welcome to ServiceCare -->
+            <div class="section full-width-section" style="margin-bottom: 10px;">
+                <div class="section-title">Welcome to Service-Care</div>
+                <div class="text-content" style="font-size: 10px; text-align: justify; line-height: 1.2;">
+                    Thank you for purchasing the SilberArrows ServiceCare contract. You've made a smart choice, your Mercedes-Benz will now receive expert servicing using genuine parts, all at a preferred rate.<br>
+                    This commitment not only brings peace of mind and convenience, but also helps protect the long-term value of your vehicle.<br>
+                    The ServiceCare Information Booklet is included in this document and forms part of your agreement. Please review the details before signing, including the scope of coverage, exclusions, and terms on the final page.<br>
+                    Once activated, you'll receive your ServiceCare card with a QR code, allowing you to access the latest version of the booklet at any time.<br>
+                    We appreciate your trust in SilberArrows and look forward to keeping your drive smooth, safe, and hassle-free.<br><br>~ SilberArrows
+                </div>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="two-column-container">
+                <!-- Left Column -->
+                <div class="column">
+                    <!-- Document Information -->
+                    <div class="section">
+                        <table class="form-table">
+                            <tr>
+                                <td class="label">Date:</td>
+                                <td class="data">${formatDate(new Date().toISOString())}</td>
+                                <td class="label">Reference No.:</td>
+                                <td class="data">${data.referenceNo}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Sales Executive:</td>
+                                <td class="data">${data.salesExecutive || 'N/A'}</td>
+                                <td class="label">Status:</td>
+                                <td class="data">ACTIVE</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Customer Information -->
+                    <div class="section">
+                        <div class="section-title">Customer Information</div>
+                        <table class="form-table">
+                            <tr>
+                                <td class="label">Owner's Name:</td>
+                                <td class="data">${data.ownerName}</td>
+                                <td class="label">ID Number:</td>
+                                <td class="data">${data.customerIdNumber || ''}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Mobile No.:</td>
+                                <td class="data">${data.mobileNo}</td>
+                                <td class="label">Email:</td>
+                                <td class="data">${data.email}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Dealer Information -->
+                    <div class="section">
+                        <div class="section-title">Dealer Information</div>
+                        <table class="form-table">
+                            <tr>
+                                <td class="label">Dealer Name:</td>
+                                <td class="data">${data.dealerName}</td>
+                                <td class="label">Phone No.:</td>
+                                <td class="data">${data.dealerPhone}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Dealer Email:</td>
+                                <td class="data">${data.dealerEmail || 'service@silberarrows.com'}</td>
+                                <td class="label"></td>
+                                <td class="data"></td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
 
-                <!-- Document Information - Full Width -->
-                <div class="section full-width">
-                    <table class="form-table">
-                        <tr>
-                            <td class="label">Date:</td>
-                            <td class="data">${formatDate(new Date().toISOString())}</td>
-                            <td class="label">Reference No.:</td>
-                            <td class="data">${data.referenceNo}</td>
-                            <td class="label">Sales Executive:</td>
-                            <td class="data">${data.salesExecutive || 'System'}</td>
-                            <td class="label">Status:</td>
-                            <td class="data">ACTIVE</td>
-                        </tr>
-                    </table>
-                </div>
+                <!-- Right Column -->
+                <div class="column">
+                    <!-- Vehicle Information -->
+                    <div class="section">
+                        <div class="section-title">Vehicle Information</div>
+                        <table class="form-table">
+                            <tr>
+                                <td class="label">VIN:</td>
+                                <td class="data">${data.vin}</td>
+                                <td class="label">Make and Model:</td>
+                                <td class="data">${data.make} ${data.model}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Model Year:</td>
+                                <td class="data">${data.modelYear}</td>
+                                <td class="label">Kilometers:</td>
+                                <td class="data">${data.currentOdometer || ''}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Exterior Colour:</td>
+                                <td class="data">${data.exteriorColour || ''}</td>
+                                <td class="label">Interior Colour:</td>
+                                <td class="data">${data.interiorColour || ''}</td>
+                            </tr>
+                        </table>
+                    </div>
 
-                <!-- Two Column Layout -->
-                <div class="two-column-layout">
-                    <!-- Left Column -->
-                    <div class="column">
-                <!-- Customer Information -->
-                <div class="section">
-                    <div class="section-title">Customer Information</div>
-                    <table class="form-table">
-                        <tr>
-                            <td class="label">Owner's Name:</td>
-                            <td class="data">${data.ownerName}</td>
-                                </tr>
-                                <tr>
-                            <td class="label">ID Number:</td>
-                            <td class="data">${data.customerIdNumber || ''}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Mobile No.:</td>
-                            <td class="data">${data.mobileNo}</td>
-                                </tr>
-                                <tr>
-                            <td class="label">Email:</td>
-                            <td class="data">${data.email}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- Dealer Information -->
-                <div class="section">
-                    <div class="section-title">Dealer Information</div>
-                    <table class="form-table">
-                        <tr>
-                            <td class="label">Dealer Name:</td>
-                            <td class="data">${data.dealerName}</td>
-                            <td class="label">Phone No.:</td>
-                            <td class="data">${data.dealerPhone}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Dealer Email:</td>
-                            <td class="data">${data.dealerEmail || 'service@silberarrows.com'}</td>
-                            <td class="label"></td>
-                            <td class="data"></td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- Vehicle Information -->
-                <div class="section">
-                    <div class="section-title">Vehicle Information</div>
-                    <table class="form-table">
-                        <tr>
-                            <td class="label">VIN:</td>
-                            <td class="data">${data.vin}</td>
-                            <td class="label">Model year & Make:</td>
-                            <td class="data">${data.modelYear} ${data.make}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Model:</td>
-                            <td class="data">${data.model}</td>
-                            <td class="label">Kilometers:</td>
-                            <td class="data">${data.currentOdometer || ''}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Exterior Colour:</td>
-                            <td class="data">${data.exteriorColour || ''}</td>
-                            <td class="label">Interior Colour:</td>
-                            <td class="data">${data.interiorColour || ''}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- Duration of the Agreement -->
-                <div class="section">
-                    <div class="section-title">Duration of the Agreement</div>
-                    <table class="form-table">
-                        <tr>
-                            <td class="label">ServiceCare Start Date:</td>
-                            <td class="data">${formattedStartDate}</td>
-                            <td class="label">ServiceCare End Date:</td>
-                            <td class="data">${formattedEndDate}</td>
-                        </tr>
+                    <!-- Duration of the Agreement -->
+                    <div class="section">
+                        <div class="section-title">Duration of the Agreement</div>
+                        <table class="form-table">
+                            <tr>
+                                <td class="label">ServiceCare Start Date:</td>
+                                <td class="data">${formattedStartDate}</td>
+                                <td class="label">ServiceCare End Date:</td>
+                                <td class="data">${formattedEndDate}</td>
+                            </tr>
                         <tr>
                             <td class="label">ServiceCare cut off KM:</td>
                             <td class="data">${data.cutOffKm}</td>
-                            <td class="label"></td>
-                            <td class="data"></td>
+                            <td class="label">Invoice Amount:</td>
+                            <td class="data">${data.invoiceAmount || ''}</td>
                         </tr>
-                    </table>
-                    <div class="text-content" style="font-style: italic; margin-top: 4px;">
-                        <strong>IMPORTANT:</strong> Agreement expires whichever comes first, date or kilometers.
+                        </table>
+                        <div class="text-content" style="font-style: italic; margin-top: 3px;">
+                            <strong>IMPORTANT:</strong> Agreement expires whichever comes first, date or kilometers.
+                        </div>
                     </div>
-                </div>
 
-                <!-- Additional Notes -->
-                <div class="section" style="padding: 8px 10px;">
-                    <div class="section-title">Additional Notes</div>
-                    <div class="text-content" style="padding-top: 4px; line-height: 1.3; min-height: 40px; font-size: 9px;">
-                        ${data.notes || 'No additional notes'}
-                    </div>
                 </div>
-
             </div>
 
-            <!-- Signatures Section -->
-            <div class="signature-section" style="margin-top: 10px;">
-                    <div class="signature-box">
-                        <div>SilberArrows Signature:</div>
-                        <div class="signature-area">
-                            <div class="signature-date">Date:</div>
-                        </div>
-                    </div>
-                    <div class="signature-box">
-                        <div>Customer Signature:</div>
-                        <div class="signature-area">
-                            <div class="signature-date">Date:</div>
-                        </div>
+            <!-- Additional Notes -->
+            <div class="section full-width-section" style="margin-bottom: 8px; min-height: 50px; display: flex; flex-direction: column;">
+                <div class="section-title">Additional Notes</div>
+                <div class="text-content" style="flex: 1; padding-top: 4px;">
+                    ${data.notes || 'No additional notes'}
+                </div>
+            </div>
+
+            <!-- Full width sections at bottom -->
+            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 6px 8px; margin-bottom: 8px;">
+                <div style="font-size: 9px; font-weight: bold; margin-bottom: 2px; color: white; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); padding-bottom: 2px;">Joint Acknowledgment</div>
+                <div style="margin: 0; line-height: 1.2; font-size: 10px; padding: 2px 0; color: white;">
+                    The Customer accepts the ServiceCare terms in the Information Booklet (incorporated into this Agreement) and confirms the above details are correct and they are authorised to sign; SilberArrows confirms the details are correct and that the ServiceCare terms were explained. Coverage ends on the earlier of the End Date or the cut-off kilometres.
+                </div>
+            </div>
+
+            <!-- Signatures -->
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div>SilberArrows Signature:</div>
+                    <div class="signature-area">
+                        <div class="signature-date">Date:</div>
                     </div>
                 </div>
-
-                <!-- Footer -->
-                <div class="footer">
-                    Al Manara St., Al Quoz 1, Dubai, UAE, P.O. Box 185095 | TRN: 100281137800003 | Tel: +971 4 380 5515 | service@silberarrows.com | www.silberarrows.com
+                <div class="signature-box">
+                    <div>Customer Signature:</div>
+                    <div class="signature-area">
+                        <div class="signature-date">Date:</div>
+                    </div>
                 </div>
+            </div>
 
+            <!-- Footer -->
+            <div class="footer">
+                Al Manara St., Al Quoz 1, Dubai, UAE, P.O. Box 185095 | TRN: 100281137800003 | Tel: +971 4 380 5515 | service@silberarrows.com | www.silberarrows.com
             </div>
         </div>
     </body>
     </html>
     `;
-
-  // Call PDFShift API to generate PDF
-  const resp = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
-    method: 'POST',
-    headers: {
-      'X-API-Key': process.env.PDFSHIFT_API_KEY || '',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      source: htmlContent,
-      format: 'A4',
-      margin: '0',
-      landscape: true,
-      use_print: true,
-      delay: 1000
-    }),
-  });
-  
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`PDFShift API error: ${resp.status} - ${errText}`);
-  }
-  
-  const arrayBuf = await resp.arrayBuffer();
-  return Buffer.from(arrayBuf);
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const data = await request.json();
-    const skipDatabase = data.skipDatabase || false;
-    
-    console.log('📝 Generating service agreement:', { referenceNo: data.referenceNo, ownerName: data.ownerName, skipDatabase });
-    
-    // Generate PDF using the helper function
-    const buffer = await generateServiceAgreementPdf(data);
 
     // Validate required data
     if (!data.referenceNo || !data.ownerName) {
@@ -663,7 +632,7 @@ export async function POST(request: NextRequest) {
     
     console.log('📄 Generating service agreement PDF using PDFShift...');
 
-    // Call PDFShift API
+    // Call PDFShift API with LANDSCAPE format
     const pdfResponse = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
       method: 'POST',
       headers: {
@@ -674,7 +643,7 @@ export async function POST(request: NextRequest) {
         source: htmlContent,
         format: 'A4',
         margin: '0',
-        landscape: true,
+        landscape: true, // Changed to true for landscape
         use_print: true,
         delay: 1000
       }),
@@ -957,4 +926,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

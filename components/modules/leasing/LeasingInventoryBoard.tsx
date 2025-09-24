@@ -82,6 +82,11 @@ const columns = [
     icon: <Package className="w-4 h-4" />
   },
   { 
+    key: "available", 
+    title: "AVAILABLE", 
+    icon: <CheckCircle className="w-4 h-4" />
+  },
+  { 
     key: "reserved", 
     title: "RESERVED", 
     icon: <CheckCircle className="w-4 h-4" />
@@ -164,6 +169,7 @@ export default function LeasingInventoryBoard() {
   // Column-by-column optimistic loading states
   const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
     marketing: true,
+    available: true,
     reserved: true,
     leased: true,
     maintenance: true,
@@ -172,6 +178,7 @@ export default function LeasingInventoryBoard() {
   });
   const [columnData, setColumnData] = useState<Record<ColKey, LeasingVehicle[]>>({
     marketing: [],
+    available: [],
     reserved: [],
     leased: [],
     maintenance: [],
@@ -188,11 +195,12 @@ export default function LeasingInventoryBoard() {
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: string }[] = [
         { key: 'marketing', delay: 0, statusFilter: 'marketing' },
-        { key: 'reserved', delay: 80, statusFilter: 'reserved' },
-        { key: 'leased', delay: 160, statusFilter: 'leased' },
-        { key: 'maintenance', delay: 240, statusFilter: 'maintenance' },
-        { key: 'returned', delay: 320, statusFilter: 'returned' },
-        { key: 'archived', delay: 400, statusFilter: 'archived' }
+        { key: 'available', delay: 80, statusFilter: 'available' },
+        { key: 'reserved', delay: 160, statusFilter: 'reserved' },
+        { key: 'leased', delay: 240, statusFilter: 'leased' },
+        { key: 'maintenance', delay: 320, statusFilter: 'maintenance' },
+        { key: 'returned', delay: 400, statusFilter: 'returned' },
+        { key: 'archived', delay: 480, statusFilter: 'archived' }
       ];
 
       // Load each column progressively

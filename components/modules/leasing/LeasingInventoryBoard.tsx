@@ -73,6 +73,7 @@ interface LeasingVehicle {
 }
 
 type VehicleStatus = 'available' | 'reserved' | 'leased' | 'maintenance' | 'returned' | 'archived';
+type ViewMode = 'kanban' | 'table';
 
 const columns = [
   { 
@@ -123,7 +124,7 @@ export default function LeasingInventoryBoard() {
   const [showArchived, setShowArchived] = useState(false);
   
   // View toggle state
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   
   // Filter state (like UV CRM inventory filters)
   const [showFilters, setShowFilters] = useState(false);

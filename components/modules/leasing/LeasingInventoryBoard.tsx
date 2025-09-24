@@ -72,12 +72,12 @@ interface LeasingVehicle {
   updated_at: string;
 }
 
-type VehicleStatus = 'available' | 'reserved' | 'leased' | 'maintenance' | 'returned' | 'archived';
+type VehicleStatus = 'marketing' | 'reserved' | 'leased' | 'maintenance' | 'returned' | 'archived';
 type ViewMode = 'kanban' | 'table';
 
 const columns = [
   { 
-    key: "available", 
+    key: "marketing", 
     title: "MARKETING", 
     icon: <Package className="w-4 h-4" />
   },
@@ -163,7 +163,7 @@ export default function LeasingInventoryBoard() {
   
   // Column-by-column optimistic loading states
   const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
-    available: true,
+    marketing: true,
     reserved: true,
     leased: true,
     maintenance: true,
@@ -171,7 +171,7 @@ export default function LeasingInventoryBoard() {
     archived: true
   });
   const [columnData, setColumnData] = useState<Record<ColKey, LeasingVehicle[]>>({
-    available: [],
+    marketing: [],
     reserved: [],
     leased: [],
     maintenance: [],
@@ -187,7 +187,7 @@ export default function LeasingInventoryBoard() {
       
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: string }[] = [
-        { key: 'available', delay: 0, statusFilter: 'available' },
+        { key: 'marketing', delay: 0, statusFilter: 'marketing' },
         { key: 'reserved', delay: 80, statusFilter: 'reserved' },
         { key: 'leased', delay: 160, statusFilter: 'leased' },
         { key: 'maintenance', delay: 240, statusFilter: 'maintenance' },
@@ -413,7 +413,7 @@ export default function LeasingInventoryBoard() {
     // Add new vehicle to marketing column
     setColumnData(prev => ({
       ...prev,
-      available: [...prev.available, newVehicle]
+      marketing: [...prev.marketing, newVehicle]
     }));
     setVehicles(prev => [...prev, newVehicle]);
   };
@@ -602,7 +602,7 @@ export default function LeasingInventoryBoard() {
                 <h3 className="text-xs font-medium text-white whitespace-nowrap">
                   {col.title}
                 </h3>
-                {col.key === 'available' ? (
+                {col.key === 'marketing' ? (
                   <button
                     onClick={() => setShowAddVehicleModal(true)}
                     className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
@@ -619,7 +619,7 @@ export default function LeasingInventoryBoard() {
               </div>
               
               {/* View Toggle - Only in MARKETING column, positioned on the right */}
-              {col.key === 'available' && (
+              {col.key === 'marketing' && (
                 <div className="flex bg-white/10 rounded p-0.5 border border-white/20">
                   <button
                     onClick={() => setViewMode('kanban')}
@@ -669,7 +669,7 @@ export default function LeasingInventoryBoard() {
               {columnLoading[col.key] ? (
                 // Show skeleton while column is loading
                 <div className="space-y-2">
-                  {Array.from({ length: col.key === 'available' ? 3 : 2 }).map((_, i) => (
+                  {Array.from({ length: col.key === 'marketing' ? 3 : 2 }).map((_, i) => (
                     <div key={i} className="backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs bg-white/5 border border-white/10 animate-pulse">
                       <div className="flex items-start justify-between mb-1">
                         <div className="h-3 bg-white/10 rounded w-3/4"></div>
@@ -701,8 +701,8 @@ export default function LeasingInventoryBoard() {
                   className={`animate-fadeIn ${(()=>{
                     const base = 'backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ';
                     
-                    // Special styling for available column
-                    if (col.key === 'available') {
+                    // Special styling for marketing column
+                    if (col.key === 'marketing') {
                       return base + 'bg-green-500/10 border-green-400/20 hover:bg-green-500/15 hover:border-green-400/30';
                     }
                     

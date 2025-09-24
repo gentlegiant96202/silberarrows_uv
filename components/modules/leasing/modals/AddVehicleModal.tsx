@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import ChassisInput from '@/components/modules/uv-crm/components/ChassisInput';
 
@@ -124,6 +124,103 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
+  // Sync form when existingVehicle or mode changes (for edit mode)
+  useEffect(() => {
+    if (isOpen && mode === 'edit' && existingVehicle) {
+      setForm({
+        // Basic vehicle info
+        stock_number: existingVehicle.stock_number || "",
+        plate_number: existingVehicle.plate_number || "",
+        chassis_number: existingVehicle.vin_number || "",
+        chassis_short: existingVehicle.chassis_short || "",
+        engine_number: existingVehicle.engine_number || "",
+        purchase_date: existingVehicle.purchase_date || "",
+        
+        // Vehicle details
+        model_year: existingVehicle.model_year?.toString() || "",
+        vehicle_model: existingVehicle.model || "",
+        model_family: existingVehicle.model || "",
+        category: existingVehicle.category || "A CLASS",
+        colour: existingVehicle.exterior_color || "",
+        interior_colour: existingVehicle.interior_color || "",
+        body_style: existingVehicle.body_style || "",
+        
+        // Current status
+        current_customer_name: existingVehicle.current_customer_name || "",
+        current_parking_location: existingVehicle.current_parking_location || "Main Showroom",
+        
+        // Lease dates
+        release_date_out: existingVehicle.release_date_out || "",
+        expected_return_date: existingVehicle.expected_return_date || "",
+        
+        // Lease terms
+        lease_to_own_option: existingVehicle.lease_to_own_option || false,
+        daily_rate_customer: existingVehicle.daily_rate_customer?.toString() || "",
+        daily_rate_vehicle: existingVehicle.daily_rate_vehicle?.toString() || "",
+        planned_lease_pricing: existingVehicle.planned_lease_pricing?.toString() || "",
+        monthly_lease_rate: existingVehicle.monthly_lease_rate?.toString() || "",
+        security_deposit: existingVehicle.security_deposit?.toString() || "",
+        lease_term_months: existingVehicle.lease_term_months?.toString() || "",
+        max_mileage_per_year: existingVehicle.max_mileage_per_year?.toString() || "",
+        condition: existingVehicle.condition || "",
+        condition_notes: existingVehicle.condition_notes || "",
+        
+        // Mileage tracking
+        current_mileage_km: existingVehicle.current_mileage_km?.toString() || "",
+        excess_mileage_whole_lease: existingVehicle.excess_mileage_whole_lease?.toString() || "0",
+        excess_mileage_previous_billing: existingVehicle.excess_mileage_previous_billing?.toString() || "0",
+        mylocator_mileage: existingVehicle.mylocator_mileage?.toString() || "",
+        
+        // Service tracking
+        first_service_date: existingVehicle.first_service_date || "",
+        second_service_date: existingVehicle.second_service_date || "",
+        last_service_date: existingVehicle.last_service_date || "",
+        next_service_due: existingVehicle.next_service_due || "",
+        
+        // Financial tracking
+        acquired_cost: existingVehicle.acquired_cost?.toString() || "",
+        monthly_depreciation: existingVehicle.monthly_depreciation?.toString() || "",
+        excess_usage_depreciation: existingVehicle.excess_usage_depreciation?.toString() || "0",
+        accumulated_depreciation: existingVehicle.accumulated_depreciation?.toString() || "0",
+        carrying_value: existingVehicle.carrying_value?.toString() || "",
+        buyout_price: existingVehicle.buyout_price?.toString() || "",
+        current_market_value: existingVehicle.current_market_value?.toString() || "",
+        unrealized_gain_loss: existingVehicle.unrealized_gain_loss?.toString() || "0",
+        
+        // Compliance
+        warranty_expiry_date: existingVehicle.warranty_expiry_date || "",
+        registration_date: existingVehicle.registration_date || "",
+        months_registered: existingVehicle.months_registered?.toString() || "",
+        
+        // Technical specs
+        regional_specification: "GCC",
+        engine: existingVehicle.engine_type || "",
+        transmission: existingVehicle.transmission || "Automatic",
+        fuel_type: existingVehicle.fuel_type || "Petrol",
+        horsepower_hp: existingVehicle.horsepower_hp?.toString() || "",
+        torque_nm: existingVehicle.torque_nm?.toString() || "",
+        cubic_capacity_cc: existingVehicle.cubic_capacity_cc?.toString() || "",
+        
+        // Operational
+        location: existingVehicle.location || "",
+        parking_spot: existingVehicle.parking_spot || "",
+        
+        // Notes
+        description: existingVehicle.notes || "",
+        key_equipment: existingVehicle.key_equipment || "",
+        remarks: existingVehicle.remarks || "",
+      });
+    }
+  }, [isOpen, mode, existingVehicle]);
+
+  // Clear success/error state when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setSavedVehicle(null);
+      setErrors([]);
+    }
+  }, [isOpen]);
+
   // Mercedes-Benz models for dropdown (exact same as UV CRM)
   const models = [
     { id: "1", name: "A" },
@@ -178,7 +275,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
       add(!!form.regional_specification, 'Regional Specification');
       add(!!form.current_mileage_km, 'Mileage');
       add(!!form.monthly_lease_rate, 'Monthly Lease Rate');
-      add(!!form.security_deposit, 'Security Deposit');
     }
 
     return missing;
@@ -297,6 +393,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         // Required/basic
         stock_number: form.stock_number.toUpperCase(),
         vin_number: form.chassis_number.toUpperCase(),
+        chassis_short: form.chassis_short || null,
         make: 'Mercedes-Benz',
         model: form.model_family,
         model_year: parseInt(form.model_year),
@@ -322,6 +419,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         daily_rate_customer: form.daily_rate_customer ? parseFloat(form.daily_rate_customer) : null,
         daily_rate_vehicle: form.daily_rate_vehicle ? parseFloat(form.daily_rate_vehicle) : null,
         planned_lease_pricing: form.planned_lease_pricing ? parseFloat(form.planned_lease_pricing) : null,
+        monthly_lease_rate: form.monthly_lease_rate ? parseFloat(form.monthly_lease_rate) : null,
         current_mileage_km: form.current_mileage_km ? parseInt(form.current_mileage_km) : null,
         excess_mileage_whole_lease: form.excess_mileage_whole_lease ? parseInt(form.excess_mileage_whole_lease) : 0,
         excess_mileage_previous_billing: form.excess_mileage_previous_billing ? parseInt(form.excess_mileage_previous_billing) : 0,

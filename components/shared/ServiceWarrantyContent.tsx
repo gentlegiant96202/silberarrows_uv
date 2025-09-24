@@ -716,6 +716,27 @@ export default function ServiceWarrantyContent() {
                 </button>
               )}
 
+              {/* PDF Buttons */}
+              <div className="flex items-center space-x-2">
+                {/* ServiceCare PDF Button */}
+                <button
+                  onClick={() => window.open('/SERVICECARE PRICING printfile COMPRESSED.pdf', '_blank')}
+                  className="flex items-center justify-center w-10 h-10 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded text-blue-400 transition-all duration-200"
+                  title="View ServiceCare Pricing PDF"
+                >
+                  <Wrench className="w-5 h-5" />
+                </button>
+
+                {/* Warranty PDF Button */}
+                <button
+                  onClick={() => {}}
+                  className="flex items-center justify-center w-10 h-10 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded text-green-400 transition-all duration-200"
+                  title="Warranty PDF (Coming Soon)"
+                >
+                  <Shield className="w-5 h-5" />
+                </button>
+              </div>
+
               {/* New Contract Button */}
               {canCreate && (
                 <button 

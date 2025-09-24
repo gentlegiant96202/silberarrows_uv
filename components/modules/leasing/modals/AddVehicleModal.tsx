@@ -59,6 +59,8 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     daily_rate_customer: existingVehicle?.daily_rate_customer?.toString() || "",
     daily_rate_vehicle: existingVehicle?.daily_rate_vehicle?.toString() || "",
     planned_lease_pricing: existingVehicle?.planned_lease_pricing?.toString() || "",
+    monthly_lease_rate: existingVehicle?.monthly_lease_rate?.toString() || "",
+    security_deposit: existingVehicle?.security_deposit?.toString() || "",
     
     // Mileage tracking
     current_mileage_km: existingVehicle?.current_mileage_km?.toString() || "",

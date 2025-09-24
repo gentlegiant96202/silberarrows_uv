@@ -442,22 +442,22 @@ export default function LeasingInventoryBoard() {
         <div className="flex bg-white/10 rounded p-0.5 border border-white/20">
           <button
             onClick={() => setViewMode('kanban')}
-            className={`p-1 rounded transition-all ${
+            className={
               viewMode === 'kanban'
-                ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
-                : 'text-white/60 hover:text-white hover:bg-white/10'
-            }`}
+                ? 'p-1 rounded transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
+                : 'p-1 rounded transition-all text-white/60 hover:text-white hover:bg-white/10'
+            }
             title="Kanban view"
           >
             <LayoutGrid className="w-3 h-3" />
           </button>
           <button
             onClick={() => setViewMode('table')}
-            className={`p-1 rounded transition-all ${
+            className={
               viewMode === 'table'
-                ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
-                : 'text-white/60 hover:text-white hover:bg-white/10'
-            }`}
+                ? 'p-1 rounded transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
+                : 'p-1 rounded transition-all text-white/60 hover:text-white hover:bg-white/10'
+            }
             title="Table view"
           >
             <Table className="w-3 h-3" />
@@ -600,11 +600,11 @@ export default function LeasingInventoryBoard() {
                   </button>
                   <button
                     onClick={() => setViewMode('table')}
-                    className={`p-1 rounded transition-all ${
+                    className={
                       viewMode === 'table'
-                        ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
-                        : 'text-white/60 hover:text-white hover:bg-white/10'
-                    }`}
+                        ? 'p-1 rounded transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
+                        : 'p-1 rounded transition-all text-white/60 hover:text-white hover:bg-white/10'
+                    }
                     title="Table view"
                   >
                     <Table className="w-3 h-3" />

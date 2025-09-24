@@ -72,7 +72,7 @@ interface LeasingVehicle {
   updated_at: string;
 }
 
-type VehicleStatus = 'marketing' | 'reserved' | 'leased' | 'maintenance' | 'returned' | 'archived';
+type VehicleStatus = 'marketing' | 'reserved' | 'leased' | 'maintenance' | 'returned' | 'archived' | 'available';
 type ViewMode = 'kanban' | 'table';
 
 const columns = [

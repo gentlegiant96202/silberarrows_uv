@@ -602,7 +602,7 @@ export default function LeasingInventoryBoard() {
                   <button
                     onClick={() => setViewMode('table')}
                     className={
-                      viewMode === 'table'
+                      viewMode !== 'kanban'
                         ? 'p-1 rounded transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
                         : 'p-1 rounded transition-all text-white/60 hover:text-white hover:bg-white/10'
                     }

@@ -761,9 +761,9 @@ export default function LeasingInventoryBoard() {
                       {highlight(vehicle.location || 'Location not set')}
                     </div>
                     
-                    {vehicle.mileage_km && (
+                    {vehicle.current_mileage_km && (
                       <div className="text-xs text-white/60">
-                        {vehicle.mileage_km.toLocaleString()} km
+                        {vehicle.current_mileage_km.toLocaleString()} km
                       </div>
                     )}
                     

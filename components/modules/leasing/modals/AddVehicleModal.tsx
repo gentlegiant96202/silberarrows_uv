@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import ChassisInput from '@/components/modules/uv-crm/components/ChassisInput';
+import LeasingChassisInput from '@/components/modules/leasing/components/LeasingChassisInput';
+import LeasingDocUploader from '@/components/modules/leasing/components/LeasingDocUploader';
 
 interface Props {
   isOpen: boolean;
@@ -9,6 +10,16 @@ interface Props {
   onCreated: (vehicle: any) => void;
   mode?: 'create' | 'edit';
   existingVehicle?: any;
+}
+
+interface MediaItem {
+  id: string;
+  url: string;
+  kind: string;
+  sort_order: number;
+  is_primary: boolean;
+  filename?: string;
+  created_at?: string;
 }
 
 const VIN_API_URL = process.env.NEXT_PUBLIC_VIN_API_URL!;
@@ -21,29 +32,33 @@ function firstDesc(obj: any) {
   return val?.description || val?.translation?.translation_en || '';
 }
 
+
 export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'create', existingVehicle }: Props) {
-  // Standardized field styling classes (exact same as UV CRM)
+  // Standardized field styling classes
   const fieldClass = "w-full px-4 py-4 rounded-lg bg-black/20 border border-white/10 text-white text-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]";
   const labelClass = "block text-white/80 text-lg font-semibold mb-3";
   const compactLabelClass = "block text-white/80 text-base font-medium mb-2";
   const compactFieldClass = "w-full px-3 py-3 rounded-lg bg-black/20 border border-white/10 text-white text-base focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]";
+  
+  // Read-only field styling for view mode
+  const readonlyFieldClass = "w-full px-4 py-4 rounded-lg bg-black/20 border border-white/10 text-white text-lg cursor-default appearance-none disabled:bg-black/20 disabled:text-white disabled:opacity-100";
+  const readonlyCompactFieldClass = "w-full px-3 py-3 rounded-lg bg-black/20 border border-white/10 text-white text-base cursor-default appearance-none disabled:bg-black/20 disabled:text-white disabled:opacity-100";
 
   const [form, setForm] = useState({
     // Basic vehicle info
     stock_number: existingVehicle?.stock_number || "",
     plate_number: existingVehicle?.plate_number || "",
-    chassis_number: existingVehicle?.vin_number || "",
-    chassis_short: existingVehicle?.chassis_short || "",
+    chassis_number: existingVehicle?.chassis_number || "",
     engine_number: existingVehicle?.engine_number || "",
     purchase_date: existingVehicle?.purchase_date || "",
     
     // Vehicle details
     model_year: existingVehicle?.model_year?.toString() || "",
-    vehicle_model: existingVehicle?.model || "",
-    model_family: existingVehicle?.model || "",
+    vehicle_model: existingVehicle?.vehicle_model || "",
+    model_family: existingVehicle?.model_family || "",
     category: existingVehicle?.category || "A CLASS",
-    colour: existingVehicle?.exterior_color || "",
-    interior_colour: existingVehicle?.interior_color || "",
+    colour: existingVehicle?.colour || "",
+    interior_colour: existingVehicle?.interior_colour || "",
     body_style: existingVehicle?.body_style || "",
     
     // Current status
@@ -68,8 +83,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     
     // Mileage tracking
     current_mileage_km: existingVehicle?.current_mileage_km?.toString() || "",
-    excess_mileage_whole_lease: existingVehicle?.excess_mileage_whole_lease?.toString() || "0",
-    excess_mileage_previous_billing: existingVehicle?.excess_mileage_previous_billing?.toString() || "0",
     mylocator_mileage: existingVehicle?.mylocator_mileage?.toString() || "",
     
     // Service tracking
@@ -107,42 +120,95 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     parking_spot: existingVehicle?.parking_spot || "",
     
     // Notes
-    description: existingVehicle?.notes || "",
+    description: existingVehicle?.description || "",
     key_equipment: existingVehicle?.key_equipment || "",
     remarks: existingVehicle?.remarks || "",
+    insurance_expiry_date: existingVehicle?.insurance_expiry_date || "",
   });
 
   const [saving, setSaving] = useState(false);
   const [savedVehicle, setSavedVehicle] = useState<any>(null);
   const [step, setStep] = useState(0);
   const [activeTab, setActiveTab] = useState<string>('chassis');
+  const [editing, setEditing] = useState(false);
+
+  // Media state
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedMediaIds, setSelectedMediaIds] = useState<Set<string>>(new Set());
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryIdx, setGalleryIdx] = useState(0);
+  const [downloadingGallery, setDownloadingGallery] = useState(false);
+  const [downloadingSocial, setDownloadingSocial] = useState(false);
+  const [downloadingCatalog, setDownloadingCatalog] = useState(false);
+  const [reorderLoading, setReorderLoading] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Documents state
+  const [docs, setDocs] = useState<MediaItem[]>([]);
+  
+  // PDF generation state
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string>('');
+
+  // Determine if we're in view mode (edit mode but not editing)
+  const isViewMode = mode === 'edit' && existingVehicle && !editing;
+  
+  // Get the appropriate field class based on mode
+  const getFieldClass = (compact = false) => {
+    if (isViewMode) {
+      return compact ? readonlyCompactFieldClass : readonlyFieldClass;
+    }
+    return compact ? compactFieldClass : fieldClass;
+  };
+
+  // Conditional onChange handler
+  const handleChangeConditional = (e: any) => {
+    if (!isViewMode) {
+      handleChange(e);
+    }
+  };
 
   // Map tabs to steps for navigation (expanded for comprehensive data)
-  const tabToStep = { chassis: 0, vehicle: 1, pricing: 2, specs: 3, financial: 4, service: 5, details: 6 };
-  const stepToTab = ['chassis', 'vehicle', 'pricing', 'specs', 'financial', 'service', 'details'];
+  const tabToStep = { chassis: 0, media: 1, details: 2, pricing: 3, service: 4, documents: 5 };
+  const stepToTab = ['chassis', 'media', 'details', 'pricing', 'service', 'documents'];
   const currentStep = tabToStep[activeTab as keyof typeof tabToStep];
+  
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
-  // Sync form when existingVehicle or mode changes (for edit mode)
+  // Sync form when existingVehicle or mode changes (for edit mode ONLY)
   useEffect(() => {
     if (isOpen && mode === 'edit' && existingVehicle) {
-      setForm({
+      console.log('🔍 Loading existing vehicle data for ID:', existingVehicle.id);
+      console.log('🔍 Full existingVehicle object:', existingVehicle);
+      console.log('🔍 Specific fields:', {
+        vehicle_model: existingVehicle.vehicle_model,
+        model_family: existingVehicle.model_family,
+        colour: existingVehicle.colour,
+        interior_colour: existingVehicle.interior_colour,
+        chassis_number: existingVehicle.chassis_number,
+        description: existingVehicle.description
+      });
+      
+      const newForm = {
         // Basic vehicle info
         stock_number: existingVehicle.stock_number || "",
         plate_number: existingVehicle.plate_number || "",
-        chassis_number: existingVehicle.vin_number || "",
-        chassis_short: existingVehicle.chassis_short || "",
+        chassis_number: existingVehicle.chassis_number || "",
         engine_number: existingVehicle.engine_number || "",
         purchase_date: existingVehicle.purchase_date || "",
         
         // Vehicle details
         model_year: existingVehicle.model_year?.toString() || "",
-        vehicle_model: existingVehicle.model || "",
-        model_family: existingVehicle.model || "",
+        vehicle_model: existingVehicle.vehicle_model || "",
+        model_family: existingVehicle.model_family || "",
         category: existingVehicle.category || "A CLASS",
-        colour: existingVehicle.exterior_color || "",
-        interior_colour: existingVehicle.interior_color || "",
+        colour: existingVehicle.colour || "",
+        interior_colour: existingVehicle.interior_colour || "",
         body_style: existingVehicle.body_style || "",
         
         // Current status
@@ -167,8 +233,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         
         // Mileage tracking
         current_mileage_km: existingVehicle.current_mileage_km?.toString() || "",
-        excess_mileage_whole_lease: existingVehicle.excess_mileage_whole_lease?.toString() || "0",
-        excess_mileage_previous_billing: existingVehicle.excess_mileage_previous_billing?.toString() || "0",
         mylocator_mileage: existingVehicle.mylocator_mileage?.toString() || "",
         
         // Service tracking
@@ -206,10 +270,22 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         parking_spot: existingVehicle.parking_spot || "",
         
         // Notes
-        description: existingVehicle.notes || "",
+        description: existingVehicle.description || "",
         key_equipment: existingVehicle.key_equipment || "",
         remarks: existingVehicle.remarks || "",
+        insurance_expiry_date: existingVehicle.insurance_expiry_date || "",
+      };
+      
+      console.log('🔍 Setting form state to:', {
+        vehicle_model: newForm.vehicle_model,
+        model_family: newForm.model_family,
+        colour: newForm.colour,
+        interior_colour: newForm.interior_colour,
+        chassis_number: newForm.chassis_number,
+        description: newForm.description
       });
+      
+      setForm(newForm);
     }
   }, [isOpen, mode, existingVehicle]);
 
@@ -218,10 +294,116 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     if (isOpen) {
       setSavedVehicle(null);
       setErrors([]);
+      setEditing(false); // Reset to view mode when modal opens
+      
+      // Reset form for create mode
+      if (mode === 'create') {
+        console.log('🆕 Resetting form for create mode');
+        setForm({
+          // Basic vehicle info
+          stock_number: "",
+          plate_number: "",
+          chassis_number: "",
+          engine_number: "",
+          purchase_date: "",
+          
+          // Vehicle details
+          model_year: "",
+          vehicle_model: "",
+          model_family: "",
+          category: "A CLASS",
+          colour: "",
+          interior_colour: "",
+          body_style: "",
+          
+          // Current status
+          current_customer_name: "",
+          current_parking_location: "Main Showroom",
+          
+          // Lease dates
+          release_date_out: "",
+          expected_return_date: "",
+          
+          // Lease terms
+          lease_to_own_option: false,
+          daily_rate_customer: "",
+          daily_rate_vehicle: "",
+          planned_lease_pricing: "",
+          monthly_lease_rate: "",
+          security_deposit: "",
+          lease_term_months: "",
+          max_mileage_per_year: "",
+          condition: "",
+          condition_notes: "",
+          
+          // Mileage tracking
+          current_mileage_km: "",
+          mylocator_mileage: "",
+          
+          // Service tracking
+          first_service_date: "",
+          second_service_date: "",
+          last_service_date: "",
+          next_service_due: "",
+          
+          // Financial tracking
+          acquired_cost: "",
+          monthly_depreciation: "",
+          excess_usage_depreciation: "0",
+          accumulated_depreciation: "0",
+          carrying_value: "",
+          buyout_price: "",
+          current_market_value: "",
+          unrealized_gain_loss: "0",
+          
+          // Compliance
+          warranty_expiry_date: "",
+          registration_date: "",
+          months_registered: "",
+          
+          // Technical specs
+          regional_specification: "GCC",
+          engine: "",
+          transmission: "Automatic",
+          fuel_type: "Petrol",
+          horsepower_hp: "",
+          torque_nm: "",
+          cubic_capacity_cc: "",
+          
+          // Operational
+          location: "",
+          parking_spot: "",
+          
+          // Notes
+          description: "",
+          key_equipment: "",
+          remarks: "",
+          insurance_expiry_date: "",
+        });
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, mode]);
 
-  // Mercedes-Benz models for dropdown (exact same as UV CRM)
+  // Load media when modal opens in edit mode
+  useEffect(() => {
+    if (!isOpen) {
+      setMedia([]);
+      return;
+    }
+    const id = savedVehicle?.id || existingVehicle?.id;
+    if (mode === 'edit' && id) {
+      refetchMedia();
+    }
+  }, [isOpen, mode, savedVehicle?.id, existingVehicle?.id]);
+
+  // Load documents when savedVehicle or existingVehicle changes
+  useEffect(() => {
+    if (savedVehicle?.id || existingVehicle?.id) {
+      refetchDocs();
+    }
+  }, [savedVehicle?.id, existingVehicle?.id]);
+
+  // Mercedes-Benz models for dropdown
   const models = [
     { id: "1", name: "A" },
     { id: "2", name: "SLK" },
@@ -252,7 +434,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     { id: "27", name: "CLE" }
   ];
 
-  const totalSteps = 7;
+  const totalSteps = 6;
 
   const validateStep = (): string[] => {
     const missing: string[] = [];
@@ -269,11 +451,15 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
       add(!!form.model_family, 'Model Family');
       add(!!form.colour, 'Colour');
       add(!!form.interior_colour, 'Interior Colour');
+      add(!!form.regional_specification, 'Regional Specification');
+      add(!!form.current_mileage_km, 'Current Mileage');
     }
 
     if (step === 2) {
-      add(!!form.regional_specification, 'Regional Specification');
-      add(!!form.current_mileage_km, 'Mileage');
+      // Details tab - no required fields
+    }
+
+    if (step === 3) {
       add(!!form.monthly_lease_rate, 'Monthly Lease Rate');
     }
 
@@ -297,7 +483,636 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     setForm((prev) => ({ ...prev, [name]: processedValue }));
   };
 
-  // VIN API lookup (exact same as UV CRM)
+  const handleSave = async () => {
+    console.log('💾 Save button clicked - mode:', mode, 'existingVehicle:', !!existingVehicle);
+    if (mode !== 'edit' || !existingVehicle) {
+      console.log('❌ Save blocked - mode:', mode, 'existingVehicle:', !!existingVehicle);
+      return;
+    }
+    
+    console.log('💾 Starting save process...');
+    setSaving(true);
+    setErrors([]);
+
+    try {
+      const vehicleData = {
+        // ===== CHASSIS TAB FIELDS =====
+        stock_number: form.stock_number.toUpperCase(),
+        chassis_number: form.chassis_number.toUpperCase(),
+        model_year: form.model_year ? parseInt(form.model_year) : null,
+        model_family: form.model_family,
+        vehicle_model: form.vehicle_model,
+        colour: form.colour,
+        interior_colour: form.interior_colour,
+        plate_number: form.plate_number || null,
+        engine_number: form.engine_number || null,
+        regional_specification: form.regional_specification || 'GCC',
+        current_mileage_km: form.current_mileage_km ? parseInt(form.current_mileage_km) : null,
+        body_style: form.body_style || null,
+        category: form.category,
+        cubic_capacity_cc: form.cubic_capacity_cc ? parseInt(form.cubic_capacity_cc) : null,
+        horsepower_hp: form.horsepower_hp ? parseInt(form.horsepower_hp) : null,
+        torque_nm: form.torque_nm ? parseInt(form.torque_nm) : null,
+        fuel_type: form.fuel_type || 'Petrol',
+        current_parking_location: form.current_parking_location || 'Main Showroom',
+        
+        // ===== PRICING TAB FIELDS =====
+        monthly_lease_rate: form.monthly_lease_rate ? parseFloat(form.monthly_lease_rate) : null,
+        security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
+        buyout_price: form.buyout_price ? parseFloat(form.buyout_price) : null,
+        purchase_date: form.purchase_date || null,
+        acquired_cost: form.acquired_cost ? parseFloat(form.acquired_cost) : null,
+        monthly_depreciation: form.monthly_depreciation ? parseFloat(form.monthly_depreciation) : null,
+        
+        // ===== SERVICE TAB FIELDS =====
+        insurance_expiry_date: form.insurance_expiry_date || null,
+        first_service_date: form.first_service_date || null,
+        second_service_date: form.second_service_date || null,
+        warranty_expiry_date: form.warranty_expiry_date || null,
+        registration_date: form.registration_date || null,
+        
+        // ===== DETAILS TAB FIELDS =====
+        key_equipment: form.key_equipment || null,
+        description: form.description || null,
+        
+        // ===== SYSTEM FIELDS =====
+        make: 'Mercedes-Benz',
+        status: 'marketing',
+        condition: 'good',
+      };
+
+      const { data, error } = await supabase
+        .from('leasing_inventory')
+        .update(vehicleData)
+        .eq('id', existingVehicle.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating vehicle:', error);
+        setErrors([`Error updating vehicle: ${error.message}`]);
+        return;
+      }
+
+      // Update the existing vehicle data
+      const updatedVehicle = { ...existingVehicle, ...data };
+      onCreated(updatedVehicle);
+      setEditing(false);
+      
+    } catch (error) {
+      console.error('Error saving vehicle:', error);
+      setErrors([`Error saving vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`]);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Documents functions
+  const refetchDocs = async () => {
+    const vehicleId = savedVehicle?.id || existingVehicle?.id;
+    if (!vehicleId) return;
+    try {
+      const { data } = await supabase
+        .from('leasing_inventory')
+        .select('documents')
+        .eq('id', vehicleId)
+        .single();
+      setDocs(data?.documents || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    }
+  };
+
+  const handleDeleteDocument = async (doc: MediaItem) => {
+    try {
+      const vehicleId = savedVehicle?.id || existingVehicle?.id;
+      if (!vehicleId) return;
+
+      // Remove document from JSON array
+      const { data: vehicle } = await supabase
+        .from('leasing_inventory')
+        .select('documents')
+        .eq('id', vehicleId)
+        .single();
+
+      const currentDocs = vehicle?.documents || [];
+      const updatedDocs = currentDocs.filter((d: any) => d.id !== doc.id);
+
+      const { error: dbError } = await supabase
+        .from('leasing_inventory')
+        .update({ documents: updatedDocs })
+        .eq('id', vehicleId);
+
+      if (dbError) {
+        console.error('Error deleting document from database:', dbError);
+        alert('Error deleting document from database');
+        return;
+      }
+
+      // Delete from storage
+      const path = doc.url.split('/').slice(-2).join('/'); // Extract path from URL
+      const { error: storageError } = await supabase.storage
+        .from('leasing')
+        .remove([path]);
+
+      if (storageError) {
+        console.error('Error deleting document from storage:', storageError);
+        // Don't show error to user since DB deletion succeeded
+      }
+
+      // Refresh documents list
+      await refetchDocs();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Error deleting document');
+    }
+  };
+
+  // PDF generation functions
+  const handleGeneratePdf = async () => {
+    const vehicleId = savedVehicle?.id || existingVehicle?.id;
+    if (!vehicleId) return;
+
+    setGenerating(true);
+    setStatusMsg('Generating PDF...');
+
+    try {
+      const response = await fetch('/api/generate-vehicle-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vehicleId: vehicleId,
+          vehicleData: savedVehicle || existingVehicle
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const { pdfUrl: generatedPdfUrl } = await response.json();
+      setPdfUrl(generatedPdfUrl);
+      setStatusMsg('PDF generated successfully!');
+      
+      // Clear status message after 3 seconds
+      setTimeout(() => setStatusMsg(''), 3000);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      setStatusMsg('Error generating PDF. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDeleteVehiclePDF = async () => {
+    if (!pdfUrl) return;
+
+    try {
+      // Delete from storage
+      const path = pdfUrl.split('/').slice(-2).join('/');
+      const { error } = await supabase.storage
+        .from('leasing')
+        .remove([path]);
+
+      if (error) {
+        console.error('Error deleting PDF from storage:', error);
+        alert('Error deleting PDF from storage');
+        return;
+      }
+
+      setPdfUrl(null);
+      setStatusMsg('PDF deleted successfully');
+      
+      // Clear status message after 3 seconds
+      setTimeout(() => setStatusMsg(''), 3000);
+    } catch (error) {
+      console.error('Error deleting PDF:', error);
+      alert('Error deleting PDF');
+    }
+  };
+
+  // Media functions
+  const refetchMedia = async () => {
+    if (!existingVehicle?.id) return;
+    
+    setMediaLoading(true);
+    try {
+      console.log('📸 Fetching media for vehicle ID:', existingVehicle.id);
+      const { data, error } = await supabase
+        .from('leasing_inventory')
+        .select('photos, social_media_images, catalog_images')
+        .eq('id', existingVehicle.id)
+        .single();
+      
+      console.log('📸 Raw media data from database:', data);
+      console.log('📸 Database error (if any):', error);
+      
+      if (error) {
+        console.error('Supabase error fetching media:', error);
+        setMedia([]);
+      } else {
+        // Combine all media types with kind property
+        const allMedia = [
+          ...(data?.photos || []).map((item: any) => ({ ...item, kind: 'photo' })),
+          ...(data?.social_media_images || []).map((item: any) => ({ ...item, kind: 'social_media' })),
+          ...(data?.catalog_images || []).map((item: any) => ({ ...item, kind: 'catalog' }))
+        ];
+
+        // Fix storage URLs for custom domain
+        const fixedData = allMedia.map(m => ({
+          ...m,
+          url: m.url && m.url.includes('.supabase.co/storage/') 
+            ? `/api/storage-proxy?url=${encodeURIComponent(m.url)}`
+            : m.url
+        }));
+        
+        setMedia(fixedData);
+      }
+    } catch (error) {
+      console.error('Failed to refetch media:', error);
+      setMedia([]);
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const handleDeleteMedia = async (item: MediaItem) => {
+    if (!confirm('Are you sure you want to delete this media item?')) return;
+    
+    setMediaLoading(true);
+    try {
+      // Delete from storage
+      const path = item.url.split('/').slice(-2).join('/');
+      await supabase.storage.from('leasing').remove([path]);
+      
+      // Remove from JSON array in vehicle record
+      const vehicleId = existingVehicle?.id;
+      if (!vehicleId) return;
+
+      const { data: vehicle } = await supabase
+        .from('leasing_inventory')
+        .select('photos, social_media_images, catalog_images')
+        .eq('id', vehicleId)
+        .single();
+
+      let updatedField = '';
+      let currentItems: any[] = [];
+      
+      if (item.kind === 'photo') {
+        updatedField = 'photos';
+        currentItems = vehicle?.photos || [];
+      } else if (item.kind === 'social_media') {
+        updatedField = 'social_media_images';
+        currentItems = vehicle?.social_media_images || [];
+      } else if (item.kind === 'catalog') {
+        updatedField = 'catalog_images';
+        currentItems = vehicle?.catalog_images || [];
+      }
+
+      const updatedItems = currentItems.filter((i: any) => i.id !== item.id);
+
+      const { error } = await supabase
+        .from('leasing_inventory')
+        .update({ [updatedField]: updatedItems })
+        .eq('id', vehicleId);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setMedia(prev => prev.filter(m => m.id !== item.id));
+    } catch (error) {
+      console.error('Error deleting media:', error);
+      alert('Failed to delete media item');
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const handleSetPrimary = async (mediaId: string) => {
+    if (!existingVehicle?.id) return;
+    
+    setMediaLoading(true);
+    try {
+      const vehicleId = existingVehicle?.id;
+      if (!vehicleId) return;
+
+      // Get current photos
+      const { data: vehicle } = await supabase
+        .from('leasing_inventory')
+        .select('photos')
+        .eq('id', vehicleId)
+        .single();
+
+      const currentPhotos = vehicle?.photos || [];
+      
+      // Update all photos to remove primary, then set the selected one as primary
+      const updatedPhotos = currentPhotos.map((photo: any) => ({
+        ...photo,
+        is_primary: photo.id === mediaId
+      }));
+
+      const { error } = await supabase
+        .from('leasing_inventory')
+        .update({ photos: updatedPhotos })
+        .eq('id', vehicleId);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setMedia(prev => prev.map(m => ({
+        ...m,
+        is_primary: m.id === mediaId && m.kind === 'photo'
+      })));
+    } catch (error) {
+      console.error('Error setting primary:', error);
+      alert('Failed to set primary photo');
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const toggleMediaSelection = (mediaId: string) => {
+    setSelectedMediaIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(mediaId)) {
+        newSet.delete(mediaId);
+      } else {
+        newSet.add(mediaId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllMedia = () => {
+    const gallery = media.filter(m => m.kind === 'photo');
+    setSelectedMediaIds(new Set(gallery.map(m => m.id)));
+  };
+
+  const deselectAllMedia = () => {
+    setSelectedMediaIds(new Set());
+  };
+
+  const handleDeleteSelectedMedia = async () => {
+    if (selectedMediaIds.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedMediaIds.size} media items?`)) return;
+    
+    setMediaLoading(true);
+    try {
+      const selectedItems = media.filter(m => selectedMediaIds.has(m.id));
+      
+      for (const item of selectedItems) {
+        // Delete from storage
+        const path = item.url.split('/').slice(-2).join('/');
+        await supabase.storage.from('leasing').remove([path]);
+        
+        // Remove from JSON array in vehicle record
+        const vehicleId = existingVehicle?.id;
+        if (!vehicleId) continue;
+
+        const { data: vehicle } = await supabase
+          .from('leasing_inventory')
+          .select('photos, social_media_images, catalog_images')
+          .eq('id', vehicleId)
+          .single();
+
+        let updatedField = '';
+        let currentItems: any[] = [];
+        
+        if (item.kind === 'photo') {
+          updatedField = 'photos';
+          currentItems = vehicle?.photos || [];
+        } else if (item.kind === 'social_media') {
+          updatedField = 'social_media_images';
+          currentItems = vehicle?.social_media_images || [];
+        } else if (item.kind === 'catalog') {
+          updatedField = 'catalog_images';
+          currentItems = vehicle?.catalog_images || [];
+        }
+
+        const updatedItems = currentItems.filter((i: any) => i.id !== item.id);
+
+        await supabase
+          .from('leasing_inventory')
+          .update({ [updatedField]: updatedItems })
+          .eq('id', vehicleId);
+      }
+      
+      // Update local state
+      setMedia(prev => prev.filter(m => !selectedMediaIds.has(m.id)));
+      setSelectedMediaIds(new Set());
+      setIsSelectionMode(false);
+    } catch (error) {
+      console.error('Error deleting selected media:', error);
+      alert('Failed to delete selected media items');
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  // Derived media arrays
+  const gallery = media
+    .filter((m: any) => m.kind === 'photo' || m.kind === 'video')
+    .sort((a, b) => {
+      // Primary photos come first
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      // Then sort by sort_order
+      const aOrder = a.sort_order ?? 999999;
+      const bOrder = b.sort_order ?? 999999;
+      return aOrder - bOrder;
+    });
+  
+  // console.log('📸 Current gallery derived from media:', gallery.map(g => ({ id: g.id, sort_order: g.sort_order })));
+
+  const socialMedia = media
+    .filter((m: any) => m.kind === 'social_media')
+    .sort((a, b) => {
+      const aOrder = a.sort_order ?? 999999;
+      const bOrder = b.sort_order ?? 999999;
+      return aOrder - bOrder;
+    });
+
+  const catalog = media
+    .filter((m: any) => m.kind === 'catalog')
+    .sort((a, b) => {
+      const aOrder = a.sort_order ?? 999999;
+      const bOrder = b.sort_order ?? 999999;
+      return aOrder - bOrder;
+    });
+
+  // Download all function
+  const downloadAll = async (items: any[], zipName: string = 'leasing_media.zip', setLoading?: (loading: boolean) => void) => {
+    if (items.length === 0) return;
+
+    // Set loading state if provided
+    if (setLoading) setLoading(true);
+
+    try {
+      // Import JSZip dynamically
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      // Download each image and add to zip
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        try {
+          const response = await fetch(item.url);
+          const blob = await response.blob();
+          const filename = item.filename || `image_${i + 1}.jpg`;
+          zip.file(filename, blob);
+        } catch (error) {
+          console.error(`Failed to download ${item.url}:`, error);
+        }
+      }
+
+      // Generate and download the zip
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = zipName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error creating zip:', error);
+      alert('Failed to create zip file');
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  };
+
+  // Drag and drop functions
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    console.log('🔄 Drag start - editing:', editing, 'reorderLoading:', reorderLoading, 'index:', index);
+    if (!editing || reorderLoading) {
+      console.log('❌ Drag blocked - editing:', editing, 'reorderLoading:', reorderLoading);
+      return;
+    }
+    console.log('✅ Drag started for index:', index);
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || !editing) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    console.log('🔄 Drop - draggedIndex:', draggedIndex, 'dropIndex:', dropIndex, 'editing:', editing);
+    if (draggedIndex === null || !editing) {
+      console.log('❌ Drop blocked - draggedIndex:', draggedIndex, 'editing:', editing);
+      return;
+    }
+    
+    console.log('✅ Moving photo from', draggedIndex, 'to', dropIndex);
+    movePhotoToPosition(draggedIndex, dropIndex);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Move photo to position function
+  const movePhotoToPosition = async (fromIndex: number, toIndex: number) => {
+    console.log('📸 movePhotoToPosition called:', { fromIndex, toIndex, galleryLength: gallery.length, editing, reorderLoading });
+    if (!editing || reorderLoading) return;
+    if (fromIndex === toIndex || toIndex < 0 || toIndex >= gallery.length) return;
+    
+    setReorderLoading(true);
+    console.log('📸 Starting photo reorder...');
+    
+    // Optimistic update: show change immediately
+    const newGallery = [...gallery];
+    const [movedItem] = newGallery.splice(fromIndex, 1);
+    newGallery.splice(toIndex, 0, movedItem);
+    
+    // Update sort_order values in the optimistic update
+    const newGalleryWithUpdatedOrder = newGallery.map((item, index) => ({
+      ...item,
+      sort_order: index
+    }));
+    
+    console.log('📸 Optimistic update - old gallery:', gallery.map(g => g.id));
+    console.log('📸 Optimistic update - new gallery:', newGalleryWithUpdatedOrder.map(g => g.id));
+    
+    const docs = media.filter(m => m.kind === 'document');
+    const nonGalleryMedia = media.filter(m => m.kind !== 'photo' && m.kind !== 'video');
+    const optimisticMedia = [...docs, ...nonGalleryMedia, ...newGalleryWithUpdatedOrder];
+    setMedia(optimisticMedia);
+    
+    console.log('📸 Updated media state with new order and sort_order values');
+    
+    try {
+      // Update sort orders in JSON array
+      const vehicleId = existingVehicle?.id;
+      if (!vehicleId) return;
+
+      const { data: vehicle } = await supabase
+        .from('leasing_inventory')
+        .select('photos, social_media_images, catalog_images')
+        .eq('id', vehicleId)
+        .single();
+
+      // Update sort orders for each media type
+      const updatedPhotos = (vehicle?.photos || []).map((photo: any) => {
+        const newIndex = newGallery.findIndex(item => item.id === photo.id);
+        return newIndex >= 0 ? { ...photo, sort_order: newIndex } : photo;
+      });
+
+      const updatedSocial = (vehicle?.social_media_images || []).map((social: any) => {
+        const newIndex = newGallery.findIndex(item => item.id === social.id);
+        return newIndex >= 0 ? { ...social, sort_order: newIndex } : social;
+      });
+
+      const updatedCatalog = (vehicle?.catalog_images || []).map((catalog: any) => {
+        const newIndex = newGallery.findIndex(item => item.id === catalog.id);
+        return newIndex >= 0 ? { ...catalog, sort_order: newIndex } : catalog;
+      });
+
+      await supabase
+        .from('leasing_inventory')
+        .update({ 
+          photos: updatedPhotos,
+          social_media_images: updatedSocial,
+          catalog_images: updatedCatalog
+        })
+        .eq('id', vehicleId);
+      
+      console.log('✅ Photo reorder completed successfully');
+    } catch (error) {
+      console.error('❌ Error updating sort order:', error);
+      // Revert optimistic update on error
+      refetchMedia();
+    } finally {
+      setReorderLoading(false);
+      console.log('📸 Reorder loading finished');
+    }
+  };
+
+  // Get original image URL
+  const getOriginalImageUrl = (url: string) => {
+    if (url.includes('/api/storage-proxy')) {
+      const urlParam = new URLSearchParams(url.split('?')[1]).get('url');
+      return urlParam || url;
+    }
+    return url;
+  };
+
+  // VIN API lookup
   const lookupVIN = async (vin: string) => {
     if (!vin || vin.length !== 17) {
       console.log('VIN length not 17, skipping lookup');
@@ -343,7 +1158,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         return;
       }
       
-      // Auto-populate fields from VIN data (same as UV CRM)
+      // Auto-populate fields from VIN data
       const modelDesc = firstDesc(map.model_name?.stream_result)?.toUpperCase();
       const year = map.production_date?.stream_result?.substring(0, 4) || '';
       const displacement = parseFloat(map.displacement?.stream_result || '');
@@ -351,21 +1166,25 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
       const colorDesc = firstDesc(map.color_code?.stream_result)?.toUpperCase();
       const interiorDesc = firstDesc(map.interior_code?.stream_result)?.toUpperCase();
 
+      // Options list for key equipment
+      const optsObj = map.options?.stream_result || {};
+      const optionDescsArr = Object.values(optsObj).map((o: any) => String(o.description).toUpperCase()).filter(Boolean);
+      const optionDescs = Array.from(new Set(optionDescsArr));
+      const optionsText = optionDescs.length ? optionDescs.map(d => `- ${d}`).join('\n') : '';
+
       const updates: any = {};
       if (modelDesc) updates.vehicle_model = modelDesc;
       if (year) updates.model_year = year;
       if (colorDesc) updates.colour = colorDesc;
       if (interiorDesc) updates.interior_colour = interiorDesc;
       if (cc) updates.cubic_capacity_cc = cc;
+      if (optionsText) updates.key_equipment = optionsText;
       
       if (Object.keys(updates).length > 0) {
         setForm(prev => ({ ...prev, ...updates }));
         console.log('✅ VIN lookup successful:', updates);
         
-        // Auto-advance to next step immediately after successful VIN lookup
-        const newStep = step + 1;
-        setStep(newStep);
-        setActiveTab(stepToTab[newStep]);
+        // Stay on current tab after successful VIN lookup
         setErrors([]); // Clear any previous errors
       } else {
         setErrors(['VIN found but no usable data. You can continue manually.']);
@@ -390,64 +1209,51 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
 
     try {
       const vehicleData = {
-        // Required/basic
+        // ===== CHASSIS TAB FIELDS =====
         stock_number: form.stock_number.toUpperCase(),
-        vin_number: form.chassis_number.toUpperCase(),
-        chassis_short: form.chassis_short || null,
-        make: 'Mercedes-Benz',
-        model: form.model_family,
-        model_year: parseInt(form.model_year),
-        category: form.category || null,
-        exterior_color: form.colour || null,
-        interior_color: form.interior_colour || null,
-        body_style: form.body_style || null,
+        chassis_number: form.chassis_number.toUpperCase(),
+        model_year: form.model_year ? parseInt(form.model_year) : null,
+        model_family: form.model_family,
+        vehicle_model: form.vehicle_model,
+        colour: form.colour,
+        interior_colour: form.interior_colour,
         plate_number: form.plate_number || null,
         engine_number: form.engine_number || null,
-        purchase_date: form.purchase_date || null,
-
-        // Status mapping: UI "MARKETING" column corresponds to DB 'marketing'
-        status: 'marketing',
-
-        // Current status/location (optional)
-        current_customer_name: form.current_customer_name || null,
-        current_parking_location: form.current_parking_location || null,
-        release_date_out: form.release_date_out || null,
-        expected_return_date: form.expected_return_date || null,
-        lease_to_own_option: !!form.lease_to_own_option,
-
-        // Rates and mileage
-        daily_rate_customer: form.daily_rate_customer ? parseFloat(form.daily_rate_customer) : null,
-        daily_rate_vehicle: form.daily_rate_vehicle ? parseFloat(form.daily_rate_vehicle) : null,
-        planned_lease_pricing: form.planned_lease_pricing ? parseFloat(form.planned_lease_pricing) : null,
-        monthly_lease_rate: form.monthly_lease_rate ? parseFloat(form.monthly_lease_rate) : null,
+        regional_specification: form.regional_specification || 'GCC',
         current_mileage_km: form.current_mileage_km ? parseInt(form.current_mileage_km) : null,
-        excess_mileage_whole_lease: form.excess_mileage_whole_lease ? parseInt(form.excess_mileage_whole_lease) : 0,
-        excess_mileage_previous_billing: form.excess_mileage_previous_billing ? parseInt(form.excess_mileage_previous_billing) : 0,
-        mylocator_mileage: form.mylocator_mileage ? parseInt(form.mylocator_mileage) : null,
-
-        // Service
-        first_service_date: form.first_service_date || null,
-        second_service_date: form.second_service_date || null,
-        last_service_date: form.last_service_date || null,
-        next_service_due: form.next_service_due || null,
-
-        // Financial
+        body_style: form.body_style || null,
+        category: form.category,
+        cubic_capacity_cc: form.cubic_capacity_cc ? parseInt(form.cubic_capacity_cc) : null,
+        horsepower_hp: form.horsepower_hp ? parseInt(form.horsepower_hp) : null,
+        torque_nm: form.torque_nm ? parseInt(form.torque_nm) : null,
+        fuel_type: form.fuel_type || 'Petrol',
+        current_parking_location: form.current_parking_location || 'Main Showroom',
+        
+        // ===== PRICING TAB FIELDS =====
+        monthly_lease_rate: form.monthly_lease_rate ? parseFloat(form.monthly_lease_rate) : null,
+        security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
+        buyout_price: form.buyout_price ? parseFloat(form.buyout_price) : null,
+        purchase_date: form.purchase_date || null,
         acquired_cost: form.acquired_cost ? parseFloat(form.acquired_cost) : null,
         monthly_depreciation: form.monthly_depreciation ? parseFloat(form.monthly_depreciation) : null,
-        excess_usage_depreciation: form.excess_usage_depreciation ? parseFloat(form.excess_usage_depreciation) : 0,
-        accumulated_depreciation: form.accumulated_depreciation ? parseFloat(form.accumulated_depreciation) : 0,
-        carrying_value: form.carrying_value ? parseFloat(form.carrying_value) : null,
-        buyout_price: form.buyout_price ? parseFloat(form.buyout_price) : null,
-        current_market_value: form.current_market_value ? parseFloat(form.current_market_value) : null,
-        unrealized_gain_loss: form.unrealized_gain_loss ? parseFloat(form.unrealized_gain_loss) : null,
-
-        // Compliance
+        
+        // ===== SERVICE TAB FIELDS =====
+        insurance_expiry_date: form.insurance_expiry_date || null,
+        first_service_date: form.first_service_date || null,
+        second_service_date: form.second_service_date || null,
         warranty_expiry_date: form.warranty_expiry_date || null,
         registration_date: form.registration_date || null,
-        months_registered: form.months_registered ? parseInt(form.months_registered) : null,
-
-        // Misc
-        remarks: form.remarks || null,
+        
+        // ===== DETAILS TAB FIELDS =====
+        key_equipment: form.key_equipment || null,
+        description: form.description || null,
+        
+        // ===== SYSTEM FIELDS =====
+        make: 'Mercedes-Benz',
+        status: 'marketing',
+        condition: 'good',
+        
+        // ===== AUDIT =====
         updated_at: new Date().toISOString(),
       } as any;
 
@@ -471,19 +1277,32 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
       }
 
       if (result.error) {
-        console.error('Error saving vehicle:', result.error);
-        setErrors(['Failed to save vehicle. Please try again.']);
+        console.error('❌ Database error saving vehicle:', result.error);
+        setErrors([`Failed to save vehicle: ${result.error.message}`]);
         return;
       }
 
-      console.log('Vehicle saved successfully:', result.data);
+      console.log('✅ Vehicle saved successfully:', result.data);
       setSavedVehicle(result.data);
+      // update existingVehicle-like reference so dependent effects pick up the id
+      if (!existingVehicle?.id && result.data?.id) {
+        // ensure docs/media hooks see an id immediately
+        try { await refetchDocs(); } catch {}
+      }
       onCreated(result.data);
-      onClose();
+      // Keep modal open; refresh media and exit editing mode
+      try {
+        await refetchMedia();
+      } catch (e) {
+        console.warn('⚠️ Media refresh after save failed:', e);
+      }
+      // ensure we stay on media tab and show latest
+      setActiveTab('media');
+      setEditing(false);
 
     } catch (error) {
-      console.error('Error saving vehicle:', error);
-      setErrors(['Failed to save vehicle. Please try again.']);
+      console.error('❌ Exception saving vehicle:', error);
+      setErrors([`Failed to save vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`]);
     } finally {
       setSaving(false);
     }
@@ -516,7 +1335,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-6 w-[896px] max-w-[98vw] h-[85vh] flex flex-col text-sm relative overflow-hidden shadow-2xl">
+      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-6 w-[950px] max-w-[98vw] h-[85vh] flex flex-col text-sm relative overflow-hidden shadow-2xl">
         {processing && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 rounded-lg">
             <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -527,7 +1346,149 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         )}
         
         <button onClick={onClose} className="absolute top-2 right-2 text-xl leading-none text-white/70 hover:text-white">×</button>
-        <h2 className="text-base font-semibold text-white mb-1">{mode === 'edit' ? 'Edit Vehicle' : 'Add New Vehicle'}</h2>
+        
+        {/* Header with inline buttons */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-white">{mode === 'edit' ? 'Edit Vehicle' : 'Add New Vehicle'}</h2>
+            
+            {/* Parking Location Selector - inline with heading */}
+            <div className="flex items-center gap-2 text-sm text-white/80">
+              <span>Parking Location:</span>
+              <select
+                name="current_parking_location"
+                value={form.current_parking_location}
+                onChange={handleChangeConditional}
+                className="bg-black/50 border border-white/20 px-2 py-1 rounded text-white text-sm"
+                disabled={isViewMode}
+              >
+                <option value="MAIN SHOWROOM">MAIN SHOWROOM</option>
+                <option value="CAR PARK">CAR PARK</option>
+                <option value="STONES">STONES</option>
+                <option value="YARD">YARD</option>
+                <option value="SHOWROOM 2">SHOWROOM 2</option>
+                <option value="SERVICE CENTER">SERVICE CENTER</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* View/Edit Toggle for Edit Mode */}
+          {mode === 'edit' && existingVehicle && (
+            <div className="flex gap-2">
+              {editing ? (
+                <>
+                  <button
+                    onClick={() => {
+                      console.log('🖱️ Save button clicked!');
+                      handleSave();
+                    }}
+                    disabled={saving}
+                    className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-300 hover:text-green-200 transition-colors text-sm rounded disabled:opacity-50"
+                  >
+                    {saving ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditing(false);
+                      // Reset form to original data
+                      if (existingVehicle) {
+                        setForm({
+                          // Basic vehicle info
+                          stock_number: existingVehicle.stock_number || "",
+                            plate_number: existingVehicle.plate_number || "",
+                            chassis_number: existingVehicle.chassis_number || "",
+                            engine_number: existingVehicle.engine_number || "",
+                            purchase_date: existingVehicle.purchase_date || "",
+                            
+                            // Vehicle details
+                            model_year: existingVehicle.model_year?.toString() || "",
+                            vehicle_model: existingVehicle.vehicle_model || "",
+                            model_family: existingVehicle.model_family || "",
+                            category: existingVehicle.category || "A CLASS",
+                            colour: existingVehicle.colour || "",
+                            interior_colour: existingVehicle.interior_colour || "",
+                            body_style: existingVehicle.body_style || "",
+                            
+                            // Current status
+                            current_customer_name: existingVehicle.current_customer_name || "",
+                            current_parking_location: existingVehicle.current_parking_location || "Main Showroom",
+                            
+                            // Lease dates
+                            release_date_out: existingVehicle.release_date_out || "",
+                            expected_return_date: existingVehicle.expected_return_date || "",
+                            
+                            // Lease terms
+                            lease_to_own_option: existingVehicle.lease_to_own_option || false,
+                            daily_rate_customer: existingVehicle.daily_rate_customer?.toString() || "",
+                            daily_rate_vehicle: existingVehicle.daily_rate_vehicle?.toString() || "",
+                            planned_lease_pricing: existingVehicle.planned_lease_pricing?.toString() || "",
+                            monthly_lease_rate: existingVehicle.monthly_lease_rate?.toString() || "",
+                            security_deposit: existingVehicle.security_deposit?.toString() || "",
+                            lease_term_months: existingVehicle.lease_term_months?.toString() || "",
+                            max_mileage_per_year: existingVehicle.max_mileage_per_year?.toString() || "",
+                            condition: existingVehicle.condition || "",
+                            condition_notes: existingVehicle.condition_notes || "",
+                            
+                            // Mileage tracking
+                            current_mileage_km: existingVehicle.current_mileage_km?.toString() || "",
+                            mylocator_mileage: existingVehicle.mylocator_mileage?.toString() || "",
+                            
+                            // Service tracking
+                            first_service_date: existingVehicle.first_service_date || "",
+                            second_service_date: existingVehicle.second_service_date || "",
+                            last_service_date: existingVehicle.last_service_date || "",
+                            next_service_due: existingVehicle.next_service_due || "",
+                            
+                            // Financial
+                            acquired_cost: existingVehicle.acquired_cost?.toString() || "",
+                            monthly_depreciation: existingVehicle.monthly_depreciation?.toString() || "",
+                            excess_usage_depreciation: existingVehicle.excess_usage_depreciation?.toString() || "",
+                            accumulated_depreciation: existingVehicle.accumulated_depreciation?.toString() || "",
+                            carrying_value: existingVehicle.carrying_value?.toString() || "",
+                            buyout_price: existingVehicle.buyout_price?.toString() || "",
+                            current_market_value: existingVehicle.current_market_value?.toString() || "",
+                            unrealized_gain_loss: existingVehicle.unrealized_gain_loss?.toString() || "",
+                            
+                            // Warranty and registration
+                            warranty_expiry_date: existingVehicle.warranty_expiry_date || "",
+                            registration_date: existingVehicle.registration_date || "",
+                            months_registered: existingVehicle.months_registered?.toString() || "",
+                            
+                            // Additional details
+                            regional_specification: existingVehicle.regional_specification || "",
+                            location: existingVehicle.location || "",
+                            parking_spot: existingVehicle.parking_spot || "",
+                            description: existingVehicle.description || "",
+                            remarks: existingVehicle.remarks || "",
+                            key_equipment: existingVehicle.key_equipment || "",
+                            insurance_expiry_date: existingVehicle.insurance_expiry_date || "",
+                            
+                            // Technical specs
+                            engine: existingVehicle.engine || "",
+                            transmission: existingVehicle.transmission || "",
+                            fuel_type: existingVehicle.fuel_type || "",
+                            horsepower_hp: existingVehicle.horsepower_hp?.toString() || "",
+                            torque_nm: existingVehicle.torque_nm?.toString() || "",
+                            cubic_capacity_cc: existingVehicle.cubic_capacity_cc?.toString() || "",
+                          });
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors text-sm rounded"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors text-sm rounded"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            )}
+        </div>
         
         {errors.length > 0 && (
           <div className="mb-3 bg-red-600/80 text-white text-xs p-2 rounded">
@@ -544,13 +1505,12 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
           <div className="border-b border-white/20 mb-6">
             <nav className="flex space-x-3 overflow-x-auto pb-2 custom-scrollbar" aria-label="Tabs">
               {[
-                { id: 'chassis', label: 'Chassis', step: 0 },
-                { id: 'vehicle', label: 'Vehicle Info', step: 1 },
-                { id: 'pricing', label: 'Pricing', step: 2 },
-                { id: 'specs', label: 'Specifications', step: 3 },
-                { id: 'financial', label: 'Financial', step: 4 },
-                { id: 'service', label: 'Service', step: 5 },
-                { id: 'details', label: 'Details', step: 6 }
+                { id: 'chassis', label: 'Vehicle Details', step: 0 },
+                { id: 'media', label: 'Media', step: 1 },
+                { id: 'details', label: 'Details', step: 2 },
+                { id: 'pricing', label: 'Pricing', step: 3 },
+                { id: 'service', label: 'Service', step: 4 },
+                { id: 'documents', label: 'Documents', step: 5 }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -579,157 +1539,811 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
             <div className="w-full max-w-4xl mx-auto py-8">
               <form onSubmit={(e) => { e.preventDefault(); }} className="space-y-6">
             
-            {/* Chassis Tab - exact same as UV CRM */}
+            {/* Combined Chassis & Vehicle Info Tab */}
             {activeTab === 'chassis' && (
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 min-h-[500px] flex flex-col justify-center">
-                <div className="text-center space-y-12">
-                  <div className="space-y-6">
-                    <h3 className="text-white text-4xl font-bold">Vehicle Identification</h3>
-                    <p className="text-white/70 text-2xl">Enter the 17-character VIN to get started</p>
-                  </div>
-                  
-                  <div className="space-y-8">
-                    <label className="block text-white/80 text-3xl font-semibold">Chassis Number (VIN)</label>
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 space-y-6">
+                {/* Chassis Section - Compact */}
+                <div className="text-center space-y-4">
+                  <h3 className="text-white text-2xl font-bold">Vehicle Identification</h3>
+                  <div className="space-y-4">
+                    <label className="block text-white/80 text-lg font-semibold">Chassis Number (VIN)</label>
                     <div className="w-full flex justify-center px-4">
-                      <ChassisInput 
+                      <LeasingChassisInput 
                         value={form.chassis_number} 
                         onChange={(val) => {
-                          handleChange({
-                            target: { name: 'chassis_number', value: val }
-                          } as any);
-                          if (val.length === 17) {
-                            lookupVIN(val);
+                          if (!isViewMode) {
+                            handleChange({
+                              target: { name: 'chassis_number', value: val }
+                            } as any);
+                            if (val.length === 17) {
+                              lookupVIN(val);
+                            }
                           }
                         }} 
                       />
                     </div>
-                    <p className="text-white/50 text-lg max-w-2xl mx-auto">
-                      The VIN will automatically populate vehicle details in the next steps
+                    <p className="text-white/50 text-sm max-w-2xl mx-auto">
+                      The VIN will automatically populate vehicle details below
                     </p>
                   </div>
                 </div>
+
+                {/* Vehicle Info Section */}
+                <div className="space-y-6">
+                  <h3 className="text-white text-2xl font-bold text-center">Vehicle Information</h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={compactLabelClass}>Stock Number</label>
+                      <input
+                        name="stock_number"
+                        value={form.stock_number}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        required={!isViewMode}
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                    <div>
+                      <label className={compactLabelClass}>Model Year</label>
+                      <input
+                        type="number"
+                        name="model_year"
+                        value={form.model_year}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        min="2015"
+                        max="2025"
+                        required={!isViewMode}
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={compactLabelClass}>Model Family</label>
+                      <select
+                        name="model_family"
+                        value={form.model_family}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        required={!isViewMode}
+                        disabled={isViewMode}
+                      >
+                        <option value="">Choose model...</option>
+                        {models.map(m => (
+                          <option key={m.id} value={m.name}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={compactLabelClass}>Vehicle Model</label>
+                      <input
+                        name="vehicle_model"
+                        value={form.vehicle_model}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="C-Class"
+                        required={!isViewMode}
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={compactLabelClass}>Exterior Colour</label>
+                      <input
+                        name="colour"
+                        value={form.colour}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="Obsidian Black"
+                        required={!isViewMode}
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                    <div>
+                      <label className={compactLabelClass}>Interior Colour</label>
+                      <input
+                        name="interior_colour"
+                        value={form.interior_colour}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="Black Leather"
+                        required={!isViewMode}
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={compactLabelClass}>Plate Number</label>
+                      <input
+                        name="plate_number"
+                        value={form.plate_number}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="ABC123"
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                    <div>
+                      <label className={compactLabelClass}>Engine Number</label>
+                      <input
+                        name="engine_number"
+                        value={form.engine_number}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="Engine Number"
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={compactLabelClass}>Regional Specification</label>
+                      <input
+                        name="regional_specification"
+                        value={form.regional_specification}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="GCC"
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                    <div>
+                      <label className={compactLabelClass}>Current Mileage (KM)</label>
+                      <input
+                        type="number"
+                        name="current_mileage_km"
+                        value={form.current_mileage_km}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="50000"
+                        min="0"
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={compactLabelClass}>Body Style</label>
+                      <input
+                        name="body_style"
+                        value={form.body_style}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="Sedan"
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                    <div>
+                      <label className={compactLabelClass}>Category</label>
+                      <select
+                        name="category"
+                        value={form.category}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        disabled={isViewMode}
+                      >
+                        <option value="A CLASS">A CLASS</option>
+                        <option value="OTHERS">OTHERS</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={compactLabelClass}>Cubic Capacity (CC)</label>
+                      <input
+                        type="number"
+                        name="cubic_capacity_cc"
+                        value={form.cubic_capacity_cc}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="2000"
+                        min="0"
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                    <div>
+                      <label className={compactLabelClass}>Horsepower (HP)</label>
+                      <input
+                        type="number"
+                        name="horsepower_hp"
+                        value={form.horsepower_hp}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="200"
+                        min="0"
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={compactLabelClass}>Torque (NM)</label>
+                      <input
+                        type="number"
+                        name="torque_nm"
+                        value={form.torque_nm}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="300"
+                        min="0"
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                    <div>
+                      <label className={compactLabelClass}>Fuel Type</label>
+                      <input
+                        name="fuel_type"
+                        value={form.fuel_type}
+                        onChange={handleChangeConditional}
+                        className={compactFieldClass}
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                        placeholder="Petrol"
+                        readOnly={isViewMode}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Vehicle Info Tab - exact same as UV CRM */}
-            {activeTab === 'vehicle' && (
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 min-h-[500px] space-y-8 flex flex-col justify-center">
-              <div className="text-center">
-                <h3 className="text-white text-4xl font-bold mb-6">Vehicle Information</h3>
-                <p className="text-white/70 text-xl mb-8">Complete the vehicle details below</p>
-              </div>
-              <div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className={labelClass}>Stock Number</label>
-                    <input
-                      name="stock_number"
-                      value={form.stock_number}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                      required
-                    />
+
+            {/* Media Tab */}
+            {activeTab === 'media' && (
+              <div className="space-y-6">
+                {/* Photo Gallery */}
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">
+                      Photo Gallery ({gallery.length})
+                      {isSelectionMode && selectedMediaIds.size > 0 && (
+                        <span className="ml-2 text-xs text-gray-300">
+                          ({selectedMediaIds.size} selected)
+                        </span>
+                      )}
+                    </h4>
+                    <div className="flex items-center gap-3">
+                      {!isViewMode && (
+                        <>
+                          {/* Upload Button */}
+                          <div className="border-r border-white/20 pr-3">
+                            <div className="relative">
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  if (!files.length) return;
+                                  
+                                  // Use existing MediaUploader logic inline
+                                  setMediaLoading(true);
+                                  console.log(`📤 Starting upload of ${files.length} photo(s)...`);
+                                  for (let i = 0; i < files.length; i++) {
+                                    const file = files[i];
+                                    console.log(`📤 Uploading photo ${i + 1}/${files.length}: ${file.name}`);
+                                    const ext = file.name.split('.').pop();
+                                    const vehicleId = existingVehicle?.id || savedVehicle?.id;
+                                    console.log('🔍 Upload check - vehicleId:', vehicleId, 'existingVehicle?.id:', existingVehicle?.id, 'savedVehicle?.id:', savedVehicle?.id);
+                                    if (!vehicleId) {
+                                      alert('Please save the vehicle first before uploading photos');
+                                      setMediaLoading(false);
+                                      return;
+                                    }
+                                    
+                                    const path = `${vehicleId}/${crypto.randomUUID()}.${ext}`;
+                                    
+                                    const { error: upErr } = await supabase.storage
+                                      .from('leasing')
+                                      .upload(path, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+                                    
+                                    if (upErr) continue;
+                                    
+                                    const { data: pub } = supabase.storage.from('leasing').getPublicUrl(path);
+                                    // Get current photo count from JSON field
+                                    const { data: vehicleData } = await supabase
+                                      .from('leasing_inventory')
+                                      .select('photos')
+                                      .eq('id', vehicleId)
+                                      .single();
+                                    
+                                    const photoCount = vehicleData?.photos?.length || 0;
+                                    
+                                    // Add photo to JSON array in vehicle record
+                                    const photoObj = {
+                                      id: crypto.randomUUID(),
+                                      url: pub.publicUrl,
+                                      filename: file.name,
+                                      is_primary: (!photoCount || photoCount === 0),
+                                      sort_order: (photoCount || 0),
+                                      uploaded_at: new Date().toISOString()
+                                    };
+
+                                    const { data: vehicle } = await supabase
+                                      .from('leasing_inventory')
+                                      .select('photos')
+                                      .eq('id', vehicleId)
+                                      .single();
+
+                                    const currentPhotos = vehicle?.photos || [];
+                                    const updatedPhotos = [...currentPhotos, photoObj];
+
+                                    await supabase
+                                      .from('leasing_inventory')
+                                      .update({ photos: updatedPhotos })
+                                      .eq('id', vehicleId);
+                                  }
+                                  console.log(`✅ Completed upload of ${files.length} photo(s)`);
+                                  setMediaLoading(false);
+                                  refetchMedia();
+                                  e.target.value = '';
+                                }}
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                              />
+                              <button 
+                                disabled={mediaLoading}
+                                className="px-3 py-1.5 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[100px]"
+                              >
+                                {mediaLoading ? (
+                                  <>
+                                    <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  'Upload Photos'
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {!isSelectionMode ? (
+                            <button
+                              onClick={() => setIsSelectionMode(true)}
+                              className="px-3 py-1.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 hover:from-blue-400/30 hover:to-blue-500/30 border border-blue-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm"
+                            >
+                              Select Multiple
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={selectAllMedia}
+                                className="px-2 py-1 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200"
+                              >
+                                Select All
+                              </button>
+                              <button
+                                onClick={deselectAllMedia}
+                                className="px-2 py-1 bg-gradient-to-r from-gray-500/20 to-gray-600/20 hover:from-gray-400/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200"
+                              >
+                                Deselect All
+                              </button>
+                              {selectedMediaIds.size > 0 && (
+                                <button
+                                  onClick={handleDeleteSelectedMedia}
+                                  disabled={mediaLoading}
+                                  className="px-3 py-1.5 bg-gradient-to-r from-red-500/20 to-red-600/20 hover:from-red-400/30 hover:to-red-500/30 border border-red-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  {mediaLoading && (
+                                    <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                                  )}
+                                  Delete Selected ({selectedMediaIds.size})
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setIsSelectionMode(false);
+                                  setSelectedMediaIds(new Set());
+                                }}
+                                className="px-2 py-1 bg-gradient-to-r from-gray-500/20 to-gray-600/20 hover:from-gray-400/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
+                      <button
+                        onClick={() => downloadAll(gallery, `${existingVehicle?.stock_number || savedVehicle?.stock_number || 'vehicle'}_photos.zip`, setDownloadingGallery)}
+                        disabled={downloadingGallery}
+                        className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {downloadingGallery && (
+                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                        )}
+                        {downloadingGallery ? 'Creating ZIP...' : 'Download All'}
+                      </button>
+                      {!isViewMode && !isSelectionMode && (
+                        <span className="text-sm text-white/60">
+                          {reorderLoading ? 'Reordering...' : 'Drag to reorder'}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Model Year</label>
-                    <input
-                      type="number"
-                      name="model_year"
-                      value={form.model_year}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                      min="2015"
-                      max="2025"
-                      required
-                    />
-                  </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {gallery.map((item, i) => (
+                        <div
+                          key={item.id}
+                          className={`relative group ${
+                            !isViewMode && !isSelectionMode ? 'cursor-move' : 'cursor-pointer'
+                          } ${
+                            isSelectionMode && selectedMediaIds.has(item.id) 
+                              ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-black/40' 
+                              : ''
+                          }`}
+                          draggable={!isViewMode && !isSelectionMode}
+                          onDragStart={(e) => {
+                            console.log('🔄 onDragStart called - isSelectionMode:', isSelectionMode, 'index:', i);
+                            if (!isSelectionMode) handleDragStart(e, i);
+                          }}
+                          onDragOver={(e) => !isSelectionMode && handleDragOver(e, i)}
+                          onDragLeave={!isSelectionMode ? handleDragLeave : undefined}
+                          onDrop={(e) => !isSelectionMode && handleDrop(e, i)}
+                          onDragEnd={!isSelectionMode ? handleDragEnd : undefined}
+                      >
+                          <div className="aspect-square bg-white/10 rounded overflow-hidden">
+                            <img 
+                              src={item.url} 
+                              className="w-full h-full object-contain bg-black/40 cursor-pointer hover:opacity-80 transition-opacity" 
+                              onClick={() => {
+                                if (isSelectionMode) {
+                                  toggleMediaSelection(item.id);
+                                } else {
+                                  setShowGallery(true); 
+                                  setGalleryIdx(i);
+                                }
+                              }}
+                              loading="lazy"
+                            />
+                          </div>
+                          
+                          {/* Selection checkbox */}
+                          {isSelectionMode && (
+                            <div className="absolute top-2 left-2 z-10">
+                              <input
+                                type="checkbox"
+                                checked={selectedMediaIds.has(item.id)}
+                                onChange={() => toggleMediaSelection(item.id)}
+                                className="w-4 h-4 text-blue-600 bg-black/50 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                              />
+                            </div>
+                          )}
+                          
+                          {item.is_primary && (
+                            <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded">
+                              Primary
+                            </div>
+                          )}
+                          
+                          {!isViewMode && !isSelectionMode && (
+                            <div className="absolute inset-0 hidden group-hover:flex items-start justify-between p-1">
+                              <div>
+                                {!item.is_primary && (
+                          <button 
+                                    onClick={() => handleSetPrimary(item.id)}
+                                    className="bg-black/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-black/90"
+                                    title="Set as primary"
+                                  >
+                                    ★
+                          </button>
+                                )}
+                              </div>
+                            <button
+                                onClick={() => handleDeleteMedia(item)}
+                                className="bg-red-500/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-red-500/90"
+                                title="Delete"
+                              >
+                                ×
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    </div>
+                  {gallery.length === 0 && !isViewMode && (
+                    <div className="text-center py-8 text-white/60">
+                      <p>No photos uploaded yet. Click "Upload Photos" to add images.</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className={labelClass}>Model Family</label>
-                    <select
-                      name="model_family"
-                      value={form.model_family}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                      required
+                {/* Social Media Images */}
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">
+                      Social Media Images ({socialMedia.length})
+                    </h4>
+                    <div className="flex items-center gap-3">
+                      {!isViewMode && (
+                        <div className="border-r border-white/20 pr-3">
+                          <div className="relative">
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files || []);
+                                if (!files.length) return;
+                                
+                                setMediaLoading(true);
+                                for (const file of files) {
+                                  const ext = file.name.split('.').pop();
+                                  const vehicleId = existingVehicle?.id || savedVehicle?.id;
+                                  if (!vehicleId) {
+                                    alert('Please save the vehicle first before uploading photos');
+                                    setMediaLoading(false);
+                                    return;
+                                  }
+                                  
+                                  const path = `${vehicleId}/${crypto.randomUUID()}.${ext}`;
+                                  
+                                  const { error: upErr } = await supabase.storage
+                                    .from('leasing')
+                                    .upload(path, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+                                  
+                                  if (upErr) continue;
+                                  
+                                  const { data: pub } = supabase.storage.from('leasing').getPublicUrl(path);
+                                  
+                                  // Add social media image to JSON array
+                                  const socialObj = {
+                                    id: crypto.randomUUID(),
+                                    url: pub.publicUrl,
+                                    filename: file.name,
+                                    sort_order: 0,
+                                    uploaded_at: new Date().toISOString()
+                                  };
+
+                                  const { data: vehicle } = await supabase
+                                    .from('leasing_inventory')
+                                    .select('social_media_images')
+                                    .eq('id', vehicleId)
+                                    .single();
+
+                                  const currentSocial = vehicle?.social_media_images || [];
+                                  const updatedSocial = [...currentSocial, socialObj];
+
+                                  await supabase
+                                    .from('leasing_inventory')
+                                    .update({ social_media_images: updatedSocial })
+                                    .eq('id', vehicleId);
+                                }
+                                setMediaLoading(false);
+                                refetchMedia();
+                                e.target.value = '';
+                              }}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                            <button 
+                              disabled={mediaLoading}
+                              className="px-3 py-1.5 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[100px]"
+                            >
+                              {mediaLoading ? (
+                                <>
+                                  <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                                  Uploading...
+                                </>
+                              ) : (
+                                'Upload Social'
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => downloadAll(socialMedia, `${existingVehicle?.stock_number || savedVehicle?.stock_number || 'vehicle'}_social_media.zip`, setDownloadingSocial)}
+                        disabled={downloadingSocial}
+                        className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {downloadingSocial && (
+                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                        )}
+                        {downloadingSocial ? 'Creating ZIP...' : 'Download All'}
+                      </button>
+                    </div>
+                  </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {socialMedia.map((item) => (
+                        <div key={item.id} className="relative group">
+                          <div className="aspect-square bg-white/10 rounded overflow-hidden">
+                            <img 
+                              src={item.url} 
+                              className="w-full h-full object-cover" 
+                              loading="lazy"
+                            />
+                          </div>
+                          {!isViewMode && (
+                    <button 
+                              onClick={() => handleDeleteMedia(item)}
+                              className="absolute top-1 right-1 bg-red-500/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-red-500/90"
+                              title="Delete"
                     >
-                      <option value="">Choose model...</option>
-                      {models.map(m => (
-                        <option key={m.id} value={m.name}>
-                          {m.name}
-                        </option>
+                              ×
+                                          </button>
+                          )}
+                  </div>
                       ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Vehicle Model</label>
-                    <input
-                      name="vehicle_model"
-                      value={form.vehicle_model}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                      placeholder="C-Class"
-                      required
-                    />
-                  </div>
+                    </div>
+                  {socialMedia.length === 0 && !isViewMode && (
+                    <div className="text-center py-8 text-white/60">
+                      <p>No social media images uploaded yet. Click "Upload Social" to add images.</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className={labelClass}>Exterior Colour</label>
-                    <input
-                      name="colour"
-                      value={form.colour}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                      placeholder="Obsidian Black"
-                      required
-                    />
+                {/* Catalog Images */}
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">
+                      Catalog Images ({catalog.length})
+                    </h4>
+                    <div className="flex items-center gap-3">
+                      {!isViewMode && (
+                        <div className="border-r border-white/20 pr-3">
+                          <div className="relative">
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files || []);
+                                if (!files.length) return;
+                                
+                                setMediaLoading(true);
+                                for (const file of files) {
+                                  const ext = file.name.split('.').pop();
+                                  const vehicleId = existingVehicle?.id || savedVehicle?.id;
+                                  if (!vehicleId) {
+                                    alert('Please save the vehicle first before uploading photos');
+                                    setMediaLoading(false);
+                                    return;
+                                  }
+                                  
+                                  const path = `${vehicleId}/${crypto.randomUUID()}.${ext}`;
+                                  
+                                  const { error: upErr } = await supabase.storage
+                                    .from('leasing')
+                                    .upload(path, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+                                  
+                                  if (upErr) continue;
+                                  
+                                  const { data: pub } = supabase.storage.from('leasing').getPublicUrl(path);
+                                  
+                                  // Add catalog image to JSON array
+                                  const catalogObj = {
+                                    id: crypto.randomUUID(),
+                                    url: pub.publicUrl,
+                                    filename: file.name,
+                                    sort_order: 0,
+                                    uploaded_at: new Date().toISOString()
+                                  };
+
+                                  const { data: vehicle } = await supabase
+                                    .from('leasing_inventory')
+                                    .select('catalog_images')
+                                    .eq('id', vehicleId)
+                                    .single();
+
+                                  const currentCatalog = vehicle?.catalog_images || [];
+                                  const updatedCatalog = [...currentCatalog, catalogObj];
+
+                                  await supabase
+                                    .from('leasing_inventory')
+                                    .update({ catalog_images: updatedCatalog })
+                                    .eq('id', vehicleId);
+                                }
+                                setMediaLoading(false);
+                                refetchMedia();
+                                e.target.value = '';
+                              }}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                            <button 
+                              disabled={mediaLoading}
+                              className="px-3 py-1.5 bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-400/30 hover:to-green-500/30 border border-green-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[100px]"
+                            >
+                              {mediaLoading ? (
+                                <>
+                                  <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                                  Uploading...
+                                </>
+                              ) : (
+                                'Upload Catalog'
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => downloadAll(catalog, `${existingVehicle?.stock_number || savedVehicle?.stock_number || 'vehicle'}_catalog.zip`, setDownloadingCatalog)}
+                        disabled={downloadingCatalog}
+                        className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {downloadingCatalog && (
+                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                        )}
+                        {downloadingCatalog ? 'Creating ZIP...' : 'Download All'}
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>Interior Colour</label>
-                    <input
-                      name="interior_colour"
-                      value={form.interior_colour}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                      placeholder="Black Leather"
-                      required
-                    />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {catalog.map((item) => (
+                        <div key={item.id} className="relative group">
+                          <div className="aspect-square bg-white/10 rounded overflow-hidden">
+                            <img 
+                              src={item.url} 
+                              className="w-full h-full object-cover" 
+                              loading="lazy"
+                            />
+                          </div>
+                          {!isViewMode && (
+                    <button 
+                              onClick={() => handleDeleteMedia(item)}
+                              className="absolute top-1 right-1 bg-red-500/70 text-white text-xs px-1.5 py-0.5 rounded hover:bg-red-500/90"
+                              title="Delete"
+                    >
+                              ×
+                                          </button>
+                          )}
                   </div>
+                      ))}
+                    </div>
+                  {catalog.length === 0 && !isViewMode && (
+                    <div className="text-center py-8 text-white/60">
+                      <p>No catalog images uploaded yet. Click "Upload Catalog" to add images.</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
             )}
 
-            {/* Pricing Tab - exact same as UV CRM */}
+            {/* Pricing Tab */}
             {activeTab === 'pricing' && (
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 space-y-6 min-h-[500px] flex flex-col justify-center">
                 <div className="text-center mb-6">
                   <h2 className="text-4xl font-bold text-white mb-4">Leasing Pricing</h2>
                   <p className="text-xl text-white/60">Set the leasing rates and terms</p>
                 </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div>
                   <label className={labelClass}>Monthly Lease Rate (AED)</label>
                   <input
                     type="number"
                     name="monthly_lease_rate"
                     value={form.monthly_lease_rate}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="2500"
-                    min="0"
-                    step="0.01"
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
+                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                      placeholder="2500"
+                      min="0"
+                      step="0.01"
+                      readOnly={isViewMode}
                     required
                   />
                 </div>
@@ -739,253 +2353,102 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                     type="number"
                     name="security_deposit"
                     value={form.security_deposit}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     placeholder="7500"
                     min="0"
                     step="0.01"
+                    readOnly={isViewMode}
                     required
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div>
-                  <label className={labelClass}>Current Mileage (KM)</label>
-                  <input
-                    type="number"
-                    name="current_mileage_km"
-                    value={form.current_mileage_km}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="5000"
-                    min="0"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Regional Specification</label>
-                  <select
-                    name="regional_specification"
-                    value={form.regional_specification}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    required
-                  >
-                    <option value="GCC">GCC</option>
-                    <option value="European">European</option>
-                    <option value="American">American</option>
-                    <option value="Japanese">Japanese</option>
-                  </select>
-                </div>
-                
-              </div>
-              </div>
-            )}
-
-            {/* Specifications Tab - exact same as UV CRM */}
-            {activeTab === 'specs' && (
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 space-y-6 min-h-[500px] flex flex-col justify-center">
-                <div className="text-center mb-6">
-                  <h2 className="text-4xl font-bold text-white mb-4">Specifications</h2>
-                  <p className="text-xl text-white/60">Enter the technical specifications for this vehicle</p>
-                </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label className={labelClass}>Body Style</label>
-                  <select
-                    name="body_style"
-                    value={form.body_style}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                  >
-                    <option value="">Select...</option>
-                    <option value="Coupe">Coupe</option>
-                    <option value="Convertible">Convertible</option>
-                    <option value="Estate">Estate</option>
-                    <option value="Hatchback">Hatchback</option>
-                    <option value="Saloon">Saloon</option>
-                    <option value="SUV">SUV</option>
-                  </select>
-                </div>
-                
-                {[
-                  { label: "Engine", name: "engine" },
-                  { label: "Transmission", name: "transmission" },
-                  { label: "Horsepower (hp)", name: "horsepower_hp", type: "number" },
-                  { label: "Torque (Nm)", name: "torque_nm", type: "number" },
-                  { label: "Cubic Capacity (cc)", name: "cubic_capacity_cc", type: "number" },
-                ].map((f) => (
-                  <div key={f.name}>
-                    <label className={labelClass}>{f.label}</label>
-                    <input
-                      type={f.type || 'text'}
-                      name={f.name}
-                      value={(form as any)[f.name]}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    />
-                  </div>
-                ))}
-              </div>
-              </div>
-            )}
-
-            {/* Financial Tab - NEW */}
-            {activeTab === 'financial' && (
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 space-y-6 min-h-[500px] flex flex-col justify-center">
-                <div className="text-center mb-6">
-                  <h2 className="text-4xl font-bold text-white mb-4">Financial Tracking</h2>
-                  <p className="text-xl text-white/60">Set acquisition costs and financial parameters</p>
-                </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div>
-                  <label className={labelClass}>Acquired Cost (AED)</label>
-                  <input
-                    type="number"
-                    name="acquired_cost"
-                    value={form.acquired_cost}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="180000"
-                    step="0.01"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Monthly Depreciation (AED)</label>
-                  <input
-                    type="number"
-                    name="monthly_depreciation"
-                    value={form.monthly_depreciation}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="2000"
-                    step="0.01"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Current Market Value (AED)</label>
-                  <input
-                    type="number"
-                    name="current_market_value"
-                    value={form.current_market_value}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="150000"
-                    step="0.01"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Purchase Date</label>
-                  <input
-                    type="date"
-                    name="purchase_date"
-                    value={form.purchase_date}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className={labelClass}>Buyout Price (AED)</label>
                   <input
                     type="number"
                     name="buyout_price"
                     value={form.buyout_price}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     placeholder="120000"
                     step="0.01"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Planned Lease Pricing (AED)</label>
-                  <input
-                    type="number"
-                    name="planned_lease_pricing"
-                    value={form.planned_lease_pricing}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="72000"
-                    step="0.01"
+                    readOnly={isViewMode}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Financial Fields - Purchase Date, Acquired Cost, Monthly Depreciation */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div>
-                  <label className={labelClass}>Daily Rate Customer (AED)</label>
+                  <label className={labelClass}>Purchase Date</label>
                   <input
-                    type="number"
-                    name="daily_rate_customer"
-                    value={form.daily_rate_customer}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    type="date"
+                    name="purchase_date"
+                    value={form.purchase_date}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="150"
-                    step="0.01"
+                    readOnly={isViewMode}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Daily Rate Vehicle (AED)</label>
+                  <label className={labelClass}>Acquired Cost (AED)</label>
                   <input
                     type="number"
-                    name="daily_rate_vehicle"
-                    value={form.daily_rate_vehicle}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    name="acquired_cost"
+                    value={form.acquired_cost}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="150"
+                    placeholder="180000"
                     step="0.01"
+                    readOnly={isViewMode}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Monthly Depreciation (%)</label>
+                  <input
+                    type="number"
+                    name="monthly_depreciation"
+                    value={form.monthly_depreciation}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                    placeholder="2.5"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    readOnly={isViewMode}
                   />
                 </div>
               </div>
+
               </div>
             )}
+
+
 
             {/* Service Tab - NEW */}
             {activeTab === 'service' && (
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 space-y-6 min-h-[500px] flex flex-col justify-center">
                 <div className="text-center mb-6">
-                  <h2 className="text-4xl font-bold text-white mb-4">Service & Mileage</h2>
-                  <p className="text-xl text-white/60">Track service history and mileage readings</p>
+                  <h2 className="text-4xl font-bold text-white mb-4">Service & Insurance</h2>
+                  <p className="text-xl text-white/60">Track service history and insurance details</p>
                 </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+              <div className="grid grid-cols-1 gap-6">
                 <div>
-                  <label className={labelClass}>Current Mileage (KM)</label>
+                  <label className={labelClass}>Insurance Expiry Date</label>
                   <input
-                    type="number"
-                    name="current_mileage_km"
-                    value={form.current_mileage_km}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    type="date"
+                    name="insurance_expiry_date"
+                    value={form.insurance_expiry_date}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="25000"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>MyLocator Mileage (KM)</label>
-                  <input
-                    type="number"
-                    name="mylocator_mileage"
-                    value={form.mylocator_mileage}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="25500"
+                    readOnly={isViewMode}
                   />
                 </div>
               </div>
@@ -997,9 +2460,10 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                     type="date"
                     name="first_service_date"
                     value={form.first_service_date}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                    readOnly={isViewMode}
                   />
                 </div>
                 <div>
@@ -1008,56 +2472,14 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                     type="date"
                     name="second_service_date"
                     value={form.second_service_date}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                    readOnly={isViewMode}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div>
-                  <label className={labelClass}>Excess Mileage (Whole Lease)</label>
-                  <input
-                    type="number"
-                    name="excess_mileage_whole_lease"
-                    value={form.excess_mileage_whole_lease}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Excess Mileage (Previous Billing)</label>
-                  <input
-                    type="number"
-                    name="excess_mileage_previous_billing"
-                    value={form.excess_mileage_previous_billing}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Current Parking Location</label>
-                  <select
-                    name="current_parking_location"
-                    value={form.current_parking_location}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                  >
-                    <option value="Main Showroom">Main Showroom</option>
-                    <option value="YARD">YARD</option>
-                    <option value="CAR PARK">CAR PARK</option>
-                    <option value="SHOWROOM 2">SHOWROOM 2</option>
-                    <option value="Service Center">Service Center</option>
-                    <option value="STONES">STONES</option>
-                  </select>
-                </div>
-              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
@@ -1066,9 +2488,10 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                     type="date"
                     name="warranty_expiry_date"
                     value={form.warranty_expiry_date}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                    readOnly={isViewMode}
                   />
                 </div>
                 <div>
@@ -1077,16 +2500,17 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                     type="date"
                     name="registration_date"
                     value={form.registration_date}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                    readOnly={isViewMode}
                   />
                 </div>
               </div>
               </div>
             )}
 
-            {/* Details Tab - exact same as UV CRM */}
+            {/* Details Tab */}
             {activeTab === 'details' && (
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8 space-y-6 min-h-[500px] flex flex-col justify-center">
                 <div className="text-center mb-8 mt-8">
@@ -1101,11 +2525,12 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                   <textarea
                     name="key_equipment"
                     value={form.key_equipment}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     rows={8}
-                    required
+                    required={!isViewMode}
+                    readOnly={isViewMode}
                   />
                 </div>
 
@@ -1116,53 +2541,133 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                   <textarea
                     name="description"
                     value={form.description}
-                    onChange={handleChange}
-                    className={fieldClass}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
                     rows={8}
                     placeholder="Enter vehicle description..."
+                    readOnly={isViewMode}
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <div>
-                    <label className={labelClass}>Plate Number</label>
-                    <input
-                      name="plate_number"
-                      value={form.plate_number}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                      placeholder="50/28578"
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Engine Number</label>
-                    <input
-                      name="engine_number"
-                      value={form.engine_number}
-                      onChange={handleChange}
-                      className={fieldClass}
-                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                      placeholder="28291481004341"
-                    />
+
+              </div>
+              </div>
+            )}
+
+            {/* Documents Tab */}
+            {activeTab === 'documents' && (
+              <div className="space-y-6">
+                {/* Document Upload */}
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">Vehicle Documents</h4>
+                    {(savedVehicle?.id || existingVehicle?.id) && (
+                      <LeasingDocUploader
+                        vehicleId={savedVehicle?.id || existingVehicle?.id}
+                        variant="button"
+                        buttonLabel="Upload"
+                        onUploaded={refetchDocs}
+                      />
+                    )}
                   </div>
                   
+                  {docs.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <h5 className="text-sm font-medium text-white/80">Uploaded Documents</h5>
+                      {docs.map(doc => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 bg-black/30 rounded">
+                          <span className="text-sm text-white/80">{doc.filename || 'Document'}</span>
+                          <div className="flex gap-2">
+                            <a 
+                              href={doc.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-gray-400 hover:text-white underline"
+                            >
+                              View
+                            </a>
+                            <a
+                              href={`${doc.url}${doc.url.includes('?') ? '&' : '?'}download`}
+                              download
+                              className="text-sm text-gray-400 hover:text-white underline"
+                            >
+                              Download
+                            </a>
+                            <button 
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this document?')) {
+                                  handleDeleteDocument(doc);
+                                }
+                              }}
+                              className="text-sm text-red-400 hover:text-red-300"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className={labelClass}>Remarks</label>
-                  <textarea
-                    name="remarks"
-                    value={form.remarks}
-                    onChange={handleChange}
-                    className={fieldClass}
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
-                    rows={4}
-                    placeholder="Special notes, accidents, renewals, repossessions, etc..."
-                  />
+                {/* Vehicle PDF */}
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">Vehicle PDF</h4>
+                    {(savedVehicle?.id || existingVehicle?.id) && (
+                      <button 
+                        onClick={handleGeneratePdf} 
+                        disabled={generating}
+                        className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                      >
+                        {generating ? (pdfUrl ? 'Regenerating…' : 'Generating…') : (pdfUrl ? 'Regenerate' : 'Generate')}
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-black/30 rounded">
+                      <span className="text-sm text-white/80">Vehicle Details PDF</span>
+                      <div className="flex gap-2">
+                        {pdfUrl && (
+                          <>
+                            <a
+                              href={pdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-gray-400 hover:text-white underline"
+                            >
+                              View
+                            </a>
+                            <a
+                              href={`${pdfUrl}${pdfUrl.includes('?') ? '&' : '?'}download`}
+                              download
+                              className="text-sm text-gray-400 hover:text-white underline"
+                            >
+                              Download
+                            </a>
+                            <button 
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete the vehicle PDF?')) {
+                                  handleDeleteVehiclePDF();
+                                }
+                              }}
+                              className="text-sm text-red-400 hover:text-red-300"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {!pdfUrl && (
+                      <p className="text-white/60 text-sm">No PDF generated yet</p>
+                    )}
+                    {statusMsg && (
+                      <p className="text-sm text-white/70">{statusMsg}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
               </div>
             )}
 
@@ -1170,7 +2675,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
             </div>
           </div>
 
-          {/* Bottom Navigation - exact same as UV CRM */}
+          {/* Bottom Navigation */}
           <div className="border-t border-white/20 pt-4 flex justify-between items-center">
             <div className="flex gap-3">
               {step > 0 && (
@@ -1224,6 +2729,65 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
               >
                 Close
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Gallery Viewer Modal */}
+        {showGallery && gallery.length > 0 && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60]">
+            <div className="relative flex items-center justify-center">
+              {/* Media Container with Overlays */}
+              {gallery[galleryIdx] && (
+                <div className="relative">
+                  <img 
+                    src={getOriginalImageUrl(gallery[galleryIdx].url)} 
+                    className="max-w-[90vw] max-h-[90vh] object-contain"
+                    alt="Gallery image"
+                  />
+                  
+                  {/* Close - Top Right of Image */}
+                  <button
+                    onClick={() => setShowGallery(false)}
+                    className="absolute top-4 right-4 text-white/90 hover:text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 rounded-full px-4 py-2 transition-all duration-200 shadow-lg z-10"
+                  >
+                    ✕
+                  </button>
+                  
+                  {/* Download - Top Left of Image */}
+                  <a
+                    href={`${getOriginalImageUrl(gallery[galleryIdx].url)}?download`}
+                    className="absolute top-4 left-4 text-white/90 hover:text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 rounded-full px-4 py-2 transition-all duration-200 shadow-lg z-10"
+                  >
+                    Download
+                  </a>
+                  
+                  {/* Image Counter - Bottom Center */}
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white/90 bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 text-sm shadow-lg z-10">
+                    {galleryIdx + 1} / {gallery.length}
+                  </div>
+                </div>
+              )}
+              
+              {/* Navigation Arrows - Outside image but centered */}
+              {gallery.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setGalleryIdx(prev => prev > 0 ? prev - 1 : gallery.length - 1)}
+                    className="absolute left-4 text-white/80 hover:text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 rounded-full px-4 py-3 text-xl transition-all duration-200 shadow-lg z-10"
+                    aria-label="Prev"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    onClick={() => setGalleryIdx(prev => prev < gallery.length - 1 ? prev + 1 : 0)}
+                    className="absolute right-4 text-white/80 hover:text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 rounded-full px-4 py-3 text-xl transition-all duration-200 shadow-lg z-10"
+                    aria-label="Next"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

@@ -11,17 +11,17 @@ interface LeasingVehicle {
   id: string;
   stock_number: string;
   plate_number?: string;
-  vin_number?: string;
-  chassis_short?: string;
+  chassis_number?: string;
   engine_number?: string;
   purchase_date?: string;
   make: string;
-  model: string;
+  vehicle_model?: string;
+  model_family?: string;
   model_year: number;
   category?: string;
   body_style?: string;
-  exterior_color?: string;
-  interior_color?: string;
+  colour?: string;
+  interior_colour?: string;
   engine_type?: string;
   transmission?: string;
   fuel_type?: string;
@@ -66,13 +66,13 @@ interface LeasingVehicle {
   location?: string;
   parking_spot?: string;
   assigned_to?: string;
-  notes?: string;
+  description?: string;
   remarks?: string;
   created_at: string;
   updated_at: string;
 }
 
-type VehicleStatus = 'marketing' | 'reserved' | 'leased' | 'maintenance' | 'returned' | 'archived' | 'available';
+type VehicleStatus = 'marketing' | 'reserved' | 'leased' | 'maintenance' | 'returned' | 'archived';
 type ViewMode = 'kanban' | 'table';
 
 const columns = [
@@ -80,11 +80,6 @@ const columns = [
     key: "marketing", 
     title: "MARKETING", 
     icon: <Package className="w-4 h-4" />
-  },
-  { 
-    key: "available", 
-    title: "AVAILABLE", 
-    icon: <CheckCircle className="w-4 h-4" />
   },
   { 
     key: "reserved", 
@@ -169,7 +164,6 @@ export default function LeasingInventoryBoard() {
   // Column-by-column optimistic loading states
   const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
     marketing: true,
-    available: true,
     reserved: true,
     leased: true,
     maintenance: true,
@@ -178,7 +172,6 @@ export default function LeasingInventoryBoard() {
   });
   const [columnData, setColumnData] = useState<Record<ColKey, LeasingVehicle[]>>({
     marketing: [],
-    available: [],
     reserved: [],
     leased: [],
     maintenance: [],
@@ -195,7 +188,6 @@ export default function LeasingInventoryBoard() {
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: string }[] = [
         { key: 'marketing', delay: 0, statusFilter: 'marketing' },
-        { key: 'available', delay: 80, statusFilter: 'available' },
         { key: 'reserved', delay: 160, statusFilter: 'reserved' },
         { key: 'leased', delay: 240, statusFilter: 'leased' },
         { key: 'maintenance', delay: 320, statusFilter: 'maintenance' },
@@ -209,11 +201,14 @@ export default function LeasingInventoryBoard() {
           console.log(`🚗 Loading ${key} column...`);
           
           try {
+            console.log(`🔍 Querying for status: "${statusFilter}"`);
             const { data, error } = await supabase
               .from('leasing_inventory')
               .select('*')
               .eq('status', statusFilter)
               .order('created_at', { ascending: false });
+            
+            console.log(`🔍 Raw Supabase response for ${key}:`, { data, error });
 
             if (error) {
               console.error(`❌ Error loading ${key}:`, error);
@@ -222,6 +217,20 @@ export default function LeasingInventoryBoard() {
             }
 
             console.log(`✅ Loaded ${key}: ${data?.length || 0} vehicles`);
+            
+            // Debug: Log first vehicle data to see what fields we're getting
+            if (data && data.length > 0) {
+              console.log(`🔍 Sample ${key} vehicle data:`, {
+                stock_number: data[0].stock_number,
+                vehicle_model: data[0].vehicle_model,
+                model_family: data[0].model_family,
+                colour: data[0].colour,
+                interior_colour: data[0].interior_colour,
+                chassis_number: data[0].chassis_number
+              });
+              console.log(`🔍 ALL fields from Supabase:`, Object.keys(data[0]));
+              console.log(`🔍 Full vehicle object:`, data[0]);
+            }
             
             setColumnData(prev => ({ ...prev, [key]: data || [] }));
             setColumnLoading(prev => ({ ...prev, [key]: false }));
@@ -447,17 +456,18 @@ export default function LeasingInventoryBoard() {
     setEditingVehicle(null);
   };
 
-  // Apply search filter (like UV CRM)
+  // Apply search filter
   const applySearchFilter = (vehicles: LeasingVehicle[]) => {
     if (!query) return vehicles;
     
     return vehicles.filter(vehicle =>
-      match(vehicle.stock_number) ||
-      match(vehicle.make) ||
-      match(vehicle.model) ||
-      match(vehicle.exterior_color) ||
-      match(vehicle.location) ||
-      match(vehicle.notes)
+      (vehicle.stock_number?.toLowerCase().includes(query.toLowerCase())) ||
+      (vehicle.make?.toLowerCase().includes(query.toLowerCase())) ||
+      (vehicle.vehicle_model?.toLowerCase().includes(query.toLowerCase())) ||
+      (vehicle.model_family?.toLowerCase().includes(query.toLowerCase())) ||
+      (vehicle.colour?.toLowerCase().includes(query.toLowerCase())) ||
+      (vehicle.current_parking_location?.toLowerCase().includes(query.toLowerCase())) ||
+      (vehicle.description?.toLowerCase().includes(query.toLowerCase()))
     );
   };
 
@@ -473,7 +483,7 @@ export default function LeasingInventoryBoard() {
         <div className="flex items-center gap-4">
           <h3 className="text-lg font-semibold text-white">Vehicle Inventory Table</h3>
           <button
-            onClick={() => setShowAddVehicleModal(true)}
+            onClick={() => { setEditingVehicle(null); setShowAddVehicleModal(true); }}
             className="px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all text-sm"
           >
             + Add Vehicle
@@ -533,13 +543,13 @@ export default function LeasingInventoryBoard() {
                 <td className="p-3 text-white font-medium">{highlight(vehicle.stock_number)}</td>
                 <td className="p-3 text-white/70">{vehicle.plate_number || '-'}</td>
                 <td className="p-3">
-                  <div className="text-white">{vehicle.model_year} {vehicle.make}</div>
-                  <div className="text-white/60 text-xs">{highlight(vehicle.model)} • {vehicle.exterior_color}</div>
+                  <div className="text-white">{vehicle.model_year} {vehicle.make} {vehicle.model_family || ''}</div>
+                  <div className="text-white/60 text-xs">{highlight(vehicle.vehicle_model || '-')} • {vehicle.colour || '-'}</div>
                 </td>
                 <td className="p-3 text-white/70">{highlight(vehicle.current_customer_name || '-')}</td>
                 <td className="p-3">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    vehicle.status === 'available' ? 'bg-green-500/20 text-green-300' :
+                    vehicle.status === 'marketing' ? 'bg-green-500/20 text-green-300' :
                     vehicle.status === 'reserved' ? 'bg-yellow-500/20 text-yellow-300' :
                     vehicle.status === 'leased' ? 'bg-blue-500/20 text-blue-300' :
                     vehicle.status === 'returned' ? 'bg-orange-500/20 text-orange-300' :
@@ -612,7 +622,7 @@ export default function LeasingInventoryBoard() {
                 </h3>
                 {col.key === 'marketing' ? (
                   <button
-                    onClick={() => setShowAddVehicleModal(true)}
+                    onClick={() => { setEditingVehicle(null); setShowAddVehicleModal(true); }}
                     className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
                     title="Add new vehicle to marketing"
                   >
@@ -719,7 +729,7 @@ export default function LeasingInventoryBoard() {
                 >
                   <div className="flex items-start justify-between mb-1">
                     <div className="text-xs font-medium text-white group-hover:text-white/90 transition-colors">
-                      {highlight(vehicle.stock_number)} - {highlight(`${vehicle.model_year} ${vehicle.make} ${vehicle.model}`)}
+                      {highlight(vehicle.stock_number)} - {highlight(`${vehicle.model_year} ${vehicle.make} ${vehicle.model_family || ''}`)}
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {/* Archive Button - For returned vehicles */}
@@ -751,7 +761,7 @@ export default function LeasingInventoryBoard() {
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2" />
                       </svg>
-                      {highlight(vehicle.exterior_color || 'Color not set')}
+                      {highlight(vehicle.colour || 'Color not set')}
                       <span className="text-white/50">·</span>
                     </div>
                     
@@ -766,7 +776,7 @@ export default function LeasingInventoryBoard() {
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       </svg>
-                      {highlight(vehicle.location || 'Location not set')}
+                      {highlight(vehicle.current_parking_location || 'Location not set')}
                     </div>
                     
                     {vehicle.current_mileage_km && (
@@ -775,11 +785,7 @@ export default function LeasingInventoryBoard() {
                       </div>
                     )}
                     
-                    {vehicle.notes && (
-                      <div className="text-xs text-white/50 mt-1 italic">
-                        {highlight(vehicle.notes)}
-                      </div>
-                    )}
+                    {/* description removed from card preview */}
                   </div>
                 </div>
                 ))

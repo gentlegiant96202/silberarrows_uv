@@ -1,10 +1,12 @@
 "use client";
 
+import { Suspense } from 'react';
 import RouteProtector from '@/components/shared/RouteProtector';
 
 export default function LeasingDashboard() {
   return (
     <RouteProtector moduleName="leasing">
+      <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white">Loading...</div>}>
       <div className="min-h-screen bg-black">
 
         <div className="p-6">
@@ -46,6 +48,7 @@ export default function LeasingDashboard() {
           </div>
         </div>
       </div>
+      </Suspense>
     </RouteProtector>
   );
 } 

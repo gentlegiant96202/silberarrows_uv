@@ -360,6 +360,39 @@ export default function LeasingInventoryBoard() {
     }
   };
 
+  // Archive a returned vehicle via click (not drag/drop)
+  const archiveVehicle = async (vehicle: LeasingVehicle) => {
+    if (vehicle.status === 'archived') return;
+    try {
+      const { error } = await supabase
+        .from('leasing_inventory')
+        .update({ 
+          status: 'archived' as VehicleStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', vehicle.id);
+
+      if (error) {
+        console.error('❌ Error archiving vehicle:', error);
+        alert('Failed to archive vehicle. Please try again.');
+        return;
+      }
+
+      const updatedVehicle = { ...vehicle, status: 'archived' as VehicleStatus };
+
+      setColumnData(prev => ({
+        ...prev,
+        [vehicle.status]: prev[vehicle.status as ColKey].filter(v => v.id !== vehicle.id),
+        archived: [...prev.archived, updatedVehicle]
+      }));
+
+      setVehicles(prev => prev.map(v => v.id === vehicle.id ? updatedVehicle : v));
+    } catch (err) {
+      console.error('❌ Exception archiving vehicle:', err);
+      alert('Failed to archive vehicle. Please try again.');
+    }
+  };
+
   const formatCurrency = (amount?: number) => {
     if (!amount) return "Not set";
     return `AED ${amount.toLocaleString()}`;
@@ -686,8 +719,7 @@ export default function LeasingInventoryBoard() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Handle archive action
-                            onDrop('archived')(e);
+                            archiveVehicle(vehicle);
                           }}
                           className="
                             p-0.5 rounded-full transition-all duration-200 

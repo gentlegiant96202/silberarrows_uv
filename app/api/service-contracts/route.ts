@@ -223,12 +223,21 @@ export async function POST(request: NextRequest) {
     const userName = user?.user_metadata?.full_name || userEmail.split('@')[0];
     
     // Add sales_executive field (auto-populated, cannot be changed)
-    const contractWithSalesExec = {
+    let contractWithSalesExec: any = {
       ...contractData,
       // Ensure notes is explicitly passed (avoid accidental drops)
       notes: (contractData as any)?.notes ?? null,
       sales_executive: userName
     };
+
+    // Warranty-specific field mapping: service_type -> warranty_type
+    if (type === 'warranty' && (contractWithSalesExec as any)?.service_type !== undefined) {
+      contractWithSalesExec = {
+        ...contractWithSalesExec,
+        warranty_type: (contractWithSalesExec as any).service_type,
+      };
+      delete (contractWithSalesExec as any).service_type;
+    }
 
     let result;
     

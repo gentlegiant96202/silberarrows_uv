@@ -94,7 +94,7 @@ export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
       source: htmlContent,
       format: 'A4',
       margin: '0',
-      landscape: false,
+      landscape: true,
       use_print: true,
       delay: 1000
     }),

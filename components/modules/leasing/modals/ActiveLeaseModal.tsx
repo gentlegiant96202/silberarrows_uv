@@ -1588,6 +1588,79 @@ export default function ActiveLeaseModal({ isOpen, onClose, lease, vehicle }: Ac
 
                         if (error) throw error;
 
+                        // Handle invoice allocation for edited payment
+                        if (paymentForm.invoice_id) {
+                          // Check if payment was previously allocated to a different invoice
+                          if (editingPayment.invoice_id && editingPayment.invoice_id !== paymentForm.invoice_id) {
+                            // Remove allocation from old invoice
+                            const oldInvoice = invoices.find(i => i.id === editingPayment.invoice_id);
+                            if (oldInvoice) {
+                              const oldPaidAmount = Math.max(0, (oldInvoice.paid_amount || 0) - (editingPayment.allocated_amount || 0));
+                              const oldStatus = oldPaidAmount === 0 ? 'pending' : oldPaidAmount >= oldInvoice.total_amount ? 'paid' : 'partially_paid';
+                              
+                              await supabase
+                                .from('lease_invoices')
+                                .update({ 
+                                  paid_amount: oldPaidAmount,
+                                  status: oldStatus
+                                })
+                                .eq('id', editingPayment.invoice_id);
+                            }
+                          }
+                          
+                          // Add allocation to new invoice
+                          const selectedInvoice = invoices.find(i => i.id === paymentForm.invoice_id);
+                          if (selectedInvoice) {
+                            // Calculate new paid amount (subtract old allocation if same invoice, add new allocation)
+                            let currentPaid = selectedInvoice.paid_amount || 0;
+                            if (editingPayment.invoice_id === paymentForm.invoice_id) {
+                              // Same invoice - subtract old amount first
+                              currentPaid = Math.max(0, currentPaid - (editingPayment.allocated_amount || 0));
+                            }
+                            const newPaidAmount = currentPaid + paymentForm.amount;
+                            const totalAmount = selectedInvoice.total_amount || 0;
+                            
+                            // Determine new status
+                            let newStatus = 'partially_paid';
+                            if (newPaidAmount >= totalAmount) {
+                              newStatus = 'paid';
+                            } else if (newPaidAmount === 0) {
+                              newStatus = 'pending';
+                            }
+                            
+                            // Update invoice
+                            console.log(`Updating invoice ${paymentForm.invoice_id}: paid_amount from ${selectedInvoice.paid_amount || 0} to ${newPaidAmount}, status to ${newStatus}`);
+                            const { error: updateError } = await supabase
+                              .from('lease_invoices')
+                              .update({ 
+                                paid_amount: newPaidAmount,
+                                status: newStatus
+                              })
+                              .eq('id', paymentForm.invoice_id);
+                            
+                            if (updateError) {
+                              console.error('Error updating invoice:', updateError);
+                            } else {
+                              console.log('Invoice updated successfully');
+                            }
+                          }
+                        } else if (editingPayment.invoice_id) {
+                          // Payment was unallocated - remove from old invoice
+                          const oldInvoice = invoices.find(i => i.id === editingPayment.invoice_id);
+                          if (oldInvoice) {
+                            const oldPaidAmount = Math.max(0, (oldInvoice.paid_amount || 0) - (editingPayment.allocated_amount || 0));
+                            const oldStatus = oldPaidAmount === 0 ? 'pending' : oldPaidAmount >= oldInvoice.total_amount ? 'paid' : 'partially_paid';
+                            
+                            await supabase
+                              .from('lease_invoices')
+                              .update({ 
+                                paid_amount: oldPaidAmount,
+                                status: oldStatus
+                              })
+                              .eq('id', editingPayment.invoice_id);
+                          }
+                        }
+
                         // Refresh data
                         await fetchLeaseData();
                         setShowEditPayment(false);

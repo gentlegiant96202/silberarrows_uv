@@ -162,15 +162,7 @@ function buildServiceAgreementHtml(
                 <div style="margin: 0; line-height: 1.2; font-size: 8px; padding: 2px 0; color: white;">The Customer accepts the ServiceCare terms in the Information Booklet (incorporated into this Agreement) and confirms the above details are correct and they are authorised to sign; SilberArrows confirms the details are correct and that the ServiceCare terms were explained. Coverage ends on the earlier of the End Date or the cut-off kilometres.</div>
             </div>
 
-            <div class="section" style="margin-bottom: 6px;">
-                <div class="section-title">Customer Declaration</div>
-                <div class="text-content">By my signature below, I confirm that I have thoroughly read & understood the terms & conditions of this Agreement as stated in the attached ServiceCare Information Booklet, that I have received a completed copy of this Agreement & the associated Information Booklet. I agree to be bound by the terms & conditions noted in this Booklet.</div>
-            </div>
-
-            <div class="section" style="margin-bottom: 8px;">
-                <div class="section-title">Dealer Declaration</div>
-                <div class="text-content">We hereby declare that all the details set out in this Agreement are accurate & correct. The terms & conditions of this ServiceCare are explained in the attached Information Booklet.</div>
-            </div>
+            
 
             <div class="signature-section">
                 <div class="signature-box"><div>SilberArrows Signature:</div><div class="signature-area"><div class="signature-date">Date:</div></div></div>

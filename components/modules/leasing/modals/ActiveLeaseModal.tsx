@@ -133,6 +133,7 @@ export default function ActiveLeaseModal({ isOpen, onClose, lease, vehicle }: Ac
           .reduce((sum, inv) => {
             const invoiceTotal = inv.total_amount || 0;
             const paidAmount = inv.paid_amount || 0;
+            console.log(`Invoice ${inv.invoice_number}: Total=${invoiceTotal}, Paid=${paidAmount}, Outstanding=${invoiceTotal - paidAmount}`);
             return sum + (invoiceTotal - paidAmount);
           }, 0);
         
@@ -140,6 +141,7 @@ export default function ActiveLeaseModal({ isOpen, onClose, lease, vehicle }: Ac
         const uninvoicedTransactions = transData?.filter(t => !t.invoice_id && t.status !== 'cancelled' && t.status !== 'paid') || [];
         const outstandingFromTransactions = uninvoicedTransactions.reduce((sum, t) => sum + (t.total_amount || 0), 0);
         
+        console.log(`Outstanding calculation: Invoices=${outstandingFromInvoices}, Transactions=${outstandingFromTransactions}, Total=${outstandingFromInvoices + outstandingFromTransactions}`);
         setOutstandingBalance(outstandingFromInvoices + outstandingFromTransactions);
       }
     } catch (error) {
@@ -1674,13 +1676,20 @@ export default function ActiveLeaseModal({ isOpen, onClose, lease, vehicle }: Ac
                           }
                           
                           // Update invoice
-                          await supabase
+                          console.log(`Updating invoice ${paymentForm.invoice_id}: paid_amount from ${currentPaid} to ${newPaidAmount}, status to ${newStatus}`);
+                          const { error: updateError } = await supabase
                             .from('lease_invoices')
                             .update({ 
                               paid_amount: newPaidAmount,
                               status: newStatus
                             })
                             .eq('id', paymentForm.invoice_id);
+                          
+                          if (updateError) {
+                            console.error('Error updating invoice:', updateError);
+                          } else {
+                            console.log('Invoice updated successfully');
+                          }
                           
                           // Create payment allocation record
                           await supabase

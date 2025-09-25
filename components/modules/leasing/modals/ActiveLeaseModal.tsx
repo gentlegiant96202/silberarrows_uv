@@ -32,7 +32,7 @@ export default function ActiveLeaseModal({ isOpen, onClose, lease, vehicle }: Ac
   const [editingCharge, setEditingCharge] = useState<any>(null);
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
-  const [chargeType, setChargeType] = useState<'excess_mileage' | 'salik' | 'traffic_fine' | 'other'>('excess_mileage');
+  const [chargeType, setChargeType] = useState<'monthly_rental' | 'excess_mileage' | 'salik' | 'traffic_fine' | 'other'>('excess_mileage');
   
   // Form states
   const [chargeForm, setChargeForm] = useState({

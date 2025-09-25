@@ -229,8 +229,11 @@ export async function generateServiceAgreementPdf(data: any): Promise<Buffer> {
     const errText = await resp.text();
     throw new Error(`PDFShift API error: ${resp.status} - ${errText}`);
   }
-  const arrayBuf = await resp.arrayBuffer();
-  return Buffer.from(arrayBuf);
+  // Merge agreement page with ServiceCare booklet so downstream flows (storage/DocuSign)
+  // always receive the combined document, matching previous behavior
+  const agreementPdfBuffer = await resp.arrayBuffer();
+  const mergedBuffer = await mergeWithServiceCareBooklet(Buffer.from(agreementPdfBuffer));
+  return mergedBuffer;
 }
 
 export async function POST(request: NextRequest) {

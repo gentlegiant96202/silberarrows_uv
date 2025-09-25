@@ -102,8 +102,22 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         current_odometer: contractToUse.current_odometer || '',
         exterior_colour: contractToUse.exterior_colour || '',
         interior_colour: contractToUse.interior_colour || '',
-        start_date: contractToUse.start_date ? new Date(contractToUse.start_date).toISOString().split('T')[0] : '',
-        end_date: contractToUse.end_date ? new Date(contractToUse.end_date).toISOString().split('T')[0] : '',
+        start_date: (() => {
+          const converted = contractToUse.start_date ? new Date(contractToUse.start_date).toISOString().split('T')[0] : '';
+          console.log('🔍 DATE DEBUG - start_date conversion:', {
+            raw: contractToUse.start_date,
+            converted: converted
+          });
+          return converted;
+        })(),
+        end_date: (() => {
+          const converted = contractToUse.end_date ? new Date(contractToUse.end_date).toISOString().split('T')[0] : '';
+          console.log('🔍 DATE DEBUG - end_date conversion:', {
+            raw: contractToUse.end_date,
+            converted: converted
+          });
+          return converted;
+        })(),
         cut_off_km: contractToUse.cut_off_km || '',
         workflow_status: contractToUse.workflow_status || 'created',
         invoice_amount: contractToUse.invoice_amount || '',
@@ -217,13 +231,23 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           .eq('id', (displayContract as any)?.id)
           .single();
 
-        const updated = fresh || result.contract;
+        // Add formatted dates to fresh data if we got it from DB
+        const updated = fresh ? {
+          ...fresh,
+          formatted_start_date: fresh.start_date ? new Date(fresh.start_date).toLocaleDateString('en-GB') : '',
+          formatted_end_date: fresh.end_date ? new Date(fresh.end_date).toLocaleDateString('en-GB') : '',
+          vehicle_info: `${fresh.make} ${fresh.model} (${fresh.model_year})`
+        } : result.contract;
 
         console.log('🔍 SAVE DEBUG - Updated contract from DB:', {
           customer_id_number: updated?.customer_id_number,
           exterior_colour: updated?.exterior_colour,
           interior_colour: updated?.interior_colour,
           notes: updated?.notes,
+          start_date_raw: updated?.start_date,
+          end_date_raw: updated?.end_date,
+          start_date_type: typeof updated?.start_date,
+          end_date_type: typeof updated?.end_date,
           freshFromDB: !!fresh,
           fallbackToResult: !fresh
         });
@@ -233,6 +257,18 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         
         // Reinitialize form data with the fresh contract data
         initializeFormData(updated);
+        
+        // Log form state after React state update (async)
+        setTimeout(() => {
+          console.log('🔍 FORM STATE DEBUG - After reinitialize (delayed):', {
+            formData_customer_id_number: formData.customer_id_number,
+            formData_exterior_colour: formData.exterior_colour,
+            formData_interior_colour: formData.interior_colour,
+            formData_start_date: formData.start_date,
+            formData_end_date: formData.end_date,
+            formData_notes: formData.notes
+          });
+        }, 100);
         
         if (onUpdated) {
           onUpdated(updated);

@@ -295,7 +295,7 @@ export default function LeasingKanbanBoard() {
     } else if (toStatus === 'active_leases') {
       // When customer moves to active_leases, mark vehicle as leased
       newVehicleStatus = 'leased';
-    } else if (fromStatus === 'contracts_drafted' && toStatus !== 'active_leases') {
+    } else if (fromStatus === 'contracts_drafted') {
       // When customer moves away from contracts_drafted (but not to active_leases), release vehicle
       newVehicleStatus = 'inventory';
       shouldClearVehicleFromCustomer = true; // Clear vehicle link from customer

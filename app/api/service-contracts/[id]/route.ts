@@ -174,7 +174,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
       updateData = {
         ...updateData,
-        ...(service_type !== undefined && { service_type }),
+        ...(service_type !== undefined && { 
+          // Map service_type to warranty_type for warranty contracts
+          [type === 'warranty' ? 'warranty_type' : 'service_type']: service_type 
+        }),
         ...(owner_name !== undefined && { owner_name }),
         ...(mobile_no !== undefined && { mobile_no }),
         ...(email !== undefined && { email }),

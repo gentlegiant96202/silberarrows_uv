@@ -28,3 +28,4 @@ LIMIT 5;
 -- =====================================================
 -- Run this only if prospects is missing:
 -- ALTER TYPE lease_status_enum ADD VALUE IF NOT EXISTS 'prospects';
+

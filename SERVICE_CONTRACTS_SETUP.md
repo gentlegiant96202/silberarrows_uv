@@ -101,7 +101,7 @@ PDFSHIFT_API_KEY=your_pdfshift_key
 The system includes sample contracts for testing:
 - **SC10001:** Ahmed Al-Rashid - Mercedes C-Class
 - **SC10002:** Sarah Johnson - Mercedes E-Class  
-- **WC10001:** Omar Hassan - Mercedes S-Class (Warranty)
+- **EW10001:** Omar Hassan - Mercedes S-Class (Warranty)
 
 ## 🔄 API ENDPOINTS
 

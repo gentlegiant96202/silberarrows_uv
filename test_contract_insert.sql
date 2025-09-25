@@ -65,3 +65,4 @@ INSERT INTO leasing_customers (
 
 -- Clean up test data
 DELETE FROM leasing_customers WHERE customer_name LIKE 'TEST%' OR customer_name LIKE 'FULL TEST%';
+

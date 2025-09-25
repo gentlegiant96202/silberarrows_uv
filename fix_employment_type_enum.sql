@@ -36,3 +36,4 @@ ALTER TABLE leasing_customers
 ALTER COLUMN employment_type TYPE employment_type_enum 
 USING employment_type::employment_type_enum;
 */
+

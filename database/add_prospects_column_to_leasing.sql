@@ -23,3 +23,4 @@ To revert (if needed):
 2. Update frontend to remove prospects status
 3. Change default back to 'appointments' if desired
 */
+

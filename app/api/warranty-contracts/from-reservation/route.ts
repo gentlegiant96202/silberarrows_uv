@@ -79,7 +79,7 @@ function parseVehicleModel(vehicleMakeModel: string): string {
 function generateWarrantyReference(): string {
   const timestamp = Date.now().toString().slice(-5);
   const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-  return `WC${timestamp}${random}`;
+  return `EW${timestamp}${random}`;
 }
 
 // POST - Create Extended Warranty contract from vehicle reservation

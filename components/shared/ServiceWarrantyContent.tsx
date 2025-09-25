@@ -507,10 +507,10 @@ export default function ServiceWarrantyContent() {
               Vehicle
             </th>
             <th className="w-28 px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-              Type
+              {type === 'service' ? 'Type' : 'Coverage'}
             </th>
             <th className="w-36 px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-              Period
+              {type === 'service' ? 'Period' : 'Warranty Period'}
             </th>
             <th className="w-32 px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
               Workflow
@@ -554,7 +554,7 @@ export default function ServiceWarrantyContent() {
                   </span>
                 ) : (
                   <span className="px-2 py-1 rounded text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                    Extended
+                    {contract.warranty_type || 'Extended'}
                   </span>
                 )}
               </td>

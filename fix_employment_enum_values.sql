@@ -40,3 +40,4 @@ The frontend uses these values:
 
 After running this script, the contract modal should work properly.
 */
+

@@ -55,10 +55,10 @@ export interface ServiceContractData {
 export default function ServiceContractModal({ isOpen, onClose, onSubmit, contractType = 'service' }: ServiceContractModalProps) {
   const { user } = useAuth();
   
-  // Generate reference number (SC for service, WC for warranty + 5 random digits)
+  // Generate reference number (SC for service, EW for warranty + 5 random digits)
   const generateReferenceNo = () => {
     const randomNumber = Math.floor(10000 + Math.random() * 90000);
-    const prefix = contractType === 'warranty' ? 'WC' : 'SC';
+    const prefix = contractType === 'warranty' ? 'EW' : 'SC';
     return `${prefix}${randomNumber}`;
   };
 
@@ -75,7 +75,9 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
   const getSmartDefaults = () => {
     const today = new Date();
     const startDate = today.toISOString().split('T')[0];
-    const endDate = new Date(today.setFullYear(today.getFullYear() + 2)).toISOString().split('T')[0];
+    const endDate = new Date(today.setFullYear(
+      today.getFullYear() + (contractType === 'warranty' ? 1 : 2)
+    )).toISOString().split('T')[0];
     
     return {
       referenceNo: generateReferenceNo(),
@@ -105,7 +107,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       // Contract Duration (smart defaults)
       startDate: startDate,
       endDate: endDate,
-      cutOffKm: '30000',
+      cutOffKm: '0', // Will be calculated when current mileage is entered
       
       // Financial Information
       invoiceAmount: '',
@@ -118,6 +120,14 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
   const [formData, setFormData] = useState<ServiceContractData>(getSmartDefaults());
 
   const [loading, setLoading] = useState(false);
+
+  // Regenerate reference number when contractType changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      referenceNo: generateReferenceNo()
+    }));
+  }, [contractType]);
 
   // Search reservations function
   const searchReservations = async (query: string) => {
@@ -168,6 +178,19 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       if (response.ok) {
         const { reservation: fullReservation } = await response.json();
         
+        // Calculate cut-off KM based on current mileage
+        const currentMileage = parseInt(fullReservation.vehicle_mileage?.toString() || '0') || 0;
+        let calculatedCutOffKm = '0';
+        
+        if (contractType === 'warranty') {
+          // Warranty: Current Mileage + 20,000 KM
+          calculatedCutOffKm = (currentMileage + 20000).toString();
+        } else {
+          // Service: Current Mileage + (30K for Standard, 60K for Premium)
+          const additionalKm = formData.serviceType === 'premium' ? 60000 : 30000;
+          calculatedCutOffKm = (currentMileage + additionalKm).toString();
+        }
+        
         // Map reservation fields to service contract fields
         const populatedData: ServiceContractData = {
           ...formData,
@@ -186,6 +209,9 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
           currentOdometer: fullReservation.vehicle_mileage?.toString() || '',
           exteriorColour: fullReservation.vehicle_exterior_colour || fullReservation.vehicle_colour || '',
           interiorColour: fullReservation.vehicle_interior_colour || '',
+          
+          // Contract Duration - Calculate cut-off KM
+          cutOffKm: calculatedCutOffKm,
           
           // Financial Information - Extract specific add-on amount based on contract type
           invoiceAmount: contractType === 'warranty' 
@@ -264,10 +290,27 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
   };
 
   const handleInputChange = (field: keyof ServiceContractData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Recalculate cut-off KM when current odometer changes
+      if (field === 'currentOdometer' && value) {
+        const currentMileage = parseInt(value) || 0;
+        if (contractType === 'warranty') {
+          // Warranty: Current Mileage + 20,000 KM
+          updated.cutOffKm = (currentMileage + 20000).toString();
+        } else {
+          // Service: Current Mileage + (30K for Standard, 60K for Premium)
+          const additionalKm = updated.serviceType === 'premium' ? 60000 : 30000;
+          updated.cutOffKm = (currentMileage + additionalKm).toString();
+        }
+      }
+      
+      return updated;
+    });
   };
 
   // Handle mobile number lookup and auto-population
@@ -555,36 +598,79 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Service Type *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    {contractType === 'warranty' ? 'Warranty Type *' : 'Service Type *'}
+                  </label>
                   <select
                     value={formData.serviceType}
                     onChange={(e) => {
                       const type = e.target.value as 'standard' | 'premium';
                       const today = new Date();
                       const startDate = today.toISOString().split('T')[0];
-                      const endDate = new Date(today.setFullYear(
-                        today.getFullYear() + (type === 'premium' ? 4 : 2)
-                      )).toISOString().split('T')[0];
                       
-                      setFormData(prev => ({
-                        ...prev,
-                        serviceType: type,
-                        startDate: startDate,
-                        endDate: endDate,
-                        cutOffKm: type === 'premium' ? '60000' : '30000'
-                      }));
+                        if (contractType === 'warranty') {
+                          // Warranty periods are always 12 months
+                          const endDate = new Date(today.setFullYear(
+                            today.getFullYear() + 1
+                          )).toISOString().split('T')[0];
+                          
+                          setFormData(prev => {
+                            // Calculate warranty cut-off: Current Mileage + 20,000 KM
+                            const currentMileage = parseInt(prev.currentOdometer) || 0;
+                            const warrantyCutOff = currentMileage + 20000;
+                            
+                            return {
+                              ...prev,
+                              serviceType: type,
+                              startDate: startDate,
+                              endDate: endDate,
+                              cutOffKm: warrantyCutOff.toString()
+                            };
+                          });
+                        } else {
+                          // Service contract periods
+                          const endDate = new Date(today.setFullYear(
+                            today.getFullYear() + (type === 'premium' ? 4 : 2)
+                          )).toISOString().split('T')[0];
+                          
+                          setFormData(prev => {
+                            // Calculate service cut-off: Current Mileage + (30K for Standard, 60K for Premium)
+                            const currentMileage = parseInt(prev.currentOdometer) || 0;
+                            const serviceCutOff = currentMileage + (type === 'premium' ? 60000 : 30000);
+                            
+                            return {
+                              ...prev,
+                              serviceType: type,
+                              startDate: startDate,
+                              endDate: endDate,
+                              cutOffKm: serviceCutOff.toString()
+                            };
+                          });
+                        }
                     }}
                     className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                     required
                   >
-                    <option value="standard">Standard (24 Months)</option>
-                    <option value="premium">Premium (48 Months)</option>
+                    {contractType === 'warranty' ? (
+                      <>
+                        <option value="standard">Standard Warranty</option>
+                        <option value="premium">Premium Warranty</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="standard">Standard (24 Months)</option>
+                        <option value="premium">Premium (48 Months)</option>
+                      </>
+                    )}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">Coverage Period</label>
                   <div className="flex items-center px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-white/70 text-sm">
-                    {formData.serviceType === 'standard' ? '24 Months Coverage' : '48 Months Coverage'}
+                    {contractType === 'warranty' 
+                      ? '12 Months Warranty'
+                      : (formData.serviceType === 'standard' ? '24 Months Coverage' : '48 Months Coverage')
+                    }
                   </div>
                 </div>
                 <div>
@@ -771,7 +857,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  Create ServiceCare Contract
+                  {contractType === 'warranty' ? 'Create Warranty Contract' : 'Create ServiceCare Contract'}
                 </>
               )}
             </button>

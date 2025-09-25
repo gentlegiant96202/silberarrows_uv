@@ -36,3 +36,4 @@ INSERT INTO leasing_customers (
   'contracts_drafted'
 ) RETURNING id, customer_name;
 */
+

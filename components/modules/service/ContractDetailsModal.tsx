@@ -219,63 +219,48 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     setGeneratingPdf(true);
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch('/api/generate-service-agreement', {
+      
+      // Determine contract type and API endpoint
+      const contractType = displayContract.contract_type || 'service';
+      const isWarranty = contractType === 'warranty';
+      
+      // Use the new contract-specific API endpoints
+      const apiEndpoint = isWarranty 
+        ? `/api/warranty-contracts/${displayContract.id}/generate-pdf`
+        : `/api/service-contracts/${displayContract.id}/generate-pdf`;
+      
+      console.log(`🔄 Generating ${contractType} PDF using endpoint:`, apiEndpoint);
+      
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          referenceNo: displayContract.reference_no,
-          ownerName: displayContract.owner_name,
-          mobileNo: displayContract.mobile_no,
-          email: displayContract.email,
-          customerIdType: displayContract.customer_id_type,
-          customerIdNumber: displayContract.customer_id_number,
-          dealerName: displayContract.dealer_name || 'SilberArrows',
-          dealerPhone: displayContract.dealer_phone || '+971 4 380 5515',
-          dealerEmail: displayContract.dealer_email || 'service@silberarrows.com',
-          vin: displayContract.vin,
-          make: displayContract.make,
-          model: displayContract.model,
-          modelYear: displayContract.model_year,
-          currentOdometer: displayContract.current_odometer,
-          exteriorColour: displayContract.exterior_colour,
-          interiorColour: displayContract.interior_colour,
-          serviceType: displayContract.service_type,
-          startDate: displayContract.start_date,
-          endDate: displayContract.end_date,
-          cutOffKm: displayContract.cut_off_km,
-          invoiceAmount: displayContract.invoice_amount,
-          salesExecutive: displayContract.sales_executive,
-          notes: displayContract.notes || '',
-          skipDatabase: false // We want to update the database
+          type: contractType
         })
       });
 
       if (response.ok) {
-        // Handle JSON response instead of PDF blob
-        const result = await response.json();
+        // Handle PDF blob response from new API
+        const blob = await response.blob();
         
-        if (result.success && result.pdfUrl) {
-          console.log('✅ PDF generated successfully:', result.pdfUrl);
-          
-          // Optional: Download the PDF from the URL
-          if (result.pdfUrl) {
-            const pdfResponse = await fetch(result.pdfUrl);
-            if (pdfResponse.ok) {
-              const blob = await pdfResponse.blob();
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.style.display = 'none';
-              a.href = url;
-              a.download = `${displayContract.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'}_Agreement_${displayContract.reference_no}.pdf`;
-              document.body.appendChild(a);
-              a.click();
-              window.URL.revokeObjectURL(url);
-              document.body.removeChild(a);
-            }
-          }
-        } else {
-          throw new Error(result.message || 'Failed to generate PDF');
-        }
+        // Download the PDF
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Set appropriate filename based on contract type
+        const filename = isWarranty 
+          ? `Warranty_Agreement_${displayContract.reference_no}.pdf`
+          : `ServiceCare_Agreement_${displayContract.reference_no}.pdf`;
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        console.log(`✅ ${contractType} PDF generated and downloaded successfully`);
         
         // Reset DocuSign state immediately (before any async operations)
         const resetDocusignState = {
@@ -298,25 +283,46 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         setDocusignState(resetDocusignState);
         console.log('✅ DocuSign state reset to pending - locked from useEffect override');
         
-        // Update local contract with the PDF URL from generation response
-        const updatedContract = { 
-          ...displayContract, 
-          pdf_url: result.pdfUrl,
-          updated_at: new Date().toISOString(),
-          signing_status: 'pending',
-          docusign_envelope_id: null,
-          signed_pdf_url: null,
-          sent_for_signing_at: null
-        };
+        // Fetch updated contract from database to get the real PDF URL
+        console.log('🔄 Fetching updated contract from database...');
+        const tableName = displayContract.contract_type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
+        const { data: updatedContractData, error: fetchError } = await supabase
+          .from(tableName)
+          .select('*')
+          .eq('id', displayContract.id)
+          .single();
+
+        if (fetchError) {
+          console.error('❌ Failed to fetch updated contract:', fetchError);
+          // Fallback to placeholder
+          const updatedContract = { 
+            ...displayContract, 
+            pdf_url: 'generated',
+            updated_at: new Date().toISOString(),
+            signing_status: 'pending',
+            docusign_envelope_id: null,
+            signed_pdf_url: null,
+            sent_for_signing_at: null
+          };
+          setLocalContract(updatedContract);
+        } else {
+          console.log('✅ Contract updated with real PDF URL:', updatedContractData.pdf_url);
+          setLocalContract(updatedContractData);
+        }
         
-        setLocalContract(updatedContract);
-        console.log('📝 Updated local contract with generated PDF URL:', result.pdfUrl);
+        console.log('📝 Updated local contract state after PDF generation');
         
         // Notify parent with updated contract
         if (onUpdated) {
-          onUpdated(updatedContract);
+          onUpdated(updatedContractData || displayContract);
         }
         
+        // Show success message
+        alert(`${isWarranty ? 'Warranty' : 'ServiceCare'} PDF generated and downloaded successfully!`);
+        
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate PDF');
       }
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -438,7 +444,14 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       console.log('👤 Company signer:', companyEmail);
       console.log('👤 Customer:', displayContract.owner_name, displayContract.email);
 
-      const response = await fetch('/api/docusign/send-for-signing-service', {
+      // Use warranty-specific API for warranty contracts
+      const apiEndpoint = displayContract.contract_type === 'warranty' 
+        ? '/api/docusign/send-for-signing-warranty'
+        : '/api/docusign/send-for-signing-service';
+      
+      console.log(`🔄 Using DocuSign API endpoint: ${apiEndpoint}`);
+      
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -920,7 +933,9 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Service Type</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    {displayContract.contract_type === 'warranty' ? 'Warranty Type' : 'Service Type'}
+                  </label>
                     {isEditing ? (
                       <select
                         value={formData.service_type || 'standard'}
@@ -942,12 +957,24 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         }}
                         className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                       >
-                        <option value="standard" className="bg-gray-900">Standard (24 Months)</option>
-                        <option value="premium" className="bg-gray-900">Premium (48 Months)</option>
+                        {displayContract.contract_type === 'warranty' ? (
+                          <>
+                            <option value="standard" className="bg-gray-900">Standard Warranty</option>
+                            <option value="premium" className="bg-gray-900">Premium Warranty</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="standard" className="bg-gray-900">Standard (24 Months)</option>
+                            <option value="premium" className="bg-gray-900">Premium (48 Months)</option>
+                          </>
+                        )}
                       </select>
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
-                      {displayContract.service_type === 'premium' ? 'Premium (48 Months)' : 'Standard (24 Months)'}
+                      {displayContract.contract_type === 'warranty' 
+                        ? (displayContract.service_type === 'premium' ? 'Premium Warranty' : 'Standard Warranty')
+                        : (displayContract.service_type === 'premium' ? 'Premium (48 Months)' : 'Standard (24 Months)')
+                      }
                     </div>
                     )}
                   </div>

@@ -74,7 +74,7 @@ CREATE TABLE warranty_contracts (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     
     -- Reference and basic info
-    reference_no TEXT NOT NULL UNIQUE, -- WC12345 format
+    reference_no TEXT NOT NULL UNIQUE, -- EW12345 format
     contract_type contract_type_enum NOT NULL DEFAULT 'warranty',
     status contract_status_enum NOT NULL DEFAULT 'active',
     
@@ -227,7 +227,7 @@ INSERT INTO warranty_contracts (
     vin, make, model, model_year, current_odometer,
     start_date, end_date, coverage_details, warranty_type
 ) VALUES (
-    'WC10001', 'Omar Hassan', '+971506789012', 'omar@email.com',
+    'EW10001', 'Omar Hassan', '+971506789012', 'omar@email.com',
     'WDDGF4HB1CA789123', 'Mercedes-Benz', 'S-Class', '2023', '15000', 
     '2025-01-01', '2027-01-01', 'Engine, transmission, electrical systems', 'Extended'
 );

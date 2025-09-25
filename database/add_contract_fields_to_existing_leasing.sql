@@ -30,3 +30,4 @@ WHERE table_name = 'leasing_customers'
   AND column_name IN ('selected_vehicle_id', 'monthly_payment', 'security_deposit', 'lease_term_months', 'lease_start_date', 'lease_end_date', 'lease_to_own_option')
 ORDER BY ordinal_position;
 */
+

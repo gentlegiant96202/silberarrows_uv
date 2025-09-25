@@ -48,3 +48,4 @@ If you get "type already exists" errors, you may need to:
 2. Only add the specific missing values you need
 3. Use the separate migration files for more granular control
 */
+

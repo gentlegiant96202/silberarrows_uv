@@ -442,7 +442,7 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
                             <tr>
                                 <td class="label">VIN:</td>
                                 <td class="data">${data.vin}</td>
-                                <td class="label">Make and Model:</td>
+                                <td class="label">Make & Model:</td>
                                 <td class="data">${data.make && data.model ? (data.make.toLowerCase().includes('mercedes') && data.model.toLowerCase().includes('mercedes') ? data.model : `${data.make} ${data.model}`) : (data.make || data.model || '')}</td>
                             </tr>
                             <tr>

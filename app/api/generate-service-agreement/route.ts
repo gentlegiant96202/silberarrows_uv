@@ -135,7 +135,7 @@ function buildServiceAgreementHtml(
                     <div class="section">
                         <div class="section-title">Vehicle Information</div>
                         <table class="form-table">
-                            <tr><td class="label">VIN:</td><td class="data">${data.vin}</td><td class="label">Make and Model:</td><td class="data">${data.make && data.model ? (data.make.toLowerCase().includes('mercedes') && data.model.toLowerCase().includes('mercedes') ? data.model : `${data.make} ${data.model}`) : (data.make || data.model || '')}</td></tr>
+                            <tr><td class="label">VIN:</td><td class="data">${data.vin}</td><td class="label">Make & Model:</td><td class="data">${data.make && data.model ? (data.make.toLowerCase().includes('mercedes') && data.model.toLowerCase().includes('mercedes') ? data.model : `${data.make} ${data.model}`) : (data.make || data.model || '')}</td></tr>
                             <tr><td class="label">Model Year:</td><td class="data">${data.modelYear}</td><td class="label">Kilometers:</td><td class="data">${data.currentOdometer || ''}</td></tr>
                             <tr><td class="label">Exterior Colour:</td><td class="data">${data.exteriorColour || ''}</td><td class="label">Interior Colour:</td><td class="data">${data.interiorColour || ''}</td></tr>
                         </table>
@@ -627,7 +627,7 @@ export async function POST(request: NextRequest) {
                             <tr>
                                 <td class="label">VIN:</td>
                                 <td class="data">${data.vin}</td>
-                                <td class="label">Make and Model:</td>
+                                <td class="label">Make & Model:</td>
                                 <td class="data">${data.make && data.model ? (data.make.toLowerCase().includes('mercedes') && data.model.toLowerCase().includes('mercedes') ? data.model : `${data.make} ${data.model}`) : (data.make || data.model || '')}</td>
                             </tr>
                             <tr>

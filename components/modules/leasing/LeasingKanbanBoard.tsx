@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Users } from 'lucide-react';
+import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Users, DollarSign, Receipt } from 'lucide-react';
 import LeasingAppointmentModal from './modals/LeasingAppointmentModal';
 import LeasingContractModal from './modals/LeasingContractModal';
+import ActiveLeaseModal from './modals/ActiveLeaseModal';
 import { useSearchStore } from '@/lib/searchStore';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
@@ -81,7 +82,10 @@ export default function LeasingKanbanBoard() {
   const [showModal, setShowModal] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showContractsModal, setShowContractsModal] = useState(false);
+  const [showActiveLeaseModal, setShowActiveLeaseModal] = useState(false);
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
+  const [selectedActiveLease, setSelectedActiveLease] = useState<Lease | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [editingLease, setEditingLease] = useState<Lease | null>(null);
   const [forceShowAppointmentFields, setForceShowAppointmentFields] = useState(false);
   const [modalTargetColumn, setModalTargetColumn] = useState<'prospects' | 'appointments'>('prospects');
@@ -491,7 +495,7 @@ export default function LeasingKanbanBoard() {
     return new Date(dateString).toLocaleDateString('en-GB');
   };
 
-  const handleCardClick = (lease: Lease, e: React.MouseEvent) => {
+  const handleCardClick = async (lease: Lease, e: React.MouseEvent) => {
     console.log('🎯 Card clicked - Customer data:', {
       lease,
       customerName: lease.customer_name,
@@ -517,6 +521,22 @@ export default function LeasingKanbanBoard() {
       // Open contracts modal for vehicle selection
       setContractsCustomer(lease);
       setShowContractsModal(true);
+    } else if (lease.status === 'active_leases') {
+      // Open Active Lease Modal with full lease management features
+      setSelectedActiveLease(lease);
+      
+      // Fetch vehicle data if linked
+      if (lease.selected_vehicle_id) {
+        const { data: vehicleData } = await supabase
+          .from('leasing_inventory')
+          .select('*')
+          .eq('id', lease.selected_vehicle_id)
+          .single();
+        
+        setSelectedVehicle(vehicleData);
+      }
+      
+      setShowActiveLeaseModal(true);
     } else {
       // Open general modal for other stages
       setSelectedLease(lease);
@@ -846,6 +866,45 @@ export default function LeasingKanbanBoard() {
                         {highlight(lease.notes)}
                       </div>
                     )}
+                    
+                    {/* Quick Actions for Active Leases */}
+                    {col.key === 'active_leases' && (
+                      <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCardClick(lease, e);
+                          }}
+                          className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 rounded text-xs text-blue-400 transition-colors"
+                          title="Generate Invoice"
+                        >
+                          <FileText className="w-3 h-3" />
+                          <span>Invoice</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCardClick(lease, e);
+                          }}
+                          className="flex items-center gap-1 px-2 py-1 bg-orange-500/20 hover:bg-orange-500/30 rounded text-xs text-orange-400 transition-colors"
+                          title="Add Charges"
+                        >
+                          <DollarSign className="w-3 h-3" />
+                          <span>Charges</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCardClick(lease, e);
+                          }}
+                          className="flex items-center gap-1 px-2 py-1 bg-green-500/20 hover:bg-green-500/30 rounded text-xs text-green-400 transition-colors"
+                          title="View Statement"
+                        >
+                          <Receipt className="w-3 h-3" />
+                          <span>Statement</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 ))
@@ -881,6 +940,18 @@ export default function LeasingKanbanBoard() {
         onCreated={handleContractCreated}
         mode={contractsCustomer ? 'edit' : 'create'}
         existingCustomer={contractsCustomer}
+      />
+
+      {/* Active Lease Modal - Full lease management features */}
+      <ActiveLeaseModal
+        isOpen={showActiveLeaseModal}
+        onClose={() => {
+          setShowActiveLeaseModal(false);
+          setSelectedActiveLease(null);
+          setSelectedVehicle(null);
+        }}
+        lease={selectedActiveLease}
+        vehicle={selectedVehicle}
       />
 
       {/* General Modal for other stages - placeholder */}

@@ -27,6 +27,7 @@ interface Lease {
   appointment_time?: string;
   lease_to_own_option?: boolean;
   buyout_price?: number;
+  selected_vehicle_id?: string; // Vehicle linked to this customer
   created_at: string;
   updated_at: string;
   notes?: string;

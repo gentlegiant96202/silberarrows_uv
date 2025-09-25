@@ -252,13 +252,9 @@ export async function POST(request: NextRequest) {
                 },
                 {
                   documentId: '1',
-                  anchorString: "Customer's Signature:",
-                  anchorUnits: 'pixels',
-                  anchorXOffset: '180',
-                  anchorYOffset: '5',
-                  anchorIgnoreIfNotPresent: true,
-                  anchorCaseSensitive: false,
-                  anchorMatchWholeWord: false,
+                  pageNumber: '10',
+                  xPosition: '400',
+                  yPosition: '730',
                   tabLabel: 'CustomerSignatureBooklet'
                 }
               ],

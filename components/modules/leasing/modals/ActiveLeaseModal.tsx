@@ -508,7 +508,7 @@ export default function ActiveLeaseModal({ isOpen, onClose, lease, vehicle }: Ac
                             alert('Monthly rental charge added successfully');
                           } catch (error) {
                             console.error('Error adding monthly rental:', error);
-                            alert(`Failed to add monthly rental charge: ${error.message}`);
+                            alert(`Failed to add monthly rental charge: ${error instanceof Error ? error.message : 'Unknown error'}`);
                           }
                         }}
                         className="p-4 bg-gradient-to-br from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 rounded-lg text-white font-medium transition-all flex flex-col items-center gap-2 border border-white/10"

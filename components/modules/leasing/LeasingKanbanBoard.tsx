@@ -867,44 +867,6 @@ export default function LeasingKanbanBoard() {
                       </div>
                     )}
                     
-                    {/* Quick Actions for Active Leases */}
-                    {col.key === 'active_leases' && (
-                      <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCardClick(lease, e);
-                          }}
-                          className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 rounded text-xs text-blue-400 transition-colors"
-                          title="Generate Invoice"
-                        >
-                          <FileText className="w-3 h-3" />
-                          <span>Invoice</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCardClick(lease, e);
-                          }}
-                          className="flex items-center gap-1 px-2 py-1 bg-orange-500/20 hover:bg-orange-500/30 rounded text-xs text-orange-400 transition-colors"
-                          title="Add Charges"
-                        >
-                          <DollarSign className="w-3 h-3" />
-                          <span>Charges</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCardClick(lease, e);
-                          }}
-                          className="flex items-center gap-1 px-2 py-1 bg-green-500/20 hover:bg-green-500/30 rounded text-xs text-green-400 transition-colors"
-                          title="View Statement"
-                        >
-                          <Receipt className="w-3 h-3" />
-                          <span>Statement</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
                 ))

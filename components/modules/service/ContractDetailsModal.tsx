@@ -82,31 +82,32 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   };
 
   // Initialize form data when contract changes or edit mode is enabled
-  const initializeFormData = () => {
-    if (contract) {
+  const initializeFormData = (sourceContract?: any) => {
+    const contractToUse = sourceContract || displayContract;
+    if (contractToUse) {
       setFormData({
-        service_type: displayContract.service_type || 'standard',
-        owner_name: displayContract.owner_name || '',
-        mobile_no: displayContract.mobile_no || '',
-        email: displayContract.email || '',
-        customer_id_type: displayContract.customer_id_type || 'EID',
-        customer_id_number: displayContract.customer_id_number || '',
-        dealer_name: displayContract.dealer_name || '',
-        dealer_phone: displayContract.dealer_phone || '',
-        dealer_email: displayContract.dealer_email || '',
-        vin: displayContract.vin || '',
-        make: displayContract.make || '',
-        model: displayContract.model || '',
-        model_year: displayContract.model_year || '',
-        current_odometer: displayContract.current_odometer || '',
-        exterior_colour: displayContract.exterior_colour || '',
-        interior_colour: displayContract.interior_colour || '',
-        start_date: displayContract.start_date || '',
-        end_date: displayContract.end_date || '',
-        cut_off_km: displayContract.cut_off_km || '',
-        workflow_status: displayContract.workflow_status || 'created',
-        invoice_amount: displayContract.invoice_amount || '',
-        notes: displayContract.notes || ''
+        service_type: contractToUse.service_type || contractToUse.warranty_type || 'standard',
+        owner_name: contractToUse.owner_name || '',
+        mobile_no: contractToUse.mobile_no || '',
+        email: contractToUse.email || '',
+        customer_id_type: contractToUse.customer_id_type || 'EID',
+        customer_id_number: contractToUse.customer_id_number || '',
+        dealer_name: contractToUse.dealer_name || '',
+        dealer_phone: contractToUse.dealer_phone || '',
+        dealer_email: contractToUse.dealer_email || '',
+        vin: contractToUse.vin || '',
+        make: contractToUse.make || '',
+        model: contractToUse.model || '',
+        model_year: contractToUse.model_year || '',
+        current_odometer: contractToUse.current_odometer || '',
+        exterior_colour: contractToUse.exterior_colour || '',
+        interior_colour: contractToUse.interior_colour || '',
+        start_date: contractToUse.start_date || '',
+        end_date: contractToUse.end_date || '',
+        cut_off_km: contractToUse.cut_off_km || '',
+        workflow_status: contractToUse.workflow_status || 'created',
+        invoice_amount: contractToUse.invoice_amount || '',
+        notes: contractToUse.notes || ''
       });
     }
   };
@@ -123,7 +124,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       setLocalContract(contract);
       
       // Initialize form data from contract
-      initializeFormData();
+      console.log('🔍 MODAL OPEN DEBUG - Contract data:', {
+        customer_id_number: contract?.customer_id_number,
+        exterior_colour: contract?.exterior_colour,
+        interior_colour: contract?.interior_colour,
+        notes: contract?.notes
+      });
+      initializeFormData(contract);
     }
   }, [isOpen, contract]);
 
@@ -178,6 +185,14 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   const handleSave = async () => {
     setLoading(true);
     try {
+      console.log('🔍 SAVE DEBUG - Form data being sent:', {
+        customer_id_number: formData.customer_id_number,
+        exterior_colour: formData.exterior_colour,
+        interior_colour: formData.interior_colour,
+        notes: formData.notes,
+        contractType: (displayContract as any)?.contract_type || 'service'
+      });
+      
       const headers = await getAuthHeaders();
       const response = await fetch(`/api/service-contracts/${displayContract.id}`, {
         method: 'PUT',
@@ -192,13 +207,35 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       });
 
       if (response.ok) {
-      const result = await response.json();
+        const result = await response.json();
+
+        // Fetch the latest record from DB to avoid stale local state
+        const tableName = (displayContract as any)?.contract_type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
+        const { data: fresh, error: freshErr } = await supabase
+          .from(tableName)
+          .select('*')
+          .eq('id', (displayContract as any)?.id)
+          .single();
+
+        const updated = fresh || result.contract;
+
+        console.log('🔍 SAVE DEBUG - Updated contract from DB:', {
+          customer_id_number: updated?.customer_id_number,
+          exterior_colour: updated?.exterior_colour,
+          interior_colour: updated?.interior_colour,
+          notes: updated?.notes,
+          freshFromDB: !!fresh,
+          fallbackToResult: !fresh
+        });
+
+        // Update local contract state immediately with DB truth
+        setLocalContract(updated);
         
-        // Update local contract state immediately
-        setLocalContract(result.contract);
+        // Reinitialize form data with the fresh contract data
+        initializeFormData(updated);
         
         if (onUpdated) {
-          onUpdated(result.contract);
+          onUpdated(updated);
           // Force a small delay to ensure parent component updates
           await new Promise(resolve => setTimeout(resolve, 100));
         }

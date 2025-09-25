@@ -209,11 +209,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         updated_at: new Date().toISOString()
       };
 
-      // Debug logging for notes field
-      console.log('🔍 Notes field debugging:', {
+      // Debug logging for problematic fields
+      console.log('🔍 Field debugging:', {
+        customer_id_number_in_body: customer_id_number,
+        exterior_colour_in_body: exterior_colour,
+        interior_colour_in_body: interior_colour,
         notes_in_body: notes,
-        notes_type: typeof notes,
+        customer_id_number_in_updateData: updateData.customer_id_number,
+        exterior_colour_in_updateData: updateData.exterior_colour,
+        interior_colour_in_updateData: updateData.interior_colour,
         notes_in_updateData: updateData.notes,
+        tableName: tableName,
         all_updateData_keys: Object.keys(updateData)
       });
     } else {
@@ -257,7 +263,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       vehicle_info: `${updatedContract.make} ${updatedContract.model} (${updatedContract.model_year})`
     };
 
-    console.log('✅ Contract updated. Notes now:', (enhancedContract as any)?.notes ?? null);
+    console.log('✅ Contract updated. Field values now:', {
+      notes: (enhancedContract as any)?.notes ?? null,
+      customer_id_number: (enhancedContract as any)?.customer_id_number ?? null,
+      exterior_colour: (enhancedContract as any)?.exterior_colour ?? null,
+      interior_colour: (enhancedContract as any)?.interior_colour ?? null
+    });
 
     return NextResponse.json({
       contract: enhancedContract,

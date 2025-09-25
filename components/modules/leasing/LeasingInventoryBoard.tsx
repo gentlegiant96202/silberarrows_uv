@@ -72,7 +72,7 @@ interface LeasingVehicle {
   updated_at: string;
 }
 
-type VehicleStatus = 'marketing' | 'reserved' | 'leased' | 'maintenance' | 'returned' | 'archived';
+type VehicleStatus = 'marketing' | 'inventory' | 'reserved' | 'leased' | 'maintenance' | 'returned' | 'archived';
 type ViewMode = 'kanban' | 'table';
 
 const columns = [
@@ -80,6 +80,11 @@ const columns = [
     key: "marketing", 
     title: "MARKETING", 
     icon: <Package className="w-4 h-4" />
+  },
+  { 
+    key: "inventory", 
+    title: "INVENTORY", 
+    icon: <LayoutGrid className="w-4 h-4" />
   },
   { 
     key: "reserved", 
@@ -164,6 +169,7 @@ export default function LeasingInventoryBoard() {
   // Column-by-column optimistic loading states
   const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
     marketing: true,
+    inventory: true,
     reserved: true,
     leased: true,
     maintenance: true,
@@ -172,6 +178,7 @@ export default function LeasingInventoryBoard() {
   });
   const [columnData, setColumnData] = useState<Record<ColKey, LeasingVehicle[]>>({
     marketing: [],
+    inventory: [],
     reserved: [],
     leased: [],
     maintenance: [],
@@ -188,6 +195,7 @@ export default function LeasingInventoryBoard() {
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: string }[] = [
         { key: 'marketing', delay: 0, statusFilter: 'marketing' },
+        { key: 'inventory', delay: 80, statusFilter: 'inventory' },
         { key: 'reserved', delay: 160, statusFilter: 'reserved' },
         { key: 'leased', delay: 240, statusFilter: 'leased' },
         { key: 'maintenance', delay: 320, statusFilter: 'maintenance' },
@@ -212,6 +220,12 @@ export default function LeasingInventoryBoard() {
 
             if (error) {
               console.error(`❌ Error loading ${key}:`, error);
+              console.error(`❌ Error details for ${key}:`, {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+              });
               setColumnLoading(prev => ({ ...prev, [key]: false }));
               return;
             }
@@ -550,6 +564,7 @@ export default function LeasingInventoryBoard() {
                 <td className="p-3">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     vehicle.status === 'marketing' ? 'bg-green-500/20 text-green-300' :
+                    vehicle.status === 'inventory' ? 'bg-purple-500/20 text-purple-300' :
                     vehicle.status === 'reserved' ? 'bg-yellow-500/20 text-yellow-300' :
                     vehicle.status === 'leased' ? 'bg-blue-500/20 text-blue-300' :
                     vehicle.status === 'returned' ? 'bg-orange-500/20 text-orange-300' :

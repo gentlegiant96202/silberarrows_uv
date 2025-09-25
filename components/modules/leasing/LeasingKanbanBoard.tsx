@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X } from 'lucide-react';
+import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Users } from 'lucide-react';
 import LeasingAppointmentModal from './modals/LeasingAppointmentModal';
-import ContractsDraftedModal from './modals/ContractsDraftedModal';
+import LeasingContractModal from './modals/LeasingContractModal';
 import { useSearchStore } from '@/lib/searchStore';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
@@ -23,17 +23,26 @@ interface Lease {
   status: LeaseStatus;
   lease_status?: LeaseStatus; // For database compatibility
   employment_type?: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  lease_to_own_option?: boolean;
+  buyout_price?: number;
   created_at: string;
   updated_at: string;
   notes?: string;
 }
 
-type LeaseStatus = 'appointments' | 'contracts_drafted' | 'active_leases' | 'overdue_ending_soon' | 'closed_returned' | 'archived';
+type LeaseStatus = 'prospects' | 'appointments' | 'contracts_drafted' | 'active_leases' | 'overdue_ending_soon' | 'closed_returned' | 'archived';
 
 const columns = [
-  { 
-    key: "appointments", 
-    title: "APPOINTMENTS", 
+  {
+    key: "prospects",
+    title: "PROSPECTS",
+    icon: <Users className="w-4 h-4" />
+  },
+  {
+    key: "appointments",
+    title: "APPOINTMENTS",
     icon: <Calendar className="w-4 h-4" />
   },
   { 
@@ -73,6 +82,8 @@ export default function LeasingKanbanBoard() {
   const [showContractsModal, setShowContractsModal] = useState(false);
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
   const [editingLease, setEditingLease] = useState<Lease | null>(null);
+  const [forceShowAppointmentFields, setForceShowAppointmentFields] = useState(false);
+  const [modalTargetColumn, setModalTargetColumn] = useState<'prospects' | 'appointments'>('prospects');
   const [contractsCustomer, setContractsCustomer] = useState<Lease | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [hovered, setHovered] = useState<ColKey | null>(null);
@@ -115,6 +126,7 @@ export default function LeasingKanbanBoard() {
   
   // Column-by-column optimistic loading states
   const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
+    prospects: true,
     appointments: true,
     contracts_drafted: true,
     active_leases: true,
@@ -123,6 +135,7 @@ export default function LeasingKanbanBoard() {
     archived: true
   });
   const [columnData, setColumnData] = useState<Record<ColKey, Lease[]>>({
+    prospects: [],
     appointments: [],
     contracts_drafted: [],
     active_leases: [],
@@ -139,12 +152,13 @@ export default function LeasingKanbanBoard() {
       
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: string }[] = [
-        { key: 'appointments', delay: 0, statusFilter: 'appointments' },
-        { key: 'contracts_drafted', delay: 80, statusFilter: 'contracts_drafted' },
-        { key: 'active_leases', delay: 160, statusFilter: 'active_leases' },
-        { key: 'overdue_ending_soon', delay: 240, statusFilter: 'overdue_ending_soon' },
-        { key: 'closed_returned', delay: 320, statusFilter: 'closed_returned' },
-        { key: 'archived', delay: 400, statusFilter: 'archived' }
+        { key: 'prospects', delay: 0, statusFilter: 'prospects' },
+        { key: 'appointments', delay: 80, statusFilter: 'appointments' },
+        { key: 'contracts_drafted', delay: 160, statusFilter: 'contracts_drafted' },
+        { key: 'active_leases', delay: 240, statusFilter: 'active_leases' },
+        { key: 'overdue_ending_soon', delay: 320, statusFilter: 'overdue_ending_soon' },
+        { key: 'closed_returned', delay: 400, statusFilter: 'closed_returned' },
+        { key: 'archived', delay: 480, statusFilter: 'archived' }
       ];
 
       // Load each column progressively
@@ -167,13 +181,19 @@ export default function LeasingKanbanBoard() {
 
             console.log(`✅ Loaded ${key}: ${data?.length || 0} customers`);
             
-            setColumnData(prev => ({ ...prev, [key]: data || [] }));
+            // Normalize data: ensure status field matches lease_status from database
+            const normalizedData = (data || []).map(customer => ({
+              ...customer,
+              status: customer.lease_status || customer.status
+            }));
+            
+            setColumnData(prev => ({ ...prev, [key]: normalizedData }));
             setColumnLoading(prev => ({ ...prev, [key]: false }));
             
             // Update main leases array
             setLeases(prev => {
               const filtered = prev.filter(l => l.status !== statusFilter);
-              return [...filtered, ...(data || [])];
+              return [...filtered, ...normalizedData];
             });
 
           } catch (error) {
@@ -197,15 +217,15 @@ export default function LeasingKanbanBoard() {
           console.log('🔄 Leasing customer change detected:', payload);
           
           if (payload.eventType === 'INSERT') {
-            const newCustomer = payload.new;
+            const newCustomer = { ...payload.new, status: payload.new.lease_status || payload.new.status };
             setColumnData(prev => ({
               ...prev,
               [newCustomer.lease_status as ColKey]: [...(prev[newCustomer.lease_status as ColKey] || []), newCustomer]
             }));
             setLeases(prev => [...prev, newCustomer]);
           } else if (payload.eventType === 'UPDATE') {
-            const updatedCustomer = payload.new;
-            const oldCustomer = payload.old;
+            const updatedCustomer = { ...payload.new, status: payload.new.lease_status || payload.new.status };
+            const oldCustomer = { ...payload.old, status: payload.old.lease_status || payload.old.status };
             
             // Update in all relevant places
             setColumnData(prev => {
@@ -233,7 +253,7 @@ export default function LeasingKanbanBoard() {
             
             setLeases(prev => prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
           } else if (payload.eventType === 'DELETE') {
-            const deletedCustomer = payload.old;
+            const deletedCustomer = { ...payload.old, status: payload.old.lease_status || payload.old.status };
             setColumnData(prev => ({
               ...prev,
               [deletedCustomer.lease_status as ColKey]: (prev[deletedCustomer.lease_status as ColKey] || [])
@@ -251,112 +271,6 @@ export default function LeasingKanbanBoard() {
     };
   }, []);
 
-  // Mock data for initial implementation (fallback)
-  const loadMockData = () => {
-    const mockLeases: Lease[] = [
-      {
-        id: '1',
-        customer_name: 'Ahmed Al-Rashid',
-        customer_email: 'ahmed@example.com',
-        customer_phone: '+971 50 123 4567',
-        vehicle_make: 'Mercedes-Benz',
-        vehicle_model: 'C-Class',
-        vehicle_year: 2024,
-        monthly_payment: 2500,
-        lease_term_months: 36,
-        status: 'appointments',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        notes: 'Initial consultation scheduled'
-      },
-      {
-        id: '2',
-        customer_name: 'Sarah Johnson',
-        customer_email: 'sarah@example.com',
-        customer_phone: '+971 55 987 6543',
-        vehicle_make: 'Mercedes-Benz',
-        vehicle_model: 'E-Class',
-        vehicle_year: 2024,
-        monthly_payment: 3200,
-        lease_term_months: 24,
-        status: 'contracts_drafted',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        notes: 'Contract ready for review'
-      },
-      {
-        id: '3',
-        customer_name: 'Mohammed Hassan',
-        customer_email: 'mohammed@example.com',
-        customer_phone: '+971 52 456 7890',
-        vehicle_make: 'Mercedes-Benz',
-        vehicle_model: 'GLC',
-        vehicle_year: 2023,
-        monthly_payment: 2800,
-        lease_term_months: 48,
-        start_date: '2024-01-15',
-        end_date: '2028-01-15',
-        status: 'active_leases',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        notes: 'Active lease, payments up to date'
-      },
-      {
-        id: '4',
-        customer_name: 'Fatima Al-Zahra',
-        customer_email: 'fatima@example.com',
-        customer_phone: '+971 56 789 0123',
-        vehicle_make: 'Mercedes-Benz',
-        vehicle_model: 'A-Class',
-        vehicle_year: 2022,
-        monthly_payment: 1800,
-        lease_term_months: 24,
-        start_date: '2022-06-01',
-        end_date: '2024-06-01',
-        status: 'archived',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        notes: 'Lease completed successfully, vehicle returned'
-      }
-    ];
-
-    // Simulate loading delay
-    setTimeout(() => {
-      setLeases(mockLeases);
-      
-      // Group leases by status
-      const grouped = mockLeases.reduce((acc, lease) => {
-        if (!acc[lease.status]) acc[lease.status] = [];
-        acc[lease.status].push(lease);
-        return acc;
-      }, {} as Record<ColKey, Lease[]>);
-
-      setColumnData({
-        appointments: grouped.appointments || [],
-        contracts_drafted: grouped.contracts_drafted || [],
-        active_leases: grouped.active_leases || [],
-        overdue_ending_soon: grouped.overdue_ending_soon || [],
-        closed_returned: grouped.closed_returned || [],
-        archived: grouped.archived || []
-      });
-
-      setColumnLoading({
-        appointments: false,
-        contracts_drafted: false,
-        active_leases: false,
-        overdue_ending_soon: false,
-        closed_returned: false,
-        archived: false
-      });
-
-      setLoading(false);
-    }, 1000);
-  };
-
-  // Call mock data if no real data loaded
-  if (!hasFetchedLeases.current) {
-    loadMockData();
-  }
 
   const onDragStart = (lease: Lease) => (e: React.DragEvent) => {
     e.dataTransfer.setData("text/plain", lease.id);
@@ -367,6 +281,69 @@ export default function LeasingKanbanBoard() {
     setIsDragging(false);
   };
 
+  // Handle vehicle status changes based on customer status transitions
+  const handleVehicleStatusChange = async (vehicleId: string, fromStatus: LeaseStatus, toStatus: LeaseStatus, customerId: string) => {
+    if (!vehicleId) return;
+
+    let newVehicleStatus: 'inventory' | 'reserved' | 'leased' | null = null;
+    let shouldClearVehicleFromCustomer = false;
+
+    // Determine new vehicle status based on customer status transition
+    if (toStatus === 'contracts_drafted') {
+      // When customer moves to contracts_drafted, reserve the vehicle
+      newVehicleStatus = 'reserved';
+    } else if (toStatus === 'active_leases') {
+      // When customer moves to active_leases, mark vehicle as leased
+      newVehicleStatus = 'leased';
+    } else if (fromStatus === 'contracts_drafted' && toStatus !== 'active_leases') {
+      // When customer moves away from contracts_drafted (but not to active_leases), release vehicle
+      newVehicleStatus = 'inventory';
+      shouldClearVehicleFromCustomer = true; // Clear vehicle link from customer
+    } else if (fromStatus === 'active_leases') {
+      // When customer moves away from active_leases, release vehicle
+      newVehicleStatus = 'inventory';
+      shouldClearVehicleFromCustomer = true; // Clear vehicle link from customer
+    }
+
+    if (newVehicleStatus) {
+      console.log(`🚗 Updating vehicle ${vehicleId} status: ${fromStatus} → ${toStatus} = vehicle: ${newVehicleStatus}`);
+      
+      // Update vehicle status
+      const vehicleUpdateResult = await supabase
+        .from('leasing_inventory')
+        .update({ 
+          status: newVehicleStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', vehicleId);
+
+      if (vehicleUpdateResult.error) {
+        console.error(`⚠️ Failed to update vehicle status to ${newVehicleStatus}:`, vehicleUpdateResult.error);
+      } else {
+        console.log(`✅ Vehicle status updated to ${newVehicleStatus}`);
+      }
+
+      // Clear vehicle link from customer if moving to earlier stages
+      if (shouldClearVehicleFromCustomer) {
+        console.log(`🔗 Clearing vehicle link from customer ${customerId}`);
+        
+        const customerUpdateResult = await supabase
+          .from('leasing_customers')
+          .update({ 
+            selected_vehicle_id: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', customerId);
+
+        if (customerUpdateResult.error) {
+          console.error(`⚠️ Failed to clear vehicle link from customer:`, customerUpdateResult.error);
+        } else {
+          console.log(`✅ Vehicle link cleared from customer`);
+        }
+      }
+    }
+  };
+
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
@@ -375,47 +352,131 @@ export default function LeasingKanbanBoard() {
     e.preventDefault();
     setIsDragging(false);
     setHovered(null);
-    
+
     const customerId = e.dataTransfer.getData("text/plain");
-    if (!customerId) return;
-    
+    console.log('🗂️ Drop event:', { targetStatus, customerId, availableTypes: e.dataTransfer.types });
+
+    if (!customerId) {
+      console.error('❌ No customer ID found in drag data');
+      return;
+    }
+
     const customerToMove = leases.find(l => l.id === customerId);
-    if (!customerToMove) return;
-    
-    if (customerToMove.status === targetStatus) return;
+    if (!customerToMove) {
+      console.error('❌ Customer not found in leases:', { 
+        customerId, 
+        availableLeases: leases.length,
+        leaseIds: leases.map(l => l.id)
+      });
+      return;
+    }
+
+    console.log('📋 Moving customer:', { 
+      customerToMove, 
+      targetStatus,
+      currentStatus: customerToMove.status,
+      currentLeaseStatus: customerToMove.lease_status 
+    });
+
+    if (customerToMove.status === targetStatus) {
+      console.log('⚠️ Customer already in target column');
+      return;
+    }
+
+    // Special case: Moving from prospects to appointments should open appointment modal
+    if (customerToMove.status === 'prospects' && targetStatus === 'appointments') {
+      console.log('📅 Opening appointment modal for prospect → appointment move');
+      setEditingLease(customerToMove);
+      setForceShowAppointmentFields(true); // Force show appointment fields
+      setShowAppointmentModal(true);
+      return; // Don't update status yet, let the modal handle it
+    }
 
     try {
+      // Debug logging
+      console.log('🔄 Attempting to move customer:', {
+        id: customerId,
+        from: customerToMove.status,
+        to: targetStatus,
+        targetType: typeof targetStatus,
+        customerData: {
+          name: customerToMove.customer_name,
+          phone: customerToMove.customer_phone,
+          email: customerToMove.customer_email,
+          hasRequiredFields: !!(customerToMove.customer_name && customerToMove.customer_phone)
+        }
+      });
+
       // Update in database
-      const { error } = await supabase
-        .from('leasing_customers')
-        .update({ 
+      const updateData = {
           lease_status: targetStatus as LeaseStatus,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', customerId);
+      };
+      
+      console.log('📝 Update payload:', updateData);
+      
+      const { data, error } = await supabase
+        .from('leasing_customers')
+        .update(updateData)
+        .eq('id', customerId)
+        .select();
 
       if (error) {
-        console.error('❌ Error updating customer status:', error);
-        alert('Failed to update customer status. Please try again.');
+        console.error('❌ Error updating customer status:', {
+          error: error,
+          targetStatus: targetStatus,
+          customerId: customerId,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: JSON.stringify(error, null, 2)
+        });
+        alert(`Failed to update customer status: ${error.message || 'Unknown error'}. Code: ${error.code}. Please check console for details.`);
         return;
       }
 
-      console.log(`✅ Customer ${customerId} moved to ${targetStatus}`);
+      console.log('✅ Customer updated successfully:', data);
+
+      // Handle vehicle status changes when moving customers between columns
+      if (customerToMove.selected_vehicle_id) {
+        await handleVehicleStatusChange(customerToMove.selected_vehicle_id, customerToMove.status, targetStatus, customerId);
+      }
       
       // Optimistic update (real-time subscription will also update)
-      const updatedCustomer = { ...customerToMove, status: targetStatus as LeaseStatus };
-      
-      setColumnData(prev => ({
-        ...prev,
-        [customerToMove.status]: prev[customerToMove.status].filter(l => l.id !== customerId),
-        [targetStatus]: [...prev[targetStatus], updatedCustomer]
-      }));
+      const updatedCustomer = { ...customerToMove, status: targetStatus as LeaseStatus, lease_status: targetStatus as LeaseStatus };
+
+      console.log('🔄 Performing optimistic update:', {
+        fromColumn: customerToMove.status,
+        toColumn: targetStatus,
+        removedFrom: customerToMove.status,
+        addedTo: targetStatus
+      });
+
+      setColumnData(prev => {
+        const newData = {
+          ...prev,
+          [customerToMove.status]: prev[customerToMove.status].filter(l => l.id !== customerId),
+          [targetStatus]: [...prev[targetStatus], updatedCustomer]
+        };
+
+        console.log('📊 Column data updated:', {
+          fromColumnCount: prev[customerToMove.status]?.length || 0,
+          toColumnCount: newData[targetStatus]?.length || 0
+        });
+
+        return newData;
+      });
 
       setLeases(prev => prev.map(l => l.id === customerId ? updatedCustomer : l));
 
     } catch (error) {
-      console.error("❌ Exception updating customer:", error);
-      alert('Failed to update customer status. Please try again.');
+      console.error("❌ Exception updating customer:", {
+        error: error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      alert('Failed to update customer status. Please check console for details.');
     }
   };
 
@@ -430,8 +491,25 @@ export default function LeasingKanbanBoard() {
   };
 
   const handleCardClick = (lease: Lease, e: React.MouseEvent) => {
-    if (lease.status === 'appointments') {
+    console.log('🎯 Card clicked - Customer data:', {
+      lease,
+      customerName: lease.customer_name,
+      customerEmail: lease.customer_email,
+      customerPhone: lease.customer_phone,
+      appointmentDate: lease.appointment_date,
+      appointmentTime: lease.appointment_time,
+      notes: lease.notes,
+      status: lease.status
+    });
+    
+    if (lease.status === 'prospects') {
+      // Open appointment modal for editing prospects
+      setModalTargetColumn('prospects');
+      setEditingLease(lease);
+      setShowAppointmentModal(true);
+    } else if (lease.status === 'appointments') {
       // Open appointment modal for editing
+      setModalTargetColumn('appointments');
       setEditingLease(lease);
       setShowAppointmentModal(true);
     } else if (lease.status === 'contracts_drafted') {
@@ -446,39 +524,86 @@ export default function LeasingKanbanBoard() {
   };
 
   const handleAppointmentCreated = (newCustomer: any) => {
-    // Add new customer to appointments column
+    // Normalize customer data and add to appropriate column
+    const normalizedCustomer = { ...newCustomer, status: newCustomer.lease_status || newCustomer.status };
+    const targetColumn = (normalizedCustomer.lease_status || 'prospects') as ColKey;
     setColumnData(prev => ({
       ...prev,
-      appointments: [...prev.appointments, newCustomer]
+      [targetColumn]: [...prev[targetColumn], normalizedCustomer]
     }));
-    setLeases(prev => [...prev, newCustomer]);
+    setLeases(prev => [...prev, normalizedCustomer]);
   };
 
   const handleAppointmentUpdated = (updatedCustomer: any) => {
-    // Update customer in appointments column
-    setColumnData(prev => ({
-      ...prev,
-      appointments: prev.appointments.map(lease => 
-        lease.id === updatedCustomer.id ? updatedCustomer : lease
-      )
-    }));
+    // Normalize customer data and update in appropriate column
+    const normalizedCustomer = { ...updatedCustomer, status: updatedCustomer.lease_status || updatedCustomer.status };
+    const targetColumn = normalizedCustomer.lease_status || normalizedCustomer.status;
+    setColumnData(prev => {
+      const newData = { ...prev };
+      
+      // Remove from all columns first (in case status changed)
+      Object.keys(newData).forEach(column => {
+        newData[column as ColKey] = newData[column as ColKey].filter(lease => 
+          lease.id !== normalizedCustomer.id
+        );
+      });
+      
+      // Add to target column
+      newData[targetColumn as ColKey] = [...newData[targetColumn as ColKey], normalizedCustomer];
+      
+      return newData;
+    });
     setLeases(prev => prev.map(lease => 
-      lease.id === updatedCustomer.id ? updatedCustomer : lease
+      lease.id === normalizedCustomer.id ? normalizedCustomer : lease
     ));
     setEditingLease(null);
   };
 
   const handleContractCreated = (updatedCustomer: any) => {
-    // Move customer from contracts_drafted to active_leases
-    setColumnData(prev => ({
+    console.log('📋 Contract created/updated:', updatedCustomer);
+    
+    // Normalize the customer data to ensure status consistency
+    const normalizedCustomer = {
+      ...updatedCustomer,
+      status: updatedCustomer.lease_status || updatedCustomer.status || 'contracts_drafted'
+    };
+
+    console.log('📊 Normalized customer status:', normalizedCustomer.status);
+
+    if (normalizedCustomer.status === 'contracts_drafted') {
+      // Update or add to contracts_drafted column
+      setColumnData(prev => {
+        const existingIndex = prev.contracts_drafted.findIndex(lease => lease.id === normalizedCustomer.id);
+        
+        if (existingIndex >= 0) {
+          // Update existing customer in contracts_drafted
+          const updatedContracts = [...prev.contracts_drafted];
+          updatedContracts[existingIndex] = normalizedCustomer;
+          return {
       ...prev,
-      contracts_drafted: prev.contracts_drafted.filter(lease => 
-        lease.id !== updatedCustomer.id
-      ),
-      active_leases: [...prev.active_leases, updatedCustomer]
-    }));
+            contracts_drafted: updatedContracts
+          };
+        } else {
+          // Add new customer to contracts_drafted (remove from other columns if exists)
+          return {
+            ...prev,
+            prospects: prev.prospects.filter(lease => lease.id !== normalizedCustomer.id),
+            appointments: prev.appointments.filter(lease => lease.id !== normalizedCustomer.id),
+            contracts_drafted: [...prev.contracts_drafted, normalizedCustomer],
+            active_leases: prev.active_leases.filter(lease => lease.id !== normalizedCustomer.id),
+            overdue_ending_soon: prev.overdue_ending_soon.filter(lease => lease.id !== normalizedCustomer.id),
+            closed_returned: prev.closed_returned.filter(lease => lease.id !== normalizedCustomer.id)
+          };
+        }
+      });
+    } else {
+      // Handle other statuses if needed
+      console.log('⚠️ Unexpected status for contract creation:', normalizedCustomer.status);
+    }
+
+    // Update the main leases array
     setLeases(prev => prev.map(lease => 
-      lease.id === updatedCustomer.id ? updatedCustomer : lease
+      lease.id === normalizedCustomer.id ? normalizedCustomer : lease
     ));
     setContractsCustomer(null);
   };
@@ -550,9 +675,24 @@ export default function LeasingKanbanBoard() {
                 <h3 className="text-xs font-medium text-white whitespace-nowrap">
                   {col.title}
                 </h3>
-                {col.key === 'appointments' ? (
+                {col.key === 'prospects' ? (
                 <button
-                  onClick={() => setShowAppointmentModal(true)}
+                  onClick={() => {
+                    setModalTargetColumn('prospects');
+                    setShowAppointmentModal(true);
+                  }}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black hover:brightness-110"
+                  title="Add new prospect"
+                >
+                  {columnData[col.key].length}
+                  <span className="ml-1 text-[12px] leading-none">＋</span>
+                </button>
+                ) : col.key === 'appointments' ? (
+                <button
+                  onClick={() => {
+                    setModalTargetColumn('appointments');
+                    setShowAppointmentModal(true);
+                  }}
                   className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
                   title="Add new appointment"
                 >
@@ -585,11 +725,11 @@ export default function LeasingKanbanBoard() {
                 </button>
               )}
             </div>
-            <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar">
               {columnLoading[col.key] ? (
                 // Show skeleton while column is loading
                 <div className="space-y-2">
-                  {Array.from({ length: col.key === 'appointments' ? 2 : 1 }).map((_, i) => (
+                  {Array.from({ length: col.key === 'prospects' || col.key === 'appointments' ? 2 : 1 }).map((_, i) => (
                     <div key={i} className="backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs bg-white/5 border border-white/10 animate-pulse">
                       <div className="flex items-start justify-between mb-1">
                         <div className="h-3 bg-white/10 rounded w-3/4"></div>
@@ -619,18 +759,25 @@ export default function LeasingKanbanBoard() {
                   onDragEnd={onDragEnd}
                   onClick={(e) => handleCardClick(lease, e)}
                   className={`animate-fadeIn ${(()=>{
-                    const base = 'backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ';
+                    const base = 'backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm text-xs select-none cursor-pointer group ';
                     
-                    // Special styling for appointments column
+                    // Compact padding for prospects and appointments
+                    const padding = (col.key === 'prospects' || col.key === 'appointments') ? 'p-2' : 'p-1.5';
+                    
+                    // Special styling for prospects and appointments columns
+                    if (col.key === 'prospects') {
+                      return base + padding + ' bg-green-500/10 border-green-400/20 hover:bg-green-500/15 hover:border-green-400/30';
+                    }
+
                     if (col.key === 'appointments') {
-                      return base + 'bg-blue-500/10 border-blue-400/20 hover:bg-blue-500/15 hover:border-blue-400/30';
+                      return base + padding + ' bg-blue-500/10 border-blue-400/20 hover:bg-blue-500/15 hover:border-blue-400/30';
                     }
                     
-                    return base + 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20';
+                    return base + 'p-1.5 bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20';
                   })()}`}
                 >
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="text-xs font-medium text-white group-hover:text-white/90 transition-colors">
+                  <div className="flex items-start justify-between mb-1.5">
+                    <div className="text-sm font-medium text-white group-hover:text-white/90 transition-colors leading-tight">
                       {highlight(lease.customer_name)}
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -665,31 +812,36 @@ export default function LeasingKanbanBoard() {
                     </div>
                   </div>
                   
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-white/70 flex items-center gap-1">
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="space-y-1">
+                    {lease.customer_phone && (
+                      <div className="text-xs text-white/70 flex items-center gap-1.5 leading-tight">
+                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
-                      {highlight(lease.customer_phone || '')}
-                      <span className="text-white/50">·</span>
+                        <span className="truncate">{highlight(lease.customer_phone)}</span>
                     </div>
+                    )}
                     
-                    <div className="text-xs text-white/70 flex items-center gap-1">
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {(lease.vehicle_year || lease.vehicle_make || lease.vehicle_model) && (
+                      <div className="text-xs text-white/70 flex items-center gap-1.5 leading-tight">
+                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
-                      {lease.vehicle_year} {lease.vehicle_make} {lease.vehicle_model}
+                        <span className="truncate">{lease.vehicle_year} {lease.vehicle_make} {lease.vehicle_model}</span>
                     </div>
+                    )}
                     
-                    <div className="text-xs text-white/70 flex items-center gap-1">
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {lease.monthly_payment && (
+                      <div className="text-xs text-white/70 flex items-center gap-1.5 leading-tight">
+                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                       </svg>
-                      {formatCurrency(lease.monthly_payment)}/mo
+                        <span>{formatCurrency(lease.monthly_payment)}/mo</span>
                     </div>
+                    )}
                     
                     {lease.notes && (
-                      <div className="text-xs text-white/50 mt-1 italic">
+                      <div className="text-xs text-white/50 italic leading-tight line-clamp-2">
                         {highlight(lease.notes)}
                       </div>
                     )}
@@ -709,21 +861,25 @@ export default function LeasingKanbanBoard() {
         onClose={() => {
           setShowAppointmentModal(false);
           setEditingLease(null);
+          setForceShowAppointmentFields(false); // Reset force flag
         }}
         onCreated={editingLease ? handleAppointmentUpdated : handleAppointmentCreated}
         mode={editingLease ? 'edit' : 'create'}
         existingCustomer={editingLease}
+        forceShowAppointmentFields={forceShowAppointmentFields}
+        targetColumn={modalTargetColumn}
       />
 
       {/* Contracts Drafted Modal */}
-      <ContractsDraftedModal
+      <LeasingContractModal
         isOpen={showContractsModal}
         onClose={() => {
           setShowContractsModal(false);
           setContractsCustomer(null);
         }}
-        onUpdated={handleContractCreated}
-        customer={contractsCustomer}
+        onCreated={handleContractCreated}
+        mode={contractsCustomer ? 'edit' : 'create'}
+        existingCustomer={contractsCustomer}
       />
 
       {/* General Modal for other stages - placeholder */}
@@ -753,8 +909,8 @@ export default function LeasingKanbanBoard() {
                 </div>
               )}
             </div>
-            
-            <div className="mt-6 flex justify-end">
+
+            <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-lg font-medium text-sm hover:shadow-lg transition-all"

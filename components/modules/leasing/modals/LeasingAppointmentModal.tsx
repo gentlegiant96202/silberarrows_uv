@@ -3,12 +3,40 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from "@/lib/supabaseClient";
 
+// Types for inventory (matching actual table structure)
+interface InventoryVehicle {
+  id: string;
+  stock_number: string;
+  make?: string;
+  vehicle_model?: string;
+  model_family?: string;
+  model_year: number;
+  body_style?: string;
+  colour?: string; // exterior color
+  interior_colour?: string;
+  current_mileage_km?: number;
+  monthly_lease_rate?: number;
+  status?: string;
+  condition?: string;
+  engine?: string;
+  transmission?: string;
+  fuel_type?: string;
+  // Computed fields for display
+  model?: string; // Will be derived from vehicle_model
+  exterior_color?: string; // Will be derived from colour
+  interior_color?: string; // Will be derived from interior_colour
+  mileage_km?: number; // Will be derived from current_mileage_km
+  engine_type?: string; // Will be derived from engine
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (customer: any) => void;
   mode?: 'create' | 'edit';
   existingCustomer?: any; // For edit mode
+  forceShowAppointmentFields?: boolean; // Force show appointment fields (for prospect → appointment moves)
+  targetColumn?: 'prospects' | 'appointments'; // Which column this modal was opened from
 }
 
 // Generate 15-minute time slots from 8:00 AM to 8:00 PM
@@ -34,42 +62,312 @@ const generateTimeSlots = () => {
 
 const timeSlots = generateTimeSlots();
 
+// Debug: Log time slots to verify format (remove this in production)
+// console.log('🕐 Generated time slots:', timeSlots.slice(0, 5));
+
 export default function LeasingAppointmentModal({ 
   isOpen, 
   onClose, 
   onCreated, 
   mode = 'create', 
-  existingCustomer 
+  existingCustomer,
+  forceShowAppointmentFields = false,
+  targetColumn
 }: Props) {
+  // Debug existing customer data
+  console.log('🔍 Modal received existingCustomer:', {
+    existingCustomer,
+    mode,
+    customerName: existingCustomer?.customer_name,
+    customerEmail: existingCustomer?.customer_email,
+    customerPhone: existingCustomer?.customer_phone,
+    appointmentDate: existingCustomer?.appointment_date,
+    appointmentTime: existingCustomer?.appointment_time,
+    notes: existingCustomer?.notes
+  });
+
   // Form state - exact same as UV CRM
   const [customerName, setCustomerName] = useState(existingCustomer?.customer_name || "");
   const [customerEmail, setCustomerEmail] = useState(existingCustomer?.customer_email || "");
   const [countryCode, setCountryCode] = useState("+971");
-  const [phoneNumber, setPhoneNumber] = useState(existingCustomer?.customer_phone?.replace("+971", "").trim() || "");
+  const [phoneNumber, setPhoneNumber] = useState(
+    existingCustomer?.customer_phone ? 
+      existingCustomer.customer_phone.replace("+971", "").replace(/\s+/g, "").trim() : 
+      ""
+  );
   const [appointmentDate, setAppointmentDate] = useState<Date | null>(
     existingCustomer?.appointment_date ? new Date(existingCustomer.appointment_date) : null
   );
-  const [appointmentTime, setAppointmentTime] = useState(existingCustomer?.appointment_time || "");
+  const [appointmentTime, setAppointmentTime] = useState(
+    existingCustomer?.appointment_time ? 
+      existingCustomer.appointment_time.substring(0, 5) : // Convert "08:00:00" to "08:00"
+      ""
+  );
   const [notes, setNotes] = useState(existingCustomer?.notes || "");
+  
+  // Inventory state
+  const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
+  const [filteredInventory, setFilteredInventory] = useState<InventoryVehicle[]>([]);
+  const [selectedVehicle, setSelectedVehicle] = useState<InventoryVehicle | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [makeFilter, setMakeFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
+  const [loadingInventory, setLoadingInventory] = useState(false);
+  
+  // Drag and drop state
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedVehicle, setDraggedVehicle] = useState<InventoryVehicle | null>(null);
   
   // UI state
   const [saving, setSaving] = useState(false);
+
+  // Update form fields when existingCustomer changes
+  useEffect(() => {
+    if (existingCustomer && mode === 'edit') {
+      console.log('🔄 Updating form fields with existing customer data:', existingCustomer);
+      setCustomerName(existingCustomer.customer_name || "");
+      setCustomerEmail(existingCustomer.customer_email || "");
+      setPhoneNumber(
+        existingCustomer.customer_phone ? 
+          existingCustomer.customer_phone.replace("+971", "").replace(/\s+/g, "").trim() : 
+          ""
+      );
+      setAppointmentDate(
+        existingCustomer.appointment_date ? new Date(existingCustomer.appointment_date) : null
+      );
+      setAppointmentTime(
+        existingCustomer.appointment_time ? 
+          existingCustomer.appointment_time.substring(0, 5) : // Convert "08:00:00" to "08:00"
+          ""
+      );
+      setNotes(existingCustomer.notes || "");
+    } else if (mode === 'create') {
+      // Reset form for create mode
+      setCustomerName("");
+      setCustomerEmail("");
+      setPhoneNumber("");
+      setAppointmentDate(null);
+      setAppointmentTime("");
+      setNotes("");
+    }
+  }, [existingCustomer, mode]);
+
+  // Fetch inventory data
+  const fetchInventory = async () => {
+    setLoadingInventory(true);
+    try {
+      console.log('🚗 Fetching leasing inventory...');
+      
+      // Get only cars with 'inventory' status for appointment selection
+      const { data, error } = await supabase
+        .from('leasing_inventory')
+        .select('*') // Get all columns to see what's available
+        .eq('status', 'inventory') // Only show inventory status cars
+        .order('created_at', { ascending: false })
+        .limit(50); // Get up to 50 records
+
+      if (error) {
+        console.error('❌ Error fetching inventory:', error);
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        // Set some mock data for now so the UI still works
+        console.log('📝 Using fallback mock data due to database error');
+        const mockData = [
+          {
+            id: 'mock-1',
+            stock_number: 'MOCK001',
+            make: 'Mercedes-Benz',
+            model: 'C-Class',
+            model_year: 2024,
+            body_style: 'Sedan',
+            exterior_color: 'Black',
+            interior_color: 'Black Leather',
+            mileage_km: 5000,
+            monthly_lease_rate: 2500,
+            status: 'available' as const,
+            condition: 'excellent' as const,
+            engine_type: '2.0L Turbo',
+            transmission: 'Automatic',
+            fuel_type: 'Petrol'
+          },
+          {
+            id: 'mock-2',
+            stock_number: 'MOCK002',
+            make: 'BMW',
+            model: '320i',
+            model_year: 2023,
+            body_style: 'Sedan',
+            exterior_color: 'White',
+            interior_color: 'Black Leather',
+            mileage_km: 12000,
+            monthly_lease_rate: 2400,
+            status: 'available' as const,
+            condition: 'good' as const,
+            engine_type: '2.0L Turbo',
+            transmission: 'Automatic',
+            fuel_type: 'Petrol'
+          }
+        ];
+        setInventory(mockData);
+        setFilteredInventory(mockData);
+        return;
+      }
+
+      console.log('✅ Inventory fetched:', data?.length, 'vehicles');
+      console.log('📊 Sample data:', data?.[0]);
+      console.log('📊 Available columns:', data?.[0] ? Object.keys(data[0]) : 'No data');
+      
+      // Transform data to match our interface
+      const transformedData = data?.map((car: any) => ({
+        ...car,
+        // Map actual column names to expected interface
+        model: car.vehicle_model || car.model || car.model_family || 'Unknown Model',
+        exterior_color: car.colour || car.exterior_color || 'Unknown Color',
+        interior_color: car.interior_colour || car.interior_color || 'Unknown Interior',
+        mileage_km: car.current_mileage_km || car.mileage_km || 0,
+        engine_type: car.engine || car.engine_type || 'Unknown Engine',
+        make: car.make || 'Mercedes-Benz' // Default to Mercedes if not specified
+      })) || [];
+      
+      // All cars are already filtered to 'inventory' status from the query
+      setInventory(transformedData);
+      setFilteredInventory(transformedData);
+    } catch (error) {
+      console.error('❌ Error in fetchInventory:', error);
+    } finally {
+      setLoadingInventory(false);
+    }
+  };
+
+  // Filter inventory based on search and filters
+  useEffect(() => {
+    let filtered = inventory;
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(vehicle =>
+        vehicle.make?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.stock_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.exterior_color?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Make filter
+    if (makeFilter) {
+      filtered = filtered.filter(vehicle => vehicle.make === makeFilter);
+    }
+
+    // Year filter
+    if (yearFilter) {
+      filtered = filtered.filter(vehicle => vehicle.model_year?.toString() === yearFilter);
+    }
+
+    // Status filter removed - all cars are already 'inventory' status
+
+    setFilteredInventory(filtered);
+  }, [inventory, searchTerm, makeFilter, yearFilter]);
+
+  // Fetch inventory when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchInventory();
+    }
+  }, [isOpen]);
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, vehicle: InventoryVehicle) => {
+    console.log('🚗 Drag started:', vehicle.stock_number);
+    setDraggedVehicle(vehicle);
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', vehicle.id);
+  };
+
+  const handleDragEnd = () => {
+    console.log('🚗 Drag ended');
+    setIsDragging(false);
+    setDraggedVehicle(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    console.log('🚗 Vehicle dropped:', draggedVehicle?.stock_number);
+    
+    if (draggedVehicle) {
+      setSelectedVehicle(draggedVehicle);
+      console.log('✅ Vehicle selected via drag & drop:', draggedVehicle.stock_number);
+    }
+    
+    setIsDragging(false);
+    setDraggedVehicle(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     try {
+      // Validate and format appointment time
+      const formattedTime = appointmentTime && appointmentTime.trim() !== '' ? appointmentTime.trim() : null;
+      
+      // Determine status based on appointment details and current context
+      const hasAppointmentDetails = appointmentDate && formattedTime;
+      
+      // If editing a prospect or creating from prospects column, keep as prospects unless appointment details are provided
+      // If editing an appointment or creating from appointments column, require appointment details
+      let leaseStatus: 'prospects' | 'appointments';
+      
+      if (mode === 'edit' && existingCustomer?.status === 'prospects') {
+        // Editing a prospect - only move to appointments if they add appointment details
+        leaseStatus = hasAppointmentDetails ? 'appointments' : 'prospects';
+      } else if (mode === 'edit' && existingCustomer?.status === 'appointments') {
+        // Editing an appointment - keep as appointment even if details are removed (they can manually move back)
+        leaseStatus = 'appointments';
+      } else {
+        // Creating new - determine by appointment details
+        leaseStatus = hasAppointmentDetails ? 'appointments' : 'prospects';
+      }
+      
       const customerData = {
         customer_name: customerName.toUpperCase(),
         customer_email: customerEmail,
         customer_phone: `${countryCode} ${phoneNumber}`,
         appointment_date: appointmentDate ? appointmentDate.toISOString().split('T')[0] : null,
-        appointment_time: appointmentTime,
+        appointment_time: formattedTime,
         notes: notes,
-        lease_status: 'appointments',
+        lease_status: leaseStatus,
+        selected_vehicle_id: selectedVehicle?.id || null,
         updated_at: new Date().toISOString()
       };
+
+      console.log('💾 Saving customer data:', {
+        customerData,
+        selectedVehicle: selectedVehicle ? {
+          id: selectedVehicle.id,
+          stock_number: selectedVehicle.stock_number,
+          make: selectedVehicle.make,
+          model: selectedVehicle.model
+        } : null,
+        customerEmail: customerEmail,
+        emailLength: customerEmail?.length,
+        originalAppointmentTime: appointmentTime,
+        formattedTime: formattedTime,
+        appointmentTimeType: typeof appointmentTime,
+        appointmentTimeLength: appointmentTime?.length,
+        hasAppointmentDetails,
+        willBeAppointment: leaseStatus === 'appointments'
+      });
 
       let result;
       if (mode === 'edit' && existingCustomer) {
@@ -98,11 +396,17 @@ export default function LeasingAppointmentModal({
         return;
       }
 
-      console.log('Customer saved successfully:', result.data);
+      console.log('✅ Customer saved successfully:', {
+        savedData: result.data,
+        savedEmail: result.data?.customer_email,
+        savedAppointmentTime: result.data?.appointment_time,
+        savedAppointmentDate: result.data?.appointment_date
+      });
       onCreated(result.data);
       onClose();
       
-      // Reset form
+      // Reset form only in create mode
+      if (mode === 'create') {
       setCustomerName("");
       setCustomerEmail("");
       setCountryCode("+971");
@@ -110,6 +414,7 @@ export default function LeasingAppointmentModal({
       setAppointmentDate(null);
       setAppointmentTime("");
       setNotes("");
+      }
 
     } catch (error) {
       console.error('Error saving customer:', error);
@@ -124,6 +429,37 @@ export default function LeasingAppointmentModal({
   return (
     <>
       <style jsx global>{`
+        /* Universal placeholder styling for ALL form fields */
+        input::placeholder,
+        input::-webkit-input-placeholder,
+        input::-moz-placeholder,
+        input:-ms-input-placeholder,
+        textarea::placeholder,
+        textarea::-webkit-input-placeholder,
+        textarea::-moz-placeholder,
+        textarea:-ms-input-placeholder,
+        select option[value=""] {
+          color: #9ca3af !important;
+          opacity: 1 !important;
+        }
+        
+        /* DatePicker specific targeting */
+        .datepicker-placeholder::placeholder,
+        .datepicker-placeholder::-webkit-input-placeholder,
+        .datepicker-placeholder::-moz-placeholder,
+        .datepicker-placeholder:-ms-input-placeholder,
+        .react-datepicker__input-container input::placeholder,
+        .react-datepicker__input-container input::-webkit-input-placeholder,
+        .react-datepicker__input-container input::-moz-placeholder,
+        .react-datepicker__input-container input:-ms-input-placeholder {
+          color: #9ca3af !important;
+          opacity: 1 !important;
+        }
+        
+        /* Select dropdown placeholder option styling */
+        select option[value=""]:first-child {
+          color: #9ca3af !important;
+        }
         /* Override browser autofill styling */
         input:-webkit-autofill,
         input:-webkit-autofill:hover,
@@ -163,35 +499,52 @@ export default function LeasingAppointmentModal({
         }
       `}</style>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-black border border-white/20 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <div className="bg-black rounded-xl max-w-7xl w-full h-[75vh] overflow-hidden flex flex-col border border-white/20" style={{ boxShadow: '0 0 50px rgba(255, 255, 255, 0.1), 0 0 100px rgba(255, 255, 255, 0.05)' }}>
         {/* Header */}
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-white">
-                {mode === 'edit' ? 'Edit Appointment' : 'New Leasing Appointment'}
+                {mode === 'edit' 
+                  ? (existingCustomer?.status === 'prospects' ? 'Edit Prospect' : 'Edit Appointment')
+                  : 'New Leasing Customer'
+                }
               </h2>
               <p className="text-xs text-white/60">
                 {mode === 'edit' 
-                  ? 'Update customer information and appointment details' 
-                  : 'Create a new leasing appointment'
+                  ? (existingCustomer?.status === 'prospects' 
+                      ? 'Update prospect details or schedule an appointment' 
+                      : 'Update customer and appointment information')
+                  : 'Add customer details and optionally schedule an appointment'
                 }
               </p>
             </div>
+            
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3">
             <button
+                type="button"
               onClick={onClose}
-              className="text-white/60 hover:text-white transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+                className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="leasing-form"
+                disabled={saving}
+                className="px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
+              >
+                {saving ? 'Saving...' : mode === 'edit' ? 'Update' : 'Create'}
             </button>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 p-6">
-          {/* Main Form */}
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-y-auto pr-1">
+        <div className="flex flex-1">
+          {/* Left Column - Customer Form */}
+          <div className="flex-1 p-6 overflow-y-auto border-r border-white/10">
+            <form id="leasing-form" onSubmit={handleSubmit} className="space-y-4">
             
             {/* Customer Information */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-4">
@@ -213,7 +566,7 @@ export default function LeasingAppointmentModal({
                   <input
                     value={customerName}
                     onChange={e => setCustomerName(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all uppercase h-12"
+                    className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all uppercase h-12"
                     placeholder="Enter customer's full name"
                     required
                   />
@@ -238,7 +591,7 @@ export default function LeasingAppointmentModal({
                     <input
                       value={phoneNumber}
                       onChange={e => setPhoneNumber(e.target.value.toUpperCase())}
-                      className="flex-1 px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all uppercase h-12"
+                      className="flex-1 px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all uppercase h-12"
                       placeholder="Phone number"
                       required
                     />
@@ -257,7 +610,7 @@ export default function LeasingAppointmentModal({
                     type="email"
                     value={customerEmail}
                     onChange={e => setCustomerEmail(e.target.value)}
-                    className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all h-12"
+                    className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all h-12"
                     placeholder="customer@example.com"
                     autoComplete="off"
                   />
@@ -266,7 +619,10 @@ export default function LeasingAppointmentModal({
               </div>
             </div>
 
-            {/* Appointment Details */}
+            {/* Appointment Details - Show for appointments column or when forced */}
+            {forceShowAppointmentFields || 
+             (mode === 'edit' && existingCustomer?.status === 'appointments') || 
+             (mode === 'create' && targetColumn === 'appointments') ? (
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-4">
               <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,11 +644,11 @@ export default function LeasingAppointmentModal({
                       selected={appointmentDate}
                       onChange={(d)=>setAppointmentDate(d as Date)}
                       dateFormat="dd/MM/yyyy"
+                      placeholderText="Select date"
                       popperPlacement="top-start"
-                      className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all h-12"
+                      className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all h-12 datepicker-placeholder"
                       wrapperClassName="w-full"
                       minDate={new Date()}
-                      required
                     />
                   </div>
                   <div>
@@ -304,14 +660,16 @@ export default function LeasingAppointmentModal({
                     </label>
                     <select
                       value={appointmentTime}
-                      onChange={e => setAppointmentTime(e.target.value)}
+                      onChange={e => {
+                        console.log('⏰ Time selected:', e.target.value);
+                        setAppointmentTime(e.target.value);
+                      }}
                       className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all appearance-none h-12"
                       style={{ backgroundImage: 'none' }}
-                      required
                     >
-                      <option value="">Select time</option>
+                      <option value="" style={{ backgroundColor: '#1f2937', color: '#9ca3af' }}>Select time</option>
                       {timeSlots.map(slot => (
-                        <option key={slot.value} value={slot.value}>
+                        <option key={slot.value} value={slot.value} style={{ backgroundColor: '#1f2937', color: 'white' }}>
                           {slot.label}
                         </option>
                       ))}
@@ -320,7 +678,76 @@ export default function LeasingAppointmentModal({
                 </div>
               </div>
             </div>
+            ) : null}
 
+            {/* Selected Car Drop Zone */}
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-4">
+              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Selected Vehicle
+              </h3>
+              
+              {/* Drop Zone */}
+              {selectedVehicle ? (
+                <div className="border-2 border-solid border-white/30 rounded-lg p-3 bg-white/10 min-h-[100px] flex flex-col justify-between">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-medium text-sm truncate">
+                        {selectedVehicle.model_year} {selectedVehicle.make} {selectedVehicle.model}
+                      </h4>
+                      <p className="text-white/60 text-xs truncate">
+                        {selectedVehicle.body_style} • {selectedVehicle.exterior_color} • {selectedVehicle.mileage_km?.toLocaleString() || 'N/A'} km
+                      </p>
+                    </div>
+                    <div className="text-right ml-2 flex-shrink-0">
+                      <p className="text-white text-xs font-medium">
+                        AED {selectedVehicle.monthly_lease_rate?.toLocaleString() || 'N/A'}/mo
+                      </p>
+                      <button
+                        onClick={() => setSelectedVehicle(null)}
+                        className="text-white/60 hover:text-white/80 text-xs mt-1"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-white/50 text-xs truncate">
+                    Stock: {selectedVehicle.stock_number}
+                    {selectedVehicle.engine_type && (
+                      <span className="ml-2">
+                        {selectedVehicle.engine_type} • {selectedVehicle.transmission}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-3 text-center transition-all min-h-[100px] flex items-center justify-center ${
+                    isDragging 
+                      ? 'border-white/60 bg-white/15' 
+                      : 'border-white/20 bg-white/5 hover:border-white/40'
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <svg className="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <div>
+                      <p className="text-white/60 text-sm font-medium">
+                        {isDragging ? 'Drop vehicle here' : 'Drag a vehicle here'}
+                      </p>
+                      <p className="text-white/40 text-xs">
+                        {isDragging ? 'Release to select' : 'Or click from the list on the right'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Notes */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-6">
@@ -334,34 +761,123 @@ export default function LeasingAppointmentModal({
                 <textarea
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all resize-none"
+                  className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all resize-none"
                   placeholder="Add any additional notes about the customer or appointment..."
                   rows={4}
                 />
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-6 border-t border-white/10">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all h-12"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-6 py-3 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all h-12"
-              >
-                {saving ? 'Saving...' : mode === 'edit' ? 'Update Appointment' : 'Create Appointment'}
-              </button>
-            </div>
           </form>
+          </div>
+
+          {/* Right Column - Car Inventory */}
+          <div className="w-96 p-6 bg-white/5 overflow-y-auto">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Inventory Cars
+              </h3>
+              <p className="text-xs text-white/60">Click a car to select it for this customer</p>
+            </div>
+
+            {/* Search and Filters */}
+            <div className="mb-4 space-y-3">
+              <input
+                type="text"
+                placeholder="Search cars..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all"
+              />
+              
+              <div className="grid grid-cols-2 gap-2">
+                <select 
+                  value={makeFilter}
+                  onChange={(e) => setMakeFilter(e.target.value)}
+                  className="px-3 py-2 text-sm rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all"
+                >
+                  <option value="">All Makes</option>
+                  {Array.from(new Set(inventory.map(v => v.make))).map(make => (
+                    <option key={make} value={make}>{make}</option>
+                  ))}
+                </select>
+                
+                <select 
+                  value={yearFilter}
+                  onChange={(e) => setYearFilter(e.target.value)}
+                  className="px-3 py-2 text-sm rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all"
+                >
+                  <option value="">All Years</option>
+                  {Array.from(new Set(inventory.map(v => v.model_year))).sort((a, b) => b - a).map(year => (
+                    <option key={year} value={year.toString()}>{year}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="px-3 py-2 text-sm rounded-lg bg-black/20 border border-white/10 text-white/60 text-center">
+                Inventory Only
+              </div>
+            </div>
+
+            {/* Car List */}
+            <div className="space-y-3">
+              {loadingInventory ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-white/60 text-sm">Loading vehicles...</div>
+                </div>
+              ) : filteredInventory.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-white/60 text-sm">No vehicles found</div>
+                </div>
+              ) : (
+                filteredInventory.map((vehicle) => (
+                  <div 
+                    key={vehicle.id}
+                    draggable
+                    className={`bg-white/10 rounded-lg p-3 border border-white/10 cursor-grab hover:bg-white/15 transition-all ${
+                      draggedVehicle?.id === vehicle.id ? 'opacity-50' : ''
+                    }`}
+                    onClick={() => setSelectedVehicle(vehicle)}
+                    onDragStart={(e) => handleDragStart(e, vehicle)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h4 className="text-white font-medium text-sm">
+                          {vehicle.model_year} {vehicle.make} {vehicle.model}
+                        </h4>
+                        <p className="text-white/60 text-xs">
+                          {vehicle.body_style} • {vehicle.exterior_color} • {vehicle.mileage_km?.toLocaleString() || 'N/A'} km
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white text-sm font-medium">
+                          AED {vehicle.monthly_lease_rate?.toLocaleString() || 'N/A'}/mo
+                        </p>
+                        <span className="inline-block px-2 py-1 text-xs rounded bg-white/20 text-white/70">
+                          Inventory
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-white/50 text-xs">
+                      Stock: {vehicle.stock_number}
+                    </div>
+                    {vehicle.engine_type && (
+                      <div className="text-white/40 text-xs mt-1">
+                        {vehicle.engine_type} • {vehicle.transmission} • {vehicle.fuel_type}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
         </div>
       </div>
-    </div>
     </>
   );
 }

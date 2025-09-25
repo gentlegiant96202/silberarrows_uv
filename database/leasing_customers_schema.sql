@@ -10,8 +10,9 @@ DROP TABLE IF EXISTS leasing_customers CASCADE;
 
 -- Create ENUM for lease status (matches kanban columns)
 CREATE TYPE lease_status_enum AS ENUM (
+    'prospects',
     'appointments',
-    'contracts_drafted', 
+    'contracts_drafted',
     'active_leases',
     'overdue_ending_soon',
     'closed_returned',
@@ -89,10 +90,19 @@ CREATE TABLE leasing_customers (
     years_in_uae INTEGER,
     
     -- ===== LEASE STATUS & SCHEDULING =====
-    lease_status lease_status_enum NOT NULL DEFAULT 'appointments',
+    lease_status lease_status_enum NOT NULL DEFAULT 'prospects',
     appointment_date DATE,
     appointment_time TIME,
-    
+
+    -- ===== VEHICLE & CONTRACT INFORMATION =====
+    selected_vehicle_id UUID,                    -- References leasing_inventory.id
+    monthly_payment DECIMAL(10,2),               -- Monthly lease payment amount
+    security_deposit DECIMAL(10,2),              -- Security deposit amount
+    lease_term_months INTEGER,                   -- Lease duration in months
+    lease_start_date DATE,                       -- Contract start date
+    lease_end_date DATE,                         -- Contract end date
+    lease_to_own_option BOOLEAN DEFAULT FALSE,   -- Lease-to-own option
+
     -- ===== INTERNAL TRACKING =====
     assigned_to UUID REFERENCES auth.users(id),
     notes TEXT,
@@ -146,6 +156,13 @@ INSERT INTO leasing_customers (
     address_line_1,
     city,
     emirate,
+    selected_vehicle_id,
+    monthly_payment,
+    security_deposit,
+    lease_term_months,
+    lease_start_date,
+    lease_end_date,
+    lease_to_own_option,
     notes
 ) VALUES 
 (
@@ -154,7 +171,7 @@ INSERT INTO leasing_customers (
     '+971501234567',
     '1985-03-15',
     '784-1985-1234567-1',
-    'appointments',
+    'prospects',
     CURRENT_DATE + INTERVAL '2 days',
     '10:00',
     'Emirates NBD',
@@ -164,7 +181,14 @@ INSERT INTO leasing_customers (
     'Dubai Marina, Building 123',
     'Dubai',
     'Dubai',
-    'Initial consultation scheduled'
+    'Interested in leasing options',
+    NULL, -- selected_vehicle_id
+    NULL, -- monthly_payment
+    NULL, -- security_deposit
+    NULL, -- lease_term_months
+    NULL, -- lease_start_date
+    NULL, -- lease_end_date
+    FALSE -- lease_to_own_option
 ),
 (
     'Sarah Johnson',
@@ -182,7 +206,14 @@ INSERT INTO leasing_customers (
     'Business Bay, Tower 456',
     'Dubai',
     'Dubai',
-    'Contract ready for review'
+    'Contract ready for review',
+    NULL, -- selected_vehicle_id
+    NULL, -- monthly_payment
+    NULL, -- security_deposit
+    NULL, -- lease_term_months
+    NULL, -- lease_start_date
+    NULL, -- lease_end_date
+    FALSE -- lease_to_own_option
 ),
 (
     'Mohammed Hassan',
@@ -200,7 +231,14 @@ INSERT INTO leasing_customers (
     'Jumeirah Lake Towers, Block A',
     'Dubai',
     'Dubai',
-    'Active lease, payments up to date'
+    'Active lease, payments up to date',
+    NULL, -- selected_vehicle_id
+    2800.00, -- monthly_payment
+    8400.00, -- security_deposit
+    36, -- lease_term_months
+    CURRENT_DATE - INTERVAL '30 days', -- lease_start_date
+    CURRENT_DATE + INTERVAL '6 months', -- lease_end_date
+    FALSE -- lease_to_own_option
 ),
 (
     'Fatima Al-Zahra',
@@ -218,7 +256,14 @@ INSERT INTO leasing_customers (
     'Downtown Dubai, Apartment 789',
     'Dubai',
     'Dubai',
-    'Lease completed successfully, vehicle returned'
+    'Lease completed successfully, vehicle returned',
+    NULL, -- selected_vehicle_id
+    NULL, -- monthly_payment
+    NULL, -- security_deposit
+    NULL, -- lease_term_months
+    NULL, -- lease_start_date
+    NULL, -- lease_end_date
+    FALSE -- lease_to_own_option
 );
 
 -- =====================================================

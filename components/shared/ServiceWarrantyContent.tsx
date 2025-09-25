@@ -720,7 +720,7 @@ export default function ServiceWarrantyContent() {
               <div className="flex items-center space-x-2">
                 {/* ServiceCare PDF Button */}
                 <button
-                  onClick={() => window.open('/SERVICECARE PRICING printfile COMPRESSED.pdf', '_blank')}
+                  onClick={() => window.open('/SERVICECARE PRICING printfile SEPT. 2025 comressed.pdf', '_blank')}
                   className="flex items-center justify-center w-10 h-10 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded text-blue-400 transition-all duration-200"
                   title="View ServiceCare Pricing PDF"
                 >

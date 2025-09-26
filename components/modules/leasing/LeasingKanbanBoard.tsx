@@ -442,11 +442,13 @@ export default function LeasingKanbanBoard() {
       // Open appointment modal for editing prospects
       setModalTargetColumn('prospects');
       setEditingLease(lease);
+      setForceShowAppointmentFields(false); // Reset force flag for prospect editing
       setShowAppointmentModal(true);
     } else if (lease.status === 'appointments') {
       // Open appointment modal for editing
       setModalTargetColumn('appointments');
       setEditingLease(lease);
+      setForceShowAppointmentFields(false); // Reset force flag for appointment editing
       setShowAppointmentModal(true);
     } else if (lease.status === 'contracts_drafted') {
       // Open contracts modal for vehicle selection

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { X, User, MapPin, Briefcase, FileText, Car, Upload, Calendar, DollarSign } from "lucide-react";
+import { X, User, MapPin, FileText, Car, Upload, Calendar, DollarSign } from "lucide-react";
 
 interface Props {
   isOpen: boolean;
@@ -32,10 +32,10 @@ interface InventoryVehicle {
 
 export default function LeasingContractModal({ isOpen, onClose, onCreated, mode = 'create', existingCustomer }: Props) {
   // Standardized field styling classes
-  const fieldClass = "w-full px-4 py-4 rounded-lg bg-black/20 border border-white/10 text-white text-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]";
-  const labelClass = "block text-gray-300 text-lg font-semibold mb-3";
-  const compactLabelClass = "block text-gray-300 text-base font-medium mb-2";
-  const compactFieldClass = "w-full px-3 py-3 rounded-lg bg-black/20 border border-white/10 text-white text-base focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]";
+  const fieldClass = "w-full px-4 py-4 rounded-lg bg-black/20 border border-white/10 text-white text-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] [&:autofill]:bg-black/20 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70";
+  const labelClass = "block text-white/80 text-lg font-semibold mb-3";
+  const compactLabelClass = "block text-white/80 text-base font-medium mb-2";
+  const compactFieldClass = "w-full px-3 py-3 rounded-lg bg-black/20 border border-white/10 text-white text-base focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] [&:autofill]:bg-black/20";
 
   // Tab state
   const [activeTab, setActiveTab] = useState<string>('personal');
@@ -58,12 +58,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     emirate: existingCustomer?.emirate || ""
   });
 
-  const [employmentInfo, setEmploymentInfo] = useState({
-    employer_name: existingCustomer?.employer_name || "",
-    employment_type: existingCustomer?.employment_type || "",
-    monthly_salary: existingCustomer?.monthly_salary?.toString() || "",
-    years_in_uae: existingCustomer?.years_in_uae?.toString() || ""
-  });
 
   const [contractInfo, setContractInfo] = useState({
     selected_vehicle_id: existingCustomer?.selected_vehicle_id || "",
@@ -90,40 +84,29 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
   const [notes, setNotes] = useState(existingCustomer?.notes || "");
   const [selectedVehicle, setSelectedVehicle] = useState<InventoryVehicle | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showErrors, setShowErrors] = useState(false);
 
   // Tab configuration with error checking
   const getTabErrors = (tabId: string) => {
     const tabFieldMap: Record<string, string[]> = {
-      personal: ['customer_name', 'customer_email', 'customer_phone', 'date_of_birth', 'emirates_id_number', 'passport_number', 'visa_number'],
-      address: ['address_line_1', 'city', 'emirate'],
-      employment: ['employer_name', 'employment_type', 'monthly_salary', 'years_in_uae'],
+      personal: ['customer_name', 'customer_email', 'customer_phone', 'date_of_birth', 'emirates_id_number', 'passport_number', 'visa_number', 'address_line_1', 'city', 'emirate'],
       documents: ['emirates_id_front_url', 'emirates_id_back_url', 'passport_front_url', 'visa_copy_url', 'address_proof_url', 'driving_license_front_url', 'driving_license_back_url'],
-      contract: ['selected_vehicle_id', 'monthly_payment', 'security_deposit', 'lease_term_months', 'lease_start_date', 'lease_end_date', 'buyout_price']
+      pricing: ['selected_vehicle_id', 'monthly_payment', 'security_deposit', 'lease_term_months', 'lease_start_date', 'lease_end_date', 'buyout_price'],
+      contract: []
     };
     
     return tabFieldMap[tabId]?.some(field => errors[field]) || false;
   };
 
   const tabs = [
-    { id: 'personal', label: 'Personal', icon: User },
-    { id: 'address', label: 'Address', icon: MapPin },
-    { id: 'employment', label: 'Employment', icon: Briefcase },
-    { id: 'documents', label: 'Documents', icon: FileText },
-    { id: 'contract', label: 'Contract', icon: Car }
+    { id: 'personal', label: 'Personal Information', number: 1 },
+    { id: 'documents', label: 'Identity Documents', number: 2 },
+    { id: 'pricing', label: 'Contract Pricing', number: 3 },
+    { id: 'contract', label: 'Generate Contract', number: 4 }
   ];
 
-  // Employment type options
-  const employmentTypes = [
-    { value: '', label: 'Select employment type' },
-    { value: 'full_time', label: 'Full Time' },
-    { value: 'part_time', label: 'Part Time' },
-    { value: 'contract', label: 'Contract' },
-    { value: 'freelance', label: 'Freelance' },
-    { value: 'self_employed', label: 'Self Employed' },
-    { value: 'unemployed', label: 'Unemployed' }
-  ];
 
   // Emirates options
   const emirates = [
@@ -171,12 +154,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         emirate: existingCustomer.emirate || ""
       });
 
-      setEmploymentInfo({
-        employer_name: existingCustomer.employer_name || "",
-        employment_type: existingCustomer.employment_type || "",
-        monthly_salary: existingCustomer.monthly_salary?.toString() || "",
-        years_in_uae: existingCustomer.years_in_uae?.toString() || ""
-      });
 
       setContractInfo({
         selected_vehicle_id: existingCustomer.selected_vehicle_id || "",
@@ -249,23 +226,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       newErrors['emirate'] = 'Emirate is required';
     }
 
-    // Employment Information Validation
-    if (!employmentInfo.employer_name.trim()) {
-      newErrors['employer_name'] = 'Employer name is required';
-    }
-    if (!employmentInfo.employment_type) {
-      newErrors['employment_type'] = 'Employment type is required';
-    }
-    if (!employmentInfo.monthly_salary) {
-      newErrors['monthly_salary'] = 'Monthly salary is required';
-    } else if (parseFloat(employmentInfo.monthly_salary) <= 0) {
-      newErrors['monthly_salary'] = 'Monthly salary must be greater than 0';
-    }
-    if (!employmentInfo.years_in_uae) {
-      newErrors['years_in_uae'] = 'Years in UAE is required';
-    } else if (parseInt(employmentInfo.years_in_uae) < 0) {
-      newErrors['years_in_uae'] = 'Years in UAE cannot be negative';
-    }
 
     // Document Validation (Required documents)
     const requiredDocs = [
@@ -375,12 +335,10 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         const firstError = errorKeys[0];
         if (['customer_name', 'customer_email', 'customer_phone', 'date_of_birth', 'emirates_id_number', 'passport_number', 'visa_number'].includes(firstError)) {
           setActiveTab('personal');
-        } else if (['address_line_1', 'city', 'emirate'].includes(firstError)) {
-          setActiveTab('address');
-        } else if (['employer_name', 'employment_type', 'monthly_salary', 'years_in_uae'].includes(firstError)) {
-          setActiveTab('employment');
         } else if (firstError.includes('_url')) {
           setActiveTab('documents');
+        } else if (['selected_vehicle_id', 'monthly_payment', 'security_deposit', 'lease_term_months', 'lease_start_date', 'lease_end_date', 'buyout_price'].includes(firstError)) {
+          setActiveTab('pricing');
         } else {
           setActiveTab('contract');
         }
@@ -396,7 +354,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       console.log('📊 Form data before processing:');
       console.log('Personal Info:', personalInfo);
       console.log('Address Info:', addressInfo);
-      console.log('Employment Info:', employmentInfo);
       console.log('Contract Info:', contractInfo);
       console.log('Document URLs:', documentUrls);
 
@@ -417,11 +374,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         city: addressInfo.city || null,
         emirate: addressInfo.emirate || null,
         
-        // Employment info
-        employer_name: employmentInfo.employer_name || null,
-        employment_type: employmentInfo.employment_type || null,
-        monthly_salary: employmentInfo.monthly_salary ? parseFloat(employmentInfo.monthly_salary) : null,
-        years_in_uae: employmentInfo.years_in_uae ? parseInt(employmentInfo.years_in_uae) : null,
         
         // Contract info
         selected_vehicle_id: contractInfo.selected_vehicle_id || null,
@@ -502,13 +454,20 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
 
   // Handle file upload (placeholder for now)
   const handleFileUpload = async (field: string, file: File) => {
-    console.log(`📎 File upload for ${field}:`, file.name);
-    // TODO: Implement actual file upload to Supabase Storage
-    // For now, just set a placeholder URL
-    setDocumentUrls(prev => ({
-      ...prev,
-      [field]: `placeholder-url-for-${file.name}`
-    }));
+    setUploading(true);
+    try {
+      console.log(`📎 File upload for ${field}:`, file.name);
+      // TODO: Implement actual file upload to Supabase Storage
+      // Simulate upload delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // For now, just set a placeholder URL
+      setDocumentUrls(prev => ({
+        ...prev,
+        [field]: `placeholder-url-for-${file.name}`
+      }));
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Helper component for error display
@@ -525,24 +484,108 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-black rounded-xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col border border-white/20 shadow-white/10" style={{ boxShadow: '0 0 50px rgba(255, 255, 255, 0.1), 0 0 100px rgba(255, 255, 255, 0.05)' }}>
+    <>
+      <style jsx global>{`
+        /* Custom scrollbar styling for glassmorphism */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 3px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 3px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
         
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-white">
+        /* Force consistent input styling */
+        input[type="date"], input[type="tel"], input[type="email"], input[type="text"], input[type="number"], select, textarea {
+          background-color: rgba(0, 0, 0, 0.2) !important;
+          color: white !important;
+        }
+        
+        /* Date picker icon styling */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+          opacity: 0.7;
+        }
+        
+        /* Remove autofill styling */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px rgba(0, 0, 0, 0.2) inset !important;
+          -webkit-text-fill-color: white !important;
+        }
+      `}</style>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col border border-white/10 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+          
+          {/* Enhanced Header with Status Badge and Progress */}
+          <div className="p-4 border-b border-white/5 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm">
+            {/* Top Row: Status Badge and Progress */}
+            <div className="flex items-center justify-between mb-3">
+              {/* Status Badge */}
+              <div className="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide border bg-white/10 backdrop-blur-sm border-white/20 text-gray-200">
+                ● Contract Details
+              </div>
+              
+              {/* Progress Indicator */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/50 uppercase tracking-wide">Progress</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-white/60" />
+                  <div className="w-6 h-0.5 bg-white/60" />
+                  <div className="w-2 h-2 rounded-full bg-white/60" />
+                  <div className="w-6 h-0.5 bg-white/60" />
+                  <div className="w-2 h-2 rounded-full bg-white/60" />
+                  <div className="w-6 h-0.5 bg-white/20" />
+                  <div className="w-2 h-2 rounded-full bg-white/20" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Title Row */}
+            <div>
+              <h2 className="text-xl font-semibold text-white">
               {mode === 'edit' ? 'Edit Contract Details' : 'New Contract Details'}
-            </h2>
             {existingCustomer?.customer_name && (
-              <span className="text-white/60">- {existingCustomer.customer_name}</span>
-            )}
+                  <span className="text-white/60 font-normal"> - {existingCustomer.customer_name}</span>
+                )}
+              </h2>
+              <p className="text-sm text-white/60 mt-1">
+                Complete customer information and contract details
+              </p>
+            </div>
+            
+            {/* Stage Labels */}
+            <div className="flex items-center justify-between mt-3 text-xs text-white/40">
+              <span className="text-white/80">Prospect</span>
+              <span className="text-white/80">Appointment</span>
+              <span className="text-white/80">Contract</span>
+              <span>Active Lease</span>
+            </div>
+          </div>
+          
+          {/* Action Buttons Bar */}
+          <div className="px-4 py-3 border-b border-white/5 bg-white/5 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 text-sm text-white/60">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {mode === 'edit' ? 'Editing contract details' : 'Creating new contract'}
           </div>
           
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10"
               type="button"
             >
               Cancel
@@ -550,25 +593,27 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="px-6 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
+                  className="px-6 py-2 font-medium rounded-lg hover:shadow-lg transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black disabled:opacity-50"
               type="button"
             >
               {loading ? 'Saving...' : mode === 'edit' ? 'Update Contract' : 'Save Contract'}
             </button>
+              </div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex-shrink-0 px-6 pt-4">
-          <div className="flex space-x-1 bg-black/40 p-1 rounded-lg border border-white/20 overflow-x-auto">
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto max-h-full">
+          {/* Tab Navigation - Inside scrollable area */}
+          <div className="sticky top-0 bg-black/40 backdrop-blur-xl z-10 pt-4 px-4">
+            <div className="grid grid-cols-4 gap-1 bg-white/5 backdrop-blur-sm p-1 rounded-lg border border-white/10 mb-4">
             {tabs.map((tab) => {
-              const IconComponent = tab.icon;
               const hasErrors = showErrors && getTabErrors(tab.id);
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative whitespace-nowrap py-2.5 px-4 font-semibold text-[13px] md:text-sm uppercase tracking-wide rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:ring-offset-2 focus:ring-offset-black/40 flex-shrink-0 ${
+                    className={`relative w-full py-4 px-3 font-semibold text-sm uppercase tracking-wide rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-black/40 ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black border border-white/30'
                       : hasErrors
@@ -578,12 +623,20 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                   type="button"
                   aria-current={activeTab === tab.id ? 'page' : undefined}
                 >
-                  <span className="flex items-center gap-2">
-                    <IconComponent size={16} />
+                    <span className="flex flex-col items-center gap-2">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                        activeTab === tab.id 
+                          ? 'bg-black/20 text-black' 
+                          : 'bg-white/20 text-white/80'
+                      }`}>
+                        {tab.number}
+                      </span>
+                      <span className="text-center leading-tight">
                     {tab.label}
                     {hasErrors && (
-                      <span className="text-red-400 text-xs">⚠</span>
+                          <span className="text-red-400 text-xs ml-1">⚠</span>
                     )}
+                      </span>
                   </span>
                 </button>
               );
@@ -591,8 +644,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
           </div>
         </div>
 
-        {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+          <div className="px-4 pb-4">
           {/* Error Summary */}
           {showErrors && Object.keys(errors).length > 0 && (
             <div className="bg-red-500/10 border border-red-400/30 rounded-lg p-4 mb-6">
@@ -615,11 +667,17 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
             
             {/* Personal Tab */}
             {activeTab === 'personal' && (
-              <div className="bg-black/20 backdrop-blur-sm border border-white/20 rounded-lg p-6 space-y-6">
-                <div className="text-center mb-6">
-                  <User className="mx-auto mb-3 text-gray-400" size={32} />
-                  <h3 className="text-xl font-semibold text-white mb-2">Personal Information</h3>
-                  <p className="text-gray-400">Basic customer details and identification</p>
+              <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 shadow-lg" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
+                      <User size={20} />
+                    </div>
+                    Personal Information
+                  </h3>
+                  <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                    Required Fields
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -707,16 +765,22 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                     />
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* Address Tab */}
-            {activeTab === 'address' && (
-              <div className="bg-black/20 backdrop-blur-sm border border-white/20 rounded-lg p-6 space-y-6">
-                <div className="text-center mb-6">
-                  <MapPin className="mx-auto mb-3 text-gray-400" size={32} />
-                  <h3 className="text-xl font-semibold text-white mb-2">Address Information</h3>
-                  <p className="text-gray-400">Current residential address details</p>
+                {/* Address Information Section */}
+                <div className="mt-8 pt-6 border-t border-white/10">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      Address Information
+                    </h4>
+                    <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                      Required
+                    </div>
                 </div>
 
                 <div className="space-y-6">
@@ -770,137 +834,205 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                           </option>
                         ))}
                       </select>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Employment Tab */}
-            {activeTab === 'employment' && (
-              <div className="bg-black/20 backdrop-blur-sm border border-white/20 rounded-lg p-6 space-y-6">
-                <div className="text-center mb-6">
-                  <Briefcase className="mx-auto mb-3 text-gray-400" size={32} />
-                  <h3 className="text-xl font-semibold text-white mb-2">Employment Information</h3>
-                  <p className="text-gray-400">Work details and income information</p>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Employer Name */}
-                  <div>
-                    <label className={labelClass}>Employer Name</label>
-                    <input
-                      type="text"
-                      value={employmentInfo.employer_name}
-                      onChange={(e) => setEmploymentInfo(prev => ({ ...prev, employer_name: e.target.value }))}
-                      className={fieldClass}
-                    />
-                  </div>
-
-                  {/* Employment Type */}
-                  <div>
-                    <label className={labelClass}>Employment Type</label>
-                    <select
-                      value={employmentInfo.employment_type}
-                      onChange={(e) => setEmploymentInfo(prev => ({ ...prev, employment_type: e.target.value }))}
-                      className={fieldClass}
-                    >
-                      {employmentTypes.map(type => (
-                        <option key={type.value} value={type.value} className="bg-gray-800 text-white">
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Monthly Salary */}
-                  <div>
-                    <label className={labelClass}>Monthly Salary (AED)</label>
-                    <input
-                      type="number"
-                      value={employmentInfo.monthly_salary}
-                      onChange={(e) => setEmploymentInfo(prev => ({ ...prev, monthly_salary: e.target.value }))}
-                      className={fieldClass}
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-
-                  {/* Years in UAE */}
-                  <div>
-                    <label className={labelClass}>Years in UAE</label>
-                    <input
-                      type="number"
-                      value={employmentInfo.years_in_uae}
-                      onChange={(e) => setEmploymentInfo(prev => ({ ...prev, years_in_uae: e.target.value }))}
-                      className={fieldClass}
-                      min="0"
-                      max="50"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Documents Tab */}
             {activeTab === 'documents' && (
-              <div className="bg-black/20 backdrop-blur-sm border border-white/20 rounded-lg p-6 space-y-6">
-                <div className="text-center mb-6">
-                  <FileText className="mx-auto mb-3 text-gray-400" size={32} />
-                  <h3 className="text-xl font-semibold text-white mb-2">Document Uploads</h3>
-                  <p className="text-gray-400">Upload required identification and proof documents</p>
+              <div className="space-y-6">
+                {/* Document Upload Sections - Two Column Layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {documentFields.map((field) => {
+                  const isUploaded = documentUrls[field.key as keyof typeof documentUrls];
+                  
+                  return (
+                    <div key={field.key} className="border border-white/15 rounded-md p-4 bg-white/5">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-semibold text-white">
+                          {field.label}
+                          {field.required && <span className="text-red-400 ml-1">*</span>}
+                        </h4>
+                        <button
+                          onClick={() => document.getElementById(`upload-${field.key}`)?.click()}
+                          disabled={uploading}
+                          className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                        >
+                          {uploading ? 'Uploading…' : 'Upload'}
+                        </button>
+                      </div>
+                      
+                      {/* Uploaded Documents List */}
+                      {isUploaded && (
+                        <div className="mt-4 space-y-2">
+                          <h5 className="text-sm font-medium text-white/80">Uploaded Documents</h5>
+                          <div className="flex items-center justify-between p-2 bg-black/30 rounded">
+                            <span className="text-sm text-white/80">{field.label.replace(/\s+/g, '_')}.pdf</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  const url = documentUrls[field.key as keyof typeof documentUrls];
+                                  if (url) window.open(url, '_blank');
+                                }}
+                                className="text-sm text-gray-400 hover:text-white underline"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const url = documentUrls[field.key as keyof typeof documentUrls];
+                                  if (url) {
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `${field.label.replace(/\s+/g, '_')}.pdf`;
+                                    a.click();
+                                  }
+                                }}
+                                className="text-sm text-gray-400 hover:text-white underline"
+                              >
+                                Download
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this document?')) {
+                                    setDocumentUrls(prev => ({
+                                      ...prev,
+                                      [field.key]: ''
+                                    }));
+                                  }
+                                }}
+                                className="text-sm text-red-400 hover:text-red-300 underline"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Hidden file input */}
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (files.length > 0) {
+                            // Handle multiple files - for now just use the first one
+                            handleFileUpload(field.key, files[0]);
+                          }
+                        }}
+                        className="hidden"
+                        id={`upload-${field.key}`}
+                      />
+                    </div>
+                  );
+                  })}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {documentFields.map((field) => (
-                    <div key={field.key} className="space-y-3">
-                      <label className={compactLabelClass}>
-                        {field.label} {field.required && <span className="text-red-400">*</span>}
-                      </label>
-                      
-                      <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
-                        <Upload className="mx-auto mb-2 text-gray-400" size={24} />
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleFileUpload(field.key, file);
-                            }
-                          }}
-                          className="hidden"
-                          id={`upload-${field.key}`}
-                        />
-                        <label
-                          htmlFor={`upload-${field.key}`}
-                          className="cursor-pointer text-gray-400 hover:text-white transition-colors"
-                        >
-                          {documentUrls[field.key as keyof typeof documentUrls] 
-                            ? 'File uploaded ✓' 
-                            : 'Click to upload or drag file here'
-                          }
-                        </label>
-                        <p className="text-xs text-gray-500 mt-1">PNG, JPG, PDF up to 10MB</p>
-                      </div>
+                {/* Other Documents Section */}
+                <div className="border border-white/15 rounded-md p-4 bg-white/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-white">Other Documents</h4>
+                    <button
+                      onClick={() => document.getElementById('upload-other-documents')?.click()}
+                      disabled={uploading}
+                      className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                    >
+                      {uploading ? 'Uploading…' : 'Upload'}
+                    </button>
+                  </div>
+
+                  {/* Uploaded Other Documents List */}
+                  <div id="other-documents-list" className="mt-4 space-y-2 hidden">
+                    <h5 className="text-sm font-medium text-white/80">Uploaded Documents</h5>
+                    <div id="other-documents-items" className="space-y-2">
+                      {/* Dynamic file items will be added here */}
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Hidden file input for other documents */}
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length > 0) {
+                        const filesList = document.getElementById('other-documents-list');
+                        const filesItems = document.getElementById('other-documents-items');
+                        
+                        // Show uploaded files list
+                        if (filesList && filesItems) {
+                          filesList.classList.remove('hidden');
+                          
+                          // Add file items
+                          files.forEach((file, index) => {
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'flex items-center justify-between p-2 bg-black/30 rounded';
+                            fileItem.innerHTML = `
+                              <span class="text-sm text-white/80">${file.name}</span>
+                              <div class="flex gap-2">
+                                <button class="text-sm text-gray-400 hover:text-white underline" onclick="window.open('#', '_blank')">View</button>
+                                <button class="text-sm text-gray-400 hover:text-white underline">Download</button>
+                                <button class="text-sm text-red-400 hover:text-red-300 underline" onclick="this.parentElement.parentElement.remove()">Delete</button>
+                              </div>
+                            `;
+                            filesItems.appendChild(fileItem);
+                          });
+                        }
+                      }
+                    }}
+                    className="hidden"
+                    id="upload-other-documents"
+                  />
+                </div>
+
+                {/* Upload Instructions */}
+                <div className="mt-6 p-4 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 flex-shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-white font-medium text-sm mb-1">Document Requirements</h4>
+                      <ul className="text-white/60 text-xs space-y-1">
+                        <li>• All documents must be clear and readable</li>
+                        <li>• Accepted formats: PNG, JPG, JPEG, PDF</li>
+                        <li>• Maximum file size: 10MB per document</li>
+                        <li>• Documents should be recent and valid</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Contract Tab */}
-            {activeTab === 'contract' && (
-              <div className="bg-black/20 backdrop-blur-sm border border-white/20 rounded-lg p-6 space-y-6">
-                <div className="text-center mb-6">
-                  <Car className="mx-auto mb-3 text-gray-400" size={32} />
-                  <h3 className="text-xl font-semibold text-white mb-2">Contract Details</h3>
-                  <p className="text-gray-400">Vehicle selection and lease terms</p>
+            {/* Pricing Tab */}
+            {activeTab === 'pricing' && (
+              <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 shadow-lg" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
+                      <DollarSign size={20} />
+                    </div>
+                    Contract Pricing
+                  </h3>
+                  <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                    Vehicle & Terms
+                  </div>
                 </div>
 
                 {/* Selected Vehicle Display */}
                 {selectedVehicle && (
-                  <div className="bg-black/40 border border-white/20 rounded-lg p-4 mb-6">
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 mb-6">
                     <h4 className="text-white font-semibold mb-3">Selected Vehicle</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
@@ -973,7 +1105,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                       id="lease_to_own"
                       checked={contractInfo.lease_to_own_option}
                       onChange={(e) => setContractInfo(prev => ({ ...prev, lease_to_own_option: e.target.checked }))}
-                      className="w-5 h-5 rounded border-white/20 bg-black/20 text-white focus:ring-white/30"
+                      className="w-5 h-5 rounded border-white/10 bg-black/20 text-white focus:ring-white/30"
                     />
                     <label htmlFor="lease_to_own" className={labelClass + " mb-0"}>
                       Lease-to-Own Option
@@ -1036,9 +1168,79 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
               </div>
             )}
 
+            {/* Contract Tab */}
+            {activeTab === 'contract' && (
+              <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 shadow-lg" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
+                      <Car size={20} />
+                    </div>
+                    Generate Contract
+                  </h3>
+                  <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                    Coming Soon
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                      <Car className="w-8 h-8 text-white/60" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-white mb-2">Generate Contract</h4>
+                    <p className="text-white/60 text-sm max-w-md">
+                      This section will contain contract generation, digital signing, and document management features.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </form>
         </div>
       </div>
+      
+      {/* Fixed Navigation Buttons at Bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-60 px-4 py-4 bg-black/80 backdrop-blur-md border-t border-white/10">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <button
+            onClick={() => {
+              const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+              if (currentIndex > 0) {
+                setActiveTab(tabs[currentIndex - 1].id);
+              }
+            }}
+            disabled={activeTab === tabs[0].id}
+            className="px-6 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+          >
+            Previous
+          </button>
+
+          <div className="flex items-center gap-2 text-xs text-white/50">
+            <span>Step {tabs.findIndex(tab => tab.id === activeTab) + 1} of {tabs.length}</span>
+          </div>
+
+          <button
+            onClick={() => {
+              const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+              if (currentIndex < tabs.length - 1) {
+                setActiveTab(tabs[currentIndex + 1].id);
+              } else {
+                // On last tab, trigger save
+                handleSubmit();
+              }
+            }}
+            className="px-6 py-2 font-medium rounded-lg hover:shadow-lg transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black"
+            type="button"
+          >
+            {activeTab === tabs[tabs.length - 1].id ? 'Save Contract' : 'Next'}
+          </button>
+        </div>
+      </div>
     </div>
+      </div>
+      </>
   );
 }

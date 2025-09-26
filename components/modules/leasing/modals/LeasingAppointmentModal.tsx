@@ -329,8 +329,8 @@ export default function LeasingAppointmentModal({
       let leaseStatus: 'prospects' | 'appointments';
       
       if (mode === 'edit' && existingCustomer?.status === 'prospects') {
-        // Editing a prospect - only move to appointments if they add appointment details
-        leaseStatus = hasAppointmentDetails ? 'appointments' : 'prospects';
+        // Editing a prospect - only move to appointments if forceShowAppointmentFields is true (dragged from prospects to appointments)
+        leaseStatus = forceShowAppointmentFields ? 'appointments' : 'prospects';
       } else if (mode === 'edit' && existingCustomer?.status === 'appointments') {
         // Editing an appointment - keep as appointment even if details are removed (they can manually move back)
         leaseStatus = 'appointments';
@@ -497,35 +497,122 @@ export default function LeasingAppointmentModal({
           border: 1px solid rgba(255, 255, 255, 0.1) !important;
           color: white !important;
         }
+        
+        /* Custom scrollbar styling for glassmorphism */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 3px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 3px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
       `}</style>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-black rounded-xl max-w-7xl w-full h-[75vh] overflow-hidden flex flex-col border border-white/20" style={{ boxShadow: '0 0 50px rgba(255, 255, 255, 0.1), 0 0 100px rgba(255, 255, 255, 0.05)' }}>
-        {/* Header */}
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-white">
-                {mode === 'edit' 
-                  ? (existingCustomer?.status === 'prospects' ? 'Edit Prospect' : 'Edit Appointment')
-                  : 'New Leasing Customer'
-                }
-              </h2>
-              <p className="text-xs text-white/60">
-                {mode === 'edit' 
-                  ? (existingCustomer?.status === 'prospects' 
-                      ? 'Update prospect details or schedule an appointment' 
-                      : 'Update customer and appointment information')
-                  : 'Add customer details and optionally schedule an appointment'
-                }
-              </p>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="bg-black/40 backdrop-blur-xl rounded-2xl max-w-7xl w-full h-[85vh] overflow-hidden flex flex-col border border-white/10 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+        {/* Enhanced Header with Status Badge and Progress */}
+        <div className="p-4 border-b border-white/5 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm">
+          {/* Top Row: Status Badge and Progress */}
+          <div className="flex items-center justify-between mb-3">
+            {/* Status Badge */}
+            <div className="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide border bg-white/10 backdrop-blur-sm border-white/20 text-gray-200">
+              {existingCustomer?.status === 'prospects' ? '● Prospect' : 
+               existingCustomer?.status === 'appointments' ? '● Appointment' : 
+               '● New Customer'}
             </div>
             
-            {/* Action Buttons */}
+            {/* Progress Indicator */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/50 uppercase tracking-wide">Progress</span>
+              <div className="flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${
+                  existingCustomer?.status ? 'bg-white/60' : 'bg-white/60'
+                }`} />
+                <div className={`w-6 h-0.5 ${
+                  existingCustomer?.status === 'appointments' || existingCustomer?.status === 'contracts_drafted' || existingCustomer?.status === 'active_leases'
+                    ? 'bg-white/60' : 'bg-white/20'
+                }`} />
+                <div className={`w-2 h-2 rounded-full ${
+                  existingCustomer?.status === 'appointments' || existingCustomer?.status === 'contracts_drafted' || existingCustomer?.status === 'active_leases'
+                    ? 'bg-white/60' : 'bg-white/20'
+                }`} />
+                <div className={`w-6 h-0.5 ${
+                  existingCustomer?.status === 'contracts_drafted' || existingCustomer?.status === 'active_leases'
+                    ? 'bg-white/60' : 'bg-white/20'
+                }`} />
+                <div className={`w-2 h-2 rounded-full ${
+                  existingCustomer?.status === 'contracts_drafted' || existingCustomer?.status === 'active_leases'
+                    ? 'bg-white/60' : 'bg-white/20'
+                }`} />
+                <div className={`w-6 h-0.5 ${
+                  existingCustomer?.status === 'active_leases' ? 'bg-white/60' : 'bg-white/20'
+                }`} />
+                <div className={`w-2 h-2 rounded-full ${
+                  existingCustomer?.status === 'active_leases' ? 'bg-white/60' : 'bg-white/20'
+                }`} />
+              </div>
+            </div>
+          </div>
+          
+          {/* Title Row */}
+          <div>
+            <h2 className="text-xl font-semibold text-white">
+              {mode === 'edit' 
+                ? (existingCustomer?.status === 'prospects' ? 'Edit Prospect' : 'Edit Appointment')
+                : 'New Leasing Customer'
+              }
+              {existingCustomer?.customer_name && (
+                <span className="text-white/60 font-normal"> - {existingCustomer.customer_name}</span>
+              )}
+            </h2>
+            <p className="text-sm text-white/60 mt-1">
+              {mode === 'edit' 
+                ? (existingCustomer?.status === 'prospects' 
+                    ? 'Update prospect details and manage vehicle interest' 
+                    : 'Update customer and appointment information')
+                : 'Add customer details and optionally schedule an appointment'
+              }
+            </p>
+          </div>
+          
+          {/* Stage Labels */}
+          <div className="flex items-center justify-between mt-3 text-xs text-white/40">
+            <span className={existingCustomer?.status === 'prospects' || !existingCustomer?.status ? 'text-white/80' : ''}>
+              Prospect
+            </span>
+            <span className={existingCustomer?.status === 'appointments' ? 'text-white/80' : ''}>
+              Appointment
+            </span>
+            <span className={existingCustomer?.status === 'contracts_drafted' ? 'text-white/80' : ''}>
+              Contract
+            </span>
+            <span className={existingCustomer?.status === 'active_leases' ? 'text-white/80' : ''}>
+              Active Lease
+            </span>
+          </div>
+        </div>
+        
+        {/* Action Buttons Bar */}
+        <div className="px-4 py-3 border-b border-white/5 bg-white/5 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-sm text-white/60">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {mode === 'edit' ? 'Editing customer information' : 'Creating new customer record'}
+            </div>
+            
             <div className="flex items-center gap-3">
-            <button
+              <button
                 type="button"
-              onClick={onClose}
-                className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                onClick={onClose}
+                className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10"
               >
                 Cancel
               </button>
@@ -533,27 +620,34 @@ export default function LeasingAppointmentModal({
                 type="submit"
                 form="leasing-form"
                 disabled={saving}
-                className="px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
+                className="px-6 py-2 font-medium rounded-lg hover:shadow-lg transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black"
               >
-                {saving ? 'Saving...' : mode === 'edit' ? 'Update' : 'Create'}
-            </button>
+                {saving ? 'Saving...' : mode === 'edit' ? 'Update Customer' : 'Create Customer'}
+              </button>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-1">
+        <div className="flex flex-1 min-h-0">
           {/* Left Column - Customer Form */}
-          <div className="flex-1 p-6 overflow-y-auto border-r border-white/10">
-            <form id="leasing-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex-1 p-4 overflow-y-auto border-r border-white/10 max-h-full flex flex-col">
+            <form id="leasing-form" onSubmit={handleSubmit} className="space-y-3 flex-1 flex flex-col">
             
             {/* Customer Information */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-4">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Customer Information
-              </h3>
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 mb-3 shadow-lg" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  Customer Information
+                </h3>
+                <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                  Required
+                </div>
+              </div>
               <div className="space-y-4">
                 {/* Customer Name */}
                 <div>
@@ -623,13 +717,20 @@ export default function LeasingAppointmentModal({
             {forceShowAppointmentFields || 
              (mode === 'edit' && existingCustomer?.status === 'appointments') || 
              (mode === 'create' && targetColumn === 'appointments') ? (
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-4">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Appointment Details
-              </h3>
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 mb-3 shadow-lg" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  Appointment Details
+                </h3>
+                <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                  Schedule
+                </div>
+              </div>
               <div className="space-y-4">
                 {/* Date and Time */}
                 <div className="grid grid-cols-2 gap-3">
@@ -681,13 +782,28 @@ export default function LeasingAppointmentModal({
             ) : null}
 
             {/* Selected Car Drop Zone */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-4">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Selected Vehicle
-              </h3>
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 mb-3 shadow-lg" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <div className={`p-1.5 rounded-lg ${
+                    selectedVehicle 
+                      ? 'bg-white/15 backdrop-blur-sm text-white/90'
+                      : 'bg-white/10 backdrop-blur-sm text-white/80'
+                  }`}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  Vehicle Selection
+                </h3>
+                <div className={`text-xs px-2 py-1 rounded-full ${
+                  selectedVehicle 
+                    ? 'text-white/90 bg-white/15 backdrop-blur-sm'
+                    : 'text-white/70 bg-white/10 backdrop-blur-sm'
+                }`}>
+                  {selectedVehicle ? 'Selected' : 'Optional'}
+                </div>
+              </div>
               
               {/* Drop Zone */}
               {selectedVehicle ? (
@@ -750,20 +866,26 @@ export default function LeasingAppointmentModal({
             </div>
 
             {/* Notes */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-6">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Notes
-              </h3>
-              <div>
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 shadow-lg flex-1 flex flex-col" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  Additional Notes
+                </h3>
+                <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                  Optional
+                </div>
+              </div>
+              <div className="flex-1 flex flex-col">
                 <textarea
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all resize-none"
+                  className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all resize-none flex-1 min-h-[80px]"
                   placeholder="Add any additional notes about the customer or appointment..."
-                  rows={4}
                 />
               </div>
             </div>
@@ -772,15 +894,24 @@ export default function LeasingAppointmentModal({
           </div>
 
           {/* Right Column - Car Inventory */}
-          <div className="w-96 p-6 bg-white/5 overflow-y-auto">
+          <div className="w-96 p-4 bg-white/5 backdrop-blur-sm overflow-y-auto border-l border-white/5 max-h-full">
             <div className="mb-4">
-              <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Inventory Cars
-              </h3>
-              <p className="text-xs text-white/60">Click a car to select it for this customer</p>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  Available Inventory
+                </h3>
+                <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                  {filteredInventory.length} Vehicles
+                </div>
+              </div>
+              <p className="text-sm text-white/60 mb-3">
+                Drag a vehicle to the left panel or click to select
+              </p>
             </div>
 
             {/* Search and Filters */}

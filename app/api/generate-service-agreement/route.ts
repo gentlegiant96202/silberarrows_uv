@@ -147,14 +147,14 @@ function buildServiceAgreementHtml(
                             <tr><td class="label">ServiceCare Start Date:</td><td class="data">${formatDate(data.startDate)}</td><td class="label">ServiceCare End Date:</td><td class="data">${formatDate(data.endDate)}</td></tr>
                             <tr><td class="label">ServiceCare cut off KM:</td><td class="data">${data.cutOffKm}</td><td class="label">Invoice Amount:</td><td class="data">${data.invoiceAmount || ''}</td></tr>
                         </table>
-                        <div class="text-content" style="font-style: italic; margin-top: 3px;"><strong>IMPORTANT:</strong> Agreement expires whichever comes first, date or kilometers.</div>
+                        <div class="text-content" style="font-style: italic; margin-top: 12px;"><strong>IMPORTANT:</strong> Agreement expires whichever comes first, date or kilometers.</div>
                     </div>
                 </div>
             </div>
 
             <div class="section full-width-section" style="margin-bottom: 8px; min-height: 50px; display: flex; flex-direction: column;">
                 <div class="section-title">Additional Notes</div>
-                <div class="text-content" style="flex: 1; padding-top: 4px;">${data.notes || 'No additional notes'}</div>
+                <div class="text-content" style="flex: 1; padding-top: 6px;">${data.notes || 'No additional notes'}</div>
             </div>
 
             <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 6px 8px; margin-bottom: 8px;">
@@ -665,7 +665,7 @@ export async function POST(request: NextRequest) {
                             <td class="data">${data.invoiceAmount || ''}</td>
                         </tr>
                         </table>
-                        <div class="text-content" style="font-style: italic; margin-top: 3px;">
+                        <div class="text-content" style="font-style: italic; margin-top: 12px;">
                             <strong>IMPORTANT:</strong> Agreement expires whichever comes first, date or kilometers.
                         </div>
                     </div>
@@ -676,7 +676,7 @@ export async function POST(request: NextRequest) {
             <!-- Additional Notes -->
             <div class="section full-width-section" style="margin-bottom: 8px; min-height: 50px; display: flex; flex-direction: column;">
                 <div class="section-title">Additional Notes</div>
-                <div class="text-content" style="flex: 1; padding-top: 4px;">
+                <div class="text-content" style="flex: 1; padding-top: 6px;">
                     ${data.notes || 'No additional notes'}
                 </div>
             </div>
@@ -684,7 +684,7 @@ export async function POST(request: NextRequest) {
             <!-- Full width sections at bottom -->
             <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 6px 8px; margin-bottom: 8px;">
                 <div style="font-size: 9px; font-weight: bold; margin-bottom: 2px; color: white; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); padding-bottom: 2px;">Joint Acknowledgment</div>
-                <div style="margin: 0; line-height: 1.2; font-size: 10px; padding: 2px 0; color: white;">
+                <div style="margin: 0; line-height: 1.2; font-size: 8px; padding: 2px 0; color: white;">
                     The Customer accepts the ServiceCare terms in the Information Booklet (incorporated into this Agreement) and confirms the above details are correct and they are authorised to sign; SilberArrows confirms the details are correct and that the ServiceCare terms were explained. Coverage ends on the earlier of the End Date or the cut-off kilometres.
                 </div>
             </div>

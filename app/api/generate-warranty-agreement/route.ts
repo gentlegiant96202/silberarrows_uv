@@ -159,7 +159,7 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
             align-items: center;
             margin: 0 0 15px 0;
             padding: 8px 12px;
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 12px;
             position: relative;
@@ -175,7 +175,7 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
             border-radius: 12px;
             pointer-events: none;
           }
@@ -208,7 +208,7 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
 
           .section {
             margin: 0;
-            background: rgba(255, 255, 255, 0.04);
+            background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 8px;
             padding: 8px 10px;
@@ -225,7 +225,7 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255, 255, 255, 0.04);
+            background: rgba(255, 255, 255, 0.02);
             border-radius: 8px;
             pointer-events: none;
           }
@@ -248,7 +248,7 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
             border-collapse: separate;
             border-spacing: 0;
             margin: 0;
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.02);
             border-radius: 6px;
             overflow: hidden;
             position: relative;
@@ -262,7 +262,7 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
             vertical-align: middle;
             color: white;
             font-size: 8px;
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(255, 255, 255, 0.01);
             position: relative;
             height: 20px;
           }
@@ -488,15 +488,15 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
             <!-- Additional Notes -->
             <div class="section full-width-section" style="margin-bottom: 8px; min-height: 50px; display: flex; flex-direction: column;">
                 <div class="section-title">Additional Notes</div>
-                <div class="text-content" style="flex: 1; padding-top: 4px;">
+                <div class="text-content" style="flex: 1; padding-top: 0px; margin-top: 0px;">
                     ${data.notes || 'No additional notes'}
                 </div>
             </div>
 
             <!-- Full width sections at bottom -->
-            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 6px 8px; margin-bottom: 8px;">
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 6px 8px; margin-bottom: 8px;">
                 <div style="font-size: 9px; font-weight: bold; margin-bottom: 2px; color: white; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); padding-bottom: 2px;">Joint Acknowledgment</div>
-                <div style="margin: 0; line-height: 1.2; font-size: 10px; padding: 2px 0; color: white;">
+                <div style="margin: 0; line-height: 1.2; font-size: 8px; padding: 2px 0; color: white;">
                     The Customer accepts the Extended Warranty terms in the Information Booklet (incorporated into this Agreement) and confirms the above details are correct and they are authorised to sign; SilberArrows confirms the details are correct and that the Extended Warranty terms were explained. Coverage ends on the earlier of the End Date or the cut-off kilometres.
                 </div>
             </div>

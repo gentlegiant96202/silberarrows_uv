@@ -910,22 +910,27 @@ export async function POST(request: NextRequest) {
     console.log('📄 PDF generated and uploaded:', publicUrl);
 
     // Update the database with the new PDF URL using separate columns
-    const pdfUpdateData = mode === 'reservation' 
-      ? { pdf_url: publicUrl, reservation_pdf_url: publicUrl }
-      : { pdf_url: publicUrl, invoice_pdf_url: publicUrl };
-
-    console.log('💾 Updating database with PDF URL for', mode, ':', pdfUpdateData);
-    
-    const { error: updateError } = await supabase
-      .from('vehicle_reservations')
-      .update(pdfUpdateData)
-      .eq('id', reservationId);
-
-    if (updateError) {
-      console.error('❌ Error updating PDF URL:', updateError);
-      // Continue anyway, PDF was generated successfully
+    // Skip database update for tax invoices - they are separate documents and shouldn't overwrite original PDFs
+    if (taxInvoice) {
+      console.log('🏷️ Tax invoice generated - skipping database update to preserve original invoice PDF');
     } else {
-      console.log('✅ PDF URL saved to database successfully');
+      const pdfUpdateData = mode === 'reservation' 
+        ? { pdf_url: publicUrl, reservation_pdf_url: publicUrl }
+        : { pdf_url: publicUrl, invoice_pdf_url: publicUrl };
+
+      console.log('💾 Updating database with PDF URL for', mode, ':', pdfUpdateData);
+      
+      const { error: updateError } = await supabase
+        .from('vehicle_reservations')
+        .update(pdfUpdateData)
+        .eq('id', reservationId);
+
+      if (updateError) {
+        console.error('❌ Error updating PDF URL:', updateError);
+        // Continue anyway, PDF was generated successfully
+      } else {
+        console.log('✅ PDF URL saved to database successfully');
+      }
     }
 
     // Get the updated document number after generation

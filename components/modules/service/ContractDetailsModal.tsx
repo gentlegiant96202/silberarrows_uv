@@ -19,6 +19,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   console.log('🔍 ContractDetailsModal canEdit:', { canEdit, userEmail: user?.email });
   
   const [isEditing, setIsEditing] = useState(false);
+  const [isTransferMode, setIsTransferMode] = useState(false);
   const [localContract, setLocalContract] = useState(contract);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -63,7 +64,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     cut_off_km: '',
     workflow_status: '',
     invoice_amount: '',
-    notes: ''
+    notes: '',
+    transfer_fee: '500'
   });
 
   // Helper function to get authorization headers
@@ -121,7 +123,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         cut_off_km: contractToUse.cut_off_km || '',
         workflow_status: contractToUse.workflow_status || 'created',
         invoice_amount: contractToUse.invoice_amount || '',
-        notes: contractToUse.notes || ''
+        notes: contractToUse.notes || '',
+        transfer_fee: contractToUse.transfer_fee || '500'
       });
     }
   };
@@ -129,6 +132,12 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   const handleEdit = () => {
     initializeFormData();
     setIsEditing(true);
+  };
+
+  const handleTransfer = () => {
+    initializeFormData();
+    setIsTransferMode(true);
+    setIsEditing(true); // Enable form editing
   };
 
   // Load DocuSign data when modal opens (matching vehicle documents)
@@ -187,6 +196,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
   const handleCancelEdit = () => {
     setIsEditing(false);
+    setIsTransferMode(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -199,26 +209,112 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   const handleSave = async () => {
     setLoading(true);
     try {
-      console.log('🔍 SAVE DEBUG - Form data being sent:', {
-        customer_id_number: formData.customer_id_number,
-        exterior_colour: formData.exterior_colour,
-        interior_colour: formData.interior_colour,
-        notes: formData.notes,
-        contractType: (displayContract as any)?.contract_type || 'service'
-      });
-      
       const headers = await getAuthHeaders();
-      const response = await fetch(`/api/service-contracts/${displayContract.id}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({
-          action: 'update_contract',
-          ...formData,
-          // Ensure notes is always explicit to avoid being dropped by spread
-          notes: formData.notes ?? '',
-          type: (displayContract as any)?.contract_type || 'service'
-        })
-      });
+      
+      if (isTransferMode) {
+        // Transfer contract creation
+        console.log('🔄 Creating transfer contract...');
+        
+        // Generate new reference number with suffix
+        const originalRef = displayContract.reference_no;
+        const transferCount = 1; // TODO: Could query existing transfers to get actual count
+        const newRef = `${originalRef}-T${transferCount}`;
+        
+        const transferData = {
+          // Contract details
+          reference_no: newRef,
+          contract_type: displayContract.contract_type,
+          service_type: displayContract.service_type,
+          workflow_status: 'created',
+          
+          // New owner details
+          owner_name: formData.owner_name,
+          mobile_no: formData.mobile_no,
+          email: formData.email,
+          customer_id_number: formData.customer_id_number,
+          customer_id_type: formData.customer_id_type,
+          
+          // Dealer information (copy from original)
+          dealer_name: displayContract.dealer_name,
+          dealer_phone: displayContract.dealer_phone,
+          dealer_email: displayContract.dealer_email,
+          
+          // Vehicle information (copy from original)
+          vin: displayContract.vin,
+          make: displayContract.make,
+          model: displayContract.model,
+          model_year: displayContract.model_year,
+          current_odometer: displayContract.current_odometer,
+          exterior_colour: displayContract.exterior_colour,
+          interior_colour: displayContract.interior_colour,
+          
+          // Contract terms (copy from original)
+          start_date: displayContract.start_date,
+          end_date: displayContract.end_date,
+          cut_off_km: displayContract.cut_off_km,
+          invoice_amount: displayContract.invoice_amount,
+          notes: displayContract.notes,
+          
+          // Transfer-specific fields
+          is_transfer: true,
+          original_contract_ref: originalRef,
+          transfer_fee: parseFloat(formData.transfer_fee) || 0
+        };
+        
+        console.log('🔄 Transfer data being sent:', transferData);
+        
+        const response = await fetch('/api/service-contracts', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            ...transferData,
+            type: displayContract.contract_type || 'service'
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Transfer contract created:', result.contract);
+          
+          // Format the new contract for display (same as parent component does)
+          const formattedContract = {
+            ...result.contract,
+            formatted_start_date: new Date(result.contract.start_date).toLocaleDateString('en-GB'),
+            formatted_end_date: new Date(result.contract.end_date).toLocaleDateString('en-GB'),
+            vehicle_info: `${result.contract.make} ${result.contract.model} (${result.contract.model_year})`
+          };
+          
+          alert(`Transfer contract created successfully! New reference: ${newRef}`);
+          
+          // Pass the formatted contract back to parent to update the table
+          if (onUpdated) onUpdated(formattedContract);
+          onClose(); // Close modal after successful transfer
+        } else {
+          const error = await response.json();
+          console.error('❌ Transfer API error:', error);
+          throw new Error(error.error || 'Failed to create transfer contract');
+        }
+      } else {
+        // Regular contract update
+        console.log('🔍 SAVE DEBUG - Form data being sent:', {
+          customer_id_number: formData.customer_id_number,
+          exterior_colour: formData.exterior_colour,
+          interior_colour: formData.interior_colour,
+          notes: formData.notes,
+          contractType: (displayContract as any)?.contract_type || 'service'
+        });
+        
+        const response = await fetch(`/api/service-contracts/${displayContract.id}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            action: 'update_contract',
+            ...formData,
+            // Ensure notes is always explicit to avoid being dropped by spread
+            notes: formData.notes ?? '',
+            type: (displayContract as any)?.contract_type || 'service'
+          })
+        });
 
       if (response.ok) {
         const result = await response.json();
@@ -279,10 +375,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         setTimeout(() => {
           setSaved(false);
           setIsEditing(false);
+          setIsTransferMode(false);
         }, 1500);
+        }
       }
     } catch (error) {
-      console.error('Error updating contract:', error);
+      console.error(isTransferMode ? 'Error creating transfer contract:' : 'Error updating contract:', error);
+      alert(isTransferMode ? 'Failed to create transfer contract' : 'Failed to update contract');
     } finally {
       setLoading(false);
     }
@@ -633,7 +732,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         <div className="flex items-start justify-between mb-6 pr-20 gap-4 flex-wrap">
           <div className="flex flex-col">
             <h2 className="text-2xl font-bold text-white">
-              {displayContract?.contract_type === 'warranty' ? 'Warranty Agreement' : 'ServiceCare Agreement'}
+              {isTransferMode 
+                ? `Transfer ${displayContract?.contract_type === 'warranty' ? 'Warranty' : 'ServiceCare'} Contract`
+                : `${displayContract?.contract_type === 'warranty' ? 'Warranty Agreement' : 'ServiceCare Agreement'}`
+              }
             </h2>
             <div className="text-white/70 text-sm mt-2">
               <span className="text-white/50">Reference:</span> <span className="font-mono font-semibold">{displayContract?.reference_no}</span>
@@ -646,8 +748,30 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           <div className="flex flex-col gap-6 max-h-[75vh] overflow-y-auto space-y-6 relative">
           <div className="space-y-6">
             
-            {/* PDF WORKFLOW WITH DOCUSIGN STATUS - EDIT MODE ONLY */}
-            {isEditing && (
+            {/* TRANSFER MODE INFORMATION */}
+            {isTransferMode && (
+              <div className="bg-gradient-to-br from-blue-900/40 via-blue-800/30 to-blue-900/60 backdrop-blur-md border border-blue-600/50 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Shield className="h-6 w-6 text-blue-400" />
+                  <div>
+                    <h3 className="text-lg font-medium text-white">Contract Transfer</h3>
+                    <div className="text-sm text-blue-200/80 mt-1">
+                      Creating a new contract for the new owner. Original contract will remain unchanged.
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-blue-900/30 rounded-lg p-4 border border-blue-600/30">
+                  <div className="text-sm text-blue-100 space-y-2">
+                    <div><strong>Original Contract:</strong> {displayContract.reference_no}</div>
+                    <div><strong>New Contract:</strong> {displayContract.reference_no}-T1</div>
+                    <div><strong>Transfer Fee:</strong> AED {formData.transfer_fee || '500.00'}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PDF WORKFLOW WITH DOCUSIGN STATUS - EDIT MODE ONLY (HIDDEN IN TRANSFER MODE) */}
+            {isEditing && !isTransferMode && (
               <div className="bg-gradient-to-br from-black/40 via-gray-900/30 to-black/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="flex-1">
@@ -779,14 +903,19 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
             </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Customer Name</label>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-yellow-300' : 'text-white/80'
+                  }`}>
+                    Customer Name
+                    {isTransferMode && <span className="text-yellow-400 text-xs ml-2">• Update Required</span>}
+                  </label>
                     {isEditing ? (
                       <input
                         type="text"
                         value={formData.owner_name}
                         onChange={(e) => handleInputChange('owner_name', e.target.value)}
-                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-                        placeholder="Enter customer name"
+                        className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                        placeholder={isTransferMode ? "Enter new owner name" : "Enter customer name"}
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
@@ -796,14 +925,19 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                   </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Mobile Number</label>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-yellow-300' : 'text-white/80'
+                  }`}>
+                    Mobile Number
+                    {isTransferMode && <span className="text-yellow-400 text-xs ml-2">• Update Required</span>}
+                  </label>
                     {isEditing ? (
                       <input
                         type="tel"
                         value={formData.mobile_no}
                         onChange={(e) => handleInputChange('mobile_no', e.target.value)}
-                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-                      placeholder="Mobile number"
+                        className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                        placeholder={isTransferMode ? "Enter new owner mobile" : "Mobile number"}
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
@@ -813,14 +947,19 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                   </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Email Address</label>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-yellow-300' : 'text-white/80'
+                  }`}>
+                    Email Address
+                    {isTransferMode && <span className="text-yellow-400 text-xs ml-2">• Update Required</span>}
+                  </label>
                     {isEditing ? (
                       <input
                         type="email"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-                        placeholder="Enter email address"
+                        className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                        placeholder={isTransferMode ? "Enter new owner email" : "Enter email address"}
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
@@ -848,21 +987,45 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">ID Number</label>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-yellow-300' : 'text-white/80'
+                  }`}>
+                    ID Number
+                    {isTransferMode && <span className="text-yellow-400 text-xs ml-2">• Update Required</span>}
+                  </label>
                     {isEditing ? (
                       <input
                         type="text"
                         value={formData.customer_id_number || ''}
                         onChange={(e) => handleInputChange('customer_id_number', e.target.value)}
-                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-                        placeholder="Enter ID number"
+                        className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                        placeholder={isTransferMode ? "Enter new owner ID" : "Enter ID number"}
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
                       {displayContract.customer_id_number || 'Not provided'}
                     </div>
                     )}
-                </div>
+                  </div>
+
+                {/* Transfer Fee Field - Only show in transfer mode */}
+                {isTransferMode && (
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Transfer Fee (AED)
+                      <span className="text-white/60 text-xs ml-2">(Standard fee: AED 500)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.transfer_fee}
+                      onChange={(e) => handleInputChange('transfer_fee', e.target.value)}
+                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                      placeholder="Standard transfer fee"
+                      required
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -876,8 +1039,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-white/80 mb-2">VIN Number</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    VIN Number
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="text"
                         value={formData.vin}
@@ -886,14 +1054,23 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         placeholder="Enter VIN number"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg font-mono">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg font-mono ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.vin}
                     </div>
                     )}
                   </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Make</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    Make
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="text"
                         value={formData.make}
@@ -902,14 +1079,23 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       placeholder="Vehicle make"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.make}
                     </div>
                     )}
                   </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Model</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    Model
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="text"
                         value={formData.model}
@@ -918,15 +1104,24 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       placeholder="Vehicle model"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.model}
-                </div>
+                    </div>
                     )}
                   </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Model Year</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    Model Year
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="number"
                         min="1980"
@@ -937,21 +1132,30 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         placeholder="Year"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.model_year}
                     </div>
                     )}
                   </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Current Odometer</label>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-yellow-300' : 'text-white/80'
+                  }`}>
+                    Current Odometer
+                    {isTransferMode && <span className="text-yellow-400 text-xs ml-2">• Update Required</span>}
+                  </label>
                     {isEditing ? (
                       <input
                         type="number"
                         value={formData.current_odometer}
                         onChange={(e) => handleInputChange('current_odometer', e.target.value)}
-                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-                        placeholder="Current mileage"
+                        className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                        placeholder={isTransferMode ? "Update current mileage for transfer" : "Current mileage"}
                       />
                     ) : (
                     <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
@@ -961,8 +1165,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
             </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Exterior Colour</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    Exterior Colour
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="text"
                         value={formData.exterior_colour || ''}
@@ -971,15 +1180,24 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         placeholder="Exterior color"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.exterior_colour || 'Not provided'}
-                  </div>
+                    </div>
                     )}
                   </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Interior Colour</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    Interior Colour
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="text"
                         value={formData.interior_colour || ''}
@@ -988,9 +1206,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         placeholder="Interior color"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.interior_colour || 'Not provided'}
-                  </div>
+                    </div>
                     )}
                   </div>
                 </div>
@@ -1006,10 +1228,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
                     {displayContract.contract_type === 'warranty' ? 'Warranty Type' : 'Service Type'}
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
                   </label>
-                    {isEditing ? (
+                    {isEditing && !isTransferMode ? (
                       <select
                         value={formData.service_type || 'standard'}
                         onChange={(e) => {
@@ -1043,7 +1268,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         )}
                       </select>
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.contract_type === 'warranty' 
                         ? (displayContract.service_type === 'premium' ? 'Premium Warranty' : 'Standard Warranty')
                         : (displayContract.service_type === 'premium' ? 'Premium (48 Months)' : 'Standard (24 Months)')
@@ -1053,8 +1282,13 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                   </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Cut-off Kilometers</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    Cut-off Kilometers
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="number"
                         min="0"
@@ -1064,15 +1298,24 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         placeholder="Maximum KM coverage"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.cut_off_km ? `${displayContract.cut_off_km} km` : 'Not provided'}
                     </div>
                     )}
             </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Start Date</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    Start Date
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="date"
                         value={formData.start_date}
@@ -1080,14 +1323,23 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.formatted_start_date}
                     </div>
                     )}
                   </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">End Date</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    End Date
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="date"
                         value={formData.end_date}
@@ -1095,15 +1347,24 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                       className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.formatted_end_date}
-                </div>
+                    </div>
                     )}
                   </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Invoice Amount</label>
-                    {isEditing ? (
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isTransferMode ? 'text-gray-400' : 'text-white/80'
+                  }`}>
+                    Invoice Amount
+                    {isTransferMode && <span className="text-gray-500 text-xs ml-2">• Locked</span>}
+                  </label>
+                    {isEditing && !isTransferMode ? (
                       <input
                         type="number"
                         step="0.01"
@@ -1114,7 +1375,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         placeholder="Amount (AED)"
                       />
                     ) : (
-                    <div className="h-[42px] flex items-center text-white text-sm font-semibold px-4 py-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
                       {displayContract.invoice_amount ? `AED ${parseFloat(displayContract.invoice_amount).toLocaleString()}` : 'Not provided'}
                     </div>
                     )}
@@ -1146,14 +1411,24 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           {/* FIXED FOOTER - MATCHING CREATE MODAL */}
           <div className="flex items-center justify-end gap-4 pt-4">
             {!isEditing && canEdit ? (
-              <button
-                type="button"
-                onClick={handleEdit}
-                className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg border border-white/30 flex items-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                Edit Contract Details
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleTransfer}
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 rounded text-white text-sm font-bold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg border border-blue-500/30 flex items-center gap-2"
+                >
+                  <Shield className="h-4 w-4" />
+                  Transfer Contract
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="px-6 py-2 bg-gradient-to-r from-white to-gray-200 rounded text-black text-sm font-bold hover:from-gray-100 hover:to-white transition-all duration-200 shadow-lg border border-white/30 flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Edit Contract Details
+                </button>
+              </>
             ) : isEditing ? (
               <>
                 <button
@@ -1182,7 +1457,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                   ) : (
                     <>
                       <Save className="h-4 w-4" />
-                      Save Changes
+                      {isTransferMode ? 'Create Transfer Contract' : 'Save Changes'}
                     </>
                   )}
                 </button>

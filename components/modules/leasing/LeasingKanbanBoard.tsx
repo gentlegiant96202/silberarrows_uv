@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Users, DollarSign, Receipt } from 'lucide-react';
 import LeasingAppointmentModal from './modals/LeasingAppointmentModal';
 import LeasingContractModal from './modals/LeasingContractModal';
-import ActiveLeaseModal from './modals/ActiveLeaseModal';
 import { useSearchStore } from '@/lib/searchStore';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
@@ -82,9 +81,7 @@ export default function LeasingKanbanBoard() {
   const [showModal, setShowModal] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showContractsModal, setShowContractsModal] = useState(false);
-  const [showActiveLeaseModal, setShowActiveLeaseModal] = useState(false);
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
-  const [selectedActiveLease, setSelectedActiveLease] = useState<Lease | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [editingLease, setEditingLease] = useState<Lease | null>(null);
   const [forceShowAppointmentFields, setForceShowAppointmentFields] = useState(false);
@@ -286,68 +283,6 @@ export default function LeasingKanbanBoard() {
     setIsDragging(false);
   };
 
-  // Handle vehicle status changes based on customer status transitions
-  const handleVehicleStatusChange = async (vehicleId: string, fromStatus: LeaseStatus, toStatus: LeaseStatus, customerId: string) => {
-    if (!vehicleId) return;
-
-    let newVehicleStatus: 'inventory' | 'reserved' | 'leased' | null = null;
-    let shouldClearVehicleFromCustomer = false;
-
-    // Determine new vehicle status based on customer status transition
-    if (toStatus === 'contracts_drafted') {
-      // When customer moves to contracts_drafted, reserve the vehicle
-      newVehicleStatus = 'reserved';
-    } else if (toStatus === 'active_leases') {
-      // When customer moves to active_leases, mark vehicle as leased
-      newVehicleStatus = 'leased';
-    } else if (fromStatus === 'contracts_drafted') {
-      // When customer moves away from contracts_drafted (but not to active_leases), release vehicle
-      newVehicleStatus = 'inventory';
-      shouldClearVehicleFromCustomer = true; // Clear vehicle link from customer
-    } else if (fromStatus === 'active_leases') {
-      // When customer moves away from active_leases, release vehicle
-      newVehicleStatus = 'inventory';
-      shouldClearVehicleFromCustomer = true; // Clear vehicle link from customer
-    }
-
-    if (newVehicleStatus) {
-      console.log(`🚗 Updating vehicle ${vehicleId} status: ${fromStatus} → ${toStatus} = vehicle: ${newVehicleStatus}`);
-      
-      // Update vehicle status
-      const vehicleUpdateResult = await supabase
-        .from('leasing_inventory')
-        .update({ 
-          status: newVehicleStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', vehicleId);
-
-      if (vehicleUpdateResult.error) {
-        console.error(`⚠️ Failed to update vehicle status to ${newVehicleStatus}:`, vehicleUpdateResult.error);
-      } else {
-        console.log(`✅ Vehicle status updated to ${newVehicleStatus}`);
-      }
-
-      // Clear vehicle link from customer if moving to earlier stages
-      if (shouldClearVehicleFromCustomer) {
-        console.log(`🔗 Clearing vehicle link from customer ${customerId}`);
-        
-        const customerUpdateResult = await supabase
-          .from('leasing_customers')
-          .update({ 
-            selected_vehicle_id: null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', customerId);
-
-        if (customerUpdateResult.error) {
-          console.error(`⚠️ Failed to clear vehicle link from customer:`, customerUpdateResult.error);
-        } else {
-          console.log(`✅ Vehicle link cleared from customer`);
-        }
-      }
-    }
-  };
 
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -443,10 +378,6 @@ export default function LeasingKanbanBoard() {
 
       console.log('✅ Customer updated successfully:', data);
 
-      // Handle vehicle status changes when moving customers between columns
-      if (customerToMove.selected_vehicle_id) {
-        await handleVehicleStatusChange(customerToMove.selected_vehicle_id, customerToMove.status, targetStatus, customerId);
-      }
       
       // Optimistic update (real-time subscription will also update)
       const updatedCustomer = { ...customerToMove, status: targetStatus as LeaseStatus, lease_status: targetStatus as LeaseStatus };
@@ -522,21 +453,9 @@ export default function LeasingKanbanBoard() {
       setContractsCustomer(lease);
       setShowContractsModal(true);
     } else if (lease.status === 'active_leases') {
-      // Open Active Lease Modal with full lease management features
-      setSelectedActiveLease(lease);
-      
-      // Fetch vehicle data if linked
-      if (lease.selected_vehicle_id) {
-        const { data: vehicleData } = await supabase
-          .from('leasing_inventory')
-          .select('*')
-          .eq('id', lease.selected_vehicle_id)
-          .single();
-        
-        setSelectedVehicle(vehicleData);
-      }
-      
-      setShowActiveLeaseModal(true);
+      // TODO: Design new active lease modal later
+      setSelectedLease(lease);
+      setShowModal(true);
     } else {
       // Open general modal for other stages
       setSelectedLease(lease);
@@ -904,17 +823,6 @@ export default function LeasingKanbanBoard() {
         existingCustomer={contractsCustomer}
       />
 
-      {/* Active Lease Modal - Full lease management features */}
-      <ActiveLeaseModal
-        isOpen={showActiveLeaseModal}
-        onClose={() => {
-          setShowActiveLeaseModal(false);
-          setSelectedActiveLease(null);
-          setSelectedVehicle(null);
-        }}
-        lease={selectedActiveLease}
-        vehicle={selectedVehicle}
-      />
 
       {/* General Modal for other stages - placeholder */}
       {showModal && selectedLease && (

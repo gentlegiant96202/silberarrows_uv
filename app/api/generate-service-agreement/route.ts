@@ -110,7 +110,7 @@ function buildServiceAgreementHtml(
                     <div class="section">
                         <table class="form-table">
                             <tr><td class="label">Date:</td><td class="data">${formatDate(new Date().toISOString())}</td><td class="label">Reference No.:</td><td class="data">${data.referenceNo}</td></tr>
-                            <tr><td class="label">Sales Executive:</td><td class="data">${data.salesExecutive || 'N/A'}</td><td class="label">Status:</td><td class="data">ACTIVE</td></tr>
+                            <tr><td class="label">Sales Executive:</td><td class="data">${data.salesExecutive || 'N/A'}</td><td class="label">Type:</td><td class="data">${(data.serviceType === 'premium') ? 'PREMIUM' : 'STANDARD'}</td></tr>
                         </table>
                     </div>
 
@@ -576,8 +576,8 @@ export async function POST(request: NextRequest) {
                             <tr>
                                 <td class="label">Sales Executive:</td>
                                 <td class="data">${data.salesExecutive || 'N/A'}</td>
-                                <td class="label">Status:</td>
-                                <td class="data">ACTIVE</td>
+                                <td class="label">Type:</td>
+                                <td class="data">${(data.serviceType === 'premium') ? 'PREMIUM' : 'STANDARD'}</td>
                             </tr>
                         </table>
                     </div>

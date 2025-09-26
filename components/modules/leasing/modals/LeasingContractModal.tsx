@@ -473,30 +473,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
           .single();
       }
 
-      // Handle vehicle status updates based on contract changes
-      if (!result.error) {
-        const oldVehicleId = existingCustomer?.selected_vehicle_id;
-        const newVehicleId = contractData.selected_vehicle_id;
-
-        // If vehicle selection changed, update both old and new vehicles
-        if (oldVehicleId !== newVehicleId) {
-          // Release old vehicle back to inventory (if it exists)
-          if (oldVehicleId) {
-            console.log('🔄 Releasing old vehicle back to inventory:', oldVehicleId);
-            await updateVehicleStatus(oldVehicleId, 'inventory');
-          }
-
-          // Reserve new vehicle (if selected)
-          if (newVehicleId) {
-            console.log('🔒 Reserving new vehicle:', newVehicleId);
-            await updateVehicleStatus(newVehicleId, 'reserved');
-          }
-        } else if (newVehicleId && mode === 'create') {
-          // For new contracts, just reserve the selected vehicle
-          console.log('🔒 Reserving vehicle for new contract:', newVehicleId);
-          await updateVehicleStatus(newVehicleId, 'reserved');
-        }
-      }
 
       if (result.error) {
         console.error('❌ Error saving contract:', result.error);
@@ -523,26 +499,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     }
   };
 
-  // Handle vehicle status updates
-  const updateVehicleStatus = async (vehicleId: string, newStatus: 'inventory' | 'reserved' | 'leased') => {
-    if (!vehicleId) return;
-    
-    console.log(`🚗 Updating vehicle ${vehicleId} status to: ${newStatus}`);
-    
-    const { error } = await supabase
-      .from('leasing_inventory')
-      .update({ 
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', vehicleId);
-
-    if (error) {
-      console.error(`⚠️ Failed to update vehicle status to ${newStatus}:`, error);
-    } else {
-      console.log(`✅ Vehicle status updated to ${newStatus}`);
-    }
-  };
 
   // Handle file upload (placeholder for now)
   const handleFileUpload = async (field: string, file: File) => {

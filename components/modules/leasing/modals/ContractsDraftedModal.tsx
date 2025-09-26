@@ -114,29 +114,6 @@ export default function ContractsDraftedModal({ isOpen, onClose, onUpdated, cust
         return;
       }
 
-      // Update vehicle record
-      const { error: vehicleError } = await supabase
-        .from('leasing_inventory')
-        .update({
-          status: 'leased',
-          in_out_status: 'OUT',
-          current_customer_id: customer.id,
-          current_customer_name: customer.customer_name,
-          release_date_out: startDate,
-          expected_return_date: end.toISOString().split('T')[0],
-          daily_rate_customer: parseFloat(monthlyRate) / 30,
-          daily_rate_vehicle: parseFloat(monthlyRate) / 30,
-          planned_lease_pricing: parseFloat(monthlyRate) * parseInt(leaseTerm),
-          lease_to_own_option: leaseToOwn,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedVehicleId);
-
-      if (vehicleError) {
-        console.error('Error updating vehicle:', vehicleError);
-        alert('Failed to update vehicle. Please try again.');
-        return;
-      }
 
       console.log('✅ Lease contract created successfully');
       

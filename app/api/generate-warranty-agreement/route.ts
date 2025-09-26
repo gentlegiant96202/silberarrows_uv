@@ -388,8 +388,8 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
                             <tr>
                                 <td class="label">Sales Executive:</td>
                                 <td class="data">${data.salesExecutive || 'N/A'}</td>
-                                <td class="label">Status:</td>
-                                <td class="data">ACTIVE</td>
+                                <td class="label">Type:</td>
+                                <td class="data">${(data.warrantyType === 'premium') ? 'PREMIUM' : 'STANDARD'}</td>
                             </tr>
                         </table>
                     </div>

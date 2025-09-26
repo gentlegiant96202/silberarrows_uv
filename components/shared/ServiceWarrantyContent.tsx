@@ -235,17 +235,31 @@ export default function ServiceWarrantyContent() {
 
   const handleContractUpdated = (updatedContract: Contract) => {
     if (activeTab === 'service') {
-      setServiceContracts(prev => 
-        prev.map(contract => 
-          contract.id === updatedContract.id ? updatedContract : contract
-        )
-      );
+      setServiceContracts(prev => {
+        const existingIndex = prev.findIndex(contract => contract.id === updatedContract.id);
+        if (existingIndex >= 0) {
+          // Update existing contract
+          return prev.map(contract => 
+            contract.id === updatedContract.id ? updatedContract : contract
+          );
+        } else {
+          // Add new contract (for transfers)
+          return [updatedContract, ...prev];
+        }
+      });
     } else {
-      setWarrantyContracts(prev => 
-        prev.map(contract => 
-          contract.id === updatedContract.id ? updatedContract : contract
-        )
-      );
+      setWarrantyContracts(prev => {
+        const existingIndex = prev.findIndex(contract => contract.id === updatedContract.id);
+        if (existingIndex >= 0) {
+          // Update existing contract
+          return prev.map(contract => 
+            contract.id === updatedContract.id ? updatedContract : contract
+          );
+        } else {
+          // Add new contract (for transfers)
+          return [updatedContract, ...prev];
+        }
+      });
     }
   };
 
@@ -507,10 +521,10 @@ export default function ServiceWarrantyContent() {
               Vehicle
             </th>
             <th className="w-28 px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-              {type === 'service' ? 'Type' : 'Coverage'}
+              {type === 'service' ? 'Type' : 'Type'}
             </th>
             <th className="w-36 px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-              {type === 'service' ? 'Period' : 'Warranty Period'}
+              {type === 'service' ? 'SERVICECARE PERIOD' : 'Warranty Period'}
             </th>
             <th className="w-32 px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
               Workflow
@@ -553,8 +567,12 @@ export default function ServiceWarrantyContent() {
                     {contract.service_type === 'premium' ? 'Premium' : 'Standard'}
                   </span>
                 ) : (
-                  <span className="px-2 py-1 rounded text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                    {contract.warranty_type || 'Extended'}
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    contract.warranty_type === 'premium'
+                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                      : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  }`}>
+                    {contract.warranty_type === 'premium' ? 'Premium' : 'Standard'}
                   </span>
                 )}
               </td>

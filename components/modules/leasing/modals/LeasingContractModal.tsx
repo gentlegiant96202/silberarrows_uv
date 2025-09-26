@@ -1229,7 +1229,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                 setActiveTab(tabs[currentIndex + 1].id);
               } else {
                 // On last tab, trigger save
-                handleSubmit();
+                handleSubmit(new Event('submit') as any);
               }
             }}
             className="px-6 py-2 font-medium rounded-lg hover:shadow-lg transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black"

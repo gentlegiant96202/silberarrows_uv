@@ -143,6 +143,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   // Load DocuSign data when modal opens (matching vehicle documents)
   useEffect(() => {
     if (isOpen && contract) {
+      // Reset modal states to ensure we always start in view mode
+      setIsEditing(false);
+      setIsTransferMode(false);
+      
       // Update local contract state
       setLocalContract(contract);
       

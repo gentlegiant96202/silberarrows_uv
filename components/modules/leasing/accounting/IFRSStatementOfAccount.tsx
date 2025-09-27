@@ -11,7 +11,6 @@ import {
   TrendingUp,
   TrendingDown,
   CreditCard,
-  Receipt,
   RefreshCw
 } from "lucide-react";
 

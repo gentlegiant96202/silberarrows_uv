@@ -4,6 +4,7 @@ import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Use
 import LeasingAppointmentModal from './modals/LeasingAppointmentModal';
 import LeasingContractModal from './modals/LeasingContractModal';
 import { LeaseAccountingDashboard, AccountingButton } from './accounting';
+import SimpleAccountingButton from './accounting/SimpleAccountingButton';
 import { useSearchStore } from '@/lib/searchStore';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
@@ -870,6 +871,19 @@ export default function LeasingKanbanBoard() {
                           leaseId={lease.id}
                           leaseStartDate={lease.lease_start_date || lease.created_at}
                           customerName={lease.customer_name}
+                          className="w-full text-xs py-1.5"
+                        />
+                      </div>
+                    )}
+
+                    {/* Simple Accounting Button for Overdue/Ending Soon */}
+                    {lease.status === 'overdue_ending_soon' && (
+                      <div className="mt-2 pt-2 border-t border-white/10">
+                        <SimpleAccountingButton
+                          leaseId={lease.id}
+                          leaseStartDate={lease.lease_start_date || lease.created_at}
+                          customerName={lease.customer_name}
+                          monthlyPayment={lease.monthly_payment}
                           className="w-full text-xs py-1.5"
                         />
                       </div>

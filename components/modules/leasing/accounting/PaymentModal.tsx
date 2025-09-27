@@ -199,6 +199,7 @@ export default function PaymentModal({
           
           invoice.charges.forEach(charge => {
             const chargeAllocation = charge.total_amount * allocationRatio;
+            const paymentInfo = `Payment: ${paymentMethod.replace('_', ' ').toUpperCase()}${paymentReference ? ` (Ref: ${paymentReference})` : ''}${notes ? ` - ${notes}` : ''}`;
             
             chargeUpdates.push({
               id: charge.id,
@@ -208,7 +209,7 @@ export default function PaymentModal({
               quantity: charge.quantity,
               unit_price: charge.unit_price,
               total_amount: charge.total_amount,
-              comment: charge.comment,
+              comment: charge.comment ? `${charge.comment} | ${paymentInfo}` : paymentInfo,
               invoice_id: charge.invoice_id,
               payment_id: paymentId, // This is what we're updating
               status: chargeAllocation >= charge.total_amount ? 'paid' : 'invoiced', // This is what we're updating
@@ -232,31 +233,9 @@ export default function PaymentModal({
         }
       }
 
-      // Insert payment record as a special entry
-      const paymentRecord = {
-        lease_id: leaseId,
-        billing_period: paymentDate,
-        charge_type: 'rental' as const, // Using rental as payment record type
-        quantity: null,
-        unit_price: null,
-        total_amount: -paymentAmountNum, // Negative amount to indicate payment
-        comment: `Payment received - Method: ${paymentMethod.replace('_', ' ').toUpperCase()}, Reference: ${paymentReference || 'N/A'}, Notes: ${notes || 'N/A'}`,
-        invoice_id: null,
-        payment_id: paymentId,
-        status: 'paid' as const,
-        vat_applicable: false,
-        account_closed: false
-      };
-
-      console.log('💰 Inserting payment record:', paymentRecord);
-      const { error: paymentError } = await supabase
-        .from('lease_accounting')
-        .insert([paymentRecord]);
-
-      if (paymentError) {
-        console.error('❌ Error inserting payment record:', paymentError);
-        throw paymentError;
-      }
+      // Payment information is tracked via payment_id on charges and status changes
+      // No need for separate payment record due to database constraint requiring positive amounts
+      console.log('💰 Payment recorded successfully via charge updates and payment_id:', paymentId);
 
       onPaymentRecorded();
       onClose();

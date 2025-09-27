@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useModulePermissions } from "@/lib/useModulePermissions";
+import { useUserRole } from "@/lib/useUserRole";
 import BillingPeriodsView from "./BillingPeriodsView";
 import InvoiceModal from "./InvoiceModal";
 import PaymentModal from "./PaymentModal";
@@ -17,7 +19,9 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  X
+  X,
+  Edit,
+  Trash2
 } from "lucide-react";
 
 // Types
@@ -58,6 +62,15 @@ interface Props {
 }
 
 export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, customerName, onClose }: Props) {
+  
+  // Permissions
+  const { role, isAdmin, isAccounts } = useUserRole();
+  const { canEdit, canDelete } = useModulePermissions('leasing');
+  
+  // Check if user has edit/delete permissions (accounts or admin roles only)
+  const hasEditPermission = (isAdmin || isAccounts) && canEdit;
+  const hasDeletePermission = (isAdmin || isAccounts) && canDelete;
+  
   const [records, setRecords] = useState<LeaseAccountingRecord[]>([]);
   const [billingPeriods, setBillingPeriods] = useState<BillingPeriod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -204,20 +217,43 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
         account_closed: false
       };
 
-      const { data, error } = await supabase
-        .from('lease_accounting')
-        .insert([chargeData])
-        .select()
-        .single();
+      if (editingCharge) {
+        // Update existing charge
+        const { data, error } = await supabase
+          .from('lease_accounting')
+          .update(chargeData)
+          .eq('id', editingCharge)
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setRecords(prev => [data, ...prev]);
+        // Update the record in the list
+        setRecords(prev => prev.map(record => 
+          record.id === editingCharge ? data : record
+        ));
+        
+        alert('Charge updated successfully.');
+      } else {
+        // Add new charge
+        const { data, error } = await supabase
+          .from('lease_accounting')
+          .insert([chargeData])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setRecords(prev => [data, ...prev]);
+        alert('Charge added successfully.');
+      }
+
       setShowAddCharge(false);
       resetNewChargeForm();
+      setEditingCharge(null);
     } catch (error) {
-      console.error('Error adding charge:', error);
-      alert('Error adding charge. Please try again.');
+      console.error('Error saving charge:', error);
+      alert('Error saving charge. Please try again.');
     }
   };
 
@@ -242,6 +278,23 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   useEffect(() => {
     calculateTotal();
   }, [newCharge.quantity, newCharge.unit_price]);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingCharge) {
+      const chargeToEdit = records.find(record => record.id === editingCharge);
+      if (chargeToEdit) {
+        setNewCharge({
+          charge_type: chargeToEdit.charge_type,
+          quantity: chargeToEdit.quantity?.toString() || '',
+          unit_price: chargeToEdit.unit_price?.toString() || '',
+          total_amount: chargeToEdit.total_amount.toString(),
+          comment: chargeToEdit.comment || '',
+          billing_period: chargeToEdit.billing_period
+        });
+      }
+    }
+  }, [editingCharge, records]);
 
   const getChargeTypeLabel = (type: string) => {
     const labels = {
@@ -301,12 +354,66 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
 
   const handlePaymentRecorded = () => {
     fetchAccountingData();
+    fetchInvoices(); // Refresh invoices list
     setShowPaymentModal(false);
+  };
+
+  const handleEditCharge = (chargeId: string) => {
+    if (!hasEditPermission) {
+      alert('You do not have permission to edit accounting records.');
+      return;
+    }
+    setEditingCharge(chargeId);
+    setShowAddCharge(true);
+  };
+
+  const handleDeleteCharge = async (chargeId: string) => {
+    if (!hasDeletePermission) {
+      alert('You do not have permission to delete accounting records.');
+      return;
+    }
+
+    const charge = records.find(r => r.id === chargeId);
+    if (!charge) return;
+
+    // Prevent deletion of invoiced or paid charges
+    if (charge.status === 'invoiced' || charge.status === 'paid') {
+      alert(`Cannot delete ${charge.status} charges. Please reverse the ${charge.status === 'invoiced' ? 'invoice' : 'payment'} first.`);
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete this ${charge.charge_type} charge for ${formatCurrency(charge.total_amount)}?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('lease_accounting')
+        .delete()
+        .eq('id', chargeId);
+
+      if (error) throw error;
+
+      // Refresh data
+      fetchAccountingData();
+      alert('Charge deleted successfully.');
+    } catch (error) {
+      console.error('Error deleting charge:', error);
+      alert('Error deleting charge. Please try again.');
+    }
   };
 
   const handleExportPDF = () => {
     // Implementation for PDF export would go here
     alert('PDF export feature coming soon!');
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      style: 'currency',
+      currency: 'AED',
+      minimumFractionDigits: 2
+    }).format(amount);
   };
 
   if (loading) {
@@ -405,7 +512,9 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                 {/* Add Charge Form */}
                 {showAddCharge && (
                   <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-6">
-                    <h4 className="text-white font-semibold mb-4">Add New Charge</h4>
+                    <h4 className="text-white font-semibold mb-4">
+                      {editingCharge ? 'Edit Charge' : 'Add New Charge'}
+                    </h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {/* Charge Type */}
@@ -502,12 +611,13 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                         disabled={!newCharge.billing_period || !newCharge.total_amount}
                         className="px-6 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Add Charge
+                        {editingCharge ? 'Update Charge' : 'Add Charge'}
                       </button>
                       <button
                         onClick={() => {
                           setShowAddCharge(false);
                           resetNewChargeForm();
+                          setEditingCharge(null);
                         }}
                         className="px-6 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10"
                       >
@@ -555,6 +665,37 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                                 {record.status.toUpperCase()}
                               </div>
                             </div>
+                            
+                            {/* Edit/Delete Actions */}
+                            {(hasEditPermission || hasDeletePermission) && (
+                              <div className="flex items-center gap-2">
+                                {hasEditPermission && record.status === 'pending' && (
+                                  <button
+                                    onClick={() => handleEditCharge(record.id)}
+                                    className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                                    title="Edit charge"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                )}
+                                
+                                {hasDeletePermission && record.status === 'pending' && (
+                                  <button
+                                    onClick={() => handleDeleteCharge(record.id)}
+                                    className="p-2 text-red-400/60 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                                    title="Delete charge"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                )}
+                                
+                                {(record.status === 'invoiced' || record.status === 'paid') && (
+                                  <div className="text-white/40 text-xs px-2">
+                                    {record.status === 'invoiced' ? 'Invoiced' : 'Paid'}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

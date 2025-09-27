@@ -243,7 +243,7 @@ export default function BillingPeriodsView({
   }
 
   return (
-    <div className="space-y-4 h-full overflow-y-auto">
+    <div className="space-y-4">
       {/* Header with Extend Button */}
       <div className="flex items-center justify-between mb-6">
         <div>

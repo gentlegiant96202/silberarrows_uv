@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Users, DollarSign, Receipt } from 'lucide-react';
 import LeasingAppointmentModal from './modals/LeasingAppointmentModal';
 import LeasingContractModal from './modals/LeasingContractModal';
-import { LeaseAccountingDashboard, AccountingButton } from './accounting';
+import { LeaseAccountingDashboard, AccountingButton, SimpleAccountingModal } from './accounting';
 import SimpleAccountingButton from './accounting/SimpleAccountingButton';
 import { useSearchStore } from '@/lib/searchStore';
 import { useModulePermissions } from '@/lib/useModulePermissions';
@@ -92,6 +92,8 @@ export default function LeasingKanbanBoard() {
   const [showContractsModal, setShowContractsModal] = useState(false);
   const [showAccountingModal, setShowAccountingModal] = useState(false);
   const [accountingCustomer, setAccountingCustomer] = useState<Lease | null>(null);
+  const [showSimpleAccountingModal, setShowSimpleAccountingModal] = useState(false);
+  const [simpleAccountingCustomer, setSimpleAccountingCustomer] = useState<Lease | null>(null);
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [editingLease, setEditingLease] = useState<Lease | null>(null);
@@ -529,6 +531,11 @@ export default function LeasingKanbanBoard() {
       console.log('💰 Opening accounting module for active lease click');
       setAccountingCustomer(lease);
       setShowAccountingModal(true);
+    } else if (lease.status === 'overdue_ending_soon') {
+      // Open simple accounting modal for overdue/ending soon leases
+      console.log('💰 Opening simple accounting modal for overdue/ending soon lease click');
+      setSimpleAccountingCustomer(lease);
+      setShowSimpleAccountingModal(true);
     } else {
       // Open general modal for other stages
       setSelectedLease(lease);
@@ -977,6 +984,21 @@ export default function LeasingKanbanBoard() {
             setShowAccountingModal(false);
             setAccountingCustomer(null);
           }}
+        />
+      )}
+
+      {/* Simple Accounting Modal for Overdue/Ending Soon */}
+      {showSimpleAccountingModal && simpleAccountingCustomer && (
+        <SimpleAccountingModal
+          isOpen={showSimpleAccountingModal}
+          onClose={() => {
+            setShowSimpleAccountingModal(false);
+            setSimpleAccountingCustomer(null);
+          }}
+          leaseId={simpleAccountingCustomer.id}
+          customerName={simpleAccountingCustomer.customer_name}
+          leaseStartDate={simpleAccountingCustomer.lease_start_date || simpleAccountingCustomer.created_at}
+          monthlyPayment={simpleAccountingCustomer.monthly_payment}
         />
       )}
     </div>

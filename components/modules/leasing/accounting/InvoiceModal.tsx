@@ -132,32 +132,8 @@ export default function InvoiceModal({
         throw updateError;
       }
 
-      // For the single-table approach, we'll also insert a summary record for the invoice
-      const invoiceSummary = {
-        lease_id: leaseId,
-        billing_period: billingPeriod,
-        charge_type: 'rental' as const, // Using rental as the invoice summary type
-        quantity: null,
-        unit_price: null,
-        total_amount: total,
-        comment: `Invoice generated for period ${formatDate(billingPeriod)} - Subtotal: ${formatCurrency(subtotal)}, VAT (${vatRate}%): ${formatCurrency(vatAmount)}, Total: ${formatCurrency(total)}`,
-        invoice_id: invoiceId,
-        payment_id: null,
-        status: 'invoiced' as const,
-        vat_applicable: vatEnabled,
-        account_closed: false
-      };
-
-      // Insert invoice summary record
-      console.log('📝 Inserting invoice summary:', invoiceSummary);
-      const { error: summaryError } = await supabase
-        .from('lease_accounting')
-        .insert([invoiceSummary]);
-
-      if (summaryError) {
-        console.error('❌ Error inserting invoice summary:', summaryError);
-        throw summaryError;
-      }
+      // Note: We don't need to create a separate invoice summary record
+      // The individual charges with their invoice_id serve as the invoice record
 
       onInvoiceGenerated();
       onClose();

@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useModulePermissions } from "@/lib/useModulePermissions";
 import { useUserRole } from "@/lib/useUserRole";
-import BillingPeriodsView from "./IFRSBillingPeriodsView";
-import InvoiceModal from "./IFRSInvoiceModal";
-import PaymentModal from "./IFRSPaymentModal";
-import StatementOfAccount from "./IFRSStatementOfAccount";
+import IFRSBillingPeriodsView from "./IFRSBillingPeriodsView";
+import IFRSInvoiceModal from "./IFRSInvoiceModal";
+import IFRSPaymentModal from "./IFRSPaymentModal";
+import IFRSStatementOfAccount from "./IFRSStatementOfAccount";
 import ContractDetailsView from "./ContractDetailsView"; // Reuse existing contract details
 import { 
   Plus, 
@@ -516,8 +516,9 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-7xl h-[90vh] flex flex-col border border-white/10 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+    <>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-7xl h-[90vh] flex flex-col border border-white/10 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
         
         {/* Header */}
         <div className="p-6 border-b border-white/5 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm rounded-t-2xl">
@@ -855,7 +856,7 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-6">
-                  <BillingPeriodsView
+                  <IFRSBillingPeriodsView
                     leaseId={leaseId}
                     leaseStartDate={leaseInfo?.lease_start_date || leaseStartDate}
                     leaseEndDate={leaseInfo?.lease_end_date}
@@ -1095,7 +1096,7 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
             {/* Statement Tab */}
             {activeTab === 'statement' && (
               <div className="h-full overflow-y-auto p-6">
-                <StatementOfAccount
+                <IFRSStatementOfAccount
                   leaseId={leaseId}
                   customerName={customerName}
                   records={records}
@@ -1109,31 +1110,31 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
           </div>
         </div>
-
-        {/*  Invoice Modal */}
-        {showInvoiceModal && (
-          <InvoiceModal
-            isOpen={showInvoiceModal}
-            onClose={() => setShowInvoiceModal(false)}
-            billingPeriod={selectedBillingPeriod}
-            charges={selectedChargesForInvoice}
-            customerName={customerName}
-            leaseId={leaseId}
-            onInvoiceGenerated={handleInvoiceGenerated}
-          />
-        )}
-
-        {/*  Payment Modal */}
-        {showPaymentModal && (
-          <PaymentModal
-            isOpen={showPaymentModal}
-            onClose={() => setShowPaymentModal(false)}
-            leaseId={leaseId}
-            customerName={customerName}
-            onPaymentRecorded={handlePaymentRecorded}
-          />
-        )}
       </div>
-    </div>
+
+      {/* Invoice Modal */}
+      {showInvoiceModal && (
+        <IFRSInvoiceModal
+          isOpen={showInvoiceModal}
+          onClose={() => setShowInvoiceModal(false)}
+          billingPeriod={selectedBillingPeriod}
+          charges={selectedChargesForInvoice}
+          customerName={customerName}
+          leaseId={leaseId}
+          onInvoiceGenerated={handleInvoiceGenerated}
+        />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <IFRSPaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          leaseId={leaseId}
+          customerName={customerName}
+          onPaymentRecorded={handlePaymentRecorded}
+        />
+      )}
+    </>
   );
 }

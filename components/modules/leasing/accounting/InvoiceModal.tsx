@@ -107,8 +107,18 @@ export default function InvoiceModal({
       // Update all charges with the invoice ID and set status to 'invoiced'
       const chargeUpdates = charges.map(charge => ({
         id: charge.id,
-        invoice_id: invoiceId,
-        status: 'invoiced' as const
+        lease_id: charge.lease_id,
+        billing_period: charge.billing_period,
+        charge_type: charge.charge_type,
+        quantity: charge.quantity,
+        unit_price: charge.unit_price,
+        total_amount: charge.total_amount,
+        comment: charge.comment,
+        invoice_id: invoiceId, // This is what we're updating
+        payment_id: charge.payment_id,
+        status: 'invoiced' as const, // This is what we're updating
+        vat_applicable: charge.vat_applicable,
+        account_closed: charge.account_closed
       }));
 
       // Update charges in batch

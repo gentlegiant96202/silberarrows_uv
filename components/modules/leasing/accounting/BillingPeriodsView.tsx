@@ -84,7 +84,7 @@ export default function BillingPeriodsView({
 
       const totalAmount = periodCharges.reduce((sum, charge) => sum + charge.total_amount, 0);
       const hasInvoice = periodCharges.some(charge => charge.invoice_id);
-      const invoiceId = periodCharges.find(charge => charge.invoice_id)?.invoice_id;
+      const invoiceId = periodCharges.find(charge => charge.invoice_id)?.invoice_id || undefined;
 
       // Determine period status
       let status: BillingPeriod['status'] = 'upcoming';

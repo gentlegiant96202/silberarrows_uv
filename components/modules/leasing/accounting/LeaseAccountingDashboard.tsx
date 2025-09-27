@@ -320,7 +320,8 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
       salik: 'Salik Charges',
       mileage: 'Excess Mileage',
       late_fee: 'Late Payment Fee',
-      fine: 'Traffic Fine'
+      fine: 'Traffic Fine',
+      refund: 'Refund/Credit'
     };
     return labels[type as keyof typeof labels] || type;
   };
@@ -537,8 +538,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                             const chargeType = e.target.value as any;
                             setNewCharge(prev => ({ 
                               ...prev, 
-                              // Temporarily use 'rental' for refunds until database is updated
-                              charge_type: chargeType === 'refund' ? 'rental' : chargeType,
+                              charge_type: chargeType,
                               // Auto-set negative amount for refunds
                               total_amount: chargeType === 'refund' && parseFloat(prev.total_amount) > 0 
                                 ? '-' + prev.total_amount 

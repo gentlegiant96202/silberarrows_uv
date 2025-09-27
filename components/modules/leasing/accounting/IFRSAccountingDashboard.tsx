@@ -713,6 +713,131 @@ export default function IFRSAccountingDashboard({ leaseId, leaseStartDate, custo
               </div>
             )}
 
+            {/* Invoices Tab */}
+            {activeTab === 'invoices' && (
+              <div className="h-full flex flex-col">
+                <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">IFRS Invoices</h3>
+                    <div className="text-sm text-white/60">
+                      Sequential numbering: INV-LE-1000+
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                  {invoices.length === 0 ? (
+                    <div className="text-center py-12">
+                      <FileText size={48} className="text-white/20 mx-auto mb-4" />
+                      <p className="text-white/60">No invoices generated yet</p>
+                      <p className="text-white/40 text-sm mt-2">Generate invoices from billing periods</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {invoices.map((invoice) => (
+                        <div key={invoice.invoice_id} className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10 hover:bg-white/10 transition-all">
+                          
+                          {/* Invoice Header */}
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-4">
+                              <div className="p-2 bg-blue-500/20 rounded-lg">
+                                <FileText size={20} className="text-blue-400" />
+                              </div>
+                              <div>
+                                <h4 className="text-white font-semibold text-lg">
+                                  {invoice.invoice_number || `Invoice ${invoice.invoice_id.slice(-8)}`}
+                                </h4>
+                                <p className="text-neutral-400 text-sm">
+                                  Period: {formatDate(invoice.billing_period)} • 
+                                  Generated: {formatDate(invoice.created_at)}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="text-right">
+                              <div className="text-white font-bold text-xl">
+                                {formatCurrency(invoice.total_amount)}
+                              </div>
+                              <div className={`text-xs px-3 py-1 rounded-full font-medium ${
+                                invoice.is_paid 
+                                  ? 'text-green-400 bg-green-400/10 border border-green-400/20' 
+                                  : invoice.has_partial_payment
+                                    ? 'text-yellow-400 bg-yellow-400/10 border border-yellow-400/20'
+                                    : 'text-blue-400 bg-blue-400/10 border border-blue-400/20'
+                              }`}>
+                                {invoice.is_paid ? 'PAID' : invoice.has_partial_payment ? 'PARTIAL PAYMENT' : 'INVOICED'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Charges in Invoice */}
+                          <div className="space-y-2 mb-4">
+                            {invoice.charges.map((charge: any) => (
+                              <div key={charge.id} className="flex items-center justify-between p-2 bg-white/5 rounded border border-white/5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white/60 text-sm">{getChargeTypeLabel(charge.charge_type)}</span>
+                                  {charge.comment && (
+                                    <span className="text-white/40 text-xs italic">"{charge.comment}"</span>
+                                  )}
+                                </div>
+                                <div className={`text-sm font-medium ${
+                                  charge.charge_type === 'refund' || charge.total_amount < 0 
+                                    ? 'text-green-400' 
+                                    : charge.comment?.startsWith('PAYMENT') 
+                                      ? 'text-green-400' 
+                                      : 'text-white'
+                                }`}>
+                                  {(charge.charge_type === 'refund' || charge.total_amount < 0) && '🔄 '}
+                                  {charge.comment?.startsWith('PAYMENT') && '💳 '}
+                                  {formatCurrency(charge.total_amount)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Invoice Actions */}
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => {
+                                // View invoice functionality (future enhancement)
+                                alert(`Viewing invoice ${invoice.invoice_number || invoice.invoice_id.slice(-8)}`);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-lg transition-all border border-blue-400/20 text-sm"
+                            >
+                              <Eye size={14} />
+                              View
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                // Download invoice functionality (future enhancement)
+                                alert(`Downloading invoice ${invoice.invoice_number || invoice.invoice_id.slice(-8)}`);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10 text-sm"
+                            >
+                              <Download size={14} />
+                              Download
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                // Print invoice functionality (future enhancement)
+                                alert(`Printing invoice ${invoice.invoice_number || invoice.invoice_id.slice(-8)}`);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10 text-sm"
+                            >
+                              <Printer size={14} />
+                              Print
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Add Charge Modal - Exactly like existing */}
             {showAddCharge && (
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10 flex items-center justify-center p-4">
@@ -825,6 +950,19 @@ export default function IFRSAccountingDashboard({ leaseId, leaseStartDate, custo
             )}
           </div>
         </div>
+
+        {/* IFRS Invoice Modal */}
+        {showInvoiceModal && (
+          <IFRSInvoiceModal
+            isOpen={showInvoiceModal}
+            onClose={() => setShowInvoiceModal(false)}
+            billingPeriod={selectedBillingPeriod}
+            charges={selectedChargesForInvoice}
+            customerName={customerName}
+            leaseId={leaseId}
+            onInvoiceGenerated={handleInvoiceGenerated}
+          />
+        )}
       </div>
     </div>
   );

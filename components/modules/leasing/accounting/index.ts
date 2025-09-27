@@ -3,6 +3,7 @@ export { default as IFRSAccountingDashboard } from './IFRSAccountingDashboard';
 export { default as BillingPeriodsView } from './BillingPeriodsView';
 export { default as IFRSBillingPeriodsView } from './IFRSBillingPeriodsView';
 export { default as InvoiceModal } from './InvoiceModal';
+export { default as IFRSInvoiceModal } from './IFRSInvoiceModal';
 export { default as PaymentModal } from './PaymentModal';
 export { default as StatementOfAccount } from './StatementOfAccount';
 export { default as AccountingButton } from './AccountingButton';

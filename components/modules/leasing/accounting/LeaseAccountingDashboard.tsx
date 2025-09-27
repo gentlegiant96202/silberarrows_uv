@@ -218,18 +218,22 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
 
   const handleAddCharge = async () => {
     try {
+      console.log('💰 Form data before processing:', newCharge);
+      
       const chargeData = {
         lease_id: leaseId,
         billing_period: newCharge.billing_period,
         charge_type: newCharge.charge_type,
-        quantity: newCharge.quantity ? parseFloat(newCharge.quantity) : null,
-        unit_price: newCharge.unit_price ? parseFloat(newCharge.unit_price) : null,
+        quantity: newCharge.quantity && !isNaN(parseFloat(newCharge.quantity)) ? parseFloat(newCharge.quantity) : null,
+        unit_price: newCharge.unit_price && !isNaN(parseFloat(newCharge.unit_price)) ? parseFloat(newCharge.unit_price) : null,
         total_amount: parseFloat(newCharge.total_amount),
         comment: newCharge.comment || null,
         status: 'pending' as const,
         vat_applicable: true,
         account_closed: false
       };
+
+      console.log('💰 Processed charge data:', chargeData);
 
       if (editingCharge) {
         // Update existing charge
@@ -533,7 +537,8 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                             const chargeType = e.target.value as any;
                             setNewCharge(prev => ({ 
                               ...prev, 
-                              charge_type: chargeType,
+                              // Temporarily use 'rental' for refunds until database is updated
+                              charge_type: chargeType === 'refund' ? 'rental' : chargeType,
                               // Auto-set negative amount for refunds
                               total_amount: chargeType === 'refund' && parseFloat(prev.total_amount) > 0 
                                 ? '-' + prev.total_amount 

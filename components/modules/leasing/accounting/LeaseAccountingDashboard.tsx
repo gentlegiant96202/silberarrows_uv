@@ -161,7 +161,13 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
           }
           
           invoiceGroups[record.invoice_id].charges.push(record);
-          invoiceGroups[record.invoice_id].total_amount += record.total_amount;
+          
+          // Handle credit notes: subtract from total instead of adding
+          if (record.comment && record.comment.startsWith('CREDIT_NOTE')) {
+            invoiceGroups[record.invoice_id].total_amount -= record.total_amount;
+          } else {
+            invoiceGroups[record.invoice_id].total_amount += record.total_amount;
+          }
           
           // Track payment status
           if (record.status === 'paid') {
@@ -204,7 +210,14 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
         period_start: periodStart.toISOString().split('T')[0],
         period_end: periodEnd.toISOString().split('T')[0],
         charges: periodCharges,
-        total_amount: periodCharges.reduce((sum, charge) => sum + charge.total_amount, 0),
+        total_amount: periodCharges.reduce((sum, charge) => {
+          // Handle credit notes: subtract from total instead of adding
+          if (charge.comment && charge.comment.startsWith('CREDIT_NOTE')) {
+            return sum - charge.total_amount;
+          } else {
+            return sum + charge.total_amount;
+          }
+        }, 0),
         has_invoice: periodCharges.some(charge => charge.invoice_id),
         invoice_id: periodCharges.find(charge => charge.invoice_id)?.invoice_id || undefined
       });
@@ -1005,17 +1018,17 @@ function CreditNoteModal({
     try {
       const creditNoteNumber = `CN-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
       
-      // IFRS-Compliant Credit Note Record (using rental type with special identification)
+      // IFRS-Compliant Credit Note Record (identified by comment field)
       const creditNoteData = {
         lease_id: leaseId,
         billing_period: invoice.billing_period,
         charge_type: 'rental' as const, // Use valid enum value
         quantity: null,
         unit_price: null,
-        total_amount: parseFloat(creditAmount), // Positive amount (identified as credit by payment_id prefix)
+        total_amount: parseFloat(creditAmount), // Positive amount (identified as credit by comment prefix)
         comment: `CREDIT_NOTE ${creditNoteNumber} - ${IFRS_REASONS[reason as keyof typeof IFRS_REASONS]} - ${description} - Original Invoice: ${invoice.invoice_id.slice(-8)}`,
-        invoice_id: null, // Credit notes don't belong to invoices
-        payment_id: creditNoteNumber, // Use credit note number for identification
+        invoice_id: invoice.invoice_id, // Link credit note to original invoice
+        payment_id: null, // No payment ID needed - identified by comment
         status: 'paid' as const, // Mark as processed
         vat_applicable: false, // Credit notes typically don't have VAT
         account_closed: false
@@ -1222,17 +1235,17 @@ function RefundModal({
     try {
       const refundNumber = `REF-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
       
-      // IFRS-Compliant Refund Record (using rental type with special identification)
+      // IFRS-Compliant Refund Record (identified by comment field)
       const refundData = {
         lease_id: leaseId,
         billing_period: new Date().toISOString().split('T')[0], // Today's date
         charge_type: 'rental' as const, // Use rental type (valid enum value)
         quantity: null,
         unit_price: null,
-        total_amount: parseFloat(refundAmount), // Positive amount (identified as refund by payment_id prefix)
+        total_amount: parseFloat(refundAmount), // Positive amount (identified as refund by comment prefix)
         comment: `REFUND ${refundNumber} - ${REFUND_TYPES[refundType as keyof typeof REFUND_TYPES]} - Method: ${refundMethod.replace('_', ' ').toUpperCase()} - ${description}`,
         invoice_id: null,
-        payment_id: refundNumber, // Use refund number as payment ID for tracking
+        payment_id: null, // No payment ID needed - identified by comment
         status: 'paid' as const, // Refunds are immediately processed
         vat_applicable: false,
         account_closed: false

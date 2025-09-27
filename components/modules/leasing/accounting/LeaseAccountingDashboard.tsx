@@ -128,12 +128,12 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
 
   const fetchInvoices = async () => {
     try {
-      // Get all invoiced records grouped by invoice_id
+      // Get all invoiced and paid records grouped by invoice_id
       const { data, error } = await supabase
         .from('lease_accounting')
         .select('*')
         .eq('lease_id', leaseId)
-        .eq('status', 'invoiced')
+        .in('status', ['invoiced', 'paid'])
         .not('invoice_id', 'is', null)
         .order('created_at', { ascending: false });
 
@@ -150,13 +150,26 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
               billing_period: record.billing_period,
               created_at: record.created_at,
               charges: [],
-              total_amount: 0
+              total_amount: 0,
+              is_paid: false,
+              has_partial_payment: false
             };
           }
           
           invoiceGroups[record.invoice_id].charges.push(record);
           invoiceGroups[record.invoice_id].total_amount += record.total_amount;
+          
+          // Track payment status
+          if (record.status === 'paid') {
+            invoiceGroups[record.invoice_id].has_partial_payment = true;
+          }
         }
+      });
+
+      // Determine if invoices are fully paid
+      Object.values(invoiceGroups).forEach((invoice: any) => {
+        const allChargesPaid = invoice.charges.every((charge: any) => charge.status === 'paid');
+        invoice.is_paid = allChargesPaid;
       });
 
       setInvoices(Object.values(invoiceGroups));
@@ -756,8 +769,14 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                                 minimumFractionDigits: 2
                               }).format(invoice.total_amount)}
                             </p>
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              Invoiced
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              invoice.is_paid 
+                                ? 'bg-green-100 text-green-800' 
+                                : invoice.has_partial_payment 
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {invoice.is_paid ? 'Paid' : invoice.has_partial_payment ? 'Partial Payment' : 'Invoiced'}
                             </span>
                           </div>
                         </div>

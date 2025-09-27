@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useModulePermissions } from "@/lib/useModulePermissions";
 import { useUserRole } from "@/lib/useUserRole";
-import BillingPeriodsView from "./BillingPeriodsView";
-import InvoiceModal from "./InvoiceModal";
-import PaymentModal from "./PaymentModal";
-import StatementOfAccount from "./StatementOfAccount";
+import BillingPeriodsView from "./IFRSBillingPeriodsView";
+import InvoiceModal from "./IFRSInvoiceModal";
+import PaymentModal from "./IFRSPaymentModal";
+import StatementOfAccount from "./IFRSStatementOfAccount";
 import ContractDetailsView from "./ContractDetailsView"; // Reuse existing contract details
 import { 
   Plus, 
@@ -517,31 +517,32 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 rounded-2xl shadow-2xl border border-neutral-400/20 w-full max-w-6xl h-[90vh] flex flex-col">
+      <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-7xl h-[90vh] flex flex-col border border-white/10 shadow-2xl">
         
-        {/* Header - Exactly like existing */}
-        <div className="flex items-center justify-between p-6 border-b border-neutral-400/20">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-xl border border-blue-400/30">
-              <Receipt className="w-6 h-6 text-blue-400" />
-            </div>
+        {/* Header */}
+        <div className="p-6 border-b border-white/5 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm rounded-t-2xl">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white"> Lease Accounting</h2>
-              <p className="text-neutral-400">{customerName}</p>
+              <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white/10 backdrop-blur-sm">
+                  <Receipt size={24} className="text-white/80" />
+                </div>
+                Lease Accounting
+              </h2>
+              <p className="text-white/60 mt-1">
+                Managing finances for {customerName}
+              </p>
             </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+            >
+              <X size={20} />
+            </button>
           </div>
-          
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-          >
-            <X size={24} className="text-white" />
-          </button>
-        </div>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Tab Navigation - Exactly like existing */}
-          <div className="flex gap-1 mt-6 mx-6 bg-white/5 backdrop-blur-sm p-1 rounded-lg">
+          {/* Tab Navigation */}
+          <div className="flex gap-1 mt-6 bg-white/5 backdrop-blur-sm p-1 rounded-lg">
             {[
               { id: 'contract', label: 'Contract Details', icon: FileText },
               { id: 'charges', label: 'Charges', icon: Plus },
@@ -565,36 +566,170 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
             ))}
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-hidden">
-            
-            {/* Contract Details Tab - Reuse existing component */}
-            {activeTab === 'contract' && (
-              <div className="h-full overflow-y-auto p-6">
-                <ContractDetailsView
-                  leaseId={leaseId}
-                  customerName={customerName}
-                />
-              </div>
-            )}
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden">
+          
+          {/* Contract Details Tab */}
+          {activeTab === 'contract' && (
+            <div className="h-full overflow-y-auto p-6">
+              <ContractDetailsView
+                leaseId={leaseId}
+                customerName={customerName}
+              />
+            </div>
+          )}
 
-            {/* Charges Tab - Exactly like existing but with  backend */}
-            {activeTab === 'charges' && (
-              <div className="h-full flex flex-col">
-                <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white"> Charge Management</h3>
-                    <button
-                      onClick={() => setShowAddCharge(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
-                    >
-                      <Plus size={16} />
-                      Add Charge
-                    </button>
-                  </div>
+          {/* Charges Tab */}
+          {activeTab === 'charges' && (
+            <div className="h-full flex flex-col">
+              <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-white">Charge Management</h3>
+                  <button
+                    onClick={() => setShowAddCharge(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
+                  >
+                    <Plus size={16} />
+                    Add Charge
+                  </button>
                 </div>
+              </div>
 
-                <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* Add Charge Form */}
+                {showAddCharge && (
+                  <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-6">
+                    <h4 className="text-white font-semibold mb-4">
+                      {editingCharge ? 'Edit Charge' : 'Add New Charge'}
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Charge Type */}
+                      <div>
+                        <label className="block text-white/80 text-sm font-medium mb-2">Charge Type</label>
+                        <select
+                          value={newCharge.charge_type}
+                          onChange={(e) => {
+                            const chargeType = e.target.value as any;
+                            setNewCharge(prev => ({ 
+                              ...prev, 
+                              charge_type: chargeType,
+                              // Auto-set negative amount for refunds
+                              total_amount: chargeType === 'refund' && parseFloat(prev.total_amount) > 0 
+                                ? '-' + prev.total_amount 
+                                : prev.total_amount
+                            }));
+                          }}
+                          className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                        >
+                          <option value="rental">Monthly Rental</option>
+                          <option value="salik">Salik Charges</option>
+                          <option value="mileage">Excess Mileage</option>
+                          <option value="late_fee">Late Payment Fee</option>
+                          <option value="fine">Traffic Fine</option>
+                          <option value="refund">🔄 Refund/Credit</option>
+                        </select>
+                      </div>
+
+                      {/* Billing Period */}
+                      <div>
+                        <label className="block text-white/80 text-sm font-medium mb-2">Billing Period</label>
+                        <input
+                          type="date"
+                          value={newCharge.billing_period}
+                          onChange={(e) => setNewCharge(prev => ({ ...prev, billing_period: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                        />
+                      </div>
+
+                      {/* Quantity */}
+                      {(newCharge.charge_type === 'salik' || newCharge.charge_type === 'mileage') && (
+                        <div>
+                          <label className="block text-white/80 text-sm font-medium mb-2">
+                            {newCharge.charge_type === 'salik' ? 'Salik Count' : 'Excess KM'}
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={newCharge.quantity}
+                            onChange={(e) => setNewCharge(prev => ({ ...prev, quantity: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                            placeholder="0"
+                          />
+                        </div>
+                      )}
+
+                      {/* Unit Price */}
+                      {(newCharge.charge_type === 'salik' || newCharge.charge_type === 'mileage') && (
+                        <div>
+                          <label className="block text-white/80 text-sm font-medium mb-2">
+                            {newCharge.charge_type === 'salik' ? 'Price per Salik' : 'Rate per KM'}
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={newCharge.unit_price}
+                            onChange={(e) => setNewCharge(prev => ({ ...prev, unit_price: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      )}
+
+                      {/* Total Amount */}
+                      <div>
+                        <label className="block text-white/80 text-sm font-medium mb-2">Total Amount (AED)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newCharge.total_amount}
+                          onChange={(e) => setNewCharge(prev => ({ ...prev, total_amount: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                          placeholder="0.00"
+                          readOnly={newCharge.charge_type === 'salik' || newCharge.charge_type === 'mileage'}
+                        />
+                        <p className="text-white/50 text-xs mt-1">
+                          {newCharge.charge_type === 'refund' 
+                            ? 'Refunds automatically use negative amounts (e.g., -200.00)' 
+                            : 'Use negative amounts for manual refunds/credits (e.g., -200.00)'
+                          }
+                        </p>
+                      </div>
+
+                      {/* Comment */}
+                      <div className="md:col-span-2 lg:col-span-3">
+                        <label className="block text-white/80 text-sm font-medium mb-2">Comment (Optional)</label>
+                        <textarea
+                          value={newCharge.comment}
+                          onChange={(e) => setNewCharge(prev => ({ ...prev, comment: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                          rows={2}
+                          placeholder="Optional notes about this charge..."
+                        />
+                      </div>
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="flex gap-3 mt-6">
+                      <button
+                        onClick={handleAddCharge}
+                        className="px-6 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
+                      >
+                        {editingCharge ? 'Update Charge' : 'Add Charge'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowAddCharge(false);
+                          setEditingCharge(null);
+                          resetNewChargeForm();
+                        }}
+                        className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
                   {/* Charges List - Exactly like existing */}
                   <div className="space-y-3">
                     {records.length === 0 ? (
@@ -971,116 +1106,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
               </div>
             )}
 
-            {/* Add Charge Modal - Exactly like existing */}
-            {showAddCharge && (
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10 flex items-center justify-center p-4">
-                <div className="bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl p-6 w-full max-w-md border border-neutral-400/20">
-                  <h3 className="text-lg font-bold text-white mb-4">
-                    {editingCharge ? 'Edit Charge' : 'Add New Charge'}
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm text-neutral-400 mb-2">Billing Period</label>
-                      <input
-                        type="date"
-                        value={newCharge.billing_period}
-                        onChange={(e) => setNewCharge(prev => ({ ...prev, billing_period: e.target.value }))}
-                        className="w-full p-3 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm text-neutral-400 mb-2">Charge Type</label>
-                      <select
-                        value={newCharge.charge_type}
-                        onChange={(e) => setNewCharge(prev => ({ ...prev, charge_type: e.target.value as any }))}
-                        className="w-full p-3 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
-                      >
-                        <option value="rental">Monthly Rental</option>
-                        <option value="salik">Salik Fee</option>
-                        <option value="mileage">Excess Mileage</option>
-                        <option value="late_fee">Late Fee</option>
-                        <option value="fine">Traffic Fine</option>
-                        <option value="refund">Refund/Credit</option>
-                      </select>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm text-neutral-400 mb-2">Quantity</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={newCharge.quantity}
-                          onChange={(e) => setNewCharge(prev => ({ ...prev, quantity: e.target.value }))}
-                          className="w-full p-3 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
-                          placeholder="1"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-neutral-400 mb-2">Unit Price</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={newCharge.unit_price}
-                          onChange={(e) => setNewCharge(prev => ({ ...prev, unit_price: e.target.value }))}
-                          className="w-full p-3 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm text-neutral-400 mb-2">
-                        Total Amount (AED)
-                        {newCharge.charge_type === 'refund' && (
-                          <span className="text-green-400 text-xs ml-2">Will be negative for refunds</span>
-                        )}
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newCharge.total_amount}
-                        onChange={(e) => setNewCharge(prev => ({ ...prev, total_amount: e.target.value }))}
-                        className="w-full p-3 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm text-neutral-400 mb-2">Comment</label>
-                      <textarea
-                        value={newCharge.comment}
-                        onChange={(e) => setNewCharge(prev => ({ ...prev, comment: e.target.value }))}
-                        className="w-full p-3 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
-                        rows={3}
-                        placeholder="Optional notes..."
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-3 mt-6">
-                    <button
-                      onClick={handleAddCharge}
-                      className="flex-1 py-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all"
-                    >
-                      {editingCharge ? 'Update Charge' : 'Add Charge'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowAddCharge(false);
-                        setEditingCharge(null);
-                        resetNewChargeForm();
-                      }}
-                      className="flex-1 py-3 bg-neutral-600 text-white rounded-lg hover:bg-neutral-700 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

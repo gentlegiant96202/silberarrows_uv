@@ -71,8 +71,15 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   const [selectedChargesForInvoice, setSelectedChargesForInvoice] = useState<LeaseAccountingRecord[]>([]);
 
   // New charge form state
-  const [newCharge, setNewCharge] = useState({
-    charge_type: 'rental' as const,
+  const [newCharge, setNewCharge] = useState<{
+    charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine';
+    quantity: string;
+    unit_price: string;
+    total_amount: string;
+    comment: string;
+    billing_period: string;
+  }>({
+    charge_type: 'rental',
     quantity: '',
     unit_price: '',
     total_amount: '',

@@ -87,6 +87,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   const [invoices, setInvoices] = useState<any[]>([]);
   const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
   const [selectedInvoiceForCredit, setSelectedInvoiceForCredit] = useState<any>(null);
+  const [showRefundModal, setShowRefundModal] = useState(false);
 
   // New charge form state
   const [newCharge, setNewCharge] = useState<{
@@ -429,6 +430,12 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
       alert('You do not have permission to create credit notes.');
       return;
     }
+    
+    if (invoice.is_paid) {
+      alert('Cannot create credit notes for fully paid invoices. Please reverse the payment first if a refund is needed.');
+      return;
+    }
+    
     setSelectedInvoiceForCredit(invoice);
     setShowCreditNoteModal(true);
   };
@@ -748,13 +755,25 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
               <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-white">Generated Invoices</h3>
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
-                  >
-                    <CreditCard size={16} />
-                    Record Payment
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
+                    >
+                      <CreditCard size={16} />
+                      Record Payment
+                    </button>
+                    
+                    {hasEditPermission && (
+                      <button
+                        onClick={() => setShowRefundModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-green-500 via-green-400 to-green-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
+                      >
+                        <DollarSign size={16} />
+                        Process Refund
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               
@@ -802,7 +821,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <h5 className="text-sm font-medium text-white/80">Charges:</h5>
-                            {hasEditPermission && (
+                            {hasEditPermission && !invoice.is_paid && (
                               <button
                                 onClick={() => handleCreateCreditNote(invoice)}
                                 className="flex items-center gap-1 px-2 py-1 text-xs text-orange-400 hover:text-orange-300 hover:bg-orange-400/10 rounded transition-all border border-orange-400/20"
@@ -811,6 +830,12 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                                 <Minus size={12} />
                                 Credit Note
                               </button>
+                            )}
+                            
+                            {hasEditPermission && invoice.is_paid && (
+                              <div className="text-xs text-white/40 px-2 py-1">
+                                Paid - No Credit Notes
+                              </div>
                             )}
                           </div>
                           {invoice.charges.map((charge: LeaseAccountingRecord) => (
@@ -915,6 +940,21 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
           }}
         />
       )}
+
+      {/* Refund Modal */}
+      {showRefundModal && (
+        <RefundModal
+          isOpen={showRefundModal}
+          onClose={() => setShowRefundModal(false)}
+          leaseId={leaseId}
+          customerName={customerName}
+          onRefundProcessed={() => {
+            fetchAccountingData();
+            fetchInvoices();
+            setShowRefundModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -946,7 +986,8 @@ function CreditNoteModal({
     'customer_dispute': 'Customer Dispute Resolution',
     'lease_modification': 'Lease Contract Modification',
     'early_termination': 'Early Lease Termination',
-    'damage_reversal': 'Damage Charge Reversal'
+    'damage_reversal': 'Damage Charge Reversal',
+    'overpayment_applied': 'Customer Overpayment Applied'
   };
 
   const createCreditNote = async () => {
@@ -964,32 +1005,37 @@ function CreditNoteModal({
     try {
       const creditNoteNumber = `CN-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
       
-      // IFRS-Compliant Credit Note Record
+      // IFRS-Compliant Credit Note Record (using rental type with special identification)
       const creditNoteData = {
         lease_id: leaseId,
         billing_period: invoice.billing_period,
-        charge_type: 'credit_note' as const,
+        charge_type: 'rental' as const, // Use valid enum value
         quantity: null,
         unit_price: null,
-        total_amount: -parseFloat(creditAmount), // Negative amount (IFRS requirement)
-        comment: `Credit Note ${creditNoteNumber} - ${IFRS_REASONS[reason as keyof typeof IFRS_REASONS]} - ${description} - Original Invoice: ${invoice.invoice_id.slice(-8)}`,
+        total_amount: parseFloat(creditAmount), // Positive amount (identified as credit by payment_id prefix)
+        comment: `CREDIT_NOTE ${creditNoteNumber} - ${IFRS_REASONS[reason as keyof typeof IFRS_REASONS]} - ${description} - Original Invoice: ${invoice.invoice_id.slice(-8)}`,
         invoice_id: null, // Credit notes don't belong to invoices
-        payment_id: null,
-        status: 'pending' as const,
+        payment_id: creditNoteNumber, // Use credit note number for identification
+        status: 'paid' as const, // Mark as processed
         vat_applicable: false, // Credit notes typically don't have VAT
         account_closed: false
       };
 
+      console.log('💳 Inserting credit note record:', creditNoteData);
       const { error } = await supabase
         .from('lease_accounting')
         .insert([creditNoteData]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error inserting credit note record:', error);
+        throw error;
+      }
 
       alert(`Credit Note ${creditNoteNumber} created successfully for ${formatCurrency(parseFloat(creditAmount))}`);
       onCreditNoteCreated();
     } catch (error) {
-      console.error('Error creating credit note:', error);
+      console.error('❌ Detailed error creating credit note:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Error creating credit note. Please try again.');
     } finally {
       setCreating(false);
@@ -1122,6 +1168,217 @@ function CreditNoteModal({
                 <>
                   <Minus size={16} />
                   Create Credit Note
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// End-of-Lease Refund Modal Component
+function RefundModal({ 
+  isOpen, 
+  onClose, 
+  leaseId, 
+  customerName, 
+  onRefundProcessed 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  leaseId: string;
+  customerName: string;
+  onRefundProcessed: () => void;
+}) {
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundType, setRefundType] = useState('security_deposit');
+  const [description, setDescription] = useState('');
+  const [refundMethod, setRefundMethod] = useState<'bank_transfer' | 'cash' | 'cheque'>('bank_transfer');
+  const [processing, setProcessing] = useState(false);
+
+  const REFUND_TYPES = {
+    'security_deposit': 'Security Deposit Refund',
+    'prepaid_rent': 'Prepaid Rent Refund',
+    'overpayment': 'Customer Overpayment Refund',
+    'early_termination': 'Early Termination Refund',
+    'insurance_refund': 'Insurance Premium Refund',
+    'other': 'Other Refund'
+  };
+
+  const processRefund = async () => {
+    if (!refundAmount || parseFloat(refundAmount) <= 0) {
+      alert('Please enter a valid refund amount');
+      return;
+    }
+
+    if (!description.trim()) {
+      alert('Please provide a description for the refund');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const refundNumber = `REF-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+      
+      // IFRS-Compliant Refund Record (using rental type with special identification)
+      const refundData = {
+        lease_id: leaseId,
+        billing_period: new Date().toISOString().split('T')[0], // Today's date
+        charge_type: 'rental' as const, // Use rental type (valid enum value)
+        quantity: null,
+        unit_price: null,
+        total_amount: parseFloat(refundAmount), // Positive amount (identified as refund by payment_id prefix)
+        comment: `REFUND ${refundNumber} - ${REFUND_TYPES[refundType as keyof typeof REFUND_TYPES]} - Method: ${refundMethod.replace('_', ' ').toUpperCase()} - ${description}`,
+        invoice_id: null,
+        payment_id: refundNumber, // Use refund number as payment ID for tracking
+        status: 'paid' as const, // Refunds are immediately processed
+        vat_applicable: false,
+        account_closed: false
+      };
+
+      console.log('💰 Inserting refund record:', refundData);
+      const { error } = await supabase
+        .from('lease_accounting')
+        .insert([refundData]);
+
+      if (error) {
+        console.error('❌ Error inserting refund record:', error);
+        throw error;
+      }
+
+      alert(`Refund ${refundNumber} processed successfully for ${formatCurrency(parseFloat(refundAmount))}`);
+      onRefundProcessed();
+    } catch (error) {
+      console.error('❌ Detailed error processing refund:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      alert('Error processing refund. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      style: 'currency',
+      currency: 'AED',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-2xl border border-white/10 shadow-2xl">
+        
+        {/* Header */}
+        <div className="p-6 border-b border-white/5 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-400/10 backdrop-blur-sm">
+                <DollarSign size={24} className="text-green-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-white">Process Refund</h2>
+                <p className="text-white/60 text-sm">
+                  End-of-Lease Refund for {customerName}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="space-y-4">
+            {/* Refund Amount */}
+            <div>
+              <label className="block text-white/80 text-sm font-medium mb-2">Refund Amount (AED)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                className="w-full px-3 py-3 rounded-lg bg-black/20 border border-white/10 text-white text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-green-400/30"
+                placeholder="0.00"
+              />
+            </div>
+
+            {/* Refund Type */}
+            <div>
+              <label className="block text-white/80 text-sm font-medium mb-2">Refund Type</label>
+              <select
+                value={refundType}
+                onChange={(e) => setRefundType(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-400/30"
+              >
+                {Object.entries(REFUND_TYPES).map(([code, label]) => (
+                  <option key={code} value={code}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Refund Method */}
+            <div>
+              <label className="block text-white/80 text-sm font-medium mb-2">Refund Method</label>
+              <select
+                value={refundMethod}
+                onChange={(e) => setRefundMethod(e.target.value as any)}
+                className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-400/30"
+              >
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cash">Cash</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-white/80 text-sm font-medium mb-2">Description (Required)</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-400/30 resize-none"
+                placeholder="Details about the refund (e.g., 'Security deposit refund less AED 200 for cleaning charges')"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-white/5 bg-white/5 backdrop-blur-sm">
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10"
+            >
+              Cancel
+            </button>
+            
+            <button
+              onClick={processRefund}
+              disabled={!refundAmount || !description.trim() || processing}
+              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-br from-green-500 via-green-400 to-green-600 text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {processing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <DollarSign size={16} />
+                  Process Refund
                 </>
               )}
             </button>

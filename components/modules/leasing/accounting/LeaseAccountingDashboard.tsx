@@ -408,14 +408,6 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
     alert('PDF export feature coming soon!');
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-AE', {
-      style: 'currency',
-      currency: 'AED',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
-
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center">

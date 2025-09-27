@@ -88,7 +88,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
 
   // New charge form state
   const [newCharge, setNewCharge] = useState<{
-    charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine';
+    charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund';
     quantity: string;
     unit_price: string;
     total_amount: string;
@@ -529,7 +529,17 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                         <label className="block text-white/80 text-sm font-medium mb-2">Charge Type</label>
                         <select
                           value={newCharge.charge_type}
-                          onChange={(e) => setNewCharge(prev => ({ ...prev, charge_type: e.target.value as any }))}
+                          onChange={(e) => {
+                            const chargeType = e.target.value as any;
+                            setNewCharge(prev => ({ 
+                              ...prev, 
+                              charge_type: chargeType,
+                              // Auto-set negative amount for refunds
+                              total_amount: chargeType === 'refund' && parseFloat(prev.total_amount) > 0 
+                                ? '-' + prev.total_amount 
+                                : prev.total_amount
+                            }));
+                          }}
                           className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
                         >
                           <option value="rental">Monthly Rental</option>
@@ -537,6 +547,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                           <option value="mileage">Excess Mileage</option>
                           <option value="late_fee">Late Payment Fee</option>
                           <option value="fine">Traffic Fine</option>
+                          <option value="refund">🔄 Refund/Credit</option>
                         </select>
                       </div>
 
@@ -597,7 +608,12 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                           placeholder="0.00"
                           readOnly={newCharge.charge_type === 'salik' || newCharge.charge_type === 'mileage'}
                         />
-                        <p className="text-white/50 text-xs mt-1">Use negative amounts for refunds/credits (e.g., -200.00)</p>
+                        <p className="text-white/50 text-xs mt-1">
+                          {newCharge.charge_type === 'refund' 
+                            ? 'Refunds automatically use negative amounts (e.g., -200.00)' 
+                            : 'Use negative amounts for manual refunds/credits (e.g., -200.00)'
+                          }
+                        </p>
                       </div>
 
                       {/* Comment */}

@@ -127,7 +127,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
         charges: periodCharges,
         total_amount: periodCharges.reduce((sum, charge) => sum + charge.total_amount, 0),
         has_invoice: periodCharges.some(charge => charge.invoice_id),
-        invoice_id: periodCharges.find(charge => charge.invoice_id)?.invoice_id
+        invoice_id: periodCharges.find(charge => charge.invoice_id)?.invoice_id || undefined
       });
     }
     

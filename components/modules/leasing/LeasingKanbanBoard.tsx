@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Users, DollarSign, Receipt } from 'lucide-react';
 import LeasingAppointmentModal from './modals/LeasingAppointmentModal';
 import LeasingContractModal from './modals/LeasingContractModal';
+import { LeaseAccountingDashboard, AccountingButton } from './accounting';
 import { useSearchStore } from '@/lib/searchStore';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
@@ -13,21 +14,28 @@ interface Lease {
   customer_name: string;
   customer_email?: string;
   customer_phone?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-  vehicle_year?: number;
   monthly_payment?: number;
   lease_term_months?: number;
-  start_date?: string;
-  end_date?: string;
+  lease_start_date?: string;
+  lease_end_date?: string;
   status: LeaseStatus;
   lease_status?: LeaseStatus; // For database compatibility
-  employment_type?: string;
   appointment_date?: string;
   appointment_time?: string;
   lease_to_own_option?: boolean;
   buyout_price?: number;
+  excess_mileage_charges?: number;
   selected_vehicle_id?: string; // Vehicle linked to this customer
+  
+  // Vehicle data copied from inventory when selected
+  vehicle_model_year?: number;
+  vehicle_model?: string;
+  vehicle_exterior_colour?: string;
+  vehicle_interior_colour?: string;
+  vehicle_monthly_lease_rate?: number;
+  vehicle_security_deposit?: number;
+  vehicle_buyout_price?: number;
+  
   created_at: string;
   updated_at: string;
   notes?: string;
@@ -81,6 +89,8 @@ export default function LeasingKanbanBoard() {
   const [showModal, setShowModal] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showContractsModal, setShowContractsModal] = useState(false);
+  const [showAccountingModal, setShowAccountingModal] = useState(false);
+  const [accountingCustomer, setAccountingCustomer] = useState<Lease | null>(null);
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [editingLease, setEditingLease] = useState<Lease | null>(null);
@@ -332,6 +342,60 @@ export default function LeasingKanbanBoard() {
       return; // Don't update status yet, let the modal handle it
     }
 
+    // Special case: Moving TO active_leases should auto-open accounting module
+    if (targetStatus === 'active_leases') {
+      console.log('💰 Auto-opening accounting module for move to active leases');
+      
+      // First update the status in database
+      try {
+        const updateData = {
+          lease_status: targetStatus as LeaseStatus,
+          updated_at: new Date().toISOString()
+        };
+        
+        const { data, error } = await supabase
+          .from('leasing_customers')
+          .update(updateData)
+          .eq('id', customerId)
+          .select();
+
+        if (error) {
+          console.error('❌ Error updating customer to active lease:', error);
+          alert(`Failed to update customer status: ${error.message}`);
+          return;
+        }
+
+        // Update local state
+        const updatedCustomer = { ...customerToMove, status: targetStatus as LeaseStatus, lease_status: targetStatus as LeaseStatus };
+        
+        setColumnData(prev => {
+          // Check if the customer is already in the target column to prevent duplicates
+          const isAlreadyInTarget = prev[targetStatus].some(l => l.id === customerId);
+          
+          return {
+            ...prev,
+            [customerToMove.status]: prev[customerToMove.status].filter(l => l.id !== customerId),
+            [targetStatus]: isAlreadyInTarget 
+              ? prev[targetStatus].map(l => l.id === customerId ? updatedCustomer : l)
+              : [...prev[targetStatus], updatedCustomer]
+          };
+        });
+
+        setLeases(prev => prev.map(l => l.id === customerId ? updatedCustomer : l));
+
+        // Auto-open accounting module
+        setAccountingCustomer(updatedCustomer);
+        setShowAccountingModal(true);
+        
+        return; // Exit early since we handled everything
+        
+      } catch (error) {
+        console.error('❌ Exception updating to active lease:', error);
+        alert('Failed to update customer status.');
+        return;
+      }
+    }
+
     try {
       // Debug logging
       console.log('🔄 Attempting to move customer:', {
@@ -390,10 +454,15 @@ export default function LeasingKanbanBoard() {
       });
 
       setColumnData(prev => {
+        // Check if the customer is already in the target column to prevent duplicates
+        const isAlreadyInTarget = prev[targetStatus].some(l => l.id === customerId);
+        
         const newData = {
           ...prev,
           [customerToMove.status]: prev[customerToMove.status].filter(l => l.id !== customerId),
-          [targetStatus]: [...prev[targetStatus], updatedCustomer]
+          [targetStatus]: isAlreadyInTarget 
+            ? prev[targetStatus].map(l => l.id === customerId ? updatedCustomer : l)
+            : [...prev[targetStatus], updatedCustomer]
         };
 
         console.log('📊 Column data updated:', {
@@ -455,9 +524,10 @@ export default function LeasingKanbanBoard() {
       setContractsCustomer(lease);
       setShowContractsModal(true);
     } else if (lease.status === 'active_leases') {
-      // TODO: Design new active lease modal later
-      setSelectedLease(lease);
-      setShowModal(true);
+      // Open accounting module for active leases
+      console.log('💰 Opening accounting module for active lease click');
+      setAccountingCustomer(lease);
+      setShowAccountingModal(true);
     } else {
       // Open general modal for other stages
       setSelectedLease(lease);
@@ -564,12 +634,12 @@ export default function LeasingKanbanBoard() {
         }
       }
 
-      // Employment type filter
-      if (filters.employmentType.length > 0) {
-        if (!customer.employment_type || !filters.employmentType.includes(customer.employment_type)) {
-          return false;
-        }
-      }
+      // Employment type filter - removed as field no longer exists
+      // if (filters.employmentType.length > 0) {
+      //   if (!customer.employment_type || !filters.employmentType.includes(customer.employment_type)) {
+      //     return false;
+      //   }
+      // }
 
       // Customer name filter
       if (filters.customerName && filters.customerName !== '') {
@@ -695,7 +765,7 @@ export default function LeasingKanbanBoard() {
                 // Show filtered data
                 filteredCustomers.map(lease => (
                 <div
-                  key={`${lease.id}-${col.key}`}
+                  key={`${lease.id}-${col.key}-${lease.updated_at || lease.created_at}`}
                   draggable
                   onDragStart={onDragStart(lease)}
                   onDragEnd={onDragEnd}
@@ -764,12 +834,17 @@ export default function LeasingKanbanBoard() {
                     </div>
                     )}
                     
-                    {(lease.vehicle_year || lease.vehicle_make || lease.vehicle_model) && (
+                    {(lease.vehicle_model_year || lease.vehicle_model || lease.selected_vehicle_id) && (
                       <div className="text-xs text-white/70 flex items-center gap-1.5 leading-tight">
                         <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
-                        <span className="truncate">{lease.vehicle_year} {lease.vehicle_make} {lease.vehicle_model}</span>
+                        <span className="truncate">
+                          {lease.vehicle_model_year && lease.vehicle_model ? 
+                            `${lease.vehicle_model_year} ${lease.vehicle_model}` : 
+                            'Vehicle Selected'
+                          }
+                        </span>
                     </div>
                     )}
                     
@@ -785,6 +860,18 @@ export default function LeasingKanbanBoard() {
                     {lease.notes && (
                       <div className="text-xs text-white/50 italic leading-tight line-clamp-2">
                         {highlight(lease.notes)}
+                      </div>
+                    )}
+
+                    {/* Accounting Button for Active Leases */}
+                    {lease.status === 'active_leases' && (
+                      <div className="mt-2 pt-2 border-t border-white/10">
+                        <AccountingButton
+                          leaseId={lease.id}
+                          leaseStartDate={lease.lease_start_date || lease.created_at}
+                          customerName={lease.customer_name}
+                          className="w-full text-xs py-1.5"
+                        />
                       </div>
                     )}
                     
@@ -864,6 +951,19 @@ export default function LeasingKanbanBoard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Accounting Modal for Active Leases */}
+      {showAccountingModal && accountingCustomer && (
+        <LeaseAccountingDashboard
+          leaseId={accountingCustomer.id}
+          leaseStartDate={accountingCustomer.lease_start_date || accountingCustomer.created_at}
+          customerName={accountingCustomer.customer_name}
+          onClose={() => {
+            setShowAccountingModal(false);
+            setAccountingCustomer(null);
+          }}
+        />
       )}
     </div>
   );

@@ -16,6 +16,8 @@ interface InventoryVehicle {
   interior_colour?: string;
   current_mileage_km?: number;
   monthly_lease_rate?: number;
+  security_deposit?: number;
+  buyout_price?: number;
   status?: string;
   condition?: string;
   engine?: string;
@@ -348,6 +350,17 @@ export default function LeasingAppointmentModal({
         notes: notes,
         lease_status: leaseStatus,
         selected_vehicle_id: selectedVehicle?.id || null,
+        
+        // Copy vehicle data from inventory when vehicle is selected
+        vehicle_model_year: selectedVehicle?.model_year || null,
+        vehicle_model: selectedVehicle?.vehicle_model || null,
+        vehicle_exterior_colour: selectedVehicle?.colour || null,
+        vehicle_interior_colour: selectedVehicle?.interior_colour || null,
+        vehicle_monthly_lease_rate: selectedVehicle?.monthly_lease_rate || null,
+        vehicle_security_deposit: selectedVehicle?.security_deposit || null,
+        vehicle_buyout_price: selectedVehicle?.buyout_price || null,
+        excess_mileage_charges: selectedVehicle?.excess_mileage_charges || null,
+        
         updated_at: new Date().toISOString()
       };
 
@@ -357,7 +370,7 @@ export default function LeasingAppointmentModal({
           id: selectedVehicle.id,
           stock_number: selectedVehicle.stock_number,
           make: selectedVehicle.make,
-          model: selectedVehicle.model
+          vehicle_model: selectedVehicle.vehicle_model
         } : null,
         customerEmail: customerEmail,
         emailLength: customerEmail?.length,
@@ -391,8 +404,15 @@ export default function LeasingAppointmentModal({
       }
 
       if (result.error) {
-        console.error('Error saving customer:', result.error);
-        alert('Failed to save customer. Please try again.');
+        console.error('❌ Detailed error saving customer:', {
+          error: result.error,
+          message: result.error.message,
+          details: result.error.details,
+          hint: result.error.hint,
+          code: result.error.code,
+          customerData: customerData
+        });
+        alert(`Failed to save customer: ${result.error.message || 'Unknown error'}`);
         return;
       }
 

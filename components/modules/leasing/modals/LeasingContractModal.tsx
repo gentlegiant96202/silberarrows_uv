@@ -21,8 +21,10 @@ interface InventoryVehicle {
   body_style?: string;
   colour?: string;
   interior_colour?: string;
-  current_mileage_km?: number;
   monthly_lease_rate?: number;
+  security_deposit?: number;
+  buyout_price?: number;
+  excess_mileage_charges?: number;
   status?: string;
   condition?: string;
   engine?: string;
@@ -45,10 +47,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     customer_name: existingCustomer?.customer_name || "",
     customer_email: existingCustomer?.customer_email || "",
     customer_phone: existingCustomer?.customer_phone || "",
-    date_of_birth: existingCustomer?.date_of_birth || "",
-    emirates_id_number: existingCustomer?.emirates_id_number || "",
-    passport_number: existingCustomer?.passport_number || "",
-    visa_number: existingCustomer?.visa_number || ""
+    emirates_id_number: existingCustomer?.emirates_id_number || ""
   });
 
   const [addressInfo, setAddressInfo] = useState({
@@ -67,7 +66,8 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     lease_start_date: existingCustomer?.lease_start_date || "",
     lease_end_date: existingCustomer?.lease_end_date || "",
     lease_to_own_option: existingCustomer?.lease_to_own_option || false,
-    buyout_price: existingCustomer?.buyout_price?.toString() || ""
+    buyout_price: existingCustomer?.buyout_price?.toString() || "",
+    excess_mileage_charges: existingCustomer?.excess_mileage_charges?.toString() || ""
   });
 
   const [documentUrls, setDocumentUrls] = useState({
@@ -87,11 +87,20 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showErrors, setShowErrors] = useState(false);
+  
+  // Contract generation states
+  const [generatingAgreement, setGeneratingAgreement] = useState(false);
+  const [agreementStatusMsg, setAgreementStatusMsg] = useState('');
+  const [generatedContract, setGeneratedContract] = useState<{
+    filename: string;
+    url: string;
+    generatedAt: string;
+  } | null>(null);
 
   // Tab configuration with error checking
   const getTabErrors = (tabId: string) => {
     const tabFieldMap: Record<string, string[]> = {
-      personal: ['customer_name', 'customer_email', 'customer_phone', 'date_of_birth', 'emirates_id_number', 'passport_number', 'visa_number', 'address_line_1', 'city', 'emirate'],
+      personal: ['customer_name', 'customer_email', 'customer_phone', 'emirates_id_number', 'address_line_1', 'city', 'emirate'],
       documents: ['emirates_id_front_url', 'emirates_id_back_url', 'passport_front_url', 'visa_copy_url', 'address_proof_url', 'driving_license_front_url', 'driving_license_back_url'],
       pricing: ['selected_vehicle_id', 'monthly_payment', 'security_deposit', 'lease_term_months', 'lease_start_date', 'lease_end_date', 'buyout_price'],
       contract: []
@@ -141,10 +150,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         customer_name: existingCustomer.customer_name || "",
         customer_email: existingCustomer.customer_email || "",
         customer_phone: existingCustomer.customer_phone || "",
-        date_of_birth: existingCustomer.date_of_birth || "",
-        emirates_id_number: existingCustomer.emirates_id_number || "",
-        passport_number: existingCustomer.passport_number || "",
-        visa_number: existingCustomer.visa_number || ""
+        emirates_id_number: existingCustomer.emirates_id_number || ""
       });
 
       setAddressInfo({
@@ -163,7 +169,8 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         lease_start_date: existingCustomer.lease_start_date || "",
         lease_end_date: existingCustomer.lease_end_date || "",
         lease_to_own_option: existingCustomer.lease_to_own_option || false,
-        buyout_price: existingCustomer.buyout_price?.toString() || ""
+        buyout_price: existingCustomer.buyout_price?.toString() || "",
+        excess_mileage_charges: existingCustomer.excess_mileage_charges?.toString() || ""
       });
 
       setDocumentUrls({
@@ -202,17 +209,8 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     if (!personalInfo.customer_phone.trim()) {
       newErrors['customer_phone'] = 'Phone number is required';
     }
-    if (!personalInfo.date_of_birth) {
-      newErrors['date_of_birth'] = 'Date of birth is required';
-    }
     if (!personalInfo.emirates_id_number.trim()) {
       newErrors['emirates_id_number'] = 'Emirates ID number is required';
-    }
-    if (!personalInfo.passport_number.trim()) {
-      newErrors['passport_number'] = 'Passport number is required';
-    }
-    if (!personalInfo.visa_number.trim()) {
-      newErrors['visa_number'] = 'UAE Visa number is required';
     }
 
     // Address Information Validation
@@ -312,13 +310,76 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
           model: data.vehicle_model || data.model || data.model_family || 'Unknown Model',
           exterior_color: data.colour || data.exterior_color || 'Unknown Color',
           interior_color: data.interior_colour || data.interior_color || 'Unknown Interior',
-          mileage_km: data.current_mileage_km || data.mileage_km || 0,
           engine_type: data.engine || data.engine_type || 'Unknown Engine'
         };
         setSelectedVehicle(transformedVehicle);
+        
+        // Auto-populate pricing fields from vehicle data if they're empty
+        setContractInfo(prev => ({
+          ...prev,
+          monthly_payment: prev.monthly_payment || data.monthly_lease_rate?.toString() || "",
+          security_deposit: prev.security_deposit || data.security_deposit?.toString() || "",
+          buyout_price: prev.buyout_price || data.buyout_price?.toString() || "",
+          excess_mileage_charges: prev.excess_mileage_charges || data.excess_mileage_charges?.toString() || ""
+        }));
+        
+        console.log('✅ Vehicle loaded and pricing auto-populated:', {
+          monthly_lease_rate: data.monthly_lease_rate,
+          security_deposit: data.security_deposit,
+          buyout_price: data.buyout_price,
+          excess_mileage_charges: data.excess_mileage_charges
+        });
       }
     } catch (error) {
       console.error('❌ Error in fetchSelectedVehicle:', error);
+    }
+  };
+
+  // Handle contract generation
+  const handleGenerateLeaseAgreement = async () => {
+    setGeneratingAgreement(true);
+    setAgreementStatusMsg('');
+    
+    try {
+      // Simulate PDF generation process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Create a mock PDF blob and URL
+      const pdfContent = `Lease Agreement - ${personalInfo.customer_name}`;
+      const blob = new Blob([pdfContent], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      // Set generated contract details
+      const filename = `Lease_Agreement_${personalInfo.customer_name?.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+      const generatedAt = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      setGeneratedContract({
+        filename,
+        url,
+        generatedAt
+      });
+      
+      setAgreementStatusMsg('Lease agreement generated successfully!');
+      
+      // Auto-download the PDF
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+    } catch (error) {
+      console.error('Error generating agreement:', error);
+      setAgreementStatusMsg('Failed to generate agreement. Please try again.');
+    } finally {
+      setGeneratingAgreement(false);
     }
   };
 
@@ -333,7 +394,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       const errorKeys = Object.keys(errors);
       if (errorKeys.length > 0) {
         const firstError = errorKeys[0];
-        if (['customer_name', 'customer_email', 'customer_phone', 'date_of_birth', 'emirates_id_number', 'passport_number', 'visa_number'].includes(firstError)) {
+        if (['customer_name', 'customer_email', 'customer_phone', 'emirates_id_number'].includes(firstError)) {
           setActiveTab('personal');
         } else if (firstError.includes('_url')) {
           setActiveTab('documents');
@@ -363,10 +424,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         customer_name: personalInfo.customer_name.toUpperCase(),
         customer_email: personalInfo.customer_email || null,
         customer_phone: personalInfo.customer_phone || null,
-        date_of_birth: personalInfo.date_of_birth || null,
         emirates_id_number: personalInfo.emirates_id_number || null,
-        passport_number: personalInfo.passport_number || null,
-        visa_number: personalInfo.visa_number || null,
         
         // Address info
         address_line_1: addressInfo.address_line_1 || null,
@@ -383,6 +441,15 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         lease_start_date: contractInfo.lease_start_date || null,
         lease_end_date: contractInfo.lease_end_date || null,
         lease_to_own_option: contractInfo.lease_to_own_option || false,
+        
+        // Copy vehicle data from inventory when vehicle is selected
+        vehicle_model_year: selectedVehicle?.model_year || null,
+        vehicle_model: selectedVehicle?.vehicle_model || null,
+        vehicle_exterior_colour: selectedVehicle?.colour || null,
+        vehicle_interior_colour: selectedVehicle?.interior_colour || null,
+        vehicle_monthly_lease_rate: selectedVehicle?.monthly_lease_rate || null,
+        vehicle_security_deposit: selectedVehicle?.security_deposit || null,
+        vehicle_buyout_price: selectedVehicle?.buyout_price || null,
         
         // Document URLs
         emirates_id_front_url: documentUrls.emirates_id_front_url || null,
@@ -720,17 +787,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                     <ErrorMessage field="customer_phone" />
                   </div>
 
-                  {/* Date of Birth */}
-                  <div>
-                    <label className={labelClass}>Date of Birth</label>
-                    <input
-                      type="date"
-                      value={personalInfo.date_of_birth}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, date_of_birth: e.target.value }))}
-                      className={fieldClass}
-                    />
-                  </div>
-
                   {/* Emirates ID */}
                   <div>
                     <label className={labelClass}>Emirates ID Number</label>
@@ -740,28 +796,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                       onChange={(e) => setPersonalInfo(prev => ({ ...prev, emirates_id_number: e.target.value }))}
                       className={fieldClass}
                       placeholder="784-XXXX-XXXXXXX-X"
-                    />
-                  </div>
-
-                  {/* Passport Number */}
-                  <div>
-                    <label className={labelClass}>Passport Number</label>
-                    <input
-                      type="text"
-                      value={personalInfo.passport_number}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, passport_number: e.target.value }))}
-                      className={fieldClass}
-                    />
-                  </div>
-
-                  {/* Visa Number */}
-                  <div className="md:col-span-2">
-                    <label className={labelClass}>UAE Visa Number</label>
-                    <input
-                      type="text"
-                      value={personalInfo.visa_number}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, visa_number: e.target.value }))}
-                      className={fieldClass}
                     />
                   </div>
                 </div>
@@ -993,25 +1027,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                   />
                 </div>
 
-                {/* Upload Instructions */}
-                <div className="mt-6 p-4 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10">
-                  <div className="flex items-start gap-3">
-                    <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 flex-shrink-0">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-white font-medium text-sm mb-1">Document Requirements</h4>
-                      <ul className="text-white/60 text-xs space-y-1">
-                        <li>• All documents must be clear and readable</li>
-                        <li>• Accepted formats: PNG, JPG, JPEG, PDF</li>
-                        <li>• Maximum file size: 10MB per document</li>
-                        <li>• Documents should be recent and valid</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -1032,24 +1047,107 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
 
                 {/* Selected Vehicle Display */}
                 {selectedVehicle && (
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 mb-6">
-                    <h4 className="text-white font-semibold mb-3">Selected Vehicle</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-400">Make:</span>
-                        <p className="text-white font-medium">{selectedVehicle.make}</p>
+                  <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 mb-6 shadow-lg">
+                    <div className="mb-6">
+                      <h4 className="text-xl font-bold text-white flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-br from-neutral-700/50 to-neutral-800/50 backdrop-blur-sm border border-neutral-400/20">
+                          <svg className="w-5 h-5 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </div>
+                        Selected Vehicle Details
+                      </h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Vehicle Information Cards */}
+                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
+                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Make & Model</span>
+                        </div>
+                        <p className="text-white font-semibold text-lg">{selectedVehicle.make} {selectedVehicle.vehicle_model}</p>
                       </div>
-                      <div>
-                        <span className="text-gray-400">Model:</span>
-                        <p className="text-white font-medium">{selectedVehicle.vehicle_model}</p>
+                      
+                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
+                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Year</span>
+                        </div>
+                        <p className="text-white font-semibold text-lg">{selectedVehicle.model_year}</p>
                       </div>
-                      <div>
-                        <span className="text-gray-400">Year:</span>
-                        <p className="text-white font-medium">{selectedVehicle.model_year}</p>
+                      
+                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
+                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Stock Number</span>
+                        </div>
+                        <p className="text-white font-semibold text-lg">{selectedVehicle.stock_number}</p>
                       </div>
-                      <div>
-                        <span className="text-gray-400">Stock #:</span>
-                        <p className="text-white font-medium">{selectedVehicle.stock_number}</p>
+                      
+                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
+                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Exterior Color</span>
+                        </div>
+                        <p className="text-white font-semibold text-lg">{selectedVehicle.colour || 'Not specified'}</p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
+                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Interior Color</span>
+                        </div>
+                        <p className="text-white font-semibold text-lg">{selectedVehicle.interior_colour || 'Not specified'}</p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
+                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Excess Mileage Charges</span>
+                        </div>
+                        <p className="text-white font-bold text-lg">
+                          {selectedVehicle.excess_mileage_charges ? `AED ${parseFloat(selectedVehicle.excess_mileage_charges.toString()).toFixed(2)}/km` : 'Not set'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Pricing Information Section */}
+                    <div className="mt-6 pt-6 border-t border-neutral-400/20">
+                      <h5 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-neutral-400"></div>
+                        Inventory Pricing
+                      </h5>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-gradient-to-br from-neutral-700/30 to-neutral-800/30 rounded-lg p-4 border border-neutral-400/30 backdrop-blur-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-neutral-300 text-sm font-medium">Monthly Lease Rate</span>
+                            <div className="w-1 h-1 rounded-full bg-neutral-400"></div>
+                          </div>
+                          <p className="text-white font-bold text-xl">
+                            {selectedVehicle.monthly_lease_rate ? `AED ${parseFloat(selectedVehicle.monthly_lease_rate.toString()).toLocaleString()}` : 'Not set'}
+                          </p>
+                        </div>
+                        
+                        <div className="bg-gradient-to-br from-neutral-700/30 to-neutral-800/30 rounded-lg p-4 border border-neutral-400/30 backdrop-blur-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-neutral-300 text-sm font-medium">Security Deposit</span>
+                            <div className="w-1 h-1 rounded-full bg-neutral-400"></div>
+                          </div>
+                          <p className="text-white font-bold text-xl">
+                            {selectedVehicle.security_deposit ? `AED ${parseFloat(selectedVehicle.security_deposit.toString()).toLocaleString()}` : 'Not set'}
+                          </p>
+                        </div>
+                        
+                        <div className="bg-gradient-to-br from-neutral-700/30 to-neutral-800/30 rounded-lg p-4 border border-neutral-400/30 backdrop-blur-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-neutral-300 text-sm font-medium">Buyout Price</span>
+                            <div className="w-1 h-1 rounded-full bg-neutral-400"></div>
+                          </div>
+                          <p className="text-white font-bold text-xl">
+                            {selectedVehicle.buyout_price ? `AED ${parseFloat(selectedVehicle.buyout_price.toString()).toLocaleString()}` : 'Not set'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1058,7 +1156,14 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Monthly Payment */}
                   <div>
-                    <label className={labelClass}>Monthly Payment (AED)</label>
+                    <label className={labelClass}>
+                      Monthly Payment (AED)
+                      {selectedVehicle?.monthly_lease_rate && contractInfo.monthly_payment === selectedVehicle.monthly_lease_rate.toString() && (
+                        <span className="ml-2 px-2 py-0.5 bg-gradient-to-r from-neutral-600/30 to-neutral-700/30 text-neutral-300 text-xs rounded-full border border-neutral-400/20">
+                          From Vehicle
+                        </span>
+                      )}
+                    </label>
                     <input
                       type="number"
                       value={contractInfo.monthly_payment}
@@ -1066,12 +1171,20 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                       className={fieldClass}
                       min="0"
                       step="0.01"
+                      placeholder={selectedVehicle?.monthly_lease_rate ? `Suggested: ${selectedVehicle.monthly_lease_rate}` : "Enter amount"}
                     />
                   </div>
 
                   {/* Security Deposit */}
                   <div>
-                    <label className={labelClass}>Security Deposit (AED)</label>
+                    <label className={labelClass}>
+                      Security Deposit (AED)
+                      {selectedVehicle?.security_deposit && contractInfo.security_deposit === selectedVehicle.security_deposit.toString() && (
+                        <span className="ml-2 px-2 py-0.5 bg-gradient-to-r from-neutral-600/30 to-neutral-700/30 text-neutral-300 text-xs rounded-full border border-neutral-400/20">
+                          From Vehicle
+                        </span>
+                      )}
+                    </label>
                     <input
                       type="number"
                       value={contractInfo.security_deposit}
@@ -1079,6 +1192,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                       className={fieldClass}
                       min="0"
                       step="0.01"
+                      placeholder={selectedVehicle?.security_deposit ? `Suggested: ${selectedVehicle.security_deposit}` : "Enter amount"}
                     />
                   </div>
 
@@ -1098,6 +1212,35 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                     </select>
                   </div>
 
+                  {/* Excess Mileage Charges */}
+                  <div>
+                    <label className={labelClass}>
+                      Excess Mileage Charges (AED per km)
+                      {selectedVehicle?.excess_mileage_charges && contractInfo.excess_mileage_charges === selectedVehicle.excess_mileage_charges.toString() && (
+                        <span className="ml-2 px-2 py-0.5 bg-gradient-to-r from-neutral-600/30 to-neutral-700/30 text-neutral-300 text-xs rounded-full border border-neutral-400/20">
+                          From Vehicle
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      value={contractInfo.excess_mileage_charges}
+                      onChange={(e) => setContractInfo(prev => ({ ...prev, excess_mileage_charges: e.target.value }))}
+                      className={fieldClass}
+                      min="0"
+                      step="0.01"
+                      placeholder={selectedVehicle?.excess_mileage_charges ? `Suggested: ${selectedVehicle.excess_mileage_charges}` : "Enter rate per km"}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Charge per kilometer when customer exceeds mileage limit
+                      {selectedVehicle?.excess_mileage_charges && (
+                        <span className="ml-2 text-orange-400">
+                          (Vehicle suggests: AED {parseFloat(selectedVehicle.excess_mileage_charges.toString()).toFixed(2)}/km)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
                   {/* Lease to Own Option */}
                   <div className="flex items-center space-x-3">
                     <input
@@ -1115,7 +1258,14 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                   {/* Buyout Price - Only show when lease-to-own is selected */}
                   {contractInfo.lease_to_own_option && (
                     <div>
-                      <label className={labelClass}>Buyout Price (AED) *</label>
+                      <label className={labelClass}>
+                        Buyout Price (AED) *
+                        {selectedVehicle?.buyout_price && contractInfo.buyout_price === selectedVehicle.buyout_price.toString() && (
+                          <span className="ml-2 px-2 py-0.5 bg-gradient-to-r from-neutral-600/30 to-neutral-700/30 text-neutral-300 text-xs rounded-full border border-neutral-400/20">
+                            From Vehicle
+                          </span>
+                        )}
+                      </label>
                       <input
                         type="number"
                         value={contractInfo.buyout_price}
@@ -1123,11 +1273,16 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                         className={fieldClass}
                         min="0"
                         step="0.01"
-                        placeholder="Enter buyout price for lease-to-own"
+                        placeholder={selectedVehicle?.buyout_price ? `Suggested: ${selectedVehicle.buyout_price}` : "Enter buyout price for lease-to-own"}
                         required={contractInfo.lease_to_own_option}
                       />
                       <p className="text-xs text-gray-500 mt-1">
                         Price customer will pay to own the vehicle at lease end
+                        {selectedVehicle?.buyout_price && (
+                          <span className="ml-2 text-purple-400">
+                            (Vehicle suggests: AED {parseFloat(selectedVehicle.buyout_price.toString()).toLocaleString()})
+                          </span>
+                        )}
                       </p>
                     </div>
                   )}
@@ -1178,22 +1333,243 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                     </div>
                     Generate Contract
                   </h3>
-                  <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
-                    Coming Soon
-                  </div>
                 </div>
 
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                      <Car className="w-8 h-8 text-white/60" />
+                {!generatedContract ? (
+                  <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 shadow-lg">
+                    <div className="mb-6">
+                      <h4 className="text-xl font-bold text-white mb-2">Lease Agreement</h4>
+                      <p className="text-neutral-300 text-sm">
+                        Generate a comprehensive lease agreement document for this customer.
+                      </p>
                     </div>
-                    <h4 className="text-lg font-semibold text-white mb-2">Generate Contract</h4>
-                    <p className="text-white/60 text-sm max-w-md">
-                      This section will contain contract generation, digital signing, and document management features.
-                    </p>
+
+                    {/* Contract Summary */}
+                    <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-6 border border-neutral-400/20 backdrop-blur-sm mb-6">
+                      <h5 className="text-white font-semibold mb-4 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
+                        Contract Summary
+                      </h5>
+                      
+                      {/* Customer Information */}
+                      <div className="mb-6">
+                        <h6 className="text-neutral-300 font-medium mb-3 text-sm uppercase tracking-wide">Customer Information</h6>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-neutral-400">Full Name:</span>
+                            <p className="text-white font-medium">{personalInfo.customer_name || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Email:</span>
+                            <p className="text-white font-medium">{personalInfo.customer_email || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Phone:</span>
+                            <p className="text-white font-medium">{personalInfo.customer_phone || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Emirates ID:</span>
+                            <p className="text-white font-medium">{personalInfo.emirates_id_number || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Address:</span>
+                            <p className="text-white font-medium">
+                              {addressInfo.address_line_1 ? 
+                                `${addressInfo.address_line_1}${addressInfo.address_line_2 ? ', ' + addressInfo.address_line_2 : ''}${addressInfo.city ? ', ' + addressInfo.city : ''}${addressInfo.emirate ? ', ' + addressInfo.emirate : ''}` 
+                                : 'Not specified'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Vehicle Information */}
+                      <div className="mb-6 pt-4 border-t border-neutral-400/20">
+                        <h6 className="text-neutral-300 font-medium mb-3 text-sm uppercase tracking-wide">Vehicle Information</h6>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-neutral-400">Vehicle:</span>
+                            <p className="text-white font-medium">
+                              {selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.vehicle_model} (${selectedVehicle.model_year})` : 'No vehicle selected'}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Stock Number:</span>
+                            <p className="text-white font-medium">{selectedVehicle?.stock_number || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Exterior Color:</span>
+                            <p className="text-white font-medium">{selectedVehicle?.colour || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Interior Color:</span>
+                            <p className="text-white font-medium">{selectedVehicle?.interior_colour || 'Not specified'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Contract Terms */}
+                      <div className="pt-4 border-t border-neutral-400/20">
+                        <h6 className="text-neutral-300 font-medium mb-3 text-sm uppercase tracking-wide">Contract Terms</h6>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-neutral-400">Monthly Payment:</span>
+                            <p className="text-white font-bold text-base">AED {contractInfo.monthly_payment ? parseFloat(contractInfo.monthly_payment).toLocaleString() : '0'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Security Deposit:</span>
+                            <p className="text-white font-bold text-base">AED {contractInfo.security_deposit ? parseFloat(contractInfo.security_deposit).toLocaleString() : '0'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Lease Term:</span>
+                            <p className="text-white font-medium">{contractInfo.lease_term_months || '0'} months</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Lease Start Date:</span>
+                            <p className="text-white font-medium">{contractInfo.lease_start_date || 'Not set'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Lease End Date:</span>
+                            <p className="text-white font-medium">{contractInfo.lease_end_date || 'Not set'}</p>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400">Excess Mileage Charges:</span>
+                            <p className="text-white font-medium">
+                              {contractInfo.excess_mileage_charges ? `AED ${parseFloat(contractInfo.excess_mileage_charges).toFixed(2)}/km` : 'Not set'}
+                            </p>
+                          </div>
+                          {contractInfo.lease_to_own_option && (
+                            <>
+                              <div>
+                                <span className="text-neutral-400">Lease-to-Own:</span>
+                                <p className="text-green-400 font-medium">Yes</p>
+                              </div>
+                              <div>
+                                <span className="text-neutral-400">Buyout Price:</span>
+                                <p className="text-white font-bold text-base">AED {contractInfo.buyout_price ? parseFloat(contractInfo.buyout_price).toLocaleString() : '0'}</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        
+                        {/* Total Contract Value */}
+                        {contractInfo.monthly_payment && contractInfo.lease_term_months && (
+                          <div className="mt-4 pt-4 border-t border-neutral-400/20">
+                            <div className="bg-gradient-to-r from-neutral-700/30 to-neutral-600/30 rounded-lg p-3 border border-neutral-400/30">
+                              <div className="flex justify-between items-center">
+                                <span className="text-neutral-300 font-medium">Total Contract Value:</span>
+                                <p className="text-white font-bold text-lg">
+                                  AED {(parseFloat(contractInfo.monthly_payment) * parseFloat(contractInfo.lease_term_months)).toLocaleString()}
+                                </p>
+                              </div>
+                              <p className="text-neutral-400 text-xs mt-1">
+                                ({contractInfo.monthly_payment} × {contractInfo.lease_term_months} months)
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Additional Notes */}
+                        {notes && (
+                          <div className="mt-4 pt-4 border-t border-neutral-400/20">
+                            <div>
+                              <span className="text-neutral-400 text-sm">Additional Notes:</span>
+                              <p className="text-white font-medium text-sm mt-1 bg-neutral-800/30 rounded p-2 border border-neutral-400/20">
+                                {notes}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Generate Button */}
+                    <div className="flex justify-center">
+                      <button
+                        onClick={handleGenerateLeaseAgreement}
+                        disabled={generatingAgreement}
+                        className="px-8 py-3 bg-gradient-to-r from-neutral-600 to-neutral-700 hover:from-neutral-500 hover:to-neutral-600 disabled:from-neutral-700 disabled:to-neutral-800 text-white font-semibold rounded-lg transition-all duration-200 flex items-center gap-3 border border-neutral-400/30 shadow-lg hover:shadow-xl disabled:cursor-not-allowed"
+                      >
+                        {generatingAgreement ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            Generating Agreement...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Generate Lease Agreement
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {agreementStatusMsg && (
+                      <div className="mt-4 p-3 bg-green-500/10 border border-green-400/30 rounded-lg">
+                        <p className="text-green-400 text-sm text-center">{agreementStatusMsg}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 shadow-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-xl font-bold text-white flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                        Generated Agreement
+                      </h4>
+                      <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-400/30">
+                        Ready
+                      </span>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm mb-6">
+                      <div className="flex items-center gap-3 mb-3">
+                        <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div>
+                          <h5 className="text-white font-semibold">{generatedContract.filename}</h5>
+                          <p className="text-neutral-400 text-sm">Generated on {generatedContract.generatedAt}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => window.open(generatedContract.url, '_blank')}
+                        className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-blue-400/30"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View
+                      </button>
+                      <button
+                        onClick={() => setGeneratedContract(null)}
+                        className="flex-1 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-red-400/30"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => {
+                          // TODO: Implement send for signing functionality
+                          alert('Send for signing functionality will be implemented next');
+                        }}
+                        className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-green-400/30"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        Send for Signing
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

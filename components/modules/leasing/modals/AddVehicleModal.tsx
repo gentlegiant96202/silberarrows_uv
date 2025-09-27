@@ -98,6 +98,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     accumulated_depreciation: existingVehicle?.accumulated_depreciation?.toString() || "0",
     carrying_value: existingVehicle?.carrying_value?.toString() || "",
     buyout_price: existingVehicle?.buyout_price?.toString() || "",
+    excess_mileage_charges: existingVehicle?.excess_mileage_charges?.toString() || "",
     current_market_value: existingVehicle?.current_market_value?.toString() || "",
     unrealized_gain_loss: existingVehicle?.unrealized_gain_loss?.toString() || "0",
     
@@ -182,6 +183,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
 
   // Sync form when existingVehicle or mode changes (for edit mode ONLY)
   useEffect(() => {
+    console.log('🔄 useEffect triggered - isOpen:', isOpen, 'mode:', mode, 'existingVehicle:', !!existingVehicle);
     if (isOpen && mode === 'edit' && existingVehicle) {
       console.log('🔍 Loading existing vehicle data for ID:', existingVehicle.id);
       console.log('🔍 Full existingVehicle object:', existingVehicle);
@@ -248,6 +250,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         accumulated_depreciation: existingVehicle.accumulated_depreciation?.toString() || "0",
         carrying_value: existingVehicle.carrying_value?.toString() || "",
         buyout_price: existingVehicle.buyout_price?.toString() || "",
+        excess_mileage_charges: existingVehicle.excess_mileage_charges?.toString() || "",
         current_market_value: existingVehicle.current_market_value?.toString() || "",
         unrealized_gain_loss: existingVehicle.unrealized_gain_loss?.toString() || "0",
         
@@ -353,6 +356,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
           accumulated_depreciation: "0",
           carrying_value: "",
           buyout_price: "",
+          excess_mileage_charges: "",
           current_market_value: "",
           unrealized_gain_loss: "0",
           
@@ -490,7 +494,12 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
       return;
     }
     
-    console.log('💾 Starting save process...');
+    console.log('💾 Starting save process...', {
+      excess_mileage_charges: form.excess_mileage_charges,
+      monthly_lease_rate: form.monthly_lease_rate,
+      security_deposit: form.security_deposit,
+      buyout_price: form.buyout_price
+    });
     setSaving(true);
     setErrors([]);
 
@@ -520,6 +529,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         monthly_lease_rate: form.monthly_lease_rate ? parseFloat(form.monthly_lease_rate) : null,
         security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
         buyout_price: form.buyout_price ? parseFloat(form.buyout_price) : null,
+        excess_mileage_charges: form.excess_mileage_charges ? parseFloat(form.excess_mileage_charges) : null,
         purchase_date: form.purchase_date || null,
         acquired_cost: form.acquired_cost ? parseFloat(form.acquired_cost) : null,
         monthly_depreciation: form.monthly_depreciation ? parseFloat(form.monthly_depreciation) : null,
@@ -556,7 +566,9 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
 
       // Update the existing vehicle data
       const updatedVehicle = { ...existingVehicle, ...data };
+      console.log('✅ Vehicle saved successfully, calling onCreated callback');
       onCreated(updatedVehicle);
+      console.log('🔄 Setting editing to false');
       setEditing(false);
       
     } catch (error) {
@@ -1199,6 +1211,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
   };
 
   const handleSubmit = async () => {
+    console.log('🚀 handleSubmit called - mode:', mode, 'existingVehicle:', !!existingVehicle);
     const validationErrors = validateStep();
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
@@ -1233,6 +1246,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         monthly_lease_rate: form.monthly_lease_rate ? parseFloat(form.monthly_lease_rate) : null,
         security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
         buyout_price: form.buyout_price ? parseFloat(form.buyout_price) : null,
+        excess_mileage_charges: form.excess_mileage_charges ? parseFloat(form.excess_mileage_charges) : null,
         purchase_date: form.purchase_date || null,
         acquired_cost: form.acquired_cost ? parseFloat(form.acquired_cost) : null,
         monthly_depreciation: form.monthly_depreciation ? parseFloat(form.monthly_depreciation) : null,
@@ -1256,6 +1270,17 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         // ===== AUDIT =====
         updated_at: new Date().toISOString(),
       } as any;
+
+      console.log('🔍 Vehicle data being saved:', {
+        excess_mileage_charges: vehicleData.excess_mileage_charges,
+        form_excess_mileage: form.excess_mileage_charges,
+        all_pricing_fields: {
+          monthly_lease_rate: vehicleData.monthly_lease_rate,
+          security_deposit: vehicleData.security_deposit,
+          buyout_price: vehicleData.buyout_price,
+          excess_mileage_charges: vehicleData.excess_mileage_charges
+        }
+      });
 
       let result;
       if (mode === 'edit' && existingVehicle) {
@@ -1446,6 +1471,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                             accumulated_depreciation: existingVehicle.accumulated_depreciation?.toString() || "",
                             carrying_value: existingVehicle.carrying_value?.toString() || "",
                             buyout_price: existingVehicle.buyout_price?.toString() || "",
+                            excess_mileage_charges: existingVehicle.excess_mileage_charges?.toString() || "",
                             current_market_value: existingVehicle.current_market_value?.toString() || "",
                             unrealized_gain_loss: existingVehicle.unrealized_gain_loss?.toString() || "",
                             
@@ -2376,6 +2402,24 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                     step="0.01"
                     readOnly={isViewMode}
                   />
+                </div>
+                <div>
+                  <label className={labelClass}>Excess Mileage Charges (AED per km)</label>
+                  <input
+                    type="number"
+                    name="excess_mileage_charges"
+                    value={form.excess_mileage_charges}
+                    onChange={handleChangeConditional}
+                    className={getFieldClass()}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                    placeholder="0.50"
+                    min="0"
+                    step="0.01"
+                    readOnly={isViewMode}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Charge per kilometer when customer exceeds mileage limit
+                  </p>
                 </div>
               </div>
 

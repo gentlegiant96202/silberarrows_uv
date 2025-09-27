@@ -82,3 +82,4 @@ WHERE status = 'leased';
 SELECT unnest(enum_range(NULL::lease_status_enum)) as available_statuses;
 
 RAISE NOTICE 'Active lease system cleanup completed successfully!';
+

@@ -225,7 +225,7 @@ DECLARE
     v_charge_id UUID;
 BEGIN
     -- Insert charge with  audit trail
-    INSERT INTO overdue_lease_accounting (
+    INSERT INTO ifrs_lease_accounting (
         lease_id, billing_period, charge_type, quantity, unit_price, 
         total_amount, comment, status, vat_applicable, created_by
     ) VALUES (
@@ -396,7 +396,7 @@ BEGIN
     v_remaining_amount := p_amount;
     
     -- Create payment record
-    INSERT INTO overdue_lease_accounting (
+    INSERT INTO ifrs_lease_accounting (
         lease_id, billing_period, charge_type, total_amount,
         comment, payment_id, status, vat_applicable, created_by
     ) VALUES (
@@ -518,7 +518,7 @@ CREATE POLICY "Leasing users can view transactions" ON ifrs_lease_accounting
 -- 10. SCHEDULED OVERDUE UPDATES (optional cron job)
 /*
 -- Run this as a scheduled function to automatically update overdue status
-SELECT cron.schedule('update-overdue-invoices', '0 6 * * *', 'SELECT update_overdue_status();');
+SELECT cron.schedule('update-overdue-invoices', '0 6 * * *', 'SELECT ifrs_update_overdue_status();');
 */
 
 -- Success message

@@ -37,6 +37,7 @@ interface LeaseAccountingRecord {
   account_closed: boolean;
   created_at: string;
   updated_at: string;
+  documents: any;
 }
 
 interface BillingPeriod {

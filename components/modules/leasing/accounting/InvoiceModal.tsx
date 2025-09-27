@@ -112,11 +112,15 @@ export default function InvoiceModal({
       }));
 
       // Update charges in batch
+      console.log('🔄 Updating charges with:', chargeUpdates);
       const { error: updateError } = await supabase
         .from('lease_accounting')
         .upsert(chargeUpdates);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Error updating charges:', updateError);
+        throw updateError;
+      }
 
       // For the single-table approach, we'll also insert a summary record for the invoice
       const invoiceSummary = {
@@ -135,11 +139,15 @@ export default function InvoiceModal({
       };
 
       // Insert invoice summary record
+      console.log('📝 Inserting invoice summary:', invoiceSummary);
       const { error: summaryError } = await supabase
         .from('lease_accounting')
         .insert([invoiceSummary]);
 
-      if (summaryError) throw summaryError;
+      if (summaryError) {
+        console.error('❌ Error inserting invoice summary:', summaryError);
+        throw summaryError;
+      }
 
       onInvoiceGenerated();
       onClose();
@@ -148,7 +156,8 @@ export default function InvoiceModal({
       alert(`Invoice generated successfully!\nInvoice ID: ${invoiceId}\nTotal: ${formatCurrency(total)}`);
       
     } catch (error) {
-      console.error('Error generating invoice:', error);
+      console.error('❌ Detailed error generating invoice:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Error generating invoice. Please try again.');
     } finally {
       setGenerating(false);

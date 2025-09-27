@@ -247,7 +247,7 @@ export default function BillingPeriodsView({
       {/* Header with Extend Button */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-white"> Billing Periods</h3>
+          <h3 className="text-lg font-semibold text-white">Billing Periods</h3>
           <p className="text-white/60 text-sm">
             {leaseEndDate ? (
               <>Lease ends: {new Date(leaseEndDate).toLocaleDateString('en-GB')}</>

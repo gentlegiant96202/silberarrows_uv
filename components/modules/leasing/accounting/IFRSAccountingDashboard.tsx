@@ -517,7 +517,7 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-7xl h-[90vh] flex flex-col border border-white/10 shadow-2xl">
+      <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-7xl h-[90vh] flex flex-col border border-white/10 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
         
         {/* Header */}
         <div className="p-6 border-b border-white/5 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm rounded-t-2xl">
@@ -565,6 +565,7 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
               </button>
             ))}
           </div>
+        </div>
 
         {/* Content Area */}
         <div className="flex-1 overflow-hidden">
@@ -830,7 +831,7 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
                 <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-white"> Billing Periods</h3>
+                      <h3 className="text-lg font-semibold text-white">Billing Periods</h3>
                       <p className="text-white/60 text-sm">
                         {leaseInfo?.lease_start_date ? (
                           <>

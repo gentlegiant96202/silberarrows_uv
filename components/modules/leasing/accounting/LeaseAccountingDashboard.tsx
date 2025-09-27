@@ -330,7 +330,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
             <div className="h-full overflow-y-auto p-6">
               <ContractDetailsView
                 leaseId={leaseId}
-                onDataUpdate={fetchAccountingData}
+                customerName={customerName}
               />
             </div>
           )}

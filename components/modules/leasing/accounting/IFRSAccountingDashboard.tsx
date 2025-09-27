@@ -291,7 +291,17 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
   const handleAddCharge = async () => {
     try {
-      console.log('💰  Form data before processing:', newCharge);
+      console.log('💰 Form data before processing:', newCharge);
+      
+      // Validation
+      if (!newCharge.billing_period) {
+        alert('Please select a billing period');
+        return;
+      }
+      if (!newCharge.total_amount || parseFloat(newCharge.total_amount) === 0) {
+        alert('Please enter a valid amount');
+        return;
+      }
       
       if (editingCharge) {
         // Update existing charge using  function
@@ -312,6 +322,13 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
         fetchAccountingData(); // Refresh data
       } else {
         // Add new charge using  function
+        console.log('🔄 Calling ifrs_add_charge with params:', {
+          p_lease_id: leaseId,
+          p_billing_period: newCharge.billing_period,
+          p_charge_type: newCharge.charge_type,
+          p_total_amount: parseFloat(newCharge.total_amount)
+        });
+        
         const { data, error } = await supabase.rpc('ifrs_add_charge', {
           p_lease_id: leaseId,
           p_billing_period: newCharge.billing_period,
@@ -323,8 +340,12 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
           p_vat_applicable: true
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Error from ifrs_add_charge:', error);
+          throw error;
+        }
 
+        console.log('✅ Charge added successfully, returned data:', data);
         alert('Charge added successfully.');
         fetchAccountingData(); // Refresh data
       }
@@ -405,8 +426,11 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
   };
 
   const handleAddChargeForPeriod = (billingPeriod: string) => {
+    console.log('📅 Adding charge for period:', billingPeriod);
     setNewCharge(prev => ({ ...prev, billing_period: billingPeriod }));
+    setActiveTab('charges'); // Switch to charges tab
     setShowAddCharge(true);
+    console.log('📝 Switched to charges tab, form visible, billing period set to:', billingPeriod);
   };
 
   const handleInvoiceGenerated = () => {

@@ -689,9 +689,14 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
 
                           <div className="flex items-center gap-4">
                             <div className="text-right">
-                              <div className={`font-semibold ${record.charge_type === 'refund' || record.total_amount < 0 ? 'text-green-400' : 'text-white'}`}>
+                              <div className={`font-semibold ${
+                                record.charge_type === 'refund' || 
+                                (record.comment && record.comment.startsWith('PAYMENT')) || 
+                                record.total_amount < 0 ? 'text-green-400' : 'text-white'
+                              }`}>
                                 {formatCurrency(record.total_amount)}
                                 {record.charge_type === 'refund' && <span className="text-xs ml-1">🔄</span>}
+                                {record.comment && record.comment.startsWith('PAYMENT') && <span className="text-xs ml-1">💳</span>}
                               </div>
                               <div className={`text-xs px-2 py-1 rounded-full ${getStatusColor(record.status)}`}>
                                 {record.status.toUpperCase()}
@@ -830,13 +835,18 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                                 {charge.charge_type.charAt(0).toUpperCase() + charge.charge_type.slice(1)}
                                 {charge.comment && ` - ${charge.comment}`}
                               </span>
-                              <span className={`font-medium ${charge.charge_type === 'refund' || charge.total_amount < 0 ? 'text-green-400' : 'text-white'}`}>
+                              <span className={`font-medium ${
+                                charge.charge_type === 'refund' || 
+                                (charge.comment && charge.comment.startsWith('PAYMENT')) || 
+                                charge.total_amount < 0 ? 'text-green-400' : 'text-white'
+                              }`}>
                                 {new Intl.NumberFormat('en-AE', {
                                   style: 'currency',
                                   currency: 'AED',
                                   minimumFractionDigits: 2
                                 }).format(charge.total_amount)}
                                 {charge.charge_type === 'refund' && <span className="text-xs ml-1">🔄</span>}
+                                {charge.comment && charge.comment.startsWith('PAYMENT') && <span className="text-xs ml-1">💳</span>}
                               </span>
                             </div>
                           ))}

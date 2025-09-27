@@ -233,9 +233,33 @@ export default function PaymentModal({
         }
       }
 
-      // Payment information is tracked via payment_id on charges and status changes
-      // No need for separate payment record due to database constraint requiring positive amounts
-      console.log('💰 Payment recorded successfully via charge updates and payment_id:', paymentId);
+      // Create a visible payment record for the statement
+      const paymentRecord = {
+        lease_id: leaseId,
+        billing_period: new Date().toISOString().split('T')[0], // Today's date
+        charge_type: 'rental' as const, // Use rental type for payments
+        quantity: null,
+        unit_price: null,
+        total_amount: -paymentAmountNum, // Negative amount (reduces customer balance)
+        comment: `PAYMENT ${paymentId.slice(-8)} - ${paymentMethod.replace('_', ' ').toUpperCase()}${paymentReference ? ` (Ref: ${paymentReference})` : ''}${notes ? ` - ${notes}` : ''}`,
+        invoice_id: null, // Payments don't belong to specific invoices
+        payment_id: paymentId,
+        status: 'paid' as const,
+        vat_applicable: false,
+        account_closed: false
+      };
+
+      console.log('💰 Creating payment record:', paymentRecord);
+      const { error: paymentError } = await supabase
+        .from('lease_accounting')
+        .insert([paymentRecord]);
+
+      if (paymentError) {
+        console.error('❌ Error creating payment record:', paymentError);
+        throw paymentError;
+      }
+
+      console.log('✅ Payment recorded successfully with visible payment entry:', paymentId);
 
       onPaymentRecorded();
       onClose();

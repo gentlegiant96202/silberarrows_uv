@@ -65,10 +65,15 @@ export default function PaymentModal({
   const [invoices, setInvoices] = useState<InvoiceGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [recording, setRecording] = useState(false);
+  
+  // Payment history state
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchOutstandingInvoices();
+      fetchPaymentHistory();
     }
   }, [isOpen, leaseId]);
 
@@ -138,6 +143,27 @@ export default function PaymentModal({
       month: 'short',
       year: 'numeric'
     });
+  };
+
+  const fetchPaymentHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      
+      // Fetch payment records (identified by PAYMENT prefix in comment)
+      const { data, error } = await supabase
+        .from('lease_accounting')
+        .select('*')
+        .eq('lease_id', leaseId)
+        .ilike('comment', 'PAYMENT%')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPaymentHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
   };
 
   const totalOutstanding = invoices.reduce((sum, invoice) => sum + invoice.outstanding_amount, 0);
@@ -261,6 +287,9 @@ export default function PaymentModal({
 
       console.log('✅ Payment recorded successfully with visible payment entry:', paymentId);
 
+      // Refresh payment history
+      fetchPaymentHistory();
+      
       onPaymentRecorded();
       onClose();
       
@@ -492,6 +521,58 @@ export default function PaymentModal({
                   )}
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Payment History Section */}
+        <div className="p-6 border-t border-white/5">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <CreditCard size={20} />
+            Payment History
+          </h3>
+          
+          {loadingHistory ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white/60"></div>
+            </div>
+          ) : paymentHistory.length === 0 ? (
+            <div className="text-center py-8 text-white/60">
+              <CreditCard size={48} className="mx-auto mb-3 opacity-50" />
+              <p>No payment history found</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {paymentHistory.map((payment) => (
+                <div key={payment.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-green-400 font-medium">💳 Payment</span>
+                        <span className="text-white/50 text-xs">
+                          {new Date(payment.created_at).toLocaleDateString('en-GB')}
+                        </span>
+                      </div>
+                      <p className="text-white/70 text-sm">
+                        {payment.comment?.replace('PAYMENT ', '').split(' - ').slice(1).join(' - ') || 'Payment recorded'}
+                      </p>
+                      {payment.payment_id && (
+                        <p className="text-white/50 text-xs mt-1">
+                          ID: {payment.payment_id.slice(-8)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-green-400 font-semibold">
+                        {formatCurrency(Math.abs(payment.total_amount))}
+                      </div>
+                      <div className="text-white/50 text-xs">
+                        {payment.status.toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

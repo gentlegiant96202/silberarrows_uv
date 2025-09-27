@@ -85,6 +85,8 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   const [selectedChargesForInvoice, setSelectedChargesForInvoice] = useState<LeaseAccountingRecord[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [showRefundModal, setShowRefundModal] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
 
   // New charge form state
   const [newCharge, setNewCharge] = useState<{
@@ -107,6 +109,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
     fetchAccountingData();
     generateBillingPeriods();
     fetchInvoices();
+    fetchPaymentHistory();
   }, [leaseId]);
 
   const fetchAccountingData = async () => {
@@ -176,6 +179,27 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
       setInvoices(Object.values(invoiceGroups));
     } catch (error) {
       console.error('Error fetching invoices:', error);
+    }
+  };
+
+  const fetchPaymentHistory = async () => {
+    try {
+      setLoadingPayments(true);
+      
+      // Fetch payment records (identified by PAYMENT prefix in comment)
+      const { data, error } = await supabase
+        .from('lease_accounting')
+        .select('*')
+        .eq('lease_id', leaseId)
+        .ilike('comment', 'PAYMENT%')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPaymentHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+    } finally {
+      setLoadingPayments(false);
     }
   };
 
@@ -374,6 +398,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   const handlePaymentRecorded = () => {
     fetchAccountingData();
     fetchInvoices(); // Refresh invoices list
+    fetchPaymentHistory(); // Refresh payment history
     setShowPaymentModal(false);
   };
 
@@ -875,12 +900,86 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                 </div>
               </div>
               
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <CreditCard size={48} className="text-white/20 mx-auto mb-4" />
-                  <p className="text-white/60">Payment history view coming soon</p>
-                  <p className="text-white/40 text-sm mt-2">Use "Record Payment" to add payments</p>
-                </div>
+              <div className="flex-1 overflow-hidden">
+                {loadingPayments ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white/60"></div>
+                  </div>
+                ) : paymentHistory.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <CreditCard size={48} className="text-white/20 mx-auto mb-4" />
+                      <p className="text-white/60">No payment history found</p>
+                      <p className="text-white/40 text-sm mt-2">Use "Record Payment" to add payments</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 space-y-4 overflow-y-auto h-full">
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-white font-medium">Payment History ({paymentHistory.length})</h4>
+                      <div className="text-white/60 text-sm">
+                        Total Payments: {formatCurrency(paymentHistory.reduce((sum, payment) => sum + Math.abs(payment.total_amount), 0))}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {paymentHistory.map((payment) => (
+                        <div key={payment.id} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-green-400 font-medium flex items-center gap-1">
+                                  💳 Payment
+                                </span>
+                                <span className="text-white/50 text-xs">
+                                  {new Date(payment.created_at).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                </span>
+                                <span className="text-white/50 text-xs">
+                                  {new Date(payment.created_at).toLocaleTimeString('en-GB', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <p className="text-white/70 text-sm">
+                                  {payment.comment?.replace('PAYMENT ', '').split(' - ').slice(1).join(' - ') || 'Payment recorded'}
+                                </p>
+                                
+                                {payment.payment_id && (
+                                  <p className="text-white/50 text-xs">
+                                    Payment ID: {payment.payment_id.slice(-8)}
+                                  </p>
+                                )}
+                                
+                                <div className="flex items-center gap-4 text-xs text-white/50">
+                                  <span>Billing Period: {new Date(payment.billing_period).toLocaleDateString('en-GB')}</span>
+                                  <span className={`px-2 py-1 rounded-full ${getStatusColor(payment.status)}`}>
+                                    {payment.status.toUpperCase()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="text-right ml-4">
+                              <div className="text-green-400 font-semibold text-lg">
+                                {formatCurrency(Math.abs(payment.total_amount))}
+                              </div>
+                              <div className="text-white/50 text-xs">
+                                Payment Amount
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

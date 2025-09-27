@@ -6,14 +6,13 @@ import {
   X, 
   FileText, 
   Calendar, 
-  DirhamSign,
+  Receipt,
   Download,
   Check,
   AlertCircle,
   Printer,
   Eye
 } from "lucide-react";
-import { DirhamSign } from "new-dirham-symbol";
 
 //  Types
 interface LeaseAccountingRecord {
@@ -86,9 +85,9 @@ export default function InvoiceModal({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       style: 'currency',
-      currency: 'AED',
+      style: 'decimal',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(amount) + ' AED';
   };
 
   const formatDate = (dateString: string) => {

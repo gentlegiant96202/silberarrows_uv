@@ -15,18 +15,19 @@ import {
   FileText, 
   CreditCard, 
   Download,
+  Receipt,
   Clock,
   CheckCircle,
   AlertCircle,
   X,
   Edit,
-  Trash2
+  Trash2,
+  Eye,
+  Printer
 } from "lucide-react";
-import { DirhamSign } from "new-dirham-symbol";
-import { DirhamSign } from "new-dirham-symbol";
 
-// Types (matching existing functionality exactly)
-interface LeaseAccountingRecord {
+//  Types (matching existing functionality exactly)
+interface OverdueLeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
@@ -49,11 +50,11 @@ interface LeaseAccountingRecord {
   documents: any;
 }
 
-interface BillingPeriod {
+interface OverdueBillingPeriod {
   period: string;
   period_start: string;
   period_end: string;
-  charges: LeaseAccountingRecord[];
+  charges: OverdueLeaseAccountingRecord[];
   total_amount: number;
   has_invoice: boolean;
   invoice_id?: string;
@@ -66,7 +67,7 @@ interface Props {
   onClose: () => void;
 }
 
-export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, customerName, onClose }: Props) {
+export default function AccountingDashboard({ leaseId, leaseStartDate, customerName, onClose }: Props) {
   
   // Permissions (exactly like existing)
   const { role, isAdmin, isAccounts } = useUserRole();
@@ -76,8 +77,8 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
   const hasEditPermission = (isAdmin || isAccounts) && canEdit;
   const hasDeletePermission = (isAdmin || isAccounts) && canDelete;
   
-  const [records, setRecords] = useState<LeaseAccountingRecord[]>([]);
-  const [billingPeriods, setBillingPeriods] = useState<BillingPeriod[]>([]);
+  const [records, setRecords] = useState<OverdueLeaseAccountingRecord[]>([]);
+  const [billingPeriods, setBillingPeriods] = useState<OverdueBillingPeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'contract' | 'charges' | 'periods' | 'invoices' | 'payments' | 'statement'>('contract');
   const [showAddCharge, setShowAddCharge] = useState(false);
@@ -87,7 +88,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<string>('');
-  const [selectedChargesForInvoice, setSelectedChargesForInvoice] = useState<LeaseAccountingRecord[]>([]);
+  const [selectedChargesForInvoice, setSelectedChargesForInvoice] = useState<OverdueLeaseAccountingRecord[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
@@ -238,7 +239,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
     
     const startDate = new Date(leaseInfo.lease_start_date);
     const endDate = leaseInfo.lease_end_date ? new Date(leaseInfo.lease_end_date) : null;
-    const periods: BillingPeriod[] = [];
+    const periods: OverdueBillingPeriod[] = [];
     
     // Calculate number of periods based on lease term or until end date + buffer
     let numberOfPeriods: number;
@@ -348,7 +349,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
     });
   };
 
-  const handleEditCharge = (charge: LeaseAccountingRecord) => {
+  const handleEditCharge = (charge: OverdueLeaseAccountingRecord) => {
     if (!hasEditPermission) {
       alert('You do not have permission to edit charges.');
       return;
@@ -397,7 +398,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
     }
   };
 
-  const handleGenerateInvoice = (billingPeriod: string, charges: LeaseAccountingRecord[]) => {
+  const handleGenerateInvoice = (billingPeriod: string, charges: OverdueLeaseAccountingRecord[]) => {
     setSelectedBillingPeriod(billingPeriod);
     setSelectedChargesForInvoice(charges);
     setShowInvoiceModal(true);
@@ -462,10 +463,9 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
-      style: 'currency',
-      currency: 'AED',
+      style: 'decimal',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(amount) + ' AED';
   };
 
   const formatDate = (dateString: string) => {
@@ -517,16 +517,16 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col border border-white/10 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+      <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 rounded-2xl shadow-2xl border border-neutral-400/20 w-full max-w-6xl h-[90vh] flex flex-col">
         
         {/* Header - Exactly like existing */}
         <div className="flex items-center justify-between p-6 border-b border-neutral-400/20">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-xl border border-blue-400/30">
-              <DirhamSign className="w-6 h-6 text-blue-400" />
+              <Receipt className="w-6 h-6 text-blue-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Lease Accounting</h2>
+              <h2 className="text-2xl font-bold text-white"> Lease Accounting</h2>
               <p className="text-neutral-400">{customerName}</p>
             </div>
           </div>
@@ -583,7 +583,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
               <div className="h-full flex flex-col">
                 <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white">Charge Management</h3>
+                    <h3 className="text-lg font-semibold text-white"> Charge Management</h3>
                     <button
                       onClick={() => setShowAddCharge(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
@@ -599,7 +599,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
                   <div className="space-y-3">
                     {records.length === 0 ? (
                       <div className="text-center py-12">
-                        <DirhamSign size={48} className="text-white/20 mx-auto mb-4" />
+                        <Receipt size={48} className="text-white/20 mx-auto mb-4" />
                         <p className="text-white/60">No charges recorded yet</p>
                         <p className="text-white/40 text-sm mt-2">Click "Add Charge" to get started</p>
                       </div>

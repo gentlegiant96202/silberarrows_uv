@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   X, 
   CreditCard, 
-  DirhamIcon,
+  Receipt,
   Check,
   AlertCircle,
   Clock,
@@ -13,7 +13,6 @@ import {
   Calculator,
   History
 } from "lucide-react";
-import DirhamIcon from "@/components/ui/DirhamIcon";
 
 //  Types
 interface LeaseAccountingRecord {
@@ -207,9 +206,9 @@ export default function PaymentModal({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       style: 'currency',
-      currency: 'AED',
+      style: 'decimal',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(amount) + ' AED';
   };
 
   const formatDate = (dateString: string) => {
@@ -268,7 +267,7 @@ export default function PaymentModal({
             <div className="space-y-6">
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <DirhamIcon size={20} />
+                  <Receipt size={20} />
                   Payment Details
                 </h3>
                 

@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { DirhamSign, AlertTriangle, CheckCircle, Clock } from "lucide-react";
-import { DirhamSign } from "new-dirham-symbol";
+import { Receipt, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
 interface LeaseBalance {
   current_balance: number;
@@ -59,10 +58,10 @@ export default function AccountingButton({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       style: 'currency',
-      currency: 'AED',
+      style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount);
+    }).format(amount) + ' AED';
   };
 
   const getButtonStyle = () => {
@@ -87,7 +86,7 @@ export default function AccountingButton({
     } else if (balance.current_balance <= 0) {
       return CheckCircle;
     } else {
-      return DirhamSign;
+      return Receipt;
     }
   };
 

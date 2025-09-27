@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Download, 
   Calendar, 
-  DirhamIcon,
+  Receipt,
   FileText,
   Filter,
   TrendingUp,
@@ -14,7 +14,6 @@ import {
   Receipt,
   RefreshCw
 } from "lucide-react";
-import DirhamIcon from "@/components/ui/DirhamIcon";
 
 //  Types
 interface LeaseAccountingRecord {
@@ -107,9 +106,9 @@ export default function StatementOfAccount({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       style: 'currency',
-      currency: 'AED',
+      style: 'decimal',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(amount) + ' AED';
   };
 
   const formatDate = (dateString: string) => {
@@ -139,7 +138,7 @@ export default function StatementOfAccount({
     if (record.comment?.startsWith('PAYMENT')) return CreditCard;
     if (record.charge_type === 'refund') return RefreshCw;
     if (record.invoice_id) return Receipt;
-    return DirhamIcon;
+    return Receipt;
   };
 
   // Calculate running balance
@@ -190,7 +189,7 @@ export default function StatementOfAccount({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white/5 rounded-lg p-4 border border-white/10">
             <div className="flex items-center gap-3">
-              <DirhamIcon className={`${currentBalance > 0 ? 'text-red-400' : 'text-green-400'}`} size={24} />
+              <Receipt className={`${currentBalance > 0 ? 'text-red-400' : 'text-green-400'}`} size={24} />
               <div>
                 <p className="text-sm text-neutral-400">Current Balance</p>
                 <p className={`text-lg font-bold ${currentBalance > 0 ? 'text-red-400' : 'text-green-400'}`}>
@@ -433,7 +432,7 @@ export default function StatementOfAccount({
         <div className="p-4 border-t border-white/10 bg-white/5">
           <div className="flex items-center justify-between">
             <div className="text-sm text-neutral-400">
-              -Compliant Statement • Generated: {new Date().toLocaleDateString('en-GB')} {new Date().toLocaleTimeString('en-GB')}
+-Compliant Statement • Generated: {new Date().toLocaleDateString('en-GB')} {new Date().toLocaleTimeString('en-GB')}
             </div>
             <div className="text-right">
               <p className="text-sm text-neutral-400">Current Balance</p>

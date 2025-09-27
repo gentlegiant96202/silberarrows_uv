@@ -9,12 +9,11 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  DirhamIcon
+  Receipt
 } from "lucide-react";
-import DirhamIcon from "@/components/ui/DirhamIcon";
 
 //  Types (matching existing functionality exactly)
-interface LeaseAccountingRecord {
+interface OverdueLeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
@@ -37,11 +36,11 @@ interface LeaseAccountingRecord {
   documents: any;
 }
 
-interface BillingPeriod {
+interface OverdueBillingPeriod {
   period: string;
   period_start: string;
   period_end: string;
-  charges: LeaseAccountingRecord[];
+  charges: OverdueLeaseAccountingRecord[];
   total_amount: number;
   has_invoice: boolean;
   invoice_id?: string;
@@ -54,8 +53,8 @@ interface Props {
   leaseStartDate: string;
   leaseEndDate?: string;
   leaseTermMonths?: number;
-  records: LeaseAccountingRecord[];
-  onGenerateInvoice: (billingPeriod: string, charges: LeaseAccountingRecord[]) => void;
+  records: OverdueLeaseAccountingRecord[];
+  onGenerateInvoice: (billingPeriod: string, charges: OverdueLeaseAccountingRecord[]) => void;
   onAddChargeForPeriod: (billingPeriod: string) => void;
 }
 
@@ -68,7 +67,7 @@ export default function BillingPeriodsView({
   onGenerateInvoice,
   onAddChargeForPeriod 
 }: Props) {
-  const [billingPeriods, setBillingPeriods] = useState<BillingPeriod[]>([]);
+  const [billingPeriods, setBillingPeriods] = useState<OverdueBillingPeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [additionalPeriods, setAdditionalPeriods] = useState(0);
 
@@ -82,7 +81,7 @@ export default function BillingPeriodsView({
     const startDate = new Date(leaseStartDate);
     const endDate = leaseEndDate ? new Date(leaseEndDate) : null;
     const today = new Date();
-    const periods: BillingPeriod[] = [];
+    const periods: OverdueBillingPeriod[] = [];
     
     // Calculate number of periods to generate (exactly like existing)
     let numberOfPeriods: number;
@@ -122,7 +121,7 @@ export default function BillingPeriodsView({
       const invoiceNumber = periodCharges.find(charge => charge.invoice_number)?.invoice_number || undefined;
 
       // Determine period status (exactly like existing)
-      let status: BillingPeriod['status'] = 'upcoming';
+      let status: OverdueBillingPeriod['status'] = 'upcoming';
       
       if (periodEnd < today) {
         // Past period
@@ -169,9 +168,9 @@ export default function BillingPeriodsView({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       style: 'currency',
-      currency: 'AED',
+      style: 'decimal',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(amount) + ' AED';
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
@@ -187,7 +186,7 @@ export default function BillingPeriodsView({
     return `${start} - ${end}`;
   };
 
-  const getStatusConfig = (status: BillingPeriod['status']) => {
+  const getStatusConfig = (status: OverdueBillingPeriod['status']) => {
     const configs = {
       upcoming: {
         color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
@@ -355,7 +354,7 @@ export default function BillingPeriodsView({
                       {period.charges.map((charge) => (
                         <div key={charge.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                           <div className="flex items-center gap-3">
-                            <DirhamIcon size={16} className="text-white/60" />
+                            <Receipt size={16} className="text-white/60" />
                             <div>
                               <span className="text-white text-sm font-medium">
                                 {getChargeTypeLabel(charge.charge_type)}

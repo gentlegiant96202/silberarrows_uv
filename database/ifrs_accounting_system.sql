@@ -3,7 +3,7 @@
 
 -- 1. ENUMS (matching existing system exactly)
 DO $$ BEGIN
-    CREATE TYPE charge_type_enum AS ENUM (
+    CREATE TYPE ifrs_charge_type_enum AS ENUM (
         'rental',     -- Monthly rental payments
         'salik',      -- Salik/toll charges  
         'mileage',    -- Excess mileage charges
@@ -16,7 +16,7 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE accounting_status_enum AS ENUM (
+    CREATE TYPE ifrs_accounting_status_enum AS ENUM (
         'pending',    -- Ready to be invoiced
         'invoiced',   -- Sent to customer
         'paid',       -- Fully paid
@@ -26,8 +26,8 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- 2. MAIN ACCOUNTING TABLE (-Compliant with all existing features)
-CREATE TABLE IF NOT EXISTS lease_accounting (
+-- 2. MAIN ACCOUNTING TABLE (Compliant with all existing features)
+CREATE TABLE IF NOT EXISTS ifrs_lease_accounting (
     -- Primary identification
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     lease_id UUID NOT NULL REFERENCES leasing_customers(id) ON DELETE CASCADE,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS lease_accounting (
     billing_period DATE NOT NULL,
     
     -- Charge details (exactly like existing)
-    charge_type charge_type_enum NOT NULL,
+    charge_type ifrs_charge_type_enum NOT NULL,
     quantity NUMERIC NULL, -- For salik count, mileage km, etc.
     unit_price NUMERIC NULL, -- Price per unit
     total_amount NUMERIC NOT NULL, -- Final amount (quantity × unit_price or flat amount)
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS lease_accounting (
     payment_id UUID NULL, -- Links to payment when paid
     
     -- Status and settings (exactly like existing)
-    status accounting_status_enum NOT NULL DEFAULT 'pending',
+    status ifrs_accounting_status_enum NOT NULL DEFAULT 'pending',
     vat_applicable BOOLEAN NOT NULL DEFAULT true,
     account_closed BOOLEAN NOT NULL DEFAULT false,
     
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS lease_accounting (
 );
 
 -- 3. CUSTOMER BALANCE VIEW (Real-time balance calculation)
-CREATE OR REPLACE VIEW lease_balances AS
+CREATE OR REPLACE VIEW ifrs_lease_balances AS
 SELECT 
     lease_id,
     SUM(total_amount) as current_balance,
@@ -99,12 +99,12 @@ SELECT
     COUNT(*) as total_transactions,
     MIN(created_at) as first_transaction_date,
     MAX(updated_at) as last_activity_date
-FROM lease_accounting 
+FROM ifrs_lease_accounting 
 WHERE deleted_at IS NULL
 GROUP BY lease_id;
 
 -- 4. BILLING PERIODS VIEW (matching existing BillingPeriodsView functionality)
-CREATE OR REPLACE VIEW billing_periods AS
+CREATE OR REPLACE VIEW ifrs_billing_periods AS
 WITH period_data AS (
     SELECT 
         lease_id,
@@ -132,7 +132,7 @@ WITH period_data AS (
             WHEN DATE_TRUNC('month', billing_period) > DATE_TRUNC('month', CURRENT_DATE) THEN 'upcoming'
             ELSE 'active'
         END as period_status
-    FROM lease_accounting 
+    FROM ifrs_lease_accounting 
     WHERE deleted_at IS NULL
     GROUP BY lease_id, billing_period, DATE_TRUNC('month', billing_period)
 )
@@ -157,30 +157,30 @@ NO MAXVALUE
 NO CYCLE;
 
 -- 6. PERFORMANCE INDEXES
-CREATE INDEX IF NOT EXISTS idx_lease_accounting_lease_id 
-ON lease_accounting(lease_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_ifrs_lease_accounting_lease_id 
+ON ifrs_lease_accounting(lease_id) WHERE deleted_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_lease_accounting_billing_period 
-ON lease_accounting(billing_period) WHERE deleted_at IS NULL;
+ON ifrs_lease_accounting(billing_period) WHERE deleted_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_lease_accounting_status 
-ON lease_accounting(status) WHERE deleted_at IS NULL;
+ON ifrs_lease_accounting(status) WHERE deleted_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_lease_accounting_invoice_id 
-ON lease_accounting(invoice_id) WHERE deleted_at IS NULL AND invoice_id IS NOT NULL;
+ON ifrs_lease_accounting(invoice_id) WHERE deleted_at IS NULL AND invoice_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_lease_accounting_payment_id 
-ON lease_accounting(payment_id) WHERE deleted_at IS NULL AND payment_id IS NOT NULL;
+ON ifrs_lease_accounting(payment_id) WHERE deleted_at IS NULL AND payment_id IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_lease_accounting_invoice_number 
-ON lease_accounting(invoice_number) WHERE deleted_at IS NULL AND invoice_number IS NOT NULL;
+ON ifrs_lease_accounting(invoice_number) WHERE deleted_at IS NULL AND invoice_number IS NOT NULL;
 
 -- Composite indexes for complex queries
 CREATE INDEX IF NOT EXISTS idx_lease_accounting_lease_status 
-ON lease_accounting(lease_id, status) WHERE deleted_at IS NULL;
+ON ifrs_lease_accounting(lease_id, status) WHERE deleted_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_lease_accounting_lease_period 
-ON lease_accounting(lease_id, billing_period) WHERE deleted_at IS NULL;
+ON ifrs_lease_accounting(lease_id, billing_period) WHERE deleted_at IS NULL;
 
 -- 7. INVOICE NUMBER HELPER FUNCTIONS
 
@@ -211,10 +211,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- 8. TRANSACTION-SAFE FUNCTIONS
 
 -- Function to add a charge (matching existing functionality)
-CREATE OR REPLACE FUNCTION add_charge(
+CREATE OR REPLACE FUNCTION ifrs_add_charge(
     p_lease_id UUID,
     p_billing_period DATE,
-    p_charge_type charge_type_enum,
+    p_charge_type ifrs_charge_type_enum,
     p_total_amount NUMERIC,
     p_quantity NUMERIC DEFAULT NULL,
     p_unit_price NUMERIC DEFAULT NULL,
@@ -225,7 +225,7 @@ DECLARE
     v_charge_id UUID;
 BEGIN
     -- Insert charge with  audit trail
-    INSERT INTO lease_accounting (
+    INSERT INTO overdue_lease_accounting (
         lease_id, billing_period, charge_type, quantity, unit_price, 
         total_amount, comment, status, vat_applicable, created_by
     ) VALUES (
@@ -238,9 +238,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to update a charge (-compliant with version control)
-CREATE OR REPLACE FUNCTION update_charge(
+CREATE OR REPLACE FUNCTION ifrs_update_charge(
     p_charge_id UUID,
-    p_charge_type charge_type_enum,
+    p_charge_type ifrs_charge_type_enum,
     p_total_amount NUMERIC,
     p_expected_version INTEGER DEFAULT 1,
     p_quantity NUMERIC DEFAULT NULL,
@@ -253,7 +253,7 @@ DECLARE
 BEGIN
     -- Check current version for optimistic locking
     SELECT version INTO v_current_version 
-    FROM lease_accounting 
+    FROM ifrs_lease_accounting 
     WHERE id = p_charge_id AND deleted_at IS NULL;
     
     IF v_current_version IS NULL THEN
@@ -265,7 +265,7 @@ BEGIN
     END IF;
     
     -- Update charge
-    UPDATE lease_accounting 
+    UPDATE ifrs_lease_accounting 
     SET 
         charge_type = p_charge_type,
         quantity = p_quantity,
@@ -283,13 +283,13 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to delete a charge ( soft delete)
-CREATE OR REPLACE FUNCTION delete_charge(
+CREATE OR REPLACE FUNCTION ifrs_delete_charge(
     p_charge_id UUID,
     p_reason TEXT DEFAULT 'User requested deletion'
 ) RETURNS BOOLEAN AS $$
 BEGIN
     -- Soft delete for audit trail
-    UPDATE lease_accounting 
+    UPDATE ifrs_lease_accounting 
     SET 
         deleted_at = NOW(),
         deleted_by = auth.uid(),
@@ -309,7 +309,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to generate invoice (transaction-safe with sequential numbering)
-CREATE OR REPLACE FUNCTION generate_invoice(
+CREATE OR REPLACE FUNCTION ifrs_generate_invoice(
     p_lease_id UUID,
     p_billing_period DATE,
     p_charge_ids UUID[]
@@ -319,14 +319,35 @@ DECLARE
     v_invoice_number TEXT;
     v_invoice_sequence INTEGER;
     v_affected_rows INTEGER;
+    v_retry_count INTEGER := 0;
 BEGIN
-    -- Generate invoice ID and sequential number
+    -- Generate invoice ID
     v_invoice_id := gen_random_uuid();
-    v_invoice_sequence := nextval('lease_invoice_sequence');
-    v_invoice_number := 'INV-LE-' || v_invoice_sequence::TEXT;
+    
+    -- Loop to handle potential sequence conflicts
+    LOOP
+        -- Get next sequence number
+        v_invoice_sequence := nextval('lease_invoice_sequence');
+        v_invoice_number := 'INV-LE-' || v_invoice_sequence::TEXT;
+        
+        -- Check if this invoice number already exists
+        IF NOT EXISTS (
+            SELECT 1 FROM ifrs_lease_accounting 
+            WHERE invoice_number = v_invoice_number 
+            AND deleted_at IS NULL
+        ) THEN
+            EXIT; -- Invoice number is unique, proceed
+        END IF;
+        
+        -- Increment retry count and check limit
+        v_retry_count := v_retry_count + 1;
+        IF v_retry_count > 10 THEN
+            RAISE EXCEPTION 'Unable to generate unique invoice number after 10 attempts';
+        END IF;
+    END LOOP;
     
     -- Update charges to invoiced status atomically
-    UPDATE lease_accounting 
+    UPDATE ifrs_lease_accounting 
     SET 
         status = 'invoiced',
         invoice_id = v_invoice_id,
@@ -359,7 +380,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to record payment (transaction-safe with auto-allocation)
-CREATE OR REPLACE FUNCTION record_payment(
+CREATE OR REPLACE FUNCTION ifrs_record_payment(
     p_lease_id UUID,
     p_amount NUMERIC,
     p_payment_method TEXT,
@@ -375,7 +396,7 @@ BEGIN
     v_remaining_amount := p_amount;
     
     -- Create payment record
-    INSERT INTO lease_accounting (
+    INSERT INTO overdue_lease_accounting (
         lease_id, billing_period, charge_type, total_amount,
         comment, payment_id, status, vat_applicable, created_by
     ) VALUES (
@@ -392,7 +413,7 @@ BEGIN
     -- Auto-allocate to oldest invoices first
     FOR invoice_record IN 
         SELECT invoice_id, SUM(total_amount) as invoice_total
-        FROM lease_accounting 
+        FROM ifrs_lease_accounting 
         WHERE lease_id = p_lease_id 
           AND status = 'invoiced' 
           AND invoice_id IS NOT NULL
@@ -404,7 +425,7 @@ BEGIN
         
         IF v_remaining_amount >= invoice_record.invoice_total THEN
             -- Full payment of invoice
-            UPDATE lease_accounting 
+            UPDATE ifrs_lease_accounting 
             SET status = 'paid', 
                 payment_id = v_payment_id,
                 updated_by = auth.uid(),
@@ -417,7 +438,7 @@ BEGIN
             v_remaining_amount := v_remaining_amount - invoice_record.invoice_total;
         ELSE
             -- Partial payment - keep as invoiced but link to payment
-            UPDATE lease_accounting 
+            UPDATE ifrs_lease_accounting 
             SET payment_id = v_payment_id,
                 updated_by = auth.uid(),
                 updated_at = NOW(),
@@ -435,11 +456,11 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 7. AUTOMATIC OVERDUE DETECTION
-CREATE OR REPLACE FUNCTION update_overdue_status() RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION ifrs_update_overdue_status() RETURNS INTEGER AS $$
 DECLARE
     v_updated_count INTEGER;
 BEGIN
-    UPDATE lease_accounting 
+    UPDATE ifrs_lease_accounting 
     SET status = 'overdue',
         updated_at = NOW(),
         version = version + 1
@@ -462,16 +483,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_lease_accounting_updated_at ON lease_accounting;
+DROP TRIGGER IF EXISTS trg_lease_accounting_updated_at ON ifrs_lease_accounting;
 CREATE TRIGGER trg_lease_accounting_updated_at
-    BEFORE UPDATE ON lease_accounting
+    BEFORE UPDATE ON ifrs_lease_accounting
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 9. ROW LEVEL SECURITY ( access controls)
-ALTER TABLE lease_accounting ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ifrs_lease_accounting ENABLE ROW LEVEL SECURITY;
 
 -- Accounts and admin users can manage all transactions
-CREATE POLICY " accounts users can manage transactions" ON lease_accounting
+CREATE POLICY "Accounts users can manage transactions" ON ifrs_lease_accounting
     FOR ALL USING (
         auth.uid() IS NOT NULL AND (
             EXISTS (
@@ -483,7 +504,7 @@ CREATE POLICY " accounts users can manage transactions" ON lease_accounting
     );
 
 -- Leasing users can view transactions for their leases
-CREATE POLICY " leasing users can view transactions" ON lease_accounting
+CREATE POLICY "Leasing users can view transactions" ON ifrs_lease_accounting
     FOR SELECT USING (
         auth.uid() IS NOT NULL AND (
             EXISTS (

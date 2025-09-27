@@ -1,61 +1,58 @@
--- Fix invoice sequence to match existing invoices
--- Check current state and update sequence accordingly
+-- 🔧 FIX INVOICE SEQUENCE CONFLICT
+-- Resolves duplicate key error for invoice numbers
 
--- First, let's see what invoices actually exist
+-- 1. Check current sequence value
 SELECT 
-    document_number,
-    document_type,
+    'Current sequence value:' as info,
+    last_value as current_value,
+    is_called
+FROM lease_invoice_sequence;
+
+-- 2. Check existing invoice numbers
+SELECT 
+    'Existing invoice numbers:' as info,
+    invoice_number,
     created_at
-FROM vehicle_reservations 
-WHERE document_type = 'invoice' 
-    AND document_number IS NOT NULL
-ORDER BY document_number;
+FROM lease_accounting 
+WHERE invoice_number IS NOT NULL
+ORDER BY invoice_number;
 
--- Count total invoices
-SELECT COUNT(*) as total_invoices
-FROM vehicle_reservations 
-WHERE document_type = 'invoice' 
-    AND document_number IS NOT NULL;
-
--- Get the highest invoice number
+-- 3. Get the highest existing invoice number
 SELECT 
-    document_number,
-    CAST(SUBSTRING(document_number FROM 'INV-(.*)') AS INTEGER) as invoice_num
-FROM vehicle_reservations 
-WHERE document_type = 'invoice' 
-    AND document_number IS NOT NULL
-ORDER BY CAST(SUBSTRING(document_number FROM 'INV-(.*)') AS INTEGER) DESC
-LIMIT 1;
+    'Highest existing invoice number:' as info,
+    MAX(CAST(SUBSTRING(invoice_number FROM 'INV-LE-(\d+)') AS INTEGER)) as max_number
+FROM lease_accounting 
+WHERE invoice_number LIKE 'INV-LE-%';
 
--- Update the sequence to continue from the highest existing invoice number
+-- 4. Reset sequence to be higher than existing invoice numbers
+-- Run this to fix the sequence
 DO $$
 DECLARE
-    max_invoice_num INTEGER;
+    max_existing INTEGER;
+    next_safe_value INTEGER;
 BEGIN
     -- Get the highest existing invoice number
-    SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 'INV-(.*)') AS INTEGER)), 999)
-    INTO max_invoice_num
-    FROM vehicle_reservations 
-    WHERE document_type = 'invoice' 
-        AND document_number IS NOT NULL;
+    SELECT COALESCE(MAX(CAST(SUBSTRING(invoice_number FROM 'INV-LE-(\d+)') AS INTEGER)), 999)
+    INTO max_existing
+    FROM lease_accounting 
+    WHERE invoice_number LIKE 'INV-LE-%';
     
-    -- Set the sequence to continue from the next number
-    PERFORM setval('invoice_number_seq', max_invoice_num + 1);
+    -- Set next safe value (max existing + 1, minimum 1000)
+    next_safe_value := GREATEST(max_existing + 1, 1000);
     
-    RAISE NOTICE 'Updated invoice sequence to: %', max_invoice_num + 1;
-    RAISE NOTICE 'Next invoice will be: INV-%', max_invoice_num + 1;
+    -- Reset the sequence
+    PERFORM setval('lease_invoice_sequence', next_safe_value, false);
+    
+    RAISE NOTICE 'Sequence reset to start at: %', next_safe_value;
 END $$;
 
--- Verify the sequence is now correct
+-- 5. Verify the fix
 SELECT 
-    'invoice_number_seq' as sequence_name,
-    currval('invoice_number_seq') as current_value,
-    nextval('invoice_number_seq') as next_value;
+    'Next invoice number will be:' as info,
+    'INV-LE-' || nextval('lease_invoice_sequence') as next_invoice;
 
--- Reset the sequence back (since we just used nextval to peek)
-SELECT setval('invoice_number_seq', currval('invoice_number_seq') - 1);
+-- Rollback the test
+SELECT setval('lease_invoice_sequence', currval('lease_invoice_sequence') - 1, true);
 
--- Final verification
-SELECT 
-    'invoice_number_seq' as sequence_name,
-    currval('invoice_number_seq') as current_value;
+-- Success message
+SELECT 'Invoice sequence conflict resolved! ✅' as result;

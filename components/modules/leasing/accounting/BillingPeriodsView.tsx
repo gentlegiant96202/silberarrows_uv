@@ -16,7 +16,7 @@ interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
-  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine';
+  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund';
   quantity: number | null;
   unit_price: number | null;
   total_amount: number;
@@ -45,6 +45,8 @@ interface BillingPeriod {
 interface Props {
   leaseId: string;
   leaseStartDate: string;
+  leaseEndDate?: string;
+  leaseTermMonths?: number;
   records: LeaseAccountingRecord[];
   onGenerateInvoice: (billingPeriod: string, charges: LeaseAccountingRecord[]) => void;
   onAddChargeForPeriod: (billingPeriod: string) => void;
@@ -53,24 +55,48 @@ interface Props {
 export default function BillingPeriodsView({ 
   leaseId, 
   leaseStartDate, 
+  leaseEndDate,
+  leaseTermMonths,
   records, 
   onGenerateInvoice,
   onAddChargeForPeriod 
 }: Props) {
   const [billingPeriods, setBillingPeriods] = useState<BillingPeriod[]>([]);
   const [loading, setLoading] = useState(true);
+  const [additionalPeriods, setAdditionalPeriods] = useState(0);
 
   useEffect(() => {
     generateBillingPeriods();
-  }, [leaseStartDate, records]);
+  }, [leaseStartDate, leaseEndDate, leaseTermMonths, records, additionalPeriods]);
 
   const generateBillingPeriods = () => {
+    if (!leaseStartDate) return;
+    
     const startDate = new Date(leaseStartDate);
+    const endDate = leaseEndDate ? new Date(leaseEndDate) : null;
     const today = new Date();
     const periods: BillingPeriod[] = [];
     
-    // Generate 18 months of billing periods (past, current, and future)
-    for (let i = -6; i < 12; i++) {
+    // Calculate number of periods to generate
+    let numberOfPeriods: number;
+    if (endDate) {
+      // Calculate months from lease start to end date, plus 3 month buffer
+      const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                        (endDate.getMonth() - startDate.getMonth()) + 3;
+      numberOfPeriods = Math.max(12, monthsDiff);
+    } else if (leaseTermMonths) {
+      // Use lease term + 3 month buffer
+      numberOfPeriods = leaseTermMonths + 3;
+    } else {
+      // Default to 18 months (6 past + 12 future)
+      numberOfPeriods = 18;
+    }
+    
+    // Add any additional periods requested by user
+    numberOfPeriods += additionalPeriods;
+    
+    // Generate billing periods starting from lease start date
+    for (let i = 0; i < numberOfPeriods; i++) {
       const periodStart = new Date(startDate);
       periodStart.setMonth(startDate.getMonth() + i);
       
@@ -125,6 +151,10 @@ export default function BillingPeriodsView({
     
     setBillingPeriods(periods.sort((a, b) => new Date(b.period).getTime() - new Date(a.period).getTime()));
     setLoading(false);
+  };
+
+  const addMorePeriods = (months: number = 6) => {
+    setAdditionalPeriods(prev => prev + months);
   };
 
   const formatCurrency = (amount: number) => {
@@ -190,7 +220,8 @@ export default function BillingPeriodsView({
       salik: 'Salik',
       mileage: 'Mileage',
       late_fee: 'Late Fee',
-      fine: 'Fine'
+      fine: 'Fine',
+      refund: 'Refund/Credit'
     };
     return labels[type as keyof typeof labels] || type;
   };
@@ -205,6 +236,33 @@ export default function BillingPeriodsView({
 
   return (
     <div className="space-y-4">
+      {/* Header with Extend Button */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Billing Periods</h3>
+          <p className="text-white/60 text-sm">
+            {leaseEndDate ? (
+              <>Lease ends: {new Date(leaseEndDate).toLocaleDateString('en-GB')}</>
+            ) : leaseTermMonths ? (
+              <>{leaseTermMonths} month lease</>
+            ) : (
+              'Ongoing lease'
+            )}
+            {additionalPeriods > 0 && (
+              <> • {additionalPeriods} additional periods</>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={() => addMorePeriods(6)}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-blue-500 via-blue-400 to-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
+          title="Add 6 more billing periods"
+        >
+          <Plus size={16} />
+          Extend Periods
+        </button>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {[

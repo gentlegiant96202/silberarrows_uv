@@ -29,7 +29,7 @@ interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
-  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine';
+  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund';
   quantity: number | null;
   unit_price: number | null;
   total_amount: number;
@@ -87,6 +87,14 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
+  
+  // Lease information state
+  const [leaseInfo, setLeaseInfo] = useState<{
+    lease_start_date?: string;
+    lease_end_date?: string;
+    lease_term_months?: number;
+    monthly_payment?: number;
+  } | null>(null);
 
   // New charge form state
   const [newCharge, setNewCharge] = useState<{
@@ -106,11 +114,26 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   });
 
   useEffect(() => {
+    fetchLeaseInfo();
     fetchAccountingData();
-    generateBillingPeriods();
     fetchInvoices();
     fetchPaymentHistory();
   }, [leaseId]);
+
+  const fetchLeaseInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leasing_customers')
+        .select('lease_start_date, lease_end_date, lease_term_months, monthly_payment')
+        .eq('id', leaseId)
+        .single();
+
+      if (error) throw error;
+      setLeaseInfo(data);
+    } catch (error) {
+      console.error('Error fetching lease info:', error);
+    }
+  };
 
   const fetchAccountingData = async () => {
     try {
@@ -204,11 +227,29 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   };
 
   const generateBillingPeriods = () => {
-    const startDate = new Date(leaseStartDate);
+    if (!leaseInfo?.lease_start_date) return;
+    
+    const startDate = new Date(leaseInfo.lease_start_date);
+    const endDate = leaseInfo.lease_end_date ? new Date(leaseInfo.lease_end_date) : null;
     const periods: BillingPeriod[] = [];
     
-    // Generate 12 months of billing periods
-    for (let i = 0; i < 12; i++) {
+    // Calculate number of periods based on lease term or until end date + buffer
+    let numberOfPeriods: number;
+    if (endDate) {
+      // Calculate months between start and end date, plus 3 month buffer
+      const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                        (endDate.getMonth() - startDate.getMonth()) + 3;
+      numberOfPeriods = Math.max(12, monthsDiff);
+    } else if (leaseInfo.lease_term_months) {
+      // Use lease term + 3 month buffer
+      numberOfPeriods = leaseInfo.lease_term_months + 3;
+    } else {
+      // Default to 12 months if no end date or term specified
+      numberOfPeriods = 12;
+    }
+    
+    // Generate billing periods from lease start date
+    for (let i = 0; i < numberOfPeriods; i++) {
       const periodStart = new Date(startDate);
       periodStart.setMonth(startDate.getMonth() + i);
       
@@ -234,11 +275,12 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
     setBillingPeriods(periods);
   };
 
+
   useEffect(() => {
-    if (records.length > 0) {
+    if (records.length > 0 && leaseInfo) {
       generateBillingPeriods();
     }
-  }, [records]);
+  }, [records, leaseInfo]);
 
   const handleAddCharge = async () => {
     try {
@@ -770,14 +812,44 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
 
           {/* Billing Periods Tab */}
           {activeTab === 'periods' && (
-            <div className="h-full overflow-y-auto p-6">
-              <BillingPeriodsView
-                leaseId={leaseId}
-                leaseStartDate={leaseStartDate}
-                records={records}
-                onGenerateInvoice={handleGenerateInvoice}
-                onAddChargeForPeriod={handleAddChargeForPeriod}
-              />
+            <div className="h-full flex flex-col">
+              <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Billing Periods</h3>
+                    <p className="text-white/60 text-sm">
+                      {leaseInfo?.lease_start_date ? (
+                        <>
+                          Lease: {new Date(leaseInfo.lease_start_date).toLocaleDateString('en-GB')} 
+                          {leaseInfo.lease_end_date && (
+                            <> - {new Date(leaseInfo.lease_end_date).toLocaleDateString('en-GB')}</>
+                          )}
+                          {leaseInfo.lease_term_months && (
+                            <> • {leaseInfo.lease_term_months} months</>
+                          )}
+                          {leaseInfo.monthly_payment && (
+                            <> • AED {leaseInfo.monthly_payment.toLocaleString()}/month</>
+                          )}
+                        </>
+                      ) : (
+                        'Loading lease information...'
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6">
+                <BillingPeriodsView
+                  leaseId={leaseId}
+                  leaseStartDate={leaseInfo?.lease_start_date || leaseStartDate}
+                  leaseEndDate={leaseInfo?.lease_end_date}
+                  leaseTermMonths={leaseInfo?.lease_term_months}
+                  records={records}
+                  onGenerateInvoice={handleGenerateInvoice}
+                  onAddChargeForPeriod={handleAddChargeForPeriod}
+                />
+              </div>
             </div>
           )}
 

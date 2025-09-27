@@ -9,11 +9,12 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  DollarSign
+  DirhamSign
 } from "lucide-react";
+import { DirhamSign } from "new-dirham-symbol";
 
-// IFRS Types (matching existing functionality exactly)
-interface IFRSLeaseAccountingRecord {
+//  Types (matching existing functionality exactly)
+interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
@@ -36,11 +37,11 @@ interface IFRSLeaseAccountingRecord {
   documents: any;
 }
 
-interface IFRSBillingPeriod {
+interface BillingPeriod {
   period: string;
   period_start: string;
   period_end: string;
-  charges: IFRSLeaseAccountingRecord[];
+  charges: LeaseAccountingRecord[];
   total_amount: number;
   has_invoice: boolean;
   invoice_id?: string;
@@ -53,12 +54,12 @@ interface Props {
   leaseStartDate: string;
   leaseEndDate?: string;
   leaseTermMonths?: number;
-  records: IFRSLeaseAccountingRecord[];
-  onGenerateInvoice: (billingPeriod: string, charges: IFRSLeaseAccountingRecord[]) => void;
+  records: LeaseAccountingRecord[];
+  onGenerateInvoice: (billingPeriod: string, charges: LeaseAccountingRecord[]) => void;
   onAddChargeForPeriod: (billingPeriod: string) => void;
 }
 
-export default function IFRSBillingPeriodsView({ 
+export default function BillingPeriodsView({ 
   leaseId, 
   leaseStartDate, 
   leaseEndDate,
@@ -67,7 +68,7 @@ export default function IFRSBillingPeriodsView({
   onGenerateInvoice,
   onAddChargeForPeriod 
 }: Props) {
-  const [billingPeriods, setBillingPeriods] = useState<IFRSBillingPeriod[]>([]);
+  const [billingPeriods, setBillingPeriods] = useState<BillingPeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [additionalPeriods, setAdditionalPeriods] = useState(0);
 
@@ -81,7 +82,7 @@ export default function IFRSBillingPeriodsView({
     const startDate = new Date(leaseStartDate);
     const endDate = leaseEndDate ? new Date(leaseEndDate) : null;
     const today = new Date();
-    const periods: IFRSBillingPeriod[] = [];
+    const periods: BillingPeriod[] = [];
     
     // Calculate number of periods to generate (exactly like existing)
     let numberOfPeriods: number;
@@ -121,7 +122,7 @@ export default function IFRSBillingPeriodsView({
       const invoiceNumber = periodCharges.find(charge => charge.invoice_number)?.invoice_number || undefined;
 
       // Determine period status (exactly like existing)
-      let status: IFRSBillingPeriod['status'] = 'upcoming';
+      let status: BillingPeriod['status'] = 'upcoming';
       
       if (periodEnd < today) {
         // Past period
@@ -186,7 +187,7 @@ export default function IFRSBillingPeriodsView({
     return `${start} - ${end}`;
   };
 
-  const getStatusConfig = (status: IFRSBillingPeriod['status']) => {
+  const getStatusConfig = (status: BillingPeriod['status']) => {
     const configs = {
       upcoming: {
         color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
@@ -247,7 +248,7 @@ export default function IFRSBillingPeriodsView({
       {/* Header with Extend Button */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-white">IFRS Billing Periods</h3>
+          <h3 className="text-lg font-semibold text-white"> Billing Periods</h3>
           <p className="text-white/60 text-sm">
             {leaseEndDate ? (
               <>Lease ends: {new Date(leaseEndDate).toLocaleDateString('en-GB')}</>
@@ -354,7 +355,7 @@ export default function IFRSBillingPeriodsView({
                       {period.charges.map((charge) => (
                         <div key={charge.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                           <div className="flex items-center gap-3">
-                            <DollarSign size={16} className="text-white/60" />
+                            <DirhamSign size={16} className="text-white/60" />
                             <div>
                               <span className="text-white text-sm font-medium">
                                 {getChargeTypeLabel(charge.charge_type)}

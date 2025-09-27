@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { DollarSign, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import DirhamIcon from "@/components/ui/DirhamIcon";
 
-interface IFRSLeaseBalance {
+interface LeaseBalance {
   current_balance: number;
   overdue_amount: number;
   overdue_count: number;
@@ -20,14 +21,14 @@ interface Props {
   onClick?: () => void;
 }
 
-export default function IFRSAccountingButton({
+export default function AccountingButton({
   leaseId,
   customerName,
   leaseStartDate,
   className = "",
   onClick
 }: Props) {
-  const [balance, setBalance] = useState<IFRSLeaseBalance | null>(null);
+  const [balance, setBalance] = useState<LeaseBalance | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,13 +44,13 @@ export default function IFRSAccountingButton({
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching IFRS balance:', error);
+        console.error('Error fetching  balance:', error);
         return;
       }
 
       setBalance(data);
     } catch (error) {
-      console.error('Error fetching IFRS balance:', error);
+      console.error('Error fetching  balance:', error);
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ export default function IFRSAccountingButton({
     } else if (balance.current_balance <= 0) {
       return CheckCircle;
     } else {
-      return DollarSign;
+      return () => <DirhamIcon size={16} />;
     }
   };
 
@@ -130,7 +131,7 @@ export default function IFRSAccountingButton({
         border border-white/20 backdrop-blur-sm
         ${className}
       `}
-      title={`IFRS Accounting for ${customerName} - Click to manage finances`}
+      title={` Accounting for ${customerName} - Click to manage finances`}
     >
       <Icon size={16} className="flex-shrink-0" />
       <div className="flex flex-col items-center min-w-0">

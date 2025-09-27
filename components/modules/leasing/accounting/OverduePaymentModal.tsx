@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   X, 
   CreditCard, 
-  DollarSign,
+  DirhamSign,
   Check,
   AlertCircle,
   Clock,
@@ -13,9 +13,10 @@ import {
   Calculator,
   History
 } from "lucide-react";
+import { DirhamSign } from "new-dirham-symbol";
 
-// IFRS Types
-interface IFRSLeaseAccountingRecord {
+//  Types
+interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
@@ -36,11 +37,11 @@ interface IFRSLeaseAccountingRecord {
   documents: any;
 }
 
-interface IFRSInvoiceGroup {
+interface InvoiceGroup {
   invoice_id: string;
   invoice_number: string;
   billing_period: string;
-  charges: IFRSLeaseAccountingRecord[];
+  charges: LeaseAccountingRecord[];
   total_amount: number;
   paid_amount: number;
   outstanding_amount: number;
@@ -55,7 +56,7 @@ interface Props {
   onPaymentRecorded: () => void;
 }
 
-export default function IFRSPaymentModal({ 
+export default function PaymentModal({ 
   isOpen, 
   onClose, 
   leaseId, 
@@ -70,11 +71,11 @@ export default function IFRSPaymentModal({
   const [notes, setNotes] = useState('');
   
   // Outstanding invoices for allocation
-  const [outstandingInvoices, setOutstandingInvoices] = useState<IFRSInvoiceGroup[]>([]);
+  const [outstandingInvoices, setOutstandingInvoices] = useState<InvoiceGroup[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(true);
   
   // Payment history
-  const [paymentHistory, setPaymentHistory] = useState<IFRSLeaseAccountingRecord[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<LeaseAccountingRecord[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
   useEffect(() => {
@@ -99,7 +100,7 @@ export default function IFRSPaymentModal({
       if (error) throw error;
 
       // Group by invoice_id
-      const invoiceGroups: { [key: string]: IFRSInvoiceGroup } = {};
+      const invoiceGroups: { [key: string]: InvoiceGroup } = {};
       
       data?.forEach(record => {
         if (record.invoice_id) {
@@ -128,7 +129,7 @@ export default function IFRSPaymentModal({
 
       setOutstandingInvoices(Object.values(invoiceGroups));
     } catch (error) {
-      console.error('Error fetching IFRS outstanding invoices:', error);
+      console.error('Error fetching  outstanding invoices:', error);
     } finally {
       setLoadingInvoices(false);
     }
@@ -148,7 +149,7 @@ export default function IFRSPaymentModal({
       if (error) throw error;
       setPaymentHistory(data || []);
     } catch (error) {
-      console.error('Error fetching IFRS payment history:', error);
+      console.error('Error fetching  payment history:', error);
     } finally {
       setLoadingHistory(false);
     }
@@ -162,7 +163,7 @@ export default function IFRSPaymentModal({
 
     setRecording(true);
     try {
-      console.log('💳 Recording IFRS payment:', {
+      console.log('💳 Recording  payment:', {
         leaseId,
         amount: parseFloat(paymentAmount),
         method: paymentMethod,
@@ -170,7 +171,7 @@ export default function IFRSPaymentModal({
         notes
       });
 
-      // Use IFRS transaction-safe function
+      // Use  transaction-safe function
       const { data, error } = await supabase.rpc('ifrs_record_payment', {
         p_lease_id: leaseId,
         p_amount: parseFloat(paymentAmount),
@@ -180,11 +181,11 @@ export default function IFRSPaymentModal({
       });
 
       if (error) {
-        console.error('❌ Error recording IFRS payment:', error);
+        console.error('❌ Error recording  payment:', error);
         throw error;
       }
 
-      console.log('✅ IFRS Payment recorded successfully:', data);
+      console.log('✅  Payment recorded successfully:', data);
 
       // Refresh data
       fetchPaymentHistory();
@@ -195,7 +196,7 @@ export default function IFRSPaymentModal({
       alert(`Payment recorded successfully!\nPayment ID: ${data}\nAmount: ${formatCurrency(parseFloat(paymentAmount))}`);
       
     } catch (error) {
-      console.error('❌ Detailed error recording IFRS payment:', error);
+      console.error('❌ Detailed error recording  payment:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Error recording payment. Please try again.');
     } finally {
@@ -246,7 +247,7 @@ export default function IFRSPaymentModal({
               <CreditCard className="w-6 h-6 text-green-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Record IFRS Payment</h2>
+              <h2 className="text-xl font-bold text-white">Record  Payment</h2>
               <p className="text-neutral-400">{customerName}</p>
             </div>
           </div>
@@ -267,7 +268,7 @@ export default function IFRSPaymentModal({
             <div className="space-y-6">
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <DollarSign size={20} />
+                  <DirhamSign size={20} />
                   Payment Details
                 </h3>
                 

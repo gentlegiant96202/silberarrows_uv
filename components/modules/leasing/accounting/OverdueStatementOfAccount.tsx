@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Download, 
   Calendar, 
-  DollarSign,
+  DirhamSign,
   FileText,
   Filter,
   TrendingUp,
@@ -14,9 +14,10 @@ import {
   Receipt,
   RefreshCw
 } from "lucide-react";
+import { DirhamSign } from "new-dirham-symbol";
 
-// IFRS Types
-interface IFRSLeaseAccountingRecord {
+//  Types
+interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
@@ -42,18 +43,18 @@ interface IFRSLeaseAccountingRecord {
 interface Props {
   leaseId: string;
   customerName: string;
-  records: IFRSLeaseAccountingRecord[];
+  records: LeaseAccountingRecord[];
   onExportPDF?: () => void;
 }
 
-export default function IFRSStatementOfAccount({ 
+export default function StatementOfAccount({ 
   leaseId, 
   customerName, 
   records,
   onExportPDF 
 }: Props) {
   
-  const [filteredRecords, setFilteredRecords] = useState<IFRSLeaseAccountingRecord[]>([]);
+  const [filteredRecords, setFilteredRecords] = useState<LeaseAccountingRecord[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({
     start: '',
@@ -134,11 +135,11 @@ export default function IFRSStatementOfAccount({
     return labels[type as keyof typeof labels] || type;
   };
 
-  const getTransactionIcon = (record: IFRSLeaseAccountingRecord) => {
+  const getTransactionIcon = (record: LeaseAccountingRecord) => {
     if (record.comment?.startsWith('PAYMENT')) return CreditCard;
     if (record.charge_type === 'refund') return RefreshCw;
     if (record.invoice_id) return Receipt;
-    return DollarSign;
+    return DirhamSign;
   };
 
   // Calculate running balance
@@ -162,7 +163,7 @@ export default function IFRSStatementOfAccount({
       <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xl font-bold text-white">IFRS Statement of Account</h3>
+            <h3 className="text-xl font-bold text-white"> Statement of Account</h3>
             <p className="text-neutral-400">{customerName}</p>
           </div>
           
@@ -189,7 +190,7 @@ export default function IFRSStatementOfAccount({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white/5 rounded-lg p-4 border border-white/10">
             <div className="flex items-center gap-3">
-              <DollarSign className={`${currentBalance > 0 ? 'text-red-400' : 'text-green-400'}`} size={24} />
+              <DirhamSign className={`${currentBalance > 0 ? 'text-red-400' : 'text-green-400'}`} size={24} />
               <div>
                 <p className="text-sm text-neutral-400">Current Balance</p>
                 <p className={`text-lg font-bold ${currentBalance > 0 ? 'text-red-400' : 'text-green-400'}`}>
@@ -312,7 +313,7 @@ export default function IFRSStatementOfAccount({
       <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
         <div className="p-4 border-b border-white/10 bg-white/5">
           <h4 className="text-white font-semibold">Transaction History</h4>
-          <p className="text-neutral-400 text-sm">IFRS-compliant statement with audit trail</p>
+          <p className="text-neutral-400 text-sm">-compliant statement with audit trail</p>
         </div>
         
         <div className="overflow-x-auto">
@@ -432,7 +433,7 @@ export default function IFRSStatementOfAccount({
         <div className="p-4 border-t border-white/10 bg-white/5">
           <div className="flex items-center justify-between">
             <div className="text-sm text-neutral-400">
-              IFRS-Compliant Statement • Generated: {new Date().toLocaleDateString('en-GB')} {new Date().toLocaleTimeString('en-GB')}
+              -Compliant Statement • Generated: {new Date().toLocaleDateString('en-GB')} {new Date().toLocaleTimeString('en-GB')}
             </div>
             <div className="text-right">
               <p className="text-sm text-neutral-400">Current Balance</p>

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Users, DollarSign, Receipt } from 'lucide-react';
 import LeasingAppointmentModal from './modals/LeasingAppointmentModal';
 import LeasingContractModal from './modals/LeasingContractModal';
-import { LeaseAccountingDashboard, IFRSAccountingDashboard, AccountingButton, IFRSAccountingButton } from './accounting';
+import { LeaseAccountingDashboard, OverdueAccountingDashboard, AccountingButton, OverdueAccountingButton } from './accounting';
 import { useSearchStore } from '@/lib/searchStore';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
@@ -91,8 +91,8 @@ export default function LeasingKanbanBoard() {
   const [showContractsModal, setShowContractsModal] = useState(false);
   const [showAccountingModal, setShowAccountingModal] = useState(false);
   const [accountingCustomer, setAccountingCustomer] = useState<Lease | null>(null);
-  const [showIFRSAccountingModal, setShowIFRSAccountingModal] = useState(false);
-  const [ifrsAccountingCustomer, setIFRSAccountingCustomer] = useState<Lease | null>(null);
+  const [showOverdueAccountingModal, setShowOverdueAccountingModal] = useState(false);
+  const [overdueAccountingCustomer, setOverdueAccountingCustomer] = useState<Lease | null>(null);
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [editingLease, setEditingLease] = useState<Lease | null>(null);
@@ -531,10 +531,10 @@ export default function LeasingKanbanBoard() {
       setAccountingCustomer(lease);
       setShowAccountingModal(true);
     } else if (lease.status === 'overdue_ending_soon') {
-      // Open IFRS accounting modal for overdue/ending soon leases
-      console.log('💰 Opening IFRS accounting modal for overdue/ending soon lease click');
-      setIFRSAccountingCustomer(lease);
-      setShowIFRSAccountingModal(true);
+      // Open accounting modal for overdue/ending soon leases
+      console.log('💰 Opening accounting modal for overdue/ending soon lease click');
+      setOverdueAccountingCustomer(lease);
+      setShowOverdueAccountingModal(true);
     } else {
       // Open general modal for other stages
       setSelectedLease(lease);
@@ -882,17 +882,17 @@ export default function LeasingKanbanBoard() {
                       </div>
                     )}
 
-                    {/* IFRS Accounting Button for Overdue/Ending Soon */}
+                    {/* Accounting Button for Overdue/Ending Soon */}
                     {lease.status === 'overdue_ending_soon' && (
                       <div className="mt-2 pt-2 border-t border-white/10">
-                        <IFRSAccountingButton
+                        <OverdueAccountingButton
                           leaseId={lease.id}
                           leaseStartDate={lease.lease_start_date || lease.created_at}
                           customerName={lease.customer_name}
                           className="w-full text-xs py-1.5"
                           onClick={() => {
-                            setIFRSAccountingCustomer(lease);
-                            setShowIFRSAccountingModal(true);
+                            setOverdueAccountingCustomer(lease);
+                            setShowOverdueAccountingModal(true);
                           }}
                         />
                       </div>
@@ -989,15 +989,15 @@ export default function LeasingKanbanBoard() {
         />
       )}
 
-      {/* IFRS Accounting Modal for Overdue/Ending Soon */}
-      {showIFRSAccountingModal && ifrsAccountingCustomer && (
-        <IFRSAccountingDashboard
-          leaseId={ifrsAccountingCustomer.id}
-          leaseStartDate={ifrsAccountingCustomer.lease_start_date || ifrsAccountingCustomer.created_at}
-          customerName={ifrsAccountingCustomer.customer_name}
+      {/* Accounting Modal for Overdue/Ending Soon */}
+      {showOverdueAccountingModal && overdueAccountingCustomer && (
+        <OverdueAccountingDashboard
+          leaseId={overdueAccountingCustomer.id}
+          leaseStartDate={overdueAccountingCustomer.lease_start_date || overdueAccountingCustomer.created_at}
+          customerName={overdueAccountingCustomer.customer_name}
           onClose={() => {
-            setShowIFRSAccountingModal(false);
-            setIFRSAccountingCustomer(null);
+            setShowOverdueAccountingModal(false);
+            setOverdueAccountingCustomer(null);
           }}
         />
       )}

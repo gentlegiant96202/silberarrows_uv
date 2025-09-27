@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useModulePermissions } from "@/lib/useModulePermissions";
 import { useUserRole } from "@/lib/useUserRole";
-import IFRSBillingPeriodsView from "./IFRSBillingPeriodsView";
-import IFRSInvoiceModal from "./IFRSInvoiceModal";
-import IFRSPaymentModal from "./IFRSPaymentModal";
-import IFRSStatementOfAccount from "./IFRSStatementOfAccount";
+import OverdueBillingPeriodsView from "./OverdueBillingPeriodsView";
+import OverdueInvoiceModal from "./OverdueInvoiceModal";
+import OverduePaymentModal from "./OverduePaymentModal";
+import OverdueStatementOfAccount from "./OverdueStatementOfAccount";
 import ContractDetailsView from "./ContractDetailsView"; // Reuse existing contract details
 import { 
   Plus, 
@@ -22,7 +22,7 @@ import {
   Edit,
   Trash2
 } from "lucide-react";
-import { DirhamSign } from "new-dirham-symbol";
+import DirhamIcon from "@/components/ui/DirhamIcon";
 
 // Types (matching existing functionality exactly)
 interface LeaseAccountingRecord {
@@ -152,7 +152,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
       if (error) throw error;
       setRecords(data || []);
     } catch (error) {
-      console.error('Error fetching IFRS accounting data:', error);
+      console.error('Error fetching  accounting data:', error);
     } finally {
       setLoading(false);
     }
@@ -208,7 +208,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
 
       setInvoices(Object.values(invoiceGroups));
     } catch (error) {
-      console.error('Error fetching IFRS invoices:', error);
+      console.error('Error fetching  invoices:', error);
     }
   };
 
@@ -226,7 +226,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
       if (error) throw error;
       setPaymentHistory(data || []);
     } catch (error) {
-      console.error('Error fetching IFRS payment history:', error);
+      console.error('Error fetching  payment history:', error);
     } finally {
       setLoadingPayments(false);
     }
@@ -237,7 +237,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
     
     const startDate = new Date(leaseInfo.lease_start_date);
     const endDate = leaseInfo.lease_end_date ? new Date(leaseInfo.lease_end_date) : null;
-    const periods: IFRSBillingPeriod[] = [];
+    const periods: BillingPeriod[] = [];
     
     // Calculate number of periods based on lease term or until end date + buffer
     let numberOfPeriods: number;
@@ -289,10 +289,10 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
 
   const handleAddCharge = async () => {
     try {
-      console.log('💰 IFRS Form data before processing:', newCharge);
+      console.log('💰  Form data before processing:', newCharge);
       
       if (editingCharge) {
-        // Update existing charge using IFRS function
+        // Update existing charge using  function
         const { data, error } = await supabase.rpc('ifrs_update_charge', {
           p_charge_id: editingCharge,
           p_charge_type: newCharge.charge_type,
@@ -309,7 +309,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
         alert('Charge updated successfully.');
         fetchAccountingData(); // Refresh data
       } else {
-        // Add new charge using IFRS function
+        // Add new charge using  function
         const { data, error } = await supabase.rpc('ifrs_add_charge', {
           p_lease_id: leaseId,
           p_billing_period: newCharge.billing_period,
@@ -331,7 +331,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
       resetNewChargeForm();
       setEditingCharge(null);
     } catch (error) {
-      console.error('Error saving IFRS charge:', error);
+      console.error('Error saving  charge:', error);
       alert('Error saving charge. Please try again.');
     }
   };
@@ -391,7 +391,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
       alert('Charge deleted successfully.');
       fetchAccountingData();
     } catch (error) {
-      console.error('Error deleting IFRS charge:', error);
+      console.error('Error deleting  charge:', error);
       alert('Error deleting charge. It may have already been invoiced.');
     }
   };
@@ -507,7 +507,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
         <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 rounded-2xl p-8">
           <div className="flex items-center gap-3">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-            <span className="text-white">Loading IFRS Accounting...</span>
+            <span className="text-white">Loading  Accounting...</span>
           </div>
         </div>
       </div>
@@ -522,7 +522,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
         <div className="flex items-center justify-between p-6 border-b border-neutral-400/20">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-xl border border-blue-400/30">
-              <DirhamSign className="w-6 h-6 text-blue-400" />
+              <DirhamIcon size={24} className="text-blue-400" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-white">Lease Accounting</h2>
@@ -577,7 +577,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
               </div>
             )}
 
-            {/* Charges Tab - Exactly like existing but with IFRS backend */}
+            {/* Charges Tab - Exactly like existing but with  backend */}
             {activeTab === 'charges' && (
               <div className="h-full flex flex-col">
                 <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
@@ -598,7 +598,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
                   <div className="space-y-3">
                     {records.length === 0 ? (
                       <div className="text-center py-12">
-                        <DirhamSign size={48} className="text-white/20 mx-auto mb-4" />
+                        <DirhamIcon size={48} className="text-white/20 mx-auto mb-4" />
                         <p className="text-white/60">No charges recorded yet</p>
                         <p className="text-white/40 text-sm mt-2">Click "Add Charge" to get started</p>
                       </div>
@@ -694,7 +694,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
                 <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-white">IFRS Billing Periods</h3>
+                      <h3 className="text-lg font-semibold text-white"> Billing Periods</h3>
                       <p className="text-white/60 text-sm">
                         {leaseInfo?.lease_start_date ? (
                           <>
@@ -718,7 +718,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-6">
-                  <IFRSBillingPeriodsView
+                  <OverdueBillingPeriodsView
                     leaseId={leaseId}
                     leaseStartDate={leaseInfo?.lease_start_date || leaseStartDate}
                     leaseEndDate={leaseInfo?.lease_end_date}
@@ -736,7 +736,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
               <div className="h-full flex flex-col">
                 <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white">IFRS Invoices</h3>
+                    <h3 className="text-lg font-semibold text-white"> Invoices</h3>
                     <div className="text-sm text-white/60">
                       Sequential numbering: INV-LE-1000+
                     </div>
@@ -861,7 +861,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
               <div className="h-full flex flex-col">
                 <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white">IFRS Payments</h3>
+                    <h3 className="text-lg font-semibold text-white"> Payments</h3>
                     <button
                       onClick={() => setShowPaymentModal(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-green-500 to-green-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
@@ -958,7 +958,7 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
             {/* Statement Tab */}
             {activeTab === 'statement' && (
               <div className="h-full overflow-y-auto p-6">
-                <IFRSStatementOfAccount
+                <OverdueStatementOfAccount
                   leaseId={leaseId}
                   customerName={customerName}
                   records={records}
@@ -1083,9 +1083,9 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
           </div>
         </div>
 
-        {/* IFRS Invoice Modal */}
+        {/*  Invoice Modal */}
         {showInvoiceModal && (
-          <IFRSInvoiceModal
+          <OverdueInvoiceModal
             isOpen={showInvoiceModal}
             onClose={() => setShowInvoiceModal(false)}
             billingPeriod={selectedBillingPeriod}
@@ -1096,9 +1096,9 @@ export default function OverdueAccountingDashboard({ leaseId, leaseStartDate, cu
           />
         )}
 
-        {/* IFRS Payment Modal */}
+        {/*  Payment Modal */}
         {showPaymentModal && (
-          <IFRSPaymentModal
+          <OverduePaymentModal
             isOpen={showPaymentModal}
             onClose={() => setShowPaymentModal(false)}
             leaseId={leaseId}

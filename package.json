@@ -48,7 +48,7 @@
     "gsap": "^3.13.0",
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
-    "lucide-react": "^0.534.0",
+    "lucide-react": "^0.544.0",
     "new-dirham-symbol": "^1.0.3",
     "next": "^15.4.5",
     "node-fetch": "^2.7.0",

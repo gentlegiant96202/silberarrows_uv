@@ -6,7 +6,6 @@ import {
   X, 
   FileText, 
   Calendar, 
-  DollarSign,
   Download,
   Check,
   AlertCircle,
@@ -14,8 +13,8 @@ import {
   Eye
 } from "lucide-react";
 
-// IFRS Types
-interface IFRSLeaseAccountingRecord {
+//  Types
+interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
@@ -40,13 +39,13 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   billingPeriod: string;
-  charges: IFRSLeaseAccountingRecord[];
+  charges: LeaseAccountingRecord[];
   customerName: string;
   leaseId: string;
   onInvoiceGenerated: () => void;
 }
 
-export default function IFRSInvoiceModal({ 
+export default function InvoiceModal({ 
   isOpen, 
   onClose, 
   billingPeriod, 
@@ -109,10 +108,10 @@ export default function IFRSInvoiceModal({
   const generateInvoice = async () => {
     setGenerating(true);
     try {
-      console.log('🧾 Generating IFRS invoice for period:', billingPeriod);
+      console.log('🧾 Generating  invoice for period:', billingPeriod);
       console.log('📋 Charges to invoice:', charges.map(c => ({ id: c.id, type: c.charge_type, amount: c.total_amount })));
       
-      // Use IFRS transaction-safe function
+      // Use  transaction-safe function
       const { data, error } = await supabase.rpc('ifrs_generate_invoice', {
         p_lease_id: leaseId,
         p_billing_period: billingPeriod,
@@ -120,11 +119,11 @@ export default function IFRSInvoiceModal({
       });
 
       if (error) {
-        console.error('❌ Error generating IFRS invoice:', error);
+        console.error('❌ Error generating  invoice:', error);
         throw error;
       }
 
-      console.log('✅ IFRS Invoice generated successfully:', data);
+      console.log('✅  Invoice generated successfully:', data);
       
       // Parse the JSON response
       const invoiceResult = typeof data === 'string' ? JSON.parse(data) : data;
@@ -136,7 +135,7 @@ export default function IFRSInvoiceModal({
       alert(`Invoice generated successfully!\nInvoice Number: ${invoiceResult.invoice_number}\nInvoice ID: ${invoiceResult.invoice_id}\nCharges Updated: ${invoiceResult.charges_updated}\nTotal: ${formatCurrency(total)}`);
       
     } catch (error) {
-      console.error('❌ Detailed error generating IFRS invoice:', error);
+      console.error('❌ Detailed error generating  invoice:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Error generating invoice. Please try again.');
     } finally {
@@ -157,7 +156,7 @@ export default function IFRSInvoiceModal({
               <FileText className="w-6 h-6 text-blue-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Generate IFRS Invoice</h2>
+              <h2 className="text-xl font-bold text-white">Generate  Invoice</h2>
               <p className="text-neutral-400">Sequential Invoice: {nextInvoiceNumber}</p>
             </div>
           </div>

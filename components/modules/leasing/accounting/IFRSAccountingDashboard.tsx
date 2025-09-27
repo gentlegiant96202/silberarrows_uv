@@ -670,7 +670,7 @@ export default function IFRSAccountingDashboard({ leaseId, leaseStartDate, custo
               </div>
             )}
 
-            {/* Other tabs will be implemented next... */}
+            {/* Billing Periods Tab */}
             {activeTab === 'periods' && (
               <div className="h-full flex flex-col">
                 <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
@@ -700,12 +700,15 @@ export default function IFRSAccountingDashboard({ leaseId, leaseStartDate, custo
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-6">
-                  {/* TODO: Implement IFRSBillingPeriodsView */}
-                  <div className="text-center py-12">
-                    <Calendar size={48} className="text-white/20 mx-auto mb-4" />
-                    <p className="text-white/60">IFRS Billing Periods</p>
-                    <p className="text-white/40 text-sm mt-2">Coming next...</p>
-                  </div>
+                  <IFRSBillingPeriodsView
+                    leaseId={leaseId}
+                    leaseStartDate={leaseInfo?.lease_start_date || leaseStartDate}
+                    leaseEndDate={leaseInfo?.lease_end_date}
+                    leaseTermMonths={leaseInfo?.lease_term_months}
+                    records={records}
+                    onGenerateInvoice={handleGenerateInvoice}
+                    onAddChargeForPeriod={handleAddChargeForPeriod}
+                  />
                 </div>
               </div>
             )}

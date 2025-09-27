@@ -1,6 +1,7 @@
 export { default as LeaseAccountingDashboard } from './LeaseAccountingDashboard';
 export { default as IFRSAccountingDashboard } from './IFRSAccountingDashboard';
 export { default as BillingPeriodsView } from './BillingPeriodsView';
+export { default as IFRSBillingPeriodsView } from './IFRSBillingPeriodsView';
 export { default as InvoiceModal } from './InvoiceModal';
 export { default as PaymentModal } from './PaymentModal';
 export { default as StatementOfAccount } from './StatementOfAccount';

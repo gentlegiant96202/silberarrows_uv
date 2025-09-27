@@ -70,6 +70,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<string>('');
   const [selectedChargesForInvoice, setSelectedChargesForInvoice] = useState<LeaseAccountingRecord[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
 
   // New charge form state
   const [newCharge, setNewCharge] = useState<{
@@ -91,6 +92,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
   useEffect(() => {
     fetchAccountingData();
     generateBillingPeriods();
+    fetchInvoices();
   }, [leaseId]);
 
   const fetchAccountingData = async () => {
@@ -108,6 +110,45 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
       console.error('Error fetching accounting data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchInvoices = async () => {
+    try {
+      // Get all invoiced records grouped by invoice_id
+      const { data, error } = await supabase
+        .from('lease_accounting')
+        .select('*')
+        .eq('lease_id', leaseId)
+        .eq('status', 'invoiced')
+        .not('invoice_id', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Group by invoice_id
+      const invoiceGroups: { [key: string]: any } = {};
+      
+      data?.forEach(record => {
+        if (record.invoice_id) {
+          if (!invoiceGroups[record.invoice_id]) {
+            invoiceGroups[record.invoice_id] = {
+              invoice_id: record.invoice_id,
+              billing_period: record.billing_period,
+              created_at: record.created_at,
+              charges: [],
+              total_amount: 0
+            };
+          }
+          
+          invoiceGroups[record.invoice_id].charges.push(record);
+          invoiceGroups[record.invoice_id].total_amount += record.total_amount;
+        }
+      });
+
+      setInvoices(Object.values(invoiceGroups));
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
     }
   };
 
@@ -254,6 +295,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
 
   const handleInvoiceGenerated = () => {
     fetchAccountingData();
+    fetchInvoices(); // Refresh invoices list
     setShowInvoiceModal(false);
   };
 
@@ -541,7 +583,7 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
             <div className="h-full flex flex-col">
               <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-white">Invoice Management</h3>
+                  <h3 className="text-lg font-semibold text-white">Generated Invoices</h3>
                   <button
                     onClick={() => setShowPaymentModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
@@ -552,12 +594,63 @@ export default function LeaseAccountingDashboard({ leaseId, leaseStartDate, cust
                 </div>
               </div>
               
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <FileText size={48} className="text-white/20 mx-auto mb-4" />
-                  <p className="text-white/60">Invoice list view coming soon</p>
-                  <p className="text-white/40 text-sm mt-2">Use Billing Periods to generate invoices</p>
-                </div>
+              <div className="flex-1 overflow-auto p-6">
+                {invoices.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <FileText size={48} className="text-white/20 mx-auto mb-4" />
+                      <p className="text-white/60">No invoices generated yet</p>
+                      <p className="text-white/40 text-sm mt-2">Use Billing Periods to generate invoices</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {invoices.map((invoice) => (
+                      <div key={invoice.invoice_id} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h4 className="text-lg font-semibold text-white">Invoice #{invoice.invoice_id.slice(-8)}</h4>
+                            <p className="text-white/60 text-sm">
+                              Period: {new Date(invoice.billing_period).toLocaleDateString('en-GB')} • 
+                              Generated: {new Date(invoice.created_at).toLocaleDateString('en-GB')}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-white">
+                              {new Intl.NumberFormat('en-AE', {
+                                style: 'currency',
+                                currency: 'AED',
+                                minimumFractionDigits: 2
+                              }).format(invoice.total_amount)}
+                            </p>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Invoiced
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h5 className="text-sm font-medium text-white/80">Charges:</h5>
+                          {invoice.charges.map((charge: LeaseAccountingRecord) => (
+                            <div key={charge.id} className="flex justify-between items-center py-2 px-3 bg-white/5 rounded">
+                              <span className="text-white/70 text-sm">
+                                {charge.charge_type.charAt(0).toUpperCase() + charge.charge_type.slice(1)}
+                                {charge.comment && ` - ${charge.comment}`}
+                              </span>
+                              <span className="text-white font-medium">
+                                {new Intl.NumberFormat('en-AE', {
+                                  style: 'currency',
+                                  currency: 'AED',
+                                  minimumFractionDigits: 2
+                                }).format(charge.total_amount)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

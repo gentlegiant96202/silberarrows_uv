@@ -202,8 +202,18 @@ export default function PaymentModal({
             
             chargeUpdates.push({
               id: charge.id,
-              payment_id: paymentId,
-              status: chargeAllocation >= charge.total_amount ? 'paid' : 'invoiced'
+              lease_id: charge.lease_id,
+              billing_period: charge.billing_period,
+              charge_type: charge.charge_type,
+              quantity: charge.quantity,
+              unit_price: charge.unit_price,
+              total_amount: charge.total_amount,
+              comment: charge.comment,
+              invoice_id: charge.invoice_id,
+              payment_id: paymentId, // This is what we're updating
+              status: chargeAllocation >= charge.total_amount ? 'paid' : 'invoiced', // This is what we're updating
+              vat_applicable: charge.vat_applicable,
+              account_closed: charge.account_closed
             });
           });
         }
@@ -211,11 +221,15 @@ export default function PaymentModal({
 
       // Update charges in batch
       if (chargeUpdates.length > 0) {
+        console.log('🔄 Updating charges with payment allocation:', chargeUpdates);
         const { error: updateError } = await supabase
           .from('lease_accounting')
           .upsert(chargeUpdates);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('❌ Error updating charges with payment:', updateError);
+          throw updateError;
+        }
       }
 
       // Insert payment record as a special entry
@@ -234,11 +248,15 @@ export default function PaymentModal({
         account_closed: false
       };
 
+      console.log('💰 Inserting payment record:', paymentRecord);
       const { error: paymentError } = await supabase
         .from('lease_accounting')
         .insert([paymentRecord]);
 
-      if (paymentError) throw paymentError;
+      if (paymentError) {
+        console.error('❌ Error inserting payment record:', paymentError);
+        throw paymentError;
+      }
 
       onPaymentRecorded();
       onClose();
@@ -246,7 +264,8 @@ export default function PaymentModal({
       alert(`Payment recorded successfully!\nPayment ID: ${paymentId}\nAmount: ${formatCurrency(paymentAmountNum)}`);
       
     } catch (error) {
-      console.error('Error recording payment:', error);
+      console.error('❌ Detailed error recording payment:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Error recording payment. Please try again.');
     } finally {
       setRecording(false);

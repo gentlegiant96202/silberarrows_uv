@@ -5,6 +5,8 @@ export { default as IFRSBillingPeriodsView } from './IFRSBillingPeriodsView';
 export { default as InvoiceModal } from './InvoiceModal';
 export { default as IFRSInvoiceModal } from './IFRSInvoiceModal';
 export { default as PaymentModal } from './PaymentModal';
+export { default as IFRSPaymentModal } from './IFRSPaymentModal';
 export { default as StatementOfAccount } from './StatementOfAccount';
+export { default as IFRSStatementOfAccount } from './IFRSStatementOfAccount';
 export { default as AccountingButton } from './AccountingButton';
 export { default as IFRSAccountingButton } from './IFRSAccountingButton';

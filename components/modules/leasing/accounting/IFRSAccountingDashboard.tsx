@@ -471,6 +471,13 @@ export default function IFRSAccountingDashboard({ leaseId, leaseStartDate, custo
     return new Date(dateString).toLocaleDateString('en-GB');
   };
 
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const getChargeTypeLabel = (type: string) => {
     const labels = {
       rental: 'Monthly Rental',
@@ -481,6 +488,17 @@ export default function IFRSAccountingDashboard({ leaseId, leaseStartDate, custo
       refund: 'Refund/Credit'
     };
     return labels[type as keyof typeof labels] || type;
+  };
+
+  const extractPaymentDetails = (comment: string) => {
+    // Extract payment method and reference from comment
+    const methodMatch = comment.match(/PAYMENT \w+ - (\w+)/);
+    const refMatch = comment.match(/\(Ref: ([^)]+)\)/);
+    
+    return {
+      method: methodMatch ? methodMatch[1] : 'Unknown',
+      reference: refMatch ? refMatch[1] : null
+    };
   };
 
   if (loading) {
@@ -838,6 +856,120 @@ export default function IFRSAccountingDashboard({ leaseId, leaseStartDate, custo
               </div>
             )}
 
+            {/* Payments Tab */}
+            {activeTab === 'payments' && (
+              <div className="h-full flex flex-col">
+                <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">IFRS Payments</h3>
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-green-500 to-green-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
+                    >
+                      <CreditCard size={16} />
+                      Record Payment
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                  {loadingPayments ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white/60"></div>
+                    </div>
+                  ) : paymentHistory.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CreditCard size={48} className="text-white/20 mx-auto mb-4" />
+                      <p className="text-white/60">No payments recorded yet</p>
+                      <p className="text-white/40 text-sm mt-2">Click "Record Payment" to get started</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Payment Summary */}
+                      <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-6">
+                        <div className="flex items-center justify-between">
+                          <span className="text-white/60">Total Payments Received</span>
+                          <span className="text-green-400 font-bold text-xl">
+                            {formatCurrency(paymentHistory.reduce((sum, p) => sum + Math.abs(p.total_amount), 0))}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Payment List */}
+                      {paymentHistory.map((payment) => {
+                        const details = extractPaymentDetails(payment.comment || '');
+                        return (
+                          <div key={payment.id} className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10 hover:bg-white/10 transition-all">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-4">
+                                <div className="p-2 bg-green-500/20 rounded-lg">
+                                  <CreditCard size={20} className="text-green-400" />
+                                </div>
+                                <div>
+                                  <p className="text-white font-semibold">
+                                    {details.method.replace('_', ' ').toUpperCase()} Payment
+                                  </p>
+                                  <p className="text-neutral-400 text-sm">
+                                    {formatDate(payment.created_at)} • {formatTime(payment.created_at)}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <div className="text-right">
+                                <p className="text-green-400 font-bold text-xl">
+                                  💳 {formatCurrency(Math.abs(payment.total_amount))}
+                                </p>
+                                <p className="text-neutral-400 text-xs">
+                                  ID: {payment.payment_id?.slice(-8) || payment.id.slice(-8)}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {details.reference && (
+                              <div className="mb-2">
+                                <span className="text-neutral-400 text-sm">Reference: </span>
+                                <span className="text-white text-sm font-medium">{details.reference}</span>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs px-3 py-1 bg-green-400/10 text-green-400 rounded-full font-medium">
+                                  {payment.status.toUpperCase()}
+                                </span>
+                                <span className="text-xs text-neutral-500">
+                                  Period: {formatDate(payment.billing_period)}
+                                </span>
+                              </div>
+                              
+                              <div className="text-xs text-neutral-400">
+                                v{payment.version} • Created by: {payment.created_by?.slice(-8) || 'System'}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Statement Tab */}
+            {activeTab === 'statement' && (
+              <div className="h-full overflow-y-auto p-6">
+                <IFRSStatementOfAccount
+                  leaseId={leaseId}
+                  customerName={customerName}
+                  records={records}
+                  onExportPDF={() => {
+                    // PDF export functionality (future enhancement)
+                    alert('PDF export coming soon!');
+                  }}
+                />
+              </div>
+            )}
+
             {/* Add Charge Modal - Exactly like existing */}
             {showAddCharge && (
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10 flex items-center justify-center p-4">
@@ -961,6 +1093,17 @@ export default function IFRSAccountingDashboard({ leaseId, leaseStartDate, custo
             customerName={customerName}
             leaseId={leaseId}
             onInvoiceGenerated={handleInvoiceGenerated}
+          />
+        )}
+
+        {/* IFRS Payment Modal */}
+        {showPaymentModal && (
+          <IFRSPaymentModal
+            isOpen={showPaymentModal}
+            onClose={() => setShowPaymentModal(false)}
+            leaseId={leaseId}
+            customerName={customerName}
+            onPaymentRecorded={handlePaymentRecorded}
           />
         )}
       </div>

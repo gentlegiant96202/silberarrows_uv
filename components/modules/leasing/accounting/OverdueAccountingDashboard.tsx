@@ -20,7 +20,9 @@ import {
   AlertCircle,
   X,
   Edit,
-  Trash2
+  Trash2,
+  Eye,
+  Printer
 } from "lucide-react";
 import DirhamIcon from "@/components/ui/DirhamIcon";
 

@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   X, 
   CreditCard, 
-  DirhamSign,
   Check,
   AlertCircle,
   Clock,
@@ -13,7 +12,7 @@ import {
   Calculator,
   History
 } from "lucide-react";
-import { DirhamSign } from "new-dirham-symbol";
+import DirhamIcon from "@/components/ui/DirhamIcon";
 
 //  Types
 interface LeaseAccountingRecord {
@@ -268,7 +267,7 @@ export default function PaymentModal({
             <div className="space-y-6">
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <DirhamSign size={20} />
+                  <DirhamIcon size={20} />
                   Payment Details
                 </h3>
                 

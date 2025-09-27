@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Download, 
   Calendar, 
-  DirhamSign,
   FileText,
   Filter,
   TrendingUp,
@@ -14,7 +13,7 @@ import {
   Receipt,
   RefreshCw
 } from "lucide-react";
-import { DirhamSign } from "new-dirham-symbol";
+import DirhamIcon from "@/components/ui/DirhamIcon";
 
 //  Types
 interface LeaseAccountingRecord {
@@ -139,7 +138,7 @@ export default function StatementOfAccount({
     if (record.comment?.startsWith('PAYMENT')) return CreditCard;
     if (record.charge_type === 'refund') return RefreshCw;
     if (record.invoice_id) return Receipt;
-    return DirhamSign;
+    return DirhamIcon;
   };
 
   // Calculate running balance
@@ -190,7 +189,7 @@ export default function StatementOfAccount({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white/5 rounded-lg p-4 border border-white/10">
             <div className="flex items-center gap-3">
-              <DirhamSign className={`${currentBalance > 0 ? 'text-red-400' : 'text-green-400'}`} size={24} />
+              <DirhamIcon className={`${currentBalance > 0 ? 'text-red-400' : 'text-green-400'}`} size={24} />
               <div>
                 <p className="text-sm text-neutral-400">Current Balance</p>
                 <p className={`text-lg font-bold ${currentBalance > 0 ? 'text-red-400' : 'text-green-400'}`}>

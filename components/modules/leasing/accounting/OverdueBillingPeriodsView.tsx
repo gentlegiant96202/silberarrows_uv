@@ -8,10 +8,9 @@ import {
   Plus,
   Clock,
   CheckCircle,
-  AlertTriangle,
-  DirhamSign
+  AlertTriangle
 } from "lucide-react";
-import { DirhamSign } from "new-dirham-symbol";
+import DirhamIcon from "@/components/ui/DirhamIcon";
 
 //  Types (matching existing functionality exactly)
 interface LeaseAccountingRecord {
@@ -355,7 +354,7 @@ export default function BillingPeriodsView({
                       {period.charges.map((charge) => (
                         <div key={charge.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                           <div className="flex items-center gap-3">
-                            <DirhamSign size={16} className="text-white/60" />
+                            <DirhamIcon size={16} className="text-white/60" />
                             <div>
                               <span className="text-white text-sm font-medium">
                                 {getChargeTypeLabel(charge.charge_type)}

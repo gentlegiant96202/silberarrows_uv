@@ -18,6 +18,7 @@ interface InventoryVehicle {
   monthly_lease_rate?: number;
   security_deposit?: number;
   buyout_price?: number;
+  excess_mileage_charges?: number;
   status?: string;
   condition?: string;
   engine?: string;

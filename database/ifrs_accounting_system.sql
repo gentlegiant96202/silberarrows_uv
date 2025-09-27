@@ -491,6 +491,10 @@ CREATE TRIGGER trg_lease_accounting_updated_at
 -- 9. ROW LEVEL SECURITY ( access controls)
 ALTER TABLE ifrs_lease_accounting ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Accounts users can manage transactions" ON ifrs_lease_accounting;
+DROP POLICY IF EXISTS "Leasing users can view transactions" ON ifrs_lease_accounting;
+
 -- Accounts and admin users can manage all transactions
 CREATE POLICY "Accounts users can manage transactions" ON ifrs_lease_accounting
     FOR ALL USING (

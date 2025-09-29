@@ -56,8 +56,14 @@ export default function AccountingStatusButton({
     if (accountingStatus.currentBillingPeriod) {
       const startDate = new Date(accountingStatus.currentBillingPeriod.startDate).toLocaleDateString();
       const endDate = new Date(accountingStatus.currentBillingPeriod.endDate).toLocaleDateString();
-      tooltip += `\nCurrent Period: ${startDate} - ${endDate}`;
-      console.log('📅 Added billing period to tooltip:', { startDate, endDate });
+      tooltip += ` | Current Period: ${startDate} - ${endDate}`;
+      console.log('📅 Added billing period to tooltip:', { 
+        startDate, 
+        endDate,
+        fullTooltip: tooltip,
+        originalStart: accountingStatus.currentBillingPeriod.startDate,
+        originalEnd: accountingStatus.currentBillingPeriod.endDate
+      });
     } else {
       console.log('❌ No billing period available');
     }

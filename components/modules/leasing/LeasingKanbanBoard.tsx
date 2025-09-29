@@ -525,9 +525,10 @@ export default function LeasingKanbanBoard() {
       setContractsCustomer(lease);
       setShowContractsModal(true);
     } else if (lease.status === 'active_leases') {
-      // Open general modal for active leases (accounting removed)
-      setSelectedLease(lease);
-      setShowModal(true);
+      // Open accounting modal for active leases
+      console.log('💰 Opening accounting modal for active lease click');
+      setOverdueAccountingCustomer(lease);
+      setShowOverdueAccountingModal(true);
     } else if (lease.status === 'overdue_ending_soon') {
       // Open accounting modal for overdue/ending soon leases
       console.log('💰 Opening accounting modal for overdue/ending soon lease click');
@@ -991,13 +992,8 @@ export default function LeasingKanbanBoard() {
                           leaseId={lease.id}
                           leaseStartDate={lease.lease_start_date || lease.created_at}
                           onClick={() => {
-                            if (lease.status === 'overdue_ending_soon') {
-                              setOverdueAccountingCustomer(lease);
-                              setShowOverdueAccountingModal(true);
-                            } else {
-                              setSelectedLease(lease);
-                              setShowModal(true);
-                            }
+                            setOverdueAccountingCustomer(lease);
+                            setShowOverdueAccountingModal(true);
                           }}
                         />
                       </div>

@@ -19,7 +19,7 @@ interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
-  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund' | 'vat';
+  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund' | 'credit_note' | 'vat';
   quantity: number | null;
   unit_price: number | null;
   total_amount: number;

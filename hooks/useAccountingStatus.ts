@@ -58,15 +58,6 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
           periodKey: currentPeriodKey
         };
 
-        console.log('📅 Billing Period Calculation:', {
-          leaseStartDate,
-          today: today.toISOString().split('T')[0],
-          monthsSinceStart,
-          currentPeriodStart: currentPeriodStart.toISOString().split('T')[0],
-          currentPeriodEnd: currentPeriodEnd.toISOString().split('T')[0],
-          currentBillingPeriod
-        });
-
         // Fetch accounting records
         const { data: records, error: recordsError } = await supabase
           .from('ifrs_lease_accounting')

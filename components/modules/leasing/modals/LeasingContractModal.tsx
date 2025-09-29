@@ -1451,22 +1451,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                           )}
                         </div>
                         
-                        {/* Total Contract Value */}
-                        {contractInfo.monthly_payment && contractInfo.lease_term_months && (
-                          <div className="mt-4 pt-4 border-t border-neutral-400/20">
-                            <div className="bg-gradient-to-r from-neutral-700/30 to-neutral-600/30 rounded-lg p-3 border border-neutral-400/30">
-                              <div className="flex justify-between items-center">
-                                <span className="text-neutral-300 font-medium">Total Contract Value:</span>
-                                <p className="text-white font-bold text-lg">
-                                  AED {(parseFloat(contractInfo.monthly_payment) * parseFloat(contractInfo.lease_term_months)).toLocaleString()}
-                                </p>
-                              </div>
-                              <p className="text-neutral-400 text-xs mt-1">
-                                ({contractInfo.monthly_payment} × {contractInfo.lease_term_months} months)
-                              </p>
-                            </div>
-                          </div>
-                        )}
                         
                         {/* Additional Notes */}
                         {notes && (

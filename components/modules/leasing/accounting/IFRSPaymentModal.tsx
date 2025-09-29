@@ -48,6 +48,21 @@ interface InvoiceGroup {
   allocated_amount: number; // Amount being allocated in this payment
 }
 
+interface PaymentRecord {
+  id: string;
+  lease_id: string;
+  payment_method: string;
+  reference_number: string | null;
+  total_amount: number;
+  notes: string | null;
+  status: 'received' | 'allocated' | 'refunded';
+  receipt_url: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_by: string | null;
+  updated_at: string;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -75,7 +90,7 @@ export default function PaymentModal({
   const [loadingInvoices, setLoadingInvoices] = useState(true);
   
   // Payment history
-  const [paymentHistory, setPaymentHistory] = useState<LeaseAccountingRecord[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
   useEffect(() => {

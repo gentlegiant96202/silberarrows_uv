@@ -341,16 +341,65 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     setAgreementStatusMsg('');
     
     try {
-      // Simulate PDF generation process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('📄 Generating lease agreement PDF...');
       
-      // Create a mock PDF blob and URL
-      const pdfContent = `Lease Agreement - ${personalInfo.customer_name}`;
-      const blob = new Blob([pdfContent], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
+      // Prepare contract data for PDF generation
+      const contractData = {
+        // Customer Information
+        customer_name: personalInfo.customer_name,
+        customer_email: personalInfo.customer_email,
+        customer_phone: personalInfo.customer_phone,
+        emirates_id_number: personalInfo.emirates_id_number,
+        
+        // Address Information
+        address_line_1: addressInfo.address_line_1,
+        address_line_2: addressInfo.address_line_2,
+        city: addressInfo.city,
+        emirate: addressInfo.emirate,
+        
+        // Vehicle Information
+        vehicle_make: selectedVehicle?.make || 'Mercedes-Benz',
+        vehicle_model: selectedVehicle?.vehicle_model || selectedVehicle?.model || 'Vehicle',
+        vehicle_model_year: selectedVehicle?.model_year,
+        vehicle_stock_number: selectedVehicle?.stock_number,
+        vehicle_exterior_colour: selectedVehicle?.colour,
+        vehicle_interior_colour: selectedVehicle?.interior_colour,
+        
+        // Contract Terms
+        monthly_payment: contractInfo.monthly_payment ? parseFloat(contractInfo.monthly_payment) : 0,
+        security_deposit: contractInfo.security_deposit ? parseFloat(contractInfo.security_deposit) : 0,
+        lease_term_months: contractInfo.lease_term_months ? parseInt(contractInfo.lease_term_months) : 0,
+        lease_start_date: contractInfo.lease_start_date,
+        lease_end_date: contractInfo.lease_end_date,
+        lease_to_own_option: contractInfo.lease_to_own_option,
+        buyout_price: contractInfo.buyout_price ? parseFloat(contractInfo.buyout_price) : 0,
+        excess_mileage_charges: contractInfo.excess_mileage_charges ? parseFloat(contractInfo.excess_mileage_charges) : 0,
+        
+        // Additional Information
+        notes: notes
+      };
+      
+      console.log('📋 Contract data prepared:', contractData);
+      
+      // Call the PDF generation API
+      const response = await fetch('/api/generate-lease-agreement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contractData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
+      
+      const result = await response.json();
+      console.log('✅ PDF generated successfully:', result);
       
       // Set generated contract details
-      const filename = `Lease_Agreement_${personalInfo.customer_name?.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+      const filename = result.fileName || `Lease_Agreement_${personalInfo.customer_name?.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
       const generatedAt = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -361,7 +410,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       
       setGeneratedContract({
         filename,
-        url,
+        url: result.pdfUrl,
         generatedAt
       });
       
@@ -369,15 +418,16 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       
       // Auto-download the PDF
       const link = document.createElement('a');
-      link.href = url;
+      link.href = result.pdfUrl;
       link.download = filename;
+      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
     } catch (error) {
       console.error('Error generating agreement:', error);
-      setAgreementStatusMsg('Failed to generate agreement. Please try again.');
+      setAgreementStatusMsg(`Failed to generate agreement: ${error.message || 'Please try again.'}`);
     } finally {
       setGeneratingAgreement(false);
     }

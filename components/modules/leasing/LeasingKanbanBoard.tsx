@@ -853,8 +853,7 @@ export default function LeasingKanbanBoard() {
                             <AccountingStatusButton
                               leaseId={lease.id}
                               leaseStartDate={lease.lease_start_date || lease.created_at}
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={() => {
                                 if (lease.status === 'overdue_ending_soon') {
                                   setOverdueAccountingCustomer(lease);
                                   setShowOverdueAccountingModal(true);

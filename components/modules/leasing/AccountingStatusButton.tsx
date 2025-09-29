@@ -48,10 +48,19 @@ export default function AccountingStatusButton({
   const getTooltipText = () => {
     let tooltip = accountingStatus.description;
     
-    if (accountingStatus.currentBillingPeriod) {
-      const startDate = new Date(accountingStatus.currentBillingPeriod.startDate).toLocaleDateString();
-      const endDate = new Date(accountingStatus.currentBillingPeriod.endDate).toLocaleDateString();
-      tooltip += ` | Current Period: ${startDate} - ${endDate}`;
+    if (accountingStatus.invoiceDueDate) {
+      const dueDate = new Date(accountingStatus.invoiceDueDate).toLocaleDateString();
+      const today = new Date();
+      const dueDateObj = new Date(accountingStatus.invoiceDueDate);
+      const daysUntilDue = Math.ceil((dueDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilDue > 0) {
+        tooltip += ` | Invoice Due: ${dueDate} (${daysUntilDue} days left)`;
+      } else if (daysUntilDue === 0) {
+        tooltip += ` | Invoice Due: ${dueDate} (TODAY!)`;
+      } else {
+        tooltip += ` | Invoice Due: ${dueDate} (${Math.abs(daysUntilDue)} days overdue)`;
+      }
     }
     
     return tooltip;

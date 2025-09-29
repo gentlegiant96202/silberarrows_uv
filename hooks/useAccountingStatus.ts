@@ -8,11 +8,7 @@ interface AccountingStatus {
   description: string;
   loading: boolean;
   refresh: () => void;
-  currentBillingPeriod: {
-    startDate: string;
-    endDate: string;
-    periodKey: string;
-  } | null;
+  invoiceDueDate: string | null;
 }
 
 export function useAccountingStatus(leaseId: string, leaseStartDate: string): AccountingStatus {
@@ -22,7 +18,7 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
     description: "Checking accounting status...",
     loading: true,
     refresh: () => {},
-    currentBillingPeriod: null
+    invoiceDueDate: null
   });
 
   useEffect(() => {
@@ -33,14 +29,14 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         description: "No lease data available",
         loading: false,
         refresh: () => {},
-        currentBillingPeriod: null
+        invoiceDueDate: null
       });
       return;
     }
 
     const fetchAccountingStatus = async () => {
       try {
-        // Calculate current billing period
+        // Calculate invoice due date (last day of current billing period)
         const today = new Date();
         const leaseStart = new Date(leaseStartDate);
         
@@ -50,13 +46,8 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         const currentPeriodStart = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart, leaseStart.getDate());
         const currentPeriodEnd = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart + 1, leaseStart.getDate() - 1);
         
-        const currentPeriodKey = currentPeriodStart.toISOString().split('T')[0];
-        
-        const currentBillingPeriod = {
-          startDate: currentPeriodStart.toISOString().split('T')[0],
-          endDate: currentPeriodEnd.toISOString().split('T')[0],
-          periodKey: currentPeriodKey
-        };
+        // Invoice due date is the last day of the current billing period
+        const invoiceDueDate = currentPeriodEnd.toISOString().split('T')[0];
 
         // Fetch accounting records
         const { data: records, error: recordsError } = await supabase
@@ -128,7 +119,7 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
           ...accountingStatus,
           loading: false,
           refresh: fetchAccountingStatus,
-          currentBillingPeriod
+          invoiceDueDate
         });
 
       } catch (error) {
@@ -139,7 +130,7 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
           description: "Failed to load accounting status",
           loading: false,
           refresh: fetchAccountingStatus,
-          currentBillingPeriod: null
+          invoiceDueDate: null
         });
       }
     };

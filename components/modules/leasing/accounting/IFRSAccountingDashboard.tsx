@@ -251,7 +251,7 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
           
           invoiceGroups[record.invoice_id].charges.push(record);
           invoiceGroups[record.invoice_id].total_amount += record.total_amount;
-          invoiceGroups[record.invoice_id].base_amount += record.total_amount;
+            invoiceGroups[record.invoice_id].base_amount += record.total_amount;
         }
       });
 
@@ -1515,9 +1515,22 @@ const EmptyState = ({ icon: Icon, title, description, action }: EmptyStateProps)
                                   </span>
                                 )}
                               </div>
+                              <div className="flex items-center gap-3">
+                                {payment.receipt_url && (
+                                  <a
+                                    href={payment.receipt_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                  >
+                                    <FileText size={12} />
+                                    Receipt
+                                  </a>
+                                )}
                               <div className="text-xs text-neutral-400">
-                                Created by: {payment.created_by?.slice(-8) || 'System'}
+                                  Created by: {payment.created_by?.slice(-8) || 'System'}
                               </div>
+                            </div>
                             </div>
 
                             {payment.applications && payment.applications.length > 0 && (
@@ -1670,7 +1683,7 @@ const EmptyState = ({ icon: Icon, title, description, action }: EmptyStateProps)
                     return (
                       <option key={payment.id} value={payment.id} className="bg-black">
                         {`${payment.payment_method.toUpperCase()} Payment${payment.reference_number ? ` (${payment.reference_number})` : ''} • ${formatCurrency(remainingAmount)}`}
-                      </option>
+                    </option>
                     );
                   })}
                 </select>

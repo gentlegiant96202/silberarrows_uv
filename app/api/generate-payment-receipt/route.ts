@@ -398,7 +398,7 @@ function buildPaymentReceiptHtml(
 }
 
 // Helper: Generate Payment Receipt PDF and return as Buffer
-export async function generatePaymentReceiptPdf(data: any): Promise<Buffer> {
+async function generatePaymentReceiptPdf(data: any): Promise<Buffer> {
   // Format dates to DD/MM/YYYY
   const formatDate = (dateString: string) => {
     if (!dateString) return '';

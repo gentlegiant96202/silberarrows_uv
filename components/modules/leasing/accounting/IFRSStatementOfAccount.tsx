@@ -84,7 +84,10 @@ export default function StatementOfAccount({
           applications:ifrs_payment_applications(
             invoice_id,
             applied_amount,
-            application_date
+            application_date,
+            invoice:ifrs_lease_accounting!ifrs_payment_applications_invoice_id_fkey(
+              invoice_number
+            )
           )
         `)
         .eq('lease_id', leaseId)
@@ -144,29 +147,54 @@ export default function StatementOfAccount({
     let filtered = records.filter(record => record.status !== 'pending');
 
     // Convert payments to statement records
-    const paymentRecords: StatementRecord[] = payments.map(payment => ({
-      id: payment.id,
-      lease_id: payment.lease_id,
-      billing_period: payment.created_at.split('T')[0], // Use payment date
-      charge_type: 'payment' as any, // For display purposes
-      quantity: null,
-      unit_price: null,
-      total_amount: -payment.total_amount, // Negative for balance impact
-      comment: `${payment.payment_method.toUpperCase()} Payment${payment.reference_number ? ` (Ref: ${payment.reference_number})` : ''}${payment.notes ? ` - ${payment.notes}` : ''}`,
-      invoice_id: null,
-      invoice_number: null,
-      payment_id: payment.id,
-      status: 'paid' as any,
-      vat_applicable: false,
-      account_closed: false,
-      created_at: payment.created_at,
-      updated_at: payment.updated_at || payment.created_at,
-      created_by: payment.created_by,
-      updated_by: payment.updated_by,
-      version: 1,
-      documents: null,
-      isUnappliedCredit: false
-    }));
+    const paymentRecords: StatementRecord[] = payments.map(payment => {
+      // Get application details for this payment
+      const applications = payment.applications || [];
+      const totalApplied = applications.reduce((sum: number, app: any) => sum + app.applied_amount, 0);
+      const remainingAmount = payment.total_amount - totalApplied;
+      
+      // Create base payment record
+      const baseRecord = {
+        id: payment.id,
+        lease_id: payment.lease_id,
+        billing_period: payment.created_at.split('T')[0], // Use payment date
+        charge_type: 'payment' as any, // For display purposes
+        quantity: null,
+        unit_price: null,
+        total_amount: -payment.total_amount, // Negative for balance impact
+        payment_id: payment.id,
+        status: 'paid' as any,
+        vat_applicable: false,
+        account_closed: false,
+        created_at: payment.created_at,
+        updated_at: payment.updated_at || payment.created_at,
+        created_by: payment.created_by,
+        updated_by: payment.updated_by,
+        version: 1,
+        documents: null,
+        isUnappliedCredit: false
+      };
+
+      // If payment has applications, create separate records for each application
+      if (applications.length > 0) {
+        return applications.map((app: any, index: number) => ({
+          ...baseRecord,
+          id: `${payment.id}-app-${index}`,
+          total_amount: -app.applied_amount, // Negative for balance impact
+          invoice_id: app.invoice_id,
+          invoice_number: app.invoice?.invoice_number || null,
+          comment: `${payment.payment_method.toUpperCase()} Payment${payment.reference_number ? ` (Ref: ${payment.reference_number})` : ''} - Applied to ${app.invoice?.invoice_number || 'Invoice'}${payment.notes ? ` - ${payment.notes}` : ''}`
+        }));
+      } else {
+        // Unapplied payment
+        return {
+          ...baseRecord,
+          invoice_id: null,
+          invoice_number: null,
+          comment: `${payment.payment_method.toUpperCase()} Payment${payment.reference_number ? ` (Ref: ${payment.reference_number})` : ''} - Unapplied${payment.notes ? ` - ${payment.notes}` : ''}`
+        };
+      }
+    }).flat();
 
     // Combine charges and payments
     const allRecords = [...filtered, ...paymentRecords];

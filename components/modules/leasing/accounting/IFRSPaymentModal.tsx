@@ -139,11 +139,9 @@ export default function PaymentModal({
     setLoadingHistory(true);
     try {
       const { data, error } = await supabase
-        .from('ifrs_lease_accounting')
+        .from('ifrs_payments')
         .select('*')
         .eq('lease_id', leaseId)
-        .like('comment', 'PAYMENT%')
-        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -279,16 +277,6 @@ export default function PaymentModal({
     });
   };
 
-  const extractPaymentDetails = (comment: string) => {
-    // Extract payment method and reference from comment
-    const methodMatch = comment.match(/PAYMENT \w+ - (\w+)/);
-    const refMatch = comment.match(/\(Ref: ([^)]+)\)/);
-    
-    return {
-      method: methodMatch ? methodMatch[1] : 'Unknown',
-      reference: refMatch ? refMatch[1] : null
-    };
-  };
 
   if (!isOpen) return null;
 
@@ -448,12 +436,11 @@ export default function PaymentModal({
                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
                       <span className="text-sm text-neutral-400">Total Payments</span>
                       <span className="text-green-400 font-bold">
-                        {formatCurrency(paymentHistory.reduce((sum, p) => sum + Math.abs(p.total_amount), 0))}
+                        {formatCurrency(paymentHistory.reduce((sum, p) => sum + p.total_amount, 0))}
                       </span>
                     </div>
                     
                     {paymentHistory.map((payment) => {
-                      const details = extractPaymentDetails(payment.comment || '');
                       return (
                         <div key={payment.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
                           <div className="flex items-center justify-between mb-2">
@@ -461,7 +448,7 @@ export default function PaymentModal({
                               <CreditCard size={16} className="text-green-400" />
                               <div>
                                 <p className="text-white font-medium">
-                                  {details.method.replace('_', ' ').toUpperCase()}
+                                  {payment.payment_method.replace('_', ' ').toUpperCase()} Payment
                                 </p>
                                 <p className="text-neutral-400 text-xs">
                                   {formatDate(payment.created_at)} • {formatTime(payment.created_at)}
@@ -470,17 +457,23 @@ export default function PaymentModal({
                             </div>
                             <div className="text-right">
                               <p className="text-green-400 font-bold">
-                                {formatCurrency(Math.abs(payment.total_amount))}
+                                {formatCurrency(payment.total_amount)}
                               </p>
                               <p className="text-neutral-400 text-xs">
-                                ID: {payment.payment_id?.slice(-8) || payment.id.slice(-8)}
+                                ID: {payment.id.slice(-8)}
                               </p>
                             </div>
                           </div>
                           
-                          {details.reference && (
+                          {payment.reference_number && (
                             <div className="text-neutral-400 text-xs">
-                              Ref: {details.reference}
+                              Ref: {payment.reference_number}
+                            </div>
+                          )}
+                          
+                          {payment.notes && (
+                            <div className="text-neutral-400 text-xs mt-1">
+                              Note: {payment.notes}
                             </div>
                           )}
                           
@@ -488,9 +481,6 @@ export default function PaymentModal({
                             <div className="flex items-center gap-2">
                               <span className="text-xs px-2 py-1 bg-green-400/10 text-green-400 rounded-full">
                                 {payment.status.toUpperCase()}
-                              </span>
-                              <span className="text-xs text-neutral-500">
-                                Period: {formatDate(payment.billing_period)}
                               </span>
                             </div>
                             {payment.receipt_url && (

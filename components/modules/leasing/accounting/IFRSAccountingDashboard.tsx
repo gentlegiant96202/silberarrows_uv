@@ -93,7 +93,7 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
   const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<string>('');
   const [selectedChargesForInvoice, setSelectedChargesForInvoice] = useState<OverdueLeaseAccountingRecord[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
-  const [availableCredits, setAvailableCredits] = useState<OverdueLeaseAccountingRecord[]>([]);
+  const [availableCredits, setAvailableCredits] = useState<any[]>([]);
   const [selectedInvoiceForCredit, setSelectedInvoiceForCredit] = useState<any | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('');
   const [showRefundModal, setShowRefundModal] = useState(false);

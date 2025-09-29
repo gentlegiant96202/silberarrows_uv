@@ -690,6 +690,34 @@ export default function LeasingKanbanBoard() {
           // Apply search filter
           const columnCustomers = columnData[col.key] || [];
           const filteredCustomers = applySearchFilter(columnCustomers);
+          
+          // Sort accounting columns by billing period urgency (fewer days left = higher priority)
+          const sortedCustomers = (col.key === 'active_leases' || col.key === 'overdue_ending_soon') 
+            ? filteredCustomers.sort((a, b) => {
+                const getDaysLeftInBillingPeriod = (lease: any) => {
+                  if (!lease.lease_start_date) return Infinity; // Put leases without start date at bottom
+                  
+                  const today = new Date();
+                  const leaseStart = new Date(lease.lease_start_date);
+                  
+                  // Calculate current billing period (monthly from lease start)
+                  const monthsSinceStart = (today.getFullYear() - leaseStart.getFullYear()) * 12 + 
+                                          (today.getMonth() - leaseStart.getMonth());
+                  const currentPeriodStart = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart, leaseStart.getDate());
+                  const currentPeriodEnd = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart + 1, leaseStart.getDate() - 1);
+                  
+                  // Calculate days left in current billing period
+                  const daysLeft = Math.ceil((currentPeriodEnd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  return daysLeft;
+                };
+                
+                const daysLeftA = getDaysLeftInBillingPeriod(a);
+                const daysLeftB = getDaysLeftInBillingPeriod(b);
+                
+                // Sort by days left (ascending - fewer days first)
+                return daysLeftA - daysLeftB;
+              })
+            : filteredCustomers;
 
           return (
             <div
@@ -827,9 +855,32 @@ export default function LeasingKanbanBoard() {
                     </thead>
                     <tbody>
                       {[
-                        ...applySearchFilter(columnData['active_leases'] || []),
-                        ...applySearchFilter(columnData['overdue_ending_soon'] || [])
-                      ].map(lease => (
+                        ...(columnData['active_leases'] || []),
+                        ...(columnData['overdue_ending_soon'] || [])
+                      ]
+                        .filter(lease => applySearchFilter([lease]).length > 0) // Apply search filter
+                        .sort((a, b) => { // Apply same sorting logic for table view
+                          const getDaysLeftInBillingPeriod = (lease: any) => {
+                            if (!lease.lease_start_date) return Infinity;
+                            
+                            const today = new Date();
+                            const leaseStart = new Date(lease.lease_start_date);
+                            
+                            const monthsSinceStart = (today.getFullYear() - leaseStart.getFullYear()) * 12 + 
+                                                    (today.getMonth() - leaseStart.getMonth());
+                            const currentPeriodStart = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart, leaseStart.getDate());
+                            const currentPeriodEnd = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart + 1, leaseStart.getDate() - 1);
+                            
+                            const daysLeft = Math.ceil((currentPeriodEnd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                            return daysLeft;
+                          };
+                          
+                          const daysLeftA = getDaysLeftInBillingPeriod(a);
+                          const daysLeftB = getDaysLeftInBillingPeriod(b);
+                          
+                          return daysLeftA - daysLeftB;
+                        })
+                        .map(lease => (
                         <tr
                           key={`${lease.id}-${col.key}-table`}
                           className="border-b border-white/10 hover:bg-white/5 transition-colors cursor-pointer"
@@ -888,8 +939,8 @@ export default function LeasingKanbanBoard() {
                   </table>
                 </div>
               ) : (
-                // Show filtered data
-                filteredCustomers.map(lease => (
+                // Show sorted data
+                sortedCustomers.map(lease => (
                 <div
                   key={`${lease.id}-${col.key}-${lease.updated_at || lease.created_at}`}
                   draggable

@@ -203,7 +203,7 @@ export default function StatementOfAccount({
         created_by: payment.created_by,
         updated_by: payment.updated_by,
         version: 1,
-        documents: payment.receipt_url ? { receipt_url: payment.receipt_url } : null,
+        documents: null,
         isUnappliedCredit: false
       };
 
@@ -553,22 +553,9 @@ export default function StatementOfAccount({
                               {getChargeTypeLabel(record)}
                             </p>
                             {record.comment && !record.isInvoiceSummary && (
-                              <div className="flex items-center gap-2">
-                                <p className="text-neutral-400 text-xs truncate max-w-xs">
-                                  {record.comment}
-                                </p>
-                                {record.charge_type === 'payment' && record.documents?.receipt_url && (
-                                  <a
-                                    href={record.documents.receipt_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                                  >
-                                    <FileText size={10} />
-                                    Receipt
-                                  </a>
-                                )}
-                              </div>
+                              <p className="text-neutral-400 text-xs truncate max-w-xs">
+                                {record.comment}
+                              </p>
                             )}
                           </div>
                         </div>

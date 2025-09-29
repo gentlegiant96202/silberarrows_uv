@@ -139,7 +139,7 @@ export default function AccountingButton({
         </span>
       </div>
       
-      {balance?.overdue_amount > 0 && (
+      {balance?.overdue_amount && balance.overdue_amount > 0 && (
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse border border-white/50" />
       )}
     </button>

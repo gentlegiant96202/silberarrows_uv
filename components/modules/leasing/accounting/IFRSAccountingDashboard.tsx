@@ -69,6 +69,100 @@ interface Props {
   onClose: () => void;
 }
 
+// Helper function to determine accounting status
+export function getAccountingStatus(
+  records: OverdueLeaseAccountingRecord[],
+  invoices: any[],
+  leaseStartDate: string
+): { status: string; color: string; description: string } {
+  const today = new Date();
+  const leaseStart = new Date(leaseStartDate);
+  
+  // Calculate current billing period (monthly from lease start)
+  const monthsSinceStart = (today.getFullYear() - leaseStart.getFullYear()) * 12 + 
+                          (today.getMonth() - leaseStart.getMonth());
+  const currentPeriodStart = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart, leaseStart.getDate());
+  const currentPeriodEnd = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart + 1, leaseStart.getDate() - 1);
+  
+  const currentPeriodKey = currentPeriodStart.toISOString().split('T')[0];
+  
+  // Check if current period has charges
+  const currentPeriodCharges = records.filter(record => 
+    record.billing_period === currentPeriodKey && 
+    record.charge_type !== 'credit_note' && 
+    record.total_amount > 0
+  );
+  
+  // Check if current period has an invoice
+  const currentPeriodInvoice = invoices.find(invoice => 
+    invoice.billing_period === currentPeriodKey
+  );
+  
+  // Check for overdue invoices (past due date + 3 days)
+  const overdueInvoices = invoices.filter(invoice => {
+    if (invoice.is_paid) return false;
+    
+    const invoiceDate = new Date(invoice.created_at);
+    const dueDate = new Date(invoiceDate);
+    dueDate.setDate(dueDate.getDate() + 3); // 3 days grace period
+    
+    return today > dueDate;
+  });
+  
+  // Priority 1: Payment Overdue (highest priority)
+  if (overdueInvoices.length > 0) {
+    return {
+      status: "Payment Overdue",
+      color: "red",
+      description: `${overdueInvoices.length} invoice(s) past due date`
+    };
+  }
+  
+  // Priority 2: Invoice Due (current period has charges but no invoice)
+  if (currentPeriodCharges.length > 0 && !currentPeriodInvoice) {
+    return {
+      status: "Invoice Due",
+      color: "yellow",
+      description: "Current period charges need invoicing"
+    };
+  }
+  
+  // Priority 3: Invoice Generated (invoice exists but not paid)
+  if (currentPeriodInvoice && !currentPeriodInvoice.is_paid) {
+    return {
+      status: "Invoice Generated",
+      color: "blue",
+      description: "Invoice generated, awaiting payment"
+    };
+  }
+  
+  // Priority 4: Current (all invoices paid and up to date)
+  const unpaidInvoices = invoices.filter(invoice => !invoice.is_paid);
+  if (unpaidInvoices.length === 0) {
+    return {
+      status: "Current",
+      color: "green",
+      description: "All invoices paid and up to date"
+    };
+  }
+  
+  // Fallback: Check for any unpaid invoices
+  if (invoices.length > 0) {
+    return {
+      status: "Invoice Generated",
+      color: "blue",
+      description: "Invoice generated, awaiting payment"
+    };
+  }
+  
+  // Default: No charges
+  return {
+    status: "No Charges",
+    color: "gray",
+    description: "No charges recorded for current period"
+  };
+}
+
 export default function AccountingDashboard({ leaseId, leaseStartDate, customerName, onClose }: Props) {
   
   // Permissions (exactly like existing)

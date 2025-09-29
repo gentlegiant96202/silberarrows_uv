@@ -4,6 +4,7 @@ import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Use
 import LeasingAppointmentModal from './modals/LeasingAppointmentModal';
 import LeasingContractModal from './modals/LeasingContractModal';
 import { AccountingDashboard } from './accounting';
+import AccountingStatusButton from './AccountingStatusButton';
 import { useSearchStore } from '@/lib/searchStore';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
@@ -867,17 +868,14 @@ export default function LeasingKanbanBoard() {
                     {/* IFRS Accounting Button for Overdue/Ending Soon */}
                     {lease.status === 'overdue_ending_soon' && (
                       <div className="mt-2 pt-2 border-t border-white/10">
-                        <button
+                        <AccountingStatusButton
+                          leaseId={lease.id}
+                          leaseStartDate={lease.lease_start_date || lease.created_at}
                           onClick={() => {
                             setOverdueAccountingCustomer(lease);
                             setShowOverdueAccountingModal(true);
                           }}
-                          className="w-full text-xs py-1.5 flex items-center gap-2 px-3 py-2 bg-gradient-to-br from-red-500 to-red-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
-                          title="Manage Overdue Account"
-                        >
-                          <Receipt size={14} />
-                          Overdue Accounting
-                        </button>
+                        />
                       </div>
                     )}
                     

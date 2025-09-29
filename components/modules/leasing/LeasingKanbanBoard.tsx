@@ -984,15 +984,20 @@ export default function LeasingKanbanBoard() {
                     
 
 
-                    {/* IFRS Accounting Button for Overdue/Ending Soon */}
-                    {lease.status === 'overdue_ending_soon' && (
+                    {/* IFRS Accounting Button for Active Leases and Overdue/Ending Soon */}
+                    {(lease.status === 'active_leases' || lease.status === 'overdue_ending_soon') && (
                       <div className="mt-2 pt-2 border-t border-white/10">
                         <AccountingStatusButton
                           leaseId={lease.id}
                           leaseStartDate={lease.lease_start_date || lease.created_at}
                           onClick={() => {
-                            setOverdueAccountingCustomer(lease);
-                            setShowOverdueAccountingModal(true);
+                            if (lease.status === 'overdue_ending_soon') {
+                              setOverdueAccountingCustomer(lease);
+                              setShowOverdueAccountingModal(true);
+                            } else {
+                              setSelectedLease(lease);
+                              setShowModal(true);
+                            }
                           }}
                         />
                       </div>

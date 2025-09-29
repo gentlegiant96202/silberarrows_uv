@@ -114,7 +114,7 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
   // New charge form state (exactly like existing)
   const [newCharge, setNewCharge] = useState<{
-    charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund';
+    charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund' | 'credit_note' | 'vat';
     quantity: string;
     unit_price: string;
     total_amount: string;

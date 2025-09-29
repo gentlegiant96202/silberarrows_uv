@@ -77,24 +77,56 @@ export default function StatementOfAccount({
 
   const fetchPayments = async () => {
     try {
-      const { data, error } = await supabase
+      // First fetch payments with applications
+      const { data: paymentsData, error: paymentsError } = await supabase
         .from('ifrs_payments')
         .select(`
           *,
           applications:ifrs_payment_applications(
             invoice_id,
             applied_amount,
-            application_date,
-            invoice:ifrs_lease_accounting!ifrs_payment_applications_invoice_id_fkey(
-              invoice_number
-            )
+            application_date
           )
         `)
         .eq('lease_id', leaseId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setPayments(data || []);
+      if (paymentsError) throw paymentsError;
+
+      // Get all unique invoice IDs from applications
+      const invoiceIds = [...new Set(
+        paymentsData?.flatMap(payment => 
+          payment.applications?.map((app: any) => app.invoice_id) || []
+        ) || []
+      )];
+
+      // Fetch invoice numbers for these invoices
+      let invoiceNumbers: { [key: string]: string } = {};
+      if (invoiceIds.length > 0) {
+        const { data: invoiceData, error: invoiceError } = await supabase
+          .from('ifrs_lease_accounting')
+          .select('invoice_id, invoice_number')
+          .in('invoice_id', invoiceIds)
+          .not('invoice_number', 'is', null);
+
+        if (!invoiceError && invoiceData) {
+          invoiceNumbers = invoiceData.reduce((acc: any, inv: any) => {
+            acc[inv.invoice_id] = inv.invoice_number;
+            return acc;
+          }, {});
+        }
+      }
+
+      // Enhance payment data with invoice numbers
+      const enhancedPayments = paymentsData?.map(payment => ({
+        ...payment,
+        applications: payment.applications?.map((app: any) => ({
+          ...app,
+          invoice_number: invoiceNumbers[app.invoice_id] || null
+        }))
+      })) || [];
+
+      setPayments(enhancedPayments);
     } catch (error) {
       console.error('Error fetching payments for SOA:', error);
       setPayments([]);
@@ -182,8 +214,8 @@ export default function StatementOfAccount({
           id: `${payment.id}-app-${index}`,
           total_amount: -app.applied_amount, // Negative for balance impact
           invoice_id: app.invoice_id,
-          invoice_number: app.invoice?.invoice_number || null,
-          comment: `${payment.payment_method.toUpperCase()} Payment${payment.reference_number ? ` (Ref: ${payment.reference_number})` : ''} - Applied to ${app.invoice?.invoice_number || 'Invoice'}${payment.notes ? ` - ${payment.notes}` : ''}`
+          invoice_number: app.invoice_number || null,
+          comment: `${payment.payment_method.toUpperCase()} Payment${payment.reference_number ? ` (Ref: ${payment.reference_number})` : ''} - Applied to ${app.invoice_number || 'Invoice'}${payment.notes ? ` - ${payment.notes}` : ''}`
         }));
       } else {
         // Unapplied payment

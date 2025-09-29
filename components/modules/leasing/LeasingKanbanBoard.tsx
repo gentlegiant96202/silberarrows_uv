@@ -858,11 +858,6 @@ export default function LeasingKanbanBoard() {
                     </div>
                     )}
                     
-                    {lease.notes && (
-                      <div className="text-xs text-white/50 italic leading-tight line-clamp-2">
-                        {highlight(lease.notes)}
-                      </div>
-                    )}
 
 
                     {/* IFRS Accounting Button for Overdue/Ending Soon */}

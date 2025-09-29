@@ -8,6 +8,11 @@ interface AccountingStatus {
   description: string;
   loading: boolean;
   refresh: () => void;
+  currentBillingPeriod: {
+    startDate: string;
+    endDate: string;
+    periodKey: string;
+  } | null;
 }
 
 export function useAccountingStatus(leaseId: string, leaseStartDate: string): AccountingStatus {
@@ -16,7 +21,8 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
     color: "gray",
     description: "Checking accounting status...",
     loading: true,
-    refresh: () => {}
+    refresh: () => {},
+    currentBillingPeriod: null
   });
 
   useEffect(() => {
@@ -26,13 +32,32 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         color: "gray",
         description: "No lease data available",
         loading: false,
-        refresh: () => {}
+        refresh: () => {},
+        currentBillingPeriod: null
       });
       return;
     }
 
     const fetchAccountingStatus = async () => {
       try {
+        // Calculate current billing period
+        const today = new Date();
+        const leaseStart = new Date(leaseStartDate);
+        
+        // Calculate current billing period (monthly from lease start)
+        const monthsSinceStart = (today.getFullYear() - leaseStart.getFullYear()) * 12 + 
+                                (today.getMonth() - leaseStart.getMonth());
+        const currentPeriodStart = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart, leaseStart.getDate());
+        const currentPeriodEnd = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart + 1, leaseStart.getDate() - 1);
+        
+        const currentPeriodKey = currentPeriodStart.toISOString().split('T')[0];
+        
+        const currentBillingPeriod = {
+          startDate: currentPeriodStart.toISOString().split('T')[0],
+          endDate: currentPeriodEnd.toISOString().split('T')[0],
+          periodKey: currentPeriodKey
+        };
+
         // Fetch accounting records
         const { data: records, error: recordsError } = await supabase
           .from('ifrs_lease_accounting')
@@ -102,7 +127,8 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         setStatus({
           ...accountingStatus,
           loading: false,
-          refresh: fetchAccountingStatus
+          refresh: fetchAccountingStatus,
+          currentBillingPeriod
         });
 
       } catch (error) {
@@ -112,7 +138,8 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
           color: "red",
           description: "Failed to load accounting status",
           loading: false,
-          refresh: fetchAccountingStatus
+          refresh: fetchAccountingStatus,
+          currentBillingPeriod: null
         });
       }
     };

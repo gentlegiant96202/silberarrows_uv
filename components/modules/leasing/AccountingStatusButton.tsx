@@ -45,11 +45,21 @@ export default function AccountingStatusButton({
     }
   };
 
+  const getTooltipText = () => {
+    let tooltip = accountingStatus.description;
+    if (accountingStatus.currentBillingPeriod) {
+      const startDate = new Date(accountingStatus.currentBillingPeriod.startDate).toLocaleDateString();
+      const endDate = new Date(accountingStatus.currentBillingPeriod.endDate).toLocaleDateString();
+      tooltip += `\nCurrent Period: ${startDate} - ${endDate}`;
+    }
+    return tooltip;
+  };
+
   return (
     <button
       onClick={onClick}
       className={`w-full text-xs py-1 flex items-center gap-1.5 px-2 ${getStatusColor(accountingStatus.color)} text-white font-medium rounded-md hover:shadow-md transition-all opacity-90 hover:opacity-100`}
-      title={accountingStatus.description}
+      title={getTooltipText()}
     >
       <Receipt size={12} />
       <span className="truncate">

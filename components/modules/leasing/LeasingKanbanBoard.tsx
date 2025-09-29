@@ -810,63 +810,82 @@ export default function LeasingKanbanBoard() {
                   ))}
                 </div>
               ) : col.key === 'active_leases' && viewMode === 'table' ? (
-                // Combined table view for all accounting data
-                <div className="space-y-1">
-                  {[
-                    ...applySearchFilter(columnData['active_leases'] || []),
-                    ...applySearchFilter(columnData['overdue_ending_soon'] || [])
-                  ].map(lease => (
-                    <div
-                      key={`${lease.id}-${col.key}-table`}
-                      onClick={(e) => handleCardClick(lease, e)}
-                      className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs cursor-pointer hover:bg-white/10 transition-all"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="font-medium text-white truncate">
-                          {highlight(lease.customer_name)}
-                        </div>
-                        <AccountingStatusButton
-                          leaseId={lease.id}
-                          leaseStartDate={lease.lease_start_date || lease.created_at}
-                          onClick={() => {
-                            if (lease.status === 'overdue_ending_soon') {
-                              setOverdueAccountingCustomer(lease);
-                              setShowOverdueAccountingModal(true);
-                            } else {
-                              setSelectedLease(lease);
-                              setShowModal(true);
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="space-y-1 text-white/70">
-                        {lease.customer_email && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px]">📧</span>
-                            <span className="text-[10px] truncate">{highlight(lease.customer_email)}</span>
-                          </div>
-                        )}
-                        {lease.customer_phone && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px]">📞</span>
-                            <span className="text-[10px]">{highlight(lease.customer_phone)}</span>
-                          </div>
-                        )}
-                        {lease.monthly_payment && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px]">💰</span>
-                            <span className="text-[10px]">{formatCurrency(lease.monthly_payment)}/mo</span>
-                          </div>
-                        )}
-                        {lease.lease_start_date && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px]">📅</span>
-                            <span className="text-[10px]">Start: {formatDate(lease.lease_start_date)}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                // Proper table view for all accounting data
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-white/20">
+                        <th className="text-left py-2 px-2 text-white/70 font-medium">Customer</th>
+                        <th className="text-left py-2 px-2 text-white/70 font-medium">Email</th>
+                        <th className="text-left py-2 px-2 text-white/70 font-medium">Phone</th>
+                        <th className="text-left py-2 px-2 text-white/70 font-medium">Monthly Payment</th>
+                        <th className="text-left py-2 px-2 text-white/70 font-medium">Lease Start</th>
+                        <th className="text-left py-2 px-2 text-white/70 font-medium">Status</th>
+                        <th className="text-left py-2 px-2 text-white/70 font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ...applySearchFilter(columnData['active_leases'] || []),
+                        ...applySearchFilter(columnData['overdue_ending_soon'] || [])
+                      ].map(lease => (
+                        <tr
+                          key={`${lease.id}-${col.key}-table`}
+                          className="border-b border-white/10 hover:bg-white/5 transition-colors cursor-pointer"
+                          onClick={(e) => handleCardClick(lease, e)}
+                        >
+                          <td className="py-2 px-2 text-white font-medium">
+                            {highlight(lease.customer_name)}
+                          </td>
+                          <td className="py-2 px-2 text-white/70">
+                            {lease.customer_email ? highlight(lease.customer_email) : '-'}
+                          </td>
+                          <td className="py-2 px-2 text-white/70">
+                            {lease.customer_phone ? highlight(lease.customer_phone) : '-'}
+                          </td>
+                          <td className="py-2 px-2 text-white/70">
+                            {lease.monthly_payment ? formatCurrency(lease.monthly_payment) : '-'}
+                          </td>
+                          <td className="py-2 px-2 text-white/70">
+                            {lease.lease_start_date ? formatDate(lease.lease_start_date) : '-'}
+                          </td>
+                          <td className="py-2 px-2">
+                            <AccountingStatusButton
+                              leaseId={lease.id}
+                              leaseStartDate={lease.lease_start_date || lease.created_at}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (lease.status === 'overdue_ending_soon') {
+                                  setOverdueAccountingCustomer(lease);
+                                  setShowOverdueAccountingModal(true);
+                                } else {
+                                  setSelectedLease(lease);
+                                  setShowModal(true);
+                                }
+                              }}
+                            />
+                          </td>
+                          <td className="py-2 px-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (lease.status === 'overdue_ending_soon') {
+                                  setOverdueAccountingCustomer(lease);
+                                  setShowOverdueAccountingModal(true);
+                                } else {
+                                  setSelectedLease(lease);
+                                  setShowModal(true);
+                                }
+                              }}
+                              className="px-3 py-1 bg-white/10 text-white/70 rounded text-[10px] hover:bg-white/20 transition-colors"
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 // Show filtered data

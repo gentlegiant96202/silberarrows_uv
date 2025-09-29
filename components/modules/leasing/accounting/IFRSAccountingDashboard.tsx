@@ -527,7 +527,7 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
     try {
       const { error } = await supabase.rpc('ifrs_apply_payment', {
         p_payment_id: selectedCreditId,
-        p_invoice_id: selectedInvoiceForCredit.invoice_id,
+        p_invoice_id: invoiceId,
         p_amount: amount
       });
 

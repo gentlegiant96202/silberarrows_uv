@@ -28,20 +28,20 @@ export default function AccountingStatusButton({
     return () => clearInterval(interval);
   }, [accountingStatus.loading, accountingStatus.refresh]);
 
-  const getStatusColor = (color: string) => {
+  const getStatusTextColor = (color: string) => {
     switch (color) {
       case 'red':
-        return 'bg-gradient-to-br from-red-500 to-red-600';
+        return 'text-red-400';
       case 'orange':
-        return 'bg-gradient-to-br from-orange-500 to-orange-600';
+        return 'text-orange-400';
       case 'yellow':
-        return 'bg-gradient-to-br from-yellow-500 to-yellow-600';
+        return 'text-yellow-400';
       case 'blue':
-        return 'bg-gradient-to-br from-blue-500 to-blue-600';
+        return 'text-blue-400';
       case 'green':
-        return 'bg-gradient-to-br from-green-500 to-green-600';
+        return 'text-green-400';
       default:
-        return 'bg-gradient-to-br from-gray-500 to-gray-600';
+        return 'text-gray-400';
     }
   };
 
@@ -86,11 +86,11 @@ export default function AccountingStatusButton({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-xs py-1 flex items-center justify-between gap-1.5 px-2 ${getStatusColor(accountingStatus.color)} text-white font-medium rounded-md hover:shadow-md transition-all opacity-90 hover:opacity-100`}
+      className="w-full text-xs py-1 flex items-center justify-between gap-1.5 px-2 bg-white/5 border border-white/10 text-white font-medium rounded-md hover:bg-white/10 hover:border-white/20 transition-all opacity-90 hover:opacity-100"
       title={getTooltipText()}
     >
       <div className="flex items-center gap-1.5">
-        <span className="truncate">
+        <span className={`truncate ${getStatusTextColor(accountingStatus.color)}`}>
           {accountingStatus.loading ? 'Loading...' : accountingStatus.status}
         </span>
         {accountingStatus.loading && (
@@ -99,7 +99,7 @@ export default function AccountingStatusButton({
       </div>
       
       {!accountingStatus.loading && accountingStatus.invoiceDueDate && (
-        <div className="text-xs opacity-80 font-normal">
+        <div className="text-xs opacity-60 font-normal text-white/70">
           {getDueDateInfo()}
         </div>
       )}

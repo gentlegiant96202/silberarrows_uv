@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Users, DollarSign, Receipt } from 'lucide-react';
+import { Calendar, FileText, CheckCircle, AlertTriangle, Archive, Filter, X, Users, DollarSign, Receipt, LayoutGrid, Table } from 'lucide-react';
 import LeasingAppointmentModal from './modals/LeasingAppointmentModal';
 import LeasingContractModal from './modals/LeasingContractModal';
 import { AccountingDashboard } from './accounting';
@@ -43,6 +43,7 @@ interface Lease {
 }
 
 type LeaseStatus = 'prospects' | 'appointments' | 'contracts_drafted' | 'active_leases' | 'overdue_ending_soon' | 'closed_returned' | 'archived';
+type ViewMode = 'kanban' | 'table';
 
 const columns = [
   {
@@ -103,6 +104,9 @@ export default function LeasingKanbanBoard() {
   
   // Archive state
   const [showArchived, setShowArchived] = useState(false);
+  
+  // View mode state for accounting columns
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   
   // Filter state (like UV CRM inventory filters)
   const [showFilters, setShowFilters] = useState(false);
@@ -719,6 +723,34 @@ export default function LeasingKanbanBoard() {
               )}
               </div>
               
+              {/* View Toggle Button - Only show on accounting columns */}
+              {(col.key === 'active_leases' || col.key === 'overdue_ending_soon') && (
+                <div className="flex bg-white/10 rounded p-0.5 border border-white/20">
+                  <button
+                    onClick={() => setViewMode('kanban')}
+                    className={
+                      viewMode === 'kanban'
+                        ? 'p-1 rounded transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
+                        : 'p-1 rounded transition-all text-white/60 hover:text-white hover:bg-white/10'
+                    }
+                    title="Kanban view"
+                  >
+                    <LayoutGrid className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={
+                      viewMode === 'table'
+                        ? 'p-1 rounded transition-all bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
+                        : 'p-1 rounded transition-all text-white/60 hover:text-white hover:bg-white/10'
+                    }
+                    title="Table view"
+                  >
+                    <Table className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
               {/* Archive Toggle Button - Only show on CLOSED / RETURNED column */}
               {col.key === 'closed_returned' && (
                 <button
@@ -758,6 +790,62 @@ export default function LeasingKanbanBoard() {
                           <div className="h-2 bg-white/10 rounded w-2/3"></div>
                         </div>
                         <div className="h-2 bg-white/10 rounded w-1/4 mt-1"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (col.key === 'active_leases' || col.key === 'overdue_ending_soon') && viewMode === 'table' ? (
+                // Table view for accounting columns
+                <div className="space-y-1">
+                  {filteredCustomers.map(lease => (
+                    <div
+                      key={`${lease.id}-${col.key}-table`}
+                      onClick={(e) => handleCardClick(lease, e)}
+                      className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs cursor-pointer hover:bg-white/10 transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="font-medium text-white truncate">
+                          {highlight(lease.customer_name)}
+                        </div>
+                        <AccountingStatusButton
+                          leaseId={lease.id}
+                          leaseStartDate={lease.lease_start_date || lease.created_at}
+                          onClick={() => {
+                            if (col.key === 'overdue_ending_soon') {
+                              setOverdueAccountingCustomer(lease);
+                              setShowOverdueAccountingModal(true);
+                            } else {
+                              setSelectedLease(lease);
+                              setShowModal(true);
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1 text-white/70">
+                        {lease.customer_email && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px]">📧</span>
+                            <span className="text-[10px] truncate">{highlight(lease.customer_email)}</span>
+                          </div>
+                        )}
+                        {lease.customer_phone && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px]">📞</span>
+                            <span className="text-[10px]">{highlight(lease.customer_phone)}</span>
+                          </div>
+                        )}
+                        {lease.monthly_payment && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px]">💰</span>
+                            <span className="text-[10px]">{formatCurrency(lease.monthly_payment)}/mo</span>
+                          </div>
+                        )}
+                        {lease.lease_start_date && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px]">📅</span>
+                            <span className="text-[10px]">Start: {formatDate(lease.lease_start_date)}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

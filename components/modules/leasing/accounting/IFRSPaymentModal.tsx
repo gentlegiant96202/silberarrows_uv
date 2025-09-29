@@ -217,6 +217,24 @@ export default function PaymentModal({
           const receiptResult = await receiptResponse.json();
           console.log('✅ Payment receipt generated:', receiptResult);
           
+          // Update payment record with receipt URL
+          if (receiptResult.pdfUrl) {
+            try {
+              const { error: updateError } = await supabase
+                .from('ifrs_payments')
+                .update({ receipt_url: receiptResult.pdfUrl })
+                .eq('id', data);
+              
+              if (updateError) {
+                console.error('❌ Failed to update payment with receipt URL:', updateError);
+              } else {
+                console.log('✅ Payment updated with receipt URL:', receiptResult.pdfUrl);
+              }
+            } catch (updateError) {
+              console.error('❌ Error updating payment with receipt URL:', updateError);
+            }
+          }
+          
           // Show success message with receipt info
           alert(`Payment recorded successfully!\nPayment ID: ${data}\nAmount: ${formatCurrency(parseFloat(paymentAmount))}\nReceipt: ${receiptResult.receiptNumber}`);
         } else {
@@ -466,13 +484,26 @@ export default function PaymentModal({
                             </div>
                           )}
                           
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-xs px-2 py-1 bg-green-400/10 text-green-400 rounded-full">
-                              {payment.status.toUpperCase()}
-                            </span>
-                            <span className="text-xs text-neutral-500">
-                              Period: {formatDate(payment.billing_period)}
-                            </span>
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs px-2 py-1 bg-green-400/10 text-green-400 rounded-full">
+                                {payment.status.toUpperCase()}
+                              </span>
+                              <span className="text-xs text-neutral-500">
+                                Period: {formatDate(payment.billing_period)}
+                              </span>
+                            </div>
+                            {payment.receipt_url && (
+                              <a
+                                href={payment.receipt_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                              >
+                                <FileText size={12} />
+                                Receipt
+                              </a>
+                            )}
                           </div>
                         </div>
                       );

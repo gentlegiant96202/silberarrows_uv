@@ -19,7 +19,7 @@ interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
-  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund' | 'credit_note' | 'vat';
+  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund' | 'credit_note' | 'vat' | 'payment';
   quantity: number | null;
   unit_price: number | null;
   total_amount: number;
@@ -148,7 +148,7 @@ export default function StatementOfAccount({
       id: payment.id,
       lease_id: payment.lease_id,
       billing_period: payment.created_at.split('T')[0], // Use payment date
-      charge_type: 'refund' as any, // For display purposes
+      charge_type: 'payment' as any, // For display purposes
       quantity: null,
       unit_price: null,
       total_amount: -payment.total_amount, // Negative for balance impact
@@ -242,6 +242,7 @@ export default function StatementOfAccount({
       fine: 'Traffic Fine',
       refund: 'Refund/Credit',
       credit_note: 'Credit Note',
+      payment: 'Payment Received',
       vat: 'VAT'
     } as const;
     return labels[record.charge_type as keyof typeof labels] || record.charge_type;
@@ -249,6 +250,7 @@ export default function StatementOfAccount({
 
   const getTransactionIcon = (record: StatementRecord) => {
     if (record.isInvoiceSummary) return FileText;
+    if (record.charge_type === 'payment') return CreditCard;
     if (record.comment?.startsWith('PAYMENT')) return CreditCard;
     if (record.charge_type === 'refund') return RefreshCw;
     if (record.charge_type === 'credit_note') return RefreshCw;
@@ -278,7 +280,7 @@ export default function StatementOfAccount({
 
   const totalPayments = Math.abs(
     filteredRecords
-      .filter(r => r.charge_type === 'refund' || r.total_amount < 0)
+      .filter(r => r.charge_type === 'payment' || r.charge_type === 'refund' || r.total_amount < 0)
       .reduce((sum, r) => sum + r.total_amount, 0)
   );
 

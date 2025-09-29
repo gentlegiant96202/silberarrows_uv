@@ -66,18 +66,43 @@ export default function AccountingStatusButton({
     return tooltip;
   };
 
+  const getDueDateInfo = () => {
+    if (!accountingStatus.invoiceDueDate) return null;
+    
+    const dueDate = new Date(accountingStatus.invoiceDueDate).toLocaleDateString();
+    const today = new Date();
+    const dueDateObj = new Date(accountingStatus.invoiceDueDate);
+    const daysUntilDue = Math.ceil((dueDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntilDue > 0) {
+      return `${daysUntilDue}d left`;
+    } else if (daysUntilDue === 0) {
+      return 'TODAY!';
+    } else {
+      return `${Math.abs(daysUntilDue)}d overdue`;
+    }
+  };
+
   return (
     <button
       onClick={onClick}
-      className={`w-full text-xs py-1 flex items-center gap-1.5 px-2 ${getStatusColor(accountingStatus.color)} text-white font-medium rounded-md hover:shadow-md transition-all opacity-90 hover:opacity-100`}
+      className={`w-full text-xs py-1 flex items-center justify-between gap-1.5 px-2 ${getStatusColor(accountingStatus.color)} text-white font-medium rounded-md hover:shadow-md transition-all opacity-90 hover:opacity-100`}
       title={getTooltipText()}
     >
-      <Receipt size={12} />
-      <span className="truncate">
-        {accountingStatus.loading ? 'Loading...' : accountingStatus.status}
-      </span>
-      {accountingStatus.loading && (
-        <div className="animate-spin rounded-full h-2.5 w-2.5 border-b border-white ml-1"></div>
+      <div className="flex items-center gap-1.5">
+        <Receipt size={12} />
+        <span className="truncate">
+          {accountingStatus.loading ? 'Loading...' : accountingStatus.status}
+        </span>
+        {accountingStatus.loading && (
+          <div className="animate-spin rounded-full h-2.5 w-2.5 border-b border-white ml-1"></div>
+        )}
+      </div>
+      
+      {!accountingStatus.loading && accountingStatus.invoiceDueDate && (
+        <div className="text-xs opacity-80 font-normal">
+          {getDueDateInfo()}
+        </div>
       )}
     </button>
   );

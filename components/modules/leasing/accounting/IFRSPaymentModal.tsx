@@ -187,13 +187,52 @@ export default function PaymentModal({
 
       console.log('✅  Payment recorded successfully:', data);
 
+      // Generate PDF receipt
+      try {
+        console.log('📄 Generating payment receipt...');
+        const receiptData = {
+          receiptNumber: `RCP-${Date.now()}`,
+          paymentId: data,
+          customerName: customerName,
+          leaseId: leaseId,
+          amount: parseFloat(paymentAmount),
+          paymentMethod: paymentMethod,
+          paymentDate: new Date().toISOString(),
+          referenceNumber: paymentReference,
+          notes: notes,
+          status: 'Received',
+          processedBy: 'System',
+          createdAt: new Date().toISOString()
+        };
+
+        const receiptResponse = await fetch('/api/generate-payment-receipt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(receiptData),
+        });
+
+        if (receiptResponse.ok) {
+          const receiptResult = await receiptResponse.json();
+          console.log('✅ Payment receipt generated:', receiptResult);
+          
+          // Show success message with receipt info
+          alert(`Payment recorded successfully!\nPayment ID: ${data}\nAmount: ${formatCurrency(parseFloat(paymentAmount))}\nReceipt: ${receiptResult.receiptNumber}`);
+        } else {
+          console.error('❌ Failed to generate receipt:', await receiptResponse.text());
+          alert(`Payment recorded successfully!\nPayment ID: ${data}\nAmount: ${formatCurrency(parseFloat(paymentAmount))}\nNote: Receipt generation failed`);
+        }
+      } catch (receiptError) {
+        console.error('❌ Error generating receipt:', receiptError);
+        alert(`Payment recorded successfully!\nPayment ID: ${data}\nAmount: ${formatCurrency(parseFloat(paymentAmount))}\nNote: Receipt generation failed`);
+      }
+
       // Refresh data
       fetchPaymentHistory();
       
       onPaymentRecorded();
       onClose();
-      
-      alert(`Payment recorded successfully!\nPayment ID: ${data}\nAmount: ${formatCurrency(parseFloat(paymentAmount))}`);
       
     } catch (error) {
       console.error('❌ Detailed error recording  payment:', error);

@@ -7,6 +7,7 @@ interface AccountingStatus {
   color: string;
   description: string;
   loading: boolean;
+  refresh: () => void;
 }
 
 export function useAccountingStatus(leaseId: string, leaseStartDate: string): AccountingStatus {
@@ -14,7 +15,8 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
     status: "Loading...",
     color: "gray",
     description: "Checking accounting status...",
-    loading: true
+    loading: true,
+    refresh: () => {}
   });
 
   useEffect(() => {
@@ -23,7 +25,8 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         status: "No Data",
         color: "gray",
         description: "No lease data available",
-        loading: false
+        loading: false,
+        refresh: () => {}
       });
       return;
     }
@@ -98,7 +101,8 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         
         setStatus({
           ...accountingStatus,
-          loading: false
+          loading: false,
+          refresh: fetchAccountingStatus
         });
 
       } catch (error) {
@@ -107,12 +111,46 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
           status: "Error",
           color: "red",
           description: "Failed to load accounting status",
-          loading: false
+          loading: false,
+          refresh: fetchAccountingStatus
         });
       }
     };
 
     fetchAccountingStatus();
+
+    // Set up real-time subscriptions for accounting data changes
+    const accountingChannel = supabase
+      .channel(`accounting-${leaseId}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'ifrs_lease_accounting',
+          filter: `lease_id=eq.${leaseId}`
+        }, 
+        () => {
+          console.log('Accounting data changed, refreshing status...');
+          fetchAccountingStatus();
+        }
+      )
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'ifrs_payment_applications'
+        }, 
+        () => {
+          console.log('Payment applications changed, refreshing status...');
+          fetchAccountingStatus();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(accountingChannel);
+    };
   }, [leaseId, leaseStartDate]);
 
   return status;

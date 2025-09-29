@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from 'react';
 import { Receipt } from 'lucide-react';
 import { useAccountingStatus } from '@/hooks/useAccountingStatus';
 
@@ -15,6 +16,17 @@ export default function AccountingStatusButton({
   onClick 
 }: AccountingStatusButtonProps) {
   const accountingStatus = useAccountingStatus(leaseId, leaseStartDate);
+
+  // Auto-refresh every 30 seconds to catch any missed real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!accountingStatus.loading) {
+        accountingStatus.refresh();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [accountingStatus.loading, accountingStatus.refresh]);
 
   const getStatusColor = (color: string) => {
     switch (color) {
@@ -39,6 +51,9 @@ export default function AccountingStatusButton({
     >
       <Receipt size={14} />
       {accountingStatus.loading ? 'Loading...' : accountingStatus.status}
+      {accountingStatus.loading && (
+        <div className="animate-spin rounded-full h-3 w-3 border-b border-white ml-1"></div>
+      )}
     </button>
   );
 }

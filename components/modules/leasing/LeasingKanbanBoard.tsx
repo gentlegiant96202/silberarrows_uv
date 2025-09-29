@@ -677,9 +677,9 @@ export default function LeasingKanbanBoard() {
             // Show archived filter
             if (!showArchived && col.key === 'archived') return false;
             
-            // When in table view, only show accounting columns
+            // When in table view, show only one combined accounting column
             if (viewMode === 'table') {
-              return col.key === 'active_leases' || col.key === 'overdue_ending_soon';
+              return col.key === 'active_leases'; // Only show one column for combined view
             }
             
             // In kanban view, show all columns except archived
@@ -701,7 +701,7 @@ export default function LeasingKanbanBoard() {
               <div className="flex items-center gap-2">
                 {col.icon}
                 <h3 className="text-xs font-medium text-white whitespace-nowrap">
-                  {col.title}
+                  {viewMode === 'table' && col.key === 'active_leases' ? 'ACCOUNTING' : col.title}
                 </h3>
                 {col.key === 'prospects' ? (
                 <button
@@ -729,7 +729,11 @@ export default function LeasingKanbanBoard() {
                 </button>
                 ) : (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
-                    {columnLoading[col.key] ? '--' : columnData[col.key].length}
+                    {columnLoading[col.key] ? '--' : 
+                      viewMode === 'table' && col.key === 'active_leases' 
+                        ? (columnData['active_leases'].length + columnData['overdue_ending_soon'].length)
+                        : columnData[col.key].length
+                    }
                   </span>
               )}
               </div>
@@ -805,10 +809,13 @@ export default function LeasingKanbanBoard() {
                     </div>
                   ))}
                 </div>
-              ) : (col.key === 'active_leases' || col.key === 'overdue_ending_soon') && viewMode === 'table' ? (
-                // Table view for accounting columns only
+              ) : col.key === 'active_leases' && viewMode === 'table' ? (
+                // Combined table view for all accounting data
                 <div className="space-y-1">
-                  {filteredCustomers.map(lease => (
+                  {[
+                    ...applySearchFilter(columnData['active_leases'] || []),
+                    ...applySearchFilter(columnData['overdue_ending_soon'] || [])
+                  ].map(lease => (
                     <div
                       key={`${lease.id}-${col.key}-table`}
                       onClick={(e) => handleCardClick(lease, e)}
@@ -822,7 +829,7 @@ export default function LeasingKanbanBoard() {
                           leaseId={lease.id}
                           leaseStartDate={lease.lease_start_date || lease.created_at}
                           onClick={() => {
-                            if (col.key === 'overdue_ending_soon') {
+                            if (lease.status === 'overdue_ending_soon') {
                               setOverdueAccountingCustomer(lease);
                               setShowOverdueAccountingModal(true);
                             } else {

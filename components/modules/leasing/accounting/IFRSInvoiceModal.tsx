@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { 
-  X, 
-  FileText, 
-  Calendar, 
+import {
+  X,
+  FileText,
+  Calendar,
   Receipt,
   Download,
   Check,
@@ -19,7 +19,7 @@ interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
-  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund';
+  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund' | 'vat';
   quantity: number | null;
   unit_price: number | null;
   total_amount: number;
@@ -84,7 +84,6 @@ export default function InvoiceModal({
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
-      style: 'currency',
       style: 'decimal',
       minimumFractionDigits: 2
     }).format(amount) + ' AED';
@@ -94,29 +93,48 @@ export default function InvoiceModal({
     return new Date(dateString).toLocaleDateString('en-GB');
   };
 
-  const getChargeTypeLabel = (type: string) => {
+  const getChargeTypeLabel = (charge: LeaseAccountingRecord) => {
+    if (charge.comment?.startsWith('PAYMENT')) {
+      return 'Payment Received';
+    }
+
     const labels = {
       rental: 'Monthly Rental',
       salik: 'Salik Fee',
       mileage: 'Excess Mileage',
       late_fee: 'Late Fee',
       fine: 'Traffic Fine',
-      refund: 'Refund/Credit'
-    };
-    return labels[type as keyof typeof labels] || type;
+      refund: 'Refund/Credit',
+      vat: 'VAT'
+    } as const;
+    return labels[charge.charge_type as keyof typeof labels] || charge.charge_type;
   };
 
   const generateInvoice = async () => {
     setGenerating(true);
     try {
       console.log('🧾 Generating  invoice for period:', billingPeriod);
-      console.log('📋 Charges to invoice:', charges.map(c => ({ id: c.id, type: c.charge_type, amount: c.total_amount })));
+      const uniqueCharges = charges.filter(
+        (charge, index, self) =>
+          index === self.findIndex((c) => c.id === charge.id)
+      );
+      const pendingCharges = uniqueCharges.filter(charge => charge.status === 'pending');
+
+      if (pendingCharges.length === 0) {
+        alert('There are no pending charges to invoice in this period.');
+        setGenerating(false);
+        return;
+      }
+
+      console.log('📋 Pending charges to invoice:', pendingCharges.map(c => ({ id: c.id, type: c.charge_type, amount: c.total_amount })));
       
       // Use  transaction-safe function
       const { data, error } = await supabase.rpc('ifrs_generate_invoice', {
         p_lease_id: leaseId,
         p_billing_period: billingPeriod,
-        p_charge_ids: charges.map(c => c.id)
+        p_charge_ids: pendingCharges.map(c => c.id),
+        p_include_vat: true,
+        p_vat_rate: 0.05
       });
 
       if (error) {
@@ -133,7 +151,7 @@ export default function InvoiceModal({
       onClose();
       
       // Show success message with invoice number
-      alert(`Invoice generated successfully!\nInvoice Number: ${invoiceResult.invoice_number}\nInvoice ID: ${invoiceResult.invoice_id}\nCharges Updated: ${invoiceResult.charges_updated}\nTotal: ${formatCurrency(total)}`);
+      alert(`Invoice generated successfully!\nInvoice Number: ${invoiceResult.invoice_number}\nInvoice ID: ${invoiceResult.invoice_id}\nCharges Updated: ${invoiceResult.charges_updated}\nVAT: ${formatCurrency(invoiceResult.vat_amount || 0)}`);
       
     } catch (error) {
       console.error('❌ Detailed error generating  invoice:', error);
@@ -205,7 +223,7 @@ export default function InvoiceModal({
                       <div className="flex items-center gap-3">
                         <span className="text-sm text-neutral-400 w-8">{index + 1}.</span>
                         <div>
-                          <p className="text-white font-medium">{getChargeTypeLabel(charge.charge_type)}</p>
+                        <p className="text-white font-medium">{getChargeTypeLabel(charge)}</p>
                           {charge.comment && (
                             <p className="text-neutral-400 text-xs">{charge.comment}</p>
                           )}

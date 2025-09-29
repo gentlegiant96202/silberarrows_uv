@@ -19,7 +19,7 @@ interface LeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
-  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund';
+  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund' | 'credit_note' | 'vat';
   quantity: number | null;
   unit_price: number | null;
   total_amount: number;
@@ -38,6 +38,11 @@ interface LeaseAccountingRecord {
   documents: any;
 }
 
+type StatementRecord = LeaseAccountingRecord & {
+  isInvoiceSummary?: boolean;
+  isUnappliedCredit?: boolean;
+};
+
 interface Props {
   leaseId: string;
   customerName: string;
@@ -52,7 +57,8 @@ export default function StatementOfAccount({
   onExportPDF 
 }: Props) {
   
-  const [filteredRecords, setFilteredRecords] = useState<LeaseAccountingRecord[]>([]);
+  const [filteredRecords, setFilteredRecords] = useState<StatementRecord[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({
     start: '',
@@ -62,38 +68,138 @@ export default function StatementOfAccount({
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
   useEffect(() => {
+    fetchPayments();
+  }, [leaseId]);
+
+  useEffect(() => {
     applyFilters();
-  }, [records, dateRange, statusFilter, typeFilter]);
+  }, [records, payments, dateRange, statusFilter, typeFilter]);
+
+  const fetchPayments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ifrs_payments')
+        .select(`
+          *,
+          applications:ifrs_payment_applications(
+            invoice_id,
+            applied_amount,
+            application_date
+          )
+        `)
+        .eq('lease_id', leaseId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPayments(data || []);
+    } catch (error) {
+      console.error('Error fetching payments for SOA:', error);
+      setPayments([]);
+    }
+  };
+
+  const aggregateInvoiceRecords = (recordsToAggregate: LeaseAccountingRecord[]): StatementRecord[] => {
+    const aggregated: StatementRecord[] = [];
+    const invoiceMap = new Map<string, { total: number; base: LeaseAccountingRecord; createdAt: string }>();
+
+    recordsToAggregate.forEach((record) => {
+      // Only aggregate positive charges into invoices, exclude credit notes and payments
+      if (record.invoice_id && record.total_amount > 0 && record.charge_type !== 'credit_note') {
+        const existing = invoiceMap.get(record.invoice_id);
+        if (existing) {
+          existing.total += record.total_amount;
+          if (new Date(record.created_at).getTime() < new Date(existing.createdAt).getTime()) {
+            existing.createdAt = record.created_at;
+            existing.base = record;
+          }
+        } else {
+          invoiceMap.set(record.invoice_id, {
+            total: record.total_amount,
+            base: record,
+            createdAt: record.created_at,
+          });
+        }
+      } else {
+        // Credit notes, payments, and other records show as individual line items
+        aggregated.push({ ...record });
+      }
+    });
+
+    invoiceMap.forEach(({ total, base, createdAt }) => {
+      aggregated.push({
+        ...base,
+        id: `${base.invoice_id || base.id}-summary`,
+        created_at: createdAt,
+        total_amount: total,
+        comment: base.invoice_number ? `Invoice ${base.invoice_number}` : base.comment,
+        isInvoiceSummary: true,
+      });
+    });
+
+    return aggregated;
+  };
 
   const applyFilters = () => {
-    let filtered = [...records];
+    // IFRS: only include invoiced/recognized transactions (exclude pending charges)
+    let filtered = records.filter(record => record.status !== 'pending');
+
+    // Convert payments to statement records
+    const paymentRecords: StatementRecord[] = payments.map(payment => ({
+      id: payment.id,
+      lease_id: payment.lease_id,
+      billing_period: payment.created_at.split('T')[0], // Use payment date
+      charge_type: 'refund' as any, // For display purposes
+      quantity: null,
+      unit_price: null,
+      total_amount: -payment.total_amount, // Negative for balance impact
+      comment: `${payment.payment_method.toUpperCase()} Payment${payment.reference_number ? ` (Ref: ${payment.reference_number})` : ''}${payment.notes ? ` - ${payment.notes}` : ''}`,
+      invoice_id: null,
+      invoice_number: null,
+      payment_id: payment.id,
+      status: 'paid' as any,
+      vat_applicable: false,
+      account_closed: false,
+      created_at: payment.created_at,
+      updated_at: payment.updated_at || payment.created_at,
+      created_by: payment.created_by,
+      updated_by: payment.updated_by,
+      version: 1,
+      documents: null,
+      isUnappliedCredit: false
+    }));
+
+    // Combine charges and payments
+    const allRecords = [...filtered, ...paymentRecords];
+
+    let filteredCombined = allRecords;
 
     // Date range filter
     if (dateRange.start) {
-      filtered = filtered.filter(record => 
+      filteredCombined = filteredCombined.filter(record => 
         new Date(record.created_at) >= new Date(dateRange.start)
       );
     }
     if (dateRange.end) {
-      filtered = filtered.filter(record => 
+      filteredCombined = filteredCombined.filter(record => 
         new Date(record.created_at) <= new Date(dateRange.end + 'T23:59:59')
       );
     }
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(record => record.status === statusFilter);
+      filteredCombined = filteredCombined.filter(record => record.status === statusFilter);
     }
 
     // Type filter
     if (typeFilter !== 'all') {
-      filtered = filtered.filter(record => record.charge_type === typeFilter);
+      filteredCombined = filteredCombined.filter(record => record.charge_type === typeFilter);
     }
 
-    // Sort by date (newest first)
-    filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const aggregated = aggregateInvoiceRecords(filteredCombined);
 
-    setFilteredRecords(filtered);
+    aggregated.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+    setFilteredRecords(aggregated);
   };
 
   const clearFilters = () => {
@@ -104,7 +210,6 @@ export default function StatementOfAccount({
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
-      style: 'currency',
       style: 'decimal',
       minimumFractionDigits: 2
     }).format(amount) + ' AED';
@@ -121,21 +226,32 @@ export default function StatementOfAccount({
     });
   };
 
-  const getChargeTypeLabel = (type: string) => {
+  const getChargeTypeLabel = (record: StatementRecord) => {
+    if (record.isInvoiceSummary) {
+      return 'Invoice Total';
+    }
+    if (record.comment?.startsWith('PAYMENT')) {
+      return 'Payment Received';
+    }
+
     const labels = {
       rental: 'Monthly Rental',
       salik: 'Salik Fee',
       mileage: 'Excess Mileage',
       late_fee: 'Late Fee',
       fine: 'Traffic Fine',
-      refund: 'Refund/Credit'
-    };
-    return labels[type as keyof typeof labels] || type;
+      refund: 'Refund/Credit',
+      credit_note: 'Credit Note',
+      vat: 'VAT'
+    } as const;
+    return labels[record.charge_type as keyof typeof labels] || record.charge_type;
   };
 
-  const getTransactionIcon = (record: LeaseAccountingRecord) => {
+  const getTransactionIcon = (record: StatementRecord) => {
+    if (record.isInvoiceSummary) return FileText;
     if (record.comment?.startsWith('PAYMENT')) return CreditCard;
     if (record.charge_type === 'refund') return RefreshCw;
+    if (record.charge_type === 'credit_note') return RefreshCw;
     if (record.invoice_id) return Receipt;
     return Receipt;
   };
@@ -144,15 +260,27 @@ export default function StatementOfAccount({
   const calculateRunningBalance = () => {
     let runningBalance = 0;
     return filteredRecords.map(record => {
-      runningBalance += record.total_amount;
+      runningBalance += record.total_amount; // All transactions affect balance under IFRS
       return { ...record, running_balance: runningBalance };
-    }).reverse(); // Reverse to show oldest first for statement
+    });
   };
 
-  const recordsWithBalance = calculateRunningBalance();
-  const currentBalance = recordsWithBalance.length > 0 ? recordsWithBalance[recordsWithBalance.length - 1].running_balance : 0;
-  const totalCharges = filteredRecords.filter(r => r.total_amount > 0).reduce((sum, r) => sum + r.total_amount, 0);
-  const totalPayments = Math.abs(filteredRecords.filter(r => r.total_amount < 0).reduce((sum, r) => sum + r.total_amount, 0));
+  const recordsWithBalanceAsc = calculateRunningBalance();
+  const recordsWithBalance = [...recordsWithBalanceAsc].reverse();
+  const currentBalance = recordsWithBalanceAsc.length > 0 ? recordsWithBalanceAsc[recordsWithBalanceAsc.length - 1].running_balance : 0;
+  const totalCharges = filteredRecords
+    .filter(r => r.total_amount > 0 && r.charge_type !== 'refund')
+    .reduce((sum, r) => sum + r.total_amount, 0);
+
+  const totalCredits = filteredRecords
+    .filter(r => r.total_amount < 0)
+    .reduce((sum, r) => sum + Math.abs(r.total_amount), 0);
+
+  const totalPayments = Math.abs(
+    filteredRecords
+      .filter(r => r.charge_type === 'refund' || r.total_amount < 0)
+      .reduce((sum, r) => sum + r.total_amount, 0)
+  );
 
   return (
     <div className="space-y-6">
@@ -360,9 +488,9 @@ export default function StatementOfAccount({
                           }`} />
                           <div>
                             <p className="text-white text-sm font-medium">
-                              {getChargeTypeLabel(record.charge_type)}
+                              {getChargeTypeLabel(record)}
                             </p>
-                            {record.comment && (
+                            {record.comment && !record.isInvoiceSummary && (
                               <p className="text-neutral-400 text-xs truncate max-w-xs">
                                 {record.comment}
                               </p>

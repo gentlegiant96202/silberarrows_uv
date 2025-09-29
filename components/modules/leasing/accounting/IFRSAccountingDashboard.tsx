@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useModulePermissions } from "@/lib/useModulePermissions";
 import { useUserRole } from "@/lib/useUserRole";
@@ -8,30 +8,32 @@ import IFRSBillingPeriodsView from "./IFRSBillingPeriodsView";
 import IFRSInvoiceModal from "./IFRSInvoiceModal";
 import IFRSPaymentModal from "./IFRSPaymentModal";
 import IFRSStatementOfAccount from "./IFRSStatementOfAccount";
+import IFRSCreditNoteModal from "./IFRSCreditNoteModal";
 import ContractDetailsView from "./ContractDetailsView"; // Reuse existing contract details
 import { 
   Plus, 
   Calendar, 
   FileText, 
-  CreditCard, 
   Download,
   Receipt,
   Clock,
   CheckCircle,
   AlertCircle,
+  Circle,
   X,
   Edit,
   Trash2,
   Eye,
   Printer
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 //  Types (matching existing functionality exactly)
 interface OverdueLeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
-  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund';
+  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund' | 'credit_note' | 'vat';
   quantity: number | null;
   unit_price: number | null;
   total_amount: number;
@@ -78,7 +80,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
   const hasDeletePermission = (isAdmin || isAccounts) && canDelete;
   
   const [records, setRecords] = useState<OverdueLeaseAccountingRecord[]>([]);
-  const [billingPeriods, setBillingPeriods] = useState<OverdueBillingPeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'contract' | 'charges' | 'periods' | 'invoices' | 'payments' | 'statement'>('contract');
   const [showAddCharge, setShowAddCharge] = useState(false);
@@ -87,12 +88,21 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
   // Modal states (exactly like existing)
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showApplyCreditModal, setShowApplyCreditModal] = useState(false);
+  const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
   const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<string>('');
   const [selectedChargesForInvoice, setSelectedChargesForInvoice] = useState<OverdueLeaseAccountingRecord[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [availableCredits, setAvailableCredits] = useState<OverdueLeaseAccountingRecord[]>([]);
+  const [selectedInvoiceForCredit, setSelectedInvoiceForCredit] = useState<any | null>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('');
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
+  const [isApplyingCredit, setIsApplyingCredit] = useState(false);
+  const [creditAmountToApply, setCreditAmountToApply] = useState('');
+  const [selectedCreditId, setSelectedCreditId] = useState<string>('');
+  const [selectedInvoiceForCreditNote, setSelectedInvoiceForCreditNote] = useState<any | null>(null);
   
   // Lease information state (exactly like existing)
   const [leaseInfo, setLeaseInfo] = useState<{
@@ -124,7 +134,35 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
     fetchAccountingData();
     fetchInvoices();
     fetchPaymentHistory();
+    fetchAvailableCredits();
   }, [leaseId]);
+
+  const fetchAvailableCredits = async () => {
+    try {
+      // Fetch unallocated payments from new ifrs_payments table
+      const { data, error } = await supabase
+        .from('ifrs_payments')
+        .select(`
+          *,
+          applications:ifrs_payment_applications(applied_amount)
+        `)
+        .eq('lease_id', leaseId)
+        .in('status', ['received', 'allocated'])
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      
+      // Filter to payments with remaining balance
+      const availablePayments = (data || []).filter(payment => {
+        const appliedAmount = payment.applications?.reduce((sum: number, app: any) => sum + app.applied_amount, 0) || 0;
+        return payment.total_amount > appliedAmount;
+      });
+
+      setAvailableCredits(availablePayments || []);
+    } catch (error) {
+      console.error('Error fetching available credits:', error);
+    }
+  };
 
   const fetchLeaseInfo = async () => {
     try {
@@ -162,19 +200,34 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
   const fetchInvoices = async () => {
     try {
-      // Get all invoiced and paid records grouped by invoice_id
+      // Get all invoiced and paid records grouped by invoice_id (charges only, exclude credit notes)
       const { data, error } = await supabase
         .from('ifrs_lease_accounting')
         .select('*')
         .eq('lease_id', leaseId)
         .in('status', ['invoiced', 'paid'])
         .not('invoice_id', 'is', null)
+        .neq('charge_type', 'credit_note')  // Exclude credit notes from invoice totals
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Group by invoice_id (exactly like existing)
+      // Get payment applications for all invoices
+      const { data: paymentApps, error: paymentError } = await supabase
+        .from('ifrs_payment_applications')
+        .select('invoice_id, applied_amount')
+        .in('invoice_id', [...new Set(data?.map(r => r.invoice_id).filter(Boolean))]);
+
+      if (paymentError) throw paymentError;
+
+      // Group payment applications by invoice
+      const paymentsByInvoice: { [key: string]: number } = {};
+      paymentApps?.forEach(app => {
+        paymentsByInvoice[app.invoice_id] = (paymentsByInvoice[app.invoice_id] || 0) + app.applied_amount;
+      });
+
+      // Group by invoice_id
       const invoiceGroups: { [key: string]: any } = {};
       
       data?.forEach(record => {
@@ -187,6 +240,10 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
               created_at: record.created_at,
               charges: [],
               total_amount: 0,
+              base_amount: 0,
+              payments_applied: paymentsByInvoice[record.invoice_id] || 0,
+              outstanding_amount: 0,
+              balance_due: 0,
               is_paid: false,
               has_partial_payment: false
             };
@@ -194,100 +251,61 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
           
           invoiceGroups[record.invoice_id].charges.push(record);
           invoiceGroups[record.invoice_id].total_amount += record.total_amount;
-          
-          // Track payment status
-          if (record.status === 'paid') {
-            invoiceGroups[record.invoice_id].has_partial_payment = true;
-          }
+          invoiceGroups[record.invoice_id].base_amount += record.total_amount;
         }
       });
 
-      // Determine if invoices are fully paid
+      // Calculate final balances with payment applications
       Object.values(invoiceGroups).forEach((invoice: any) => {
-        const allChargesPaid = invoice.charges.every((charge: any) => charge.status === 'paid');
-        invoice.is_paid = allChargesPaid;
+        const outstanding = invoice.base_amount - invoice.payments_applied;
+        invoice.outstanding_amount = outstanding;
+        invoice.balance_due = Math.max(outstanding, 0);
+
+        if (outstanding <= 0.01) {
+          invoice.is_paid = true;
+          invoice.has_partial_payment = false;
+        } else if (invoice.payments_applied > 0) {
+          invoice.is_paid = false;
+          invoice.has_partial_payment = true;
+        } else {
+          invoice.is_paid = false;
+          invoice.has_partial_payment = false;
+        }
       });
 
       setInvoices(Object.values(invoiceGroups));
     } catch (error) {
-      console.error('Error fetching  invoices:', error);
+      console.error('Error fetching invoices:', error);
     }
   };
 
   const fetchPaymentHistory = async () => {
     setLoadingPayments(true);
     try {
+      // Fetch from new ifrs_payments table
       const { data, error } = await supabase
-        .from('ifrs_lease_accounting')
-        .select('*')
+        .from('ifrs_payments')
+        .select(`
+          *,
+          applications:ifrs_payment_applications(
+            id,
+            invoice_id,
+            applied_amount,
+            application_date
+          )
+        `)
         .eq('lease_id', leaseId)
-        .like('comment', 'PAYMENT%')
-        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setPaymentHistory(data || []);
     } catch (error) {
-      console.error('Error fetching  payment history:', error);
+      console.error('Error fetching payment history:', error);
     } finally {
       setLoadingPayments(false);
     }
   };
 
-  const generateBillingPeriods = () => {
-    if (!leaseInfo?.lease_start_date) return;
-    
-    const startDate = new Date(leaseInfo.lease_start_date);
-    const endDate = leaseInfo.lease_end_date ? new Date(leaseInfo.lease_end_date) : null;
-    const periods: OverdueBillingPeriod[] = [];
-    
-    // Calculate number of periods based on lease term or until end date + buffer
-    let numberOfPeriods: number;
-    if (endDate) {
-      // Calculate months between start and end date, plus 3 month buffer
-      const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
-                        (endDate.getMonth() - startDate.getMonth()) + 3;
-      numberOfPeriods = Math.max(12, monthsDiff);
-    } else if (leaseInfo.lease_term_months) {
-      // Use lease term + 3 month buffer
-      numberOfPeriods = leaseInfo.lease_term_months + 3;
-    } else {
-      // Default to 12 months if no end date or term specified
-      numberOfPeriods = 12;
-    }
-    
-    // Generate billing periods from lease start date
-    for (let i = 0; i < numberOfPeriods; i++) {
-      const periodStart = new Date(startDate);
-      periodStart.setMonth(startDate.getMonth() + i);
-      
-      const periodEnd = new Date(periodStart);
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
-      periodEnd.setDate(periodEnd.getDate() - 1);
-      
-      const periodCharges = records.filter(record => 
-        record.billing_period === periodStart.toISOString().split('T')[0]
-      );
-
-      periods.push({
-        period: periodStart.toISOString().split('T')[0],
-        period_start: periodStart.toISOString().split('T')[0],
-        period_end: periodEnd.toISOString().split('T')[0],
-        charges: periodCharges,
-        total_amount: periodCharges.reduce((sum, charge) => sum + charge.total_amount, 0),
-        has_invoice: periodCharges.some(charge => charge.invoice_id),
-        invoice_id: periodCharges.find(charge => charge.invoice_id)?.invoice_id || undefined
-      });
-    }
-    
-    setBillingPeriods(periods);
-  };
-
-  useEffect(() => {
-    if (records.length > 0 && leaseInfo) {
-      generateBillingPeriods();
-    }
-  }, [records, leaseInfo]);
 
   const handleAddCharge = async () => {
     try {
@@ -436,12 +454,101 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
   const handleInvoiceGenerated = () => {
     fetchAccountingData();
     fetchInvoices();
+    fetchAvailableCredits();
   };
 
   const handlePaymentRecorded = () => {
     fetchAccountingData();
     fetchInvoices();
     fetchPaymentHistory();
+    fetchAvailableCredits();
+  };
+
+  const availableCreditsTotal = availableCredits.reduce((sum, payment) => {
+    const appliedAmount = payment.applications?.reduce((appSum: number, app: any) => appSum + app.applied_amount, 0) || 0;
+    return sum + (payment.total_amount - appliedAmount);
+  }, 0);
+  const outstandingInvoices = invoices.filter((invoice) => (invoice.balance_due ?? invoice.total_amount ?? 0) > 0.0001);
+
+  const unappliedPaymentTotal = records
+    .filter(record => record.charge_type === 'refund'
+      && !record.invoice_id
+      && (record.comment?.toLowerCase().includes('(unapplied credit)') ?? false))
+    .reduce((sum, record) => sum + record.total_amount, 0);
+
+  const totalInvoiceCharges = records
+    .filter(record => record.total_amount > 0 && record.charge_type !== 'refund')
+    .reduce((sum, record) => sum + record.total_amount, 0);
+
+  const totalRecognisedPayments = records
+    .filter(record => record.total_amount < 0)
+    .reduce((sum, record) => sum + Math.abs(record.total_amount), 0);
+
+  const handleApplyCredit = async () => {
+    const invoiceId = selectedInvoiceId || selectedInvoiceForCredit?.invoice_id;
+    const targetInvoice = invoices.find((invoice) => invoice.invoice_id === invoiceId);
+    if (!invoiceId || !targetInvoice) {
+      alert('Please select an invoice to apply the payment to.');
+      return;
+    }
+
+    if (!selectedCreditId) {
+      alert('Please select a payment to apply.');
+      return;
+    }
+
+    const amount = parseFloat(creditAmountToApply || '0');
+    if (!amount || amount <= 0) {
+      alert('Enter a valid amount to apply.');
+      return;
+    }
+
+    const selectedPayment = availableCredits.find((payment) => payment.id === selectedCreditId);
+    if (!selectedPayment) {
+      alert('Selected payment not found.');
+      return;
+    }
+
+    const appliedAmount = selectedPayment.applications?.reduce((sum: number, app: any) => sum + app.applied_amount, 0) || 0;
+    const remainingPayment = selectedPayment.total_amount - appliedAmount;
+    
+    if (amount > remainingPayment) {
+      alert('Amount exceeds remaining payment balance.');
+      return;
+    }
+
+    const invoiceBalance = Math.max(targetInvoice.balance_due ?? targetInvoice.total_amount ?? 0, 0);
+    if (amount > invoiceBalance) {
+      alert('Amount exceeds invoice balance due.');
+      return;
+    }
+
+    setIsApplyingCredit(true);
+    try {
+      const { error } = await supabase.rpc('ifrs_apply_payment', {
+        p_payment_id: selectedCreditId,
+        p_invoice_id: selectedInvoiceForCredit.invoice_id,
+        p_amount: amount
+      });
+
+      if (error) throw error;
+
+      setShowApplyCreditModal(false);
+      setCreditAmountToApply('');
+      setSelectedCreditId('');
+      setSelectedInvoiceForCredit(null);
+      setSelectedInvoiceId('');
+
+      fetchAccountingData();
+      fetchInvoices();
+      fetchAvailableCredits();
+      fetchPaymentHistory();
+    } catch (error) {
+      console.error('Error applying payment:', error);
+      alert('Failed to apply payment. Please try again.');
+    } finally {
+      setIsApplyingCredit(false);
+    }
   };
 
   // Auto-calculate total when quantity and unit price change
@@ -503,16 +610,103 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
     });
   };
 
-  const getChargeTypeLabel = (type: string) => {
+const primaryButtonClass = "flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-white/80 via-white/55 to-white/80 text-black/80 font-medium rounded-lg shadow-[0_0_28px_rgba(255,255,255,0.15)] hover:shadow-[0_0_34px_rgba(255,255,255,0.22)] transition-all";
+const secondaryButtonClass = "flex items-center gap-2 px-4 py-2 border border-white/15 text-white/80 rounded-lg hover:text-white hover:bg-white/10 transition-all";
+const subtleButtonClass = "flex items-center gap-2 px-3 py-2 border border-white/15 text-white/70 rounded-lg hover:text-white hover:bg-white/10 transition-all text-sm";
+const badgeBaseClass = "inline-flex items-center gap-2 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] rounded-full border border-white/15 bg-white/12 text-white/75";
+const ledgerRowClass = "rounded-xl border border-white/12 bg-gradient-to-br from-white/14 via-white/6 to-transparent p-4 hover:border-white/20 hover:shadow-[0_0_26px_rgba(255,255,255,0.22)] transition-all";
+const panelSurfaceClass = "border border-white/12 rounded-2xl bg-gradient-to-br from-white/12 via-white/4 to-transparent backdrop-blur-xl hover:border-white/18 hover:shadow-[0_0_36px_rgba(255,255,255,0.18)] transition-all";
+const iconSurfaceClass = "p-3 rounded-xl bg-white/15 border border-white/20 text-white/85 shadow-[0_0_18px_rgba(255,255,255,0.12)]";
+
+const statusPalette: Record<string, { label: string; icon: LucideIcon }> = {
+  pending: { label: 'Pending', icon: Clock },
+  invoiced: { label: 'Invoiced', icon: FileText },
+  paid: { label: 'Paid', icon: CheckCircle },
+  overdue: { label: 'Overdue', icon: AlertCircle },
+  active: { label: 'Active', icon: Calendar },
+  upcoming: { label: 'Upcoming', icon: Calendar },
+  "pending invoice": { label: 'Pending Invoice', icon: FileText },
+  partial: { label: 'Partial', icon: AlertCircle }
+};
+
+const renderStatusBadge = (status: string) => {
+  if (!status) return null;
+  const normalized = status.toLowerCase();
+  const palette = statusPalette[normalized] || { label: status.toUpperCase(), icon: Circle };
+  const Icon = palette.icon;
+  return (
+    <span className={badgeBaseClass}>
+      {Icon && <Icon size={11} className="text-white/60" />}
+      {palette.label}
+    </span>
+  );
+};
+
+interface DashboardSectionProps {
+  icon?: LucideIcon;
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  children?: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+}
+
+const DashboardSection = ({ icon: Icon, title, description, actions, children, footer, className = '' }: DashboardSectionProps) => {
+  return (
+    <section className={`border border-white/10 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent backdrop-blur-xl p-6 shadow-[0_0_50px_rgba(0,0,0,0.35)] ${className}`}>
+      <div className="flex flex-wrap items-start justify-between gap-6">
+        <div className="flex items-start gap-4 min-w-[240px]">
+          {Icon && (
+            <div className="p-3 rounded-xl bg-white/15 border border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.15)]">
+              <Icon size={22} className="text-white/85" />
+            </div>
+          )}
+          <div>
+            <h3 className="text-xl font-semibold text-white tracking-wide">{title}</h3>
+            {description && <p className="text-white/60 text-sm leading-relaxed mt-1 max-w-2xl">{description}</p>}
+          </div>
+        </div>
+        {actions && <div className="flex items-center gap-3 ml-auto">{actions}</div>}
+      </div>
+
+      {children && <div className="mt-6 space-y-4">{children}</div>}
+      {footer && <div className="mt-8 border-t border-white/10 pt-4 text-sm text-white/60">{footer}</div>}
+    </section>
+  );
+};
+
+interface EmptyStateProps {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}
+
+const EmptyState = ({ icon: Icon, title, description, action }: EmptyStateProps) => (
+  <div className="text-center py-12">
+    <Icon size={48} className="text-white/15 mx-auto mb-4" />
+    <p className="text-white/70 font-medium">{title}</p>
+    {description && <p className="text-white/40 text-sm mt-2 max-w-sm mx-auto">{description}</p>}
+    {action && <div className="mt-4 flex justify-center">{action}</div>}
+  </div>
+);
+
+  const getChargeTypeLabel = (record: OverdueLeaseAccountingRecord) => {
+    if (record.comment?.startsWith('PAYMENT')) {
+      return 'Payment Received';
+    }
+
     const labels = {
       rental: 'Monthly Rental',
       salik: 'Salik Fee',
       mileage: 'Excess Mileage',
       late_fee: 'Late Fee',
       fine: 'Traffic Fine',
-      refund: 'Refund/Credit'
-    };
-    return labels[type as keyof typeof labels] || type;
+      refund: 'Refund/Credit',
+      vat: 'VAT'
+    } as const;
+    return labels[record.charge_type as keyof typeof labels] || record.charge_type;
   };
 
   const extractPaymentDetails = (comment: string) => {
@@ -526,13 +720,22 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
     };
   };
 
+  const tabs = [
+    { id: 'contract', label: 'Contract Details', icon: FileText, number: 1 },
+    { id: 'charges', label: 'Charges', icon: Plus, number: 2 },
+    { id: 'periods', label: 'Billing Periods', icon: Calendar, number: 3 },
+    { id: 'invoices', label: 'Invoices', icon: FileText, number: 4 },
+    { id: 'payments', label: 'Payments', icon: Circle, number: 5 },
+    { id: 'statement', label: 'Statement', icon: Download, number: 6 }
+  ] as const;
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center">
         <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 rounded-2xl p-8">
           <div className="flex items-center gap-3">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-            <span className="text-white">Loading  Accounting...</span>
+            <span className="text-white">Loading Accounting...</span>
           </div>
         </div>
       </div>
@@ -541,94 +744,195 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
   return (
     <>
+      <style jsx global>{`
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 3px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 3px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+        input[type="date"], input[type="tel"], input[type="email"], input[type="text"], input[type="number"], select, textarea {
+          background-color: rgba(0, 0, 0, 0.2) !important;
+          color: white !important;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+          opacity: 0.7;
+        }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px rgba(0, 0, 0, 0.2) inset !important;
+          -webkit-text-fill-color: white !important;
+        }
+      `}</style>
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-7xl h-[90vh] flex flex-col border border-white/10 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
-        
-        {/* Header */}
-        <div className="p-6 border-b border-white/5 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm rounded-t-2xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
+        <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col border border-white/10 shadow-[0_0_60px_rgba(255,255,255,0.05)]">
+          {/* Header */}
+          <div className="px-6 py-5 border-b border-white/5 bg-gradient-to-r from-white/10 via-white/5 to-white/10 rounded-t-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-white/10 backdrop-blur-sm">
-                  <Receipt size={24} className="text-white/80" />
+                  <Receipt size={26} className="text-white/80" />
                 </div>
-                Lease Accounting
-              </h2>
-              <p className="text-white/60 mt-1">
-                Managing finances for {customerName}
-              </p>
+                <div>
+                  <h2 className="text-2xl font-semibold text-white">Lease Accounting</h2>
+                  <p className="text-white/60 text-sm">Managing finances for {customerName}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-white/50 text-sm hidden md:block">Step-by-step finance workflow</span>
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
-            >
-              <X size={20} />
-            </button>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-1 mt-6 bg-white/5 backdrop-blur-sm p-1 rounded-lg">
-            {[
-              { id: 'contract', label: 'Contract Details', icon: FileText },
-              { id: 'charges', label: 'Charges', icon: Plus },
-              { id: 'periods', label: 'Billing Periods', icon: Calendar },
-              { id: 'invoices', label: 'Invoices', icon: FileText },
-              { id: 'payments', label: 'Payments', icon: CreditCard },
-              { id: 'statement', label: 'Statement', icon: Download }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black'
-                    : 'text-white/70 hover:text-white/90 hover:bg-white/10'
-                }`}
-              >
-                <tab.icon size={16} />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-hidden">
-          
-          {/* Contract Details Tab */}
-          {activeTab === 'contract' && (
-            <div className="h-full overflow-y-auto p-6">
-              <ContractDetailsView
-                leaseId={leaseId}
-                customerName={customerName}
-              />
+          <div className="px-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-1 bg-white/5 backdrop-blur-sm p-1 rounded-lg border border-white/10">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative w-full py-3 px-2 rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-black/30 ${
+                    activeTab === tab.id
+                      ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black border border-white/30'
+                      : 'text-white/70 hover:text-white/90 hover:bg-white/10 border border-transparent'
+                  }`}
+                  type="button"
+                >
+                  <span className="flex flex-col items-center gap-2">
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      activeTab === tab.id ? 'bg-black/20 text-black' : 'bg-white/15 text-white/80'
+                    }`}>
+                      {tab.number}
+                    </span>
+                    <span className="text-center text-xs font-semibold uppercase tracking-wide leading-tight">
+                      {tab.label}
+                    </span>
+                  </span>
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
-          {/* Charges Tab */}
-          {activeTab === 'charges' && (
-            <div className="h-full flex flex-col">
-              <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-white">Charge Management</h3>
-                  <button
-                    onClick={() => setShowAddCharge(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
-                  >
-                    <Plus size={16} />
-                    Add Charge
-                  </button>
-                </div>
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto px-6 pb-6">
+            {activeTab === 'contract' && (
+              <div className="pt-6 space-y-6">
+                <DashboardSection
+                  icon={FileText}
+                  title="Lease Snapshot"
+                  description={`Headline information for ${customerName}. Validate the core contract set-up before moving to billing.`}
+                >
+                  {leaseInfo ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {[
+                        {
+                          label: 'Lease Start',
+                          value: leaseInfo.lease_start_date ? formatDate(leaseInfo.lease_start_date) : 'Not set'
+                        },
+                        {
+                          label: 'Lease End',
+                          value: leaseInfo.lease_end_date ? formatDate(leaseInfo.lease_end_date) : 'Open ended'
+                        },
+                        {
+                          label: 'Term (Months)',
+                          value: leaseInfo.lease_term_months || '—'
+                        },
+                        {
+                          label: 'Monthly Payment',
+                          value: leaseInfo.monthly_payment != null ? formatCurrency(leaseInfo.monthly_payment) : '—'
+                        }
+                      ].map((item) => (
+                        <div key={item.label} className={`${panelSurfaceClass} p-4`}>
+                          <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">{item.label}</p>
+                          <p className="text-white text-lg font-semibold mt-2">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      icon={Clock}
+                      title="Loading lease information"
+                      description="We're fetching the contract details. They'll appear here in just a moment."
+                    />
+                  )}
+                </DashboardSection>
+
+                <DashboardSection icon={FileText} title="Contract Details" description="Full contract metadata exactly as captured in the leasing module.">
+                  <div className={`${panelSurfaceClass} border-none p-4`}> 
+                <ContractDetailsView
+                  leaseId={leaseId}
+                  customerName={customerName}
+                />
+                  </div>
+                </DashboardSection>
               </div>
+            )}
 
-              <div className="flex-1 overflow-y-auto p-6">
-                {/* Add Charge Form */}
+            {activeTab === 'charges' && (
+              <div className="pt-6 space-y-6">
+                <DashboardSection
+                  title="Charges"
+                  description="Create, review, and keep track of every billing touchpoint before it gets invoiced. Use refunds for credits and keep pending items clean."
+                  actions={
+                    <button
+                      onClick={() => setShowAddCharge(true)}
+                      className={primaryButtonClass}
+                    >
+                      <Plus size={16} />
+                      Add Charge
+                    </button>
+                  }
+                  footer={
+                    records.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-4 justify-between">
+                        <span className="font-medium text-white/80">{records.length} charges tracked</span>
+                        <span>
+                          Total value (excludes refunds):{" "}
+                          <span className="text-white">
+                            {formatCurrency(records.filter((r) => r.total_amount > 0).reduce((sum, r) => sum + r.total_amount, 0))}
+                          </span>
+                        </span>
+                  </div>
+                    )
+                  }
+                />
+
                 {showAddCharge && (
-                  <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-6">
-                    <h4 className="text-white font-semibold mb-4">
-                      {editingCharge ? 'Edit Charge' : 'Add New Charge'}
-                    </h4>
-                    
+                  <DashboardSection
+                    icon={Edit}
+                    title={editingCharge ? 'Edit Charge' : 'Add New Charge'}
+                    description="Populate the billing details. Quantities auto-calculate totals for usage-based charges; refunds are negative values by default."
+                    className="border-dashed border-white/20"
+                    actions={
+                      <button
+                        onClick={() => {
+                          setShowAddCharge(false);
+                          setEditingCharge(null);
+                          resetNewChargeForm();
+                        }}
+                        className={subtleButtonClass}
+                      >
+                        Cancel
+                      </button>
+                    }
+                  >
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {/* Charge Type */}
                       <div>
@@ -736,150 +1040,177 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
                     </div>
 
                     {/* Form Actions */}
-                    <div className="flex gap-3 mt-6">
+                    <div className="flex flex-wrap gap-3 mt-6">
                       <button
                         onClick={handleAddCharge}
-                        className="px-6 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
+                        className={primaryButtonClass}
                       >
                         {editingCharge ? 'Update Charge' : 'Add Charge'}
                       </button>
-                      <button
-                        onClick={() => {
-                          setShowAddCharge(false);
-                          setEditingCharge(null);
-                          resetNewChargeForm();
-                        }}
-                        className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-                  {/* Charges List - Exactly like existing */}
-                  <div className="space-y-3">
-                    {records.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Receipt size={48} className="text-white/20 mx-auto mb-4" />
-                        <p className="text-white/60">No charges recorded yet</p>
-                        <p className="text-white/40 text-sm mt-2">Click "Add Charge" to get started</p>
+                      <div className="flex items-center gap-2 text-xs text-white/50">
+                        <AlertCircle size={14} />
+                        Pending charges can be edited; invoiced charges are locked.
                       </div>
-                    ) : (
-                      records.map((record) => (
-                        <div key={record.id} className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:bg-white/10 transition-all">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="flex flex-col">
-                                <span className="text-white font-medium">{getChargeTypeLabel(record.charge_type)}</span>
-                                <span className="text-white/60 text-sm">{formatDate(record.billing_period)}</span>
-                              </div>
-                              
-                              {record.quantity && record.unit_price && (
-                                <div className="text-white/60 text-sm">
-                                  {record.quantity} × {formatCurrency(record.unit_price)}
-                                </div>
-                              )}
-                              
+                    </div>
+                  </DashboardSection>
+                )}
+                <DashboardSection
+                  title="Charge Activity"
+                  description="Every charge flows through this ledger before it becomes an invoice. Use filters in future iterations to slice by type or status."
+                >
+                  {records.length === 0 ? (
+                    <EmptyState
+                      icon={Receipt}
+                      title="No charges recorded yet"
+                      description="Add a first charge to start building the ledger for this lease. Charges can be edited while they remain in pending status."
+                      action={
+                      <button
+                          onClick={() => setShowAddCharge(true)}
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all"
+                        >
+                          <Plus size={16} />
+                          Add Charge
+                      </button>
+                      }
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      {records.map((record) => (
+                        <div
+                          key={record.id}
+                          className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all p-4 flex flex-wrap items-center gap-4 justify-between"
+                        >
+                          <div className="flex items-center gap-4 min-w-[240px]">
+                            <div className="p-2 rounded-lg bg-white/10 text-white/80">
+                              <FileText size={18} />
+                    </div>
+                            <div className="space-y-1">
+                              <span className="text-white font-medium block">{getChargeTypeLabel(record)}</span>
+                              <span className="text-white/60 text-sm block">{formatDate(record.billing_period)}</span>
                               {record.comment && (
-                                <div className="text-white/50 text-sm italic max-w-xs truncate">
-                                  "{record.comment}"
-                                </div>
+                                <span className="text-white/50 text-xs italic block max-w-[220px] truncate">
+                                  {record.comment}
+                                </span>
                               )}
-
                               {record.invoice_number && (
-                                <div className="text-blue-400 text-sm font-medium">
-                                  {record.invoice_number}
-                                </div>
+                                <span className="text-xs text-blue-300 font-medium">Linked to {record.invoice_number}</span>
                               )}
+                    </div>
                             </div>
-
-                            <div className="flex items-center gap-4">
-                              {/* Amount with styling for refunds */}
-                              <div className={`text-right ${
-                                record.charge_type === 'refund' || record.total_amount < 0 
-                                  ? 'text-green-400' 
-                                  : record.comment?.startsWith('PAYMENT') 
-                                    ? 'text-green-400' 
-                                    : 'text-white'
-                              }`}>
-                                <div className="font-bold text-base flex items-center gap-1">
-                                  {(record.charge_type === 'refund' || record.total_amount < 0) && '🔄'}
-                                  {record.comment?.startsWith('PAYMENT') && '💳'}
-                                  {formatCurrency(record.total_amount)}
-                                </div>
-                                <div className={`text-xs px-2 py-1 rounded-full ${
-                                  record.status === 'pending' ? 'text-yellow-400 bg-yellow-400/10' :
-                                  record.status === 'invoiced' ? 'text-blue-400 bg-blue-400/10' :
-                                  record.status === 'paid' ? 'text-green-400 bg-green-400/10' :
-                                  'text-red-400 bg-red-400/10'
-                                }`}>
-                                  {record.status.toUpperCase()}
-                                </div>
+                            
+                            {record.quantity && record.unit_price && (
+                              <div className="text-white/60 text-sm">
+                                {record.quantity} × {formatCurrency(record.unit_price)}
                               </div>
-
-                              {/* Edit/Delete buttons for pending charges */}
-                              {record.status === 'pending' && (
-                                <div className="flex items-center gap-2">
-                                  {hasEditPermission && (
-                                    <button
-                                      onClick={() => handleEditCharge(record)}
-                                      className="p-2 text-white/60 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all"
-                                      title="Edit charge"
-                                    >
-                                      <Edit size={16} />
-                                    </button>
-                                  )}
-                                  {hasDeletePermission && (
-                                    <button
-                                      onClick={() => handleDeleteCharge(record.id)}
-                                      className="p-2 text-white/60 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
-                                      title="Delete charge"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
+                            )}
+                            
+                          <div className="ml-auto flex items-center gap-4">
+                            <div
+                              className={`text-right ${
+                              record.charge_type === 'refund' || record.total_amount < 0 
+                                ? 'text-green-400' 
+                                : record.comment?.startsWith('PAYMENT') 
+                                  ? 'text-green-400' 
+                                  : 'text-white'
+                              }`}
+                            >
+                              <div className="font-bold text-base flex items-center gap-1 justify-end">
+                                {(record.charge_type === 'refund' || record.total_amount < 0) && '🔄'}
+                                {formatCurrency(record.total_amount)}
+                              </div>
+                              <div
+                                className={`inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full border ${
+                                  record.status === 'pending'
+                                    ? 'text-yellow-300 bg-yellow-500/10 border-yellow-500/20'
+                                    : record.status === 'invoiced'
+                                      ? 'text-blue-300 bg-blue-500/10 border-blue-500/20'
+                                      : record.status === 'paid'
+                                        ? 'text-green-300 bg-green-500/10 border-green-500/20'
+                                        : 'text-red-300 bg-red-500/10 border-red-500/20'
+                                }`}
+                              >
+                                <CheckCircle size={12} />
+                                {record.status.toUpperCase()}
+                              </div>
                             </div>
+
+                            {record.status === 'pending' && (
+                              <div className="flex items-center gap-2">
+                                {hasEditPermission && (
+                                  <button
+                                    onClick={() => handleEditCharge(record)}
+                                    className="p-2 text-white/60 hover:text-blue-300 hover:bg-blue-400/10 rounded-lg transition-all"
+                                    title="Edit charge"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                )}
+                                {hasDeletePermission && (
+                                  <button
+                                    onClick={() => handleDeleteCharge(record.id)}
+                                    className="p-2 text-white/60 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-all"
+                                    title="Delete charge"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                      ))}
+                      </div>
+                  )}
+                </DashboardSection>
               </div>
             )}
 
             {/* Billing Periods Tab */}
             {activeTab === 'periods' && (
-              <div className="h-full flex flex-col">
-                <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">Billing Periods</h3>
-                      <p className="text-white/60 text-sm">
-                        {leaseInfo?.lease_start_date ? (
-                          <>
-                            Lease: {new Date(leaseInfo.lease_start_date).toLocaleDateString('en-GB')} 
-                            {leaseInfo.lease_end_date && (
-                              <> - {new Date(leaseInfo.lease_end_date).toLocaleDateString('en-GB')}</>
-                            )}
-                            {leaseInfo.lease_term_months && (
-                              <> • {leaseInfo.lease_term_months} months</>
-                            )}
-                            {leaseInfo.monthly_payment && (
-                              <> • AED {leaseInfo.monthly_payment.toLocaleString()}/month</>
-                            )}
-                          </>
-                        ) : (
-                          'Loading lease information...'
-                        )}
-                      </p>
-                    </div>
-                  </div>
+              <div className="pt-6 space-y-6">
+                <DashboardSection
+                  icon={Calendar}
+                  title="Billing Periods"
+                  description="Track the lifecycle of each month in the lease. Generate invoices in sequence and fill any gaps with pending charges before invoicing."
+                  actions={
+                    <button
+                      onClick={() => {
+                        // Add 6 more billing periods
+                        console.log('Extending billing periods by 6 months');
+                        alert('Extend periods functionality will be wired to the billing periods view');
+                      }}
+                      className={primaryButtonClass}
+                      title="Add 6 more billing periods"
+                    >
+                      <Plus size={16} />
+                      Extend Periods
+                    </button>
+                  }
+                  footer={
+                    <div className="flex flex-wrap gap-4 items-center justify-between">
+                      <span>
+                        Lease duration:
+                        <span className="text-white font-medium ml-2">
+                          {leaseInfo?.lease_start_date
+                            ? `${new Date(leaseInfo.lease_start_date).toLocaleDateString('en-GB')}${leaseInfo?.lease_end_date ? ` — ${new Date(leaseInfo.lease_end_date).toLocaleDateString('en-GB')}` : ''}`
+                            : 'Loading...'}
+                        </span>
+                      </span>
+                      {leaseInfo?.lease_term_months && (
+                        <span className="text-white/70">Term: <span className="text-white font-medium">{leaseInfo.lease_term_months}</span> months</span>
+                      )}
+                      {leaseInfo?.monthly_payment && (
+                        <span className="text-white/70">Monthly: <span className="text-white font-medium">{formatCurrency(leaseInfo.monthly_payment)}</span></span>
+                      )}
                 </div>
-                
-                <div className="flex-1 overflow-y-auto p-6">
+                  }
+                />
+
+                <DashboardSection
+                  icon={FileText}
+                  title="Period Ledger"
+                  description="Each row represents a billing period with its aggregated charges, invoices, and status."
+                >
                   <IFRSBillingPeriodsView
                     leaseId={leaseId}
                     leaseStartDate={leaseInfo?.lease_start_date || leaseStartDate}
@@ -889,35 +1220,75 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
                     onGenerateInvoice={handleGenerateInvoice}
                     onAddChargeForPeriod={handleAddChargeForPeriod}
                   />
-                </div>
+                </DashboardSection>
               </div>
             )}
 
             {/* Invoices Tab */}
             {activeTab === 'invoices' && (
-              <div className="h-full flex flex-col">
-                <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white"> Invoices</h3>
-                    <div className="text-sm text-white/60">
-                      Sequential numbering: INV-LE-1000+
-                    </div>
+              <div className="pt-6 space-y-6">
+                <DashboardSection
+                  icon={FileText}
+                  title="Invoices"
+                  description="Sequential invoice generation keeps numbering clean and VAT totals accurate. Apply credits or log payments directly to close balances."
+                  actions={
+                    <>
+                    {availableCreditsTotal > 0 && outstandingInvoices.length > 0 && (
+                      <button
+                        onClick={() => setShowApplyCreditModal(true)}
+                          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg bg-white/10 text-white/80 hover:bg-white/15 border border-white/20 transition-all"
+                      >
+                          <Circle size={14} />
+                        {`Apply ${formatCurrency(availableCreditsTotal)} credit`}
+                      </button>
+                    )}
+                      <button
+                        onClick={() => {
+                          if (invoices.length === 0) {
+                            alert('No invoices available to credit.');
+                            return;
+                          }
+                          const outstanding = invoices.find(inv => !inv.is_paid && (inv.balance_due ?? inv.total_amount ?? 0) > 0);
+                          const target = outstanding || invoices[0];
+                          setSelectedInvoiceForCreditNote(target);
+                          setShowCreditNoteModal(true);
+                        }}
+                        className={primaryButtonClass}
+                      >
+                        Issue Credit Note
+                      </button>
+                    </>
+                  }
+                  footer={
+                    invoices.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-4 justify-between">
+                        <span className="text-white/70">{invoices.length} invoices generated</span>
+                        <span className="text-white/70">
+                          Open balance:{' '}
+                          <span className="text-white font-medium">
+                            {formatCurrency(invoices.reduce((sum, inv) => sum + Math.max(inv.balance_due || inv.total_amount || 0, 0), 0))}
+                          </span>
+                        </span>
                   </div>
-                </div>
+                    )
+                  }
+                />
 
-                <div className="flex-1 overflow-y-auto p-6">
+                <DashboardSection
+                  icon={Receipt}
+                  title="Invoice Ledger"
+                  description="Every invoice includes its line items, payment activity, and status."
+                >
                   {invoices.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileText size={48} className="text-white/20 mx-auto mb-4" />
-                      <p className="text-white/60">No invoices generated yet</p>
-                      <p className="text-white/40 text-sm mt-2">Generate invoices from billing periods</p>
-                    </div>
+                    <EmptyState
+                      icon={FileText}
+                      title="No invoices generated yet"
+                      description="Use the billing periods tab to raise the first invoice for this lease."
+                    />
                   ) : (
                     <div className="space-y-4">
                       {invoices.map((invoice) => (
                         <div key={invoice.invoice_id} className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10 hover:bg-white/10 transition-all">
-                          
-                          {/* Invoice Header */}
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
                               <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -928,207 +1299,282 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
                                   {invoice.invoice_number || `Invoice ${invoice.invoice_id.slice(-8)}`}
                                 </h4>
                                 <p className="text-neutral-400 text-sm">
-                                  Period: {formatDate(invoice.billing_period)} • 
-                                  Generated: {formatDate(invoice.created_at)}
+                                  Period: {formatDate(invoice.billing_period)} • Generated: {formatDate(invoice.created_at)}
                                 </p>
                               </div>
                             </div>
-                            
                             <div className="text-right">
                               <div className="text-white font-bold text-xl">
-                                {formatCurrency(invoice.total_amount)}
+                                {formatCurrency(invoice.balance_due || invoice.total_amount)}
                               </div>
                               <div className={`text-xs px-3 py-1 rounded-full font-medium ${
-                                invoice.is_paid 
-                                  ? 'text-green-400 bg-green-400/10 border border-green-400/20' 
+                                invoice.is_paid
+                                  ? 'text-green-400 bg-green-400/10 border border-green-400/20'
                                   : invoice.has_partial_payment
                                     ? 'text-yellow-400 bg-yellow-400/10 border border-yellow-400/20'
                                     : 'text-blue-400 bg-blue-400/10 border border-blue-400/20'
                               }`}>
                                 {invoice.is_paid ? 'PAID' : invoice.has_partial_payment ? 'PARTIAL PAYMENT' : 'INVOICED'}
                               </div>
+                              {invoice.has_partial_payment && invoice.balance_due > 0 && (
+                                <div className="text-white/50 text-xs mt-1">
+                                  Balance due: {formatCurrency(invoice.balance_due)}
+                                </div>
+                              )}
+                              {invoice.payments_applied > 0 && (
+                                <div className="text-green-400 text-xs mt-1">
+                                  Payments applied: {formatCurrency(invoice.payments_applied)}
+                                </div>
+                              )}
+                              {invoice.outstanding_amount < 0 && (
+                                <div className="text-green-300 text-xs mt-1">
+                                  Credit balance: {formatCurrency(Math.abs(invoice.outstanding_amount))}
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          {/* Charges in Invoice */}
                           <div className="space-y-2 mb-4">
-                            {invoice.charges.map((charge: any) => (
+                            {invoice.charges.map((charge: OverdueLeaseAccountingRecord) => (
                               <div key={charge.id} className="flex items-center justify-between p-2 bg-white/5 rounded border border-white/5">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-white/60 text-sm">{getChargeTypeLabel(charge.charge_type)}</span>
+                                  <span className="text-white/60 text-sm">{getChargeTypeLabel(charge)}</span>
                                   {charge.comment && (
                                     <span className="text-white/40 text-xs italic">"{charge.comment}"</span>
                                   )}
                                 </div>
                                 <div className={`text-sm font-medium ${
-                                  charge.charge_type === 'refund' || charge.total_amount < 0 
-                                    ? 'text-green-400' 
-                                    : charge.comment?.startsWith('PAYMENT') 
-                                      ? 'text-green-400' 
+                                  charge.charge_type === 'refund' || charge.total_amount < 0
+                                    ? 'text-green-400'
+                                    : charge.comment?.startsWith('PAYMENT')
+                                      ? 'text-green-400'
                                       : 'text-white'
                                 }`}>
                                   {(charge.charge_type === 'refund' || charge.total_amount < 0) && '🔄 '}
-                                  {charge.comment?.startsWith('PAYMENT') && '💳 '}
                                   {formatCurrency(charge.total_amount)}
                                 </div>
                               </div>
                             ))}
                           </div>
 
-                          {/* Invoice Actions */}
                           <div className="flex gap-3">
                             <button
-                              onClick={() => {
-                                // View invoice functionality (future enhancement)
-                                alert(`Viewing invoice ${invoice.invoice_number || invoice.invoice_id.slice(-8)}`);
-                              }}
+                              onClick={() => alert(`Viewing invoice ${invoice.invoice_number || invoice.invoice_id.slice(-8)}`)}
                               className="flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-lg transition-all border border-blue-400/20 text-sm"
                             >
                               <Eye size={14} />
                               View
                             </button>
-                            
                             <button
-                              onClick={() => {
-                                // Download invoice functionality (future enhancement)
-                                alert(`Downloading invoice ${invoice.invoice_number || invoice.invoice_id.slice(-8)}`);
-                              }}
+                              onClick={() => alert(`Downloading invoice ${invoice.invoice_number || invoice.invoice_id.slice(-8)}`)}
                               className="flex items-center gap-2 px-4 py-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10 text-sm"
                             >
                               <Download size={14} />
                               Download
                             </button>
-
                             <button
-                              onClick={() => {
-                                // Print invoice functionality (future enhancement)
-                                alert(`Printing invoice ${invoice.invoice_number || invoice.invoice_id.slice(-8)}`);
-                              }}
+                              onClick={() => alert(`Printing invoice ${invoice.invoice_number || invoice.invoice_id.slice(-8)}`)}
                               className="flex items-center gap-2 px-4 py-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10 text-sm"
                             >
                               <Printer size={14} />
                               Print
+                            </button>
+                            {!invoice.is_paid && availableCreditsTotal > 0 && (
+                              <button
+                                onClick={() => {
+                                  setSelectedInvoiceForCredit(invoice);
+                                  setSelectedInvoiceId(invoice.invoice_id);
+                                  setShowApplyCreditModal(true);
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white/80 hover:bg-white/15 rounded-lg transition-all border border-white/20 text-sm"
+                              >
+                                <Circle size={14} />
+                                Apply Credit
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setSelectedInvoiceForCreditNote(invoice);
+                                setShowCreditNoteModal(true);
+                              }}
+                              className={secondaryButtonClass}
+                            >
+                              Credit Note
                             </button>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
-                </div>
+                </DashboardSection>
               </div>
             )}
 
             {/* Payments Tab */}
             {activeTab === 'payments' && (
-              <div className="h-full flex flex-col">
-                <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white"> Payments</h3>
-                    <button
-                      onClick={() => setShowPaymentModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-green-500 to-green-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
-                    >
-                      <CreditCard size={16} />
-                      Record Payment
-                    </button>
-                  </div>
+              <div className="pt-6 space-y-6">
+                <DashboardSection
+                  title="Payments"
+                  description="Record receipts, link them to invoices, and keep credits aligned with open balances."
+                  actions={
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                      className={primaryButtonClass}
+                  >
+                      <Circle size={16} />
+                    Record Payment
+                  </button>
+                  }
+                  footer={
+                    !loadingPayments && paymentHistory.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-4 justify-between">
+                        <span className="text-white/70">{paymentHistory.length} payments captured</span>
+                        <span className="text-green-300">
+                          Lifetime receipts: {formatCurrency(paymentHistory.reduce((sum, p) => sum + p.total_amount, 0))}
+                        </span>
                 </div>
+                    )
+                  }
+                />
 
-                <div className="flex-1 overflow-y-auto p-6">
+                <DashboardSection icon={Clock} title="Payment Ledger" description="Chronological log of payments applied to the lease. Click through to see allocation details in future iterations.">
                   {loadingPayments ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white/60"></div>
                     </div>
                   ) : paymentHistory.length === 0 ? (
-                    <div className="text-center py-12">
-                      <CreditCard size={48} className="text-white/20 mx-auto mb-4" />
-                      <p className="text-white/60">No payments recorded yet</p>
-                      <p className="text-white/40 text-sm mt-2">Click "Record Payment" to get started</p>
-                    </div>
+                    <EmptyState
+                      icon={Circle}
+                      title="No payments recorded"
+                      description="Log the first payment to start maintaining the receipt history for this lease."
+                      action={
+                        <button
+                          onClick={() => setShowPaymentModal(true)}
+                          className={primaryButtonClass}
+                        >
+                          <Circle size={16} />
+                          Record Payment
+                        </button>
+                      }
+                    />
                   ) : (
                     <div className="space-y-4">
-                      {/* Payment Summary */}
-                      <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 mb-6">
-                        <div className="flex items-center justify-between">
-                          <span className="text-white/60">Total Payments Received</span>
-                          <span className="text-green-400 font-bold text-xl">
-                            {formatCurrency(paymentHistory.reduce((sum, p) => sum + Math.abs(p.total_amount), 0))}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Payment List */}
                       {paymentHistory.map((payment) => {
-                        const details = extractPaymentDetails(payment.comment || '');
+                        const appliedAmount = payment.applications?.reduce((sum: number, app: any) => sum + app.applied_amount, 0) || 0;
+                        const remainingAmount = payment.total_amount - appliedAmount;
+                        
                         return (
                           <div key={payment.id} className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10 hover:bg-white/10 transition-all">
-                            <div className="flex items-center justify-between mb-3">
+                            <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
                               <div className="flex items-center gap-4">
                                 <div className="p-2 bg-green-500/20 rounded-lg">
-                                  <CreditCard size={20} className="text-green-400" />
+                                  <Circle size={20} className="text-green-400" />
                                 </div>
                                 <div>
                                   <p className="text-white font-semibold">
-                                    {details.method.replace('_', ' ').toUpperCase()} Payment
+                                    {payment.payment_method.replace('_', ' ').toUpperCase()} Payment
                                   </p>
                                   <p className="text-neutral-400 text-sm">
                                     {formatDate(payment.created_at)} • {formatTime(payment.created_at)}
                                   </p>
+                                  {payment.reference_number && (
+                                    <p className="text-neutral-400 text-xs">
+                                      Ref: {payment.reference_number}
+                                    </p>
+                                  )}
+                                  {payment.notes && (
+                                    <p className="text-white/60 text-xs italic mt-1">
+                                      "{payment.notes}"
+                                    </p>
+                                  )}
                                 </div>
                               </div>
-                              
-                              <div className="text-right">
+                              <div className="text-right min-w-[140px]">
                                 <p className="text-green-400 font-bold text-xl">
-                                  💳 {formatCurrency(Math.abs(payment.total_amount))}
+                                  {formatCurrency(payment.total_amount)}
                                 </p>
                                 <p className="text-neutral-400 text-xs">
-                                  ID: {payment.payment_id?.slice(-8) || payment.id.slice(-8)}
+                                  ID: {payment.id.slice(-8)}
                                 </p>
                               </div>
                             </div>
-                            
-                            {details.reference && (
-                              <div className="mb-2">
-                                <span className="text-neutral-400 text-sm">Reference: </span>
-                                <span className="text-white text-sm font-medium">{details.reference}</span>
-                              </div>
-                            )}
-                            
-                            <div className="flex items-center justify-between">
+
+                            <div className="flex flex-wrap items-center justify-between gap-3">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs px-3 py-1 bg-green-400/10 text-green-400 rounded-full font-medium">
+                                <span className="text-xs px-3 py-1 bg-green-400/10 text-green-300 rounded-full font-medium">
                                   {payment.status.toUpperCase()}
                                 </span>
-                                <span className="text-xs text-neutral-500">
-                                  Period: {formatDate(payment.billing_period)}
+                                {appliedAmount > 0 && (
+                                  <span className="text-xs text-green-300">
+                                    Applied: {formatCurrency(appliedAmount)}
                                 </span>
+                                )}
+                                {remainingAmount > 0 && (
+                                  <span className="text-xs text-yellow-300">
+                                    Remaining: {formatCurrency(remainingAmount)}
+                                  </span>
+                                )}
                               </div>
-                              
                               <div className="text-xs text-neutral-400">
-                                v{payment.version} • Created by: {payment.created_by?.slice(-8) || 'System'}
+                                Created by: {payment.created_by?.slice(-8) || 'System'}
                               </div>
                             </div>
+
+                            {payment.applications && payment.applications.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-white/10">
+                                <p className="text-xs text-white/60 mb-2">Applications:</p>
+                                <div className="space-y-1">
+                                  {payment.applications.map((app: any) => (
+                                    <div key={app.id} className="flex justify-between text-xs">
+                                      <span className="text-white/50">Invoice {app.invoice_id.slice(-8)}</span>
+                                      <span className="text-green-300">{formatCurrency(app.applied_amount)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </div>
+                </DashboardSection>
               </div>
             )}
 
             {/* Statement Tab */}
             {activeTab === 'statement' && (
-              <div className="h-full overflow-y-auto p-6">
+              <div className="pt-6 space-y-6">
+                <DashboardSection
+                  icon={Download}
+                  title="Statement of Account"
+                  description="Full ledger for the lease summarizing charges, invoices, payments, and outstanding balances. Ideal for customer-facing exports."
+                  actions={
+                    <button
+                      onClick={() => {
+                        alert('PDF export coming soon!');
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-neutral-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-white/10"
+                    >
+                      <Download size={16} />
+                      Export PDF
+                    </button>
+                  }
+                  footer="The statement reflects only invoiced or recognized transactions. Pending charges stay in the charges tab until invoiced."
+                />
+
+                <DashboardSection icon={FileText} title="Account Timeline">
+                  <div className="border border-white/10 rounded-xl overflow-hidden">
                 <IFRSStatementOfAccount
                   leaseId={leaseId}
                   customerName={customerName}
                   records={records}
                   onExportPDF={() => {
-                    // PDF export functionality (future enhancement)
                     alert('PDF export coming soon!');
                   }}
                 />
+                  </div>
+                </DashboardSection>
               </div>
             )}
 
@@ -1157,6 +1603,133 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
           leaseId={leaseId}
           customerName={customerName}
           onPaymentRecorded={handlePaymentRecorded}
+        />
+      )}
+
+      {showApplyCreditModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-black/40 backdrop-blur-xl rounded-2xl w-full max-w-xl border border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.05)]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 rounded-t-2xl">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Apply Credit</h3>
+                <p className="text-white/60 text-sm">Manually allocate unapplied credit to an outstanding invoice.</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowApplyCreditModal(false);
+                  setSelectedInvoiceForCredit(null);
+                  setSelectedInvoiceId('');
+                  setSelectedCreditId('');
+                  setCreditAmountToApply('');
+                }}
+                className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">Select Invoice</label>
+                <select
+                  value={selectedInvoiceId || selectedInvoiceForCredit?.invoice_id || ''}
+                  onChange={(e) => {
+                    setSelectedInvoiceId(e.target.value);
+                    setSelectedInvoiceForCredit(invoices.find((invoice) => invoice.invoice_id === e.target.value) || null);
+                  }}
+                  className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                >
+                  <option value="" className="bg-black">Choose invoice</option>
+                  {outstandingInvoices.map((invoice) => (
+                    <option key={invoice.invoice_id} value={invoice.invoice_id} className="bg-black">
+                      {`${invoice.invoice_number || invoice.invoice_id.slice(-8)} • Balance ${formatCurrency(invoice.balance_due || invoice.total_amount)}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">Select Credit</label>
+                <select
+                  value={selectedCreditId}
+                  onChange={(e) => {
+                    setSelectedCreditId(e.target.value);
+                    const payment = availableCredits.find((p) => p.id === e.target.value);
+                    if (payment) {
+                      const appliedAmount = payment.applications?.reduce((sum: number, app: any) => sum + app.applied_amount, 0) || 0;
+                      const remainingAmount = payment.total_amount - appliedAmount;
+                      setCreditAmountToApply(remainingAmount.toString());
+                    }
+                  }}
+                  className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                >
+                  <option value="" className="bg-black">Choose credit</option>
+                  {availableCredits.map((payment) => {
+                    const appliedAmount = payment.applications?.reduce((sum: number, app: any) => sum + app.applied_amount, 0) || 0;
+                    const remainingAmount = payment.total_amount - appliedAmount;
+                    return (
+                      <option key={payment.id} value={payment.id} className="bg-black">
+                        {`${payment.payment_method.toUpperCase()} Payment${payment.reference_number ? ` (${payment.reference_number})` : ''} • ${formatCurrency(remainingAmount)}`}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">Amount to Apply</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={creditAmountToApply}
+                  onChange={(e) => setCreditAmountToApply(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                  placeholder="0.00"
+                />
+                <p className="text-white/40 text-xs mt-1">
+                  Credits available: {formatCurrency(availableCreditsTotal)}
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-white/10 bg-white/5 rounded-b-2xl flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowApplyCreditModal(false);
+                  setSelectedInvoiceForCredit(null);
+                  setSelectedInvoiceId('');
+                  setSelectedCreditId('');
+                  setCreditAmountToApply('');
+                }}
+                className="px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApplyCredit}
+                disabled={isApplyingCredit}
+                className="px-4 py-2 bg-gradient-to-br from-green-500 to-green-600 text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isApplyingCredit ? 'Applying...' : 'Apply Credit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showCreditNoteModal && selectedInvoiceForCreditNote && (
+        <IFRSCreditNoteModal
+          isOpen={showCreditNoteModal}
+          onClose={() => {
+            setShowCreditNoteModal(false);
+            setSelectedInvoiceForCreditNote(null);
+          }}
+          invoice={selectedInvoiceForCreditNote}
+          onCreditNoteIssued={() => {
+            fetchAccountingData();
+            fetchInvoices();
+            fetchAvailableCredits();
+          }}
         />
       )}
     </>

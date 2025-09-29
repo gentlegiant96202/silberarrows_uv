@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   X, 
-  CreditCard, 
+  CreditCard,
   Receipt,
   Check,
+  CheckCircle,
   AlertCircle,
   Clock,
   FileText,
@@ -205,7 +206,6 @@ export default function PaymentModal({
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
-      style: 'currency',
       style: 'decimal',
       minimumFractionDigits: 2
     }).format(amount) + ' AED';

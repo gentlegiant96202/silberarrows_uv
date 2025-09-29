@@ -17,7 +17,7 @@ interface OverdueLeaseAccountingRecord {
   id: string;
   lease_id: string;
   billing_period: string;
-  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund';
+  charge_type: 'rental' | 'salik' | 'mileage' | 'late_fee' | 'fine' | 'refund' | 'credit_note' | 'vat';
   quantity: number | null;
   unit_price: number | null;
   total_amount: number;
@@ -75,6 +75,17 @@ export default function BillingPeriodsView({
     generateBillingPeriods();
   }, [leaseStartDate, leaseEndDate, leaseTermMonths, records, additionalPeriods]);
 
+  // Helper function to safely add months to a date
+  const addMonths = (date: Date, months: number): Date => {
+    const result = new Date(date);
+    const targetMonth = result.getMonth() + months;
+    const targetYear = result.getFullYear() + Math.floor(targetMonth / 12);
+    const finalMonth = targetMonth % 12;
+    
+    result.setFullYear(targetYear, finalMonth, date.getDate());
+    return result;
+  };
+
   const generateBillingPeriods = () => {
     if (!leaseStartDate) return;
     
@@ -82,6 +93,8 @@ export default function BillingPeriodsView({
     const endDate = leaseEndDate ? new Date(leaseEndDate) : null;
     const today = new Date();
     const periods: OverdueBillingPeriod[] = [];
+    
+    console.log(`Generating billing periods from lease start: ${startDate.toISOString().split('T')[0]} (day ${startDate.getDate()})`);
     
     // Calculate number of periods to generate (exactly like existing)
     let numberOfPeriods: number;
@@ -101,19 +114,39 @@ export default function BillingPeriodsView({
     // Add any additional periods requested by user
     numberOfPeriods += additionalPeriods;
     
-    // Generate billing periods starting from lease start date
+    // Generate billing periods starting from actual lease start date
     for (let i = 0; i < numberOfPeriods; i++) {
-      const periodStart = new Date(startDate);
-      periodStart.setMonth(startDate.getMonth() + i);
+      // Use addMonths helper to avoid JavaScript date pitfalls
+      const periodStart = addMonths(startDate, i);
+      console.log(`Period ${i}: Start date calculated as ${periodStart.toISOString().split('T')[0]} from lease start ${startDate.toISOString().split('T')[0]}`);
       
-      const periodEnd = new Date(periodStart);
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      // Period end is the day before next month's start date
+      const nextMonthStart = addMonths(startDate, i + 1);
+      const periodEnd = new Date(nextMonthStart);
       periodEnd.setDate(periodEnd.getDate() - 1);
+      periodEnd.setHours(23, 59, 59, 999);
+
+      // Use local date formatting to avoid timezone shifts
+      const formatLocalDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      const periodKey = formatLocalDate(periodStart);
+      const periodStartStr = formatLocalDate(periodStart);
+      const periodEndStr = formatLocalDate(periodEnd);
       
-      const periodKey = periodStart.toISOString().split('T')[0];
-      const periodCharges = records.filter(record => 
-        record.billing_period === periodKey
-      );
+      console.log(`Period ${i}: ${periodStartStr} to ${periodEndStr}`);
+
+      const periodCharges = records.filter(record => {
+        if (!record.billing_period) return false;
+        const recordDate = new Date(record.billing_period);
+        if (Number.isNaN(recordDate.getTime())) return false;
+        recordDate.setHours(12, 0, 0, 0); // normalize
+        return recordDate.getTime() >= periodStart.getTime() && recordDate.getTime() <= periodEnd.getTime();
+      });
 
       const totalAmount = periodCharges.reduce((sum, charge) => sum + charge.total_amount, 0);
       const hasInvoice = periodCharges.some(charge => charge.invoice_id);
@@ -146,8 +179,8 @@ export default function BillingPeriodsView({
 
       periods.push({
         period: periodKey,
-        period_start: periodStart.toISOString().split('T')[0],
-        period_end: periodEnd.toISOString().split('T')[0],
+        period_start: periodStartStr,
+        period_end: periodEndStr,
         charges: periodCharges,
         total_amount: totalAmount,
         has_invoice: hasInvoice,
@@ -167,7 +200,6 @@ export default function BillingPeriodsView({
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
-      style: 'currency',
       style: 'decimal',
       minimumFractionDigits: 2
     }).format(amount) + ' AED';
@@ -222,16 +254,21 @@ export default function BillingPeriodsView({
     return configs[status];
   };
 
-  const getChargeTypeLabel = (type: string) => {
+  const getChargeTypeLabel = (record: OverdueLeaseAccountingRecord) => {
+    if (record.comment?.startsWith('PAYMENT')) {
+      return 'Payment Received';
+    }
+
     const labels = {
       rental: 'Monthly Rental',
       salik: 'Salik Fee',
       mileage: 'Excess Mileage',
       late_fee: 'Late Fee',
       fine: 'Traffic Fine',
-      refund: 'Refund/Credit'
-    };
-    return labels[type as keyof typeof labels] || type;
+      refund: 'Refund/Credit',
+      vat: 'VAT'
+    } as const;
+    return labels[record.charge_type as keyof typeof labels] || record.charge_type;
   };
 
   if (loading) {
@@ -263,7 +300,7 @@ export default function BillingPeriodsView({
         </div>
         <button
           onClick={() => addMorePeriods(6)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-blue-500 via-blue-400 to-blue-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-white/80 via-white/55 to-white/80 text-black/80 font-medium rounded-lg shadow-[0_0_28px_rgba(255,255,255,0.15)] hover:shadow-[0_0_34px_rgba(255,255,255,0.22)] transition-all"
           title="Add 6 more billing periods"
         >
           <Plus size={16} />
@@ -315,6 +352,8 @@ export default function BillingPeriodsView({
         {billingPeriods.map((period) => {
           const statusConfig = getStatusConfig(period.status);
           const StatusIcon = statusConfig.icon;
+          const pendingCharges = period.charges.filter((charge) => charge.status === 'pending');
+          const hasPendingCharges = pendingCharges.length > 0;
 
           return (
             <div key={period.period} className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all">
@@ -357,7 +396,7 @@ export default function BillingPeriodsView({
                             <Receipt size={16} className="text-white/60" />
                             <div>
                               <span className="text-white text-sm font-medium">
-                                {getChargeTypeLabel(charge.charge_type)}
+                                {getChargeTypeLabel(charge)}
                               </span>
                               {charge.comment && (
                                 <p className="text-white/50 text-xs mt-1">{charge.comment}</p>
@@ -377,7 +416,6 @@ export default function BillingPeriodsView({
                                   : 'text-white'
                             }`}>
                               {(charge.charge_type === 'refund' || charge.total_amount < 0) && '🔄 '}
-                              {charge.comment?.startsWith('PAYMENT') && '💳 '}
                               {formatCurrency(charge.total_amount)}
                             </div>
                             <div className={`text-xs px-2 py-1 rounded-full ${
@@ -408,9 +446,9 @@ export default function BillingPeriodsView({
                       Add Charge
                     </button>
 
-                    {period.charges.length > 0 && !period.has_invoice && (
+                    {hasPendingCharges && (
                       <button
-                        onClick={() => onGenerateInvoice(period.period, period.charges)}
+                        onClick={() => onGenerateInvoice(period.period, pendingCharges)}
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black font-medium rounded-lg hover:shadow-lg transition-all text-sm"
                       >
                         <FileText size={14} />

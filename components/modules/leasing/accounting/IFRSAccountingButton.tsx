@@ -57,7 +57,6 @@ export default function AccountingButton({
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
-      style: 'currency',
       style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0

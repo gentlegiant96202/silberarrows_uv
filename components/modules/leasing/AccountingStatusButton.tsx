@@ -90,7 +90,6 @@ export default function AccountingStatusButton({
       title={getTooltipText()}
     >
       <div className="flex items-center gap-1.5">
-        <Receipt size={12} />
         <span className="truncate">
           {accountingStatus.loading ? 'Loading...' : accountingStatus.status}
         </span>

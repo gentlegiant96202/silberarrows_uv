@@ -820,7 +820,7 @@ export default function LeasingKanbanBoard() {
                         <th className="text-left py-2 px-2 text-white/70 font-medium">Phone</th>
                         <th className="text-left py-2 px-2 text-white/70 font-medium">Monthly Payment</th>
                         <th className="text-left py-2 px-2 text-white/70 font-medium">Lease Start</th>
-                        <th className="text-left py-2 px-1 text-white/70 font-medium w-20">Status</th>
+                        <th className="text-left py-2 px-1 text-white/70 font-medium w-24">Status</th>
                         <th className="text-left py-2 px-2 text-white/70 font-medium">Actions</th>
                       </tr>
                     </thead>
@@ -849,7 +849,7 @@ export default function LeasingKanbanBoard() {
                           <td className="py-2 px-2 text-white/70">
                             {lease.lease_start_date ? formatDate(lease.lease_start_date) : '-'}
                           </td>
-                          <td className="py-2 px-1 w-20">
+                          <td className="py-2 px-1 w-24">
                             <AccountingStatusButton
                               leaseId={lease.id}
                               leaseStartDate={lease.lease_start_date || lease.created_at}

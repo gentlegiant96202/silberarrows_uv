@@ -32,6 +32,8 @@ export default function AccountingStatusButton({
     switch (color) {
       case 'red':
         return 'bg-gradient-to-br from-red-500 to-red-600';
+      case 'orange':
+        return 'bg-gradient-to-br from-orange-500 to-orange-600';
       case 'yellow':
         return 'bg-gradient-to-br from-yellow-500 to-yellow-600';
       case 'blue':
@@ -46,13 +48,15 @@ export default function AccountingStatusButton({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-xs py-1.5 flex items-center gap-2 px-3 py-2 ${getStatusColor(accountingStatus.color)} text-white font-medium rounded-lg hover:shadow-lg transition-all`}
+      className={`w-full text-xs py-1 flex items-center gap-1.5 px-2 ${getStatusColor(accountingStatus.color)} text-white font-medium rounded-md hover:shadow-md transition-all opacity-90 hover:opacity-100`}
       title={accountingStatus.description}
     >
-      <Receipt size={14} />
-      {accountingStatus.loading ? 'Loading...' : accountingStatus.status}
+      <Receipt size={12} />
+      <span className="truncate">
+        {accountingStatus.loading ? 'Loading...' : accountingStatus.status}
+      </span>
       {accountingStatus.loading && (
-        <div className="animate-spin rounded-full h-3 w-3 border-b border-white ml-1"></div>
+        <div className="animate-spin rounded-full h-2.5 w-2.5 border-b border-white ml-1"></div>
       )}
     </button>
   );

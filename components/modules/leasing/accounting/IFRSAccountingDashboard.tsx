@@ -109,6 +109,19 @@ export function getAccountingStatus(
     return today > dueDate;
   });
   
+  // Check for missed invoices (past billing periods with charges but no invoice)
+  const pastPeriodsWithCharges = records.filter(record => {
+    const recordDate = new Date(record.billing_period);
+    const periodEnd = new Date(recordDate);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    periodEnd.setDate(periodEnd.getDate() - 1);
+    
+    return today > periodEnd && 
+           record.charge_type !== 'credit_note' && 
+           record.total_amount > 0 &&
+           !record.invoice_id; // No invoice generated
+  });
+  
   // Priority 1: Payment Overdue (highest priority)
   if (overdueInvoices.length > 0) {
     return {
@@ -118,7 +131,17 @@ export function getAccountingStatus(
     };
   }
   
-  // Priority 2: Invoice Due (current period has charges but no invoice)
+  // Priority 2: Missed Invoice (past periods with charges but no invoice)
+  if (pastPeriodsWithCharges.length > 0) {
+    const uniquePeriods = [...new Set(pastPeriodsWithCharges.map(record => record.billing_period))];
+    return {
+      status: "Missed Invoice",
+      color: "orange",
+      description: `${uniquePeriods.length} past period(s) need invoicing`
+    };
+  }
+  
+  // Priority 3: Invoice Due (current period has charges but no invoice)
   if (currentPeriodCharges.length > 0 && !currentPeriodInvoice) {
     return {
       status: "Invoice Due",
@@ -127,7 +150,7 @@ export function getAccountingStatus(
     };
   }
   
-  // Priority 3: Invoice Generated (invoice exists but not paid)
+  // Priority 4: Invoice Generated (invoice exists but not paid)
   if (currentPeriodInvoice && !currentPeriodInvoice.is_paid) {
     return {
       status: "Invoice Generated",
@@ -136,7 +159,7 @@ export function getAccountingStatus(
     };
   }
   
-  // Priority 4: Current (all invoices paid and up to date)
+  // Priority 5: Current (all invoices paid and up to date)
   const unpaidInvoices = invoices.filter(invoice => !invoice.is_paid);
   if (unpaidInvoices.length === 0) {
     return {

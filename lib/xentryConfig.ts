@@ -125,10 +125,15 @@ export async function getServerStatus(): Promise<{
 }> {
   try {
     const startTime = Date.now();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const response = await fetch(`http://${xentryConfig.server.ip}:${xentryConfig.server.port}`, {
       method: 'HEAD',
-      timeout: 5000,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
     const latency = Date.now() - startTime;
     
     return {

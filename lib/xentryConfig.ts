@@ -2,9 +2,9 @@
 export const xentryConfig = {
   // Server Configuration
   server: {
-    ip: process.env.XENTRY_UK_SERVER_IP || 'YOUR_UK_SERVER_IP',
+    ip: process.env.XENTRY_UK_SERVER_IP || '172.31.17.45',
     port: process.env.XENTRY_UK_SERVER_PORT || '3389',
-    username: process.env.XENTRY_UK_SERVER_USERNAME || 'Administrator',
+    username: process.env.XENTRY_UK_SERVER_USERNAME || 'SilberArrows',
     region: 'eu-west-2', // London, UK
     location: 'London, UK',
   },

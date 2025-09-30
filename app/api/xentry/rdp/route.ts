@@ -3,9 +3,8 @@ import { generateRDPContent } from '@/lib/xentryConfig';
 
 export async function GET(request: NextRequest) {
   try {
-    // Generate RDP file content using WorkSpace registration code
-    // AWS WorkSpaces often work better with registration codes than IPs
-    const rdpContent = generateRDPContent('wslhr+KRMDLX');
+    // Generate RDP file content using actual WorkSpace IP
+    const rdpContent = generateRDPContent('172.31.17.45');
 
     // Set headers for file download
     const headers = new Headers();

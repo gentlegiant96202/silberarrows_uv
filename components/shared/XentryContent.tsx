@@ -111,6 +111,19 @@ export default function XentryContent() {
               <p className="text-white/70 font-mono text-lg">172.31.17.45</p>
             </div>
           </div>
+          
+          {/* Username Information */}
+          <div className="max-w-md mx-auto mt-6">
+            <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-lg p-6 border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 rounded-lg">
+                  <Server className="h-5 w-5 text-black" />
+                </div>
+                <span className="text-white font-semibold text-lg">Username</span>
+              </div>
+              <p className="text-white/70 font-mono text-lg">SilberArrows</p>
+            </div>
+          </div>
         </div>
 
         {/* Action Button */}

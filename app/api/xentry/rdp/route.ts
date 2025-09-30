@@ -3,8 +3,8 @@ import { generateRDPContent } from '@/lib/xentryConfig';
 
 export async function GET(request: NextRequest) {
   try {
-    // Generate RDP file content using actual WorkSpace IP
-    const rdpContent = generateRDPContent('172.31.17.45');
+    // Generate RDP file content using WorkSpace computer name
+    const rdpContent = generateRDPContent('WSAMZN-V5KJUB7F.corp.silberarrows.local');
 
     // Set headers for file download
     const headers = new Headers();

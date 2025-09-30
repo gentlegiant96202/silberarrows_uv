@@ -41,3 +41,4 @@ SELECT 'Testing function call...' as test_status;
 
 -- Try to call the function
 SELECT * FROM get_user_module_permissions('00000000-0000-0000-0000-000000000000'::UUID, 'marketing');
+

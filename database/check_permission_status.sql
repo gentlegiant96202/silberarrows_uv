@@ -71,3 +71,4 @@ BEGIN
 END $$;
 
 SELECT 'Diagnostic complete - check the output above' as status;
+

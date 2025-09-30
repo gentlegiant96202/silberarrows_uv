@@ -151,10 +151,18 @@ export default function XentryContent() {
           
           <button
             onClick={() => window.open('https://clients.amazonworkspaces.com/', '_blank')}
-            className="flex items-center space-x-3 px-8 py-4 bg-gradient-to-br from-blue-500 via-blue-400 to-blue-600 hover:from-blue-400 hover:via-blue-300 hover:to-blue-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="flex items-center space-x-3 px-6 py-4 bg-gradient-to-br from-blue-500 via-blue-400 to-blue-600 hover:from-blue-400 hover:via-blue-300 hover:to-blue-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             <Globe className="h-5 w-5" />
-            <span>Open AWS WorkSpaces Client</span>
+            <span>Download Client</span>
+          </button>
+          
+          <button
+            onClick={() => window.open('https://eu-central-1.webclient.amazonworkspaces.com/registration', '_blank')}
+            className="flex items-center space-x-3 px-6 py-4 bg-gradient-to-br from-green-500 via-green-400 to-green-600 hover:from-green-400 hover:via-green-300 hover:to-green-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            <Globe className="h-5 w-5" />
+            <span>Browser Client</span>
           </button>
         </div>
 
@@ -171,7 +179,7 @@ export default function XentryContent() {
                     <div className="space-y-4">
                       <div className="flex items-start space-x-4">
                         <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">1</span>
-                        <p className="text-white/70"><strong>Recommended:</strong> Click "Open AWS WorkSpaces Client" for best experience</p>
+                        <p className="text-white/70"><strong>Recommended:</strong> Click "Browser Client" for instant access (no download needed)</p>
                       </div>
                       <div className="flex items-start space-x-4">
                         <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">2</span>

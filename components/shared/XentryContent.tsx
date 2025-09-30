@@ -112,22 +112,34 @@ export default function XentryContent() {
             </div>
           </div>
           
-          {/* Username Information */}
-          <div className="max-w-md mx-auto mt-6">
-            <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-lg p-6 border border-white/10 backdrop-blur-sm">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="p-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 rounded-lg">
-                  <Server className="h-5 w-5 text-black" />
+          {/* Connection Information */}
+          <div className="max-w-2xl mx-auto mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-lg p-6 border border-white/10 backdrop-blur-sm">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 rounded-lg">
+                    <Server className="h-5 w-5 text-black" />
+                  </div>
+                  <span className="text-white font-semibold text-lg">Username</span>
                 </div>
-                <span className="text-white font-semibold text-lg">Username</span>
+                <p className="text-white/70 font-mono text-lg">SilberArrows</p>
               </div>
-              <p className="text-white/70 font-mono text-lg">SilberArrows</p>
+              
+              <div className="bg-gradient-to-br from-white/5 to-white/10 rounded-lg p-6 border border-white/10 backdrop-blur-sm">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 rounded-lg">
+                    <Globe className="h-5 w-5 text-black" />
+                  </div>
+                  <span className="text-white font-semibold text-lg">Registration Code</span>
+                </div>
+                <p className="text-white/70 font-mono text-lg">wslhr+KRMDLX</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="flex justify-center mb-8">
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
           <button
             onClick={handleDownloadRDP}
             disabled={isConnecting}
@@ -135,6 +147,14 @@ export default function XentryContent() {
           >
             <Download className="h-5 w-5" />
             <span>{isConnecting ? 'Preparing...' : 'Download RDP File'}</span>
+          </button>
+          
+          <button
+            onClick={() => window.open('https://clients.amazonworkspaces.com/', '_blank')}
+            className="flex items-center space-x-3 px-8 py-4 bg-gradient-to-br from-blue-500 via-blue-400 to-blue-600 hover:from-blue-400 hover:via-blue-300 hover:to-blue-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            <Globe className="h-5 w-5" />
+            <span>Open AWS WorkSpaces Client</span>
           </button>
         </div>
 
@@ -148,26 +168,26 @@ export default function XentryContent() {
               <span>Setup Instructions</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-start space-x-4">
-                  <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">1</span>
-                  <p className="text-white/70">Click "Download RDP File" to get the connection file</p>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">2</span>
-                  <p className="text-white/70">Double-click the downloaded .rdp file to connect</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-4">
-                  <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">3</span>
-                  <p className="text-white/70">Enter your credentials when prompted</p>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">4</span>
-                  <p className="text-white/70">Access XENTRY software on the UK desktop</p>
-                </div>
-              </div>
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-4">
+                        <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">1</span>
+                        <p className="text-white/70"><strong>Recommended:</strong> Click "Open AWS WorkSpaces Client" for best experience</p>
+                      </div>
+                      <div className="flex items-start space-x-4">
+                        <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">2</span>
+                        <p className="text-white/70">Use registration code: <code className="bg-black/20 px-2 py-1 rounded">wslhr+KRMDLX</code></p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-4">
+                        <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">3</span>
+                        <p className="text-white/70">Username: <code className="bg-black/20 px-2 py-1 rounded">SilberArrows</code></p>
+                      </div>
+                      <div className="flex items-start space-x-4">
+                        <span className="bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">4</span>
+                        <p className="text-white/70">Alternative: Download RDP file if RDP is enabled on WorkSpace</p>
+                      </div>
+                    </div>
             </div>
           </div>
         </div>

@@ -60,10 +60,10 @@ export const xentryConfig = {
 };
 
 // Helper function to generate RDP content
-export function generateRDPContent(serverIP?: string): string {
-  const ip = serverIP || xentryConfig.server.ip;
+export function generateRDPContent(serverAddress?: string): string {
+  const address = serverAddress || xentryConfig.server.ip;
   
-  return `full address:s:${ip}
+  return `full address:s:${address}
 username:s:${xentryConfig.server.username}
 authentication level:i:${xentryConfig.rdp.authenticationLevel}
 redirectclipboard:i:${xentryConfig.rdp.redirectClipboard ? 1 : 0}

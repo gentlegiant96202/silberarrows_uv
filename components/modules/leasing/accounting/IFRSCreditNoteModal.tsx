@@ -54,9 +54,8 @@ export default function IFRSCreditNoteModal({ isOpen, onClose, invoice, onCredit
     if (!invoice?.charges) return [] as InvoiceCharge[];
     return invoice.charges.filter((charge) => {
       if (!charge.invoice_id) return false;
-      if (charge.charge_type === "vat") return false;
       if (charge.charge_type === "credit_note") return false;
-      if (charge.comment?.startsWith("PAYMENT")) return false;
+      if (charge.comment?.startsWith("PAYMENT RECEIVED") || charge.comment?.startsWith("PAYMENT ALLOCATED")) return false;
       return charge.status === "invoiced" || charge.status === "paid";
     });
   }, [invoice]);

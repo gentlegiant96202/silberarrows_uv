@@ -649,6 +649,20 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
     setStatusMsg('Generating PDF...');
 
     try {
+      const vehicleData = savedVehicle || existingVehicle;
+      console.log('🚗 Generating PDF for vehicle:', {
+        vehicleId,
+        vehicleData: {
+          id: vehicleData?.id,
+          make: vehicleData?.make,
+          vehicle_model: vehicleData?.vehicle_model,
+          model_year: vehicleData?.model_year,
+          colour: vehicleData?.colour,
+          stock_number: vehicleData?.stock_number,
+          photos: vehicleData?.photos?.length || 0
+        }
+      });
+
       const response = await fetch('/api/generate-vehicle-pdf', {
         method: 'POST',
         headers: {
@@ -656,52 +670,88 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         },
         body: JSON.stringify({
           vehicleId: vehicleId,
-          vehicleData: savedVehicle || existingVehicle
+          vehicleData: vehicleData
         }),
       });
 
+      console.log('📄 PDF API Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to generate PDF');
+        const errorData = await response.json();
+        console.error('❌ PDF API Error:', errorData);
+        throw new Error(`Failed to generate PDF: ${errorData.error || 'Unknown error'}`);
       }
 
-      const { pdfUrl: generatedPdfUrl } = await response.json();
-      setPdfUrl(generatedPdfUrl);
+      const result = await response.json();
+      console.log('✅ PDF generated successfully:', result);
+      
+      // Update local state immediately
+      setPdfUrl(result.pdfUrl);
       setStatusMsg('PDF generated successfully!');
       
       // Clear status message after 3 seconds
       setTimeout(() => setStatusMsg(''), 3000);
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      setStatusMsg('Error generating PDF. Please try again.');
+      console.error('❌ Error generating PDF:', error);
+      setStatusMsg(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGenerating(false);
     }
   };
 
   const handleDeleteVehiclePDF = async () => {
-    if (!pdfUrl) return;
+    const vehicleId = savedVehicle?.id || existingVehicle?.id;
+    if (!pdfUrl || !vehicleId) return;
 
     try {
-      // Delete from storage
-      const path = pdfUrl.split('/').slice(-2).join('/');
-      const { error } = await supabase.storage
-        .from('leasing')
-        .remove([path]);
-
-      if (error) {
-        console.error('Error deleting PDF from storage:', error);
-        alert('Error deleting PDF from storage');
-        return;
-      }
-
-      setPdfUrl(null);
-      setStatusMsg('PDF deleted successfully');
+      setStatusMsg('Deleting PDF...');
       
-      // Clear status message after 3 seconds
-      setTimeout(() => setStatusMsg(''), 3000);
+      // Extract path from URL
+      const url = new URL(pdfUrl);
+      const pathParts = url.pathname.split('/');
+      const bucketIndex = pathParts.findIndex(part => part === 'leasing');
+      
+      if (bucketIndex !== -1 && pathParts[bucketIndex + 1]) {
+        const filePath = pathParts.slice(bucketIndex + 1).join('/');
+        console.log('🗑️ Deleting PDF from storage:', filePath);
+        
+        // Delete from storage
+        const { error: deleteError } = await supabase.storage
+          .from('leasing')
+          .remove([filePath]);
+        
+        if (deleteError) {
+          console.error('❌ Failed to delete PDF from storage:', deleteError);
+          setStatusMsg('Failed to delete PDF from storage');
+          return;
+        }
+        
+        // Update database
+        const { error: updateError } = await supabase
+          .from('leasing_inventory')
+          .update({ 
+            vehicle_pdf_url: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', vehicleId);
+        
+        if (updateError) {
+          console.error('❌ Failed to update database:', updateError);
+          setStatusMsg('PDF deleted but database not updated');
+        } else {
+          console.log('✅ PDF deleted successfully');
+          setStatusMsg('PDF deleted successfully');
+        }
+        
+        // Update local state
+        setPdfUrl(null);
+        
+        // Clear status message after 3 seconds
+        setTimeout(() => setStatusMsg(''), 3000);
+      }
     } catch (error) {
-      console.error('Error deleting PDF:', error);
-      alert('Error deleting PDF');
+      console.error('❌ Error deleting PDF:', error);
+      setStatusMsg(`Error deleting PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -714,7 +764,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
       console.log('📸 Fetching media for vehicle ID:', existingVehicle.id);
       const { data, error } = await supabase
         .from('leasing_inventory')
-        .select('photos, social_media_images, catalog_images')
+        .select('photos, social_media_images, catalog_images, vehicle_pdf_url')
         .eq('id', existingVehicle.id)
         .single();
       
@@ -741,6 +791,12 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
         }));
         
         setMedia(fixedData);
+        
+        // Load existing PDF URL
+        if (data?.vehicle_pdf_url) {
+          setPdfUrl(data.vehicle_pdf_url);
+          console.log('📄 Loaded existing vehicle PDF URL:', data.vehicle_pdf_url);
+        }
       }
     } catch (error) {
       console.error('Failed to refetch media:', error);

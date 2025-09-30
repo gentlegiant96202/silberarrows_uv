@@ -96,6 +96,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     url: string;
     generatedAt: string;
   } | null>(null);
+  const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
 
   // Tab configuration with error checking
   const getTabErrors = (tabId: string) => {
@@ -189,6 +190,17 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       // Load selected vehicle if ID exists
       if (existingCustomer.selected_vehicle_id) {
         fetchSelectedVehicle(existingCustomer.selected_vehicle_id);
+      }
+
+      // Load existing PDF URL if available
+      if (existingCustomer.lease_agreement_pdf_url) {
+        setExistingPdfUrl(existingCustomer.lease_agreement_pdf_url);
+        // Set generated contract state to show the existing document
+        setGeneratedContract({
+          filename: `lease-agreement-${existingCustomer.customer_name?.replace(/\s+/g, '-') || 'customer'}.pdf`,
+          url: existingCustomer.lease_agreement_pdf_url,
+          generatedAt: 'Previously generated'
+        });
       }
     }
   }, [existingCustomer]);
@@ -343,41 +355,42 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     try {
       console.log('📄 Generating lease agreement PDF...');
       
-      // Prepare contract data for PDF generation
-      const contractData = {
-        // Customer Information
-        customer_name: personalInfo.customer_name,
-        customer_email: personalInfo.customer_email,
-        customer_phone: personalInfo.customer_phone,
-        emirates_id_number: personalInfo.emirates_id_number,
-        
-        // Address Information
-        address_line_1: addressInfo.address_line_1,
-        address_line_2: addressInfo.address_line_2,
-        city: addressInfo.city,
-        emirate: addressInfo.emirate,
-        
-        // Vehicle Information
-        vehicle_make: selectedVehicle?.make || 'Mercedes-Benz',
-        vehicle_model: selectedVehicle?.vehicle_model || selectedVehicle?.model || 'Vehicle',
-        vehicle_model_year: selectedVehicle?.model_year,
-        vehicle_stock_number: selectedVehicle?.stock_number,
-        vehicle_exterior_colour: selectedVehicle?.colour,
-        vehicle_interior_colour: selectedVehicle?.interior_colour,
-        
-        // Contract Terms
-        monthly_payment: contractInfo.monthly_payment ? parseFloat(contractInfo.monthly_payment) : 0,
-        security_deposit: contractInfo.security_deposit ? parseFloat(contractInfo.security_deposit) : 0,
-        lease_term_months: contractInfo.lease_term_months ? parseInt(contractInfo.lease_term_months) : 0,
-        lease_start_date: contractInfo.lease_start_date,
-        lease_end_date: contractInfo.lease_end_date,
-        lease_to_own_option: contractInfo.lease_to_own_option,
-        buyout_price: contractInfo.buyout_price ? parseFloat(contractInfo.buyout_price) : 0,
-        excess_mileage_charges: contractInfo.excess_mileage_charges ? parseFloat(contractInfo.excess_mileage_charges) : 0,
-        
-        // Additional Information
-        notes: notes
-      };
+             // Prepare contract data for PDF generation
+             const contractData = {
+               // Customer Information
+               customer_id: existingCustomer?.id, // Add customer ID for database storage
+               customer_name: personalInfo.customer_name,
+               customer_email: personalInfo.customer_email,
+               customer_phone: personalInfo.customer_phone,
+               emirates_id_number: personalInfo.emirates_id_number,
+
+               // Address Information
+               address_line_1: addressInfo.address_line_1,
+               address_line_2: addressInfo.address_line_2,
+               city: addressInfo.city,
+               emirate: addressInfo.emirate,
+
+               // Vehicle Information
+               vehicle_make: selectedVehicle?.make || 'Mercedes-Benz',
+               vehicle_model: selectedVehicle?.vehicle_model || 'Vehicle',
+               vehicle_model_year: selectedVehicle?.model_year,
+               vehicle_stock_number: selectedVehicle?.stock_number,
+               vehicle_exterior_colour: selectedVehicle?.colour,
+               vehicle_interior_colour: selectedVehicle?.interior_colour,
+
+               // Contract Terms
+               monthly_payment: contractInfo.monthly_payment ? parseFloat(contractInfo.monthly_payment) : 0,
+               security_deposit: contractInfo.security_deposit ? parseFloat(contractInfo.security_deposit) : 0,
+               lease_term_months: contractInfo.lease_term_months ? parseInt(contractInfo.lease_term_months) : 0,
+               lease_start_date: contractInfo.lease_start_date,
+               lease_end_date: contractInfo.lease_end_date,
+               lease_to_own_option: contractInfo.lease_to_own_option,
+               buyout_price: contractInfo.buyout_price ? parseFloat(contractInfo.buyout_price) : 0,
+               excess_mileage_charges: contractInfo.excess_mileage_charges ? parseFloat(contractInfo.excess_mileage_charges) : 0,
+
+               // Additional Information
+               notes: notes
+             };
       
       console.log('📋 Contract data prepared:', contractData);
       
@@ -425,9 +438,9 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       link.click();
       document.body.removeChild(link);
       
-    } catch (error) {
-      console.error('Error generating agreement:', error);
-      setAgreementStatusMsg(`Failed to generate agreement: ${error.message || 'Please try again.'}`);
+           } catch (error: any) {
+             console.error('Error generating agreement:', error);
+             setAgreementStatusMsg(`Failed to generate agreement: ${error.message || 'Please try again.'}`);
     } finally {
       setGeneratingAgreement(false);
     }
@@ -1385,16 +1398,16 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                   </h3>
                 </div>
 
-                {!generatedContract ? (
-                  <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 shadow-lg">
-                    <div className="mb-6">
-                      <h4 className="text-xl font-bold text-white mb-2">Lease Agreement</h4>
-                      <p className="text-neutral-300 text-sm">
-                        Generate a comprehensive lease agreement document for this customer.
-                      </p>
-                    </div>
+                {/* Contract Summary - Always Visible */}
+                <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 shadow-lg mb-6">
+                  <div className="mb-6">
+                    <h4 className="text-xl font-bold text-white mb-2">Contract Summary</h4>
+                    <p className="text-neutral-300 text-sm">
+                      Review the contract details before generating the agreement.
+                    </p>
+                  </div>
 
-                    {/* Contract Summary */}
+                  {/* Contract Summary Content */}
                     <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-6 border border-neutral-400/20 backdrop-blur-sm mb-6">
                       <h5 className="text-white font-semibold mb-4 flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
@@ -1515,8 +1528,19 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                         )}
                       </div>
                     </div>
+                </div>
 
-                    {/* Generate Button */}
+                {/* Generate Agreement Section */}
+                <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 shadow-lg">
+                  <div className="mb-6">
+                    <h4 className="text-xl font-bold text-white mb-2">Lease Agreement</h4>
+                    <p className="text-neutral-300 text-sm">
+                      {generatedContract ? 'Manage the generated lease agreement document.' : 'Generate a comprehensive lease agreement document for this customer.'}
+                    </p>
+                  </div>
+
+                  {!generatedContract ? (
+                    /* Generate Button */
                     <div className="flex justify-center">
                       <button
                         onClick={handleGenerateLeaseAgreement}
@@ -1538,72 +1562,68 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                         )}
                       </button>
                     </div>
-
-                    {agreementStatusMsg && (
-                      <div className="mt-4 p-3 bg-green-500/10 border border-green-400/30 rounded-lg">
-                        <p className="text-green-400 text-sm text-center">{agreementStatusMsg}</p>
+                  ) : (
+                    /* Generated Document Section - Styled like invoice document */
+                    <div className="bg-gradient-to-br from-amber-900/20 to-amber-800/10 backdrop-blur-sm rounded-lg p-4 border border-amber-500/30">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                        <h3 className="text-amber-400 font-semibold text-sm">Lease Agreement Document Created</h3>
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 shadow-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-xl font-bold text-white flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                        Generated Agreement
-                      </h4>
-                      <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-400/30">
-                        Ready
-                      </span>
-                    </div>
+                      <p className="text-amber-300/80 text-xs mb-4">
+                        You can regenerate the document or send for signing.
+                      </p>
 
-                    <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm mb-6">
-                      <div className="flex items-center gap-3 mb-3">
-                        <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <div>
-                          <h5 className="text-white font-semibold">{generatedContract.filename}</h5>
-                          <p className="text-neutral-400 text-sm">Generated on {generatedContract.generatedAt}</p>
-                        </div>
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => window.open(generatedContract.url, '_blank')}
+                          className="flex-1 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 text-white border border-gray-600/50 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View PDF
+                        </button>
+                        <button
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = generatedContract.url;
+                            link.download = generatedContract.filename;
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          className="flex-1 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 text-white border border-gray-600/50 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download PDF
+                        </button>
+                        <button
+                          onClick={() => {
+                            // TODO: Implement send for signing functionality
+                            alert('Send for signing functionality will be implemented soon.');
+                          }}
+                          className="flex-1 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 text-white border border-gray-600/50 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          Send for Signing
+                        </button>
                       </div>
                     </div>
+                  )}
 
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => window.open(generatedContract.url, '_blank')}
-                        className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-blue-400/30"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        View
-                      </button>
-                      <button
-                        onClick={() => setGeneratedContract(null)}
-                        className="flex-1 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-red-400/30"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
-                      </button>
-                      <button
-                        onClick={() => {
-                          // TODO: Implement send for signing functionality
-                          alert('Send for signing functionality will be implemented next');
-                        }}
-                        className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-green-400/30"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                        Send for Signing
-                      </button>
+                  {agreementStatusMsg && (
+                    <div className="mt-4 p-3 bg-green-500/10 border border-green-400/30 rounded-lg">
+                      <p className="text-green-400 text-sm text-center">{agreementStatusMsg}</p>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
 

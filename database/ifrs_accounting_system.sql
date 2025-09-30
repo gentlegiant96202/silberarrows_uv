@@ -682,7 +682,7 @@
                 v_charge.billing_period,
                 'credit_note',
                 v_charge.quantity,
-                v_charge.unit_price,
+                -v_charge.unit_price,  -- Unit price should also be negative for credit notes
                 -v_credit_amount,
                 COALESCE(p_reason, 'Credit note issued') || format(' (Original charge %s)', v_charge.id::TEXT),
                 NULL,  -- Credit notes are NOT part of any invoice

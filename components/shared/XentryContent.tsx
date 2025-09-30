@@ -1,48 +1,10 @@
 "use client";
-import { useState } from 'react';
-import { Monitor, Server, Globe, Download, Settings, AlertTriangle } from 'lucide-react';
+import { Monitor, Server, Globe, Settings, AlertTriangle } from 'lucide-react';
 import { xentryConfig } from '@/lib/xentryConfig';
 
 export default function XentryContent() {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
 
 
-  const handleDownloadRDP = async () => {
-    setIsConnecting(true);
-    setConnectionStatus('connecting');
-    
-    try {
-      // Call the API route to get the RDP file
-      const response = await fetch('/api/xentry/rdp');
-      
-      if (!response.ok) {
-        throw new Error('Failed to generate RDP file');
-      }
-      
-      // Get the blob from the response
-      const blob = await response.blob();
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'XENTRY-UK-Desktop.rdp';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      setConnectionStatus('connected');
-      setTimeout(() => setConnectionStatus('idle'), 3000);
-    } catch (error) {
-      console.error('Error downloading RDP file:', error);
-      setConnectionStatus('error');
-      setTimeout(() => setConnectionStatus('idle'), 3000);
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-black">
@@ -63,30 +25,6 @@ export default function XentryContent() {
           </p>
         </div>
 
-        {/* Connection Status */}
-        <div className="max-w-md mx-auto mb-8">
-          <div className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-            connectionStatus === 'idle' ? 'bg-gradient-to-br from-white/5 to-white/10 border-white/10' :
-            connectionStatus === 'connecting' ? 'bg-gradient-to-br from-yellow-500/10 to-yellow-500/20 border-yellow-500/30' :
-            connectionStatus === 'connected' ? 'bg-gradient-to-br from-green-500/10 to-green-500/20 border-green-500/30' :
-            'bg-gradient-to-br from-red-500/10 to-red-500/20 border-red-500/30'
-          }`}>
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${
-                connectionStatus === 'idle' ? 'bg-gradient-to-br from-gray-200 to-gray-400' :
-                connectionStatus === 'connecting' ? 'bg-gradient-to-br from-yellow-400 to-yellow-300 animate-pulse' :
-                connectionStatus === 'connected' ? 'bg-gradient-to-br from-green-400 to-green-300' :
-                'bg-gradient-to-br from-red-400 to-red-300'
-              }`} />
-              <span className="text-white font-medium">
-                {connectionStatus === 'idle' ? 'Ready to connect' :
-                 connectionStatus === 'connecting' ? 'Preparing connection...' :
-                 connectionStatus === 'connected' ? 'RDP file downloaded successfully!' :
-                 'Connection failed'}
-              </span>
-            </div>
-          </div>
-        </div>
 
         {/* Server Information */}
         <div className="max-w-4xl mx-auto mb-8">
@@ -138,31 +76,14 @@ export default function XentryContent() {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          <button
-            onClick={handleDownloadRDP}
-            disabled={isConnecting}
-            className="flex items-center space-x-3 px-8 py-4 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 hover:from-gray-100 hover:via-gray-200 hover:to-gray-300 disabled:from-gray-600 disabled:to-gray-700 text-black font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download className="h-5 w-5" />
-            <span>{isConnecting ? 'Preparing...' : 'Download RDP File'}</span>
-          </button>
-          
-          <button
-            onClick={() => window.open('https://clients.amazonworkspaces.com/', '_blank')}
-            className="flex items-center space-x-3 px-6 py-4 bg-gradient-to-br from-blue-500 via-blue-400 to-blue-600 hover:from-blue-400 hover:via-blue-300 hover:to-blue-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
-          >
-            <Globe className="h-5 w-5" />
-            <span>Download Client</span>
-          </button>
-          
+        {/* Action Button */}
+        <div className="flex justify-center mb-8">
           <button
             onClick={() => window.open('https://eu-central-1.webclient.amazonworkspaces.com/registration', '_blank')}
-            className="flex items-center space-x-3 px-6 py-4 bg-gradient-to-br from-green-500 via-green-400 to-green-600 hover:from-green-400 hover:via-green-300 hover:to-green-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="flex items-center space-x-3 px-8 py-4 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 hover:from-gray-100 hover:via-gray-200 hover:to-gray-300 text-black font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             <Globe className="h-5 w-5" />
-            <span>Browser Client</span>
+            <span>Open Browser Client</span>
           </button>
         </div>
 

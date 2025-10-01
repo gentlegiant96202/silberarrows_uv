@@ -53,6 +53,7 @@ export default function AddConsignmentModal({ onClose, onAdd }: Props) {
         asking_price: askingPrice ? parseInt(askingPrice.replace(/[^0-9]/g, ''), 10) : 0,
         listing_url: listingUrl.trim() || '',
         notes: notes.trim() || '',
+        archived: false,
       };
 
       onAdd(consignmentData);

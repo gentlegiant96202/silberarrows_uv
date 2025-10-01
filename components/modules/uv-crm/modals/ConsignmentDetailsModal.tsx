@@ -246,7 +246,7 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
       // Update local state
       const updatedConsignment = {
         ...currentConsignment,
-        pdf_quotation_url: null
+        pdf_quotation_url: undefined
       };
       setCurrentConsignment(updatedConsignment);
       

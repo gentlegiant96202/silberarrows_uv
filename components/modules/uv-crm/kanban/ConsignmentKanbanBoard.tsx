@@ -40,6 +40,29 @@ export default function ConsignmentKanbanBoard() {
   const [selectedConsignment, setSelectedConsignment] = useState<Consignment | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // Test function to check if real-time is working
+  const testRealtime = async () => {
+    console.log("🧪 Testing real-time by creating a test consignment...");
+    const { data, error } = await supabase
+      .from("consignments")
+      .insert([{
+        vehicle_model: "Test Real-time " + new Date().toISOString(),
+        asking_price: 100000,
+        phone_number: "1234567890",
+        listing_url: "https://test-realtime.com",
+        notes: "Real-time test",
+        status: "new_lead"
+      }])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating test consignment:", error);
+    } else {
+      console.log("Test consignment created:", data);
+    }
+  };
+
 
   // Load consignments from Supabase and set up real-time subscription
   useEffect(() => {
@@ -89,12 +112,19 @@ export default function ConsignmentKanbanBoard() {
         }
       );
 
-    channel.subscribe((status) => {
+    channel.subscribe((status, err) => {
       console.log("Real-time subscription status:", status);
+      if (err) {
+        console.error("Real-time subscription error:", err);
+      }
       if (status === 'SUBSCRIBED') {
         console.log("✅ Real-time subscription active for consignments");
       } else if (status === 'CHANNEL_ERROR') {
         console.error("❌ Real-time subscription error");
+      } else if (status === 'TIMED_OUT') {
+        console.error("❌ Real-time subscription timed out");
+      } else if (status === 'CLOSED') {
+        console.error("❌ Real-time subscription closed");
       }
     });
 
@@ -260,14 +290,23 @@ export default function ConsignmentKanbanBoard() {
                   {col.icon}
                   <h3 className="text-xs font-medium text-white whitespace-nowrap">{col.title}</h3>
                   {col.key === 'new_lead' ? (
-                    <button
-                      onClick={() => setShowAddModal(true)}
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
-                      title="Add new consignment"
-                    >
-                      {grouped[col.key as ColKey].length}
-                      <span className="ml-1 text-[12px] leading-none">＋</span>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setShowAddModal(true)}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
+                        title="Add new consignment"
+                      >
+                        {grouped[col.key as ColKey].length}
+                        <span className="ml-1 text-[12px] leading-none">＋</span>
+                      </button>
+                      <button
+                        onClick={testRealtime}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-blue-500 text-white hover:bg-blue-600"
+                        title="Test real-time"
+                      >
+                        🧪
+                      </button>
+                    </div>
                   ) : (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
                       {grouped[col.key as ColKey].length}

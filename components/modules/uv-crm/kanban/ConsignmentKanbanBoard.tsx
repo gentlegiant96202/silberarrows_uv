@@ -276,6 +276,12 @@ export default function ConsignmentKanbanBoard() {
     setTimeout(() => {
       if (!isDragging) {
         setSelectedConsignment(consignment);
+        
+        // If consignment is in negotiation stage, also open negotiation modal
+        if (consignment.status === 'negotiation') {
+          setNegotiationConsignment(consignment);
+          setShowNegotiationModal(true);
+        }
       }
     }, 10);
   };
@@ -457,16 +463,7 @@ export default function ConsignmentKanbanBoard() {
           <div className="text-xs font-medium text-white truncate max-w-[120px]">
             {highlight(c.phone_number)}
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-            {c.status === 'negotiation' && (
-              <button
-                onClick={(e) => handleOpenNegotiation(c, e)}
-                className="text-[10px] px-1 py-0.5 rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 transition-colors"
-                title="Open negotiation details"
-              >
-                💬
-              </button>
-            )}
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
             <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -475,6 +472,11 @@ export default function ConsignmentKanbanBoard() {
                   <div className="text-xs text-white/70 flex items-center gap-1 flex-1 min-h-0">
                     <Car className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">{highlight(c.vehicle_model)}</span>
+                    {c.status === 'negotiation' && (
+                      <span className="text-[10px] text-blue-300 ml-1" title="Click to open negotiation details">
+                        💬
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-white/70 flex items-center gap-1 flex-shrink-0">
                     AED {c.asking_price?.toLocaleString() || "-"}
@@ -522,6 +524,7 @@ export default function ConsignmentKanbanBoard() {
           }}
           onUpdate={(updatedConsignment) => {
             setItems(prev => prev.map(c => c.id === updatedConsignment.id ? updatedConsignment : c));
+            setSelectedConsignment(updatedConsignment); // Update the selected consignment too
             setShowNegotiationModal(false);
             setNegotiationConsignment(null);
           }}

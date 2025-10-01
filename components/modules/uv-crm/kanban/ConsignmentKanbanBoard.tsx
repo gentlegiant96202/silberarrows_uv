@@ -88,30 +88,47 @@ export default function ConsignmentKanbanBoard() {
       .on(
         "postgres_changes",
         { 
-          event: "*", 
+          event: "INSERT", 
           schema: "public", 
-          table: "consignments",
-          filter: "*"
+          table: "consignments"
         },
         (payload: any) => {
-          console.log("🔔 Real-time consignment change received:", payload);
+          console.log("🔔 Real-time INSERT received:", payload);
           console.log("🔔 Event type:", payload.eventType);
           console.log("🔔 New data:", payload.new);
-          console.log("🔔 Old data:", payload.old);
           setItems((prev) => {
-            if (payload.eventType === "INSERT") {
-              console.log("➕ Adding new consignment:", payload.new);
-              return [payload.new as Consignment, ...prev];
-            }
-            if (payload.eventType === "UPDATE") {
-              console.log("✏️ Updating consignment:", payload.new);
-              return prev.map((c) => (c.id === payload.new.id ? (payload.new as Consignment) : c));
-            }
-            if (payload.eventType === "DELETE") {
-              console.log("🗑️ Deleting consignment:", payload.old);
-              return prev.filter((c) => c.id !== payload.old.id);
-            }
-            return prev;
+            console.log("➕ Adding new consignment to state:", payload.new);
+            return [payload.new as Consignment, ...prev];
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { 
+          event: "UPDATE", 
+          schema: "public", 
+          table: "consignments"
+        },
+        (payload: any) => {
+          console.log("🔔 Real-time UPDATE received:", payload);
+          setItems((prev) => {
+            console.log("✏️ Updating consignment in state:", payload.new);
+            return prev.map((c) => (c.id === payload.new.id ? (payload.new as Consignment) : c));
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { 
+          event: "DELETE", 
+          schema: "public", 
+          table: "consignments"
+        },
+        (payload: any) => {
+          console.log("🔔 Real-time DELETE received:", payload);
+          setItems((prev) => {
+            console.log("🗑️ Deleting consignment from state:", payload.old);
+            return prev.filter((c) => c.id !== payload.old.id);
           });
         }
       );
@@ -123,6 +140,7 @@ export default function ConsignmentKanbanBoard() {
       }
       if (status === 'SUBSCRIBED') {
         console.log("✅ Real-time subscription active for consignments");
+        console.log("🔍 Channel details:", channel);
       } else if (status === 'CHANNEL_ERROR') {
         console.error("❌ Real-time subscription error");
       } else if (status === 'TIMED_OUT') {
@@ -131,6 +149,11 @@ export default function ConsignmentKanbanBoard() {
         console.error("❌ Real-time subscription closed");
       }
     });
+
+    // Additional debugging - check if we can receive any real-time events
+    console.log("🔍 Setting up real-time listener for consignments table");
+    console.log("🔍 Channel name:", "consignments-realtime");
+    console.log("🔍 Table: consignments, Schema: public");
 
     return () => {
       console.log("Cleaning up real-time subscription");

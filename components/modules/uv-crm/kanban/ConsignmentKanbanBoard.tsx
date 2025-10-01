@@ -7,7 +7,6 @@ import { MessageSquare, CheckCircle, Wrench, XCircle, Car, Plus, Archive } from 
 import { useSearchStore } from "@/lib/searchStore";
 import ConsignmentDetailsModal from "../modals/ConsignmentDetailsModal";
 import AddConsignmentModal from "../modals/AddConsignmentModal";
-import NegotiationModal from "../modals/NegotiationModal";
 
 dayjs.extend(relativeTime);
 
@@ -30,6 +29,7 @@ interface Consignment {
   direct_purchase_price?: number;
   consignment_price?: number;
   negotiation_notes?: string;
+  pdf_quotation_url?: string;
 }
 
 const columns = [
@@ -55,8 +55,6 @@ export default function ConsignmentKanbanBoard() {
   const [selectedConsignment, setSelectedConsignment] = useState<Consignment | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const [showNegotiationModal, setShowNegotiationModal] = useState(false);
-  const [negotiationConsignment, setNegotiationConsignment] = useState<Consignment | null>(null);
 
   // Load consignments function (moved outside useEffect for scope access)
   const loadConsignments = useCallback(async () => {
@@ -276,27 +274,21 @@ export default function ConsignmentKanbanBoard() {
     setTimeout(() => {
       if (!isDragging) {
         setSelectedConsignment(consignment);
-        
-        // If consignment is in negotiation stage, also open negotiation modal
-        if (consignment.status === 'negotiation') {
-          setNegotiationConsignment(consignment);
-          setShowNegotiationModal(true);
-        }
       }
     }, 10);
   };
 
-  // Open negotiation modal
-  const handleOpenNegotiation = (consignment: Consignment, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNegotiationConsignment(consignment);
-    setShowNegotiationModal(true);
-  };
 
   // Modal handlers
   const handleConsignmentUpdated = (updatedConsignment: Consignment) => {
     setItems(prev => prev.map(c => c.id === updatedConsignment.id ? updatedConsignment : c));
     setSelectedConsignment(null);
+  };
+
+  // Update consignment data without closing modal (for PDF generation, etc.)
+  const handleConsignmentDataUpdated = (updatedConsignment: Consignment) => {
+    setItems(prev => prev.map(c => c.id === updatedConsignment.id ? updatedConsignment : c));
+    setSelectedConsignment(updatedConsignment); // Keep modal open with updated data
   };
 
   const handleConsignmentDeleted = (consignmentId: string) => {
@@ -461,22 +453,17 @@ export default function ConsignmentKanbanBoard() {
                 >
         <div className="flex items-start justify-between mb-1 flex-shrink-0">
           <div className="text-xs font-medium text-white truncate max-w-[120px]">
-            {highlight(c.phone_number)}
-          </div>
+                      {highlight(c.phone_number)}
+                    </div>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-            <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </div>
+                      <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
                   <div className="text-xs text-white/70 flex items-center gap-1 flex-1 min-h-0">
                     <Car className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">{highlight(c.vehicle_model)}</span>
-                    {c.status === 'negotiation' && (
-                      <span className="text-[10px] text-blue-300 ml-1" title="Click to open negotiation details">
-                        💬
-                      </span>
-                    )}
                   </div>
                   <div className="text-xs text-white/70 flex items-center gap-1 flex-shrink-0">
                     AED {c.asking_price?.toLocaleString() || "-"}
@@ -503,6 +490,7 @@ export default function ConsignmentKanbanBoard() {
           consignment={selectedConsignment}
           onClose={() => setSelectedConsignment(null)}
           onUpdated={handleConsignmentUpdated}
+          onDataUpdated={handleConsignmentDataUpdated}
           onDeleted={handleConsignmentDeleted}
         />
       )}
@@ -515,21 +503,6 @@ export default function ConsignmentKanbanBoard() {
         />
       )}
 
-      {showNegotiationModal && negotiationConsignment && (
-        <NegotiationModal
-          consignment={negotiationConsignment}
-          onClose={() => {
-            setShowNegotiationModal(false);
-            setNegotiationConsignment(null);
-          }}
-          onUpdate={(updatedConsignment) => {
-            setItems(prev => prev.map(c => c.id === updatedConsignment.id ? updatedConsignment : c));
-            setSelectedConsignment(updatedConsignment); // Update the selected consignment too
-            setShowNegotiationModal(false);
-            setNegotiationConsignment(null);
-          }}
-        />
-      )}
     </div>
   );
 } 

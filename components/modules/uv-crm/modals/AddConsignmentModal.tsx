@@ -20,6 +20,7 @@ interface Consignment {
   direct_purchase_price?: number;
   consignment_price?: number;
   negotiation_notes?: string;
+  pdf_quotation_url?: string;
 }
 
 interface Props {

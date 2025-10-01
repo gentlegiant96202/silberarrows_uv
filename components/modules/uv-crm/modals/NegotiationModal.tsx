@@ -75,7 +75,7 @@ const NegotiationModal = ({ consignment, onClose, onUpdate }: Props) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-4xl text-xs relative max-h-[95vh] overflow-y-auto shadow-2xl">
+      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-3xl text-xs relative max-h-[95vh] overflow-y-auto shadow-2xl">
         <button
           onClick={onClose}
           className="absolute top-2 right-2 text-xl leading-none text-white/70 hover:text-white transition-colors"

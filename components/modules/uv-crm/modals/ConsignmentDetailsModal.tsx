@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Car, Phone, MapPin, Calendar, DollarSign, ExternalLink, Edit2, Save, X } from "lucide-react";
+import { Car, Phone, MapPin, Calendar, DollarSign, ExternalLink, Edit2, Save, X, Gauge, Hash } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import NotesTimeline, { NoteItem } from '@/components/shared/NotesTimeline';
@@ -26,12 +26,14 @@ interface Consignment {
   direct_purchase_price?: number;
   consignment_price?: number;
   negotiation_notes?: string;
+  pdf_quotation_url?: string;
 }
 
 interface Props {
   consignment: Consignment;
   onClose: () => void;
   onUpdated: (updatedConsignment: Consignment) => void;
+  onDataUpdated?: (updatedConsignment: Consignment) => void;
   onDeleted: (consignmentId: string) => void;
 }
 
@@ -43,11 +45,22 @@ const statusOptions = [
   { value: 'lost', label: 'Lost' },
 ];
 
-export default function ConsignmentDetailsModal({ consignment, onClose, onUpdated, onDeleted }: Props) {
+export default function ConsignmentDetailsModal({ consignment, onClose, onUpdated, onDataUpdated, onDeleted }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  
+  // Negotiation form state
+  const [vehicleMake, setVehicleMake] = useState(consignment.vehicle_make || '');
+  const [vehicleYear, setVehicleYear] = useState(consignment.vehicle_year?.toString() || '');
+  const [mileage, setMileage] = useState(consignment.mileage?.toString() || '');
+  const [vin, setVin] = useState(consignment.vin || '');
+  const [directPurchasePrice, setDirectPurchasePrice] = useState(consignment.direct_purchase_price?.toString() || '');
+  const [consignmentPrice, setConsignmentPrice] = useState(consignment.consignment_price?.toString() || '');
+  const [negotiationNotes, setNegotiationNotes] = useState(consignment.negotiation_notes || '');
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [currentConsignment, setCurrentConsignment] = useState(consignment);
   
   // Form fields
   const [status, setStatus] = useState(consignment.status);
@@ -92,6 +105,165 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
     }
   }, [consignment.notes]);
 
+  // Sync current consignment state when prop changes
+  useEffect(() => {
+    setCurrentConsignment(consignment);
+  }, [consignment]);
+
+  const handleGeneratePDF = async () => {
+    if (!vehicleMake || !vehicleModel || !vehicleYear) {
+      alert('Vehicle make, model, and year are required for PDF generation');
+      return;
+    }
+
+    setGeneratingPDF(true);
+    try {
+      const requestData = {
+        consignmentData: {
+          vehicle_make: vehicleMake,
+          vehicle_model: vehicleModel,
+          vehicle_year: vehicleYear,
+          mileage: mileage ? parseInt(mileage.replace(/[^0-9]/g, ''), 10) : null,
+          vin: vin,
+          direct_purchase_price: directPurchasePrice ? parseInt(directPurchasePrice.replace(/[^0-9]/g, ''), 10) : null,
+          consignment_price: consignmentPrice ? parseInt(consignmentPrice.replace(/[^0-9]/g, ''), 10) : null,
+          phone_number: phoneNumber,
+          asking_price: askingPrice ? parseInt(askingPrice.replace(/[^0-9]/g, ''), 10) : null,
+        }
+      };
+      
+      console.log('Sending PDF generation request:', requestData);
+      
+      const pdfResponse = await fetch('/api/consignments/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+      
+      console.log('PDF API response status:', pdfResponse.status);
+
+      if (pdfResponse.ok) {
+        const pdfResult = await pdfResponse.json();
+        console.log('PDF generation response:', pdfResult);
+        
+        if (pdfResult.success && pdfResult.pdfUrl) {
+          console.log('PDF generated successfully with URL:', pdfResult.pdfUrl);
+          
+          // Update consignment with PDF URL in database
+          const { error: pdfError } = await supabase
+            .from('consignments')
+            .update({ 
+              pdf_quotation_url: pdfResult.pdfUrl,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', consignment.id);
+
+          if (pdfError) {
+            console.error('Error saving PDF URL to database:', pdfError);
+            alert('PDF generated but failed to save URL to database');
+          } else {
+            console.log('PDF URL saved to database successfully');
+            
+            // Update local state to show PDF buttons immediately
+            const updatedConsignment = {
+              ...currentConsignment,
+              pdf_quotation_url: pdfResult.pdfUrl
+            };
+            console.log('Updating local state with PDF URL:', updatedConsignment.pdf_quotation_url);
+            setCurrentConsignment(updatedConsignment);
+            
+            // Update parent component data without closing modal
+            if (onDataUpdated) {
+              onDataUpdated(updatedConsignment);
+            }
+            
+            alert('PDF quotation generated successfully!');
+          }
+        } else {
+          console.error('PDF generation failed:', pdfResult);
+          alert('Failed to generate PDF: ' + (pdfResult.error || 'No PDF URL returned'));
+        }
+      } else {
+        const errorText = await pdfResponse.text();
+        console.error('PDF generation API failed:', errorText);
+        alert('Failed to generate PDF: ' + errorText);
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
+  const handleDeletePDF = async () => {
+    if (!currentConsignment.pdf_quotation_url) return;
+    
+    if (!confirm('Are you sure you want to delete the PDF quotation? This action cannot be undone.')) {
+      return;
+    }
+
+    setGeneratingPDF(true);
+    try {
+      // Extract file path from URL
+      const url = new URL(currentConsignment.pdf_quotation_url);
+      const pathParts = url.pathname.split('/');
+      const bucketIndex = pathParts.findIndex(part => part === 'Consignment');
+      
+      if (bucketIndex !== -1 && pathParts[bucketIndex + 1]) {
+        const filePath = pathParts.slice(bucketIndex + 1).join('/');
+        console.log('Deleting PDF file:', filePath);
+        
+        // Delete from storage
+        const { error: deleteError } = await supabase.storage
+          .from('Consignment')
+          .remove([filePath]);
+        
+        if (deleteError) {
+          console.error('Error deleting PDF from storage:', deleteError);
+          alert('Failed to delete PDF from storage');
+          return;
+        }
+      }
+
+      // Remove PDF URL from database
+      const { error: dbError } = await supabase
+        .from('consignments')
+        .update({ 
+          pdf_quotation_url: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', consignment.id);
+
+      if (dbError) {
+        console.error('Error removing PDF URL from database:', dbError);
+        alert('PDF deleted from storage but failed to update database');
+        return;
+      }
+
+      // Update local state
+      const updatedConsignment = {
+        ...currentConsignment,
+        pdf_quotation_url: null
+      };
+      setCurrentConsignment(updatedConsignment);
+      
+      // Update parent data without closing modal
+      if (onDataUpdated) {
+        onDataUpdated(updatedConsignment);
+      }
+      
+      alert('PDF quotation deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting PDF:', error);
+      alert('Error deleting PDF. Please try again.');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!vehicleModel.trim()) {
       alert('Vehicle model is required');
@@ -107,6 +279,16 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
         asking_price: askingPrice ? parseInt(askingPrice.replace(/[^0-9]/g, ''), 10) : null,
         listing_url: listingUrl.trim() || null,
         notes: JSON.stringify(notesArray),
+        // Include negotiation fields if status is negotiation
+        ...(status === 'negotiation' && {
+          vehicle_make: vehicleMake.trim() || null,
+          vehicle_year: vehicleYear ? parseInt(vehicleYear, 10) : null,
+          mileage: mileage ? parseInt(mileage.replace(/[^0-9]/g, ''), 10) : null,
+          vin: vin.trim() || null,
+          direct_purchase_price: directPurchasePrice ? parseInt(directPurchasePrice.replace(/[^0-9]/g, ''), 10) : null,
+          consignment_price: consignmentPrice ? parseInt(consignmentPrice.replace(/[^0-9]/g, ''), 10) : null,
+          negotiation_notes: negotiationNotes.trim() || null,
+        }),
         updated_at: new Date().toISOString()
       };
 
@@ -132,6 +314,7 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
       setSaving(false);
     }
   };
+
 
   // Save notes immediately when timeline is updated
   const handleNoteAdded = async (note: NoteItem) => {
@@ -255,7 +438,7 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-4xl text-xs relative max-h-[95vh] overflow-y-auto shadow-2xl">
+      <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-3xl text-xs relative max-h-[95vh] overflow-y-auto shadow-2xl">
         <button
           onClick={handleClose}
           className="absolute top-2 right-2 text-xl leading-none text-white/70 hover:text-white transition-colors"
@@ -469,6 +652,214 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
             </div>
           </div>
         </div>
+
+        {/* Negotiation Details Section - Only show for negotiation status */}
+        {consignment.status === 'negotiation' && (
+          <div className="mt-6">
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
+              <div className="p-3 border-b border-white/10">
+                <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  Negotiation Details
+                </h3>
+              </div>
+              <div className="p-4 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Left Column - Vehicle Details */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-medium text-white mb-2 flex items-center gap-1.5">
+                      <Car className="w-3.5 h-3.5" />
+                      Vehicle Information
+                    </h4>
+
+                    {/* Vehicle Make */}
+                    <div>
+                      <label className="block text-xs text-white/70 mb-1 flex items-center gap-1.5">
+                        <Car className="w-3 h-3" />
+                        Vehicle Make
+                      </label>
+                      <input
+                        type="text"
+                        value={vehicleMake}
+                        onChange={(e) => setVehicleMake(e.target.value)}
+                        disabled={!isEditing}
+                        className="w-full px-2 py-1 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="e.g., Mercedes-Benz"
+                      />
+                    </div>
+
+                    {/* Vehicle Year */}
+                    <div>
+                      <label className="block text-xs text-white/70 mb-1 flex items-center gap-1.5">
+                        <Calendar className="w-3 h-3" />
+                        Vehicle Year
+                      </label>
+                      <input
+                        type="number"
+                        value={vehicleYear}
+                        onChange={(e) => setVehicleYear(e.target.value)}
+                        disabled={!isEditing}
+                        className="w-full px-2 py-1 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="e.g., 2020"
+                        min="1900"
+                        max="2030"
+                      />
+                    </div>
+
+                    {/* Mileage */}
+                    <div>
+                      <label className="block text-xs text-white/70 mb-1 flex items-center gap-1.5">
+                        <Gauge className="w-3 h-3" />
+                        Mileage (km)
+                      </label>
+                      <input
+                        type="text"
+                        value={mileage}
+                        onChange={(e) => setMileage(e.target.value.replace(/[^0-9]/g, ''))}
+                        disabled={!isEditing}
+                        className="w-full px-2 py-1 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="e.g., 50000"
+                      />
+                    </div>
+
+                      {/* VIN */}
+                      <div>
+                        <label className="block text-xs text-white/70 mb-1 flex items-center gap-1.5">
+                          <Hash className="w-3 h-3" />
+                          VIN Number
+                        </label>
+                        <input
+                          type="text"
+                          value={vin}
+                          onChange={(e) => setVin(e.target.value.toUpperCase())}
+                          disabled={!isEditing}
+                          className="w-full px-2 py-1 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="e.g., WDB12345678901234"
+                          maxLength={17}
+                        />
+                      </div>
+                  </div>
+
+                  {/* Right Column - Pricing & Notes */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-medium text-white mb-2 flex items-center gap-1.5">
+                      Pricing Options
+                    </h4>
+
+                    {/* Direct Purchase Price */}
+                    <div>
+                      <label className="block text-xs text-white/70 mb-1">
+                        Direct Purchase Price (AED)
+                      </label>
+                      <input
+                        type="text"
+                        value={directPurchasePrice}
+                        onChange={(e) => setDirectPurchasePrice(e.target.value.replace(/[^0-9]/g, ''))}
+                        disabled={!isEditing}
+                        className="w-full px-2 py-1 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="e.g., 120000"
+                      />
+                    </div>
+
+                    {/* Consignment Price */}
+                    <div>
+                      <label className="block text-xs text-white/70 mb-1">
+                        Consignment Price (AED)
+                      </label>
+                      <input
+                        type="text"
+                        value={consignmentPrice}
+                        onChange={(e) => setConsignmentPrice(e.target.value.replace(/[^0-9]/g, ''))}
+                        disabled={!isEditing}
+                        className="w-full px-2 py-1 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="e.g., 150000"
+                      />
+                    </div>
+
+                    {/* Negotiation Notes */}
+                    <div>
+                      <label className="block text-xs text-white/70 mb-1 flex items-center gap-1.5">
+                        <ExternalLink className="w-3 h-3" />
+                        Negotiation Notes
+                      </label>
+                      <textarea
+                        value={negotiationNotes}
+                        onChange={(e) => setNegotiationNotes(e.target.value)}
+                        disabled={!isEditing}
+                        rows={2}
+                        className="w-full px-2 py-1 text-xs rounded bg-black/20 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="Additional notes about the negotiation, conditions, etc..."
+                      ></textarea>
+                    </div>
+
+                    {/* PDF Generation/Management */}
+                    {isEditing && vehicleMake && vehicleModel && vehicleYear && (
+                      <div className="mt-4">
+                        <div className="flex gap-2">
+                          {/* Generate/Regenerate Button */}
+                          <button
+                            onClick={handleGeneratePDF}
+                            disabled={generatingPDF}
+                            className="flex-1 px-2 py-1.5 text-xs rounded bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 text-gray-200 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 border border-gray-600/30"
+                            title={currentConsignment.pdf_quotation_url ? "Regenerate PDF Quotation" : "Generate PDF Quotation"}
+                          >
+                            {generatingPDF ? (
+                              <div className="w-3 h-3 border border-gray-300 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <ExternalLink className="w-3 h-3" />
+                            )}
+                            {currentConsignment.pdf_quotation_url ? 'Regenerate' : 'Generate Quote'}
+                          </button>
+                          
+                          {/* Delete PDF Button */}
+                          {currentConsignment.pdf_quotation_url && (
+                            <button
+                              onClick={handleDeletePDF}
+                              disabled={generatingPDF}
+                              className="px-2 py-1.5 text-xs rounded bg-gradient-to-r from-gray-900 to-gray-800 hover:from-gray-800 hover:to-gray-700 text-gray-300 hover:text-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 border border-gray-700/30"
+                              title="Delete PDF Quotation"
+                            >
+                              <X className="w-3 h-3" />
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* PDF Actions - Show when PDF is available */}
+                {(currentConsignment.pdf_quotation_url || consignment.pdf_quotation_url) && (
+                  <div className="mt-4 p-2 bg-green-500/10 rounded-lg border border-green-500/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ExternalLink className="w-3 h-3 text-green-300" />
+                        <span className="text-xs text-green-200 font-medium">PDF Quotation Generated</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <a
+                          href={currentConsignment.pdf_quotation_url || consignment.pdf_quotation_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-1 text-xs rounded bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-gray-200 hover:text-white transition-all border border-gray-600/30"
+                        >
+                          View
+                        </a>
+                        <a
+                          href={currentConsignment.pdf_quotation_url || consignment.pdf_quotation_url}
+                          download={`silberarrows-quotation-${currentConsignment.vehicle_make || consignment.vehicle_make}-${currentConsignment.vehicle_model || consignment.vehicle_model}-${currentConsignment.vehicle_year || consignment.vehicle_year}.pdf`}
+                          className="px-2 py-1 text-xs rounded bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 text-gray-200 hover:text-white transition-all border border-gray-600/30"
+                        >
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

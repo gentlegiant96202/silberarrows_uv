@@ -112,6 +112,7 @@ function handleLogFillResult(result) {
   });
 }
 
+
 // Default field mappings for common car listing sites
 function getDefaultFieldMappings() {
   return {

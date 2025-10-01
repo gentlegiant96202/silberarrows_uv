@@ -101,3 +101,5 @@ SELECT * FROM get_user_module_permissions(auth.uid(), 'marketing');
 
 SELECT '✅ Original permissions restored - marketing kanban should work now!' as result;
 
+
+

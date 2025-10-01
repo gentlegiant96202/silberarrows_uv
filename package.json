@@ -9,7 +9,6 @@
     "build": "npm run prebuild:sharp && next build",
     "start": "next start",
     "lint": "next lint",
-    "scrape:dubizzle": "tsx lib/scraper/scrape.ts",
     "postinstall": "npm run install-playwright-safe",
     "install-playwright-safe": "if [ \"$VERCEL\" = \"1\" ]; then echo 'Skipping Playwright installation on Vercel'; else playwright install --with-deps; fi",
     "install-playwright": "playwright install --with-deps",

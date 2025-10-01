@@ -12,3 +12,5 @@ $$ language 'plpgsql';
 -- Test that the function works
 SELECT 'Trigger function fixed successfully!' as status;
 
+
+

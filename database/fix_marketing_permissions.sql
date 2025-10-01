@@ -58,3 +58,5 @@ SELECT * FROM get_user_module_permissions(auth.uid(), 'marketing');
 
 SELECT '✅ Marketing edit permissions granted - kanban should work now!' as result;
 
+
+

@@ -35,20 +35,7 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString()
     };
 
-    // Add extraction metadata to notes if available
-    if (extracted_from || site_domain) {
-      const metadata = [];
-      if (extracted_from) metadata.push(`Source: ${extracted_from}`);
-      if (site_domain) metadata.push(`Site: ${site_domain}`);
-      if (extracted_at) metadata.push(`Extracted: ${new Date(extracted_at).toLocaleString()}`);
-      
-      if (metadata.length > 0) {
-        const existingNotes = consignmentData.notes || '';
-        consignmentData.notes = existingNotes 
-          ? `${existingNotes}\n\n--- Extraction Metadata ---\n${metadata.join('\n')}`
-          : `--- Extraction Metadata ---\n${metadata.join('\n')}`;
-      }
-    }
+    // Note: Extraction metadata removed as requested
 
     console.log('Creating consignment from extension:', consignmentData);
 

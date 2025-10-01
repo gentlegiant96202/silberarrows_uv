@@ -99,6 +99,12 @@ async function handleCreateConsignment(consignmentData, sendResponse) {
       } catch (e) {
         errorMessage = responseText || errorMessage;
       }
+      
+      // Special handling for 405 Method Not Allowed
+      if (response.status === 405) {
+        errorMessage = 'API endpoint not available yet. Please try again in a few minutes or contact support.';
+      }
+      
       throw new Error(errorMessage);
     }
     

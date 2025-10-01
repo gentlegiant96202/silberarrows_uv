@@ -397,8 +397,7 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
                       placeholder="Asking price in AED"
                     />
                   ) : (
-                    <div className="text-xs text-white flex items-center gap-1">
-                      <DollarSign className="w-3 h-3" />
+                    <div className="text-xs text-white">
                       {formatPrice(consignment.asking_price)}
                     </div>
                   )}

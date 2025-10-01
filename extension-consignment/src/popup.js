@@ -186,7 +186,15 @@ async function handleCreateConsignment() {
     
   } catch (error) {
     console.error('Error creating consignment:', error);
-    showStatus(`❌ Error: ${error.message}`, 'error');
+    
+    // Special handling for API not available
+    if (error.message.includes('API endpoint not available')) {
+      showStatus('⏳ API is being deployed. Please try again in 2-3 minutes.', 'error');
+    } else if (error.message.includes('HTTP 405')) {
+      showStatus('⏳ API endpoint not ready yet. Please try again in a few minutes.', 'error');
+    } else {
+      showStatus(`❌ Error: ${error.message}`, 'error');
+    }
   } finally {
     createBtn.disabled = false;
   }

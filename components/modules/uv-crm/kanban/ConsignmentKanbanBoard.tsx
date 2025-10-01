@@ -43,13 +43,14 @@ export default function ConsignmentKanbanBoard() {
   // Test function to check if real-time is working
   const testRealtime = async () => {
     console.log("🧪 Testing real-time by creating a test consignment...");
+    const timestamp = Date.now();
     const { data, error } = await supabase
       .from("consignments")
       .insert([{
-        vehicle_model: "Test Real-time " + new Date().toISOString(),
+        vehicle_model: "Test Real-time " + timestamp,
         asking_price: 100000,
-        phone_number: "1234567890",
-        listing_url: "https://test-realtime.com",
+        phone_number: `1234567${timestamp.toString().slice(-3)}`, // Unique phone number
+        listing_url: `https://test-realtime-${timestamp}.com`, // Unique URL
         notes: "Real-time test",
         status: "new_lead"
       }])
@@ -94,6 +95,9 @@ export default function ConsignmentKanbanBoard() {
         },
         (payload: any) => {
           console.log("🔔 Real-time consignment change received:", payload);
+          console.log("🔔 Event type:", payload.eventType);
+          console.log("🔔 New data:", payload.new);
+          console.log("🔔 Old data:", payload.old);
           setItems((prev) => {
             if (payload.eventType === "INSERT") {
               console.log("➕ Adding new consignment:", payload.new);

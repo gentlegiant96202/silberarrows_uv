@@ -44,6 +44,10 @@ export default function ConsignmentKanbanBoard() {
   const testRealtime = async () => {
     console.log("🧪 Testing real-time by creating a test consignment...");
     const timestamp = Date.now();
+    
+    // First, let's check if we can see existing consignments
+    console.log("🔍 Current consignments count:", items.length);
+    
     const { data, error } = await supabase
       .from("consignments")
       .insert([{
@@ -61,6 +65,13 @@ export default function ConsignmentKanbanBoard() {
       console.error("Error creating test consignment:", error);
     } else {
       console.log("Test consignment created:", data);
+      console.log("🔍 Waiting for real-time event...");
+      
+      // Also try to manually refresh the list after 2 seconds
+      setTimeout(() => {
+        console.log("🔄 Manual refresh after 2 seconds...");
+        loadConsignments();
+      }, 2000);
     }
   };
 
@@ -83,52 +94,37 @@ export default function ConsignmentKanbanBoard() {
 
     loadConsignments();
 
+    // Try a different approach - use a unique channel name and listen to all events
+    const channelName = `consignments-${Date.now()}`;
+    console.log("🔍 Using unique channel name:", channelName);
+    
     const channel = supabase
-      .channel("consignments-realtime")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { 
-          event: "INSERT", 
+          event: "*", 
           schema: "public", 
           table: "consignments"
         },
         (payload: any) => {
-          console.log("🔔 Real-time INSERT received:", payload);
+          console.log("🔔 Real-time event received:", payload);
           console.log("🔔 Event type:", payload.eventType);
           console.log("🔔 New data:", payload.new);
+          console.log("🔔 Old data:", payload.old);
+          
           setItems((prev) => {
-            console.log("➕ Adding new consignment to state:", payload.new);
-            return [payload.new as Consignment, ...prev];
-          });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { 
-          event: "UPDATE", 
-          schema: "public", 
-          table: "consignments"
-        },
-        (payload: any) => {
-          console.log("🔔 Real-time UPDATE received:", payload);
-          setItems((prev) => {
-            console.log("✏️ Updating consignment in state:", payload.new);
-            return prev.map((c) => (c.id === payload.new.id ? (payload.new as Consignment) : c));
-          });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { 
-          event: "DELETE", 
-          schema: "public", 
-          table: "consignments"
-        },
-        (payload: any) => {
-          console.log("🔔 Real-time DELETE received:", payload);
-          setItems((prev) => {
-            console.log("🗑️ Deleting consignment from state:", payload.old);
-            return prev.filter((c) => c.id !== payload.old.id);
+            if (payload.eventType === "INSERT") {
+              console.log("➕ Adding new consignment to state:", payload.new);
+              return [payload.new as Consignment, ...prev];
+            } else if (payload.eventType === "UPDATE") {
+              console.log("✏️ Updating consignment in state:", payload.new);
+              return prev.map((c) => (c.id === payload.new.id ? (payload.new as Consignment) : c));
+            } else if (payload.eventType === "DELETE") {
+              console.log("🗑️ Deleting consignment from state:", payload.old);
+              return prev.filter((c) => c.id !== payload.old.id);
+            }
+            return prev;
           });
         }
       );

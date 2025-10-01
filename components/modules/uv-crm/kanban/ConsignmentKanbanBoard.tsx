@@ -148,8 +148,28 @@ export default function ConsignmentKanbanBoard() {
 
     // Additional debugging - check if we can receive any real-time events
     console.log("🔍 Setting up real-time listener for consignments table");
-    console.log("🔍 Channel name:", "consignments-realtime");
+    console.log("🔍 Channel name:", channelName);
     console.log("🔍 Table: consignments, Schema: public");
+    
+    // Test if we can receive ANY real-time events by listening to a different table
+    const testChannel = supabase
+      .channel(`test-channel-${Date.now()}`)
+      .on(
+        "postgres_changes",
+        { 
+          event: "*", 
+          schema: "public", 
+          table: "leads" // Test with leads table instead
+        },
+        (payload: any) => {
+          console.log("🧪 TEST: Real-time event from leads table:", payload);
+        }
+      );
+    
+    testChannel.subscribe((status, err) => {
+      console.log("🧪 TEST: Leads channel status:", status);
+      if (err) console.error("🧪 TEST: Leads channel error:", err);
+    });
 
     return () => {
       console.log("Cleaning up real-time subscription");

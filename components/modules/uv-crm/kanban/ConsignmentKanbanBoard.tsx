@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { MessageSquare, CheckCircle, Wrench, XCircle, Car, Plus } from "lucide-react";
+import { MessageSquare, CheckCircle, Wrench, XCircle, Car, Plus, Archive } from "lucide-react";
 import { useSearchStore } from "@/lib/searchStore";
 import ConsignmentDetailsModal from "../modals/ConsignmentDetailsModal";
 import AddConsignmentModal from "../modals/AddConsignmentModal";
@@ -29,6 +29,11 @@ const columns = [
   { key: "preinspection", title: "PRE-INSPECTION", icon: <Wrench className="w-4 h-4" /> },
   { key: "consigned", title: "CONSIGNED / PURCHASED", icon: <CheckCircle className="w-4 h-4" /> },
   { key: "lost", title: "LOST", icon: <XCircle className="w-4 h-4" /> },
+  { 
+    key: "archived", 
+    title: "ARCHIVED", 
+    icon: <Archive className="w-4 h-4" />
+  },
 ] as const;
 
 type ColKey = (typeof columns)[number]["key"];
@@ -127,7 +132,7 @@ export default function ConsignmentKanbanBoard() {
           // Attempt to reconnect after a delay
           setTimeout(() => {
             console.log("🔄 Attempting to reconnect real-time subscription...");
-            channel.subscribe();
+    channel.subscribe();
           }, 5000);
         }
       }
@@ -189,11 +194,30 @@ export default function ConsignmentKanbanBoard() {
     setItems((prev) => {
       const idx = prev.findIndex((i) => i.id === id);
       if (idx === -1) return prev;
-      const moved = { ...prev[idx], status: target } as Consignment;
+      const moved = { 
+        ...prev[idx], 
+        status: target === 'archived' ? prev[idx].status : target,
+        archived: target === 'archived'
+      } as Consignment;
       return [moved, ...prev.filter((i) => i.id !== id)];
     });
     
-    // Update database asynchronously without awaiting
+    // Special case: moving to archived - set archived flag
+    if (target === 'archived') {
+      supabase.from("consignments").update({ 
+        archived: true,
+        updated_at: new Date().toISOString()
+      }).eq("id", id).then(
+        (result) => {
+          if (result.error) {
+            console.error('Error archiving consignment:', result.error);
+          }
+        }
+      );
+      return;
+    }
+    
+    // Normal drag and drop - update database asynchronously without awaiting
     supabase.from("consignments").update({ status: target }).eq("id", id).then(
       (result) => {
         if (result.error) {
@@ -208,7 +232,10 @@ export default function ConsignmentKanbanBoard() {
     try {
       const { error } = await supabase
         .from("consignments")
-        .update({ archived: !consignment.archived })
+        .update({ 
+          archived: !consignment.archived,
+          updated_at: new Date().toISOString()
+        })
         .eq("id", consignment.id);
       
       if (error) {
@@ -317,11 +344,15 @@ export default function ConsignmentKanbanBoard() {
     preinspection: [],
     consigned: [],
     lost: [],
+    archived: [],
   };
 
   visible.forEach((i) => {
-    // Skip archived items unless showArchived is true
-    if (i.archived && !showArchived) return;
+    // If item is archived, put it in archived column
+    if (i.archived) {
+      grouped.archived.push(i);
+      return;
+    }
     
     const key = (i.status || "").trim().toLowerCase().replace(/\s+/g, "_") as ColKey;
     if (grouped[key]) grouped[key].push(i);
@@ -334,7 +365,9 @@ export default function ConsignmentKanbanBoard() {
   return (
     <div className="px-4" style={{ height: "calc(100vh - 72px)" }}>
       <div className="flex gap-3 pb-4 w-full h-full overflow-x-auto custom-scrollbar">
-        {columns.map((col) => (
+        {columns
+          .filter(col => showArchived || col.key !== 'archived')
+          .map((col) => (
           <div
             key={col.key}
             className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 flex-1 min-w-0 flex flex-col transition-shadow ${hovered === col.key ? "ring-2 ring-gray-300/60" : ""}`}
@@ -354,14 +387,14 @@ export default function ConsignmentKanbanBoard() {
                   {col.icon}
                   <h3 className="text-xs font-medium text-white whitespace-nowrap">{col.title}</h3>
                   {col.key === 'new_lead' ? (
-                    <button
+                      <button
                       onClick={() => setShowAddModal(true)}
                       className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
                       title="Add new consignment"
                     >
                       {grouped[col.key as ColKey].length}
                       <span className="ml-1 text-[12px] leading-none">＋</span>
-                    </button>
+                      </button>
                   ) : col.key === 'lost' ? (
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
@@ -369,14 +402,18 @@ export default function ConsignmentKanbanBoard() {
                       </span>
                       <button
                         onClick={() => setShowArchived(!showArchived)}
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${
-                          showArchived 
-                            ? 'bg-orange-500/20 text-orange-300 border border-orange-400/30' 
-                            : 'bg-white/10 text-white/70 hover:bg-white/20'
-                        }`}
-                        title={showArchived ? "Hide archived consignments" : "Show archived consignments"}
+                        className={`
+                          inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition-all duration-200
+                          ${showArchived 
+                            ? 'bg-gray-600 text-white shadow-lg' 
+                            : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                          }
+                          backdrop-blur-sm border border-white/20 hover:border-white/30
+                        `}
+                        title={showArchived ? 'Hide archived consignments' : 'Show archived consignments'}
                       >
-                        📁 {showArchived ? 'Hide' : 'Show'} Archive
+                        <Archive className="w-2.5 h-2.5" />
+                        {showArchived ? 'Hide' : 'Show'} Archive
                       </button>
                     </div>
                   ) : (
@@ -399,20 +436,10 @@ export default function ConsignmentKanbanBoard() {
                   className="backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 group h-24 flex flex-col"
                 >
         <div className="flex items-start justify-between mb-1 flex-shrink-0">
-          <div className="text-xs font-medium text-white truncate max-w-[120px]">
+          <div className="text-xs font-medium text-white truncate max-w-[140px]">
             {highlight(c.phone_number)}
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleArchive(c);
-              }}
-              className="text-[10px] px-1 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
-              title={c.archived ? "Unarchive" : "Archive"}
-            >
-              {c.archived ? "📂" : "📁"}
-            </button>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
             <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>

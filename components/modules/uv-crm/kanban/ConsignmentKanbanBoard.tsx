@@ -41,36 +41,65 @@ export default function ConsignmentKanbanBoard() {
   const [showAddModal, setShowAddModal] = useState(false);
 
 
-  // Load consignments from Supabase
+  // Load consignments from Supabase and set up real-time subscription
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
+    const loadConsignments = async () => {
+      const { data, error } = await supabase
         .from("consignments")
         .select("*")
         .order("created_at", { ascending: false });
-      if (data) setItems(data as unknown as Consignment[]);
+      
+      if (error) {
+        console.error("Error loading consignments:", error);
+      } else {
+        setItems(data as unknown as Consignment[]);
+        console.log("Loaded consignments:", data?.length || 0);
+      }
     };
-    
-    load();
+
+    loadConsignments();
 
     const channel = supabase
-      .channel("consignments-stream")
+      .channel("consignments-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "consignments" },
+        { 
+          event: "*", 
+          schema: "public", 
+          table: "consignments",
+          filter: "*"
+        },
         (payload: any) => {
+          console.log("🔔 Real-time consignment change received:", payload);
           setItems((prev) => {
-            if (payload.eventType === "INSERT") return [payload.new as Consignment, ...prev];
-            if (payload.eventType === "UPDATE") return prev.map((c) => (c.id === payload.new.id ? (payload.new as Consignment) : c));
-            if (payload.eventType === "DELETE") return prev.filter((c) => c.id !== payload.old.id);
+            if (payload.eventType === "INSERT") {
+              console.log("➕ Adding new consignment:", payload.new);
+              return [payload.new as Consignment, ...prev];
+            }
+            if (payload.eventType === "UPDATE") {
+              console.log("✏️ Updating consignment:", payload.new);
+              return prev.map((c) => (c.id === payload.new.id ? (payload.new as Consignment) : c));
+            }
+            if (payload.eventType === "DELETE") {
+              console.log("🗑️ Deleting consignment:", payload.old);
+              return prev.filter((c) => c.id !== payload.old.id);
+            }
             return prev;
           });
         }
       );
 
-    channel.subscribe();
+    channel.subscribe((status) => {
+      console.log("Real-time subscription status:", status);
+      if (status === 'SUBSCRIBED') {
+        console.log("✅ Real-time subscription active for consignments");
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error("❌ Real-time subscription error");
+      }
+    });
 
     return () => {
+      console.log("Cleaning up real-time subscription");
       supabase.removeChannel(channel);
     };
   }, []);

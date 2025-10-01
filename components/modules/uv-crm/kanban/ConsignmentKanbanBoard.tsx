@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -41,11 +41,11 @@ export default function ConsignmentKanbanBoard() {
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Load consignments function (moved outside useEffect for scope access)
-  const loadConsignments = async () => {
+  const loadConsignments = useCallback(async () => {
     const { data, error } = await supabase
-      .from("consignments")
-      .select("*")
-      .order("created_at", { ascending: false });
+        .from("consignments")
+        .select("*")
+        .order("created_at", { ascending: false });
     
     if (error) {
       console.error("Error loading consignments:", error);
@@ -53,7 +53,7 @@ export default function ConsignmentKanbanBoard() {
       setItems(data as unknown as Consignment[]);
       console.log("Loaded consignments:", data?.length || 0);
     }
-  };
+  }, []);
 
   // Test function to check if real-time is working
   const testRealtime = async () => {
@@ -98,7 +98,7 @@ export default function ConsignmentKanbanBoard() {
     // Try a different approach - use a unique channel name and listen to all events
     const channelName = `consignments-${Date.now()}`;
     console.log("🔍 Using unique channel name:", channelName);
-    
+
     const channel = supabase
       .channel(channelName)
       .on(

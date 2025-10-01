@@ -16,13 +16,30 @@ CREATE INDEX IF NOT EXISTS idx_consignments_vehicle_make ON consignments(vehicle
 CREATE INDEX IF NOT EXISTS idx_consignments_vehicle_year ON consignments(vehicle_year);
 CREATE INDEX IF NOT EXISTS idx_consignments_vin ON consignments(vin);
 
+-- Add constraints (drop first if they exist)
+DO $$ 
+BEGIN
+    -- Drop constraints if they exist
+    IF EXISTS (SELECT 1 FROM information_schema.table_constraints 
+               WHERE constraint_name = 'consignments_vehicle_year_check' 
+               AND table_name = 'consignments') THEN
+        ALTER TABLE consignments DROP CONSTRAINT consignments_vehicle_year_check;
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.table_constraints 
+               WHERE constraint_name = 'consignments_vin_length_check' 
+               AND table_name = 'consignments') THEN
+        ALTER TABLE consignments DROP CONSTRAINT consignments_vin_length_check;
+    END IF;
+END $$;
+
 -- Add constraints
 ALTER TABLE consignments 
-ADD CONSTRAINT IF NOT EXISTS consignments_vehicle_year_check 
+ADD CONSTRAINT consignments_vehicle_year_check 
 CHECK (vehicle_year IS NULL OR (vehicle_year >= 1900 AND vehicle_year <= 2030));
 
 ALTER TABLE consignments 
-ADD CONSTRAINT IF NOT EXISTS consignments_vin_length_check 
+ADD CONSTRAINT consignments_vin_length_check 
 CHECK (vin IS NULL OR LENGTH(vin) = 17);
 
 -- Verify the changes

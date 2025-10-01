@@ -40,6 +40,21 @@ export default function ConsignmentKanbanBoard() {
   const [selectedConsignment, setSelectedConsignment] = useState<Consignment | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // Load consignments function (moved outside useEffect for scope access)
+  const loadConsignments = async () => {
+    const { data, error } = await supabase
+      .from("consignments")
+      .select("*")
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      console.error("Error loading consignments:", error);
+    } else {
+      setItems(data as unknown as Consignment[]);
+      console.log("Loaded consignments:", data?.length || 0);
+    }
+  };
+
   // Test function to check if real-time is working
   const testRealtime = async () => {
     console.log("🧪 Testing real-time by creating a test consignment...");
@@ -78,20 +93,6 @@ export default function ConsignmentKanbanBoard() {
 
   // Load consignments from Supabase and set up real-time subscription
   useEffect(() => {
-    const loadConsignments = async () => {
-      const { data, error } = await supabase
-        .from("consignments")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (error) {
-        console.error("Error loading consignments:", error);
-      } else {
-        setItems(data as unknown as Consignment[]);
-        console.log("Loaded consignments:", data?.length || 0);
-      }
-    };
-
     loadConsignments();
 
     // Try a different approach - use a unique channel name and listen to all events

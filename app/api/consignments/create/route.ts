@@ -23,17 +23,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare consignment data
-    const consignmentData = {
-      status: status || 'new_lead',
-      phone_number: phone_number?.trim() || null,
-      vehicle_model: vehicle_model.trim(),
-      asking_price: asking_price ? parseInt(asking_price.toString().replace(/[^0-9]/g, ''), 10) : null,
-      listing_url: listing_url?.trim() || null,
-      notes: notes?.trim() || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+          // Prepare consignment data
+          const consignmentData = {
+            status: status || 'new_lead',
+            phone_number: phone_number?.trim() || null,
+            vehicle_model: vehicle_model.trim(),
+            asking_price: asking_price ? parseInt(asking_price.toString().replace(/[^0-9]/g, ''), 10) : null,
+            listing_url: listing_url?.trim() || null,
+            notes: notes?.trim() || null,
+            archived: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
 
     // Note: Extraction metadata removed as requested
 

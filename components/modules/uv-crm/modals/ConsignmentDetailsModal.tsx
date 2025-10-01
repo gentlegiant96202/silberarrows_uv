@@ -15,6 +15,7 @@ interface Consignment {
   asking_price: number;
   listing_url: string;
   notes?: string;
+  archived: boolean;
   created_at: string;
   updated_at: string;
 }

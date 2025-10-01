@@ -18,6 +18,7 @@ interface Consignment {
   asking_price: number;
   listing_url: string;
   notes?: string;
+  archived: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +40,7 @@ export default function ConsignmentKanbanBoard() {
   const [hovered, setHovered] = useState<ColKey | null>(null);
   const [selectedConsignment, setSelectedConsignment] = useState<Consignment | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Load consignments function (moved outside useEffect for scope access)
   const loadConsignments = useCallback(async () => {
@@ -55,40 +57,6 @@ export default function ConsignmentKanbanBoard() {
     }
   }, []);
 
-  // Test function to check if real-time is working
-  const testRealtime = async () => {
-    console.log("🧪 Testing real-time by creating a test consignment...");
-    const timestamp = Date.now();
-    
-    // First, let's check if we can see existing consignments
-    console.log("🔍 Current consignments count:", items.length);
-    
-    const { data, error } = await supabase
-      .from("consignments")
-      .insert([{
-        vehicle_model: "Test Real-time " + timestamp,
-        asking_price: 100000,
-        phone_number: `1234567${timestamp.toString().slice(-3)}`, // Unique phone number
-        listing_url: `https://test-realtime-${timestamp}.com`, // Unique URL
-        notes: "Real-time test",
-        status: "new_lead"
-      }])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error("Error creating test consignment:", error);
-    } else {
-      console.log("Test consignment created:", data);
-      console.log("🔍 Waiting for real-time event...");
-      
-      // Also try to manually refresh the list after 2 seconds
-      setTimeout(() => {
-        console.log("🔄 Manual refresh after 2 seconds...");
-        loadConsignments();
-      }, 2000);
-    }
-  };
 
 
   // Load consignments from Supabase and set up real-time subscription
@@ -140,10 +108,28 @@ export default function ConsignmentKanbanBoard() {
         console.log("🔍 Channel details:", channel);
       } else if (status === 'CHANNEL_ERROR') {
         console.error("❌ Real-time subscription error");
+        console.error("Error details:", err);
       } else if (status === 'TIMED_OUT') {
         console.error("❌ Real-time subscription timed out");
+        console.error("This usually means the connection was idle too long");
       } else if (status === 'CLOSED') {
-        console.error("❌ Real-time subscription closed");
+        // Only log as warning in development, not error
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("⚠️ Real-time subscription closed (normal in React Strict Mode)");
+        } else {
+          console.error("❌ Real-time subscription closed");
+          console.error("This can happen due to:");
+          console.error("- Network connectivity issues");
+          console.error("- Supabase service restart");
+          console.error("- Authentication token expiration");
+          console.error("- Browser tab becoming inactive");
+          
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            console.log("🔄 Attempting to reconnect real-time subscription...");
+            channel.subscribe();
+          }, 5000);
+        }
       }
     });
 
@@ -169,12 +155,18 @@ export default function ConsignmentKanbanBoard() {
     
     testChannel.subscribe((status, err) => {
       console.log("🧪 TEST: Leads channel status:", status);
-      if (err) console.error("🧪 TEST: Leads channel error:", err);
+      if (err) {
+        console.error("🧪 TEST: Leads channel error:", err);
+      }
+      if (status === 'CLOSED') {
+        console.log("🧪 TEST: Leads channel closed - this is normal for test channel");
+      }
     });
 
     return () => {
       console.log("Cleaning up real-time subscription");
       supabase.removeChannel(channel);
+      supabase.removeChannel(testChannel);
     };
   }, []);
 
@@ -209,6 +201,30 @@ export default function ConsignmentKanbanBoard() {
         }
       }
     );
+  };
+
+  // Archive/unarchive consignment
+  const toggleArchive = async (consignment: Consignment) => {
+    try {
+      const { error } = await supabase
+        .from("consignments")
+        .update({ archived: !consignment.archived })
+        .eq("id", consignment.id);
+      
+      if (error) {
+        console.error('Error toggling archive status:', error);
+      } else {
+        setItems(prev => 
+          prev.map(c => 
+            c.id === consignment.id 
+              ? { ...c, archived: !c.archived }
+              : c
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling archive status:', error);
+    }
   };
   
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
@@ -248,7 +264,8 @@ export default function ConsignmentKanbanBoard() {
           vehicle_model: consignmentData.vehicle_model,
           asking_price: consignmentData.asking_price,
           listing_url: consignmentData.listing_url,
-          notes: consignmentData.notes || ''
+          notes: consignmentData.notes || '',
+          archived: false
         }])
         .select()
         .single();
@@ -303,6 +320,9 @@ export default function ConsignmentKanbanBoard() {
   };
 
   visible.forEach((i) => {
+    // Skip archived items unless showArchived is true
+    if (i.archived && !showArchived) return;
+    
     const key = (i.status || "").trim().toLowerCase().replace(/\s+/g, "_") as ColKey;
     if (grouped[key]) grouped[key].push(i);
     else grouped.new_lead.push(i);
@@ -334,21 +354,29 @@ export default function ConsignmentKanbanBoard() {
                   {col.icon}
                   <h3 className="text-xs font-medium text-white whitespace-nowrap">{col.title}</h3>
                   {col.key === 'new_lead' ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setShowAddModal(true)}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
-                        title="Add new consignment"
-                      >
+                    <button
+                      onClick={() => setShowAddModal(true)}
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
+                      title="Add new consignment"
+                    >
+                      {grouped[col.key as ColKey].length}
+                      <span className="ml-1 text-[12px] leading-none">＋</span>
+                    </button>
+                  ) : col.key === 'lost' ? (
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
                         {grouped[col.key as ColKey].length}
-                        <span className="ml-1 text-[12px] leading-none">＋</span>
-                      </button>
+                      </span>
                       <button
-                        onClick={testRealtime}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-blue-500 text-white hover:bg-blue-600"
-                        title="Test real-time"
+                        onClick={() => setShowArchived(!showArchived)}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${
+                          showArchived 
+                            ? 'bg-orange-500/20 text-orange-300 border border-orange-400/30' 
+                            : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        }`}
+                        title={showArchived ? "Hide archived consignments" : "Show archived consignments"}
                       >
-                        🧪
+                        📁 {showArchived ? 'Hide' : 'Show'} Archive
                       </button>
                     </div>
                   ) : (
@@ -368,28 +396,39 @@ export default function ConsignmentKanbanBoard() {
                   onDragStart={onDragStart(c)}
                   onDragEnd={onDragEnd}
                   onClick={(e) => handleCardClick(c, e)}
-                  className="backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 group"
+                  className="backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 group h-24 flex flex-col"
                 >
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="text-xs font-medium text-white truncate max-w-[160px]">
-                      {highlight(c.phone_number)}
-                    </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
+        <div className="flex items-start justify-between mb-1 flex-shrink-0">
+          <div className="text-xs font-medium text-white truncate max-w-[120px]">
+            {highlight(c.phone_number)}
+          </div>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleArchive(c);
+              }}
+              className="text-[10px] px-1 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
+              title={c.archived ? "Unarchive" : "Archive"}
+            >
+              {c.archived ? "📂" : "📁"}
+            </button>
+            <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+                  <div className="text-xs text-white/70 flex items-center gap-1 flex-1 min-h-0">
+                    <Car className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{highlight(c.vehicle_model)}</span>
                   </div>
-                  <div className="text-xs text-white/70 flex items-center gap-1">
-                    <Car className="w-3 h-3" /> {highlight(c.vehicle_model)}
-                  </div>
-                  <div className="text-xs text-white/70 flex items-center gap-1">
+                  <div className="text-xs text-white/70 flex items-center gap-1 flex-shrink-0">
                     AED {c.asking_price?.toLocaleString() || "-"}
                   </div>
-                  <div className="text-[9px] text-blue-400 underline truncate max-w-[160px]">
+                  <div className="text-[9px] text-blue-400 underline truncate max-w-[140px] flex-shrink-0">
                     <a href={c.listing_url} target="_blank" rel="noopener noreferrer">Listing</a>
                   </div>
-                  <div className="text-[10px] text-white/50 mt-0.5">
+                  <div className="text-[10px] text-white/50 mt-0.5 flex-shrink-0">
                     {dayjs(c.updated_at || c.created_at).fromNow()}
                   </div>
                 </div>

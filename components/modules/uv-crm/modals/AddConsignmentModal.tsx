@@ -12,6 +12,14 @@ interface Consignment {
   archived: boolean;
   created_at: string;
   updated_at: string;
+  // Negotiation fields
+  vehicle_make?: string;
+  vehicle_year?: number;
+  mileage?: number;
+  vin?: string;
+  direct_purchase_price?: number;
+  consignment_price?: number;
+  negotiation_notes?: string;
 }
 
 interface Props {

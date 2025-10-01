@@ -7,6 +7,7 @@ import { MessageSquare, CheckCircle, Wrench, XCircle, Car, Plus, Archive } from 
 import { useSearchStore } from "@/lib/searchStore";
 import ConsignmentDetailsModal from "../modals/ConsignmentDetailsModal";
 import AddConsignmentModal from "../modals/AddConsignmentModal";
+import NegotiationModal from "../modals/NegotiationModal";
 
 dayjs.extend(relativeTime);
 
@@ -21,6 +22,14 @@ interface Consignment {
   archived: boolean;
   created_at: string;
   updated_at: string;
+  // Negotiation fields
+  vehicle_make?: string;
+  vehicle_year?: number;
+  mileage?: number;
+  vin?: string;
+  direct_purchase_price?: number;
+  consignment_price?: number;
+  negotiation_notes?: string;
 }
 
 const columns = [
@@ -46,6 +55,8 @@ export default function ConsignmentKanbanBoard() {
   const [selectedConsignment, setSelectedConsignment] = useState<Consignment | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [showNegotiationModal, setShowNegotiationModal] = useState(false);
+  const [negotiationConsignment, setNegotiationConsignment] = useState<Consignment | null>(null);
 
   // Load consignments function (moved outside useEffect for scope access)
   const loadConsignments = useCallback(async () => {
@@ -269,6 +280,13 @@ export default function ConsignmentKanbanBoard() {
     }, 10);
   };
 
+  // Open negotiation modal
+  const handleOpenNegotiation = (consignment: Consignment, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNegotiationConsignment(consignment);
+    setShowNegotiationModal(true);
+  };
+
   // Modal handlers
   const handleConsignmentUpdated = (updatedConsignment: Consignment) => {
     setItems(prev => prev.map(c => c.id === updatedConsignment.id ? updatedConsignment : c));
@@ -436,10 +454,19 @@ export default function ConsignmentKanbanBoard() {
                   className="backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 group h-24 flex flex-col"
                 >
         <div className="flex items-start justify-between mb-1 flex-shrink-0">
-          <div className="text-xs font-medium text-white truncate max-w-[140px]">
+          <div className="text-xs font-medium text-white truncate max-w-[120px]">
             {highlight(c.phone_number)}
           </div>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+            {c.status === 'negotiation' && (
+              <button
+                onClick={(e) => handleOpenNegotiation(c, e)}
+                className="text-[10px] px-1 py-0.5 rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 transition-colors"
+                title="Open negotiation details"
+              >
+                💬
+              </button>
+            )}
             <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -483,6 +510,21 @@ export default function ConsignmentKanbanBoard() {
         <AddConsignmentModal
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddConsignment}
+        />
+      )}
+
+      {showNegotiationModal && negotiationConsignment && (
+        <NegotiationModal
+          consignment={negotiationConsignment}
+          onClose={() => {
+            setShowNegotiationModal(false);
+            setNegotiationConsignment(null);
+          }}
+          onUpdate={(updatedConsignment) => {
+            setItems(prev => prev.map(c => c.id === updatedConsignment.id ? updatedConsignment : c));
+            setShowNegotiationModal(false);
+            setNegotiationConsignment(null);
+          }}
         />
       )}
     </div>

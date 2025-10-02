@@ -473,7 +473,9 @@ export default function KanbanBoard() {
           .eq('document_type', 'invoice')
           .maybeSingle();
         if (invErr) {
-          console.warn('Invoice lookup error (allowing move by default):', invErr.message);
+          console.error('Invoice lookup failed - blocking move for safety:', invErr.message);
+          alert('Cannot verify invoice status. Move blocked for security. Please try again.');
+          return; // BLOCK the move on error
         }
         const hasInvoice = !!invoiceRecord && (!!invoiceRecord.document_number || !!invoiceRecord.pdf_url);
         if (hasInvoice && !isAdmin) {
@@ -481,7 +483,9 @@ export default function KanbanBoard() {
           return;
         }
       } catch (guardErr) {
-        console.warn('Guard check failed (allowing move by default):', guardErr);
+        console.error('Guard check failed - blocking move for safety:', guardErr);
+        alert('Security check failed. Move blocked. Please try again.');
+        return; // BLOCK the move on error
       }
     }
 
@@ -642,7 +646,36 @@ export default function KanbanBoard() {
   const handleVehicleDocumentSubmit = async () => {
     if (!leadForDocument) return;
     
-    // Update lead status after document generation
+    // For invoice mode, verify invoice was actually created before updating status
+    if (vehicleDocumentMode === 'invoice') {
+      try {
+        // Check if invoice actually exists
+        const { data: invoiceCheck, error: checkErr } = await supabase
+          .from('vehicle_reservations')
+          .select('id, document_number, pdf_url')
+          .eq('lead_id', leadForDocument.id)
+          .eq('document_type', 'invoice')
+          .maybeSingle();
+        
+        if (checkErr) {
+          console.error('Failed to verify invoice creation:', checkErr);
+          alert('Error verifying invoice. Status not updated.');
+          return;
+        }
+        
+        const hasValidInvoice = invoiceCheck && (invoiceCheck.document_number || invoiceCheck.pdf_url);
+        if (!hasValidInvoice) {
+          alert('Invoice must be generated before moving to DELIVERED. Please complete the invoice first.');
+          return;
+        }
+      } catch (error) {
+        console.error('Invoice verification failed:', error);
+        alert('Cannot verify invoice creation. Status not updated.');
+        return;
+      }
+    }
+    
+    // Only update status if invoice is confirmed (for delivered) or for reservations
     const newStatus = vehicleDocumentMode === 'reservation' ? 'won' : 'delivered';
     const { error } = await supabase.from("leads").update({ 
       status: newStatus,
@@ -651,6 +684,7 @@ export default function KanbanBoard() {
     
     if (error) {
       console.error("Failed to update lead status:", error);
+      alert('Failed to update lead status.');
     }
     
     // Keep modal open - user will close manually when ready
@@ -658,6 +692,21 @@ export default function KanbanBoard() {
   };
 
   const handleVehicleDocumentCancel = () => {
+    // If user cancels invoice generation, revert lead back to previous status
+    if (vehicleDocumentMode === 'invoice' && leadForDocument) {
+      // Revert to 'won' status (previous step before delivered)
+      supabase.from("leads").update({ 
+        status: 'won',
+        updated_at: new Date().toISOString()
+      }).eq("id", leadForDocument.id).then(({ error }) => {
+        if (error) {
+          console.error("Failed to revert lead status:", error);
+        } else {
+          console.log("Lead reverted to WON status due to cancelled invoice");
+        }
+      });
+    }
+    
     setShowVehicleDocumentModal(false);
     setLeadForDocument(null);
   };

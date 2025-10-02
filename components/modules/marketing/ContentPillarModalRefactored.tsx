@@ -998,23 +998,32 @@ export default function ContentPillarModalRefactored({
       
       console.log(`🎨 Uploading generated Template ${template} image to Supabase...`);
       
-      // Upload to Supabase immediately to get a permanent URL
-      const uploadResponse = await fetch('/api/upload', {
-        method: 'POST',
-        body: (() => {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('pillarId', editingItem?.id || 'temp-' + Date.now());
-          return formData;
-        })()
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload generated image to Supabase');
+      // Upload to Supabase directly (same pattern as video upload)
+      const tempPillarId = editingItem?.id || crypto.randomUUID();
+      const timestamp = Date.now();
+      const storagePath = `content-pillars/${tempPillarId}/${filename}`;
+      
+      // Upload to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('media-files')
+        .upload(storagePath, blob, { 
+          contentType: 'image/png', 
+          cacheControl: '3600', 
+          upsert: true // Allow overwrite to prevent conflicts
+        });
+      
+      if (uploadError) {
+        console.error('🎨 Supabase image upload error:', uploadError);
+        throw new Error(`Failed to upload generated image to Supabase: ${uploadError.message}`);
       }
-
-      const uploadResult = await uploadResponse.json();
-      const uploadedUrl = uploadResult.url;
+      
+      // Get public URL
+      const { data: { publicUrl: rawUrl } } = supabase.storage
+        .from('media-files')
+        .getPublicUrl(storagePath);
+      
+      // Clean up the URL (same as video upload)
+      const uploadedUrl = rawUrl.split('?')[0];
       
       console.log(`✅ Template ${template} uploaded to Supabase:`, uploadedUrl);
 

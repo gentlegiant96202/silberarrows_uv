@@ -169,7 +169,8 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
             height: '100%',
             objectFit: imageFit as any,
             objectPosition: imageAlignment,
-            transform: `translateZ(0) scale(${imageScale}) translateY(${imageVerticalPosition}px)`
+            transform: `translateZ(0) scale(${imageScale}) translateY(${imageVerticalPosition}px)`,
+            filter: 'brightness(1.1) contrast(1.05)'
           }}
           alt="Background"
         />
@@ -375,6 +376,23 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
               opacity: fadeIn(15)
             }}
           />
+        </div>
+        
+        {/* Title Section */}
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{
+            fontSize: `${titleFontSize}px`,
+            fontWeight: 900,
+            color: '#ffffff',
+            lineHeight: 0.9,
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            marginBottom: '12px',
+            fontFamily: 'Resonate, Inter, sans-serif',
+            transform: `translateX(${slideFromLeft(24)}px)`,
+            opacity: fadeIn(24)
+          }}>
+            {renderTitleWithLineBreaks(cleanTitle)}
+          </h1>
         </div>
         
         <div style={{

@@ -145,7 +145,6 @@ export async function POST(req: NextRequest) {
       console.error('🔍 Error details:', {
         name: fetchError instanceof Error ? fetchError.name : 'Unknown',
         message: fetchError instanceof Error ? fetchError.message : 'Unknown error',
-        cause: fetchError instanceof Error ? fetchError.cause : undefined,
         videoServiceUrl
       });
       
@@ -175,7 +174,6 @@ export async function POST(req: NextRequest) {
       console.error('🔍 Template B Error details:', {
         name: fetchError instanceof Error ? fetchError.name : 'Unknown',
         message: fetchError instanceof Error ? fetchError.message : 'Unknown error',
-        cause: fetchError instanceof Error ? fetchError.cause : undefined,
         videoServiceUrl
       });
       throw new Error(`Video service connection failed for Template B: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);

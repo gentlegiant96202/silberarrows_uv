@@ -33,8 +33,8 @@ const RemotionRoot = () => {
         component={ContentPillarVideo}
         durationInFrames={210} // 7 seconds at 30fps
         fps={30}
-        width={1080}
-        height={1920}
+        width={2160} // 4K resolution (2x quality)
+        height={3840}
         defaultProps={{
           dayOfWeek: 'monday',
           templateType: 'A',
@@ -51,8 +51,8 @@ const RemotionRoot = () => {
         component={({ html }: { html: string }) => (
           <div
             style={{
-              width: '1080px',
-              height: '1920px',
+              width: '2160px', // 4K resolution (2x quality)
+              height: '3840px',
               overflow: 'hidden',
               background: 'black',
             }}
@@ -61,8 +61,8 @@ const RemotionRoot = () => {
         )}
         durationInFrames={210}
         fps={30}
-        width={1080}
-        height={1920}
+        width={2160} // 4K resolution (2x quality)
+        height={3840}
         defaultProps={{ html: '<div />' }}
       />
     </>

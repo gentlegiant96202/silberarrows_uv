@@ -2,7 +2,7 @@ import React from 'react';
 import { useCurrentFrame, interpolate, Easing, staticFile, Img } from 'remotion';
 
 // Icon components
-const StarIcon = ({ size = 24, color = "#fff", marginRight = '8px' }) => (
+const StarIcon = ({ size = 48, color = "#fff", marginRight = '16px' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ marginRight }}>
     <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill={color} />
   </svg>
@@ -65,6 +65,9 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
   transmission = '9G-TRONIC Automatic',
   features = []
 }) => {
+  // 4K scaling factor (2160x3840 vs 1080x1920)
+  const SCALE = 2;
+  
   const frame = useCurrentFrame();
   
   // Animation functions
@@ -154,11 +157,11 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
     }
     * { font-family: 'Resonate', 'Inter', sans-serif;     }
     
-    /* CSS classes - same as HTML template */
+    /* CSS classes - same as HTML template (scaled for 4K) */
     .subtitle { 
-      font-size: 45px; 
+      font-size: ${45 * SCALE}px; 
       color: #555555; 
-      margin-bottom: 8px; 
+      margin-bottom: ${8 * SCALE}px; 
       font-weight: 700; 
       text-shadow: none; 
       font-style: normal; 

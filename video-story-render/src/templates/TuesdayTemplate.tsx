@@ -40,6 +40,9 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
   imageZoom = 100,
   imageVerticalPosition = 0
 }) => {
+  // 4K scaling factor (2160x3840 vs 1080x1920)
+  const SCALE = 2;
+  
   const frame = useCurrentFrame();
   
   // Animation functions (same as Monday template)

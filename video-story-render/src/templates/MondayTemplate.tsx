@@ -23,6 +23,9 @@ interface MondayTemplateProps {
 }
 
 export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
+  // 4K scaling factor (2160x3840 vs 1080x1920)
+  const SCALE = 2;
+  
   const {
     title = 'Sample Title',
     subtitle = '',
@@ -37,7 +40,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
     logoUrl = 'https://database.silberarrows.com/storage/v1/object/public/media-files/8bc3b696-bcb6-469e-9993-030fdc903ee5/9740bc7d-d555-4c9b-b0e0-d756e0b4c50d.png',
     templateType = 'A',
     car_model = '',
-    titleFontSize = 72,
+    titleFontSize = 72 * SCALE, // Scale default font size
     imageFit = 'cover',
     imageAlignment = 'center',
     imageZoom = 100,
@@ -46,23 +49,23 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
 
   const frame = useCurrentFrame();
 
-  // Animation functions with Remotion's interpolate
+  // Animation functions with Remotion's interpolate (scaled for 4K)
   const slideFromTop = (startFrame: number) => 
-    interpolate(frame, [startFrame, startFrame + 30], [-50, 0], {
+    interpolate(frame, [startFrame, startFrame + 30], [-50 * SCALE, 0], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
       easing: Easing.out(Easing.ease)
     });
 
   const slideFromLeft = (startFrame: number) => 
-    interpolate(frame, [startFrame, startFrame + 30], [-50, 0], {
+    interpolate(frame, [startFrame, startFrame + 30], [-50 * SCALE, 0], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
       easing: Easing.out(Easing.ease)
     });
 
   const slideFromRight = (startFrame: number) => 
-    interpolate(frame, [startFrame, startFrame + 30], [50, 0], {
+    interpolate(frame, [startFrame, startFrame + 30], [50 * SCALE, 0], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
       easing: Easing.out(Easing.ease)
@@ -141,7 +144,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
     * { font-family: 'Resonate', 'Inter', sans-serif; }
   `;
 
-  const ExclamationTriangleIcon = ({ size = 24, color = '#000000' }: { size?: number; color?: string }) => (
+  const ExclamationTriangleIcon = ({ size = 24 * SCALE, color = '#000000' }: { size?: number; color?: string }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6 }}>
       <path d="M10.29 3.86L1.82 18.02C1 19.39 2 21.14 3.53 21.14H20.47C22 21.14 23 19.39 22.18 18.02L13.71 3.86C12.93 2.54 11.07 2.54 10.29 3.86ZM11 8.14H13V14.14H11V8.14ZM11 16.14H13V18.14H11V16.14Z"/>
     </svg>

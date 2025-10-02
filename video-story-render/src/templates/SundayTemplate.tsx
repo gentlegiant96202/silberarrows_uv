@@ -2,6 +2,8 @@ import React from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate, Sequence } from 'remotion';
 
 export const SundayTemplate = (props) => {
+  // 4K scaling factor (2160x3840 vs 1080x1920)
+  const SCALE = 2;
   const { title, description, imageUrl, badgeText = 'SUNDAY' } = props;
   
   // Convert <br> tags to React line breaks
@@ -39,15 +41,15 @@ export const SundayTemplate = (props) => {
       <Sequence from={0} durationInFrames={210}>
         <div style={{
           position: 'absolute',
-          top: '60px',
+          top: `${60 * SCALE}px`,
           left: '50%',
           transform: `translateX(-50%) scale(${badgeScale})`,
           background: 'linear-gradient(45deg, #8b5cf6, #7c3aed)',
-          padding: '12px 24px',
-          borderRadius: '25px',
-          fontSize: '16px',
+          padding: `${12 * SCALE}px ${24 * SCALE}px`,
+          borderRadius: `${25 * SCALE}px`,
+          fontSize: `${16 * SCALE}px`,
           fontWeight: 'bold',
-          letterSpacing: '2px'
+          letterSpacing: `${2 * SCALE}px`
         }}>
           {badgeText}
         </div>
@@ -56,10 +58,10 @@ export const SundayTemplate = (props) => {
       <Sequence from={0} durationInFrames={210}>
         <h1 style={{
           opacity: titleOpacity,
-          fontSize: '48px',
+          fontSize: `${48 * SCALE}px`,
           fontWeight: 'bold',
           textAlign: 'center',
-          margin: '100px 40px 40px',
+          margin: `${100 * SCALE}px ${40 * SCALE}px ${40 * SCALE}px`,
           background: 'linear-gradient(45deg, #8b5cf6, #7c3aed)',
           backgroundClip: 'text',
           WebkitBackgroundClip: 'text',
@@ -75,9 +77,9 @@ export const SundayTemplate = (props) => {
             src={imageUrl}
             style={{
               transform: `scale(${imageScale})`,
-              borderRadius: '20px',
+              borderRadius: `${20 * SCALE}px`,
               maxWidth: '70%',
-              maxHeight: '400px',
+              maxHeight: `${400 * SCALE}px`,
               objectFit: 'cover'
             }}
           />
@@ -88,9 +90,9 @@ export const SundayTemplate = (props) => {
         <Sequence from={90} durationInFrames={120}>
           <p style={{
             opacity: descOpacity,
-            fontSize: '20px',
+            fontSize: `${20 * SCALE}px`,
             textAlign: 'center',
-            margin: '20px 40px',
+            margin: `${20 * SCALE}px ${40 * SCALE}px`,
             maxWidth: '80%'
           }}>
             {description}
@@ -102,10 +104,10 @@ export const SundayTemplate = (props) => {
         <div style={{
           opacity: ctaOpacity,
           position: 'absolute',
-          bottom: '80px',
+          bottom: `${80 * SCALE}px`,
           textAlign: 'center'
         }}>
-          <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>SilberArrows</p>
+          <p style={{ fontSize: `${24 * SCALE}px`, fontWeight: 'bold', margin: 0 }}>SilberArrows</p>
         </div>
       </Sequence>
     </div>

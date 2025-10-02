@@ -973,7 +973,7 @@ export default function ContentPillarModalRefactored({
     }
   };
 
-  // Save generated image as file
+  // Save generated image as file and upload to Supabase immediately
   const saveGeneratedImageAsFile = async (imageBase64: string, template: TemplateType) => {
     try {
       const titleForFilename = dayKey === 'wednesday' ? (formData.car_model || 'car') : formData.title;
@@ -996,39 +996,79 @@ export default function ContentPillarModalRefactored({
       // Create file object
       const file = new File([blob], filename, { type: 'image/png' });
       
-      // Add to selected files without thumbnail
-      const fileWithThumbnail: FileWithThumbnail = {
-        file,
-        thumbnail: '', // No thumbnail needed
-        uploadProgress: 100,
-        uploading: false,
-        uploaded: true
-      };
+      console.log(`🎨 Uploading generated Template ${template} image to Supabase...`);
       
-      // Add generated template to the correct template's files
+      // Upload to Supabase immediately to get a permanent URL
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        body: (() => {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('pillarId', editingItem?.id || 'temp-' + Date.now());
+          return formData;
+        })()
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload generated image to Supabase');
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const uploadedUrl = uploadResult.url;
+      
+      console.log(`✅ Template ${template} uploaded to Supabase:`, uploadedUrl);
+
+      // Create media object for existingMedia (permanent storage)
+      const mediaObject = {
+        url: uploadedUrl,
+        name: `Generated Template ${template} Image`,
+        type: 'image/png',
+        size: blob.size,
+        template_type: template
+      };
+
+      // Add to existing media (permanent) instead of selected files (temporary)
       if (template === 'A') {
-        setSelectedFilesA(prev => {
-          // Remove any existing template files for this template type
-          const filtered = prev.filter(f => !f.file.name.includes(`template_${template.toLowerCase()}`));
-          const newArray = [...filtered, fileWithThumbnail];
-          console.log(`🎨 Template A - Adding generated image. Previous count: ${prev.length}, New count: ${newArray.length}`);
-          console.log(`🎨 Template A - File added: ${filename}`);
+        setExistingMediaA(prev => {
+          // Remove any existing generated template files
+          const filtered = prev.filter(m => !m.name?.includes('Generated Template A'));
+          const newArray = [...filtered, mediaObject];
+          console.log(`🎨 Template A - Adding to existingMedia. Previous count: ${prev.length}, New count: ${newArray.length}`);
           return newArray;
         });
       } else if (template === 'B') {
-        setSelectedFilesB(prev => {
-          // Remove any existing template files for this template type
-          const filtered = prev.filter(f => !f.file.name.includes(`template_${template.toLowerCase()}`));
-          const newArray = [...filtered, fileWithThumbnail];
-          console.log(`🎨 Template B - Adding generated image. Previous count: ${prev.length}, New count: ${newArray.length}`);
-          console.log(`🎨 Template B - File added: ${filename}`);
+        setExistingMediaB(prev => {
+          // Remove any existing generated template files
+          const filtered = prev.filter(m => !m.name?.includes('Generated Template B'));
+          const newArray = [...filtered, mediaObject];
+          console.log(`🎨 Template B - Adding to existingMedia. Previous count: ${prev.length}, New count: ${newArray.length}`);
           return newArray;
         });
       }
       
-      console.log(`✅ Template ${template} saved as file: ${filename}`);
+      console.log(`✅ Template ${template} saved permanently: ${filename}`);
     } catch (error) {
       console.error(`❌ Error saving Template ${template} as file:`, error);
+      
+      // Fallback: Add to selectedFiles if upload fails
+      const file = new File([new Blob([new Uint8Array(atob(imageBase64).split('').map(c => c.charCodeAt(0)))], { type: 'image/png' })], 
+        `template_${template.toLowerCase()}_fallback_${Date.now()}.png`, { type: 'image/png' });
+      
+      const fileWithThumbnail: FileWithThumbnail = {
+        file,
+        thumbnail: '',
+        uploadProgress: 100,
+        uploading: false,
+        uploaded: false // Mark as not uploaded so it gets processed later
+      };
+      
+      if (template === 'A') {
+        setSelectedFilesA(prev => [...prev, fileWithThumbnail]);
+      } else {
+        setSelectedFilesB(prev => [...prev, fileWithThumbnail]);
+      }
+      
+      console.log(`⚠️ Template ${template} added to selectedFiles as fallback`);
     }
   };
 

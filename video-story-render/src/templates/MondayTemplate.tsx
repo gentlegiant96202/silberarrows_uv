@@ -92,6 +92,16 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
     .replace(/MERCEDES[-\s]*BENZ\s*/gi, '')
     .replace(/^AMG\s*/gi, 'AMG ');
 
+  // Convert <br> tags to React line breaks
+  const renderTitleWithLineBreaks = (text: string) => {
+    return text.split(/<br\s*\/?>/gi).map((line, index, array) => (
+      <React.Fragment key={index}>
+        {line}
+        {index < array.length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
+
   const fontsCSS = `
     @font-face {
       font-family: 'Resonate';
@@ -256,7 +266,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
             transform: `translateX(${slideFromLeft(24)}px)`,
             opacity: fadeIn(24)
           }}>
-            {cleanTitle}
+            {renderTitleWithLineBreaks(cleanTitle)}
           </h1>
         </div>
       </div>
@@ -405,7 +415,7 @@ export const MondayTemplate: React.FC<MondayTemplateProps> = (props) => {
             transform: `translateX(${slideFromLeft(24)}px)`,
             opacity: fadeIn(24)
           }}>
-            {cleanTitle}
+            {renderTitleWithLineBreaks(cleanTitle)}
           </h1>
 
           {/* Myth Section */}

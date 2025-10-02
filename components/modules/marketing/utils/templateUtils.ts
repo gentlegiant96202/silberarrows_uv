@@ -18,35 +18,35 @@ export const getFontFaceCSS = (): string => {
     
     @font-face {
       font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Black.woff2?v=2') format('woff2');
+      src: url('/Fonts/Resonate-Black.woff2?v=3') format('woff2');
       font-weight: 900;
       font-style: normal;
       font-display: swap;
     }
     @font-face {
       font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Bold.woff2?v=2') format('woff2');
+      src: url('/Fonts/Resonate-Bold.woff2?v=3') format('woff2');
       font-weight: 700;
       font-style: normal;
       font-display: swap;
     }
     @font-face {
       font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Medium.woff2?v=2') format('woff2');
+      src: url('/Fonts/Resonate-Medium.woff2?v=3') format('woff2');
       font-weight: 500;
       font-style: normal;
       font-display: swap;
     }
     @font-face {
       font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Light.woff2?v=2') format('woff2');
+      src: url('/Fonts/Resonate-Light.woff2?v=3') format('woff2');
       font-weight: 300;
       font-style: normal;
       font-display: swap;
     }
     @font-face {
       font-family: 'Resonate';
-      src: url('/Fonts/Resonate-Regular.woff2?v=2') format('woff2');
+      src: url('/Fonts/Resonate-Regular.woff2?v=3') format('woff2');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -89,8 +89,20 @@ export const getImageUrl = (
   // Priority: 1) New uploaded file (full quality), 2) Existing high-quality image URL, 3) Default logo
   // NOTE: Prioritize uploaded files over existing media to avoid 404 issues
   
+  console.log('🔍 getImageUrl called with:', {
+    uploadedFiles: uploadedFiles.length,
+    existingMedia: existingMedia.length,
+    existingMediaSample: existingMedia.slice(0, 2).map(m => ({
+      type: typeof m,
+      url: typeof m === 'object' ? m?.url : m,
+      name: typeof m === 'object' ? m?.name : 'N/A',
+      mediaType: typeof m === 'object' ? m?.type : 'N/A'
+    }))
+  });
+  
   // First check for new uploaded files
   if (uploadedFiles[0]) {
+    console.log('✅ Using uploaded file:', uploadedFiles[0].file?.name);
     return URL.createObjectURL(uploadedFiles[0].file);
   }
   
@@ -103,6 +115,12 @@ export const getImageUrl = (
            media.name?.match(/\.(jpe?g|png|webp|gif)$/i) || 
            media.url?.match(/\.(jpe?g|png|webp|gif)$/i);
   });
+  
+  console.log('🔍 Filtered image files:', existingImageFiles.length, existingImageFiles.map(f => ({
+    url: typeof f === 'object' ? f?.url : f,
+    name: typeof f === 'object' ? f?.name : 'string',
+    type: typeof f === 'object' ? f?.type : 'string'
+  })));
   
   // Use the first valid existing image URL
   const existingImageUrl = existingImageFiles[0]?.url || 
@@ -121,5 +139,7 @@ export const getImageUrl = (
   }
   
   console.log('⚠️ No valid images found, using fallback:', fallbackUrl);
+  console.log('📊 Debug info - uploadedFiles:', uploadedFiles);
+  console.log('📊 Debug info - existingMedia:', existingMedia);
   return fallbackUrl;
 };

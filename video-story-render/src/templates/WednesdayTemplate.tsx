@@ -106,6 +106,16 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
     .replace(/MERCEDES[-\s]*BENZ\s*/gi, '')
     .replace(/^AMG\s*/gi, 'AMG ');
 
+  // Convert <br> tags to React line breaks
+  const renderTitleWithLineBreaks = (text: string) => {
+    return text.split(/<br\s*\/?>/gi).map((line, index, array) => (
+      <React.Fragment key={index}>
+        {line}
+        {index < array.length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
+
   const fontsCSS = `
     @font-face {
       font-family: 'Resonate';
@@ -269,7 +279,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
               marginBottom: '2px',
               padding: '0 80px',
               fontFamily: 'Resonate, Inter, sans-serif'
-            }}>{cleanTitle}</h1>
+            }}>{renderTitleWithLineBreaks(cleanTitle)}</h1>
           </div>
           
           {/* Subtitle with Monthly Payment - exact HTML structure with class */}
@@ -405,7 +415,7 @@ export const WednesdayTemplate: React.FC<WednesdayTemplateProps> = ({
               fontFamily: 'Resonate, Inter, sans-serif',
               transform: `translateX(${slideFromLeft(24)}px)`,
               opacity: fadeIn(24)
-            }}>{cleanTitle}</h1>
+            }}>{renderTitleWithLineBreaks(cleanTitle)}</h1>
           </div>
           
           {/* Car Specifications Grid - 6 cards */}

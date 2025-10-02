@@ -59,6 +59,9 @@ export default function ContentPillarModalRefactored({
   const [inventoryCars, setInventoryCars] = useState<InventoryCar[]>([]);
   const [selectedCarId, setSelectedCarId] = useState<string>('');
   const [loadingCars, setLoadingCars] = useState(false);
+  
+  // Track if we've loaded media for this editing session to prevent overwriting deletions
+  const [mediaLoadedForItem, setMediaLoadedForItem] = useState<string | null>(null);
 
   // Helper functions to safely use template registry
   const getSafeBadgeText = (day: string): string => {
@@ -309,40 +312,117 @@ export default function ContentPillarModalRefactored({
 
   // Remove existing media file
   const removeExistingMedia = async (indexToRemove: number, templateType: TemplateType = 'A') => {
+    console.log(`🔴 removeExistingMedia called - Template ${templateType}, index:`, indexToRemove);
+    
     const currentMedia = templateType === 'A' ? existingMediaA : existingMediaB;
+    console.log(`🔴 Current media array length:`, currentMedia.length);
+    console.log(`🔴 Current media array:`, currentMedia);
+    
     const mediaToRemove = currentMedia[indexToRemove];
-    if (!mediaToRemove) return;
+    console.log(`🔴 Media to remove:`, mediaToRemove);
+    
+    if (!mediaToRemove) {
+      console.log(`🔴 No media found at index ${indexToRemove}, returning`);
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmDelete = confirm(`Are you sure you want to delete "${mediaToRemove.name || 'this file'}"? This action cannot be undone.`);
+    if (!confirmDelete) {
+      console.log(`🔴 User cancelled deletion`);
+      return;
+    }
+
+    console.log(`🗑️ Proceeding with removal - Template ${templateType}:`, mediaToRemove.name);
 
     try {
       // Remove from local state immediately for better UX
+      console.log(`🔴 Updating local state - removing index ${indexToRemove} from Template ${templateType}`);
+      
       if (templateType === 'A') {
-        setExistingMediaA(prev => prev.filter((_, index) => index !== indexToRemove));
+        console.log(`🔴 Before filter - existingMediaA length:`, existingMediaA.length);
+        setExistingMediaA(prev => {
+          const filtered = prev.filter((_, index) => index !== indexToRemove);
+          console.log(`🔴 After filter - new length:`, filtered.length);
+          return filtered;
+        });
       } else {
-        setExistingMediaB(prev => prev.filter((_, index) => index !== indexToRemove));
+        console.log(`🔴 Before filter - existingMediaB length:`, existingMediaB.length);
+        setExistingMediaB(prev => {
+          const filtered = prev.filter((_, index) => index !== indexToRemove);
+          console.log(`🔴 After filter - new length:`, filtered.length);
+          return filtered;
+        });
       }
 
-      // If we have an editingItem, we should update it to remove this media
+      // If we have an editingItem, we need to update the database
       if (editingItem && onSave) {
-        const updatedMediaFiles = currentMedia.filter((_, index) => index !== indexToRemove);
+        // Get the updated media files for the specific template
+        const updatedTemplateMedia = currentMedia.filter((_, index) => index !== indexToRemove);
+        
+        // Prepare the update data based on template type
+        const updateData: Partial<ContentPillarItem> = {
+          ...editingItem
+        };
+        
+        if (templateType === 'A') {
+          updateData.media_files_a = updatedTemplateMedia;
+        } else {
+          updateData.media_files_b = updatedTemplateMedia;
+        }
+        
+        // Also update the general media_files if this was part of it
+        if (editingItem.media_files) {
+          const generalMediaFiles = editingItem.media_files.filter(file => 
+            file.url !== mediaToRemove.url || file.name !== mediaToRemove.name
+          );
+          updateData.media_files = generalMediaFiles;
+        }
+        
+        console.log(`📝 Updating content pillar to remove media from Template ${templateType}`);
         
         // Update the content pillar in the database
-        await onSave({
-          ...editingItem,
-          media_files: updatedMediaFiles
-        });
+        await onSave(updateData);
         
-        console.log('✅ Existing media file removed and updated in database');
+        console.log(`✅ Media file removed from Template ${templateType} and updated in database`);
+      } else {
+        console.log(`✅ Media file removed from Template ${templateType} (local state only)`);
       }
     } catch (error) {
-      console.error('❌ Error removing existing media:', error);
+      console.error(`❌ Error removing media from Template ${templateType}:`, error);
+      
       // Restore the media file if database update failed
       if (templateType === 'A') {
         setExistingMediaA(prev => [...prev.slice(0, indexToRemove), mediaToRemove, ...prev.slice(indexToRemove)]);
       } else {
         setExistingMediaB(prev => [...prev.slice(0, indexToRemove), mediaToRemove, ...prev.slice(indexToRemove)]);
       }
-      alert('Failed to remove media file. Please try again.');
+      
+      alert(`Failed to remove media file from Template ${templateType}. Please try again.`);
     }
+  };
+
+  // Remove selected file (not yet uploaded)
+  const removeSelectedFile = (indexToRemove: number, templateType: TemplateType = 'A') => {
+    const currentFiles = templateType === 'A' ? selectedFilesA : selectedFilesB;
+    const fileToRemove = currentFiles[indexToRemove];
+    if (!fileToRemove) return;
+
+    console.log(`🗑️ Removing selected file from Template ${templateType}:`, fileToRemove.file.name);
+
+    // Clean up blob URL to prevent memory leaks
+    if (fileToRemove.thumbnail && fileToRemove.thumbnail.startsWith('blob:')) {
+      URL.revokeObjectURL(fileToRemove.thumbnail);
+    }
+
+    // Remove from the appropriate template's selected files
+    if (templateType === 'A') {
+      setSelectedFilesA(prev => prev.filter((_, index) => index !== indexToRemove));
+    } else {
+      setSelectedFilesB(prev => prev.filter((_, index) => index !== indexToRemove));
+    }
+
+    console.log(`✅ Selected file removed from Template ${templateType}`);
   };
 
   // Handle car selection for Wednesday
@@ -386,9 +466,32 @@ export default function ContentPillarModalRefactored({
       if (socialMediaImages.length >= 2) {
         // Use the second social_media image
         const secondSocialImage = socialMediaImages[1];
-        // For Wednesday, add social media image to Template A only
-        setExistingMediaA([{ url: secondSocialImage.url, name: 'Car Social Media Image', type: 'image/jpeg' }]);
-        setExistingMediaB([]); // Clear Template B media for Wednesday
+        
+        console.log('🚗 Adding car social media image to Template A (preserving existing media)');
+        
+        // For Wednesday, add social media image to Template A (don't replace existing media)
+        setExistingMediaA(prev => {
+          // Check if this car image is already added to avoid duplicates
+          const existingCarImage = prev.find(media => 
+            media.url === secondSocialImage.url || media.name === 'Car Social Media Image'
+          );
+          
+          if (existingCarImage) {
+            console.log('🚗 Car image already exists, not adding duplicate');
+            return prev;
+          }
+          
+          console.log('🚗 Adding new car image to existing media');
+          return [...prev, { 
+            url: secondSocialImage.url, 
+            name: 'Car Social Media Image', 
+            type: 'image/jpeg',
+            template_type: 'A'
+          }];
+        });
+        
+        // Don't clear Template B - preserve any existing media
+        console.log('🚗 Preserving existing Template B media');
       }
     }
     }
@@ -565,30 +668,45 @@ export default function ContentPillarModalRefactored({
           }
           
           // Return direct URL for video service
-          if (imageUrl) return imageUrl;
+          if (imageUrl) {
+            console.log(`✅ Using template-specific image:`, imageUrl);
+            return imageUrl;
+          }
         }
         
         // Fallback: if this template has no image, try to use any image from either template
         if (fallbackToAnyImage) {
           // Try the other template's existing media (skip selectedFiles to avoid blob URLs)
           const allExistingMedia = [...existingMediaA, ...existingMediaB];
+          console.log(`🔄 Fallback - checking all media:`, allExistingMedia.length);
           
           if (allExistingMedia.length > 0) {
             const firstMedia = allExistingMedia[0];
             if (typeof firstMedia === 'string') {
+              console.log(`✅ Using fallback string image:`, firstMedia);
               return firstMedia;
             } else if (firstMedia?.url) {
+              console.log(`✅ Using fallback object image:`, firstMedia.url);
               return firstMedia.url;
             }
           }
         }
         
         // Final fallback to logo
+        console.log(`⚠️ No images found, using logo fallback`);
         return getAbsoluteLogoUrl();
       };
       
-      const imageUrlA = getCacheBustedImageUrl(getDirectImageUrl(selectedFilesA, existingMediaA));
-      const imageUrlB = getCacheBustedImageUrl(getDirectImageUrl(selectedFilesB, existingMediaB));
+      const directImageUrlA = getDirectImageUrl(selectedFilesA, existingMediaA);
+      const directImageUrlB = getDirectImageUrl(selectedFilesB, existingMediaB);
+      const imageUrlA = getCacheBustedImageUrl(directImageUrlA);
+      const imageUrlB = getCacheBustedImageUrl(directImageUrlB);
+      
+      console.log('🎬 Direct URLs for video service:');
+      console.log('📸 Template A direct URL:', directImageUrlA);
+      console.log('📸 Template B direct URL:', directImageUrlB);
+      console.log('🕐 Template A with cache-bust:', imageUrlA);
+      console.log('🕐 Template B with cache-bust:', imageUrlB);
       
       console.log('🎬 Video generation - selectedFilesA:', selectedFilesA.length, selectedFilesA.map(f => f.file.name));
       console.log('🎬 Video generation - existingMediaA:', existingMediaA.length, existingMediaA.map(m => m.name));
@@ -597,8 +715,13 @@ export default function ContentPillarModalRefactored({
       console.log('🎬 Video generation - Image URL A:', imageUrlA);
       console.log('🎬 Video generation - Image URL B:', imageUrlB);
 
-      const formDataA = { ...formData, imageUrl: imageUrlA } as typeof formData & { imageUrl?: string };
-      const formDataB = { ...formData, imageUrl: imageUrlB } as typeof formData & { imageUrl?: string };
+      // Use direct URLs (without cache-busting) for video generation so Railway can access them
+      const formDataA = { ...formData, imageUrl: directImageUrlA } as typeof formData & { imageUrl?: string };
+      const formDataB = { ...formData, imageUrl: directImageUrlB } as typeof formData & { imageUrl?: string };
+      
+      console.log('🎬 Final form data URLs:');
+      console.log('📋 FormData A imageUrl:', formDataA.imageUrl);
+      console.log('📋 FormData B imageUrl:', formDataB.imageUrl);
 
       // Prepare video generation request using HTML for A & B
       const videoRequest = {
@@ -953,6 +1076,9 @@ export default function ContentPillarModalRefactored({
       };
 
       console.log('📤 Saving content pillar data:', pillarData);
+      console.log('📤 Media files being sent:', pillarData.media_files);
+      console.log('📤 Media files A being sent:', pillarData.media_files_a);
+      console.log('📤 Media files B being sent:', pillarData.media_files_b);
       await onSave(pillarData);
       onClose();
     } catch (error) {
@@ -1004,26 +1130,41 @@ export default function ContentPillarModalRefactored({
     if (isOpen) {
       fetchInventoryCars();
       
-      // Load existing media every time modal opens (not just when editingItem changes)
-      if (editingItem) {
-        console.log('🔄 Loading existing media from editingItem:', editingItem.media_files);
-        // Always reload fresh from database to prevent stale state
+      // Only load existing media when modal first opens for a specific item
+      // Don't reload when editingItem changes due to saves (prevents overwriting deletions)
+      if (editingItem && mediaLoadedForItem !== editingItem.id) {
+        console.log('🔄 Loading existing media from editingItem (FIRST TIME ONLY)');
+        console.log('📁 editingItem.media_files:', editingItem.media_files);
+        console.log('📁 editingItem.media_files_a:', editingItem.media_files_a);
+        console.log('📁 editingItem.media_files_b:', editingItem.media_files_b);
+        
         const mediaFiles = editingItem.media_files || [];
         const mediaFilesA = editingItem.media_files_a || [];
         const mediaFilesB = editingItem.media_files_b || [];
-        // Prefer explicit A/B arrays if present, otherwise split by templateType strictly
+        
+        // Prefer explicit A/B arrays if present, otherwise split by template_type
         const mediaA: any[] = (Array.isArray(mediaFilesA) && mediaFilesA.length > 0)
           ? mediaFilesA
-          : mediaFiles.filter(m => m?.templateType === 'A');
+          : mediaFiles.filter(m => m?.template_type === 'A');
         
         const mediaB: any[] = (Array.isArray(mediaFilesB) && mediaFilesB.length > 0)
-          ? mediaFilesB  
-          : mediaFiles.filter(m => m?.templateType === 'B');
+          ? mediaFilesB
+          : mediaFiles.filter(m => m?.template_type === 'B');
+        
+        console.log('🔍 Media distribution debug:', {
+          mediaFilesA_length: mediaFilesA?.length || 0,
+          mediaFilesB_length: mediaFilesB?.length || 0,
+          mediaFiles_length: mediaFiles?.length || 0,
+          mediaFiles_templateTypes: mediaFiles.map(m => ({ name: m?.name, template_type: m?.template_type })),
+          finalMediaA_length: mediaA.length,
+          finalMediaB_length: mediaB.length,
+          finalMediaA_items: mediaA.map(m => ({ name: m?.name, template_type: m?.template_type })),
+          finalMediaB_items: mediaB.map(m => ({ name: m?.name, template_type: m?.template_type }))
+        });
           
         console.log('🔄 Loading media - mediaFiles total:', mediaFiles.length);
         console.log('🔄 Loading media - split A:', mediaA.length, 'B:', mediaB.length);
-        console.log('🔄 Media A items:', mediaA.map(m => ({name: m.name, templateType: m.templateType})));
-        console.log('🔄 Media B items:', mediaB.map(m => ({name: m.name, templateType: m.templateType})));
+        
         // Dedupe by URL inside each bucket
         const dedupeByUrl = (arr: any[]) => {
           const seen = new Set();
@@ -1035,25 +1176,33 @@ export default function ContentPillarModalRefactored({
             return true;
           });
         };
+        
         setExistingMediaA(dedupeByUrl(mediaA));
         setExistingMediaB(dedupeByUrl(mediaB));
-        console.log('✅ Loaded media files:', mediaFiles.length);
-      } else {
+        setMediaLoadedForItem(editingItem.id);
+        
+        console.log('✅ Media loaded for item:', editingItem.id, '- A:', mediaA.length, 'B:', mediaB.length);
+      } else if (!editingItem) {
         // Clear existing media when creating new item
         setExistingMediaA([]);
         setExistingMediaB([]);
+        setMediaLoadedForItem(null);
+        console.log('🧹 Cleared media for new item creation');
+      } else if (editingItem && mediaLoadedForItem === editingItem.id) {
+        console.log('⏭️ Skipping media reload for item:', editingItem.id, '(already loaded)');
       }
     }
-  }, [isOpen, dayKey, editingItem]);
+  }, [isOpen, dayKey, editingItem, mediaLoadedForItem]);
 
   // Clear media arrays when modal closes to prevent stale state
   useEffect(() => {
     if (!isOpen) {
-      console.log('🧹 Modal closed - clearing media arrays');
+      console.log('🧹 Modal closed - clearing media arrays and resetting tracker');
       setExistingMediaA([]);
       setExistingMediaB([]);
       setSelectedFilesA([]);
       setSelectedFilesB([]);
+      setMediaLoadedForItem(null); // Reset the tracker so media loads fresh next time
     }
   }, [isOpen]);
 
@@ -1502,7 +1651,15 @@ export default function ContentPillarModalRefactored({
                         </p>
                       </div>
                       <button
-                        onClick={() => setExistingMediaA(prev => prev.filter((_, i) => i !== index))}
+                        onClick={() => {
+                          console.log('🗑️ SIMPLE DELETE - Template A, index:', index);
+                          // Simple direct deletion - no complex logic
+                          setExistingMediaA(prev => {
+                            const newArray = prev.filter((_, i) => i !== index);
+                            console.log('✅ Deleted from Template A. Old length:', prev.length, 'New length:', newArray.length);
+                            return newArray;
+                          });
+                        }}
                         className="p-1 hover:bg-gray-700/50 rounded transition-colors"
                         title="Delete this media file"
                       >
@@ -1544,8 +1701,9 @@ export default function ContentPillarModalRefactored({
                       </div>
                       {!fileInfo.uploading && (
                         <button
-                          onClick={() => setSelectedFilesA(prev => prev.filter((_, i) => i !== index))}
+                          onClick={() => removeSelectedFile(index, 'A')}
                           className="p-1 hover:bg-gray-700/50 rounded transition-colors"
+                          title="Remove this file"
                         >
                           <X className="w-3 h-3 text-gray-400 hover:text-red-400" />
                         </button>
@@ -1601,7 +1759,15 @@ export default function ContentPillarModalRefactored({
                           </p>
                         </div>
                         <button
-                          onClick={() => setExistingMediaB(prev => prev.filter((_, i) => i !== index))}
+                          onClick={() => {
+                            console.log('🗑️ SIMPLE DELETE - Template B, index:', index);
+                            // Simple direct deletion - no complex logic
+                            setExistingMediaB(prev => {
+                              const newArray = prev.filter((_, i) => i !== index);
+                              console.log('✅ Deleted from Template B. Old length:', prev.length, 'New length:', newArray.length);
+                              return newArray;
+                            });
+                          }}
                           className="p-1 hover:bg-gray-700/50 rounded transition-colors"
                           title="Delete this media file"
                         >
@@ -1642,8 +1808,9 @@ export default function ContentPillarModalRefactored({
                         </div>
                         {!fileInfo.uploading && (
                           <button
-                            onClick={() => setSelectedFilesB(prev => prev.filter((_, i) => i !== index))}
+                            onClick={() => removeSelectedFile(index, 'B')}
                             className="p-1 hover:bg-gray-700/50 rounded transition-colors"
+                            title="Remove this file"
                           >
                             <X className="w-3 h-3 text-gray-400 hover:text-red-400" />
                           </button>

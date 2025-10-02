@@ -1,3 +1,15 @@
+// Standardized Media File Interface
+export interface MediaFile {
+  id: string;
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+  uploadedAt: string;
+  template_type?: 'A' | 'B' | 'general';
+  thumbnail_url?: string;
+}
+
 // Content Pillar Modal Types
 export interface ContentPillarFormData {
   title: string;
@@ -19,7 +31,7 @@ export interface ContentPillarFormData {
   warning?: string;
   monthly_20_down_aed?: number;
   monthly_0_down_aed?: number;
-  media_files?: any[];
+  media_files?: MediaFile[];
   year?: number;
   make?: string;
   model?: string;
@@ -42,9 +54,9 @@ export interface ContentPillarItem {
   day_of_week: string;
   created_at: string;
   updated_at: string;
-  media_files?: any[];
-  media_files_a?: any[]; // Template A specific media files
-  media_files_b?: any[]; // Template B specific media files
+  media_files?: MediaFile[];
+  media_files_a?: MediaFile[]; // Template A specific media files
+  media_files_b?: MediaFile[]; // Template B specific media files
   badge_text?: string;
   subtitle?: string;
   myth?: string;

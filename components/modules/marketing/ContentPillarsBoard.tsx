@@ -675,23 +675,31 @@ export default function ContentPillarsBoard() {
     setShowAIModal(true);
   };
 
-  // Upload files to Supabase storage
+  // Upload files to Supabase storage with parallel processing and error recovery
   const uploadFilesToStorage = async (pillarId: string, files: any[]): Promise<any[]> => {
-    const uploadedMedia: any[] = [];
+    if (!files || files.length === 0) return [];
     
-    for (const fileInfo of files) {
-      if (fileInfo.file) {
-        // This is a new file to upload
+    console.log(`📤 Starting parallel upload of ${files.length} files for pillar ${pillarId}`);
+    
+    // Helper function to upload a single file with retry logic
+    const uploadSingleFile = async (fileInfo: any, retries = 3): Promise<any | null> => {
+      if (!fileInfo.file) {
+        // This is an existing file, keep it as is
+        return fileInfo;
+      }
+      
         const file = fileInfo.file;
         
+      for (let attempt = 1; attempt <= retries; attempt++) {
         try {
           // Check file size limit (50MB)
           const maxFileSize = 50 * 1024 * 1024; // 50MB
           if (file.size > maxFileSize) {
-            throw new Error(`File size exceeds 50MB limit. File: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            console.warn(`⚠️ File ${file.name} exceeds 50MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB) - skipping`);
+            return null;
           }
           
-          console.log('📤 Uploading file to storage:', file.name);
+          console.log(`📤 [Attempt ${attempt}/${retries}] Uploading ${file.name}...`);
           
           const ext = file.name.split('.').pop();
           const fileName = `${crypto.randomUUID()}.${ext}`;
@@ -706,7 +714,6 @@ export default function ContentPillarsBoard() {
             });
           
           if (uploadError) {
-            console.error('📤 Supabase upload error:', uploadError);
             throw new Error(uploadError.message);
           }
           
@@ -718,55 +725,106 @@ export default function ContentPillarsBoard() {
           const publicUrl = rawUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
           
           const mediaItem = {
+            id: crypto.randomUUID(),
             url: publicUrl,
             name: file.name,
             type: file.type,
             size: file.size,
             uploadedAt: new Date().toISOString(),
+            template_type: fileInfo.template_type || 'general'
           };
           
-          uploadedMedia.push(mediaItem);
-          console.log('✅ File uploaded successfully:', file.name);
+          console.log(`✅ File uploaded successfully: ${file.name}`);
+          return mediaItem;
           
         } catch (error) {
-          console.error('❌ Error uploading file:', file.name, error);
-          throw error;
+          console.warn(`⚠️ [Attempt ${attempt}/${retries}] Upload failed for ${file.name}:`, error);
+          
+          if (attempt === retries) {
+            console.error(`❌ Final attempt failed for ${file.name}:`, error);
+            return null; // Don't throw - allow other files to continue
+          }
+          
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         }
-      } else {
-        // This is an existing file, keep it as is
-        uploadedMedia.push(fileInfo);
       }
-    }
-    
-    return uploadedMedia;
-  };
-
-  // Handle saving content pillar from AI modal (create or update)
-  const handleSaveContentPillar = async (pillarData: Partial<ContentPillarItem>) => {
-    try {
-      const headers = await getAuthHeaders();
       
-      // Handle file uploads if there are any
-      let finalMediaFiles: any[] = [];
-      if (pillarData.media_files && pillarData.media_files.length > 0) {
-        console.log('📁 Processing media files:', pillarData.media_files.length);
-        
-        // Create a temporary pillar ID for file uploads if creating new pillar
-        const tempPillarId = editingPillar?.id || crypto.randomUUID();
-        finalMediaFiles = await uploadFilesToStorage(tempPillarId, pillarData.media_files);
-        // Global dedupe by URL across both templates before persisting
+      return null;
+    };
+    
+    // Upload all files in parallel
+    const uploadPromises = files.map(fileInfo => uploadSingleFile(fileInfo));
+    const results = await Promise.allSettled(uploadPromises);
+    
+    // Process results and filter out failed uploads
+    const uploadedMedia: any[] = [];
+    let successCount = 0;
+    let failureCount = 0;
+    
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value) {
+        uploadedMedia.push(result.value);
+        successCount++;
+      } else {
+        failureCount++;
+        console.warn(`⚠️ File ${index + 1} failed to upload`);
+      }
+    });
+    
+    console.log(`📊 Upload summary: ${successCount} successful, ${failureCount} failed`);
+    
+    // Global dedupe by URL
         const seen = new Set<string>();
-        finalMediaFiles = finalMediaFiles.filter((m: any) => {
+    const deduplicatedMedia = uploadedMedia.filter((m: any) => {
           const url = typeof m === 'string' ? m : m?.url;
           if (!url) return true;
           if (seen.has(url)) return false;
           seen.add(url);
           return true;
         });
-      }
+    
+    console.log(`📋 Final media count after deduplication: ${deduplicatedMedia.length}`);
+    return deduplicatedMedia;
+  };
+
+  // Handle saving content pillar from AI modal (create or update) - FIXED VERSION
+  const handleSaveContentPillar = async (pillarData: Partial<ContentPillarItem>) => {
+    try {
+      const headers = await getAuthHeaders();
       
       if (editingPillar) {
-        // Update existing content pillar
+        // UPDATE EXISTING PILLAR
+        console.log('📝 Updating existing content pillar:', editingPillar.id);
+        
+        // Handle media files - they're already uploaded, just pass them through
+        let finalMediaFiles: any[] = [];
+        if (pillarData.media_files && pillarData.media_files.length > 0) {
+          console.log('📁 Processing media files for existing pillar:', pillarData.media_files.length);
+          console.log('📁 Media files received:', pillarData.media_files);
+          
+          // Check if these are already uploaded files (have URLs) or new files to upload
+          const alreadyUploadedFiles = pillarData.media_files.filter(file => 
+            file && typeof file === 'object' && file.url && !file.file
+          );
+          const filesToUpload = pillarData.media_files.filter(file => 
+            file && typeof file === 'object' && file.file
+          );
+          
+          console.log('📁 Already uploaded files:', alreadyUploadedFiles.length);
+          console.log('📁 Files to upload:', filesToUpload.length);
+          
+          // Upload new files if any
+          let uploadedFiles: any[] = [];
+          if (filesToUpload.length > 0) {
+            uploadedFiles = await uploadFilesToStorage(editingPillar.id, filesToUpload);
+          }
+          
+          // Combine already uploaded files with newly uploaded files
+          finalMediaFiles = [...alreadyUploadedFiles, ...uploadedFiles];
+          console.log('📁 Final media files count:', finalMediaFiles.length);
+        }
+        
         const updateData = {
           id: editingPillar.id,
           title: pillarData.title || editingPillar.title,
@@ -774,6 +832,8 @@ export default function ContentPillarsBoard() {
           content_type: pillarData.content_type || editingPillar.content_type,
           day_of_week: editingPillar.day_of_week,
           media_files: finalMediaFiles,
+          media_files_a: pillarData.media_files_a || [],
+          media_files_b: pillarData.media_files_b || [],
           badge_text: pillarData.badge_text,
           subtitle: pillarData.subtitle,
           myth: pillarData.myth,
@@ -796,18 +856,22 @@ export default function ContentPillarsBoard() {
           setContentItems(prev => 
             prev.map(item => item.id === editingPillar.id ? updatedPillar : item)
           );
-          console.log('Content pillar updated:', updatedPillar);
+          console.log('✅ Content pillar updated successfully:', updatedPillar.id);
         } else {
-          throw new Error('Failed to update content pillar');
+          const errorData = await response.json();
+          throw new Error(`Failed to update content pillar: ${errorData.error || 'Unknown error'}`);
         }
       } else {
-        // Create new content pillar
+        // CREATE NEW PILLAR - FIXED APPROACH
+        console.log('🆕 Creating new content pillar');
+        
+        // Step 1: Create pillar WITHOUT media files first
         const createData = {
           title: pillarData.title || '',
           description: pillarData.description || '',
           content_type: pillarData.content_type || 'image',
           day_of_week: pillarData.day_of_week || selectedDay,
-          media_files: finalMediaFiles,
+          media_files: [], // Empty initially
           badge_text: pillarData.badge_text,
           subtitle: pillarData.subtitle,
           myth: pillarData.myth,
@@ -819,22 +883,84 @@ export default function ContentPillarsBoard() {
           warning: pillarData.warning,
         };
 
-        const response = await fetch('/api/content-pillars', {
+        console.log('📝 Step 1: Creating pillar record...');
+        const createResponse = await fetch('/api/content-pillars', {
           method: 'POST',
           headers,
           body: JSON.stringify(createData)
         });
 
-        if (response.ok) {
-          const newPillar = await response.json();
+        if (!createResponse.ok) {
+          const errorData = await createResponse.json();
+          throw new Error(`Failed to create content pillar: ${errorData.error || 'Unknown error'}`);
+        }
+
+        const newPillar = await createResponse.json();
+        console.log('✅ Step 1 complete: Pillar created with ID:', newPillar.id);
+        
+        // Step 2: Handle media files (already uploaded or new files)
+        let finalMediaFiles: any[] = [];
+        if (pillarData.media_files && pillarData.media_files.length > 0) {
+          console.log('📁 Step 2: Processing media files with real pillar ID:', newPillar.id);
+          console.log('📁 Media files received for new pillar:', pillarData.media_files);
+          
+          try {
+            // Check if these are already uploaded files (have URLs) or new files to upload
+            const alreadyUploadedFiles = pillarData.media_files.filter(file => 
+              file && typeof file === 'object' && file.url && !file.file
+            );
+            const filesToUpload = pillarData.media_files.filter(file => 
+              file && typeof file === 'object' && file.file
+            );
+            
+            console.log('📁 Already uploaded files for new pillar:', alreadyUploadedFiles.length);
+            console.log('📁 Files to upload for new pillar:', filesToUpload.length);
+            
+            // Upload new files if any
+            let uploadedFiles: any[] = [];
+            if (filesToUpload.length > 0) {
+              uploadedFiles = await uploadFilesToStorage(newPillar.id, filesToUpload);
+            }
+            
+            // Combine already uploaded files with newly uploaded files
+            finalMediaFiles = [...alreadyUploadedFiles, ...uploadedFiles];
+            console.log('✅ Step 2 complete: Final media files count:', finalMediaFiles.length);
+          } catch (uploadError) {
+            console.warn('⚠️ File upload failed, but pillar was created:', uploadError);
+            // Don't fail the entire process - pillar exists, just without files
+          }
+        }
+        
+        // Step 3: Update pillar with media files (if any were processed)
+        if (finalMediaFiles.length > 0 || pillarData.media_files_a || pillarData.media_files_b) {
+          console.log('📝 Step 3: Updating pillar with media files...');
+          const updateResponse = await fetch('/api/content-pillars', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              id: newPillar.id,
+              media_files: finalMediaFiles,
+              media_files_a: pillarData.media_files_a || [],
+              media_files_b: pillarData.media_files_b || []
+            })
+          });
+          
+          if (updateResponse.ok) {
+            const updatedPillar = await updateResponse.json();
+            setContentItems(prev => [...prev, updatedPillar]);
+            console.log('✅ Step 3 complete: Pillar updated with media files');
+          } else {
+            console.warn('⚠️ Failed to update pillar with media files, but pillar exists');
           setContentItems(prev => [...prev, newPillar]);
-          console.log('New content pillar saved:', newPillar);
+          }
         } else {
-          throw new Error('Failed to create content pillar');
+          // No media files to add
+          setContentItems(prev => [...prev, newPillar]);
+          console.log('✅ New content pillar created successfully (no media files)');
         }
       }
     } catch (error) {
-      console.error('Error saving content pillar:', error);
+      console.error('❌ Error saving content pillar:', error);
       throw error;
     }
   };

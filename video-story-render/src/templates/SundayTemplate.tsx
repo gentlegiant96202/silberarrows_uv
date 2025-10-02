@@ -1,7 +1,19 @@
+import React from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate, Sequence } from 'remotion';
 
 export const SundayTemplate = (props) => {
   const { title, description, imageUrl, badgeText = 'SUNDAY' } = props;
+  
+  // Convert <br> tags to React line breaks
+  const renderTitleWithLineBreaks = (text: string) => {
+    if (!text) return text;
+    return text.split(/<br\s*\/?>/gi).map((line, index, array) => (
+      <React.Fragment key={index}>
+        {line}
+        {index < array.length - 1 && <br />}
+      </React.Fragment>
+    ));
+  };
   const frame = useCurrentFrame();
   
   const titleOpacity = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
@@ -53,7 +65,7 @@ export const SundayTemplate = (props) => {
           WebkitBackgroundClip: 'text',
           color: 'transparent'
         }}>
-          {title}
+          {renderTitleWithLineBreaks(title)}
         </h1>
       </Sequence>
 

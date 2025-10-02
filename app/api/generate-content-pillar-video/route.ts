@@ -17,42 +17,43 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get video service URL from environment
-    let videoServiceUrl = process.env.VIDEO_SERVICE_URL || 'https://videostoryrendering-production.up.railway.app';
+    // Get video service URL from environment - clean it up
+    let videoServiceUrl = (process.env.VIDEO_SERVICE_URL || 'https://videostoryrendering-production.up.railway.app').trim();
+    
+    // Clean up any malformed URLs that might have extra environment variable text
+    if (videoServiceUrl.includes('NEXT_PUBLIC_RENDERER_URL')) {
+      videoServiceUrl = 'https://videostoryrendering-production.up.railway.app';
+      console.log('🔧 Cleaned up malformed VIDEO_SERVICE_URL, using default Railway URL');
+    }
+    
+    console.log('🔧 Using Railway video service for all environments:', videoServiceUrl);
     
     // Ensure URL has protocol
     if (videoServiceUrl && !videoServiceUrl.startsWith('http://') && !videoServiceUrl.startsWith('https://')) {
       videoServiceUrl = `https://${videoServiceUrl}`;
     }
     
-    console.log('📡 Forwarding request to video service:', videoServiceUrl);
+    console.log('📡 Forwarding request to Railway video service:', videoServiceUrl);
     console.log('🔧 Raw VIDEO_SERVICE_URL env var:', process.env.VIDEO_SERVICE_URL);
     
-    // First, try to hit the health check endpoint
+    // First, try to hit the health check endpoint (but don't fail if it doesn't work)
     try {
       console.log('🏥 Testing video service health check...');
       const healthResponse = await fetch(`${videoServiceUrl}/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        signal: AbortSignal.timeout(5000) // 5 second timeout
       });
       
       if (healthResponse.ok) {
         const healthData = await healthResponse.text();
         console.log('✅ Health check passed:', healthData);
       } else {
-        console.log('❌ Health check failed:', healthResponse.status, healthResponse.statusText);
-        return NextResponse.json({ 
-          success: false, 
-          error: `Video service health check failed: ${healthResponse.status} ${healthResponse.statusText}` 
-        }, { status: 503 });
+        console.log('⚠️ Health check failed but continuing:', healthResponse.status, healthResponse.statusText);
       }
     } catch (healthError) {
-      console.error('❌ Health check error:', healthError);
-      return NextResponse.json({ 
-        success: false, 
-        error: `Video service is not available: ${healthError instanceof Error ? healthError.message : 'Unknown error'}` 
-      }, { status: 503 });
+      console.warn('⚠️ Health check error but continuing:', healthError instanceof Error ? healthError.message : 'Unknown error');
+      // Don't return error here - continue with video generation attempt
     }
     
     // If caller provided pre-rendered images (from HTML), convert both to videos
@@ -113,23 +114,43 @@ export async function POST(req: NextRequest) {
     }
 
     // Otherwise render via template A & B on the video service
-    const videoServiceResponseA = await fetch(`${videoServiceUrl}/render-video`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        // Forward any auth headers if needed
-        ...(req.headers.get('authorization') && {
-          'Authorization': req.headers.get('authorization')!
-        })
-      },
-      body: JSON.stringify({
-        dayOfWeek,
-        templateType: 'A',
-        formData: formDataA || formData
-      }),
-      // Set a longer timeout for video generation
-      signal: AbortSignal.timeout(300000) // 5 minutes
-    });
+    console.log('🎬 Attempting video generation for Template A...');
+    console.log('📊 Payload size:', JSON.stringify({
+      dayOfWeek,
+      templateType: 'A',
+      formData: formDataA || formData
+    }).length, 'characters');
+    
+    let videoServiceResponseA;
+    try {
+      videoServiceResponseA = await fetch(`${videoServiceUrl}/render-video`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          // Forward any auth headers if needed
+          ...(req.headers.get('authorization') && {
+            'Authorization': req.headers.get('authorization')!
+          })
+        },
+        body: JSON.stringify({
+          dayOfWeek,
+          templateType: 'A',
+          formData: formDataA || formData
+        }),
+        // Set a longer timeout for video generation
+        signal: AbortSignal.timeout(300000) // 5 minutes
+      });
+    } catch (fetchError) {
+      console.error('❌ Fetch error for Template A:', fetchError);
+      console.error('🔍 Error details:', {
+        name: fetchError instanceof Error ? fetchError.name : 'Unknown',
+        message: fetchError instanceof Error ? fetchError.message : 'Unknown error',
+        cause: fetchError instanceof Error ? fetchError.cause : undefined,
+        videoServiceUrl
+      });
+      
+      throw new Error(`Video service connection failed: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+    }
     
     if (!videoServiceResponseA.ok) {
       const errorText = await videoServiceResponseA.text();
@@ -140,12 +161,25 @@ export async function POST(req: NextRequest) {
     const resultA = await videoServiceResponseA.json();
 
     // Forward request to video service - Template B
-    const videoServiceResponseB = await fetch(`${videoServiceUrl}/render-video`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dayOfWeek, templateType: 'B', formData: formDataB || formData }),
-      signal: AbortSignal.timeout(300000)
-    });
+    console.log('🎬 Attempting video generation for Template B...');
+    let videoServiceResponseB;
+    try {
+      videoServiceResponseB = await fetch(`${videoServiceUrl}/render-video`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dayOfWeek, templateType: 'B', formData: formDataB || formData }),
+        signal: AbortSignal.timeout(300000)
+      });
+    } catch (fetchError) {
+      console.error('❌ Fetch error for Template B:', fetchError);
+      console.error('🔍 Template B Error details:', {
+        name: fetchError instanceof Error ? fetchError.name : 'Unknown',
+        message: fetchError instanceof Error ? fetchError.message : 'Unknown error',
+        cause: fetchError instanceof Error ? fetchError.cause : undefined,
+        videoServiceUrl
+      });
+      throw new Error(`Video service connection failed for Template B: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+    }
 
     if (!videoServiceResponseB.ok) {
       const errorText = await videoServiceResponseB.text();

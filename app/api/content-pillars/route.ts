@@ -138,14 +138,27 @@ export async function POST(req: NextRequest) {
     
     console.log('📝 Extracted fields:', { title, subtitle, myth, fact, badge_text });
 
+    // Validate and sanitize media files
+    const sanitizedMediaFiles = Array.isArray(media_files) ? media_files.filter(file => 
+      file && typeof file === 'object' && file.url && file.name
+    ) : [];
+    
+    const sanitizedMediaFilesA = Array.isArray(media_files_a) ? media_files_a.filter(file => 
+      file && typeof file === 'object' && file.url && file.name
+    ) : null;
+    
+    const sanitizedMediaFilesB = Array.isArray(media_files_b) ? media_files_b.filter(file => 
+      file && typeof file === 'object' && file.url && file.name
+    ) : null;
+
     const pillarData = {
       title,
       description,
       content_type,
       day_of_week,
-      media_files: media_files || [],
-      media_files_a: media_files_a || null,
-      media_files_b: media_files_b || null,
+      media_files: sanitizedMediaFiles,
+      media_files_a: sanitizedMediaFilesA,
+      media_files_b: sanitizedMediaFilesB,
       badge_text: badge_text ?? (day_of_week === 'monday' ? 'MYTH BUSTER MONDAY' : (day_of_week === 'tuesday' ? 'TECH TIPS TUESDAY' : day_of_week?.toUpperCase())),
       subtitle: subtitle ?? (day_of_week === 'monday' ? 'Independent Mercedes Service' : (day_of_week === 'tuesday' ? 'Expert Mercedes Knowledge' : 'Premium Selection')),
       myth: myth ?? null,
@@ -157,6 +170,13 @@ export async function POST(req: NextRequest) {
       warning: warning ?? null,
       created_by: authResult.user?.id
     };
+    
+    console.log('📊 Media files validation:', {
+      original_count: media_files?.length || 0,
+      sanitized_count: sanitizedMediaFiles.length,
+      template_a_count: sanitizedMediaFilesA?.length || 0,
+      template_b_count: sanitizedMediaFilesB?.length || 0
+    });
 
     console.log('Content pillar data to insert:', pillarData);
 
@@ -196,14 +216,27 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
+    // Validate and sanitize media files for update
+    const sanitizedMediaFiles = Array.isArray(media_files) ? media_files.filter(file => 
+      file && typeof file === 'object' && file.url && file.name
+    ) : [];
+    
+    const sanitizedMediaFilesA = Array.isArray(media_files_a) ? media_files_a.filter(file => 
+      file && typeof file === 'object' && file.url && file.name
+    ) : undefined;
+    
+    const sanitizedMediaFilesB = Array.isArray(media_files_b) ? media_files_b.filter(file => 
+      file && typeof file === 'object' && file.url && file.name
+    ) : undefined;
+
     const updateData = {
       title,
       description,
       content_type,
       day_of_week,
-      media_files: media_files || [],
-      media_files_a: media_files_a ?? undefined,
-      media_files_b: media_files_b ?? undefined,
+      media_files: sanitizedMediaFiles,
+      media_files_a: sanitizedMediaFilesA,
+      media_files_b: sanitizedMediaFilesB,
       badge_text: badge_text ?? (day_of_week === 'monday' ? 'MYTH BUSTER MONDAY' : (day_of_week === 'tuesday' ? 'TECH TIPS TUESDAY' : day_of_week?.toUpperCase())),
       subtitle: subtitle ?? (day_of_week === 'monday' ? 'Independent Mercedes Service' : (day_of_week === 'tuesday' ? 'Expert Mercedes Knowledge' : 'Premium Selection')),
       myth: myth ?? null,
@@ -215,6 +248,13 @@ export async function PUT(req: NextRequest) {
       warning: warning ?? null,
       updated_at: new Date().toISOString()
     };
+    
+    console.log('📊 PUT - Media files validation:', {
+      original_count: media_files?.length || 0,
+      sanitized_count: sanitizedMediaFiles.length,
+      template_a_count: sanitizedMediaFilesA?.length || 0,
+      template_b_count: sanitizedMediaFilesB?.length || 0
+    });
 
     const { data, error } = await supabaseAdmin
       .from('content_pillars')

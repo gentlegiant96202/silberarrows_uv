@@ -591,8 +591,11 @@ export default function ContentPillarModalRefactored({
       }
       
       // Now download and save all images
+      console.log(`🎨 Processing ${generatedImages.length} generated images for saving to modal...`);
+      
       for (let i = 0; i < generatedImages.length; i++) {
         const { template, imageBase64 } = generatedImages[i];
+        console.log(`🎨 Processing image ${i + 1}/${generatedImages.length} - Template ${template}`);
         
         // Force download with delay between downloads
         if (i === 0) {
@@ -604,7 +607,9 @@ export default function ContentPillarModalRefactored({
         }
         
         // Save to modal
+        console.log(`🎨 Saving Template ${template} to modal...`);
         await saveGeneratedImageAsFile(imageBase64, template);
+        console.log(`🎨 Template ${template} saved to modal successfully`);
         
         // Update state for first image (backward compatibility)
         if (i === 0 && onGeneratedImageChange) {
@@ -1005,13 +1010,19 @@ export default function ContentPillarModalRefactored({
         setSelectedFilesA(prev => {
           // Remove any existing template files for this template type
           const filtered = prev.filter(f => !f.file.name.includes(`template_${template.toLowerCase()}`));
-          return [...filtered, fileWithThumbnail];
+          const newArray = [...filtered, fileWithThumbnail];
+          console.log(`🎨 Template A - Adding generated image. Previous count: ${prev.length}, New count: ${newArray.length}`);
+          console.log(`🎨 Template A - File added: ${filename}`);
+          return newArray;
         });
       } else if (template === 'B') {
         setSelectedFilesB(prev => {
           // Remove any existing template files for this template type
           const filtered = prev.filter(f => !f.file.name.includes(`template_${template.toLowerCase()}`));
-          return [...filtered, fileWithThumbnail];
+          const newArray = [...filtered, fileWithThumbnail];
+          console.log(`🎨 Template B - Adding generated image. Previous count: ${prev.length}, New count: ${newArray.length}`);
+          console.log(`🎨 Template B - File added: ${filename}`);
+          return newArray;
         });
       }
       

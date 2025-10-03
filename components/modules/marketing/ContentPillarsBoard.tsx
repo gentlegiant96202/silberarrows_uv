@@ -28,6 +28,18 @@ interface ContentPillarItem {
   difficulty?: string;
   tools_needed?: string;
   warning?: string;
+  // Form field properties
+  titleFontSize?: number;
+  imageFit?: 'cover' | 'contain' | 'fill';
+  imageAlignment?: string;
+  imageZoom?: number;
+  imageVerticalPosition?: number;
+  // Database field names (lowercase)
+  titlefontsize?: number;
+  imagefit?: 'cover' | 'contain' | 'fill';
+  imagealignment?: string;
+  imagezoom?: number;
+  imageverticalposition?: number;
 }
 
 // Define content example type
@@ -857,11 +869,11 @@ export default function ContentPillarsBoard() {
           difficulty: pillarData.difficulty,
           tools_needed: pillarData.tools_needed,
           warning: pillarData.warning,
-          titleFontSize: pillarData.titleFontSize,
-          imageFit: pillarData.imageFit,
-          imageAlignment: pillarData.imageAlignment,
-          imageZoom: pillarData.imageZoom,
-          imageVerticalPosition: pillarData.imageVerticalPosition,
+          titleFontSize: (pillarData as any).titleFontSize,
+          imageFit: (pillarData as any).imageFit,
+          imageAlignment: (pillarData as any).imageAlignment,
+          imageZoom: (pillarData as any).imageZoom,
+          imageVerticalPosition: (pillarData as any).imageVerticalPosition,
         };
 
         // First update the main content pillar data
@@ -931,11 +943,11 @@ export default function ContentPillarsBoard() {
           difficulty: pillarData.difficulty,
           tools_needed: pillarData.tools_needed,
           warning: pillarData.warning,
-          titleFontSize: pillarData.titleFontSize,
-          imageFit: pillarData.imageFit,
-          imageAlignment: pillarData.imageAlignment,
-          imageZoom: pillarData.imageZoom,
-          imageVerticalPosition: pillarData.imageVerticalPosition,
+          titleFontSize: (pillarData as any).titleFontSize,
+          imageFit: (pillarData as any).imageFit,
+          imageAlignment: (pillarData as any).imageAlignment,
+          imageZoom: (pillarData as any).imageZoom,
+          imageVerticalPosition: (pillarData as any).imageVerticalPosition,
         };
 
         console.log('📝 Step 1: Creating pillar record...');

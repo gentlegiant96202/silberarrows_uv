@@ -213,6 +213,20 @@ export default function ContentPillarsBoard() {
         const data = await response.json();
         console.log('📦 Fetched content pillars:', data.length, 'items');
         console.log('📋 First few titles:', data.slice(0, 5).map((p: any) => p.title));
+        
+        // Debug: Check if form fields are present in the data
+        if (data && data.length > 0) {
+          console.log('🔍 First pillar form fields:', {
+            id: data[0].id,
+            title: data[0].title,
+            titleFontSize: data[0].titleFontSize,
+            imageFit: data[0].imageFit,
+            imageAlignment: data[0].imageAlignment,
+            imageZoom: data[0].imageZoom,
+            imageVerticalPosition: data[0].imageVerticalPosition
+          });
+        }
+        
         setContentItems(data);
         console.log('✅ Successfully fetched content pillars:', data.length);
       } else {
@@ -843,8 +857,14 @@ export default function ContentPillarsBoard() {
           difficulty: pillarData.difficulty,
           tools_needed: pillarData.tools_needed,
           warning: pillarData.warning,
+          titleFontSize: pillarData.titleFontSize,
+          imageFit: pillarData.imageFit,
+          imageAlignment: pillarData.imageAlignment,
+          imageZoom: pillarData.imageZoom,
+          imageVerticalPosition: pillarData.imageVerticalPosition,
         };
 
+        // First update the main content pillar data
         const response = await fetch('/api/content-pillars', {
           method: 'PUT',
           headers,
@@ -853,6 +873,36 @@ export default function ContentPillarsBoard() {
 
         if (response.ok) {
           const updatedPillar = await response.json();
+          
+          // TODO: Temporarily disabled form fields update due to schema cache issues
+          // Update form fields separately if they exist
+          // if (pillarData.titleFontSize !== undefined || 
+          //     pillarData.imageFit !== undefined || 
+          //     pillarData.imageAlignment !== undefined || 
+          //     pillarData.imageZoom !== undefined || 
+          //     pillarData.imageVerticalPosition !== undefined) {
+            
+          //   console.log('📝 Updating form fields separately...');
+          //   const formFieldsResponse = await fetch('/api/content-pillars/form-fields', {
+          //     method: 'PUT',
+          //     headers,
+          //     body: JSON.stringify({
+          //       id: editingPillar.id,
+          //       titleFontSize: pillarData.titleFontSize,
+          //       imageFit: pillarData.imageFit,
+          //       imageAlignment: pillarData.imageAlignment,
+          //       imageZoom: pillarData.imageZoom,
+          //       imageVerticalPosition: pillarData.imageVerticalPosition
+          //     })
+          //   });
+            
+          //   if (formFieldsResponse.ok) {
+          //     console.log('✅ Form fields updated successfully');
+          //   } else {
+          //     console.warn('⚠️ Form fields update failed, but main update succeeded');
+          //   }
+          // }
+          
           setContentItems(prev => 
             prev.map(item => item.id === editingPillar.id ? updatedPillar : item)
           );
@@ -881,6 +931,11 @@ export default function ContentPillarsBoard() {
           difficulty: pillarData.difficulty,
           tools_needed: pillarData.tools_needed,
           warning: pillarData.warning,
+          titleFontSize: pillarData.titleFontSize,
+          imageFit: pillarData.imageFit,
+          imageAlignment: pillarData.imageAlignment,
+          imageZoom: pillarData.imageZoom,
+          imageVerticalPosition: pillarData.imageVerticalPosition,
         };
 
         console.log('📝 Step 1: Creating pillar record...');

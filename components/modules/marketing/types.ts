@@ -66,6 +66,17 @@ export interface ContentPillarItem {
   difficulty?: string;
   tools_needed?: string;
   warning?: string;
+  titleFontSize?: number;
+  imageFit?: 'cover' | 'contain' | 'fill';
+  imageAlignment?: string;
+  imageZoom?: number;
+  imageVerticalPosition?: number;
+  // Database field names (lowercase)
+  titlefontsize?: number;
+  imagefit?: 'cover' | 'contain' | 'fill';
+  imagealignment?: string;
+  imagezoom?: number;
+  imageverticalposition?: number;
 }
 
 export interface FileWithThumbnail {

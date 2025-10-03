@@ -40,9 +40,6 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
   imageZoom = 100,
   imageVerticalPosition = 0
 }) => {
-  // 4K scaling factor (2160x3840 vs 1080x1920)
-  const SCALE = 2;
-  
   const frame = useCurrentFrame();
   
   // Animation functions (same as Monday template)
@@ -182,7 +179,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
       {/* Content Section */}
       <div style={{
         padding: '20px 40px 40px 40px',
-        height: '30.5%',
+        height: '586px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-start',
@@ -214,7 +211,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
             transform: `translateY(${slideFromTop(9)}px)`,
             opacity: fadeIn(9)
           }}>
-            <LightbulbIcon size={20} color="#000" /> {badgeText}
+            <LightbulbIcon size={20} color="#000" /> {renderTitleWithLineBreaks(badgeText)}
         </div>
           <Img
             src={logoUrl}
@@ -328,7 +325,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
         position: 'relative',
         zIndex: 1,
         padding: 'calc(20px + 3vh) 40px 40px 40px',
-        height: '30.5%',
+        height: '586px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-start',
@@ -360,7 +357,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
             transform: `translateY(${slideFromTop(9)}px)`,
             opacity: fadeIn(9)
           }}>
-            <LightbulbIcon size={20} color="#000" /> {badgeText}
+            <LightbulbIcon size={20} color="#000" /> {renderTitleWithLineBreaks(badgeText)}
           </div>
           <Img
             src={logoUrl}
@@ -381,22 +378,6 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
           />
         </div>
         
-        {/* Title Section */}
-        <div style={{ marginBottom: '24px' }}>
-          <h1 style={{
-            fontSize: `${titleFontSize}px`,
-            fontWeight: 900,
-            color: '#ffffff',
-            lineHeight: 0.9,
-            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            marginBottom: '12px',
-            fontFamily: 'Resonate, Inter, sans-serif',
-            transform: `translateX(${slideFromLeft(24)}px)`,
-            opacity: fadeIn(24)
-          }}>
-            {renderTitleWithLineBreaks(cleanTitle)}
-          </h1>
-        </div>
         
         <div style={{
           marginBottom: '24px'
@@ -438,7 +419,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
                 color: '#e2e8f0',
                 lineHeight: 1.4,
                 fontFamily: 'Resonate, Inter, sans-serif'
-              }}>{problem}</div>
+              }}>{renderTitleWithLineBreaks(problem)}</div>
             </div>
           )}
 
@@ -479,7 +460,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
                 color: '#e2e8f0',
                 lineHeight: 1.4,
                 fontFamily: 'Resonate, Inter, sans-serif'
-              }}>{solution}</div>
+              }}>{renderTitleWithLineBreaks(solution)}</div>
             </div>
           )}
 
@@ -524,7 +505,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
                   fontWeight: 700,
                   fontFamily: 'Resonate, Inter, sans-serif'
                 }}>
-                  {difficulty}
+                  {renderTitleWithLineBreaks(difficulty)}
                 </div>
               </div>
               
@@ -559,7 +540,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
                   fontWeight: 700,
                   fontFamily: 'Resonate, Inter, sans-serif'
                 }}>
-                  {tools_needed}
+                  {renderTitleWithLineBreaks(tools_needed)}
                 </div>
               </div>
             </div>
@@ -603,7 +584,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
                 color: '#ffebeb',
                 lineHeight: 1.4,
                 fontFamily: 'Resonate, Inter, sans-serif'
-              }}>{warning}</div>
+              }}>{renderTitleWithLineBreaks(warning)}</div>
             </div>
           )}
         </div>

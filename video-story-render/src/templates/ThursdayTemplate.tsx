@@ -2,8 +2,6 @@ import React from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate, Sequence } from 'remotion';
 
 export const ThursdayTemplate = (props) => {
-  // 4K scaling factor (2160x3840 vs 1080x1920)
-  const SCALE = 2;
   const { title, description, imageUrl, badgeText = 'THURSDAY' } = props;
   
   // Convert <br> tags to React line breaks
@@ -41,15 +39,15 @@ export const ThursdayTemplate = (props) => {
       <Sequence from={0} durationInFrames={210}>
         <div style={{
           position: 'absolute',
-          top: `${60 * SCALE}px`,
+          top: '60px',
           left: '50%',
           transform: `translateX(-50%) scale(${badgeScale})`,
           background: 'linear-gradient(45deg, #8b5cf6, #7c3aed)',
-          padding: `${12 * SCALE}px ${24 * SCALE}px`,
-          borderRadius: `${25 * SCALE}px`,
-          fontSize: `${16 * SCALE}px`,
+          padding: '12px 24px',
+          borderRadius: '25px',
+          fontSize: '16px',
           fontWeight: 'bold',
-          letterSpacing: `${2 * SCALE}px`
+          letterSpacing: '2px'
         }}>
           {badgeText}
         </div>
@@ -58,10 +56,10 @@ export const ThursdayTemplate = (props) => {
       <Sequence from={0} durationInFrames={210}>
         <h1 style={{
           opacity: titleOpacity,
-          fontSize: `${48 * SCALE}px`,
+          fontSize: '48px',
           fontWeight: 'bold',
           textAlign: 'center',
-          margin: `${100 * SCALE}px ${40 * SCALE}px ${40 * SCALE}px`,
+          margin: '100px 40px 40px',
           background: 'linear-gradient(45deg, #8b5cf6, #7c3aed)',
           backgroundClip: 'text',
           WebkitBackgroundClip: 'text',
@@ -77,9 +75,9 @@ export const ThursdayTemplate = (props) => {
             src={imageUrl}
             style={{
               transform: `scale(${imageScale})`,
-              borderRadius: `${20 * SCALE}px`,
+              borderRadius: '20px',
               maxWidth: '70%',
-              maxHeight: `${400 * SCALE}px`,
+              maxHeight: '400px',
               objectFit: 'cover'
             }}
           />
@@ -90,9 +88,9 @@ export const ThursdayTemplate = (props) => {
         <Sequence from={90} durationInFrames={120}>
           <p style={{
             opacity: descOpacity,
-            fontSize: `${20 * SCALE}px`,
+            fontSize: '20px',
             textAlign: 'center',
-            margin: `${20 * SCALE}px ${40 * SCALE}px`,
+            margin: '20px 40px',
             maxWidth: '80%'
           }}>
             {description}
@@ -104,10 +102,10 @@ export const ThursdayTemplate = (props) => {
         <div style={{
           opacity: ctaOpacity,
           position: 'absolute',
-          bottom: `${80 * SCALE}px`,
+          bottom: '80px',
           textAlign: 'center'
         }}>
-          <p style={{ fontSize: `${24 * SCALE}px`, fontWeight: 'bold', margin: 0 }}>SilberArrows</p>
+          <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>SilberArrows</p>
         </div>
       </Sequence>
     </div>

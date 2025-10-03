@@ -95,11 +95,11 @@ export default function ContentPillarModalRefactored({
   const [formData, setFormData] = useState<ContentPillarFormData>({
     title: editingItem?.title || aiGeneratedContent?.title || '',
     description: editingItem?.description || aiGeneratedContent?.description || '',
-    titleFontSize: 72,
-    imageFit: 'cover',
-    imageAlignment: 'center',
-    imageZoom: 100,
-    imageVerticalPosition: 0,
+    titleFontSize: editingItem?.titleFontSize || 72,
+    imageFit: editingItem?.imageFit || 'cover',
+    imageAlignment: editingItem?.imageAlignment || 'center',
+    imageZoom: editingItem?.imageZoom || 100,
+    imageVerticalPosition: editingItem?.imageVerticalPosition || 0,
     badgeText: editingItem?.badge_text || aiGeneratedContent?.badge_text || getSafeBadgeText(dayKey),
     subtitle: editingItem?.subtitle || aiGeneratedContent?.subtitle || '',
     myth: editingItem?.myth || aiGeneratedContent?.myth || '',
@@ -1130,6 +1130,11 @@ export default function ContentPillarModalRefactored({
         difficulty: formData.difficulty,
         tools_needed: formData.tools_needed,
         warning: formData.warning,
+        titleFontSize: formData.titleFontSize,
+        imageFit: formData.imageFit,
+        imageAlignment: formData.imageAlignment,
+        imageZoom: formData.imageZoom,
+        imageVerticalPosition: formData.imageVerticalPosition,
         media_files: merged, // Back-compat
         media_files_a: mediaA,
         media_files_b: mediaB,
@@ -1139,6 +1144,13 @@ export default function ContentPillarModalRefactored({
       console.log('📤 Media files being sent:', pillarData.media_files);
       console.log('📤 Media files A being sent:', pillarData.media_files_a);
       console.log('📤 Media files B being sent:', pillarData.media_files_b);
+      console.log('📤 Form fields being sent:', {
+        titleFontSize: pillarData.titleFontSize,
+        imageFit: pillarData.imageFit,
+        imageAlignment: pillarData.imageAlignment,
+        imageZoom: pillarData.imageZoom,
+        imageVerticalPosition: pillarData.imageVerticalPosition
+      });
       await onSave(pillarData);
       onClose();
     } catch (error) {
@@ -1268,6 +1280,16 @@ export default function ContentPillarModalRefactored({
 
   useEffect(() => {
     if (editingItem) {
+      console.log('🔄 Loading editingItem data:', {
+        id: editingItem.id,
+        title: editingItem.title,
+        titleFontSize: editingItem.titleFontSize,
+        imageFit: editingItem.imageFit,
+        imageAlignment: editingItem.imageAlignment,
+        imageZoom: editingItem.imageZoom,
+        imageVerticalPosition: editingItem.imageVerticalPosition
+      });
+      
       setFormData(prev => ({
         ...prev,
         title: editingItem.title,
@@ -1281,6 +1303,11 @@ export default function ContentPillarModalRefactored({
         difficulty: editingItem.difficulty || '',
         tools_needed: editingItem.tools_needed || '',
         warning: editingItem.warning || '',
+        titleFontSize: editingItem.titleFontSize || editingItem.titlefontsize || 72,
+        imageFit: editingItem.imageFit || editingItem.imagefit || 'cover',
+        imageAlignment: editingItem.imageAlignment || editingItem.imagealignment || 'center',
+        imageZoom: editingItem.imageZoom || editingItem.imagezoom || 100,
+        imageVerticalPosition: editingItem.imageVerticalPosition || editingItem.imageverticalposition || 0,
       }));
     }
   }, [editingItem, dayKey]);

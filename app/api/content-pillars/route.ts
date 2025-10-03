@@ -112,7 +112,7 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error('❌ API: Error fetching content pillars:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
     console.log('📦 API: Fetched pillars count:', pillars?.length || 0);
@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(pillars);
   } catch (error: any) {
     console.error('Error in GET /api/content-pillars:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
 
     console.log('Content pillar data to insert:', pillarData);
 
-    let data, error;
+    let data: any, error: any;
     
     try {
       // Create a fresh Supabase client to bypass schema cache
@@ -307,14 +307,14 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error('Error creating content pillar:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
     console.log('✅ Successfully created content pillar:', data);
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
     console.error('Error in POST /api/content-pillars:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -335,6 +335,9 @@ export async function PUT(req: NextRequest) {
       imageZoom, 
       imageVerticalPosition 
     });
+    
+    // Declare variables at the top to avoid scoping issues
+    let data: any, error: any;
     
     // Validate user has edit permission
     const authResult = await validateUserPermissions(req, 'edit');
@@ -469,8 +472,6 @@ export async function PUT(req: NextRequest) {
     });
 
     // Update with all fields including form fields
-    let data, error;
-    
     try {
       // Create a fresh Supabase client to bypass schema cache
       // Use the same URL as the main client to ensure we're hitting the custom domain
@@ -545,14 +546,14 @@ export async function PUT(req: NextRequest) {
 
     if (error) {
       console.error('Error updating content pillar:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
     console.log('✅ Successfully updated content pillar:', data);
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error in PUT /api/content-pillars:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -581,13 +582,13 @@ export async function DELETE(req: NextRequest) {
 
     if (error) {
       console.error('Error deleting content pillar:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
 
     console.log('✅ Successfully deleted content pillar:', id);
     return NextResponse.json({ message: 'Content pillar deleted successfully' });
   } catch (error: any) {
     console.error('Error in DELETE /api/content-pillars:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

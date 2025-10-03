@@ -170,7 +170,7 @@ export const TuesdayTemplate: React.FC<TuesdayTemplateProps> = ({
             objectFit: imageFit as any,
             objectPosition: imageAlignment,
             transform: `translateZ(0) scale(${imageScale}) translateY(${imageVerticalPosition}px)`,
-            filter: 'brightness(1.1) contrast(1.05)'
+            filter: 'brightness(1.3) contrast(0.9)'
           }}
           alt="Background"
         />

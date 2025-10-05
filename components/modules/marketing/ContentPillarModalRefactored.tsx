@@ -1769,7 +1769,7 @@ export default function ContentPillarModalRefactored({
                     <div key={`new-a-${index}`} className="flex items-center gap-2 p-2 bg-black/30 border border-gray-600/30 rounded-lg backdrop-blur-sm">
                       <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center">
                         {fileInfo.uploading ? (
-                          <div className="w-3 h-3 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+                          <div className="w-3 h-3 border-2 border-gray-400/30 border-t-gray-400 rounded-full animate-spin" />
                         ) : fileInfo.error ? (
                           <X className="w-4 h-4 text-red-400" />
                         ) : (
@@ -1876,7 +1876,7 @@ export default function ContentPillarModalRefactored({
                       <div key={`new-b-${index}`} className="flex items-center gap-2 p-2 bg-black/30 border border-gray-600/30 rounded-lg backdrop-blur-sm">
                         <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center">
                           {fileInfo.uploading ? (
-                            <div className="w-3 h-3 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+                            <div className="w-3 h-3 border-2 border-gray-400/30 border-t-gray-400 rounded-full animate-spin" />
                           ) : fileInfo.error ? (
                             <X className="w-4 h-4 text-red-400" />
                           ) : (

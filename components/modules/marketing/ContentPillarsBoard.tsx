@@ -57,7 +57,7 @@ const dayColumns = [
     key: "monday", 
     title: "MYTH BUSTER MONDAY", 
     icon: <Calendar className="w-4 h-4" />,
-    color: "blue"
+    color: "gray"
   },
   { 
     key: "tuesday", 
@@ -1097,7 +1097,7 @@ export default function ContentPillarsBoard() {
                 </div>
                 <button 
                   onClick={() => handleOpenExamples(col.key)}
-                  className="p-1 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 text-blue-300 hover:text-blue-200 hover:from-blue-500/30 hover:to-cyan-500/30 transition-all duration-200 border border-blue-500/30"
+                  className="p-1 rounded-full bg-gradient-to-br from-gray-500/20 to-gray-600/20 text-gray-300 hover:text-gray-200 hover:from-gray-500/30 hover:to-gray-600/30 transition-all duration-200 border border-gray-500/30"
                   title={`View content examples for ${col.title}`}
                 >
                   <BookOpen className="w-3 h-3" />

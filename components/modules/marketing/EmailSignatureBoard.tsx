@@ -736,7 +736,7 @@ export default function EmailSignatureBoard() {
                       ...prev, 
                       socialLinks: { ...prev.socialLinks, facebook: e.target.value }
                     }))}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder="https://facebook.com/silberarrows"
                   />
                 </div>
@@ -752,7 +752,7 @@ export default function EmailSignatureBoard() {
                       ...prev, 
                       socialLinks: { ...prev.socialLinks, instagram: e.target.value }
                     }))}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder="https://instagram.com/silberarrows"
                   />
                 </div>
@@ -771,7 +771,7 @@ export default function EmailSignatureBoard() {
                       ...prev, 
                       socialLinks: { ...prev.socialLinks, linkedin: e.target.value }
                     }))}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder="https://linkedin.com/company/silberarrows"
                   />
                 </div>
@@ -787,7 +787,7 @@ export default function EmailSignatureBoard() {
                       ...prev, 
                       socialLinks: { ...prev.socialLinks, youtube: e.target.value }
                     }))}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder="https://youtube.com/silberarrows"
                   />
                 </div>
@@ -805,7 +805,7 @@ export default function EmailSignatureBoard() {
               type="text"
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
-              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
               placeholder="Template name (e.g., Sales Team, Marketing)"
             />
           </div>
@@ -831,14 +831,14 @@ export default function EmailSignatureBoard() {
                       console.log('Banner 1 URL manually changed to:', e.target.value);
                       setSignatureData(prev => ({ ...prev, bannerImage1: e.target.value }));
                     }}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder="https://example.com/banner1.jpg"
                   />
                   <input
                     type="url"
                     value={signatureData.bannerLink1}
                     onChange={(e) => setSignatureData(prev => ({ ...prev, bannerLink1: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder="Optional link for Banner 1 (https://...)"
                   />
                   <div className="flex gap-2">
@@ -889,14 +889,14 @@ export default function EmailSignatureBoard() {
                       console.log('Banner 2 URL manually changed to:', e.target.value);
                       setSignatureData(prev => ({ ...prev, bannerImage2: e.target.value }));
                     }}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder="https://example.com/banner2.jpg"
                   />
                   <input
                     type="url"
                     value={signatureData.bannerLink2}
                     onChange={(e) => setSignatureData(prev => ({ ...prev, bannerLink2: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder="Optional link for Banner 2 (https://...)"
                   />
                   <div className="flex gap-2">
@@ -946,7 +946,7 @@ export default function EmailSignatureBoard() {
                   type="url"
                   value={signatureData.logoImage || ''}
                   onChange={(e) => setSignatureData(prev => ({ ...prev, logoImage: e.target.value }))}
-                  className="col-span-2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="col-span-2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                   placeholder="https://.../logo.png"
                 />
                 <div className="col-span-3">
@@ -971,7 +971,7 @@ export default function EmailSignatureBoard() {
                     type="url"
                     value={(signatureData as any)[key] || ''}
                     onChange={(e) => setSignatureData(prev => ({ ...prev, [key]: e.target.value } as any))}
-                    className="col-span-2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="col-span-2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder={`https://.../${task}.png`}
                   />
                   <div className="col-span-3">
@@ -997,7 +997,7 @@ export default function EmailSignatureBoard() {
                     type="url"
                     value={(signatureData as any)[key] || ''}
                     onChange={(e) => setSignatureData(prev => ({ ...prev, [key]: e.target.value } as any))}
-                    className="col-span-2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="col-span-2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     placeholder={`https://.../${task}.png`}
                   />
                   <div className="col-span-3">

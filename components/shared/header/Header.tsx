@@ -67,7 +67,7 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
             {!isModuleSelectionPage && (
               <>
                 {/* Static navigation - renders immediately based on current path */}
-                <div className="max-w-[805px] min-h-[36px] flex items-center overflow-hidden">
+                <div className="max-w-[805px] min-h-[36px] flex items-center overflow-visible">
                   {currentModule === 'uv-crm' && <CRMNavigation />}
                   {currentModule === 'workshop' && activeTab && onTabChange && (
                     <WorkshopNavigation activeTab={activeTab} onTabChange={onTabChange} />

@@ -35,3 +35,4 @@ FROM information_schema.columns
 WHERE table_name = 'content_pillars' 
   AND column_name IN ('titleFontSize', 'imageFit', 'imageAlignment', 'imageZoom', 'imageVerticalPosition')
 ORDER BY column_name;
+

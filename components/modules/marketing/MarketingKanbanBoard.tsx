@@ -127,7 +127,7 @@ const columns: MarketingColumn[] = [
     key: "intake", 
     title: "INTAKE", 
     icon: <Archive className="w-4 h-4" />,
-    color: "blue"
+    color: "gray"
   },
   { 
     key: "planned", 
@@ -1044,7 +1044,7 @@ export default function MarketingKanbanBoard() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 top-[72px] px-4 overflow-hidden">
+      <div className="fixed inset-0 top-[72px] px-4 overflow-hidden bg-black">
         <div className="flex gap-3 pb-4 w-full h-full">
           {columns
             .filter(col => showArchived || col.key !== 'archived')
@@ -1100,7 +1100,7 @@ export default function MarketingKanbanBoard() {
                       inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[8px] font-medium transition-all duration-200
                       ${archivedFetched 
                         ? 'bg-green-600/20 text-green-300 border border-green-500/30' 
-                        : 'bg-blue-600/20 text-blue-300 border border-blue-500/30 hover:bg-blue-600/30'
+                        : 'bg-gray-600/20 text-gray-300 border border-gray-500/30 hover:bg-gray-600/30'
                       }
                       ${loadingArchived ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
@@ -1139,7 +1139,7 @@ export default function MarketingKanbanBoard() {
               
               {/* Search Results Indicator - Show when search is active */}
               {searchQuery && searchQuery.trim() && (
-                <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30">
+                <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium bg-gray-600/20 text-gray-300 border border-gray-500/30">
                   <span>{grouped[col.key].length} found</span>
                 </div>
               )}
@@ -1250,7 +1250,7 @@ export default function MarketingKanbanBoard() {
                       {/* Task Type Badge - Top Right */}
                                             <div className="absolute top-0.5 right-0.5 z-20">
                         {task.task_type === 'design' && (
-                          <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                          <div className="flex items-center gap-1 bg-gray-500/20 text-gray-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
                             <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                             </svg>
@@ -1266,7 +1266,7 @@ export default function MarketingKanbanBoard() {
                           </div>
                         )}
                                                  {task.task_type === 'video' && (
-                           <div className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                           <div className="flex items-center gap-1 bg-gray-500/20 text-gray-300 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
                              <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
                                <path d="M8 5v14l11-7z"/>
                             </svg>
@@ -1341,8 +1341,8 @@ export default function MarketingKanbanBoard() {
                                 {task.title}
                               </h4>
                               {tasksWithActiveUploads.has(task.id) && (
-                                <div className="flex items-center gap-0.5 bg-blue-500/20 text-blue-300 px-1 py-0.5 rounded-full backdrop-blur-sm animate-pulse">
-                                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-ping"></div>
+                                <div className="flex items-center gap-0.5 bg-gray-500/20 text-gray-300 px-1 py-0.5 rounded-full backdrop-blur-sm animate-pulse">
+                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-ping"></div>
                                   <span className="text-[7px] font-medium uppercase">Uploading</span>
                                 </div>
                               )}

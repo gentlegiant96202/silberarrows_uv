@@ -1139,8 +1139,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-2">
-      <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-xl p-5 w-full max-w-2xl text-xs relative max-h-[90vh] overflow-visible shadow-2xl ring-1 ring-white/10">
-        <div className="flex justify-between items-center mb-6 border-b border-white/20 pb-4">
+      <div className="bg-black/90 backdrop-blur-xl border border-gray-600/50 rounded-xl p-5 w-full max-w-2xl text-xs relative max-h-[90vh] overflow-visible shadow-2xl ring-1 ring-gray-600/30">
+        <div className="flex justify-between items-center mb-6 border-b border-gray-600/50 pb-4">
           <h2 className="text-2xl font-bold text-white">
             {task ? 'Edit Task' : 'Add New Task'}
           </h2>
@@ -1383,10 +1383,10 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                                 <span className="text-green-400">✓ Uploaded</span>
                               ) : uploading ? (
                                 <div className="space-y-1">
-                                  <span className="text-indigo-400">Uploading... {uploadProgress}%</span>
+                                  <span className="text-gray-400">Uploading... {uploadProgress}%</span>
                                   <div className="w-full h-1 bg-white/10 rounded overflow-hidden">
                                     <div
-                                      className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300 ease-out"
+                                      className="h-full bg-gradient-to-r from-gray-400 to-gray-600 transition-all duration-300 ease-out"
                                       style={{ width: `${uploadProgress}%` }}
                                     />
                                   </div>
@@ -1474,7 +1474,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                             className={`relative group aspect-square rounded-lg overflow-hidden transition-all cursor-pointer flex-shrink-0 w-16 h-16 hover:ring-1 hover:ring-white/20 ${
                               draggedIndex === index ? 'opacity-30 scale-95 rotate-3' : ''
                             } ${
-                              dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-blue-400 scale-105' : ''
+                              dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-gray-400 scale-105' : ''
                             }`}
                           >
                             <div className="w-full h-full bg-white/5 relative">
@@ -1585,7 +1585,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                 <button
                   type="button"
                   onClick={handleDownloadAllFiles}
-                  className="px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:text-blue-200 text-xs rounded transition-all flex items-center gap-1.5"
+                  className="px-2 py-1 bg-gray-500/10 hover:bg-gray-500/20 border border-gray-500/30 text-gray-300 hover:text-gray-200 text-xs rounded transition-all flex items-center gap-1.5"
                   disabled={downloading}
                 >
                   <Download className="w-3 h-3" />

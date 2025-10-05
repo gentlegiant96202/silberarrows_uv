@@ -294,6 +294,9 @@ export default function MythBusterMondayBoard() {
         throw new Error('No session found');
       }
 
+      console.log('🚀 Sending task data to Creative Hub:', taskData);
+      console.log('📝 Description being sent:', taskData.description);
+      
       const response = await fetch('/api/design-tasks', {
         method: 'POST',
         headers: {
@@ -310,6 +313,7 @@ export default function MythBusterMondayBoard() {
 
       const newTask = await response.json();
       console.log('✅ Task created in Creative Hub:', newTask);
+      console.log('✅ Task description in response:', newTask.description);
 
       // Update marketing status to 'sent'
       await handleStatusChange(item.id, 'sent', 'marketing_status');

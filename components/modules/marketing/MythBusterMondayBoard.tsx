@@ -277,10 +277,11 @@ export default function MythBusterMondayBoard() {
       console.log('📝 Formatted description for Creative Hub:', formattedDescription);
       
       // Create task data for the Marketing Kanban
+      // Use 'in_progress' status so description shows in Caption field
       const taskData = {
         title: item.title,
         description: formattedDescription,
-        status: 'intake',
+        status: 'in_progress',
         assignee: userName,
         task_type: 'design',
         due_date: null,

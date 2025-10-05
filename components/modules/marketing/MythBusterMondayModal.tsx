@@ -75,8 +75,13 @@ export default function MythBusterMondayModal({
   useEffect(() => {
     if (editingItem) {
       // Map database fields (snake_case) to form fields (camelCase)
+      // Ensure all string fields are never null (use empty string instead)
       setFormData({
         ...editingItem,
+        title: editingItem.title || '',
+        myth: editingItem.myth || '',
+        fact: editingItem.fact || '',
+        badge_text: editingItem.badge_text || 'MYTH BUSTER MONDAY',
         titleFontSize: editingItem.titlefontsize || editingItem.titleFontSize || 72,
         imageFit: editingItem.imagefit || editingItem.imageFit || 'cover',
         imageAlignment: editingItem.imagealignment || editingItem.imageAlignment || 'center',

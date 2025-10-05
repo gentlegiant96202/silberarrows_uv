@@ -284,17 +284,21 @@ export async function PUT(req: NextRequest) {
     ) : undefined;
 
     const updateData: any = {
-      title,
-      subtitle: subtitle ?? 'Independent Mercedes Service',
-      description,
-      myth: myth ?? null,
-      fact: fact ?? null,
-      badge_text: badge_text ?? 'MYTH BUSTER MONDAY',
-      media_files: sanitizedMediaFiles,
-      media_files_a: sanitizedMediaFilesA,
-      media_files_b: sanitizedMediaFilesB,
       updated_at: new Date().toISOString()
     };
+
+    // Only include fields if they are actually provided in the request
+    if (title !== undefined) updateData.title = title;
+    if (subtitle !== undefined) updateData.subtitle = subtitle;
+    if (description !== undefined) updateData.description = description;
+    if (myth !== undefined) updateData.myth = myth;
+    if (fact !== undefined) updateData.fact = fact;
+    if (badge_text !== undefined) updateData.badge_text = badge_text;
+    
+    // Handle media files - only update if provided
+    if (media_files !== undefined) updateData.media_files = sanitizedMediaFiles;
+    if (media_files_a !== undefined) updateData.media_files_a = sanitizedMediaFilesA;
+    if (media_files_b !== undefined) updateData.media_files_b = sanitizedMediaFilesB;
 
     // Add status fields if provided
     if (status !== undefined) updateData.status = status;

@@ -355,7 +355,7 @@ export default function MythBusterMondayModal({
   return (
     <>
       <style jsx global>{`
-        /* Remove ALL blue colors and default browser styles */
+        /* Pure zinc/neutral colors - no blue tints */
         input, textarea, select, button {
           -webkit-appearance: none;
           -moz-appearance: none;
@@ -364,14 +364,14 @@ export default function MythBusterMondayModal({
         
         input:focus, textarea:focus, select:focus, button:focus {
           outline: none !important;
-          border-color: #4b5563 !important;
+          border-color: #52525b !important;
           box-shadow: none !important;
           ring: none !important;
         }
         
         input:focus-visible, textarea:focus-visible, select:focus-visible {
           outline: none !important;
-          border-color: #4b5563 !important;
+          border-color: #52525b !important;
           box-shadow: none !important;
         }
         
@@ -381,22 +381,22 @@ export default function MythBusterMondayModal({
           height: 16px;
           width: 16px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+          background: linear-gradient(135deg, #e5e5e5, #a1a1aa);
           cursor: pointer;
-          border: 1px solid #4b5563;
+          border: 1px solid #52525b;
         }
         .slider::-moz-range-thumb {
           height: 16px;
           width: 16px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+          background: linear-gradient(135deg, #e5e5e5, #a1a1aa);
           cursor: pointer;
-          border: 1px solid #4b5563;
+          border: 1px solid #52525b;
         }
         
         /* Select dropdown arrow */
         select {
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2371717a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
           background-position: right 0.5rem center;
           background-repeat: no-repeat;
           background-size: 1.5em 1.5em;
@@ -404,15 +404,15 @@ export default function MythBusterMondayModal({
         }
       `}</style>
       <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-6">
-      <div className="bg-black w-full max-w-[95vw] max-h-[95vh] overflow-hidden border border-gray-800 shadow-[0_0_80px_rgba(0,0,0,0.8)]">
+      <div className="bg-black w-full max-w-[95vw] max-h-[95vh] overflow-hidden border shadow-[0_0_80px_rgba(0,0,0,0.8)]" style={{ borderColor: '#27272a' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-800 bg-gradient-to-r from-gray-900/50 to-black">
-          <h2 className="text-2xl font-light tracking-wide bg-gradient-to-r from-gray-100 via-gray-300 to-gray-400 bg-clip-text text-transparent">
+        <div className="flex items-center justify-between px-8 py-6 border-b bg-gradient-to-r from-neutral-900/50 to-black" style={{ borderColor: '#27272a' }}>
+          <h2 className="text-2xl font-light tracking-wide bg-gradient-to-r from-neutral-100 via-neutral-300 to-neutral-400 bg-clip-text text-transparent">
             {editingItem ? 'Edit Myth Buster Monday' : 'New Myth Buster Monday'}
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-500 hover:text-gray-300 transition-colors p-2"
+            className="text-neutral-500 hover:text-neutral-300 transition-colors p-2"
           >
             <X className="w-5 h-5" />
           </button>
@@ -421,21 +421,22 @@ export default function MythBusterMondayModal({
         {/* Main Content - Split Layout */}
         <div className="flex h-full">
           {/* Left Side - Form */}
-          <div className="w-2/5 overflow-y-auto max-h-[calc(95vh-80px)] bg-black border-r border-gray-800">
+          <div className="w-2/5 overflow-y-auto max-h-[calc(95vh-80px)] bg-black border-r" style={{ borderColor: '#27272a' }}>
             <form onSubmit={handleSubmit}>
               <div className="p-10 space-y-8">
             
             {/* Title Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-gray-400 uppercase tracking-widest">
+                <label className="text-xs font-medium text-neutral-400 uppercase tracking-widest">
                   Title
                 </label>
                 <button
                   type="button"
                   onClick={handleAIGenerate}
                   disabled={isGenerating}
-                  className="px-3 py-1.5 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 text-gray-300 text-xs font-medium border border-gray-700 transition-all disabled:opacity-50"
+                  className="px-3 py-1.5 bg-gradient-to-r from-neutral-800 to-neutral-900 hover:from-neutral-700 hover:to-neutral-800 text-neutral-300 text-xs font-medium border transition-all disabled:opacity-50"
+                  style={{ borderColor: '#3f3f46' }}
                 >
                   {isGenerating ? (
                     <span>Generating...</span>
@@ -450,24 +451,25 @@ export default function MythBusterMondayModal({
               <textarea
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-950 border border-gray-800 text-white placeholder-gray-600 focus:outline-none focus:ring-0 focus:border-gray-600 transition-colors resize-none"
+                className="w-full px-4 py-3 bg-neutral-950 border text-white placeholder-neutral-600 focus:outline-none focus:ring-0 transition-colors resize-none"
+                style={{ borderColor: '#27272a' }}
                 placeholder="Enter title..."
                 rows={2}
-                style={{ whiteSpace: 'pre-wrap' }}
                 required
               />
             </div>
 
             {/* Myth Section */}
             <div className="space-y-3">
-              <label className="text-xs font-medium text-gray-400 uppercase tracking-widest">
+              <label className="text-xs font-medium text-neutral-400 uppercase tracking-widest">
                 The Myth
               </label>
               <textarea
                 value={formData.myth}
                 onChange={(e) => handleInputChange('myth', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 bg-gray-950 border border-gray-800 text-white placeholder-gray-600 focus:outline-none focus:ring-0 focus:border-gray-600 transition-colors resize-none"
+                className="w-full px-4 py-3 bg-neutral-950 border text-white placeholder-neutral-600 focus:outline-none focus:ring-0 transition-colors resize-none"
+                style={{ borderColor: '#27272a' }}
                 placeholder="Enter the myth..."
                 required
               />
@@ -475,14 +477,15 @@ export default function MythBusterMondayModal({
             
             {/* Fact Section */}
             <div className="space-y-3">
-              <label className="text-xs font-medium text-gray-400 uppercase tracking-widest">
+              <label className="text-xs font-medium text-neutral-400 uppercase tracking-widest">
                 The Fact
               </label>
               <textarea
                 value={formData.fact}
                 onChange={(e) => handleInputChange('fact', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 bg-gray-950 border border-gray-800 text-white placeholder-gray-600 focus:outline-none focus:ring-0 focus:border-gray-600 transition-colors resize-none"
+                className="w-full px-4 py-3 bg-neutral-950 border text-white placeholder-neutral-600 focus:outline-none focus:ring-0 transition-colors resize-none"
+                style={{ borderColor: '#27272a' }}
                 placeholder="Enter the fact..."
                 required
               />
@@ -490,24 +493,24 @@ export default function MythBusterMondayModal({
 
             {/* Image Upload Section */}
             <div className="space-y-3">
-              <label className="text-xs font-medium text-gray-400 uppercase tracking-widest">
+              <label className="text-xs font-medium text-neutral-400 uppercase tracking-widest">
                 Background Image
               </label>
-              <div className="border border-gray-800 bg-gray-950">
+              <div className="border bg-neutral-950" style={{ borderColor: '#27272a' }}>
                 <div className="flex items-center justify-center w-full">
                   <label className={`flex flex-col items-center justify-center w-full h-32 cursor-pointer transition-colors ${
-                    isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-900'
+                    isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-900'
                   }`}>
                     <div className="flex flex-col items-center justify-center">
                       {isUploading ? (
                         <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b border-gray-500 mb-2"></div>
-                          <p className="text-xs text-gray-500">Uploading...</p>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b mb-2" style={{ borderColor: '#71717a' }}></div>
+                          <p className="text-xs text-neutral-500">Uploading...</p>
                         </>
                       ) : (
                         <>
-                          <p className="text-sm text-gray-500 mb-1">Click to upload</p>
-                          <p className="text-xs text-gray-600">PNG, JPG, WEBP · Max 10MB</p>
+                          <p className="text-sm text-neutral-500 mb-1">Click to upload</p>
+                          <p className="text-xs text-neutral-600">PNG, JPG, WEBP · Max 10MB</p>
                         </>
                       )}
                     </div>
@@ -569,18 +572,18 @@ export default function MythBusterMondayModal({
                   </label>
                 </div>
                 {formData.media_files?.[0] && (
-                  <div className="p-3 border-t border-gray-800 bg-gray-900">
+                  <div className="p-3 border-t bg-neutral-900" style={{ borderColor: '#27272a' }}>
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-400 truncate">{formData.media_files[0].name}</p>
-                        <p className="text-xs text-gray-600 mt-0.5">
+                        <p className="text-xs text-neutral-400 truncate">{formData.media_files[0].name}</p>
+                        <p className="text-xs text-neutral-600 mt-0.5">
                           {(formData.media_files[0].size / 1024 / 1024).toFixed(2)} MB
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleInputChange('media_files', [])}
-                        className="text-gray-600 hover:text-gray-400 transition-colors ml-3"
+                        className="text-neutral-600 hover:text-neutral-400 transition-colors ml-3"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -591,29 +594,29 @@ export default function MythBusterMondayModal({
             </div>
 
             {/* Image Adjustments */}
-            <div className="space-y-4 pt-4 border-t border-gray-900">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-widest">Image Adjustments</p>
+            <div className="space-y-4 pt-4 border-t" style={{ borderColor: '#18181b' }}>
+              <p className="text-xs font-medium text-neutral-500 uppercase tracking-widest">Image Adjustments</p>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-600">Font Size: {formData.titleFontSize}px</label>
+                  <label className="text-xs text-neutral-600">Font Size: {formData.titleFontSize}px</label>
                   <input
                     type="range"
                     value={formData.titleFontSize}
                     onChange={(e) => handleInputChange('titleFontSize', parseInt(e.target.value))}
-                    className="w-full h-1 bg-gray-900 appearance-none cursor-pointer slider"
+                    className="w-full h-1 bg-neutral-900 appearance-none cursor-pointer slider"
                     min="20"
                     max="120"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-600">Zoom: {formData.imageZoom}%</label>
+                  <label className="text-xs text-neutral-600">Zoom: {formData.imageZoom}%</label>
                   <input
                     type="range"
                     value={formData.imageZoom}
                     onChange={(e) => handleInputChange('imageZoom', parseInt(e.target.value))}
-                    className="w-full h-1 bg-gray-900 appearance-none cursor-pointer slider"
+                    className="w-full h-1 bg-neutral-900 appearance-none cursor-pointer slider"
                     min="10"
                     max="200"
                   />
@@ -622,11 +625,12 @@ export default function MythBusterMondayModal({
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-600">Fit</label>
+                  <label className="text-xs text-neutral-600">Fit</label>
                   <select
                     value={formData.imageFit}
                     onChange={(e) => handleInputChange('imageFit', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-950 border border-gray-800 text-gray-300 text-sm focus:outline-none focus:ring-0 focus:border-gray-600"
+                    className="w-full px-3 py-2 bg-neutral-950 border text-neutral-300 text-sm focus:outline-none focus:ring-0"
+                    style={{ borderColor: '#27272a' }}
                   >
                     <option value="cover">Cover</option>
                     <option value="contain">Contain</option>
@@ -635,11 +639,12 @@ export default function MythBusterMondayModal({
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-600">Alignment</label>
+                  <label className="text-xs text-neutral-600">Alignment</label>
                   <select
                     value={formData.imageAlignment}
                     onChange={(e) => handleInputChange('imageAlignment', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-950 border border-gray-800 text-gray-300 text-sm focus:outline-none focus:ring-0 focus:border-gray-600"
+                    className="w-full px-3 py-2 bg-neutral-950 border text-neutral-300 text-sm focus:outline-none focus:ring-0"
+                    style={{ borderColor: '#27272a' }}
                   >
                     <option value="center">Center</option>
                     <option value="top">Top</option>
@@ -651,14 +656,15 @@ export default function MythBusterMondayModal({
 
 
             {/* Generated Images */}
-            <div className="space-y-4 pt-6 border-t border-gray-900">
+            <div className="space-y-4 pt-6 border-t" style={{ borderColor: '#18181b' }}>
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-widest">Generated Images</p>
+                <p className="text-xs font-medium text-neutral-500 uppercase tracking-widest">Generated Images</p>
                 <button
                   type="button"
                   onClick={handleGeneratePreviewImages}
                   disabled={isGeneratingImages}
-                  className="px-4 py-2 bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400 text-black text-xs font-medium border border-gray-400 transition-all disabled:opacity-50"
+                  className="px-4 py-2 bg-gradient-to-r from-neutral-200 to-neutral-300 hover:from-neutral-300 hover:to-neutral-400 text-black text-xs font-medium border transition-all disabled:opacity-50"
+                  style={{ borderColor: '#a3a3a3' }}
                 >
                   {isGeneratingImages ? 'Generating...' : 'Generate'}
                 </button>
@@ -667,10 +673,10 @@ export default function MythBusterMondayModal({
               {(formData.generated_image_a_url || formData.generated_image_b_url) ? (
                 <div className="space-y-2">
                   {formData.generated_image_a_url && (
-                    <div className="flex items-center justify-between p-3 bg-gray-950 border border-gray-800">
+                    <div className="flex items-center justify-between p-3 bg-neutral-950 border" style={{ borderColor: '#27272a' }}>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-500">Template A</span>
-                        <span className="text-xs text-gray-600">2160×3840</span>
+                        <span className="text-xs text-neutral-500">Template A</span>
+                        <span className="text-xs text-neutral-600">2160×3840</span>
                       </div>
                       <button
                         onClick={() => {
@@ -679,17 +685,17 @@ export default function MythBusterMondayModal({
                           link.download = `myth-buster-template-a-${Date.now()}.jpg`;
                           link.click();
                         }}
-                        className="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs transition-colors"
+                        className="px-3 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs transition-colors"
                       >
                         Download
                       </button>
                     </div>
                   )}
                   {formData.generated_image_b_url && (
-                    <div className="flex items-center justify-between p-3 bg-gray-950 border border-gray-800">
+                    <div className="flex items-center justify-between p-3 bg-neutral-950 border" style={{ borderColor: '#27272a' }}>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-500">Template B</span>
-                        <span className="text-xs text-gray-600">2160×3840</span>
+                        <span className="text-xs text-neutral-500">Template B</span>
+                        <span className="text-xs text-neutral-600">2160×3840</span>
                       </div>
                       <button
                         onClick={() => {
@@ -698,7 +704,7 @@ export default function MythBusterMondayModal({
                           link.download = `myth-buster-template-b-${Date.now()}.jpg`;
                           link.click();
                         }}
-                        className="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs transition-colors"
+                        className="px-3 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs transition-colors"
                       >
                         Download
                       </button>
@@ -706,7 +712,7 @@ export default function MythBusterMondayModal({
                   )}
                 </div>
               ) : (
-                <p className="text-xs text-gray-600 text-center py-4">No images generated</p>
+                <p className="text-xs text-neutral-600 text-center py-4">No images generated</p>
               )}
             </div>
 
@@ -714,7 +720,8 @@ export default function MythBusterMondayModal({
             <div className="pt-8">
               <button
                 type="submit"
-                className="w-full py-4 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 hover:from-gray-300 hover:via-gray-400 hover:to-gray-300 text-black font-medium tracking-wide transition-all border border-gray-400"
+                className="w-full py-4 bg-gradient-to-r from-neutral-200 via-neutral-300 to-neutral-200 hover:from-neutral-300 hover:via-neutral-400 hover:to-neutral-300 text-black font-medium tracking-wide transition-all border"
+                style={{ borderColor: '#a3a3a3' }}
               >
                 {editingItem ? 'Update' : 'Create'}
               </button>
@@ -724,9 +731,9 @@ export default function MythBusterMondayModal({
           </div>
 
           {/* Right Side - Live Preview */}
-          <div className="w-3/5 border-l border-gray-800 flex flex-col bg-black">
-            <div className="px-8 py-6 border-b border-gray-800">
-              <h3 className="text-sm font-light text-gray-400 uppercase tracking-widest">Live Preview</h3>
+          <div className="w-3/5 border-l flex flex-col bg-black" style={{ borderColor: '#27272a' }}>
+            <div className="px-8 py-6 border-b" style={{ borderColor: '#27272a' }}>
+              <h3 className="text-sm font-light text-neutral-400 uppercase tracking-widest">Live Preview</h3>
             </div>
             
             <div className="flex-1 p-8">
@@ -734,8 +741,8 @@ export default function MythBusterMondayModal({
               <div className="grid grid-cols-2 gap-6 h-full">
                 {/* Template A Preview */}
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-600 uppercase tracking-widest">Template A</p>
-                  <div className="relative w-full overflow-hidden bg-gray-200 border border-gray-300" style={{ height: 'calc(100vh - 300px)', position: 'relative' }}>
+                  <p className="text-xs text-neutral-600 uppercase tracking-widest">Template A</p>
+                  <div className="relative w-full overflow-hidden bg-neutral-200 border" style={{ height: 'calc(100vh - 300px)', position: 'relative', borderColor: '#d4d4d4' }}>
                     <MythBusterPreview
                       title={formData.title}
                       myth={formData.myth}
@@ -755,8 +762,8 @@ export default function MythBusterMondayModal({
 
                 {/* Template B Preview */}
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-600 uppercase tracking-widest">Template B</p>
-                  <div className="relative w-full overflow-hidden bg-gray-200 border border-gray-300" style={{ height: 'calc(100vh - 300px)', position: 'relative' }}>
+                  <p className="text-xs text-neutral-600 uppercase tracking-widest">Template B</p>
+                  <div className="relative w-full overflow-hidden bg-neutral-200 border" style={{ height: 'calc(100vh - 300px)', position: 'relative', borderColor: '#d4d4d4' }}>
                     <MythBusterPreview
                       title={formData.title}
                       myth={formData.myth}

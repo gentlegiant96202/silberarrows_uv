@@ -215,15 +215,16 @@ export default function MythBusterMondayBoard() {
   const formatMythBusterDescription = (item: MythBusterItem): string => {
     const sections: string[] = [];
     
-    sections.push(item.title);
-    sections.push('');
+    // Don't include title since it's already in the task title field
     
     if (item.myth) {
+      sections.push('MYTH:');
       sections.push(item.myth);
       sections.push('');
     }
     
     if (item.fact) {
+      sections.push('FACT:');
       sections.push(item.fact);
     }
     

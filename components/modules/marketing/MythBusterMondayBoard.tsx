@@ -63,17 +63,16 @@ const marketingStatusConfig = {
 };
 
 const SkeletonCard = () => (
-  <div className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 rounded-lg p-4 animate-pulse border border-gray-700/50 backdrop-blur-sm">
-    <div className="h-3 bg-gradient-to-r from-gray-700 to-gray-600 rounded mb-2"></div>
-    <div className="h-2 bg-gradient-to-r from-gray-700 to-gray-600 rounded mb-1.5 w-3/4"></div>
-    <div className="h-2 bg-gradient-to-r from-gray-700 to-gray-600 rounded mb-3 w-1/2"></div>
-    <div className="flex gap-1.5 mb-3">
-      <div className="h-5 bg-gradient-to-r from-gray-700 to-gray-600 rounded-full w-12"></div>
-      <div className="h-5 bg-gradient-to-r from-gray-700 to-gray-600 rounded-full w-16"></div>
+  <div className="bg-black border border-gray-800 p-4 animate-pulse">
+    <div className="h-3 bg-gray-900 mb-2"></div>
+    <div className="h-2 bg-gray-900 mb-1.5 w-3/4"></div>
+    <div className="h-2 bg-gray-900 mb-3 w-1/2"></div>
+    <div className="mb-3">
+      <div className="h-4 bg-gray-950 border border-gray-800"></div>
     </div>
-    <div className="flex gap-1.5">
-      <div className="h-6 bg-gradient-to-r from-gray-700 to-gray-600 rounded w-16"></div>
-      <div className="h-6 bg-gradient-to-r from-gray-700 to-gray-600 rounded w-16"></div>
+    <div className="space-y-2">
+      <div className="h-8 bg-gray-950 border border-gray-800"></div>
+      <div className="h-8 bg-gray-950 border border-gray-800"></div>
     </div>
   </div>
 );
@@ -392,7 +391,33 @@ export default function MythBusterMondayBoard() {
   }
 
   return (
-    <div className="p-6 bg-black min-h-screen">
+    <>
+      <style jsx global>{`
+        /* Force remove all blue colors in this component */
+        * {
+          accent-color: #4b5563 !important;
+        }
+        
+        input:focus, textarea:focus, select:focus, button:focus {
+          outline: none !important;
+          border-color: #4b5563 !important;
+          box-shadow: none !important;
+        }
+        
+        input:focus-visible, textarea:focus-visible, select:focus-visible {
+          outline: none !important;
+          border-color: #4b5563 !important;
+          box-shadow: none !important;
+        }
+        
+        /* Ensure checkboxes and radio buttons are gray */
+        input[type="checkbox"]:checked,
+        input[type="radio"]:checked {
+          background-color: #6b7280 !important;
+          border-color: #6b7280 !important;
+        }
+      `}</style>
+      <div className="p-6 bg-black min-h-screen">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -487,11 +512,21 @@ export default function MythBusterMondayBoard() {
               
               {/* Send to Creative Hub */}
               <button
-                onClick={() => handleSendToCreativeHub(item)}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('🚀 Send button clicked for item:', item.id);
+                  console.log('Status:', item.status);
+                  console.log('Generated images:', {
+                    a: item.generated_image_a_url,
+                    b: item.generated_image_b_url
+                  });
+                  handleSendToCreativeHub(item);
+                }}
                 disabled={item.status !== 'ready' || (!item.generated_image_a_url && !item.generated_image_b_url)}
                 className={`w-full px-3 py-2 text-xs font-medium transition-all border flex items-center justify-center gap-1.5 ${
                   item.status === 'ready' && (item.generated_image_a_url || item.generated_image_b_url)
-                    ? 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-gray-200 border-gray-600'
+                    ? 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-gray-200 border-gray-600 cursor-pointer'
                     : 'bg-gray-950 text-gray-700 border-gray-900 cursor-not-allowed opacity-50'
                 }`}
               >
@@ -533,6 +568,7 @@ export default function MythBusterMondayBoard() {
           editingItem={editingItem}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

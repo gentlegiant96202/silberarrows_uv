@@ -142,6 +142,8 @@ export default function MythBusterMondayModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     console.log('🚀 handleSubmit called!', { editingItem: !!editingItem, formData });
+    console.log('📝 Myth field value:', formData.myth);
+    console.log('📝 Fact field value:', formData.fact);
     e.preventDefault();
 
     try {

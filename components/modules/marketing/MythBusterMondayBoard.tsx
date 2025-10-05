@@ -215,54 +215,17 @@ export default function MythBusterMondayBoard() {
   const formatMythBusterDescription = (item: MythBusterItem): string => {
     const sections: string[] = [];
     
-    // Header
-    sections.push('# Myth Buster Monday Content');
-    sections.push('');
-    
-    // Title
-    sections.push('## 📌 Title');
     sections.push(item.title);
     sections.push('');
     
-    // Myth
     if (item.myth) {
-      sections.push('## ❌ The Myth');
       sections.push(item.myth);
       sections.push('');
     }
     
-    // Fact
     if (item.fact) {
-      sections.push('## ✅ The Fact');
       sections.push(item.fact);
-      sections.push('');
     }
-    
-    // Badge text (if custom)
-    if (item.badge_text && item.badge_text !== 'MYTH BUSTER MONDAY') {
-      sections.push('## 🏷️ Badge Text');
-      sections.push(item.badge_text);
-      sections.push('');
-    }
-    
-    // Images info
-    sections.push('## 🎨 Generated Images');
-    const imageCount = (item.generated_image_a_url ? 1 : 0) + (item.generated_image_b_url ? 1 : 0);
-    sections.push(`${imageCount} template${imageCount !== 1 ? 's' : ''} attached:`);
-    if (item.generated_image_a_url) sections.push('- Template A (Simple layout with title and image)');
-    if (item.generated_image_b_url) sections.push('- Template B (Detailed layout with myth vs fact comparison)');
-    sections.push('');
-    
-    // Instructions
-    sections.push('## 📝 Instructions');
-    sections.push('Use the attached images for social media posting.');
-    sections.push('Images are optimized for Instagram Stories (1080x1920px @ 2x resolution).');
-    sections.push('');
-    
-    // Footer
-    sections.push('---');
-    sections.push('**Source:** Myth Buster Monday Module');
-    sections.push(`**Created:** ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`);
     
     return sections.filter(Boolean).join('\n');
   };

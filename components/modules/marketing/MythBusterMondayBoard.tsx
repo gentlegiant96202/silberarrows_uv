@@ -255,13 +255,25 @@ export default function MythBusterMondayBoard() {
         user.email?.split('@')[0]?.replace(/\./g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 
         'Marketing Team';
 
-      // Prepare media files - use generated images
+      // Prepare media files - use generated images with proper format
       const mediaFiles = [];
       if (item.generated_image_a_url) {
-        mediaFiles.push(item.generated_image_a_url);
+        mediaFiles.push({
+          url: item.generated_image_a_url,
+          name: `myth-buster-template-a-${item.id}.jpg`,
+          type: 'image/jpeg',
+          size: 0,
+          template_type: 'A'
+        });
       }
       if (item.generated_image_b_url) {
-        mediaFiles.push(item.generated_image_b_url);
+        mediaFiles.push({
+          url: item.generated_image_b_url,
+          name: `myth-buster-template-b-${item.id}.jpg`,
+          type: 'image/jpeg',
+          size: 0,
+          template_type: 'B'
+        });
       }
       
       // Format description

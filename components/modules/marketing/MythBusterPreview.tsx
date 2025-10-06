@@ -559,6 +559,45 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
     isPreview = false
   } = props;
 
+  // Font loading CSS for browser preview
+  const fontsCSS = `
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Black.woff2') format('woff2');
+      font-weight: 900;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Medium.woff2') format('woff2');
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Light.woff2') format('woff2');
+      font-weight: 300;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Resonate';
+      src: url('/Fonts/Resonate-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+  `;
+
   // Clean title like in original template
   const cleanTitle = (car_model || title || 'Your Title Here')
     .replace(/MERCEDES[-\s]*BENZ\s*/gi, '')
@@ -601,17 +640,19 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
   // Template A - Original design
   if (templateType === 'A') {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        width: '1080px',
-        height: '1920px',
-        fontFamily: 'Resonate, Inter, Arial, sans-serif',
-        background: '#000000',
-        color: '#ffffff',
-        overflow: 'hidden',
-        transform: isPreview ? 'translate(-50%, -50%) scale(0.4)' : 'scale(1)',
-        transformOrigin: 'center center',
+      <>
+        <style dangerouslySetInnerHTML={{ __html: fontsCSS }} />
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          width: '1080px',
+          height: '1920px',
+          fontFamily: 'Resonate, Inter, Arial, sans-serif',
+          background: '#000000',
+          color: '#ffffff',
+          overflow: 'hidden',
+          transform: isPreview ? 'translate(-50%, -50%) scale(0.4)' : 'scale(1)',
+          transformOrigin: 'center center',
         margin: '0',
         padding: '0',
         position: isPreview ? 'absolute' : 'relative',
@@ -744,18 +785,21 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
           <span style={{ fontWeight: 'bold' }}>More Details</span>
         </div>
       </div>
+      </>
     );
   }
 
   // Template B - With myth and fact sections
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      width: '1080px',
-      height: '1920px',
-      fontFamily: 'Resonate, Inter, Arial, sans-serif',
-      background: '#000000',
+    <>
+      <style dangerouslySetInnerHTML={{ __html: fontsCSS }} />
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '1080px',
+        height: '1920px',
+        fontFamily: 'Resonate, Inter, Arial, sans-serif',
+        background: '#000000',
       color: '#ffffff',
       overflow: 'hidden',
       transform: isPreview ? 'translate(-50%, -50%) scale(0.4)' : 'scale(1)',
@@ -982,5 +1026,6 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
         </div>
       </div>
     </div>
+    </>
   );
 };

@@ -249,11 +249,11 @@ export default function MythBusterMondayModal({
           imageZoom: formData.imageZoom,
           imageVerticalPosition: formData.imageVerticalPosition,
           isPreview: false, // Don't apply preview scaling for image generation
-          scale: 1 // Generate at 1x resolution to match preview exactly
+          scale: 2 // Generate at 2x resolution for high quality (2160x3840)
         });
       };
 
-      // Generate both Template A and Template B images using Railway renderer at 1x resolution (1080x1920)
+      // Generate both Template A and Template B images using Railway renderer at 2x resolution (2160x3840)
       const [templateAResponse, templateBResponse] = await Promise.all([
         fetch('/api/myth-buster-monday/generate-railway-image', {
           method: 'POST',
@@ -263,7 +263,9 @@ export default function MythBusterMondayModal({
           },
           body: JSON.stringify({
             html: generateTemplateHTML('A'),
-            templateType: 'A'
+            templateType: 'A',
+            width: 2160,
+            height: 3840
           }),
         }),
         fetch('/api/myth-buster-monday/generate-railway-image', {
@@ -274,7 +276,9 @@ export default function MythBusterMondayModal({
           },
           body: JSON.stringify({
             html: generateTemplateHTML('B'),
-            templateType: 'B'
+            templateType: 'B',
+            width: 2160,
+            height: 3840
           }),
         })
       ]);
@@ -320,12 +324,17 @@ export default function MythBusterMondayModal({
         };
 
         // Download Template A
+        console.log('📥 Downloading Template A...');
         downloadBase64Image(
           templateAResult.data.imageBase64,
           `myth-buster-monday-template-a-${Date.now()}.png`
         );
 
+        // Small delay to ensure first download starts before second
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Download Template B
+        console.log('📥 Downloading Template B...');
         downloadBase64Image(
           templateBResult.data.imageBase64,
           `myth-buster-monday-template-b-${Date.now()}.png`

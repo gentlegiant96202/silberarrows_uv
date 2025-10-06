@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 interface GenerateRailwayImageRequest {
   html: string;
   templateType: 'A' | 'B';
+  width?: number;
+  height?: number;
 }
 
 export async function POST(req: NextRequest) {
@@ -17,11 +19,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
 
-    const { html, templateType } = body;
+    const { html, templateType, width = 2160, height = 3840 } = body;
 
     console.log('📝 Request received:', {
       templateType,
-      htmlLength: html?.length || 0
+      htmlLength: html?.length || 0,
+      dimensions: `${width}x${height}`
     });
 
     if (!html || !templateType) {
@@ -74,7 +77,9 @@ export async function POST(req: NextRequest) {
           },
           body: JSON.stringify({
             html,
-            templateType
+            templateType,
+            width,
+            height
           }),
           signal: AbortSignal.timeout(45000) // 45 second timeout
         });

@@ -899,11 +899,12 @@ app.post('/render-consignment-agreement', async (req, res) => {
 app.post('/render-myth-buster', async (req, res) => {
   try {
     console.log('🎨 Myth Buster Monday render request received');
-    const { html, templateType } = req.body;
+    const { html, templateType, width = 2160, height = 3840 } = req.body;
     
     console.log('📝 Request details:', { 
       templateType, 
-      htmlLength: html?.length || 0 
+      htmlLength: html?.length || 0,
+      dimensions: `${width}x${height}`
     });
     
     if (!html || !templateType) {
@@ -922,9 +923,9 @@ app.post('/render-myth-buster', async (req, res) => {
     const page = await browser.newPage();
     console.log('✅ Browser launched');
 
-    // Instagram story format (1080x1920)
-    console.log('📐 Setting up Instagram story format (1080x1920)...');
-    await page.setViewportSize({ width: 1080, height: 1920 });
+    // Instagram story format - default 2x (2160x3840) for high quality
+    console.log(`📐 Setting up Instagram story format (${width}x${height})...`);
+    await page.setViewportSize({ width, height });
     await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     
@@ -970,7 +971,7 @@ app.post('/render-myth-buster', async (req, res) => {
     console.log('📸 Taking screenshot...');
     const imageBuffer = await page.screenshot({ 
       type: 'png', 
-      clip: { x: 0, y: 0, width: 1080, height: 1920 } 
+      clip: { x: 0, y: 0, width, height } 
     });
     console.log('✅ Screenshot taken');
 

@@ -206,6 +206,7 @@ export default function KanbanBoard() {
   const [showVehicleDocumentModal, setShowVehicleDocumentModal] = useState(false);
   const [vehicleDocumentMode, setVehicleDocumentMode] = useState<'reservation' | 'invoice'>('reservation');
   const [leadForDocument, setLeadForDocument] = useState<Lead | null>(null);
+  const [leadOriginalStatus, setLeadOriginalStatus] = useState<string | null>(null);
 
   // Search store
   const { query } = useSearchStore();
@@ -501,6 +502,7 @@ export default function KanbanBoard() {
       
       // No reservation - show modal to generate it
       setLeadForDocument(leadToMove);
+      setLeadOriginalStatus(leadToMove.status);
       setVehicleDocumentMode('reservation');
       setShowVehicleDocumentModal(true);
       return;
@@ -531,6 +533,7 @@ export default function KanbanBoard() {
       
       // No invoice - show modal to generate it
       setLeadForDocument(leadToMove);
+      setLeadOriginalStatus(leadToMove.status);
       setVehicleDocumentMode('invoice');
       setShowVehicleDocumentModal(true);
       return;
@@ -586,6 +589,7 @@ export default function KanbanBoard() {
           // Always open vehicle document modal for won/delivered leads
           console.log('Opening vehicle document modal');
           setLeadForDocument(lead);
+          setLeadOriginalStatus(lead.status);
           setVehicleDocumentMode(lead.status === 'won' ? 'reservation' : 'invoice');
           setShowVehicleDocumentModal(true);
           return;
@@ -710,23 +714,39 @@ export default function KanbanBoard() {
   };
 
   const handleVehicleDocumentCancel = () => {
-    // If user cancels invoice generation, revert lead back to previous status
-    if (vehicleDocumentMode === 'invoice' && leadForDocument) {
-      // Revert to 'won' status (previous step before delivered)
+    // Only revert if we were actively moving the card (not just viewing)
+    if (vehicleDocumentMode === 'invoice' && leadForDocument && leadOriginalStatus !== 'delivered') {
+      // Revert to original status (only if card wasn't already delivered)
       supabase.from("leads").update({ 
-        status: 'won',
+        status: leadOriginalStatus || 'won',
         updated_at: new Date().toISOString()
       }).eq("id", leadForDocument.id).then(({ error }) => {
         if (error) {
           console.error("Failed to revert lead status:", error);
         } else {
-          console.log("Lead reverted to WON status due to cancelled invoice");
+          console.log(`Lead reverted to ${leadOriginalStatus || 'won'} status due to cancelled invoice`);
+        }
+      });
+    }
+    
+    // Same logic for reservation mode
+    if (vehicleDocumentMode === 'reservation' && leadForDocument && leadOriginalStatus !== 'won') {
+      // Revert to original status (only if card wasn't already in reserved)
+      supabase.from("leads").update({ 
+        status: leadOriginalStatus || 'negotiation',
+        updated_at: new Date().toISOString()
+      }).eq("id", leadForDocument.id).then(({ error }) => {
+        if (error) {
+          console.error("Failed to revert lead status:", error);
+        } else {
+          console.log(`Lead reverted to ${leadOriginalStatus || 'negotiation'} status due to cancelled reservation`);
         }
       });
     }
     
     setShowVehicleDocumentModal(false);
     setLeadForDocument(null);
+    setLeadOriginalStatus(null);
   };
 
   // Archive lead function

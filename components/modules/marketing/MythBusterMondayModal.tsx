@@ -233,6 +233,52 @@ export default function MythBusterMondayModal({
         return;
       }
 
+      // Delete old generated images if they exist (prevent storage bloat)
+      if (formData.generated_image_a_url || formData.generated_image_b_url) {
+        console.log('🗑️ Deleting old generated images before creating new ones...');
+        
+        const deletePromises = [];
+        
+        if (formData.generated_image_a_url) {
+          // Extract file path from URL (e.g., "generated/myth-buster-template-a-1234567890.png")
+          const urlParts = formData.generated_image_a_url.split('/myth-buster-images/');
+          if (urlParts.length > 1) {
+            const filePath = urlParts[1];
+            console.log(`🗑️ Deleting old Template A: ${filePath}`);
+            deletePromises.push(
+              supabase.storage
+                .from('myth-buster-images')
+                .remove([filePath])
+                .then(({ error }) => {
+                  if (error) console.error('Error deleting old Template A:', error);
+                  else console.log('✅ Deleted old Template A');
+                })
+            );
+          }
+        }
+        
+        if (formData.generated_image_b_url) {
+          // Extract file path from URL
+          const urlParts = formData.generated_image_b_url.split('/myth-buster-images/');
+          if (urlParts.length > 1) {
+            const filePath = urlParts[1];
+            console.log(`🗑️ Deleting old Template B: ${filePath}`);
+            deletePromises.push(
+              supabase.storage
+                .from('myth-buster-images')
+                .remove([filePath])
+                .then(({ error }) => {
+                  if (error) console.error('Error deleting old Template B:', error);
+                  else console.log('✅ Deleted old Template B');
+                })
+            );
+          }
+        }
+        
+        await Promise.all(deletePromises);
+        console.log('✅ Old images deleted, now generating new ones...');
+      }
+
       // Use the utility function to generate HTML that exactly matches the preview component
       // Generate at 2x scale for better quality (2160x3840 instead of 1080x1920)
       const generateTemplateHTML = (templateType: 'A' | 'B') => {

@@ -551,7 +551,8 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
         <div style={{
           position: 'relative',
           width: '100%',
-          height: '69.5%'
+          height: '69.5%',
+          overflow: 'hidden'
         }}>
           <img
             src={imageUrl || logoUrl}
@@ -560,7 +561,8 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
               height: '100%',
               objectFit: imageFit as any,
               objectPosition: imageAlignment,
-              transform: `translateZ(0) scale(${imageZoom / 100}) translateY(${imageVerticalPosition}px)`
+              transform: `scale(${imageZoom / 100}) translateY(${imageVerticalPosition}px)`,
+              transformOrigin: 'center center'
             }}
             alt="Background"
           />
@@ -698,7 +700,8 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
         left: 0,
         width: '100%',
         height: '69.5%',
-        zIndex: 0
+        zIndex: 0,
+        overflow: 'hidden'
       }}>
         <img
           src={imageUrl || logoUrl}
@@ -708,7 +711,8 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
             objectFit: 'cover',
             filter: 'blur(8px)',
             opacity: 0.3,
-            transform: `scale(${imageZoom / 100})`
+            transform: `scale(${imageZoom / 100}) translateY(${imageVerticalPosition}px)`,
+            transformOrigin: 'center center'
           }}
           alt="Background"
         />

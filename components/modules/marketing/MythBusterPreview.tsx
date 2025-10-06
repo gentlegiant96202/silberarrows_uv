@@ -100,6 +100,9 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             overflow: hidden;
         }
         .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             object-fit: ${imageFit};
@@ -250,6 +253,9 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             overflow: hidden;
         }
         .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -557,6 +563,9 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
           <img
             src={imageUrl || logoUrl}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
               height: '100%',
               objectFit: imageFit as any,
@@ -706,6 +715,9 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
         <img
           src={imageUrl || logoUrl}
           style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
             width: '100%',
             height: '100%',
             objectFit: 'cover',

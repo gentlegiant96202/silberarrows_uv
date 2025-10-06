@@ -72,10 +72,11 @@ export async function POST(req: NextRequest) {
           html: html,
           viewport_width: width,
           viewport_height: height,
-          ms_delay: 1000, // Wait for fonts and styles to load
+          ms_delay: 2000, // Increased delay to ensure images load fully
           format: 'jpeg',
           quality: 90,
           device_scale: 1, // HTML is already generated at 2x scale, no need to scale again
+          render_when_ready: false, // Don't wait for manual trigger
         }),
       });
 

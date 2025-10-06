@@ -463,32 +463,6 @@ export default function KanbanBoard() {
     const leadToMove = leads.find(l => l.id === id);
     if (!leadToMove) return;
     
-    // Guard: if moving OUT of delivered and invoice exists, block unless admin
-    if (leadToMove.status === 'delivered' && targetCol !== 'delivered') {
-      try {
-        const { data: invoiceRecord, error: invErr } = await supabase
-          .from('vehicle_reservations')
-          .select('id, document_number, pdf_url')
-          .eq('lead_id', leadToMove.id)
-          .eq('document_type', 'invoice')
-          .maybeSingle();
-        if (invErr) {
-          console.error('Invoice lookup failed - blocking move for safety:', invErr.message);
-          alert('Cannot verify invoice status. Move blocked for security. Please try again.');
-          return; // BLOCK the move on error
-        }
-        const hasInvoice = !!invoiceRecord && (!!invoiceRecord.document_number || !!invoiceRecord.pdf_url);
-        if (hasInvoice && !isAdmin) {
-          alert('This card is locked in DELIVERED because an invoice exists. Only admins can move it.');
-          return;
-        }
-      } catch (guardErr) {
-        console.error('Guard check failed - blocking move for safety:', guardErr);
-        alert('Security check failed. Move blocked. Please try again.');
-        return; // BLOCK the move on error
-      }
-    }
-
     // Special case: converting from new_lead to new_customer (appointment)
     if (leadToMove.status === 'new_lead' && targetCol === 'new_customer') {
       setConvertingLead(leadToMove);

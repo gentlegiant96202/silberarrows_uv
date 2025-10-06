@@ -34,16 +34,23 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check if HTML is too large (> 500KB)
-    if (html && html.length > 500000) {
-      console.error('❌ HTML content too large:', html.length, 'characters');
-      return NextResponse.json({ error: 'HTML content too large (>500KB)' }, { status: 400 });
-    }
-
-    // Get Railway renderer URL from environment
+    // Replace relative font URLs with absolute Railway URLs so Playwright can load them
     const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 
                        process.env.RENDERER_URL || 
                        'https://story-render-production.up.railway.app';
+    
+    const htmlWithAbsoluteFonts = html.replace(
+      /url\('\/Fonts\//g, 
+      `url('${rendererUrl}/Fonts/`
+    );
+    
+    console.log('🔤 Replaced relative font URLs with absolute Railway URLs');
+
+    // Check if HTML is too large (> 500KB)
+    if (htmlWithAbsoluteFonts && htmlWithAbsoluteFonts.length > 500000) {
+      console.error('❌ HTML content too large:', htmlWithAbsoluteFonts.length, 'characters');
+      return NextResponse.json({ error: 'HTML content too large (>500KB)' }, { status: 400 });
+    }
     
     console.log('📡 Calling Railway renderer service at:', rendererUrl);
     
@@ -76,7 +83,7 @@ export async function POST(req: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            html,
+            html: htmlWithAbsoluteFonts,
             templateType,
             width,
             height

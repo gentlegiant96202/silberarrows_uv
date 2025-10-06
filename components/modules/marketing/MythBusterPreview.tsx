@@ -105,6 +105,8 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             height: 100%;
             object-fit: ${imageFit};
             object-position: ${imageAlignment};
+            transform: scale(${imageZoom / 100}) translateY(${s(imageVerticalPosition)}px);
+            transform-origin: center center;
         }
         .content-section {
             padding: ${s(20)}px ${s(40)}px ${s(40)}px ${s(40)}px;
@@ -254,6 +256,8 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             height: 100%;
             object-fit: cover;
             object-position: ${imageAlignment};
+            transform: scale(${imageZoom / 100}) translateY(${s(imageVerticalPosition)}px);
+            transform-origin: center center;
             filter: blur(${s(8)}px);
             opacity: 0.3;
         }
@@ -560,7 +564,9 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
               width: '100%',
               height: '100%',
               objectFit: imageFit as any,
-              objectPosition: imageAlignment
+              objectPosition: imageAlignment,
+              transform: `scale(${imageZoom / 100}) translateY(${imageVerticalPosition}px)`,
+              transformOrigin: 'center center'
             }}
             alt="Background"
             loading="eager"
@@ -710,6 +716,8 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
             height: '100%',
             objectFit: 'cover',
             objectPosition: imageAlignment,
+            transform: `scale(${imageZoom / 100}) translateY(${imageVerticalPosition}px)`,
+            transformOrigin: 'center center',
             filter: 'blur(8px)',
             opacity: 0.3
           }}

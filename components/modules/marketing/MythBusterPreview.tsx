@@ -430,7 +430,7 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             line-height: 1.4;
             font-family: 'Resonate', 'Inter', 'Arial', sans-serif;
             font-weight: 300;
-            text-align: left;
+            text-align: justify;
         }
         .contact {
             position: absolute;
@@ -948,7 +948,7 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
                 lineHeight: '1.4',
                 fontFamily: 'Resonate, Inter, sans-serif',
                 fontWeight: 300,
-                textAlign: 'left'
+                textAlign: 'justify'
               }}>
                 {renderTitleWithLineBreaks(myth)}
               </div>
@@ -992,7 +992,7 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
                 lineHeight: '1.4',
                 fontFamily: 'Resonate, Inter, sans-serif',
                 fontWeight: 300,
-                textAlign: 'left'
+                textAlign: 'justify'
               }}>
                 {renderTitleWithLineBreaks(fact)}
               </div>

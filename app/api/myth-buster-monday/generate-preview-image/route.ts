@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
           ms_delay: 1000, // Wait for fonts and styles to load
           format: 'jpeg',
           quality: 90,
-          device_scale: 2, // Higher quality for better results
+          device_scale: 1, // HTML is already generated at 2x scale, no need to scale again
         }),
       });
 

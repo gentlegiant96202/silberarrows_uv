@@ -1187,12 +1187,21 @@ export default function ContentPillarsBoard() {
                         e.stopPropagation();
                         handlePushToCreativeHub(item);
                       }}
+                      style={{ 
+                        transition: 'all 0.2s ease-in-out, opacity 0.2s ease-in-out 0s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transition = 'all 0.2s ease-in-out, opacity 0.2s ease-in-out 0s';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transition = 'all 0.2s ease-in-out, opacity 0.2s ease-in-out 300ms';
+                      }}
                       className="
-                        p-1 rounded-full transition-all duration-200 
+                        p-2 rounded-full transition-all duration-200 
                         bg-gradient-to-br from-green-500/20 to-emerald-500/20 text-green-300 opacity-0 group-hover:opacity-100 
-                        hover:text-green-200 hover:from-green-500/30 hover:to-emerald-500/30
+                        hover:!opacity-100 hover:text-green-200 hover:from-green-500/30 hover:to-emerald-500/30
                         hover:shadow-lg hover:scale-110 border border-green-500/30
-                        focus:outline-none focus:ring-2 focus:ring-green-400/50
+                        focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:opacity-100
                       "
                       title="Push to Creative Hub"
                     >

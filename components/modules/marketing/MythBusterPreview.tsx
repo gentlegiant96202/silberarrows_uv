@@ -74,6 +74,43 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
     <title>Myth Buster Monday</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
+        /* Resonate Font Faces - Railway will serve these from /Fonts/ */
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Black.woff2') format('woff2');
+          font-weight: 900;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Bold.woff2') format('woff2');
+          font-weight: 700;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Medium.woff2') format('woff2');
+          font-weight: 500;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Light.woff2') format('woff2');
+          font-weight: 300;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Regular.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             display: flex;
@@ -222,6 +259,43 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
     <title>Myth Buster Monday</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
+        /* Resonate Font Faces - Railway will serve these from /Fonts/ */
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Black.woff2') format('woff2');
+          font-weight: 900;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Bold.woff2') format('woff2');
+          font-weight: 700;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Medium.woff2') format('woff2');
+          font-weight: 500;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Light.woff2') format('woff2');
+          font-weight: 300;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Resonate';
+          src: url('/Fonts/Resonate-Regular.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             display: flex;

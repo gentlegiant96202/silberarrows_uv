@@ -340,18 +340,69 @@ export default function MythBusterMondayModal({
           `myth-buster-monday-template-b-${Date.now()}.png`
         );
 
-        // Convert base64 to data URLs for preview/storage
-        const imageAUrl = `data:image/png;base64,${templateAResult.data.imageBase64}`;
-        const imageBUrl = `data:image/png;base64,${templateBResult.data.imageBase64}`;
+        // Upload generated images to Supabase Storage
+        console.log('📤 Uploading generated images to Supabase Storage...');
+        
+        // Helper to convert base64 to blob and upload to Supabase
+        const uploadBase64ToStorage = async (base64Data: string, templateType: 'A' | 'B') => {
+          try {
+            // Convert base64 to blob
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'image/png' });
+            
+            // Create file path
+            const timestamp = Date.now();
+            const fileName = `myth-buster-template-${templateType.toLowerCase()}-${timestamp}.png`;
+            const filePath = `generated/${fileName}`;
+            
+            console.log(`⬆️ Uploading ${fileName} to myth-buster-images bucket...`);
+            
+            // Upload to Supabase Storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('myth-buster-images')
+              .upload(filePath, blob, {
+                contentType: 'image/png',
+                cacheControl: '3600',
+                upsert: false
+              });
+            
+            if (uploadError) {
+              console.error(`Upload error for template ${templateType}:`, uploadError);
+              throw uploadError;
+            }
+            
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+              .from('myth-buster-images')
+              .getPublicUrl(filePath);
+            
+            console.log(`✅ Template ${templateType} uploaded: ${publicUrl}`);
+            return publicUrl;
+          } catch (error) {
+            console.error(`Failed to upload template ${templateType}:`, error);
+            throw error;
+          }
+        };
+        
+        // Upload both templates to storage
+        const [imageAUrl, imageBUrl] = await Promise.all([
+          uploadBase64ToStorage(templateAResult.data.imageBase64, 'A'),
+          uploadBase64ToStorage(templateBResult.data.imageBase64, 'B')
+        ]);
 
-        // Store the generated image data URLs in formData
+        // Store the uploaded image URLs in formData (small URLs, not huge base64 strings!)
         setFormData(prev => ({
           ...prev,
           generated_image_a_url: imageAUrl,
           generated_image_b_url: imageBUrl
         }));
 
-        alert('✅ Images generated via Railway and downloaded successfully!');
+        alert('✅ Images generated, downloaded, and uploaded to storage successfully!');
       } else {
         console.error('Railway image generation failed:', templateAResult.error || templateBResult.error);
         alert('❌ Failed to generate images via Railway. Please try again.');

@@ -249,12 +249,11 @@ export default function MythBusterMondayModal({
           imageZoom: formData.imageZoom,
           imageVerticalPosition: formData.imageVerticalPosition,
           isPreview: false, // Don't apply preview scaling for image generation
-          scale: 2 // Generate at 2x resolution for better quality
+          scale: 1 // Generate at 1x resolution to match preview exactly
         });
       };
 
-      // Generate both Template A and Template B images at 2x resolution for better quality
-      // 2160x3840 = 2x Instagram Story size (1080x1920)
+      // Generate both Template A and Template B images at 1x resolution (1080x1920)
       const [templateAResponse, templateBResponse] = await Promise.all([
         fetch('/api/myth-buster-monday/generate-preview-image', {
           method: 'POST',
@@ -265,8 +264,8 @@ export default function MythBusterMondayModal({
           body: JSON.stringify({
             html: generateTemplateHTML('A'),
             templateType: 'A',
-            width: 2160,
-            height: 3840
+            width: 1080,
+            height: 1920
           }),
         }),
         fetch('/api/myth-buster-monday/generate-preview-image', {
@@ -278,8 +277,8 @@ export default function MythBusterMondayModal({
           body: JSON.stringify({
             html: generateTemplateHTML('B'),
             templateType: 'B',
-            width: 2160,
-            height: 3840
+            width: 1080,
+            height: 1920
           }),
         })
       ]);

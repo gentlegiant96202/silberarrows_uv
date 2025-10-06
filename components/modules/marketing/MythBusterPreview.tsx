@@ -104,7 +104,7 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             height: 100%;
             object-fit: ${imageFit};
             object-position: ${imageAlignment};
-            transform: scale(${imageZoom / 100}) translateY(${s(imageVerticalPosition)}px);
+            transform: translateY(${s(imageVerticalPosition)}px) scale(${imageZoom / 100});
             transform-origin: center center;
         }
         .content-section {
@@ -255,7 +255,7 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             object-fit: cover;
             filter: blur(${s(8)}px);
             opacity: 0.3;
-            transform: scale(${imageZoom / 100}) translateY(${s(imageVerticalPosition)}px);
+            transform: translateY(${s(imageVerticalPosition)}px) scale(${imageZoom / 100});
             transform-origin: center center;
         }
         .background-overlay {
@@ -561,7 +561,7 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
               height: '100%',
               objectFit: imageFit as any,
               objectPosition: imageAlignment,
-              transform: `scale(${imageZoom / 100}) translateY(${imageVerticalPosition}px)`,
+              transform: `translateY(${imageVerticalPosition}px) scale(${imageZoom / 100})`,
               transformOrigin: 'center center'
             }}
             alt="Background"
@@ -711,7 +711,7 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
             objectFit: 'cover',
             filter: 'blur(8px)',
             opacity: 0.3,
-            transform: `scale(${imageZoom / 100}) translateY(${imageVerticalPosition}px)`,
+            transform: `translateY(${imageVerticalPosition}px) scale(${imageZoom / 100})`,
             transformOrigin: 'center center'
           }}
           alt="Background"

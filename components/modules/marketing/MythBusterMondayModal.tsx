@@ -253,9 +253,9 @@ export default function MythBusterMondayModal({
         });
       };
 
-      // Generate both Template A and Template B images at 1x resolution (1080x1920)
+      // Generate both Template A and Template B images using Railway renderer at 1x resolution (1080x1920)
       const [templateAResponse, templateBResponse] = await Promise.all([
-        fetch('/api/myth-buster-monday/generate-preview-image', {
+        fetch('/api/myth-buster-monday/generate-railway-image', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
@@ -263,12 +263,10 @@ export default function MythBusterMondayModal({
           },
           body: JSON.stringify({
             html: generateTemplateHTML('A'),
-            templateType: 'A',
-            width: 1080,
-            height: 1920
+            templateType: 'A'
           }),
         }),
-        fetch('/api/myth-buster-monday/generate-preview-image', {
+        fetch('/api/myth-buster-monday/generate-railway-image', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
@@ -276,9 +274,7 @@ export default function MythBusterMondayModal({
           },
           body: JSON.stringify({
             html: generateTemplateHTML('B'),
-            templateType: 'B',
-            width: 1080,
-            height: 1920
+            templateType: 'B'
           }),
         })
       ]);
@@ -293,15 +289,23 @@ export default function MythBusterMondayModal({
       ]);
 
       if (templateAResult.success && templateBResult.success) {
-        console.log('✅ Successfully generated both template preview images');
-        console.log('Template A URL:', templateAResult.data.imageUrl);
-        console.log('Template B URL:', templateBResult.data.imageUrl);
+        console.log('✅ Successfully generated both template preview images via Railway');
+        console.log('Template A stats:', templateAResult.data.stats);
+        console.log('Template B stats:', templateBResult.data.stats);
 
-        // Download both images
-        const downloadImage = async (url: string, filename: string) => {
+        // Helper to convert base64 to blob and download
+        const downloadBase64Image = (base64Data: string, filename: string) => {
           try {
-            const response = await fetch(url);
-            const blob = await response.blob();
+            // Convert base64 to blob
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'image/png' });
+            
+            // Create download link
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
@@ -316,28 +320,32 @@ export default function MythBusterMondayModal({
         };
 
         // Download Template A
-        await downloadImage(
-          templateAResult.data.imageUrl, 
-          `myth-buster-monday-template-a-${Date.now()}.jpg`
+        downloadBase64Image(
+          templateAResult.data.imageBase64,
+          `myth-buster-monday-template-a-${Date.now()}.png`
         );
 
         // Download Template B
-        await downloadImage(
-          templateBResult.data.imageUrl, 
-          `myth-buster-monday-template-b-${Date.now()}.jpg`
+        downloadBase64Image(
+          templateBResult.data.imageBase64,
+          `myth-buster-monday-template-b-${Date.now()}.png`
         );
 
-        // Store the generated image URLs in formData for saving to database
+        // Convert base64 to data URLs for preview/storage
+        const imageAUrl = `data:image/png;base64,${templateAResult.data.imageBase64}`;
+        const imageBUrl = `data:image/png;base64,${templateBResult.data.imageBase64}`;
+
+        // Store the generated image data URLs in formData
         setFormData(prev => ({
           ...prev,
-          generated_image_a_url: templateAResult.data.imageUrl,
-          generated_image_b_url: templateBResult.data.imageUrl
+          generated_image_a_url: imageAUrl,
+          generated_image_b_url: imageBUrl
         }));
 
-        alert('✅ Images generated and downloaded successfully!');
+        alert('✅ Images generated via Railway and downloaded successfully!');
       } else {
-        console.error('Preview image generation failed:', templateAResult.error || templateBResult.error);
-        alert('❌ Failed to generate preview images. Please try again.');
+        console.error('Railway image generation failed:', templateAResult.error || templateBResult.error);
+        alert('❌ Failed to generate images via Railway. Please try again.');
       }
     } catch (error) {
       console.error('Error generating preview images:', error);

@@ -895,6 +895,112 @@ app.post('/render-consignment-agreement', async (req, res) => {
 });
 
 // Health check endpoint
+// Myth Buster Monday Endpoint
+app.post('/render-myth-buster', async (req, res) => {
+  try {
+    console.log('🎨 Myth Buster Monday render request received');
+    const { html, templateType } = req.body;
+    
+    console.log('📝 Request details:', { 
+      templateType, 
+      htmlLength: html?.length || 0 
+    });
+    
+    if (!html || !templateType) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: html and templateType' 
+      });
+    }
+
+    console.log('🚀 Launching browser for Myth Buster Monday...');
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch({ 
+      headless: true, 
+      args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    });
+    const page = await browser.newPage();
+    console.log('✅ Browser launched');
+
+    // Instagram story format (1080x1920)
+    console.log('📐 Setting up Instagram story format (1080x1920)...');
+    await page.setViewportSize({ width: 1080, height: 1920 });
+    await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
+    
+    // Wait for fonts to load (using same approach as content pillars)
+    console.log('⏳ Waiting for fonts and images to load...');
+    await page.evaluate(() => document.fonts && document.fonts.ready);
+    
+    // Check image loading status
+    const imageInfo = await page.evaluate(() => {
+      const images = Array.from(document.querySelectorAll('img'));
+      return images.map(img => ({
+        src: img.src,
+        alt: img.alt,
+        complete: img.complete,
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight
+      }));
+    });
+    console.log('🖼️ Image loading status:', imageInfo);
+    
+    // Force font loading by applying styles (same as content pillars)
+    await page.evaluate(() => {
+      // Create test elements for Resonate font
+      const resonateTest = document.createElement('div');
+      resonateTest.style.fontFamily = 'Resonate, Inter, Arial, sans-serif';
+      resonateTest.style.fontSize = '72px';
+      resonateTest.style.fontWeight = '900';
+      resonateTest.style.position = 'absolute';
+      resonateTest.style.left = '-9999px';
+      resonateTest.innerHTML = 'Myth Buster Test';
+      document.body.appendChild(resonateTest);
+      
+      // Force layout calculation
+      resonateTest.offsetHeight;
+      
+      // Remove test element
+      document.body.removeChild(resonateTest);
+    });
+    
+    // Give extra time for custom fonts and external images to load
+    await page.waitForTimeout(3000);
+    
+    console.log('📸 Taking screenshot...');
+    const imageBuffer = await page.screenshot({ 
+      type: 'png', 
+      clip: { x: 0, y: 0, width: 1080, height: 1920 } 
+    });
+    console.log('✅ Screenshot taken');
+
+    await browser.close();
+    console.log('🔒 Browser closed');
+
+    const mythBusterImage = imageBuffer.toString('base64');
+    
+    const fileSizeMB = (imageBuffer.length / (1024 * 1024)).toFixed(2);
+    console.log(`✅ Myth Buster ${templateType} image generated: ${fileSizeMB}MB`);
+
+    res.json({ 
+      success: true, 
+      mythBusterImage,
+      templateType,
+      stats: {
+        fileSizeMB,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    console.error('❌ Myth Buster render error:', err);
+    console.error('❌ Error stack:', err.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: err instanceof Error ? err.message : 'Unknown error' 
+    });
+  }
+});
+
 // Damage Report Endpoint
 app.post('/render-damage-report', async (req, res) => {
   try {

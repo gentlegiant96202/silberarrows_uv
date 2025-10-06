@@ -35,19 +35,7 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
     .replace(/MERCEDES[-\s]*BENZ\s*/gi, '')
     .replace(/^AMG\s*/gi, 'AMG ');
 
-  // Convert <br> tags and newlines to HTML line breaks
-  const renderTitleWithLineBreaks = (text: string) => {
-    if (!text) return '';
-    
-    // Split by newlines and <br> tags
-    const lines = text.split(/\n|<br\s*\/?>/gi);
-    
-    return lines.map((line, index) => 
-      line + (index < lines.length - 1 ? '<br />' : '')
-    ).join('');
-  };
-
-  // Escape HTML entities
+  // Escape HTML entities FIRST to prevent XSS
   const escapeHtml = (text: string) => {
     return text
       .replace(/&/g, '&amp;')
@@ -57,12 +45,25 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
       .replace(/'/g, '&#39;');
   };
 
-  const escapedTitle = escapeHtml(renderTitleWithLineBreaks(cleanTitle));
-  const escapedMyth = escapeHtml(renderTitleWithLineBreaks(myth));
-  const escapedFact = escapeHtml(renderTitleWithLineBreaks(fact));
-  const escapedDifficulty = escapeHtml(renderTitleWithLineBreaks(difficulty));
-  const escapedToolsNeeded = escapeHtml(renderTitleWithLineBreaks(tools_needed));
-  const escapedWarning = escapeHtml(renderTitleWithLineBreaks(warning));
+  // Convert <br> tags and newlines to HTML line breaks AFTER escaping
+  const renderWithLineBreaks = (text: string) => {
+    if (!text) return '';
+    
+    // First escape HTML to prevent XSS
+    const escaped = escapeHtml(text);
+    
+    // Then replace escaped <br> patterns and newlines with actual HTML breaks
+    return escaped
+      .replace(/\n/g, '<br />')
+      .replace(/&lt;br\s*\/?&gt;/gi, '<br />');
+  };
+
+  const escapedTitle = renderWithLineBreaks(cleanTitle);
+  const escapedMyth = renderWithLineBreaks(myth);
+  const escapedFact = renderWithLineBreaks(fact);
+  const escapedDifficulty = renderWithLineBreaks(difficulty);
+  const escapedToolsNeeded = renderWithLineBreaks(tools_needed);
+  const escapedWarning = renderWithLineBreaks(warning);
   const escapedBadgeText = escapeHtml(badgeText);
 
   if (templateType === 'A') {
@@ -96,13 +97,15 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             position: relative;
             width: 100%;
             height: 69.5%;
+            overflow: hidden;
         }
         .background-image {
             width: 100%;
             height: 100%;
             object-fit: ${imageFit};
             object-position: ${imageAlignment};
-            transform: translateZ(0) scale(${imageZoom / 100}) translateY(${s(imageVerticalPosition)}px);
+            transform: scale(${imageZoom / 100}) translateY(${s(imageVerticalPosition)}px);
+            transform-origin: center center;
         }
         .content-section {
             padding: ${s(20)}px ${s(40)}px ${s(40)}px ${s(40)}px;
@@ -244,6 +247,7 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             width: 100%;
             height: 69.5%;
             z-index: 0;
+            overflow: hidden;
         }
         .background-image {
             width: 100%;
@@ -251,7 +255,8 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             object-fit: cover;
             filter: blur(${s(8)}px);
             opacity: 0.3;
-            transform: scale(${imageZoom / 100});
+            transform: scale(${imageZoom / 100}) translateY(${s(imageVerticalPosition)}px);
+            transform-origin: center center;
         }
         .background-overlay {
             position: absolute;

@@ -190,7 +190,7 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             font-size: ${s(titleFontSize)}px;
             font-weight: 900;
             color: #ffffff;
-            line-height: 0.95;
+            line-height: 0.85;
             text-shadow: 0 ${s(2)}px ${s(4)}px rgba(0,0,0,0.3);
             margin-bottom: ${s(12)}px;
             font-family: 'Resonate', 'Inter', 'Arial', sans-serif;
@@ -744,7 +744,7 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
               fontSize: `${titleFontSize}px`,
               fontWeight: 900,
               color: '#ffffff',
-              lineHeight: '0.95',
+              lineHeight: '0.85',
               textShadow: '0 2px 4px rgba(0,0,0,0.3)',
               marginBottom: '12px',
               fontFamily: 'Resonate, Inter, sans-serif',

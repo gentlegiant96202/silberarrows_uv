@@ -105,7 +105,7 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             height: 100%;
             object-fit: ${imageFit};
             object-position: ${imageAlignment};
-            transform: scale(${imageZoom / 100}) translateY(${s(imageVerticalPosition)}px);
+            transform: scale(${imageZoom / 100}) translateY(${imageVerticalPosition}px);
             transform-origin: center center;
         }
         .content-section {
@@ -256,7 +256,7 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             height: 100%;
             object-fit: cover;
             object-position: ${imageAlignment};
-            transform: scale(${imageZoom / 100}) translateY(${s(imageVerticalPosition)}px);
+            transform: scale(${imageZoom / 100}) translateY(${imageVerticalPosition}px);
             transform-origin: center center;
             filter: blur(${s(8)}px);
             opacity: 0.3;

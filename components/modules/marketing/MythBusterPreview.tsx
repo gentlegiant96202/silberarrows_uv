@@ -98,10 +98,13 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             width: 100%;
             height: 69.5%;
             overflow: hidden;
-            background-image: url('${imageUrl || logoUrl}');
-            background-size: ${imageFit === 'cover' ? 'cover' : imageFit === 'contain' ? 'contain' : `${imageZoom}%`};
-            background-position: ${imageAlignment};
-            background-repeat: no-repeat;
+        }
+        .background-image {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: ${imageFit};
+            object-position: ${imageAlignment};
         }
         .content-section {
             padding: ${s(20)}px ${s(40)}px ${s(40)}px ${s(40)}px;
@@ -183,7 +186,9 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
     </style>
 </head>
 <body>
-    <div class="image-section"></div>
+    <div class="image-section">
+        <img src="${imageUrl || logoUrl}" class="background-image" alt="Background" loading="eager" />
+    </div>
     
     <div class="content-section">
         <div class="badge-row">
@@ -242,10 +247,13 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
             height: 69.5%;
             z-index: 0;
             overflow: hidden;
-            background-image: url('${imageUrl || logoUrl}');
-            background-size: cover;
-            background-position: ${imageAlignment};
-            background-repeat: no-repeat;
+        }
+        .background-image {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: ${imageAlignment};
             filter: blur(${s(8)}px);
             opacity: 0.3;
         }
@@ -370,6 +378,7 @@ export const generateMythBusterHTMLString = (props: MythBusterPreviewProps & { s
 </head>
 <body>
     <div class="background-section">
+        <img src="${imageUrl || logoUrl}" class="background-image" alt="Background" loading="eager" />
         <div class="background-overlay"></div>
     </div>
     
@@ -542,12 +551,21 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
           position: 'relative',
           width: '100%',
           height: '69.5%',
-          overflow: 'hidden',
-          backgroundImage: `url('${imageUrl || logoUrl}')`,
-          backgroundSize: imageFit === 'cover' ? 'cover' : imageFit === 'contain' ? 'contain' : `${imageZoom}%`,
-          backgroundPosition: imageAlignment,
-          backgroundRepeat: 'no-repeat'
-        }}></div>
+          overflow: 'hidden'
+        }}>
+          <img
+            src={imageUrl || logoUrl}
+            style={{
+              display: 'block',
+              width: '100%',
+              height: '100%',
+              objectFit: imageFit as any,
+              objectPosition: imageAlignment
+            }}
+            alt="Background"
+            loading="eager"
+          />
+        </div>
 
         {/* Content Section */}
         <div style={{
@@ -682,14 +700,22 @@ export const MythBusterPreview: React.FC<MythBusterPreviewProps> = (props) => {
         width: '100%',
         height: '69.5%',
         zIndex: 0,
-        overflow: 'hidden',
-        backgroundImage: `url('${imageUrl || logoUrl}')`,
-        backgroundSize: 'cover',
-        backgroundPosition: imageAlignment,
-        backgroundRepeat: 'no-repeat',
-        filter: 'blur(8px)',
-        opacity: 0.3
+        overflow: 'hidden'
       }}>
+        <img
+          src={imageUrl || logoUrl}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: imageAlignment,
+            filter: 'blur(8px)',
+            opacity: 0.3
+          }}
+          alt="Background"
+          loading="eager"
+        />
         <div style={{
           position: 'absolute',
           top: 0,

@@ -387,9 +387,9 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-black border border-white/10 rounded-lg shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
+      <div className="bg-gradient-to-br from-neutral-950/95 via-black/95 to-neutral-950/95 backdrop-blur-xl border-2 border-white/30 rounded-xl shadow-[0_0_60px_rgba(255,255,255,0.15)] max-w-5xl w-full max-h-[95vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-black border-b border-white/10 p-6 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-neutral-950/90 backdrop-blur-lg border-b border-white/20 p-6 flex items-center justify-between z-10">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white/20 border border-white/30 rounded-lg flex items-center justify-center">
               <Wrench className="w-5 h-5 text-white" />
@@ -515,16 +515,29 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
                   onClick={() => handleTierSelect('standard')}
                   className="p-6 bg-white/5 hover:bg-white/10 border-2 border-white/10 hover:border-white/30 rounded-lg text-left transition-all duration-200 group"
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-4 pt-6">
                     <div className="flex items-center justify-between">
                       <h4 className="text-lg font-bold text-white">Standard</h4>
                       <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20">
                         <ChevronRight className="w-4 h-4 text-gray-300" />
                       </div>
                     </div>
-                    <div className="text-sm text-gray-400">2 Years Coverage</div>
+                    <div className="text-sm text-gray-400">2 Years / 30,000 km</div>
                     <div className="text-2xl font-bold text-white">
                       AED {pricing.standard > 0 ? pricing.standard.toLocaleString() : 'N/A'}
+                    </div>
+                    <div className="pt-3 border-t border-white/10 space-y-2">
+                      <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Includes:</p>
+                      <div className="space-y-1.5">
+                        <div className="flex items-start space-x-2">
+                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                          <p className="text-xs text-white/80">Service A (Minor)</p>
+                        </div>
+                        <div className="flex items-start space-x-2">
+                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                          <p className="text-xs text-white/80">Service B (Major) + Brake Fluid</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -537,16 +550,37 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
                   <div className="absolute top-3 right-3">
                     <span className="px-2 py-1 bg-white/20 border border-white/30 text-white text-[10px] font-bold rounded uppercase tracking-wide">RECOMMENDED</span>
                   </div>
-                  <div className="space-y-3 pt-6">
+                  <div className="space-y-4 pt-6">
                     <div className="flex items-center justify-between">
                       <h4 className="text-lg font-bold text-white">Premium</h4>
                       <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20">
                         <ChevronRight className="w-4 h-4 text-gray-300" />
                       </div>
                     </div>
-                    <div className="text-sm text-gray-400">4 Years Coverage</div>
+                    <div className="text-sm text-gray-400">4 Years / 60,000 km</div>
                     <div className="text-2xl font-bold text-white">
                       AED {pricing.premium.toLocaleString()}
+                    </div>
+                    <div className="pt-3 border-t border-white/10 space-y-2">
+                      <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Includes:</p>
+                      <div className="space-y-1.5">
+                        <div className="flex items-start space-x-2">
+                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                          <p className="text-xs text-white/80">Service A (Minor)</p>
+                        </div>
+                        <div className="flex items-start space-x-2">
+                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                          <p className="text-xs text-white/80">Service B (Major) + Brake Fluid</p>
+                        </div>
+                        <div className="flex items-start space-x-2">
+                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                          <p className="text-xs text-white/80">Service A (Minor)</p>
+                        </div>
+                        <div className="flex items-start space-x-2">
+                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                          <p className="text-xs text-white/80">Service B + Brake Fluid + Coolant + Spark Plug + Transmission Oil & Filter</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </button>

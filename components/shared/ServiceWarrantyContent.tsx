@@ -8,6 +8,7 @@ import { Wrench, Shield, AlertCircle, Plus, Settings, FileText, DollarSign, Cale
 import React, { useState, useEffect } from 'react';
 import ServiceContractModal, { ServiceContractData } from '@/components/modules/service/ServiceContractModal';
 import ContractDetailsModal from '@/components/modules/service/ContractDetailsModal';
+import ServiceCarePricingCalculator from '@/components/modules/service/ServiceCarePricingCalculator';
 
 interface Contract {
   id: string;
@@ -77,6 +78,7 @@ export default function ServiceWarrantyContent() {
   // Modal states
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [isPricingCalculatorOpen, setIsPricingCalculatorOpen] = useState(false);
 
   // Helper function to get authorization headers
   const getAuthHeaders = async (): Promise<Record<string, string>> => {
@@ -736,11 +738,11 @@ export default function ServiceWarrantyContent() {
 
               {/* PDF Buttons */}
               <div className="flex items-center space-x-2">
-                {/* ServiceCare PDF Button */}
+                {/* ServiceCare Pricing Calculator Button */}
                 <button
-                  onClick={() => window.open('/SERVICECARE PRICING printfile SEPT. 2025 comressed.pdf', '_blank')}
-                  className="flex items-center justify-center w-10 h-10 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded text-blue-400 transition-all duration-200"
-                  title="View ServiceCare Pricing PDF"
+                  onClick={() => setIsPricingCalculatorOpen(true)}
+                  className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-gray-400/20 to-gray-600/20 hover:from-gray-400/30 hover:to-gray-600/30 border border-gray-400/30 rounded text-gray-300 transition-all duration-200"
+                  title="ServiceCare Pricing Calculator"
                 >
                   <Wrench className="w-5 h-5" />
                 </button>
@@ -849,6 +851,12 @@ export default function ServiceWarrantyContent() {
         contract={selectedContract}
         onUpdated={handleContractUpdated}
         canEdit={isAdmin || isAccounts}
+      />
+
+      {/* ServiceCare Pricing Calculator Modal */}
+      <ServiceCarePricingCalculator
+        isOpen={isPricingCalculatorOpen}
+        onClose={() => setIsPricingCalculatorOpen(false)}
       />
 
     </div>

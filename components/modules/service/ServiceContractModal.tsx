@@ -10,6 +10,14 @@ interface ServiceContractModalProps {
   onClose: () => void;
   onSubmit: (data: ServiceContractData) => void;
   contractType?: 'service' | 'warranty';
+  hideAutoPopulate?: boolean;
+  prefilledData?: {
+    model?: string;
+    variant?: string;
+    year?: string;
+    serviceType?: 'standard' | 'premium';
+    invoiceAmount?: number;
+  };
 }
 
 export interface ServiceContractData {
@@ -52,7 +60,7 @@ export interface ServiceContractData {
   reservationId?: string;
 }
 
-export default function ServiceContractModal({ isOpen, onClose, onSubmit, contractType = 'service' }: ServiceContractModalProps) {
+export default function ServiceContractModal({ isOpen, onClose, onSubmit, contractType = 'service', hideAutoPopulate = false, prefilledData }: ServiceContractModalProps) {
   const { user } = useAuth();
   
   // Generate reference number (SC for service, EW for warranty + 5 random digits)
@@ -81,7 +89,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
     
     return {
       referenceNo: generateReferenceNo(),
-      serviceType: 'standard' as 'standard' | 'premium',
+      serviceType: (prefilledData?.serviceType || 'standard') as 'standard' | 'premium',
       
       // Customer Information
       ownerName: '',
@@ -90,16 +98,16 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       customerIdType: 'EID' as 'EID' | 'Passport',
       customerIdNumber: '',
       
-      // Dealer Information (pre-filled)
-      dealerName: 'SilberArrows',
-      dealerPhone: '+971 4 380 5515',
-      dealerEmail: 'service@silberarrows.com',
+      // Dealer Information
+      dealerName: '',
+      dealerPhone: '',
+      dealerEmail: '',
       
       // Vehicle Information
       vin: '',
-      make: '',
-      model: '',
-      modelYear: '',
+      make: 'Mercedes-Benz',
+      model: prefilledData?.variant ? `${prefilledData.model} ${prefilledData.variant}` : '',
+      modelYear: prefilledData?.year && prefilledData.year !== 'N/A' ? prefilledData.year : '',
       currentOdometer: '',
       exteriorColour: '',
       interiorColour: '',
@@ -110,7 +118,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       cutOffKm: '0', // Will be calculated when current mileage is entered
       
       // Financial Information
-      invoiceAmount: '',
+      invoiceAmount: prefilledData?.invoiceAmount ? prefilledData.invoiceAmount.toString() : '',
       
       // Notes
       notes: ''
@@ -352,6 +360,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
           <div className="flex flex-col gap-6 max-h-[75vh] overflow-y-auto space-y-6 relative">
             
             {/* STEP 1: AUTO-POPULATE FROM RESERVATION */}
+            {!hideAutoPopulate && (
             <div className="bg-blue-500/10 backdrop-blur-sm rounded-lg p-6 border border-blue-500/20">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center border border-blue-500/30">
@@ -410,12 +419,13 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                 )}
               </div>
             </div>
+            )}
             
             {/* STEP 2: CUSTOMER INFORMATION */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
-                  <span className="text-white text-sm font-bold">2</span>
+                  <span className="text-white text-sm font-bold">{hideAutoPopulate ? '1' : '2'}</span>
                 </div>
                 <h3 className="text-lg font-medium text-white flex items-center gap-2">
                   <User className="h-5 w-5" />
@@ -494,7 +504,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
-                  <span className="text-white text-sm font-bold">3</span>
+                  <span className="text-white text-sm font-bold">{hideAutoPopulate ? '2' : '3'}</span>
                 </div>
                 <h3 className="text-lg font-medium text-white flex items-center gap-2">
                   <Car className="h-5 w-5" />
@@ -589,7 +599,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
-                  <span className="text-white text-sm font-bold">4</span>
+                  <span className="text-white text-sm font-bold">{hideAutoPopulate ? '3' : '4'}</span>
                 </div>
                 <h3 className="text-lg font-medium text-white flex items-center gap-2">
                   <FileText className="h-5 w-5" />
@@ -705,7 +715,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
-                  <span className="text-white text-sm font-bold">5</span>
+                  <span className="text-white text-sm font-bold">{hideAutoPopulate ? '4' : '5'}</span>
                 </div>
                 <h3 className="text-lg font-medium text-white flex items-center gap-2">
                   <Calendar className="h-5 w-5" />

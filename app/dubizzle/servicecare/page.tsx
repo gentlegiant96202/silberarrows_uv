@@ -3,14 +3,16 @@
 import { useState } from 'react';
 import { Wrench, Shield, CheckCircle, ArrowRight } from 'lucide-react';
 import CombinedServiceCareModal from '@/components/modules/service/CombinedServiceCareModal';
+import ContractSuccessModal from '@/components/modules/service/ContractSuccessModal';
 
 export default function DubizzleServiceCarePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdContract, setCreatedContract] = useState<any>(null);
 
-  const handleContractCreated = () => {
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 5000);
+  const handleContractCreated = (contractData: any) => {
+    setCreatedContract(contractData);
+    setShowSuccessModal(true);
   };
 
   return (
@@ -18,36 +20,20 @@ export default function DubizzleServiceCarePage() {
       {/* Header */}
       <header className="border-b border-white/10 bg-black/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-white/20 border border-white/30 rounded-lg flex items-center justify-center">
-              <Wrench className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">SilberArrows ServiceCare</h1>
-              <p className="text-xs text-gray-400">Dubizzle Sales Portal</p>
-            </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">SilberArrows ServiceCare</h1>
+            <p className="text-xs text-gray-400">Sales Portal</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-white font-semibold">Dubizzle Team</p>
-            <p className="text-xs text-gray-400">Partner Portal</p>
+          <div>
+            <img 
+              src="/MAIN LOGO.png" 
+              alt="SilberArrows Logo" 
+              className="h-12 w-auto"
+            />
           </div>
         </div>
       </header>
 
-      {/* Success Notification */}
-      {showSuccess && (
-        <div className="fixed top-20 right-6 bg-gradient-to-br from-white/10 to-white/5 border-2 border-white/20 rounded-lg p-4 shadow-2xl z-50 animate-slide-in">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/20 border border-white/30 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="text-white font-semibold">Contract Created Successfully!</p>
-              <p className="text-xs text-gray-400">The contract has been added to the system.</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-6">
@@ -152,6 +138,18 @@ export default function DubizzleServiceCarePage() {
         onClose={() => setIsModalOpen(false)}
         onContractCreated={handleContractCreated}
       />
+
+      {/* Contract Success Modal */}
+      {createdContract && (
+        <ContractSuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setCreatedContract(null);
+          }}
+          contractData={createdContract}
+        />
+      )}
     </div>
   );
 }

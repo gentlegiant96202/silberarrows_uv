@@ -196,7 +196,7 @@ const getPricing = (model: string, variant: string, year: string): { standard: n
 interface CombinedServiceCareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onContractCreated?: () => void;
+  onContractCreated?: (contractData: any) => void;
 }
 
 type Step = 'model' | 'variant' | 'year' | 'tier' | 'result' | 'contract';
@@ -286,11 +286,62 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
     onClose();
   };
 
-  const handleContractSubmit = (data: ServiceContractData) => {
-    setShowContractModal(false);
-    handleReset();
-    if (onContractCreated) {
-      onContractCreated();
+  const handleContractSubmit = async (data: ServiceContractData) => {
+    try {
+      // Submit contract to public API
+      const response = await fetch('/api/public/service-contracts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'service',
+          contract_type: 'service',
+          reference_no: data.referenceNo,
+          service_type: data.serviceType,
+          owner_name: data.ownerName,
+          mobile_no: data.mobileNo,
+          email: data.email,
+          customer_id_type: data.customerIdType,
+          customer_id_number: data.customerIdNumber,
+          dealer_name: data.dealerName,
+          dealer_phone: data.dealerPhone,
+          dealer_email: data.dealerEmail,
+          vin: data.vin,
+          make: data.make,
+          model: data.model,
+          model_year: data.modelYear,
+          current_odometer: data.currentOdometer,
+          exterior_colour: data.exteriorColour,
+          interior_colour: data.interiorColour,
+          start_date: data.startDate,
+          end_date: data.endDate,
+          cut_off_km: data.cutOffKm,
+          invoice_amount: data.invoiceAmount,
+          notes: data.notes,
+          sales_executive: 'Dubizzle Sales Team',
+          workflow_status: 'created'
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Failed to create contract:', error);
+        alert('Failed to create contract. Please try again.');
+        return;
+      }
+
+      const result = await response.json();
+      console.log('✅ Contract created successfully:', result);
+
+      setShowContractModal(false);
+      handleReset();
+      if (onContractCreated) {
+        onContractCreated(result.contract);
+      }
+    } catch (error) {
+      console.error('Error submitting contract:', error);
+      alert('Failed to create contract. Please try again.');
     }
   };
 
@@ -311,6 +362,8 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
 
   // Show contract modal if we've transitioned to contract creation
   if (showContractModal && pricing && selectedTier) {
+    const invoiceAmount = selectedTier === 'standard' ? pricing.standard : pricing.premium;
+    
     return (
       <ServiceContractModal
         isOpen={true}
@@ -320,6 +373,14 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
         }}
         onSubmit={handleContractSubmit}
         contractType="service"
+        hideAutoPopulate={true}
+        prefilledData={{
+          model: selectedModel,
+          variant: selectedVariant,
+          year: selectedYear,
+          serviceType: selectedTier,
+          invoiceAmount: invoiceAmount
+        }}
       />
     );
   }

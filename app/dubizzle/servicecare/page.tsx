@@ -150,35 +150,39 @@ export default function DubizzleServiceCarePage() {
 
           {/* Package Options */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-xl p-6 space-y-3 hover:border-white/20 transition-all relative">
-              {/* Invisible spacer to match Premium card's badge space */}
-              <div className="h-3"></div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-white font-bold text-lg">Standard</h3>
-                <span className="px-3 py-1 bg-white/10 border border-white/20 rounded-full text-xs text-white font-medium">2 Years</span>
-              </div>
-              <p className="text-sm text-gray-400">Comprehensive service coverage for peace of mind</p>
-              <div className="pt-2 border-t border-white/10">
-                <p className="text-xs text-gray-500">Starting from</p>
-                <p className="text-2xl font-bold text-white">AED 2,700</p>
+            <div className="bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-xl p-6 hover:border-white/20 transition-all relative">
+              <div className="space-y-3">
+                {/* Invisible spacer to match Premium card's badge space */}
+                <div className="h-3"></div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-white font-bold text-lg">Standard</h3>
+                  <span className="px-3 py-1 bg-white/10 border border-white/20 rounded-full text-xs text-white font-medium">2 Years</span>
+                </div>
+                <p className="text-sm text-gray-400">Comprehensive service coverage for peace of mind</p>
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-xs text-gray-500">Starting from</p>
+                  <p className="text-2xl font-bold text-white">AED 2,700</p>
+                </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-white/10 to-white/5 border-2 border-white/20 rounded-xl p-6 space-y-3 relative hover:border-white/30 transition-all">
+            <div className="bg-gradient-to-br from-white/10 to-white/5 border-2 border-white/20 rounded-xl p-6 hover:border-white/30 transition-all relative">
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <span className="px-3 py-1.5 bg-gradient-to-r from-white/25 to-white/15 border border-white/30 rounded-full text-[10px] text-white font-bold uppercase tracking-wide shadow-lg">
                   Recommended
                 </span>
               </div>
-              <div className="h-3"></div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-white font-bold text-lg">Premium</h3>
-                <span className="px-3 py-1 bg-white/15 border border-white/25 rounded-full text-xs text-white font-medium">4 Years</span>
-              </div>
-              <p className="text-sm text-gray-300">Extended protection with enhanced benefits</p>
-              <div className="pt-2 border-t border-white/20">
-                <p className="text-xs text-gray-400">Starting from</p>
-                <p className="text-2xl font-bold text-white">AED 5,800</p>
+              <div className="space-y-3">
+                <div className="h-3"></div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-white font-bold text-lg">Premium</h3>
+                  <span className="px-3 py-1 bg-white/15 border border-white/25 rounded-full text-xs text-white font-medium">4 Years</span>
+                </div>
+                <p className="text-sm text-gray-400">Extended protection with enhanced benefits</p>
+                <div className="pt-2 border-t border-white/20">
+                  <p className="text-xs text-gray-400">Starting from</p>
+                  <p className="text-2xl font-bold text-white">AED 5,800</p>
+                </div>
               </div>
             </div>
           </div>

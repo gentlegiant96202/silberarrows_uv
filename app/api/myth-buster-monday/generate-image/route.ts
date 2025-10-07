@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
     // Wait for fonts and images to load
-    await page.waitForTimeout(2000);
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Take screenshot at 2x size for better quality
     const screenshotBuffer = await page.screenshot({

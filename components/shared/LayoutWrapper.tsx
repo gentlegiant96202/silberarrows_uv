@@ -18,7 +18,10 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   // Check if this is a business card public page
   const isBusinessCardPage = pathname.startsWith('/business-card/');
   
-  const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage;
+  // Check if this is a dubizzle public page
+  const isDubizzlePage = pathname.startsWith('/dubizzle/');
+  
+  const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage && !isDubizzlePage;
   const isAccountsPage = pathname.startsWith('/accounts');
   
   const content = (

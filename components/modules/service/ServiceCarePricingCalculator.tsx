@@ -200,7 +200,7 @@ interface ServiceCarePricingCalculatorProps {
   onClose: () => void;
 }
 
-type Step = 'model' | 'variant' | 'year' | 'tier' | 'result';
+type Step = 'model' | 'variant' | 'year' | 'tier' | 'customer' | 'result';
 
 export default function ServiceCarePricingCalculator({ isOpen, onClose }: ServiceCarePricingCalculatorProps) {
   const [currentStep, setCurrentStep] = useState<Step>('model');
@@ -208,6 +208,14 @@ export default function ServiceCarePricingCalculator({ isOpen, onClose }: Servic
   const [selectedVariant, setSelectedVariant] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedTier, setSelectedTier] = useState<'standard' | 'premium' | ''>('');
+  
+  // Customer details state
+  const [customerName, setCustomerName] = useState<string>('');
+  const [countryCode, setCountryCode] = useState<string>('+971');
+  const [mobileNumber, setMobileNumber] = useState<string>('');
+  const [isSending, setIsSending] = useState<boolean>(false);
+  const [sendError, setSendError] = useState<string>('');
+  const [quoteSent, setQuoteSent] = useState<boolean>(false);
 
   const modelCategories = getModelCategories();
   const availableVariants = selectedModel ? getVariantsForModel(selectedModel) : [];
@@ -267,6 +275,9 @@ export default function ServiceCarePricingCalculator({ isOpen, onClose }: Servic
       setSelectedTier('');
     } else if (currentStep === 'result') {
       setCurrentStep('tier');
+    } else if (currentStep === 'customer') {
+      setCurrentStep('result');
+      setSendError('');
     }
   };
 
@@ -276,11 +287,66 @@ export default function ServiceCarePricingCalculator({ isOpen, onClose }: Servic
     setSelectedVariant('');
     setSelectedYear('');
     setSelectedTier('');
+    setCustomerName('');
+    setCountryCode('+971');
+    setMobileNumber('');
+    setIsSending(false);
+    setSendError('');
+    setQuoteSent(false);
   };
 
   const handleClose = () => {
     handleReset();
     onClose();
+  };
+
+  const handleSendQuote = async () => {
+    if (!customerName.trim() || !mobileNumber.trim() || !pricing || !selectedTier) {
+      setSendError('Please fill in all required fields');
+      return;
+    }
+
+    setIsSending(true);
+    setSendError('');
+
+    try {
+      const response = await fetch('/api/service/send-quote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerName: customerName.trim(),
+          countryCode: countryCode.trim(),
+          mobileNumber: mobileNumber.trim(),
+          model: selectedModel,
+          variant: selectedVariant,
+          year: selectedYear || 'N/A',
+          tier: selectedTier,
+          price: selectedTier === 'standard' ? pricing.standard : pricing.premium,
+          duration: selectedTier === 'standard' ? '2 Years' : '4 Years'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send quote');
+      }
+
+      console.log('✅ Quote sent successfully:', data);
+      
+      // Wait 5 seconds for WhatsApp to process and deliver the message
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      setQuoteSent(true);
+      setCurrentStep('result');
+    } catch (error) {
+      console.error('❌ Error sending quote:', error);
+      setSendError(error instanceof Error ? error.message : 'Failed to send quote. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -291,11 +357,12 @@ export default function ServiceCarePricingCalculator({ isOpen, onClose }: Servic
     if (currentStep === 'year') return hasYearOptions ? 3 : 0;
     if (currentStep === 'tier') return hasYearOptions ? 4 : 3;
     if (currentStep === 'result') return hasYearOptions ? 5 : 4;
+    if (currentStep === 'customer') return hasYearOptions ? 6 : 5;
     return 1;
   };
 
   const getTotalSteps = (): number => {
-    return hasYearOptions ? 5 : 4;
+    return hasYearOptions ? 6 : 5;
   };
 
   return (
@@ -511,57 +578,247 @@ export default function ServiceCarePricingCalculator({ isOpen, onClose }: Servic
           {/* Step 5: Result */}
           {currentStep === 'result' && pricing && selectedTier && (
             <div className="space-y-8">
-              {/* Price Display - Main Focus */}
-              <div className="bg-gradient-to-br from-white/10 to-white/5 border-2 border-white/20 rounded-xl p-8 text-center space-y-4">
-                <div className="text-gray-400 text-sm uppercase tracking-wider">ServiceCare Price</div>
-                <div className="text-6xl font-bold text-white tracking-tight">
-                  AED {selectedTier === 'standard' 
-                    ? (pricing.standard > 0 ? pricing.standard.toLocaleString() : 'N/A')
-                    : pricing.premium.toLocaleString()
-                  }
+              {quoteSent ? (
+                /* Success Confirmation */
+                <>
+                  {/* Success Icon & Message */}
+                  <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-2 border-green-500/30 rounded-xl p-8 text-center space-y-4">
+                    <div className="flex items-center justify-center">
+                      <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
+                        <Check className="w-10 h-10 text-green-400" />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-white">Quote Sent Successfully!</h3>
+                    <p className="text-gray-300">
+                      The ServiceCare quote has been sent to <span className="font-semibold text-white">{customerName}</span> via WhatsApp.
+                    </p>
+                    <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
+                      <span className="text-gray-300">Mobile: {countryCode} {mobileNumber}</span>
+                    </div>
+                  </div>
+
+                  {/* Quote Summary */}
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-6">
+                    <h4 className="text-lg font-semibold text-white mb-4">Quote Summary</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Model</div>
+                        <div className="text-sm font-bold text-white">{selectedModel}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Variant</div>
+                        <div className="text-sm font-bold text-white">{selectedVariant}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Package</div>
+                        <div className="text-sm font-bold text-white capitalize">{selectedTier}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Price</div>
+                        <div className="text-sm font-bold text-white">
+                          AED {selectedTier === 'standard' 
+                            ? (pricing.standard > 0 ? pricing.standard.toLocaleString() : 'N/A')
+                            : pricing.premium.toLocaleString()
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex space-x-4 pt-4">
+                    <button
+                      onClick={handleReset}
+                      className="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white font-semibold transition-all duration-200"
+                    >
+                      Send Another Quote
+                    </button>
+                    <button
+                      onClick={handleClose}
+                      className="flex-1 px-6 py-4 bg-gradient-to-r from-white/20 to-white/10 hover:from-white/30 hover:to-white/20 border border-white/30 rounded-lg text-white font-bold transition-all duration-200 shadow-lg"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* Initial Result View */
+                <>
+                  {/* Price Display - Main Focus */}
+                  <div className="bg-gradient-to-br from-white/10 to-white/5 border-2 border-white/20 rounded-xl p-8 text-center space-y-4">
+                    <div className="text-gray-400 text-sm uppercase tracking-wider">ServiceCare Price</div>
+                    <div className="text-6xl font-bold text-white tracking-tight">
+                      AED {selectedTier === 'standard' 
+                        ? (pricing.standard > 0 ? pricing.standard.toLocaleString() : 'N/A')
+                        : pricing.premium.toLocaleString()
+                      }
+                    </div>
+                    <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
+                      <span className="text-gray-300 font-semibold capitalize">{selectedTier} Package</span>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-300 font-semibold">{selectedTier === 'standard' ? '2' : '4'} Years Coverage</span>
+                    </div>
+                  </div>
+
+                  {/* Vehicle Details */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
+                      <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Model</div>
+                      <div className="text-lg font-bold text-white">{selectedModel}</div>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
+                      <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Variant</div>
+                      <div className="text-lg font-bold text-white">{selectedVariant}</div>
+                    </div>
+                    {hasYearOptions && (
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
+                        <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Year Range</div>
+                        <div className="text-lg font-bold text-white">{selectedYear}</div>
+                      </div>
+                    )}
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
+                      <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Duration</div>
+                      <div className="text-lg font-bold text-white">{selectedTier === 'standard' ? '2' : '4'} Years</div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex space-x-4 pt-4">
+                    <button
+                      onClick={handleReset}
+                      className="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white font-semibold transition-all duration-200"
+                    >
+                      Calculate Again
+                    </button>
+                    <button
+                      onClick={() => setCurrentStep('customer')}
+                      className="flex-1 px-6 py-4 bg-gradient-to-r from-white/20 to-white/10 hover:from-white/30 hover:to-white/20 border border-white/30 rounded-lg text-white font-bold transition-all duration-200 shadow-lg"
+                    >
+                      Send to Customer
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Step 6: Customer Details */}
+          {currentStep === 'customer' && pricing && selectedTier && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">Send Quote to Customer</h3>
+                <p className="text-sm text-gray-400">
+                  Enter customer details to send the ServiceCare quote via WhatsApp
+                </p>
+              </div>
+
+              {/* Quote Summary Card */}
+              <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-sm text-gray-400">Quote Summary</div>
+                  <div className="text-2xl font-bold text-white">
+                    AED {selectedTier === 'standard' 
+                      ? (pricing.standard > 0 ? pricing.standard.toLocaleString() : 'N/A')
+                      : pricing.premium.toLocaleString()
+                    }
+                  </div>
                 </div>
-                <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
-                  <span className="text-gray-300 font-semibold capitalize">{selectedTier} Package</span>
-                  <span className="text-gray-400">•</span>
-                  <span className="text-gray-300 font-semibold">{selectedTier === 'standard' ? '2' : '4'} Years Coverage</span>
+                <div className="flex items-center space-x-2 text-sm">
+                  <span className="text-gray-300">{selectedModel}</span>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-300">{selectedVariant}</span>
+                  {hasYearOptions && (
+                    <>
+                      <span className="text-gray-500">•</span>
+                      <span className="text-gray-300">{selectedYear}</span>
+                    </>
+                  )}
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-300 capitalize">{selectedTier} Package</span>
                 </div>
               </div>
 
-              {/* Vehicle Details */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
-                  <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Model</div>
-                  <div className="text-lg font-bold text-white">{selectedModel}</div>
+              {/* Customer Details Form */}
+              <div className="space-y-4">
+                {/* Customer Name */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Customer Name <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Enter customer name"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all"
+                    disabled={isSending}
+                  />
                 </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
-                  <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Variant</div>
-                  <div className="text-lg font-bold text-white">{selectedVariant}</div>
-                </div>
-                {hasYearOptions && (
-                  <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
-                    <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Year Range</div>
-                    <div className="text-lg font-bold text-white">{selectedYear}</div>
+
+                {/* Mobile Number */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Mobile Number <span className="text-red-400">*</span>
+                  </label>
+                  <div className="flex space-x-3">
+                    {/* Country Code */}
+                    <input
+                      type="text"
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value)}
+                      placeholder="+971"
+                      className="w-24 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all text-center"
+                      disabled={isSending}
+                    />
+                    {/* Mobile Number */}
+                    <input
+                      type="tel"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
+                      placeholder="50 123 4567"
+                      className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all"
+                      disabled={isSending}
+                    />
                   </div>
-                )}
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
-                  <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Duration</div>
-                  <div className="text-lg font-bold text-white">{selectedTier === 'standard' ? '2' : '4'} Years</div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Example: +971 50 123 4567
+                  </p>
                 </div>
               </div>
+
+              {/* Error Message */}
+              {sendError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                  <p className="text-red-400 text-sm">{sendError}</p>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex space-x-4 pt-4">
                 <button
-                  onClick={handleReset}
-                  className="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white font-semibold transition-all duration-200"
+                  onClick={handleBack}
+                  disabled={isSending}
+                  className="flex items-center space-x-2 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Calculate Again
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Back to Summary</span>
                 </button>
                 <button
-                  onClick={handleClose}
-                  className="flex-1 px-6 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white font-bold transition-all duration-200 shadow-lg"
+                  onClick={handleSendQuote}
+                  disabled={!customerName.trim() || !mobileNumber.trim() || isSending}
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-white/20 to-white/10 hover:from-white/30 hover:to-white/20 border border-white/30 rounded-lg text-white font-bold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Close
+                  {isSending ? (
+                    <span className="flex items-center justify-center space-x-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span>Sending...</span>
+                    </span>
+                  ) : (
+                    'Send Quote via WhatsApp'
+                  )}
                 </button>
               </div>
             </div>

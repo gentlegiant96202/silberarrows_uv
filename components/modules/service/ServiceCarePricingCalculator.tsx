@@ -56,6 +56,7 @@ const PRICING_DATA: PricingData[] = [
   
   // E - SEDAN
   { model: 'E - SEDAN', variant: 'E 200', year: '2009-2016', standard: 2800, premium: 7700 },
+  { model: 'E - SEDAN', variant: 'E 200', year: '2016-2024', standard: 3000, premium: 9100 },
   { model: 'E - SEDAN', variant: 'E 300', year: '2016-2024', standard: 3000, premium: 9100 },
   { model: 'E - SEDAN', variant: 'E 350', year: '2009-2016', standard: 3100, premium: 8800 },
   { model: 'E - SEDAN', variant: 'E 350', year: '2016-2024', standard: 3000, premium: 9100 },

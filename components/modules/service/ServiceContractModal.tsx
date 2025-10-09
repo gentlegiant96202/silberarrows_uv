@@ -5,6 +5,56 @@ import { X, FileText, User, Building, Car, Calendar, Save, Search, RefreshCw, Al
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 
+// Global CSS override for consistent input styling
+const inputOverrideStyles = `
+  .service-contract-modal input[type="text"], 
+  .service-contract-modal input[type="email"], 
+  .service-contract-modal input[type="tel"], 
+  .service-contract-modal input[type="number"],
+  .service-contract-modal select {
+    background: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    background-image: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    opacity: 1 !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+  
+  .service-contract-modal input[type="text"]:focus, 
+  .service-contract-modal input[type="email"]:focus, 
+  .service-contract-modal input[type="tel"]:focus, 
+  .service-contract-modal input[type="number"]:focus,
+  .service-contract-modal select:focus {
+    background: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    background-image: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    color: white !important;
+    opacity: 1 !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+  
+  .service-contract-modal input[type="text"]:-webkit-autofill,
+  .service-contract-modal input[type="email"]:-webkit-autofill,
+  .service-contract-modal input[type="tel"]:-webkit-autofill,
+  .service-contract-modal input[type="number"]:-webkit-autofill {
+    background: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    background-image: none !important;
+    color: white !important;
+    opacity: 1 !important;
+    -webkit-box-shadow: inset 0 0 0 1000px rgba(255, 255, 255, 0.1) !important;
+    box-shadow: inset 0 0 0 1000px rgba(255, 255, 255, 0.1) !important;
+  }
+`;
+
 interface ServiceContractModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -12,6 +62,7 @@ interface ServiceContractModalProps {
   contractType?: 'service' | 'warranty';
   hideAutoPopulate?: boolean;
   prefilledData?: {
+    make?: string;
     model?: string;
     variant?: string;
     year?: string;
@@ -105,8 +156,8 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       
       // Vehicle Information
       vin: '',
-      make: 'Mercedes-Benz',
-      model: prefilledData?.variant ? `${prefilledData.model} ${prefilledData.variant}` : '',
+      make: prefilledData?.make || 'Mercedes-Benz',
+      model: prefilledData?.variant || '',
       modelYear: prefilledData?.year && prefilledData.year !== 'N/A' ? prefilledData.year : '',
       currentOdometer: '',
       exteriorColour: '',
@@ -336,8 +387,11 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      <div className="bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-2xl border-2 border-white/20 shadow-2xl rounded-2xl p-6 w-full max-w-xl md:max-w-3xl lg:max-w-5xl relative max-h-[95vh] overflow-hidden">
+    <>
+      {/* Inject global CSS override */}
+      <style dangerouslySetInnerHTML={{ __html: inputOverrideStyles }} />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      <div className="service-contract-modal bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-2xl border-2 border-white/20 shadow-2xl rounded-2xl p-6 w-full max-w-xl md:max-w-3xl lg:max-w-5xl relative max-h-[85vh] overflow-hidden">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-2xl leading-none text-white/70 hover:text-white transition-colors duration-200"
@@ -357,7 +411,8 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
-          <div className="flex flex-col gap-6 max-h-[75vh] overflow-y-auto space-y-6 relative">
+          <div className="flex flex-col gap-6 max-h-[65vh] overflow-y-auto space-y-6 relative">
+            
             
             {/* STEP 1: AUTO-POPULATE FROM RESERVATION */}
             {!hideAutoPopulate && (
@@ -442,44 +497,58 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Customer Name *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Customer Name *
+                    <span className="ml-2 text-xs text-amber-400">(Required 1)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.ownerName}
                     onChange={(e) => handleInputChange('ownerName', e.target.value.toUpperCase())}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
                     placeholder="Enter customer name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Mobile Number *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Mobile Number *
+                    <span className="ml-2 text-xs text-amber-400">(Required 2)</span>
+                  </label>
                   <input
                     type="tel"
                     value={formData.mobileNo}
                     onChange={(e) => handleInputChange('mobileNo', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    autoComplete="tel"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)]"
                     placeholder="Mobile number"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Email Address *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Email Address *
+                    <span className="ml-2 text-xs text-amber-400">(Required 3)</span>
+                  </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
                     placeholder="Enter email address"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">ID Type *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    ID Type *
+                    <span className="ml-2 text-xs text-amber-400">(Required 4)</span>
+                  </label>
                   <select
                     value={formData.customerIdType}
                     onChange={(e) => handleInputChange('customerIdType', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white overflow-hidden text-ellipsis"
+                    style={{ lineHeight: '1.2' }}
                     required
                   >
                     <option value="EID" className="bg-gray-900">Emirates ID</option>
@@ -487,12 +556,15 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">ID Number *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    ID Number *
+                    <span className="ml-2 text-xs text-amber-400">(Required 5)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.customerIdNumber}
                     onChange={(e) => handleInputChange('customerIdNumber', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
                     placeholder="Enter ID number"
                     required
                   />
@@ -513,81 +585,120 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-white/80 mb-2">VIN Number *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    VIN Number *
+                    <span className="ml-2 text-xs text-amber-400">(Required 6)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.vin}
                     onChange={(e) => handleInputChange('vin', e.target.value.toUpperCase())}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 font-mono"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 font-mono [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
                     placeholder="Enter VIN number"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Make *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Make *
+                    {prefilledData?.make ? (
+                      <span className="ml-2 text-xs text-green-400">(Locked)</span>
+                    ) : (
+                      <span className="ml-2 text-xs text-amber-400">(Required 7)</span>
+                    )}
+                  </label>
                   <input
                     type="text"
                     value={formData.make}
                     onChange={(e) => handleInputChange('make', e.target.value.toUpperCase())}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    disabled={prefilledData?.make !== undefined}
+                    className={`w-full h-[42px] px-4 py-3 border rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white ${
+                      prefilledData?.make !== undefined 
+                        ? 'bg-white/5 border-white/10 cursor-not-allowed opacity-60' 
+                        : 'bg-white/10 border-white/20'
+                    }`}
                     placeholder="Vehicle make"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Model *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Model *
+                    {prefilledData?.model ? (
+                      <span className="ml-2 text-xs text-green-400">(Locked)</span>
+                    ) : (
+                      <span className="ml-2 text-xs text-amber-400">(Required 8)</span>
+                    )}
+                  </label>
                   <input
                     type="text"
                     value={formData.model}
                     onChange={(e) => handleInputChange('model', e.target.value.toUpperCase())}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    disabled={prefilledData?.model !== undefined}
+                    className={`w-full h-[42px] px-4 py-3 border rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white ${
+                      prefilledData?.model !== undefined 
+                        ? 'bg-white/5 border-white/10 cursor-not-allowed opacity-60' 
+                        : 'bg-white/10 border-white/20'
+                    }`}
                     placeholder="Vehicle model"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Model Year *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Model Year *
+                    <span className="ml-2 text-xs text-amber-400">(Required 9)</span>
+                  </label>
                   <input
                     type="number"
                     min="1980"
                     max="2030"
                     value={formData.modelYear}
                     onChange={(e) => handleInputChange('modelYear', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:text-white"
                     placeholder="Year"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Exterior Colour *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Exterior Colour *
+                    <span className="ml-2 text-xs text-amber-400">(Required 10)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.exteriorColour}
                     onChange={(e) => handleInputChange('exteriorColour', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
                     placeholder="Exterior color"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Interior Colour *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Interior Colour *
+                    <span className="ml-2 text-xs text-amber-400">(Required 11)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.interiorColour}
                     onChange={(e) => handleInputChange('interiorColour', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
                     placeholder="Interior color"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Current Odometer *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Current Odometer *
+                    <span className="ml-2 text-xs text-amber-400">(Required 12)</span>
+                  </label>
                   <input
                     type="number"
                     min="0"
                     value={formData.currentOdometer}
                     onChange={(e) => handleInputChange('currentOdometer', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:text-white"
                     placeholder="Current KM"
                     required
                   />
@@ -610,6 +721,11 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">
                     {contractType === 'warranty' ? 'Warranty Type *' : 'Service Type *'}
+                    {prefilledData?.serviceType !== undefined ? (
+                      <span className="ml-2 text-xs text-green-400">(Locked)</span>
+                    ) : (
+                      <span className="ml-2 text-xs text-amber-400">(Required 13)</span>
+                    )}
                   </label>
                   <select
                     value={formData.serviceType}
@@ -658,7 +774,13 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                           });
                         }
                     }}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    disabled={prefilledData?.serviceType !== undefined}
+                    className={`w-full h-[42px] px-4 py-3 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 overflow-hidden text-ellipsis ${
+                      prefilledData?.serviceType !== undefined 
+                        ? 'bg-white/5 border-white/10 cursor-not-allowed opacity-60' 
+                        : 'bg-white/10 border-white/20'
+                    }`}
+                    style={{ lineHeight: '1.2' }}
                     required
                   >
                     {contractType === 'warranty' ? (
@@ -684,26 +806,42 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Cut-off Kilometers *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Cut-off Kilometers *
+                    <span className="ml-2 text-xs text-green-400">(Locked)</span>
+                  </label>
                   <input
                     type="number"
                     min="0"
                     value={formData.cutOffKm}
                     onChange={(e) => handleInputChange('cutOffKm', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    disabled
+                    className="w-full h-[42px] px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 cursor-not-allowed opacity-60"
                     placeholder="Maximum KM coverage"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Contract Amount *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Contract Amount *
+                    {prefilledData?.invoiceAmount !== undefined ? (
+                      <span className="ml-2 text-xs text-green-400">(Locked)</span>
+                    ) : (
+                      <span className="ml-2 text-xs text-amber-400">(Required 14)</span>
+                    )}
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     value={formData.invoiceAmount}
                     onChange={(e) => handleInputChange('invoiceAmount', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    disabled={prefilledData?.invoiceAmount !== undefined}
+                    className={`w-full h-[42px] px-4 py-3 border rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] ${
+                      prefilledData?.invoiceAmount !== undefined 
+                        ? 'bg-white/5 border-white/10 cursor-not-allowed opacity-60' 
+                        : 'bg-white/10 border-white/20'
+                    }`}
                     placeholder="Amount (AED)"
                     required
                   />
@@ -724,7 +862,10 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Start Date *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Start Date *
+                    <span className="ml-2 text-xs text-green-400">(Locked)</span>
+                  </label>
                   <div className="relative">
                     <input
                       type="date"
@@ -741,7 +882,8 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                           endDate
                         }));
                       }}
-                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
+                      disabled
+                      className="w-full h-[42px] px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white cursor-not-allowed opacity-60 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70"
                       required
                     />
                     {formData.startDate && (
@@ -752,13 +894,17 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">End Date *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    End Date *
+                    <span className="ml-2 text-xs text-green-400">(Locked)</span>
+                  </label>
                   <div className="relative">
                     <input
                       type="date"
                       value={formData.endDate}
                       onChange={(e) => handleInputChange('endDate', e.target.value)}
-                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
+                      disabled
+                      className="w-full h-[42px] px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white cursor-not-allowed opacity-60 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70"
                       required
                     />
                     {formData.endDate && (
@@ -808,34 +954,43 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Dealer Name *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Dealer Name *
+                    <span className="ml-2 text-xs text-amber-400">(Required 15)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.dealerName}
                     onChange={(e) => handleInputChange('dealerName', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
                     placeholder="Enter dealer name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Phone Number *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Phone Number *
+                    <span className="ml-2 text-xs text-amber-400">(Required 16)</span>
+                  </label>
                   <input
                     type="tel"
                     value={formData.dealerPhone}
                     onChange={(e) => handleInputChange('dealerPhone', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
                     placeholder="Enter phone number"
                     required
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-white/80 mb-2">Email Address *</label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Email Address *
+                    <span className="ml-2 text-xs text-amber-400">(Required 17)</span>
+                  </label>
                   <input
                     type="email"
                     value={formData.dealerEmail}
                     onChange={(e) => handleInputChange('dealerEmail', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
                     placeholder="Enter email address"
                     required
                   />
@@ -939,5 +1094,6 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
         document.body
       )}
     </div>
+    </>
   );
 }

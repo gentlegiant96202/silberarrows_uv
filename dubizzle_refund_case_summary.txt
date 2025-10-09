@@ -1,0 +1,59 @@
+DUBIZZLE REFUND CASE SUMMARY
+================================================================================
+
+Account: SilberArrows Dealership
+Period: October 1-8, 2025 (possibly started earlier - uncertain)
+Issue: Premium Listings Not Appearing at Top of Search Results
+
+ISSUE DESCRIPTION:
+--------------------------------------------------------------------------------
+We've noticed that premium and featured listings are not displaying as expected:
+
+  Expected: Premium listings appear at the TOP of search results
+  Observed: Premium listings appear on page 2, then disappear after a few hours
+
+Note: We're unsure when this issue began - it may have been present before
+October 1st, but that's when we started tracking it systematically.
+
+FINANCIAL IMPACT:
+--------------------------------------------------------------------------------
+Total Credits Consumed: 13,232 credits
+Total Transactions: 127 transactions
+Average per Transaction: 104.19 credits
+
+BREAKDOWN BY ACTION TYPE:
+--------------------------------------------------------------------------------
+  Premium Refresh: 6,174 credits (53 transactions) - 46.66%
+  Premium: 2,798 credits (10 transactions) - 21.15%
+  Refresh: 2,257 credits (41 transactions) - 17.06%
+  Featured: 874 credits (8 transactions) - 6.61%
+  Post/Renew/Activate: 653 credits (5 transactions) - 4.94%
+  Featured Refresh: 476 credits (10 transactions) - 3.60%
+
+AFFECTED PREMIUM SERVICES:
+  - Premium + Premium Refresh: 8,972 credits (63 transactions)
+  - Featured + Featured Refresh: 1,350 credits (18 transactions)
+  - Total Premium Services: 10,322 credits (81 transactions)
+
+EVIDENCE:
+--------------------------------------------------------------------------------
+• 16 listings required 3-7 premium refreshes each within 8 days
+• October 4th: 4,093 credits consumed (unusual spike)
+• Pattern shows repeated premium charges on same vehicles
+• Example: One Mercedes E-Class - 7 premium actions, 913 credits in 6 days
+
+REFUND REQUEST:
+--------------------------------------------------------------------------------
+We kindly request a refund of 10,322 credits for premium services that did
+not achieve the expected top placement:
+
+  • Premium Refresh: 6,174 credits (53 transactions)
+  • Premium: 2,798 credits (10 transactions)
+  • Featured: 874 credits (8 transactions)
+  • Featured Refresh: 476 credits (10 transactions)
+
+We value our partnership with Dubizzle and appreciate your assistance in
+resolving this matter.
+
+Contact: SilberArrows Dealership
+Submitted: October 8, 2025

@@ -1,0 +1,95 @@
+REFUND REQUEST - PREMIUM LISTING PLACEMENT ISSUE
+================================================================================
+
+To: Dubizzle Customer Support
+From: SilberArrows Dealership
+Date: October 8, 2025
+Re: Request for Credit Refund Due to Premium Listing Malfunction
+
+================================================================================
+
+Dear Dubizzle Team,
+
+We hope this message finds you well. We're reaching out regarding a technical
+issue we've noticed with our premium listings and would appreciate your
+assistance in resolving this matter.
+
+
+THE ISSUE:
+--------------------------------------------------------------------------------
+
+Since at least October 1st, 2025 (possibly earlier - we're not certain when this
+started), we've observed that our premium and featured listings are not appearing
+at the top of search results as expected:
+
+  Expected: Premium listings appear at top of page 1
+  Observed: Premium listings appear on page 2, then disappear after a few hours
+
+This has led us to repeatedly refresh the same listings multiple times, hoping
+to achieve the top placement we've paid for.
+
+
+CREDIT CONSUMPTION:
+--------------------------------------------------------------------------------
+
+Period Analyzed: October 1-8, 2025
+Total Credits Used: 13,232 credits (127 transactions)
+
+Premium Services Affected:
+  • Premium Refresh: 6,174 credits (53 transactions)
+  • Premium: 2,798 credits (10 transactions)
+  • Featured: 874 credits (8 transactions)
+  • Featured Refresh: 476 credits (10 transactions)
+  
+  Total Premium: 10,322 credits
+
+
+EVIDENCE:
+--------------------------------------------------------------------------------
+
+We've identified 16 individual listings that required 3-7 premium refreshes each
+within just 8 days. For example:
+
+  • One Mercedes E-Class: 7 premium charges (913 credits) in 6 days
+  • S63 AMG Coupe: 4 premium charges (792 credits) in 3 days
+  • Mercedes A-Class: 5 premium charges (758 credits) in 6 days
+
+This pattern suggests a technical issue rather than normal usage, as premium
+placement should not require this many refreshes.
+
+
+REQUEST:
+--------------------------------------------------------------------------------
+
+We kindly request a refund of 10,322 credits for premium services that did not
+deliver the expected top placement during this period.
+
+We value our partnership with Dubizzle and the quality leads your platform
+provides. We're confident this is a technical issue that your team can resolve,
+and we look forward to continuing to use your premium services once this is
+corrected.
+
+
+SUPPORTING DOCUMENTATION:
+--------------------------------------------------------------------------------
+
+Attached:
+  • Complete transaction log (127 transactions)
+  • Evidence document (16 affected listings)
+  • Transaction data in CSV format
+
+
+We appreciate your prompt attention to this matter and look forward to your
+response.
+
+Best regards,
+
+SilberArrows Dealership
+[Your contact email]
+[Your phone number]
+Account: [Your Dubizzle username]
+
+October 8, 2025
+
+
+================================================================================

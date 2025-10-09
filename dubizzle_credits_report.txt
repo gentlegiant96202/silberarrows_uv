@@ -1,0 +1,170 @@
+================================================================================
+DUBIZZLE CREDITS CONSUMPTION REPORT
+Period: October 1, 2025 - October 8, 2025
+================================================================================
+
+SUMMARY
+--------------------------------------------------------------------------------
+Total Credits Consumed: 13,232 credits
+Total Transactions: 127
+Average Credits per Transaction: 104.19 credits
+
+DAILY BREAKDOWN
+--------------------------------------------------------------------------------
+Date            Credits         Percentage
+--------------------------------------------------------------------------------
+2025-10-08             101          0.76%
+2025-10-07           2,450         18.52%
+2025-10-06             545          4.12%
+2025-10-05             908          6.86%
+2025-10-04           4,093         30.93%
+2025-10-03           1,303          9.85%
+2025-10-02           2,040         15.42%
+2025-10-01           1,792         13.54%
+
+BREAKDOWN BY PRODUCT TYPE
+--------------------------------------------------------------------------------
+Product Type                   Credits         Count      Percentage
+--------------------------------------------------------------------------------
+Premium Refresh                     6,174        53         46.66%
+Premium                             2,798        10         21.15%
+Refresh                             2,257        41         17.06%
+Featured                              874         8          6.61%
+Post/Renew/Activate                   653         5          4.94%
+Featured Refresh                      476        10          3.60%
+
+DETAILED TRANSACTION LOG
+--------------------------------------------------------------------------------
+Date & Time               Product                   Credits    Listing
+--------------------------------------------------------------------------------
+2025-10-08 04:34:44       Refresh                        51 0% Downpayment | AED 2,300 P/M | Service and Warra
+2025-10-08 04:33:29       Refresh                        50 0% DP | AED 2,012 P/M | EMC Mercedes-Benz Warranty
+2025-10-07 15:26:55       Premium Refresh               114 0% Downpayment | AED 2,731 P/M | Warranty and Serv
+2025-10-07 15:14:57       Premium                       271 0% Downpayment | AED 2,946 P/M | Warranty and Serv
+2025-10-07 15:14:36       Refresh                        51 0% Downpayment | AED 3,090 P/M | Gargash Mercedes-
+2025-10-07 15:14:31       Refresh                        59 0% Downpayment | AED 4,312 P/M | Gargash Dealer Wa
+2025-10-07 15:14:26       Refresh                        50 0% DP | AED 2,012 P/M | EMC Mercedes-Benz Warranty
+2025-10-07 15:14:09       Premium Refresh               133 S63 AMG COUPE | 0% DP | AED 3,377 P/M | Warranty  
+2025-10-07 15:14:03       Premium Refresh               114 0% Downpayment | AED 2,731 P/M | EMC Mercedes Warr
+2025-10-07 15:13:52       Post/Renew/Activate           127 0% Downpayment | AED 2,946 P/M | Warranty and Serv
+2025-10-07 15:13:42       Premium Refresh               109 0% Downpayment | AED 2,443 P/M | Gargash Warranty 
+2025-10-07 15:13:33       Refresh                        50 0% Downpayment | AED 1,868 P/M | Warranty and Serv
+2025-10-07 15:13:30       Refresh                        51 0% Downpayment | AED 2,300 P/M | Service and Warra
+2025-10-07 15:13:21       Refresh                        65 0% Downpayment | AED 4,168 P/M | Warranty and Serv
+2025-10-07 15:13:10       Premium Refresh               104 MERCEDES-BENZ SL63 AMG | Warranty and Service Pack
+2025-10-07 15:13:05       Featured Refresh               48 0% Downpayment | AED 6,109 P/M | Rovelver VIP Roya
+2025-10-07 15:13:02       Featured Refresh               55 0% Downpayment | AED 8,444 P/M | Dealer Warranty a
+2025-10-07 15:12:58       Featured Refresh               48 0% Downpayment | AED 6,181 P/M | Warranty and Serv
+2025-10-07 15:12:53       Refresh                        71 2005 Mercedes-Benz SLR McLaren - 1 of 2157 Built
+2025-10-07 15:12:35       Premium Refresh               121 0% Downpayment | AED 2,946 P/M | Dealer Warranty a
+2025-10-07 15:12:24       Refresh                        48 0% Downpayment | AED 2,156 P/M | Service and Warra
+2025-10-07 15:12:19       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-07 15:10:53       Refresh                        65 0% Downpayment | AED 3,665 P/M | Warranty and Serv
+2025-10-07 15:10:41       Refresh                        62 0% Downpayment | AED 4,973 P/M | 7 Seats | Gargash
+2025-10-07 15:10:35       Premium Refresh               114 0% Downpayment | AED 2,817 P/M | 7-SEAT | Warranty
+2025-10-07 15:09:54       Premium                       285 0% Downpayment | AED 2,731 P/M | Warranty and Serv
+2025-10-07 14:00:05       Post/Renew/Activate           133 0% Downpayment | AED 2,731 P/M | Warranty and Serv
+2025-10-06 11:58:57       Premium                       285 0% Downpayment | AED 2,731 P/M | EMC Mercedes Warr
+2025-10-06 11:55:54       Post/Renew/Activate           133 0% Downpayment | AED 2,731 P/M | EMC Mercedes Warr
+2025-10-06 04:23:25       Post/Renew/Activate           127 0% Downpayment | AED 2,587 P/M | Warranty and Serv
+2025-10-05 12:52:43       Premium Refresh               114 0% Downpayment | AED 2,817 P/M | 7-SEAT | Warranty
+2025-10-05 12:52:32       Refresh                        62 0% Downpayment | AED 4,973 P/M | 7 Seats | Gargash
+2025-10-05 12:52:27       Premium Refresh               133 S63 AMG COUPE | 0% DP | AED 3,377 P/M | Warranty  
+2025-10-05 12:52:20       Refresh                        65 0% Downpayment | AED 3,665 P/M | Warranty and Serv
+2025-10-05 12:52:06       Refresh                        48 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-05 12:52:04       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-05 07:25:03       Refresh                        50 0% DP | AED 2,012 P/M | EMC Mercedes-Benz Warranty
+2025-10-05 07:24:56       Refresh                        48 0% Downpayment | AED 2,156 P/M | Service and Warra
+2025-10-05 07:24:49       Premium Refresh               109 0% Downpayment | AED 2,443 P/M | Gargash Warranty 
+2025-10-05 07:24:45       Premium Refresh               126 0% Downpayment | AED 4,312 P/M | Gargash Dealer Wa
+2025-10-05 07:24:28       Refresh                        51 0% Downpayment | AED 3,090 P/M | Gargash Mercedes-
+2025-10-04 15:15:14       Premium                       285 0% Downpayment | AED 2,817 P/M | 7-SEAT | Warranty
+2025-10-04 15:12:19       Post/Renew/Activate           133 0% Downpayment | AED 2,817 P/M | 7-SEAT | Warranty
+2025-10-04 15:12:10       Premium Refresh               104 0% Downpayment | AED 2,817 P/M | Warranty and Serv
+2025-10-04 15:12:03       Premium Refresh               164 0% Downpayment | AED 4,973 P/M | 7 Seats | Gargash
+2025-10-04 15:09:18       Premium Refresh               133 S63 AMG COUPE | 0% DP | AED 3,377 P/M | Warranty  
+2025-10-04 15:09:06       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-04 15:09:02       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-04 15:08:48       Premium Refresh               108 0% Downpayment | AED 1,868 P/M | Warranty and Serv
+2025-10-04 15:08:42       Premium Refresh               109 0% Downpayment | AED 2,300 P/M | Service and Warra
+2025-10-04 15:08:38       Refresh                        50 0% DP | AED 1,983 P/M | EMC Mercedes-Benz Warranty
+2025-10-04 15:08:34       Refresh                        54 0% Downpayment | AED 2,874 P/M | Dealer Warranty a
+2025-10-04 14:36:29       Refresh                        50 0% DP | AED 2,012 P/M | EMC Mercedes-Benz Warranty
+2025-10-04 14:36:17       Premium Refresh               164 0% Downpayment | AED 4,973 P/M | 7 Seats | Gargash
+2025-10-04 14:36:06       Premium Refresh               121 0% Downpayment | AED 2,946 P/M | Dealer Warranty a
+2025-10-04 14:35:56       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-04 14:35:51       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-04 14:35:47       Premium Refresh               104 0% Downpayment | AED 2,156 P/M | Service and Warra
+2025-10-04 14:35:38       Premium Refresh               109 0% Downpayment | AED 2,443 P/M | Gargash Warranty 
+2025-10-04 14:35:34       Premium Refresh               104 0% Downpayment | AED 2,817 P/M | Warranty and Serv
+2025-10-04 14:35:23       Premium Refresh               108 0% Downpayment | AED 1,868 P/M | Warranty and Serv
+2025-10-04 14:35:17       Refresh                        65 0% Downpayment | AED 3,665 P/M | Warranty and Serv
+2025-10-04 14:35:10       Premium Refresh               126 0% Downpayment | AED 4,312 P/M | Gargash Dealer Wa
+2025-10-04 14:35:04       Premium Refresh               109 0% Downpayment | AED 2,300 P/M | Service and Warra
+2025-10-04 14:35:01       Premium Refresh               138 0% Downpayment | AED 4,168 P/M | Warranty and Serv
+2025-10-04 14:34:55       Refresh                        50 0% DP | AED 1,983 P/M | EMC Mercedes-Benz Warranty
+2025-10-04 14:34:51       Refresh                        54 0% Downpayment | AED 2,874 P/M | Dealer Warranty a
+2025-10-04 14:34:21       Featured                       88 0% Downpayment | AED 2,156 P/M | Dealer Warranty a
+2025-10-04 14:34:17       Refresh                        48 0% Downpayment | AED 2,156 P/M | Dealer Warranty a
+2025-10-04 14:34:13       Featured                      143 BRABUS GLS 800 | 0% DP | AED 7,762 P/M | Warranty 
+2025-10-04 14:34:10       Featured                       92 0% Downpayment | AED 2,946 P/M | Warranty and Serv
+2025-10-04 14:34:05       Refresh                        70 BRABUS GLS 800 | 0% DP | AED 7,762 P/M | Warranty 
+2025-10-04 14:34:02       Refresh                        51 0% Downpayment | AED 2,946 P/M | Warranty and Serv
+2025-10-04 14:33:54       Refresh                        71 2005 Mercedes-Benz SLR McLaren - 1 of 2157 Built
+2025-10-04 14:33:50       Featured                       88 0% Downpayment | AED 2,999 P/M | Dealer Warranty a
+2025-10-04 14:33:46       Refresh                        48 0% Downpayment | AED 2,999 P/M | Dealer Warranty a
+2025-10-04 14:33:33       Featured Refresh               48 0% Downpayment | AED 6,181 P/M | Warranty and Serv
+2025-10-04 14:33:30       Featured Refresh               48 0% Downpayment | AED 6,109 P/M | Rovelver VIP Roya
+2025-10-04 14:32:55       Featured Refresh               55 0% Downpayment | AED 8,444 P/M | Dealer Warranty a
+2025-10-04 14:31:52       Premium                       331 S63 AMG COUPE | 0% DP | AED 3,377 P/M | Warranty  
+2025-10-04 14:31:48       Refresh                        62 S63 AMG COUPE | 0% DP | AED 3,377 P/M | Warranty  
+2025-10-03 14:53:16       Featured Refresh               48 0% Downpayment | AED 6,181 P/M | Warranty and Serv
+2025-10-03 14:53:13       Featured Refresh               48 0% Downpayment | AED 6,109 P/M | Rovelver VIP Roya
+2025-10-03 14:52:44       Premium                       258 MERCEDES-BENZ SL63 AMG | Warranty and Service Pack
+2025-10-03 14:52:41       Refresh                        48 MERCEDES-BENZ SL63 AMG | Warranty and Service Pack
+2025-10-03 14:51:57       Premium                       253 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-03 14:51:54       Refresh                        48 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-03 14:51:37       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-03 14:51:28       Premium Refresh               104 0% Downpayment | AED 2,156 P/M | Service and Warra
+2025-10-03 14:51:12       Premium Refresh               121 0% Downpayment | AED 2,946 P/M | Dealer Warranty a
+2025-10-03 14:51:08       Premium Refresh               109 0% Downpayment | AED 3,090 P/M | Gargash Mercedes-
+2025-10-03 14:51:01       Premium Refresh               164 0% Downpayment | AED 4,973 P/M | 7 Seats | Gargash
+2025-10-02 16:52:28       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-02 16:52:03       Featured                      119 0% Downpayment | AED 6,109 P/M | Rovelver VIP Roya
+2025-10-02 16:51:42       Featured                      119 0% Downpayment | AED 6,181 P/M | Warranty and Serv
+2025-10-02 16:51:28       Featured                       88 0% Downpayment | AED 2,694 P/M | Dealer Warranty a
+2025-10-02 16:50:51       Featured                      137 0% Downpayment | AED 8,444 P/M | Dealer Warranty a
+2025-10-02 16:50:41       Refresh                        67 0% Downpayment | AED 8,444 P/M | Dealer Warranty a
+2025-10-02 16:50:29       Refresh                        48 0% Downpayment | AED 2,694 P/M | Dealer Warranty a
+2025-10-02 16:50:15       Refresh                        48 0% Downpayment | AED 2,999 P/M | Dealer Warranty a
+2025-10-02 16:50:00       Refresh                        59 0% Downpayment | AED 6,181 P/M | Warranty and Serv
+2025-10-02 16:49:47       Refresh                        54 0% Downpayment | AED 2,731 P/M | Warranty and Serv
+2025-10-02 16:49:39       Refresh                        59 0% Downpayment | AED 6,109 P/M | Rovelver VIP Roya
+2025-10-02 16:49:15       Premium Refresh               109 0% Downpayment | AED 2,443 P/M | Gargash Warranty 
+2025-10-02 16:49:02       Premium Refresh               104 0% Downpayment | AED 2,817 P/M | Warranty and Serv
+2025-10-02 16:48:50       Premium Refresh               108 0% Downpayment | AED 1,868 P/M | Warranty and Serv
+2025-10-02 16:48:39       Premium Refresh               138 0% Downpayment | AED 3,665 P/M | Warranty and Serv
+2025-10-02 16:48:30       Premium Refresh               108 0% DP | AED 2,012 P/M | EMC Mercedes-Benz Warranty
+2025-10-02 16:48:19       Premium Refresh                98 0% Downpayment | AED 2,443 P/M | 200K Gargash Warr
+2025-10-02 08:06:37       Premium Refresh               126 0% Downpayment | AED 4,312 P/M | Gargash Dealer Wa
+2025-10-02 08:06:09       Premium Refresh               109 0% Downpayment | AED 2,300 P/M | Service and Warra
+2025-10-02 08:05:57       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-02 08:05:55       Premium Refresh               138 0% Downpayment | AED 4,168 P/M | Warranty and Serv
+2025-10-01 07:48:59       Premium Refresh               104 0% Downpayment | AED 2,156 P/M | Service and Warra
+2025-10-01 07:47:18       Featured Refresh               39 0% Downpayment | AED 2,731 P/M | EMC Mercedes Warr
+2025-10-01 07:47:12       Premium Refresh               191 0% Downpayment | AED 6,411 P/M | Warranty and Serv
+2025-10-01 07:47:06       Premium Refresh               102 0% Downpayment | AED 1,652 P/M | Warranty and Serv
+2025-10-01 07:47:00       Featured Refresh               39 0% Downpayment | AED 2,817 P/M | 7-SEAT | Warranty
+2025-10-01 07:46:58       Premium Refresh               108 0% DP | AED 1,983 P/M | EMC Mercedes-Benz Warranty
+2025-10-01 07:46:44       Premium                       301 0% Downpayment | AED 2,946 P/M | Dealer Warranty a
+2025-10-01 07:46:31       Refresh                        57 0% Downpayment | AED 2,946 P/M | Dealer Warranty a
+2025-10-01 07:46:26       Premium Refresh               109 0% Downpayment | AED 3,090 P/M | Gargash Mercedes-
+2025-10-01 07:46:18       Premium                       271 0% Downpayment | AED 2,443 P/M | Gargash Warranty 
+2025-10-01 07:46:16       Refresh                        51 0% Downpayment | AED 2,443 P/M | Gargash Warranty 
+2025-10-01 07:46:09       Premium                       258 0% Downpayment | AED 2,817 P/M | Warranty and Serv
+2025-10-01 07:46:06       Refresh                        48 0% Downpayment | AED 2,817 P/M | Warranty and Serv
+2025-10-01 07:46:02       Premium Refresh               114 0% Downpayment | AED 2,874 P/M | Dealer Warranty a
+
+================================================================================
+END OF REPORT
+================================================================================

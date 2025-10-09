@@ -1033,6 +1033,80 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
               </div>
             </div>
 
+            {/* DEALER INFORMATION - EXACTLY LIKE CREATE MODAL */}
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
+              <div className="flex items-center gap-3 mb-6">
+                <h3 className="text-lg font-medium text-white">
+                  Dealer Information
+                </h3>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">Dealer Name</label>
+                  {isEditing && !isTransferMode ? (
+                    <input
+                      type="text"
+                      value={formData.dealer_name}
+                      onChange={(e) => handleInputChange('dealer_name', e.target.value)}
+                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                      placeholder="Enter dealer name"
+                    />
+                  ) : (
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
+                      {displayContract.dealer_name || 'Not provided'}
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">Dealer Phone</label>
+                  {isEditing && !isTransferMode ? (
+                    <input
+                      type="tel"
+                      value={formData.dealer_phone}
+                      onChange={(e) => handleInputChange('dealer_phone', e.target.value)}
+                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                      placeholder="Enter phone number"
+                    />
+                  ) : (
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
+                      {displayContract.dealer_phone || 'Not provided'}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">Dealer Email</label>
+                  {isEditing && !isTransferMode ? (
+                    <input
+                      type="email"
+                      value={formData.dealer_email}
+                      onChange={(e) => handleInputChange('dealer_email', e.target.value)}
+                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
+                      placeholder="Enter email address"
+                    />
+                  ) : (
+                    <div className={`h-[42px] flex items-center text-sm font-semibold px-4 py-3 rounded-lg ${
+                      isTransferMode 
+                        ? 'bg-gray-600/20 border border-gray-500/30 text-gray-400' 
+                        : 'bg-white/5 border border-white/10 text-white'
+                    }`}>
+                      {displayContract.dealer_email || 'Not provided'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* VEHICLE INFORMATION - EXACTLY LIKE CREATE MODAL */}
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
               <div className="flex items-center gap-3 mb-6">

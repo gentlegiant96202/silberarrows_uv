@@ -1,0 +1,331 @@
+DUBIZZLE GLITCH EVIDENCE - DUPLICATE PREMIUM CHARGES
+====================================================================================================
+
+This document shows listings that were charged MULTIPLE premium fees
+due to the glitch causing listings to not appear at top or disappear.
+
+Total Affected Listings: 16
+
+====================================================================================================
+AFFECTED LISTING #1
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 1,652 P/M | Warranty and Service Package Available | Full-Service History
+Listing ID: 5bb60202eabe4c5197514d92260918ca
+Total Premium Actions: 7
+Total Credits Spent: 913 credits
+Total Transactions: 8
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:12:19+00:00      Premium Refresh                  102 credits
+  2025-10-05 12:52:04+00:00      Premium Refresh                  102 credits
+  2025-10-04 15:09:06+00:00      Premium Refresh                  102 credits
+  2025-10-04 14:35:56+00:00      Premium Refresh                  102 credits
+  2025-10-03 14:51:57+00:00      Premium                          253 credits
+  2025-10-03 14:51:54+00:00      Refresh                           48 credits
+  2025-10-02 16:52:28+00:00      Premium Refresh                  102 credits
+  2025-10-01 07:47:06+00:00      Premium Refresh                  102 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 7 times for premium
+    services over 6 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #2
+----------------------------------------------------------------------------------------------------
+Vehicle: S63 AMG COUPE | 0% DP | AED 3,377 P/M | Warranty   Service Package Available
+Listing ID: 2f6eefa346834d7eb325bdd05c8b06fa
+Total Premium Actions: 4
+Total Credits Spent: 792 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:14:09+00:00      Premium Refresh                  133 credits
+  2025-10-05 12:52:27+00:00      Premium Refresh                  133 credits
+  2025-10-04 15:09:18+00:00      Premium Refresh                  133 credits
+  2025-10-04 14:31:52+00:00      Premium                          331 credits
+  2025-10-04 14:31:48+00:00      Refresh                           62 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 4 times for premium
+    services over 3 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #3
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 2,443 P/M | Gargash Warranty and Service Package | Low Mileage
+Listing ID: ec4077ac96ee43eda3c55ce6eadaf87f
+Total Premium Actions: 5
+Total Credits Spent: 758 credits
+Total Transactions: 6
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:13:42+00:00      Premium Refresh                  109 credits
+  2025-10-05 07:24:49+00:00      Premium Refresh                  109 credits
+  2025-10-04 14:35:38+00:00      Premium Refresh                  109 credits
+  2025-10-02 16:49:15+00:00      Premium Refresh                  109 credits
+  2025-10-01 07:46:18+00:00      Premium                          271 credits
+  2025-10-01 07:46:16+00:00      Refresh                           51 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 5 times for premium
+    services over 6 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #4
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 2,946 P/M | Dealer Warranty and Service Package Included
+Listing ID: 8f5c397fa51144cf9023bc6633d9c306
+Total Premium Actions: 4
+Total Credits Spent: 721 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:12:35+00:00      Premium Refresh                  121 credits
+  2025-10-04 14:36:06+00:00      Premium Refresh                  121 credits
+  2025-10-03 14:51:12+00:00      Premium Refresh                  121 credits
+  2025-10-01 07:46:44+00:00      Premium                          301 credits
+  2025-10-01 07:46:31+00:00      Refresh                           57 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 4 times for premium
+    services over 6 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #5
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 2,817 P/M | 7-SEAT | Warranty and Service Available | Full Service History
+Listing ID: 1e331d29a028493bb02e67ba571d18ca
+Total Premium Actions: 4
+Total Credits Spent: 685 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:10:35+00:00      Premium Refresh                  114 credits
+  2025-10-05 12:52:43+00:00      Premium Refresh                  114 credits
+  2025-10-04 15:15:14+00:00      Premium                          285 credits
+  2025-10-04 15:12:19+00:00      Post/Renew/Activate              133 credits
+  2025-10-01 07:47:00+00:00      Featured Refresh                  39 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 4 times for premium
+    services over 6 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #6
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 2,817 P/M | Warranty and Service Package Available | Full Service History
+Listing ID: 8cc2a920d31143febfd30f88e29ce392
+Total Premium Actions: 4
+Total Credits Spent: 618 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-04 15:12:10+00:00      Premium Refresh                  104 credits
+  2025-10-04 14:35:34+00:00      Premium Refresh                  104 credits
+  2025-10-02 16:49:02+00:00      Premium Refresh                  104 credits
+  2025-10-01 07:46:09+00:00      Premium                          258 credits
+  2025-10-01 07:46:06+00:00      Refresh                           48 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 4 times for premium
+    services over 3 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #7
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 4,973 P/M | 7 Seats | Gargash Dealer Warranty and Service Package Included
+Listing ID: 76988316dedd4c34a60efae21e630478
+Total Premium Actions: 3
+Total Credits Spent: 616 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:10:41+00:00      Refresh                           62 credits
+  2025-10-05 12:52:32+00:00      Refresh                           62 credits
+  2025-10-04 15:12:03+00:00      Premium Refresh                  164 credits
+  2025-10-04 14:36:17+00:00      Premium Refresh                  164 credits
+  2025-10-03 14:51:01+00:00      Premium Refresh                  164 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 3 times for premium
+    services over 4 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #8
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 2,731 P/M | EMC Mercedes Warranty | Full-Service History
+Listing ID: cddbdccb1c1b480795194cd17fe020a2
+Total Premium Actions: 3
+Total Credits Spent: 571 credits
+Total Transactions: 4
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:14:03+00:00      Premium Refresh                  114 credits
+  2025-10-06 11:58:57+00:00      Premium                          285 credits
+  2025-10-06 11:55:54+00:00      Post/Renew/Activate              133 credits
+  2025-10-01 07:47:18+00:00      Featured Refresh                  39 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 3 times for premium
+    services over 6 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #9
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 1,652 P/M | Warranty and Service Package Available | Full-Service History
+Listing ID: 950a2c293c6b468d93c2a98785d5781b
+Total Premium Actions: 4
+Total Credits Spent: 456 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-05 12:52:06+00:00      Refresh                           48 credits
+  2025-10-04 15:09:02+00:00      Premium Refresh                  102 credits
+  2025-10-04 14:35:51+00:00      Premium Refresh                  102 credits
+  2025-10-03 14:51:37+00:00      Premium Refresh                  102 credits
+  2025-10-02 08:05:57+00:00      Premium Refresh                  102 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 4 times for premium
+    services over 3 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #10
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 4,312 P/M | Gargash Dealer Warranty and Service Package Included
+Listing ID: a2f860dcba48457d93bd6d8c9bac9eac
+Total Premium Actions: 3
+Total Credits Spent: 437 credits
+Total Transactions: 4
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:14:31+00:00      Refresh                           59 credits
+  2025-10-05 07:24:45+00:00      Premium Refresh                  126 credits
+  2025-10-04 14:35:10+00:00      Premium Refresh                  126 credits
+  2025-10-02 08:06:37+00:00      Premium Refresh                  126 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 3 times for premium
+    services over 5 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #11
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 2,300 P/M | Service and Warranty Package Available
+Listing ID: 00614f830dec42b59c7a1252e8982523
+Total Premium Actions: 3
+Total Credits Spent: 429 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-08 04:34:44+00:00      Refresh                           51 credits
+  2025-10-07 15:13:30+00:00      Refresh                           51 credits
+  2025-10-04 15:08:42+00:00      Premium Refresh                  109 credits
+  2025-10-04 14:35:04+00:00      Premium Refresh                  109 credits
+  2025-10-02 08:06:09+00:00      Premium Refresh                  109 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 3 times for premium
+    services over 5 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #12
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 2,156 P/M | Service and Warranty Package Available
+Listing ID: 93cadb70e8f1448facbede803f3a20db
+Total Premium Actions: 3
+Total Credits Spent: 408 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:12:24+00:00      Refresh                           48 credits
+  2025-10-05 07:24:56+00:00      Refresh                           48 credits
+  2025-10-04 14:35:47+00:00      Premium Refresh                  104 credits
+  2025-10-03 14:51:28+00:00      Premium Refresh                  104 credits
+  2025-10-01 07:48:59+00:00      Premium Refresh                  104 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 3 times for premium
+    services over 6 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #13
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 1,868 P/M | Warranty and Service Package Available | Full Service History
+Listing ID: c940a216c6a54df9bbdeacaac16b7bb8
+Total Premium Actions: 3
+Total Credits Spent: 374 credits
+Total Transactions: 4
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:13:33+00:00      Refresh                           50 credits
+  2025-10-04 15:08:48+00:00      Premium Refresh                  108 credits
+  2025-10-04 14:35:23+00:00      Premium Refresh                  108 credits
+  2025-10-02 16:48:50+00:00      Premium Refresh                  108 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 3 times for premium
+    services over 4 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #14
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 6,109 P/M | Rovelver VIP Royal Edition | Warranty and Service Package Available
+Listing ID: 3a98f25a5276470bbd1407ff14439798
+Total Premium Actions: 4
+Total Credits Spent: 322 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:13:05+00:00      Featured Refresh                  48 credits
+  2025-10-04 14:33:30+00:00      Featured Refresh                  48 credits
+  2025-10-03 14:53:13+00:00      Featured Refresh                  48 credits
+  2025-10-02 16:52:03+00:00      Featured                         119 credits
+  2025-10-02 16:49:39+00:00      Refresh                           59 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 4 times for premium
+    services over 4 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+====================================================================================================
+AFFECTED LISTING #15
+----------------------------------------------------------------------------------------------------
+Vehicle: 0% Downpayment | AED 6,181 P/M | Warranty and Service Package Available
+Listing ID: 163c53514ce74125ae21c39cc0f52e63
+Total Premium Actions: 4
+Total Credits Spent: 322 credits
+Total Transactions: 5
+
+Transaction History (most recent first):
+----------------------------------------------------------------------------------------------------
+  2025-10-07 15:12:58+00:00      Featured Refresh                  48 credits
+  2025-10-04 14:33:33+00:00      Featured Refresh                  48 credits
+  2025-10-03 14:53:16+00:00      Featured Refresh                  48 credits
+  2025-10-02 16:51:42+00:00      Featured                         119 credits
+  2025-10-02 16:50:00+00:00      Refresh                           59 credits
+
+⚠️  EVIDENCE OF GLITCH: Same listing charged 4 times for premium
+    services over 4 days, indicating listings not maintaining top position
+    and requiring repeated expensive refreshes due to platform malfunction.
+
+
+====================================================================================================
+SUMMARY STATISTICS
+====================================================================================================
+Credits wasted on duplicate premium charges: 8,736 credits
+Listings requiring 3+ premium actions: 16
+Average credits per affected listing: 546.00 credits

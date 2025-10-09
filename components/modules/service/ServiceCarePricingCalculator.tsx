@@ -29,7 +29,7 @@ const PRICING_DATA: PricingData[] = [
   { model: 'C', variant: 'C 200', year: '2022+', standard: 2900, premium: 9400 },
   { model: 'C', variant: 'C 250', year: 'Up to 2014', standard: 2700, premium: 7600 },
   { model: 'C', variant: 'C 250', year: '2015+', standard: 2900, premium: 9000 },
-  { model: 'C', variant: 'C 300 / 350', year: 'Up to 2014', standard: 3400, premium: 8800 },
+  { model: 'C', variant: 'C 350', year: 'Up to 2014', standard: 3400, premium: 8800 },
   { model: 'C', variant: 'C 300', year: '2015+', standard: 2900, premium: 9000 },
   { model: 'C', variant: 'C 450', year: 'N/A', standard: 3400, premium: 9400 },
   { model: 'C', variant: 'C 43 AMG (4 CYL)', year: '2022+', standard: 4000, premium: 11600 },
@@ -56,8 +56,10 @@ const PRICING_DATA: PricingData[] = [
   
   // E - SEDAN
   { model: 'E - SEDAN', variant: 'E 200', year: '2009-2016', standard: 2800, premium: 7700 },
-  { model: 'E - SEDAN', variant: 'E 200', year: '2016-2024', standard: 3000, premium: 9100 },
-  { model: 'E - SEDAN', variant: 'E 300', year: '2016-2024', standard: 3000, premium: 9100 },
+  { model: 'E - SEDAN', variant: 'E 200', year: '2017-2023', standard: 3000, premium: 9100 },
+  { model: 'E - SEDAN', variant: 'E 200', year: '2024+', standard: 3100, premium: 9800 },
+  { model: 'E - SEDAN', variant: 'E 300', year: '2016-2023', standard: 3000, premium: 9100 },
+  { model: 'E - SEDAN', variant: 'E 300', year: '2024+', standard: 3100, premium: 9100 },
   { model: 'E - SEDAN', variant: 'E 350', year: '2009-2016', standard: 3100, premium: 8800 },
   { model: 'E - SEDAN', variant: 'E 350', year: '2016-2024', standard: 3000, premium: 9100 },
   { model: 'E - SEDAN', variant: 'E 400', year: '2016-2024', standard: 3500, premium: 11000 },
@@ -113,7 +115,7 @@ const PRICING_DATA: PricingData[] = [
   { model: 'GLE', variant: 'GLE 63 AMG', year: '2020+', standard: 4800, premium: 14000 },
   
   // MAYBACH
-  { model: 'MAYBACH', variant: 'S 560 / 580', year: '2015-2021', standard: 6500, premium: 15900 },
+  { model: 'MAYBACH', variant: 'S 560', year: '2015-2021', standard: 6500, premium: 15900 },
   { model: 'MAYBACH', variant: 'S 580', year: '2021+', standard: 6500, premium: 17400 },
   { model: 'MAYBACH', variant: 'S 600 / 650', year: '2015-2021', standard: 6500, premium: 15900 },
   { model: 'MAYBACH', variant: 'S 680', year: '2021+', standard: 6500, premium: 17400 },

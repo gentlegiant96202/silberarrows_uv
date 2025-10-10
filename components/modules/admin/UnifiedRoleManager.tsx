@@ -662,7 +662,7 @@ export default function UnifiedRoleManager() {
                             </div>
                             
                             <select
-                              value={user.role}
+                              value={user.role ?? ''}
                               onChange={(e) => updateUserRole(user.id, e.target.value as UserWithRole['role'])}
                               disabled={updating === user.id}
                               className="bg-white/10 border border-white/20 rounded px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 ml-4"

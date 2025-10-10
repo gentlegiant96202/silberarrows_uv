@@ -1,12 +1,9 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Calendar, DollarSign, TrendingUp, Target, FileText, AlertCircle, Activity, Zap, Shield } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, Target, FileText, AlertCircle } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { DailyServiceMetrics, ServiceMonthlyTarget } from '@/types/service';
-import CockpitGauge from './CockpitGauge';
-import LEDDisplay from './LEDDisplay';
-import CockpitStatusPanel from './CockpitStatusPanel';
 
 interface ServiceDashboardProps {
   metrics: DailyServiceMetrics[];
@@ -90,6 +87,26 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     return `${value.toFixed(1)}%`;
   };
 
+  // Helper function for color-coded progress bars
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 100) return 'from-emerald-400/80 to-emerald-500/60';
+    if (percentage >= 80) return 'from-amber-400/80 to-amber-500/60';
+    return 'from-red-400/80 to-red-500/60';
+  };
+
+  // Helper function for status badges
+  const getStatusBadge = (current: number, target: number, stretch?: boolean) => {
+    const targetValue = stretch ? target * 1.12 : target;
+    if (current >= targetValue) {
+      return (
+        <span className="absolute -top-2 -right-2 text-[9px] px-2 py-1 bg-emerald-500/30 text-emerald-200 rounded-full font-bold border border-emerald-400/50 shadow-lg animate-pulse">
+          {stretch ? '⚡ STRETCH' : '✓ MET'}
+        </span>
+      );
+    }
+    return null;
+  };
+
   // Calculate vehicle throughput (average invoices per working day)
   const vehicleThroughput = dashboardData && dashboardData.working_days_elapsed > 0
     ? monthlyInvoiceSum / dashboardData.working_days_elapsed
@@ -120,55 +137,26 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Cockpit-Style Header */}
-      <div className="relative bg-black border-2 border-cyan-500/50 rounded-none overflow-hidden">
-        {/* Corner Accents */}
-        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-cyan-400" />
-        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-cyan-400" />
-        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-cyan-400" />
-        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-cyan-400" />
-
-        {/* Scan Line */}
-        <div 
-          className="absolute inset-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50 animate-scan-horizontal"
-          style={{ animation: 'scanHorizontal 4s linear infinite' }}
-        />
-
-        <div className="relative flex flex-wrap items-center justify-between gap-4 p-6">
-          <div className="flex items-center space-x-4">
-            {/* Status Indicator */}
-            <div className="flex flex-col items-center gap-1">
-              <div 
-                className="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"
-                style={{ boxShadow: '0 0 20px rgba(0, 217, 255, 0.8), 0 0 40px rgba(0, 217, 255, 0.5)' }}
-              />
-              <span className="text-[8px] text-cyan-400 font-mono uppercase">LIVE</span>
-            </div>
-
-            {/* Title */}
-            <div>
-              <h2 className="text-2xl font-bold text-cyan-400 tracking-widest font-mono uppercase" style={{ textShadow: '0 0 20px rgba(0, 217, 255, 0.8)' }}>
-                SERVICE CONTROL CENTER
-              </h2>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="h-0.5 w-16 bg-gradient-to-r from-cyan-400 to-transparent" />
-                <span className="text-xs text-cyan-300/60 font-mono uppercase tracking-widest">OPERATIONAL</span>
-              </div>
-            </div>
+      {/* Header with Date/Month Selectors */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-6 bg-gradient-to-r from-white/10 via-white/5 to-transparent backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-lg bg-white/10 border border-white/20">
+            <Calendar className="w-5 h-5 text-white" />
           </div>
-          
-          <div className="flex items-center gap-4">
-            {/* Month Selector */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-black/80 border-2 border-cyan-500/50 relative">
-              <div className="absolute top-0 right-0 w-2 h-2 bg-cyan-400 animate-pulse" />
-              <span className="text-cyan-400 text-[10px] font-mono font-semibold uppercase tracking-widest">MONTH</span>
+          <h2 className="text-xl font-bold text-white tracking-wide">Service Department Dashboard</h2>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          {/* Month Selector */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
+            <span className="text-white/70 text-xs font-semibold uppercase tracking-wider">Month</span>
             <select
               value={selectedMonth}
               onChange={(e) => {
                 setSelectedMonth(Number(e.target.value));
                 setSelectedDate(''); // Reset date when month changes
               }}
-              className="bg-black border-none text-cyan-300 text-sm font-mono font-bold focus:outline-none focus:ring-0 cursor-pointer uppercase"
+              className="bg-transparent border-none text-white text-sm font-medium focus:outline-none focus:ring-0 cursor-pointer"
             >
               {[
                 { value: 1, label: 'January' },
@@ -189,7 +177,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 </option>
               ))}
             </select>
-            </div>
           </div>
 
           {/* Year Selector */}
@@ -240,98 +227,115 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
         </div>
       ) : (
         <>
-          {/* Cockpit Primary Instruments - Net Sales */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            {/* Primary Gauge - Current Net Sales vs Target */}
-            <div className="flex items-center justify-center bg-black/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-lg p-6">
-              <CockpitGauge
-                value={dashboardData.current_net_sales || 0}
-                max={monthTarget?.net_sales_target || 1}
-                label="NET SALES"
-                unit=""
-                size="large"
-                zones={{ red: 60, amber: 80, green: 100 }}
-              />
+          {/* Net Sales Metrics Row */}
+          <div className="grid grid-cols-5 gap-4">
+            {/* Current Net Sales - HERO CARD */}
+            <div className="relative rounded-xl bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-xl p-6 border-2 border-white/30 shadow-2xl" style={{ boxShadow: '0 0 40px rgba(255,255,255,0.1)' }}>
+              {/* Status Badge */}
+              {monthTarget && getStatusBadge(dashboardData.current_net_sales || 0, monthTarget.net_sales_target)}
+              
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-base font-bold text-white uppercase tracking-wide">Current Net Sales</p>
+                <DollarSign className="w-6 h-6 text-white/80" />
+              </div>
+              <p className="text-4xl font-black text-white mb-3 drop-shadow-lg">
+                {formatCurrency(dashboardData.current_net_sales || 0)}
+              </p>
+              <div className="w-full bg-white/10 rounded-full h-3 mb-3">
+                <div 
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_net_sales_percentage || 0)} h-3 rounded-full transition-all duration-500 shadow-lg`}
+                  style={{ width: `${Math.min(dashboardData.current_net_sales_percentage || 0, 100)}%` }}
+                ></div>
+              </div>
+              <p className="text-sm font-bold text-white">
+                {formatPercentage(dashboardData.current_net_sales_percentage)}
+              </p>
             </div>
 
-            {/* Secondary Gauges */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Estimated Month End */}
-              <div className="flex items-center justify-center bg-black/90 backdrop-blur-xl border border-cyan-500/30 rounded-lg p-4">
-                <CockpitGauge
-                  value={dashboardData.estimated_net_sales || 0}
-                  max={monthTarget?.net_sales_target || 1}
-                  label="EST. END"
-                  unit=""
-                  size="small"
-                  zones={{ red: 70, amber: 90, green: 100 }}
-                />
+            {/* Estimated Sales Month End */}
+            <div className="relative rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-white/70">Est. Month End</p>
+                <TrendingUp className="w-5 h-5 text-white/60" />
               </div>
-
-              {/* 112% Target Gauge */}
-              <div className="flex items-center justify-center bg-black/90 backdrop-blur-xl border border-amber-500/30 rounded-lg p-4">
-                <CockpitGauge
-                  value={dashboardData.current_net_sales || 0}
-                  max={monthTarget?.net_sales_112_percent || 1}
-                  label="112% TGT"
-                  unit=""
-                  size="small"
-                  zones={{ red: 70, amber: 90, green: 100 }}
-                />
+              <p className="text-3xl font-bold text-white mb-2">
+                {formatCurrency(dashboardData.estimated_net_sales || 0)}
+              </p>
+              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+                <div 
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_net_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
+                  style={{ width: `${Math.min(dashboardData.estimated_net_sales_percentage || 0, 100)}%` }}
+                ></div>
               </div>
-
-              {/* Daily Average LED */}
-              <div className="col-span-2 flex items-center justify-center">
-                <LEDDisplay
-                  value={formatCurrency(dashboardData.current_daily_average || 0)}
-                  label="DAILY AVG PACE"
-                  color="cyan"
-                  size="medium"
-                />
-              </div>
+              <p className="text-xs text-white/50">
+                {formatPercentage(dashboardData.estimated_net_sales_percentage)}
+              </p>
             </div>
 
-            {/* Target Status Panel */}
-            <CockpitStatusPanel
-              title="TARGET STATUS"
-              items={[
-                {
-                  label: '100% Target',
-                  value: monthTarget ? formatCurrency(monthTarget.net_sales_target) : 'N/A',
-                  status: (dashboardData.current_net_sales || 0) >= (monthTarget?.net_sales_target || 0) ? 'success' : 'normal',
-                  icon: Target
-                },
-                {
-                  label: '112% Target',
-                  value: monthTarget ? formatCurrency(monthTarget.net_sales_112_percent) : 'N/A',
-                  status: (dashboardData.current_net_sales || 0) >= (monthTarget?.net_sales_112_percent || 0) ? 'success' : 'warning',
-                  icon: Zap
-                },
-                {
-                  label: 'Working Days',
-                  value: `${dashboardData.working_days_elapsed || 0} / ${monthTarget?.number_of_working_days || 0}`,
-                  status: 'normal',
-                  icon: Calendar
-                },
-                {
-                  label: 'Achievement',
-                  value: `${formatPercentage(dashboardData.current_net_sales_percentage)}`,
-                  status: (dashboardData.current_net_sales_percentage || 0) >= 100 ? 'success' : (dashboardData.current_net_sales_percentage || 0) >= 80 ? 'warning' : 'critical',
-                  icon: Activity
+            {/* Daily Average */}
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-white/70">Daily Average</p>
+                <DollarSign className="w-5 h-5 text-white/60" />
+              </div>
+              <p className="text-3xl font-bold text-white mb-2">
+                {formatCurrency(dashboardData.current_daily_average || 0)}
+              </p>
+              <p className="text-xs text-white/40">Daily pace</p>
+            </div>
+
+            {/* Net Sales Target - 100% */}
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-white/70">Target - 100%</p>
+                <Target className="w-5 h-5 text-white/60" />
+              </div>
+              <p className="text-3xl font-bold text-white mb-2">
+                {monthTarget ? formatCurrency(monthTarget.net_sales_target) : 'N/A'}
+              </p>
+              <p className="text-xs text-white/40">
+                {(dashboardData.current_net_sales || 0) >= (monthTarget?.net_sales_target || 0) 
+                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget?.net_sales_target || 0))}`
+                  : `Remaining: ${formatCurrency((monthTarget?.net_sales_target || 0) - (dashboardData.current_net_sales || 0))}`
                 }
-              ]}
-            />
+              </p>
+            </div>
+
+            {/* Net Sales Target - 112% - GOLD ACCENT */}
+            <div className="relative rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur p-4 border-2 border-amber-500/50 shadow-lg">
+              {/* Stretch Goal Badge */}
+              {monthTarget && getStatusBadge(dashboardData.current_net_sales || 0, monthTarget.net_sales_target, true)}
+              
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-amber-200">Target - 112% ⚡</p>
+                <Target className="w-5 h-5 text-amber-300" />
+              </div>
+              <p className="text-3xl font-bold text-amber-100 mb-2">
+                {monthTarget ? formatCurrency(monthTarget.net_sales_112_percent) : 'N/A'}
+              </p>
+              <p className={`text-xs font-semibold ${
+                monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
+                  ? 'text-emerald-300'
+                  : 'text-amber-300/70'
+              }`}>
+                {monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
+                  ? `✓ Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget.net_sales_112_percent || 0))}`
+                  : monthTarget ? `Remaining: ${formatCurrency((monthTarget.net_sales_112_percent || 0) - (dashboardData.current_net_sales || 0))}` : 'N/A'
+                }
+              </p>
+            </div>
           </div>
 
-          {/* Divider Line */}
-          <div className="relative h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mb-6">
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black px-4">
-              <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest">LABOUR METRICS</span>
+          {/* Labour to Net Sales Ratio */}
+          <div className="text-center py-3">
+            <div className="inline-flex items-center px-5 py-2 bg-white/5 backdrop-blur border border-white/10 rounded-lg">
+              <span className="text-xs text-white/60 uppercase tracking-wider font-semibold mr-3">Labour to Net Sales Ratio:</span>
+              <span className="text-base font-bold text-white">{formatPercentage(labourToNetSalesRatio)}</span>
             </div>
           </div>
 
           {/* Labour Sales Metrics Row */}
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-5 gap-4">
             {/* Current Labour Sales */}
             <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
@@ -343,7 +347,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </p>
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
-                  className="bg-gradient-to-r from-white/80 to-white/60 h-2 rounded-full transition-all duration-500" 
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_labour_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
                   style={{ width: `${Math.min(dashboardData.current_labour_sales_percentage || 0, 100)}%` }}
                 ></div>
               </div>
@@ -363,7 +367,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </p>
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
-                  className="bg-gradient-to-r from-white/80 to-white/60 h-2 rounded-full transition-all duration-500" 
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_labor_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
                   style={{ width: `${Math.min(dashboardData.estimated_labor_sales_percentage || 0, 100)}%` }}
                 ></div>
               </div>

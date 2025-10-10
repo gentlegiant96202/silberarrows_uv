@@ -106,7 +106,7 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
             error: null,
           });
         } else {
-          // No permissions found in database - deny access
+          // No permissions found in database - user may not have a role assigned
           setPermissions({
             canView: false,
             canCreate: false,

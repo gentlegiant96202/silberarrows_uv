@@ -3,13 +3,14 @@ import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
 
 interface UserRole {
-  role: 'admin' | 'sales' | 'marketing' | 'service' | 'leasing' | 'accounts';
+  role: 'admin' | 'sales' | 'marketing' | 'service' | 'leasing' | 'accounts' | null;
   isAdmin: boolean;
   isSales: boolean;
   isMarketing: boolean;
   isService: boolean;
   isLeasing: boolean;
   isAccounts: boolean;
+  hasRole: boolean; // New flag to check if user has any assigned role
   isLoading: boolean;
   error: string | null;
   
@@ -27,7 +28,7 @@ interface UserRole {
  */
 export function useUserRole(): UserRole {
   const { user } = useAuth();
-  const [role, setRole] = useState<'admin' | 'sales' | 'marketing' | 'service' | 'leasing' | 'accounts'>('sales');
+  const [role, setRole] = useState<'admin' | 'sales' | 'marketing' | 'service' | 'leasing' | 'accounts' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -51,7 +52,7 @@ export function useUserRole(): UserRole {
     async function fetchUserRole() {
       if (!user?.id) {
         setIsLoading(false);
-        setRole('sales'); // Set default role to sales
+        setRole(null); // No user = no role
         return;
       }
 
@@ -73,23 +74,34 @@ export function useUserRole(): UserRole {
           return;
         }
 
-        if (roleError) {
+        if (roleError && roleError.code !== 'PGRST116') {
+          // PGRST116 is "no rows returned" - that's expected for new users
           console.warn('Database role lookup failed:', roleError.message);
         }
 
-        // Fallback to legacy metadata logic if database lookup fails
-        const legacyRole = isAdminLegacy ? 'admin' : 'sales'; // Convert old 'user' to 'sales'
-        setRole(legacyRole);
-        console.log('📜 Using legacy metadata role (fallback):', legacyRole);
+        // Check for legacy admin users only (not regular users)
+        if (isAdminLegacy) {
+          setRole('admin');
+          console.log('📜 Using legacy admin role (fallback)');
+          return;
+        }
+
+        // No role found - user needs admin to assign one
+        setRole(null);
+        console.log('ℹ️ User has no assigned role - awaiting admin assignment');
 
       } catch (err: any) {
         console.error('Error fetching user role:', err);
         setError(err.message);
         
-        // Ultimate fallback to legacy logic
-        const legacyRole = isAdminLegacy ? 'admin' : 'sales';
-        setRole(legacyRole);
-        console.log('⚠️ Error fallback to legacy role:', legacyRole);
+        // On error, check legacy admin status only
+        if (isAdminLegacy) {
+          setRole('admin');
+          console.log('⚠️ Error fallback to legacy admin role');
+        } else {
+          setRole(null);
+          console.log('⚠️ Error - no role assigned');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -106,6 +118,7 @@ export function useUserRole(): UserRole {
     isService: role === 'service',
     isLeasing: role === 'leasing',
     isAccounts: role === 'accounts',
+    hasRole: role !== null, // User has an assigned role
     isLoading,
     error,
     

@@ -199,7 +199,7 @@ export default function KanbanBoard() {
   const hasFetchedLeads = useRef(false);
 
   // Get permissions and role
-  const { canEdit } = useModulePermissions('uv_crm');
+  const { canEdit, canCreate } = useModulePermissions('uv_crm');
   const { isAdmin } = useUserRole();
   
   // Vehicle Document Modal states
@@ -805,14 +805,20 @@ export default function KanbanBoard() {
                 {col.title}
               </h3>
               {(col.key === 'new_lead' || col.key === 'new_customer') ? (
-              <button
-                onClick={() => setShowModal(true)}
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
-                title={col.key === 'new_lead' ? "Add new lead" : "Add new appointment"}
-              >
-                  {grouped[col.key as ColKey].length}
-                  <span className="ml-1 text-[12px] leading-none">＋</span>
-              </button>
+                canCreate ? (
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors shadow-sm bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black hover:brightness-110"
+                    title={col.key === 'new_lead' ? "Add new lead" : "Add new appointment"}
+                  >
+                    {grouped[col.key as ColKey].length}
+                    <span className="ml-1 text-[12px] leading-none">＋</span>
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
+                    {columnLoading[col.key as ColKey] ? '--' : grouped[col.key as ColKey].length}
+                  </span>
+                )
               ) : (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white/70 text-[10px] font-medium">
                   {columnLoading[col.key as ColKey] ? '--' : grouped[col.key as ColKey].length}

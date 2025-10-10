@@ -4,6 +4,7 @@ import { Car, Phone, MapPin, Calendar, DollarSign, ExternalLink, Edit2, Save, X,
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import NotesTimeline, { NoteItem } from '@/components/shared/NotesTimeline';
+import { useModulePermissions } from '@/lib/useModulePermissions';
 
 dayjs.extend(relativeTime);
 
@@ -50,6 +51,9 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  
+  // Check permissions
+  const { canEdit, canDelete } = useModulePermissions('uv_crm');
   
   // Negotiation form state
   const [vehicleMake, setVehicleMake] = useState(consignment.vehicle_make || '');
@@ -457,21 +461,25 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
           <div className="flex items-center gap-2">
             {!isEditing ? (
               <>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-1 px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors text-xs"
-                >
-                  <Edit2 className="w-3 h-3" />
-                  Edit
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 transition-colors text-xs disabled:opacity-50"
-                >
-                  <X className="w-3 h-3" />
-                  {deleting ? 'Deleting...' : 'Delete'}
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-1 px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors text-xs"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    Edit
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 transition-colors text-xs disabled:opacity-50"
+                  >
+                    <X className="w-3 h-3" />
+                    {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
               </>
             ) : (
               <>

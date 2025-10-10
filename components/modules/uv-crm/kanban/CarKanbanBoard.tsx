@@ -1004,7 +1004,7 @@ export default function CarKanbanBoard() {
                             <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
                           </div>
                           {/* Price Drop Button - Expanded View */}
-                          {col.key === 'inventory' && (
+                          {col.key === 'inventory' && canCreateCars && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1076,7 +1076,7 @@ export default function CarKanbanBoard() {
                             <span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}
                           </div>
                           {/* Price Drop Button - List View */}
-                          {col.key === 'inventory' && (
+                          {col.key === 'inventory' && canCreateCars && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

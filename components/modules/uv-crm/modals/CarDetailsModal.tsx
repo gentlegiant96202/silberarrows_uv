@@ -2416,16 +2416,18 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                           >
                             Download
                           </a>
-                          <button 
-                            onClick={() => {
-                              if (confirm('Are you sure you want to delete this document?')) {
-                                handleDeleteMedia(doc);
-                              }
-                            }}
-                            className="text-sm text-red-400 hover:text-red-300"
-                          >
-                            Delete
-                          </button>
+                          {canDeleteInventory && (
+                            <button 
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this document?')) {
+                                  handleDeleteMedia(doc);
+                                }
+                              }}
+                              className="text-sm text-red-400 hover:text-red-300"
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                     </div>
                   ))}
@@ -2468,16 +2470,18 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                           >
                             Download
                           </a>
-                          <button 
-                            onClick={() => {
-                              if (confirm('Are you sure you want to delete the vehicle PDF?')) {
-                                handleDeleteVehiclePDF();
-                              }
-                            }}
-                            className="text-sm text-red-400 hover:text-red-300"
-                          >
-                            Delete
-                          </button>
+                          {canDeleteInventory && (
+                            <button 
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete the vehicle PDF?')) {
+                                  handleDeleteVehiclePDF();
+                                }
+                              }}
+                              className="text-sm text-red-400 hover:text-red-300"
+                            >
+                              Delete
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -2505,13 +2509,15 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         <option value="standard" className="bg-gray-800 text-white">Standard Consignment</option>
                         <option value="drive-whilst-sell" className="bg-gray-800 text-white">Drive Whilst We Sell</option>
                       </select>
-                      <button 
-                        onClick={handleGenerateConsignmentAgreement} 
-                        disabled={generatingAgreement}
-                        className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
-                      >
-                        {generatingAgreement ? 'Generating…' : 'Generate Agreement'}
-                      </button>
+                      {canEditInventory && (
+                        <button 
+                          onClick={handleGenerateConsignmentAgreement} 
+                          disabled={generatingAgreement}
+                          className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                        >
+                          {generatingAgreement ? 'Generating…' : 'Generate Agreement'}
+                        </button>
+                      )}
                     </div>
                   </div>
                   {agreementStatusMsg && (
@@ -2545,30 +2551,32 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                             </span>
                           )}
                           {/* Send for Signing Button - same size as Generate Agreement */}
-                          <button 
-                            onClick={() => {
-                              console.log('🔥 HEADER BUTTON CLICKED!');
-                              console.log('📋 consignmentDocs:', consignmentDocs);
-                              // First try to find an unsigned document
-                              let docToSend = consignmentDocs.find(doc => !doc.docusign_envelope_id);
-                              // If no unsigned document, use the first available document (for resending)
-                              if (!docToSend && consignmentDocs.length > 0) {
-                                docToSend = consignmentDocs[0];
-                                console.log('📄 No unsigned doc found, using first document for resending:', docToSend);
-                              }
-                              console.log('📄 Document to send:', docToSend);
-                              if (docToSend) {
-                                console.log('🚀 Calling handleSendForSigning...');
-                                handleSendForSigning(docToSend);
-                              } else {
-                                console.log('❌ No document found at all');
-                              }
-                            }}
-                            disabled={sendingForSigning !== null}
-                            className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
-                          >
-                            {sendingForSigning ? 'Sending...' : 'Send for Signing'}
-                          </button>
+                          {canEditInventory && (
+                            <button 
+                              onClick={() => {
+                                console.log('🔥 HEADER BUTTON CLICKED!');
+                                console.log('📋 consignmentDocs:', consignmentDocs);
+                                // First try to find an unsigned document
+                                let docToSend = consignmentDocs.find(doc => !doc.docusign_envelope_id);
+                                // If no unsigned document, use the first available document (for resending)
+                                if (!docToSend && consignmentDocs.length > 0) {
+                                  docToSend = consignmentDocs[0];
+                                  console.log('📄 No unsigned doc found, using first document for resending:', docToSend);
+                                }
+                                console.log('📄 Document to send:', docToSend);
+                                if (docToSend) {
+                                  console.log('🚀 Calling handleSendForSigning...');
+                                  handleSendForSigning(docToSend);
+                                } else {
+                                  console.log('❌ No document found at all');
+                                }
+                              }}
+                              disabled={sendingForSigning !== null}
+                              className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                            >
+                              {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2">

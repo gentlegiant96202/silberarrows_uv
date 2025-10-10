@@ -291,9 +291,9 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
     <div style={{ ...style, padding: '2px' }}>
       <div
         key={task.id}
-        draggable
-        onDragStart={() => onDragStart(task)}
-        onDragEnd={onDragEnd}
+        draggable={canEdit}
+        onDragStart={canEdit ? () => onDragStart(task) : undefined}
+        onDragEnd={canEdit ? onDragEnd : undefined}
         onClick={() => handleCardClick(task)}
         className={`aspect-[4/5] bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm rounded-lg shadow-sm cursor-pointer group relative overflow-hidden ${
           draggedTask?.id === task.id 
@@ -685,6 +685,16 @@ export default function MarketingKanbanBoard() {
       return;
     }
 
+    // Permission check: Only users with edit permission can move cards
+    if (!canEdit) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚫 Drop prevented - no edit permission for marketing');
+      }
+      setDraggedTask(null);
+      setHovered(null);
+      return;
+    }
+
     // Prevent moving cards that have active uploads to avoid media loss
     if (tasksWithActiveUploads.has(draggedTask.id)) {
       alert('Please wait for file uploads to complete before moving this card.');
@@ -796,7 +806,7 @@ export default function MarketingKanbanBoard() {
       // Show user-friendly error message
       alert('Failed to move card. Your media files are safe. Please try again.');
     }
-  }, [draggedTask, isAdmin, getAuthHeaders, tasksWithActiveUploads]);
+  }, [draggedTask, isAdmin, canEdit, getAuthHeaders, tasksWithActiveUploads]);
 
   const onDragEnd = useCallback(() => {
     setDraggedTask(null);
@@ -1216,9 +1226,9 @@ export default function MarketingKanbanBoard() {
                   return (
                     <div
                       key={task.id}
-                      draggable
-                      onDragStart={() => onDragStart(task)}
-                      onDragEnd={onDragEnd}
+                      draggable={canEdit}
+                      onDragStart={canEdit ? () => onDragStart(task) : undefined}
+                      onDragEnd={canEdit ? onDragEnd : undefined}
                       onClick={() => handleCardClick(task)}
                       className={`
                         relative overflow-hidden rounded-xl select-none cursor-pointer group

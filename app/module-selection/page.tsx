@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useAllModulePermissions } from '@/lib/useModulePermissions';
+import { useUserRole } from '@/lib/useUserRole';
 import Header from '@/components/shared/header/Header';
 import LightRays from '@/components/shared/LightRays';
 import LiquidEther from '@/components/shared/LiquidEther';
@@ -85,6 +86,7 @@ export default function ModuleSelectionPage() {
   const { user, loading: authLoading } = useAuth();
   const allPermissions = useAllModulePermissions();
   const { isLoading: permissionsLoading, error } = allPermissions;
+  const { hasRole, isLoading: roleLoading } = useUserRole();
   const [debugMode, setDebugMode] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
@@ -317,6 +319,9 @@ export default function ModuleSelectionPage() {
     );
   }
 
+  // Check if user has no assigned role
+  const userHasNoRole = !roleLoading && !hasRole;
+
   // Filter modules based on permissions
   const accessibleModules = moduleCards.filter(module => {
     if (debugMode || showFallback || error) return true; // Show all in fallback modes
@@ -391,7 +396,15 @@ export default function ModuleSelectionPage() {
       {/* Main Content - Centered in Viewport */}
       <div className="absolute inset-0 z-10 md:flex md:items-center md:justify-center overflow-y-auto pt-20 md:pt-0">
         <div className="px-6 max-w-7xl mx-auto animate-fadeIn py-8 md:py-0">
-          {accessibleModules.length === 0 && !debugMode && !showFallback ? (
+          {userHasNoRole ? (
+            <div className="py-20 text-center">
+              <div className="w-16 h-16 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 flex items-center justify-center mx-auto mb-6">
+                <AlertCircle className="w-8 h-8 text-gray-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">Access Pending</h2>
+              <p className="text-gray-400 mb-8 max-w-md mx-auto">Your account has been created. An administrator will assign access shortly.</p>
+            </div>
+          ) : accessibleModules.length === 0 && !debugMode && !showFallback ? (
             <div className="py-20 text-center">
               <div className="w-16 h-16 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 flex items-center justify-center mx-auto mb-6">
                 <AlertCircle className="w-8 h-8 text-gray-400" />

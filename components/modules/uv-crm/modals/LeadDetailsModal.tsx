@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import DocUploader from '@/components/modules/uv-crm/components/DocUploader';
 import MatchingCarsList from '@/components/modules/uv-crm/components/MatchingCarsList';
 import NotesTimeline, { NoteItem } from '@/components/shared/NotesTimeline';
+import { useModulePermissions } from '@/lib/useModulePermissions';
 
 interface Lead {
   id: string;
@@ -101,6 +102,10 @@ const generateTimeSlots = () => {
 export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }: LeadDetailsModalProps) {
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Check permissions
+  const { canEdit, canDelete } = useModulePermissions('uv_crm');
+  
   const [formData, setFormData] = useState({
     full_name: lead.full_name,
     country_code: lead.country_code || '+971',
@@ -465,20 +470,24 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                 >
                   💬 Chat
                 </button>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-2 py-1 bg-brand hover:bg-brand/90 focus:bg-brand/90 active:bg-brand text-white text-xs rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand/50"
-                  disabled={loading}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-2 py-1 bg-white/5 hover:bg-white/10 focus:bg-white/10 active:bg-white/15 backdrop-blur-sm border border-white/10 text-white hover:text-white/80 focus:text-white/80 text-xs rounded transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
-                  disabled={loading}
-                >
-                  Delete
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-2 py-1 bg-brand hover:bg-brand/90 focus:bg-brand/90 active:bg-brand text-white text-xs rounded transition-colors focus:outline-none focus:ring-2 focus:ring-brand/50"
+                    disabled={loading}
+                  >
+                    Edit
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={handleDelete}
+                    className="px-2 py-1 bg-white/5 hover:bg-white/10 focus:bg-white/10 active:bg-white/15 backdrop-blur-sm border border-white/10 text-white hover:text-white/80 focus:text-white/80 text-xs rounded transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
+                    disabled={loading}
+                  >
+                    Delete
+                  </button>
+                )}
                 </>
               )}
               </div>

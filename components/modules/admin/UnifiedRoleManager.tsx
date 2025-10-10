@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRole } from '@/lib/useUserRole';
-import { User, Shield, Users, Briefcase, Wrench, Key, Settings, ChevronRight, ChevronDown, Calculator, Edit } from 'lucide-react';
+import { User, Shield, Users, Briefcase, Wrench, Key, Settings, ChevronRight, ChevronDown, Calculator, Edit, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/shared/AuthProvider';
 
 interface UserWithRole {
   id: string;
   email: string;
-  role: 'admin' | 'sales' | 'sales_head' | 'marketing' | 'marketing_head' | 'service' | 'service_head' | 'leasing' | 'leasing_head' | 'accounts' | 'accounts_head';
+  role: 'admin' | 'sales' | 'sales_head' | 'marketing' | 'marketing_head' | 'service' | 'service_head' | 'leasing' | 'leasing_head' | 'accounts' | 'accounts_head' | null;
   created_at: string;
   full_name?: string; // Add optional name field
 }
@@ -399,6 +399,10 @@ export default function UnifiedRoleManager() {
     return users.filter(user => user.role === role);
   };
 
+  const getUnassignedUsers = () => {
+    return users.filter(user => user.role === null || user.role === undefined);
+  };
+
   const getPermissionsForRole = (role: string) => {
     // Get existing permissions for this role
     const rolePermissions = permissions.filter(p => p.role === role);
@@ -490,6 +494,55 @@ export default function UnifiedRoleManager() {
         <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 flex items-center space-x-3">
           <Shield className="w-5 h-5 text-green-400 flex-shrink-0" />
           <span className="text-green-100">{success}</span>
+        </div>
+      )}
+
+      {/* Unassigned Users Section - Show First */}
+      {getUnassignedUsers().length > 0 && (
+        <div className="mb-6 bg-amber-500/10 rounded-lg border-2 border-amber-500/30 overflow-hidden">
+          <div className="px-6 py-4 bg-amber-500/20 border-b border-amber-500/30">
+            <div className="flex items-center space-x-3">
+              <AlertCircle className="w-6 h-6 text-amber-400" />
+              <div>
+                <h3 className="text-xl font-semibold text-white">Unassigned Users</h3>
+                <p className="text-amber-200/80 text-sm">These users need a role assigned to access the system</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6 space-y-3">
+            {getUnassignedUsers().map((user) => (
+              <div key={user.id} className="flex items-center justify-between p-4 bg-black/30 rounded-lg border border-amber-500/20">
+                <div className="flex items-center space-x-3 flex-1">
+                  <User className="w-5 h-5 text-amber-400" />
+                  <div className="flex-1">
+                    <div className="text-white font-medium">
+                      {user.full_name || 'No name set'}
+                    </div>
+                    <div className="text-white/60 text-sm">{user.email}</div>
+                    <div className="text-amber-300/60 text-xs">
+                      Signed up {new Date(user.created_at).toLocaleDateString()} • Awaiting role assignment
+                    </div>
+                  </div>
+                </div>
+                
+                <select
+                  value=""
+                  onChange={(e) => updateUserRole(user.id, e.target.value as UserWithRole['role'])}
+                  disabled={updating === user.id}
+                  className="bg-amber-500/20 border-2 border-amber-500/40 rounded px-4 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 hover:bg-amber-500/30 transition-colors"
+                >
+                  <option value="" disabled className="bg-black">
+                    {updating === user.id ? 'Assigning...' : 'Assign Role →'}
+                  </option>
+                  {ROLE_CONFIGS.map((role) => (
+                    <option key={role.id} value={role.id} className="bg-black">
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

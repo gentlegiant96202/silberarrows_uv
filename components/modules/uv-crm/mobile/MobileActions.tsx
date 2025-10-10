@@ -3,10 +3,14 @@
 import { useState } from 'react';
 import { Plus, Calendar } from 'lucide-react';
 import NewAppointmentModal from '@/components/modules/uv-crm/modals/NewAppointmentModal';
+import { useModulePermissions } from '@/lib/useModulePermissions';
 
 export default function MobileActions() {
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [showCreateAppointment, setShowCreateAppointment] = useState(false);
+  
+  // Check permissions
+  const { canCreate, isLoading } = useModulePermissions('uv_crm');
 
   const handleLeadCreated = (lead: any) => {
     setShowCreateLead(false);
@@ -17,6 +21,16 @@ export default function MobileActions() {
     setShowCreateAppointment(false);
     // The kanban will automatically update via real-time subscription
   };
+
+  // Don't show buttons if still loading permissions
+  if (isLoading) {
+    return null;
+  }
+
+  // Only show buttons if user has create permission
+  if (!canCreate) {
+    return null;
+  }
 
   return (
     <>

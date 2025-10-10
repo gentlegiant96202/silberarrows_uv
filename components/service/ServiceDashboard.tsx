@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Calendar, DollarSign, TrendingUp, Target, FileText, AlertCircle } from 'lucide-react';
-import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea, CartesianGrid } from 'recharts';
+import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea, CartesianGrid, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import type { DailyServiceMetrics, ServiceMonthlyTarget } from '@/types/service';
 
 interface ServiceDashboardProps {
@@ -10,34 +10,6 @@ interface ServiceDashboardProps {
   targets: ServiceMonthlyTarget[];
   loading?: boolean;
 }
-
-/* ---------------- Sparkline Component ---------------- */
-const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
-  const sparkData = data.map((value, index) => ({ value, index }));
-  
-  return (
-    <ResponsiveContainer width="100%" height={30}>
-      <ComposedChart data={sparkData}>
-        <defs>
-          <linearGradient id={`spark-${color}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.3}/>
-            <stop offset="100%" stopColor={color} stopOpacity={0.05}/>
-          </linearGradient>
-        </defs>
-        <Area 
-          type="monotone" 
-          dataKey="value" 
-          stroke={color} 
-          fill={`url(#spark-${color})`}
-          strokeWidth={2}
-          dot={false}
-          isAnimationActive={true}
-          animationDuration={800}
-        />
-      </ComposedChart>
-    </ResponsiveContainer>
-  );
-};
 
 export default function ServiceDashboard({ metrics, targets, loading = false }: ServiceDashboardProps) {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -155,24 +127,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     ? (dashboardData.current_net_labor_sales / dashboardData.current_net_sales) * 100
     : 0;
 
-  // Calculate sparkline data (last 7 days)
-  const sparklineData = {
-    netSales: [] as number[],
-    labourSales: [] as number[],
-    dailyAverage: [] as number[],
-  };
-
-  if (availableDates.length > 0) {
-    const last7Dates = availableDates.slice(0, 7).reverse();
-    const last7Metrics = last7Dates.map(date => 
-      metrics.find(m => m.metric_date === date)
-    ).filter(m => m !== undefined) as DailyServiceMetrics[];
-
-    sparklineData.netSales = last7Metrics.map(m => m.current_net_sales || 0);
-    sparklineData.labourSales = last7Metrics.map(m => m.current_net_labor_sales || 0);
-    sparklineData.dailyAverage = last7Metrics.map(m => m.current_daily_average || 0);
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -287,14 +241,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               <p className="text-4xl font-black text-white mb-3 drop-shadow-lg">
                 {formatCurrency(dashboardData.current_net_sales || 0)}
               </p>
-              
-              {/* Sparkline */}
-              {sparklineData.netSales.length > 0 && (
-                <div className="mb-3 opacity-70">
-                  <Sparkline data={sparklineData.netSales} color="#10b981" />
-                </div>
-              )}
-              
               <div className="w-full bg-white/10 rounded-full h-3 mb-3">
                 <div 
                   className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_net_sales_percentage || 0)} h-3 rounded-full transition-all duration-500 shadow-lg`}
@@ -335,14 +281,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               <p className="text-3xl font-bold text-white mb-2">
                 {formatCurrency(dashboardData.current_daily_average || 0)}
               </p>
-              
-              {/* Sparkline */}
-              {sparklineData.dailyAverage.length > 0 && (
-                <div className="mb-2 opacity-60">
-                  <Sparkline data={sparklineData.dailyAverage} color="#ffffff" />
-                </div>
-              )}
-              
               <p className="text-xs text-white/40">Daily pace</p>
             </div>
 
@@ -407,14 +345,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               <p className="text-3xl font-bold text-white mb-2">
                 {formatCurrency(dashboardData.current_net_labor_sales || 0)}
               </p>
-              
-              {/* Sparkline */}
-              {sparklineData.labourSales.length > 0 && (
-                <div className="mb-2 opacity-60">
-                  <Sparkline data={sparklineData.labourSales} color="#06b6d4" />
-                </div>
-              )}
-              
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
                   className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_labour_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
@@ -512,6 +442,23 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 const date = new Date(m.metric_date);
                 return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
               })}
+              target={monthTarget}
+            />
+          </div>
+
+          {/* New Additional Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            {/* Sales Velocity Chart */}
+            <SalesVelocityChart 
+              metrics={metrics.filter(m => {
+                const date = new Date(m.metric_date);
+                return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
+              })}
+            />
+
+            {/* Labour vs Parts Breakdown Chart */}
+            <LabourPartsBreakdownChart 
+              dashboardData={dashboardData}
               target={monthTarget}
             />
           </div>
@@ -1403,6 +1350,235 @@ const SalespersonCard: React.FC<{
         <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
           <span className="text-xs font-bold text-white/90">{percentage.toFixed(1)}%</span>
           <span className="text-xs text-white/50 ml-1.5">of total</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ---------------- Sales Velocity Chart (Day-over-Day Changes) ---------------- */
+const SalesVelocityChart: React.FC<{ 
+  metrics: DailyServiceMetrics[];
+}> = ({ metrics }) => {
+  const [chartData, setChartData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (metrics.length > 1) {
+      const sortedMetrics = [...metrics].sort((a, b) => 
+        new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime()
+      );
+
+      // Calculate day-over-day velocity
+      const data = sortedMetrics.map((metric, index) => {
+        const day = new Date(metric.metric_date).getDate();
+        const currentSales = metric.current_net_sales || 0;
+        const previousSales = index > 0 ? (sortedMetrics[index - 1].current_net_sales || 0) : currentSales;
+        const velocity = currentSales - previousSales;
+        
+        return {
+          day: day,
+          velocity: velocity,
+          isPositive: velocity >= 0,
+        };
+      });
+
+      setChartData(data);
+    }
+  }, [metrics]);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Math.abs(value));
+  };
+
+  return (
+    <div className="rounded-xl bg-black backdrop-blur-xl border border-white/20 shadow-2xl p-6">
+      <div className="mb-4">
+        <h3 className="text-base font-bold text-white mb-1">Sales Velocity</h3>
+        <p className="text-xs text-gray-400">Day-over-day sales change (acceleration/deceleration)</p>
+      </div>
+      
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: -20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+          <XAxis 
+            dataKey="day" 
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            stroke="#4b5563"
+            tickLine={{ stroke: '#4b5563' }}
+            axisLine={{ stroke: '#4b5563' }}
+          />
+          <YAxis 
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            stroke="#4b5563"
+            tickLine={{ stroke: '#4b5563' }}
+            axisLine={{ stroke: '#4b5563' }}
+            tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact', compactDisplay: 'short' }).format(value)}
+            width={50}
+          />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.98)', 
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '12px',
+              padding: '12px'
+            }}
+            labelStyle={{ color: '#ffffff', fontWeight: 700 }}
+            itemStyle={{ color: '#d1d5db', fontSize: '12px' }}
+            formatter={(value: any) => {
+              const numValue = Number(value);
+              return [`AED ${formatCurrency(numValue)} ${numValue >= 0 ? '↑' : '↓'}`, numValue >= 0 ? 'Increase' : 'Decrease'];
+            }}
+            labelFormatter={(value: string | number) => `Day ${value}`}
+          />
+          <ReferenceLine y={0} stroke="#ffffff" strokeWidth={1} strokeOpacity={0.3} />
+          <Bar 
+            dataKey="velocity" 
+            fill="#10b981"
+            radius={[4, 4, 0, 0]}
+            animationDuration={1000}
+          >
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.isPositive ? '#10b981' : '#ef4444'} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+
+      {/* Stats */}
+      <div className="mt-4 grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Positive Days</p>
+          <p className="text-sm font-bold text-emerald-400">
+            {chartData.filter(d => d.isPositive && d.velocity > 0).length}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Negative Days</p>
+          <p className="text-sm font-bold text-red-400">
+            {chartData.filter(d => !d.isPositive).length}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Avg Change</p>
+          <p className={`text-sm font-bold ${
+            chartData.reduce((sum, d) => sum + d.velocity, 0) / chartData.length >= 0 
+              ? 'text-emerald-400' 
+              : 'text-red-400'
+          }`}>
+            AED {chartData.length > 0 ? (chartData.reduce((sum, d) => sum + d.velocity, 0) / chartData.length / 1000).toFixed(0) : 0}K
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ---------------- Labour vs Parts Breakdown Chart ---------------- */
+const LabourPartsBreakdownChart: React.FC<{ 
+  dashboardData: DailyServiceMetrics | null;
+  target: ServiceMonthlyTarget | null;
+}> = ({ dashboardData, target }) => {
+  if (!dashboardData) return null;
+
+  const labourSales = dashboardData.current_net_labor_sales || 0;
+  const totalSales = dashboardData.current_net_sales || 0;
+  const partsSales = totalSales - labourSales;
+
+  const pieData = [
+    { name: 'Labour Sales', value: labourSales, color: '#06b6d4' },
+    { name: 'Parts Sales', value: partsSales, color: '#f59e0b' },
+  ];
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="white" 
+        textAnchor={x > cx ? 'start' : 'end'} 
+        dominantBaseline="central"
+        fontSize="14"
+        fontWeight="bold"
+      >
+        {`${(percent * 100).toFixed(1)}%`}
+      </text>
+    );
+  };
+
+  return (
+    <div className="rounded-xl bg-black backdrop-blur-xl border border-white/20 shadow-2xl p-6">
+      <div className="mb-4">
+        <h3 className="text-base font-bold text-white mb-1">Revenue Mix</h3>
+        <p className="text-xs text-gray-400">Labour vs Parts sales breakdown</p>
+      </div>
+      
+      <div className="flex items-center justify-center">
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <Pie
+              data={pieData}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={CustomLabel}
+              outerRadius={100}
+              fill="#8884d8"
+              dataKey="value"
+              animationDuration={1000}
+            >
+              {pieData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.98)', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                padding: '12px'
+              }}
+              formatter={(value: any) => `AED ${formatCurrency(Number(value))}`}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Legend and Stats */}
+      <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+            <span className="text-xs text-white/70">Labour Sales</span>
+          </div>
+          <span className="text-sm font-bold text-white">AED {formatCurrency(labourSales)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+            <span className="text-xs text-white/70">Parts Sales</span>
+          </div>
+          <span className="text-sm font-bold text-white">AED {formatCurrency(partsSales)}</span>
+        </div>
+        <div className="flex items-center justify-between pt-3 border-t border-white/10">
+          <span className="text-xs font-bold text-white/90">Labour Ratio</span>
+          <span className="text-sm font-bold text-cyan-400">
+            {totalSales > 0 ? ((labourSales / totalSales) * 100).toFixed(1) : 0}%
+          </span>
         </div>
       </div>
     </div>

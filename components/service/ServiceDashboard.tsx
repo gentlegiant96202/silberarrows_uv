@@ -699,7 +699,7 @@ const NetSalesProgressChart: React.FC<{
             stroke="#4b5563"
             tickLine={{ stroke: '#4b5563' }}
             axisLine={{ stroke: '#4b5563' }}
-            tickFormatter={(value) => new Intl.NumberFormat('en-AE', { notation: 'compact', compactDisplay: 'short' }).format(value)}
+            tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact', compactDisplay: 'short' }).format(value)}
             width={50}
           />
           <Tooltip 
@@ -882,7 +882,7 @@ const LabourSalesProgressChart: React.FC<{
             stroke="#4b5563"
             tickLine={{ stroke: '#4b5563' }}
             axisLine={{ stroke: '#4b5563' }}
-            tickFormatter={(value) => new Intl.NumberFormat('en-AE', { notation: 'compact', compactDisplay: 'short' }).format(value)}
+            tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact', compactDisplay: 'short' }).format(value)}
             width={50}
           />
           <Tooltip 

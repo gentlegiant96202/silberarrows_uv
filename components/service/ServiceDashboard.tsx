@@ -712,7 +712,7 @@ const NetSalesProgressChart: React.FC<{
             }}
             labelStyle={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}
             itemStyle={{ color: '#d1d5db', fontSize: '12px', padding: '4px 0' }}
-            labelFormatter={(value) => `Day ${value}`}
+            labelFormatter={(value: string | number) => `Day ${value}`}
             formatter={(value: any, name: string) => {
               const formattedValue = `AED ${formatCurrency(value)}`;
               if (name === 'Daily Cumulative Target') return [formattedValue, 'Daily Target'];
@@ -895,7 +895,7 @@ const LabourSalesProgressChart: React.FC<{
             }}
             labelStyle={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}
             itemStyle={{ color: '#d1d5db', fontSize: '12px', padding: '4px 0' }}
-            labelFormatter={(value) => `Day ${value}`}
+            labelFormatter={(value: string | number) => `Day ${value}`}
             formatter={(value: any, name: string) => {
               const formattedValue = `AED ${formatCurrency(value)}`;
               if (name === 'Current Daily Average') return [formattedValue, 'Current Avg'];

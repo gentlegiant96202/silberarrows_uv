@@ -1606,19 +1606,19 @@ const TargetAchievementForecastChart: React.FC<{
             forecastStats.will100 ? 'text-amber-400' : 
             'text-red-400'
           }`}>
-            AED {(forecastStats.projectedFinish / 1000).toFixed(0)}K
+            AED {formatCurrency(forecastStats.projectedFinish || 0)}
           </p>
         </div>
         <div className="text-center">
           <p className="text-xs text-gray-400 mb-1">Gap to 100%</p>
           <p className={`text-sm font-bold ${forecastStats.gap100 >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {forecastStats.gap100 >= 0 ? '+' : ''}{(forecastStats.gap100 / 1000).toFixed(0)}K
+            {forecastStats.gap100 >= 0 ? '+' : ''}{formatCurrency(Math.abs(forecastStats.gap100 || 0))}
           </p>
         </div>
         <div className="text-center">
           <p className="text-xs text-gray-400 mb-1">Gap to 112%</p>
           <p className={`text-sm font-bold ${forecastStats.gap112 >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-            {forecastStats.gap112 >= 0 ? '+' : ''}{(forecastStats.gap112 / 1000).toFixed(0)}K
+            {forecastStats.gap112 >= 0 ? '+' : ''}{formatCurrency(Math.abs(forecastStats.gap112 || 0))}
           </p>
         </div>
       </div>

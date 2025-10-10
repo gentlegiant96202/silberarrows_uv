@@ -978,26 +978,6 @@ const NetSalesProgressChart: React.FC<{
           />
         </ComposedChart>
       </ResponsiveContainer>
-      
-      {/* Mini Stats */}
-      {stats.avgDaily && (
-        <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
-          <div className="text-center">
-            <p className="text-xs text-gray-400 mb-1">Best Day</p>
-            <p className="text-sm font-bold text-white">AED {(stats.bestDay / 1000).toFixed(0)}K</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-400 mb-1">Avg Daily</p>
-            <p className="text-sm font-bold text-white">AED {(stats.avgDaily / 1000).toFixed(0)}K</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-400 mb-1">Days {stats.daysAheadBehind >= 0 ? 'Ahead' : 'Behind'}</p>
-            <p className={`text-sm font-bold ${stats.daysAheadBehind >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {stats.daysAheadBehind >= 0 ? '+' : ''}{stats.daysAheadBehind}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -1283,26 +1263,6 @@ const LabourSalesProgressChart: React.FC<{
           />
         </ComposedChart>
       </ResponsiveContainer>
-      
-      {/* Mini Stats */}
-      {stats.overallAvg && (
-        <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
-          <div className="text-center">
-            <p className="text-xs text-gray-400 mb-1">Best Day Avg</p>
-            <p className="text-sm font-bold text-white">AED {(stats.bestDayAvg / 1000).toFixed(0)}K</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-400 mb-1">7-Day Avg</p>
-            <p className="text-sm font-bold text-white">AED {(stats.movingAvg7Day / 1000).toFixed(0)}K</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-400 mb-1">Status</p>
-            <p className={`text-sm font-bold ${stats.isOnTrack ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {stats.isOnTrack ? '✓ On Target' : '⚡ Push Harder'}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

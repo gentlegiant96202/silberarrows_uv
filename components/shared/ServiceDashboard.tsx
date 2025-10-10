@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Calendar, DollarSign, TrendingUp, Target, FileText, AlertCircle } from 'lucide-react';
+import { Calendar, TrendingUp, Target, FileText, AlertCircle } from 'lucide-react';
+import DirhamIcon from '@/components/ui/DirhamIcon';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea, CartesianGrid, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import type { DailyServiceMetrics, ServiceMonthlyTarget } from '@/types/service';
 
@@ -77,10 +78,10 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   }, [selectedYear, selectedMonth, selectedDate, metrics, targets]);
 
   const formatCurrency = (amount: number) => {
-    return `AED ${new Intl.NumberFormat('en-AE', {
+    return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount)}`;
+    }).format(amount);
   };
 
   const formatPercentage = (value: number | undefined | null) => {
@@ -239,11 +240,13 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               
               <div className="flex items-center justify-between mb-4">
                 <p className="text-base font-bold text-white uppercase tracking-wide">Current Net Sales</p>
-                <DollarSign className="w-6 h-6 text-white/80" />
               </div>
-              <p className="text-4xl font-black text-white mb-3 drop-shadow-lg">
-                {formatCurrency(dashboardData.current_net_sales || 0)}
-              </p>
+              <div className="flex items-center gap-2 mb-3">
+                <DirhamIcon className="w-8 h-8 text-white/90" />
+                <p className="text-4xl font-black text-white drop-shadow-lg">
+                  {formatCurrency(dashboardData.current_net_sales || 0)}
+                </p>
+              </div>
               <div className="w-full bg-white/10 rounded-full h-3 mb-3">
                 <div 
                   className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_net_sales_percentage || 0)} h-3 rounded-full transition-all duration-500 shadow-lg`}
@@ -261,9 +264,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <p className="text-sm font-medium text-white/70">Est. Month End</p>
                 <TrendingUp className="w-5 h-5 text-white/60" />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {formatCurrency(dashboardData.estimated_net_sales || 0)}
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <DirhamIcon className="w-6 h-6 text-white/80" />
+                <p className="text-3xl font-bold text-white">
+                  {formatCurrency(dashboardData.estimated_net_sales || 0)}
+                </p>
+              </div>
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
                   className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_net_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
@@ -279,11 +285,13 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Daily Average</p>
-                <DollarSign className="w-5 h-5 text-white/60" />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {formatCurrency(dashboardData.current_daily_average || 0)}
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <DirhamIcon className="w-6 h-6 text-white/80" />
+                <p className="text-3xl font-bold text-white">
+                  {formatCurrency(dashboardData.current_daily_average || 0)}
+                </p>
+              </div>
               <p className="text-xs text-white/40">Daily pace</p>
             </div>
 
@@ -293,9 +301,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <p className="text-sm font-medium text-white/70">Target - 100%</p>
                 <Target className="w-5 h-5 text-white/60" />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {monthTarget ? formatCurrency(monthTarget.net_sales_target) : 'N/A'}
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <DirhamIcon className="w-6 h-6 text-white/80" />
+                <p className="text-3xl font-bold text-white">
+                  {monthTarget ? formatCurrency(monthTarget.net_sales_target) : 'N/A'}
+                </p>
+              </div>
               <p className="text-xs text-white/40">
                 {(dashboardData.current_net_sales || 0) >= (monthTarget?.net_sales_target || 0) 
                   ? `Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget?.net_sales_target || 0))}`
@@ -313,9 +324,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <p className="text-sm font-bold text-amber-200">Target - 112% ⚡</p>
                 <Target className="w-5 h-5 text-amber-300" />
               </div>
-              <p className="text-3xl font-bold text-amber-100 mb-2">
-                {monthTarget ? formatCurrency(monthTarget.net_sales_112_percent) : 'N/A'}
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <DirhamIcon className="w-6 h-6 text-amber-200" />
+                <p className="text-3xl font-bold text-amber-100">
+                  {monthTarget ? formatCurrency(monthTarget.net_sales_112_percent) : 'N/A'}
+                </p>
+              </div>
               <p className={`text-xs font-semibold ${
                 monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
                   ? 'text-emerald-300'
@@ -329,25 +343,19 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
           </div>
 
-          {/* Labour to Net Sales Ratio */}
-          <div className="text-center py-3">
-            <div className="inline-flex items-center px-5 py-2 bg-white/5 backdrop-blur border border-white/10 rounded-lg">
-              <span className="text-xs text-white/60 uppercase tracking-wider font-semibold mr-3">Labour to Net Sales Ratio:</span>
-              <span className="text-base font-bold text-white">{formatPercentage(labourToNetSalesRatio)}</span>
-            </div>
-          </div>
-
           {/* Labour Sales Metrics Row */}
           <div className="grid grid-cols-5 gap-4">
             {/* Current Labour Sales */}
             <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Current Labour</p>
-                <DollarSign className="w-5 h-5 text-white/60" />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {formatCurrency(dashboardData.current_net_labor_sales || 0)}
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <DirhamIcon className="w-6 h-6 text-white/80" />
+                <p className="text-3xl font-bold text-white">
+                  {formatCurrency(dashboardData.current_net_labor_sales || 0)}
+                </p>
+              </div>
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
                   className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_labour_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
@@ -365,9 +373,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <p className="text-sm font-medium text-white/70">Est. Labour End</p>
                 <TrendingUp className="w-5 h-5 text-white/60" />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {formatCurrency(dashboardData.estimated_labor_sales || 0)}
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <DirhamIcon className="w-6 h-6 text-white/80" />
+                <p className="text-3xl font-bold text-white">
+                  {formatCurrency(dashboardData.estimated_labor_sales || 0)}
+                </p>
+              </div>
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
                   className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_labor_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
@@ -383,13 +394,15 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Daily Average</p>
-                <DollarSign className="w-5 h-5 text-white/60" />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {formatCurrency((dashboardData.working_days_elapsed || 0) > 0 
-                  ? (dashboardData.current_net_labor_sales || 0) / (dashboardData.working_days_elapsed || 1)
-                  : 0)}
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <DirhamIcon className="w-6 h-6 text-white/80" />
+                <p className="text-3xl font-bold text-white">
+                  {formatCurrency((dashboardData.working_days_elapsed || 0) > 0 
+                    ? (dashboardData.current_net_labor_sales || 0) / (dashboardData.working_days_elapsed || 1)
+                    : 0)}
+                </p>
+              </div>
               <p className="text-xs text-white/40">Daily pace</p>
             </div>
 
@@ -399,9 +412,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <p className="text-sm font-medium text-white/70">Target - 100%</p>
                 <Target className="w-5 h-5 text-white/60" />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {monthTarget ? formatCurrency(monthTarget.labour_sales_target) : 'N/A'}
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <DirhamIcon className="w-6 h-6 text-white/80" />
+                <p className="text-3xl font-bold text-white">
+                  {monthTarget ? formatCurrency(monthTarget.labour_sales_target) : 'N/A'}
+                </p>
+              </div>
               <p className="text-xs text-white/40">
                 {(dashboardData.current_net_labor_sales || 0) >= (monthTarget?.labour_sales_target || 0)
                   ? `Exceeded by: ${formatCurrency((dashboardData.current_net_labor_sales || 0) - (monthTarget?.labour_sales_target || 0))}`
@@ -416,9 +432,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <p className="text-sm font-medium text-white/70">Target - 112%</p>
                 <Target className="w-5 h-5 text-white/60" />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {monthTarget ? formatCurrency(monthTarget.labour_sales_target * 1.12) : 'N/A'}
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <DirhamIcon className="w-6 h-6 text-white/80" />
+                <p className="text-3xl font-bold text-white">
+                  {monthTarget ? formatCurrency(monthTarget.labour_sales_target * 1.12) : 'N/A'}
+                </p>
+              </div>
               <p className="text-xs text-white/40">
                 {monthTarget && (dashboardData.current_net_labor_sales || 0) >= ((monthTarget.labour_sales_target || 0) * 1.12)
                   ? `Exceeded by: ${formatCurrency((dashboardData.current_net_labor_sales || 0) - ((monthTarget.labour_sales_target || 0) * 1.12))}`
@@ -482,45 +501,56 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
           {/* Charts and Additional Metrics Row */}
           <div className="grid gap-4 lg:grid-cols-2 mb-4">
-            {/* Left column */}
-            <div className="space-y-4">
-              <div className="grid gap-3 grid-cols-2">
-                {/* Marketing Spend % */}
-                <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium text-white/70">Marketing %</p>
-                    <DollarSign className="w-5 h-5 text-white/60" />
-                  </div>
+            {/* Left column - 4 cards grid */}
+            <div className="grid gap-3 grid-cols-2 auto-rows-fr">
+              {/* Marketing Spend % */}
+              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium text-white/70">Marketing %</p>
+                  <DirhamIcon className="w-5 h-5 text-white/60" />
+                </div>
+                <div>
                   <p className="text-3xl font-bold text-white mb-2">{formatPercentage(marketingSpendPercentage)}</p>
                   <p className="text-xs text-white/40">Of sales</p>
                 </div>
+              </div>
 
-                {/* Average Invoice Value */}
-                <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium text-white/70">Avg Invoice</p>
-                    <FileText className="w-5 h-5 text-white/60" />
+              {/* Average Invoice Value */}
+              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium text-white/70">Avg Invoice</p>
+                  <FileText className="w-5 h-5 text-white/60" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <DirhamIcon className="w-6 h-6 text-white/80" />
+                    <p className="text-3xl font-bold text-white">{formatCurrency(averageInvoiceValue)}</p>
                   </div>
-                  <p className="text-3xl font-bold text-white mb-2">{formatCurrency(averageInvoiceValue)}</p>
                   <p className="text-xs text-white/40">Per invoice</p>
                 </div>
+              </div>
 
-                {/* Marketing Spend */}
-                <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium text-white/70">Marketing</p>
-                    <DollarSign className="w-5 h-5 text-white/60" />
+              {/* Marketing Spend */}
+              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium text-white/70">Marketing</p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <DirhamIcon className="w-6 h-6 text-white/80" />
+                    <p className="text-3xl font-bold text-white">{formatCurrency(dashboardData.current_marketing_spend || 0)}</p>
                   </div>
-                  <p className="text-3xl font-bold text-white mb-2">{formatCurrency(dashboardData.current_marketing_spend || 0)}</p>
                   <p className="text-xs text-white/40">Total spend</p>
                 </div>
+              </div>
 
-                {/* Number of Invoices */}
-                <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium text-white/70">Invoices</p>
-                    <FileText className="w-5 h-5 text-white/60" />
-                  </div>
+              {/* Number of Invoices */}
+              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium text-white/70">Invoices</p>
+                  <FileText className="w-5 h-5 text-white/60" />
+                </div>
+                <div>
                   <p className="text-3xl font-bold text-white mb-2">{monthlyInvoiceSum}</p>
                   <p className="text-xs text-white/40">This month</p>
                 </div>
@@ -779,7 +809,10 @@ const NetSalesProgressChart: React.FC<{
               <div className="w-2 h-2 rounded-full bg-emerald-400" />
               Current:
             </span>
-            <span className="text-white font-mono">AED {formatCurrency(data.currentNetSales)}</span>
+            <span className="text-white font-mono flex items-center gap-1">
+              <DirhamIcon className="w-3 h-3" />
+              {formatCurrency(data.currentNetSales)}
+            </span>
           </div>
           
           <div className="flex justify-between items-center gap-4">
@@ -787,7 +820,10 @@ const NetSalesProgressChart: React.FC<{
               <div className="w-2 h-2 rounded-full bg-gray-400" />
               Target:
             </span>
-            <span className="text-white font-mono">AED {formatCurrency(data.cumulativeTarget)}</span>
+            <span className="text-white font-mono flex items-center gap-1">
+              <DirhamIcon className="w-3 h-3" />
+              {formatCurrency(data.cumulativeTarget)}
+            </span>
           </div>
           
           <div className="border-t border-white/10 pt-2 mt-2">
@@ -795,8 +831,9 @@ const NetSalesProgressChart: React.FC<{
               <span className={`font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {gap >= 0 ? '↑ Ahead:' : '↓ Behind:'}
               </span>
-              <span className={`font-mono font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                AED {formatCurrency(Math.abs(gap))}
+              <span className={`font-mono font-bold flex items-center gap-1 ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <DirhamIcon className="w-3 h-3" />
+                {formatCurrency(Math.abs(gap))}
               </span>
             </div>
             <div className="flex justify-between items-center gap-4 mt-1">
@@ -1087,11 +1124,14 @@ const LabourSalesProgressChart: React.FC<{
         
         <div className="space-y-2 text-xs">
           <div className="flex justify-between items-center gap-4">
-            <span className="text-cyan-400 font-semibold flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-cyan-400" />
+            <span className="text-emerald-400 font-semibold flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-emerald-400" />
               Current Avg:
             </span>
-            <span className="text-white font-mono">AED {formatCurrency(data.currentAvg)}</span>
+            <span className="text-white font-mono flex items-center gap-1">
+              <DirhamIcon className="w-3 h-3" />
+              {formatCurrency(data.currentAvg)}
+            </span>
           </div>
           
           <div className="flex justify-between items-center gap-4">
@@ -1099,7 +1139,10 @@ const LabourSalesProgressChart: React.FC<{
               <div className="w-2 h-2 rounded-full bg-orange-400" />
               Required:
             </span>
-            <span className="text-white font-mono">AED {formatCurrency(data.requiredAvg)}</span>
+            <span className="text-white font-mono flex items-center gap-1">
+              <DirhamIcon className="w-3 h-3" />
+              {formatCurrency(data.requiredAvg)}
+            </span>
           </div>
           
           <div className="border-t border-white/10 pt-2 mt-2">
@@ -1107,8 +1150,9 @@ const LabourSalesProgressChart: React.FC<{
               <span className={`font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {gap >= 0 ? '✓ On Track:' : '⚠ Gap:'}
               </span>
-              <span className={`font-mono font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                AED {formatCurrency(Math.abs(gap))}
+              <span className={`font-mono font-bold flex items-center gap-1 ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <DirhamIcon className="w-3 h-3" />
+                {formatCurrency(Math.abs(gap))}
               </span>
             </div>
             <div className="flex justify-between items-center gap-4 mt-1">
@@ -1125,12 +1169,9 @@ const LabourSalesProgressChart: React.FC<{
 
   const latestData = chartData[chartData.length - 1];
   
-  // Determine line color based on performance
+  // Current Daily Average is always green
   const getLineColor = () => {
-    if (!latestData) return '#06b6d4';
-    if (latestData.currentAvg >= latestData.requiredAvg) return '#10b981'; // Green - on track
-    if (latestData.currentAvg >= latestData.requiredAvg * 0.9) return '#f59e0b'; // Amber - close
-    return '#ef4444'; // Red - behind
+    return '#10b981'; // Green - emerald-500
   };
 
   return (
@@ -1153,17 +1194,19 @@ const LabourSalesProgressChart: React.FC<{
         
         {/* Improvement Badge */}
         {stats.improvementNeeded !== undefined && stats.improvementNeeded > 0 && (
-          <div className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300">
-            +AED {(stats.improvementNeeded / 1000).toFixed(0)}K needed/day
+          <div className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 flex items-center gap-1">
+            <span>+</span>
+            <DirhamIcon className="w-3 h-3" />
+            <span>{(stats.improvementNeeded / 1000).toFixed(0)}K needed/day</span>
           </div>
         )}
       </div>
       
       {/* Legend */}
       <div className="flex items-center justify-center gap-5 mb-6 flex-wrap">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-cyan-500/30">
-          <div className="w-2.5 h-2.5 rounded-full bg-cyan-500"></div>
-          <span className="text-xs font-medium text-cyan-300">Current Daily Average</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-emerald-500/30">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+          <span className="text-xs font-medium text-emerald-300">Current Daily Average</span>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-orange-500/30">
           <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div>
@@ -1277,10 +1320,10 @@ const SalespersonCard: React.FC<{
   const percentage = totalSales > 0 ? (amount / totalSales) * 100 : 0;
   
   const formatCurrency = (amount: number) => {
-    return `AED ${new Intl.NumberFormat('en-AE', {
+    return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount)}`;
+    }).format(amount);
   };
 
   const formatCompact = (amount: number) => {
@@ -1510,20 +1553,10 @@ const TargetAchievementForecastChart: React.FC<{
             }}
             labelStyle={{ color: '#ffffff', fontWeight: 700 }}
             itemStyle={{ color: '#d1d5db', fontSize: '12px' }}
-            formatter={(value: any) => value ? `AED ${formatCurrency(Number(value))}` : 'N/A'}
+            formatter={(value: any) => value ? `د.إ ${formatCurrency(Number(value))}` : 'N/A'}
             labelFormatter={(value: string | number) => `Day ${value}`}
           />
           
-          <Line 
-            type="monotone"
-            dataKey="target100" 
-            stroke="#ffffff" 
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            dot={false}
-            name="100% Target"
-            strokeOpacity={0.5}
-          />
           <Line 
             type="monotone"
             dataKey="target112" 
@@ -1533,6 +1566,16 @@ const TargetAchievementForecastChart: React.FC<{
             dot={false}
             name="112% Target"
             strokeOpacity={0.7}
+          />
+          <Line 
+            type="monotone"
+            dataKey="target100" 
+            stroke="#ffffff" 
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            dot={false}
+            name="100% Target"
+            strokeOpacity={0.5}
           />
           <Area 
             type="monotone"
@@ -1559,25 +1602,30 @@ const TargetAchievementForecastChart: React.FC<{
       <div className="mt-4 grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
         <div className="text-center">
           <p className="text-xs text-gray-400 mb-1">Projected Finish</p>
-          <p className={`text-sm font-bold ${
+          <div className={`flex items-center justify-center gap-1 text-sm font-bold ${
             forecastStats.will112 ? 'text-emerald-400' : 
             forecastStats.will100 ? 'text-amber-400' : 
             'text-red-400'
           }`}>
-            AED {formatCurrency(forecastStats.projectedFinish || 0)}
-          </p>
+            <DirhamIcon className="w-3 h-3" />
+            <span>{formatCurrency(forecastStats.projectedFinish || 0)}</span>
+          </div>
         </div>
         <div className="text-center">
           <p className="text-xs text-gray-400 mb-1">Gap to 100%</p>
-          <p className={`text-sm font-bold ${forecastStats.gap100 >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {forecastStats.gap100 >= 0 ? '+' : ''}{formatCurrency(Math.abs(forecastStats.gap100 || 0))}
-          </p>
+          <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.gap100 >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span>{forecastStats.gap100 >= 0 ? '+' : ''}</span>
+            <DirhamIcon className="w-3 h-3" />
+            <span>{formatCurrency(Math.abs(forecastStats.gap100 || 0))}</span>
+          </div>
         </div>
         <div className="text-center">
           <p className="text-xs text-gray-400 mb-1">Gap to 112%</p>
-          <p className={`text-sm font-bold ${forecastStats.gap112 >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-            {forecastStats.gap112 >= 0 ? '+' : ''}{formatCurrency(Math.abs(forecastStats.gap112 || 0))}
-          </p>
+          <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.gap112 >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+            <span>{forecastStats.gap112 >= 0 ? '+' : ''}</span>
+            <DirhamIcon className="w-3 h-3" />
+            <span>{formatCurrency(Math.abs(forecastStats.gap112 || 0))}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1648,20 +1696,12 @@ const LabourPartsBreakdownChart: React.FC<{
               fill="#8884d8"
               dataKey="value"
               animationDuration={1000}
+              activeShape={false}
             >
               {pieData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'rgba(0, 0, 0, 0.98)', 
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '12px',
-                padding: '12px'
-              }}
-              formatter={(value: any) => `AED ${formatCurrency(Number(value))}`}
-            />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -1670,17 +1710,23 @@ const LabourPartsBreakdownChart: React.FC<{
       <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#10b981' }}></div>
             <span className="text-xs text-white/70">Labour Sales</span>
           </div>
-          <span className="text-sm font-bold text-white">AED {formatCurrency(labourSales)}</span>
+          <div className="flex items-center gap-1">
+            <DirhamIcon className="w-3 h-3 text-white" />
+            <span className="text-sm font-bold text-white">{formatCurrency(labourSales)}</span>
+          </div>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#f59e0b' }}></div>
             <span className="text-xs text-white/70">Parts Sales</span>
           </div>
-          <span className="text-sm font-bold text-white">AED {formatCurrency(partsSales)}</span>
+          <div className="flex items-center gap-1">
+            <DirhamIcon className="w-3 h-3 text-white" />
+            <span className="text-sm font-bold text-white">{formatCurrency(partsSales)}</span>
+          </div>
         </div>
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
           <span className="text-xs font-bold text-white/90">Labour Ratio</span>

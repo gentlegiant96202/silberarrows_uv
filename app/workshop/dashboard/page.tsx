@@ -1,24 +1,93 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
 import { Shield, Wrench, LayoutDashboard } from 'lucide-react';
 import RouteProtector from '@/components/shared/RouteProtector';
+import ServiceDashboard from '@/components/shared/ServiceDashboard';
+import { useServiceData } from '@/lib/useServiceData';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function WorkshopDashboard() {
   const router = useRouter();
-  const { canView, isLoading, error } = useModulePermissions('workshop');
+  const { canView, isLoading: permissionLoading, error } = useModulePermissions('workshop');
 
+  // Service data hooks
+  const { 
+    loading: serviceLoading, 
+    error: serviceError, 
+    fetchAllMetrics 
+  } = useServiceData();
+
+  // Service data state
+  const [allMetrics, setAllMetrics] = useState<any[]>([]);
+  const [allTargets, setAllTargets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const hasFetchedInitialData = useRef(false);
+
+  // Fetch service targets
+  const fetchAllTargets = async () => {
+    try {
+      const { data: targets, error } = await supabase
+        .from('service_monthly_targets')
+        .select('*')
+        .order('year', { ascending: false })
+        .order('month', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching service targets:', error);
+        return [];
+      }
+
+      return targets || [];
+    } catch (error) {
+      console.error('Error fetching service targets:', error);
+      return [];
+    }
+  };
+
+  // Load service data
   useEffect(() => {
-    if (!isLoading && !canView) {
+    if (!permissionLoading && canView && !hasFetchedInitialData.current) {
+      async function loadServiceData() {
+        try {
+          setLoading(true);
+          console.log('🚀 Loading service metrics for workshop dashboard...');
+          
+          const [metrics, targets] = await Promise.all([
+            fetchAllMetrics(),
+            fetchAllTargets()
+          ]);
+          
+          setAllMetrics(metrics);
+          setAllTargets(targets);
+          hasFetchedInitialData.current = true;
+          
+          console.log('✅ Service metrics loaded for workshop dashboard');
+        } catch (error) {
+          console.error('❌ Error loading service data for workshop:', error);
+          setAllMetrics([]);
+          setAllTargets([]);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      loadServiceData();
+    }
+  }, [permissionLoading, canView, fetchAllMetrics]);
+
+  // Redirect if no permission
+  useEffect(() => {
+    if (!permissionLoading && !canView) {
       router.push('/');
     }
-  }, [canView, isLoading, router]);
+  }, [canView, permissionLoading, router]);
 
   // Show loading while checking permissions
-  if (isLoading) {
+  if (permissionLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <PulsatingLogo size={48} text="Checking access permissions..." />
@@ -49,58 +118,26 @@ export default function WorkshopDashboard() {
 
   return (
     <RouteProtector moduleName="workshop">
-      <div className="h-screen bg-black flex flex-col overflow-hidden">
-
-        
-        {/* Full-height container */}
-        <div className="flex-1 flex flex-col w-full px-2 py-4 overflow-hidden">
-          
-          {/* Page Header with Glass Morphism */}
-          <div className="mb-4 bg-gradient-to-r from-black/40 via-gray-900/30 to-black/40 backdrop-blur-md border border-gray-700/50 rounded-xl p-4 mx-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-gray-800 to-black rounded-lg border border-gray-600/50">
-                  <LayoutDashboard className="h-8 w-8 text-silver-300" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                    Workshop Dashboard
-                  </h1>
-                  <p className="text-gray-400">Analytics and Management Overview</p>
-                </div>
+      <main className="h-full overflow-y-auto no-scrollbar relative bg-black">
+        <div className="p-4 text-white text-sm">
+          {/* Service Dashboard */}
+          <div className="mb-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <PulsatingLogo size={48} text="Loading service metrics..." />
               </div>
-            </div>
-          </div>
-
-          {/* Dashboard Content - Empty with Coming Soon */}
-          <div className="flex-1 flex flex-col mx-4 overflow-hidden">
-            <div className="flex-1 w-full bg-gradient-to-br from-black/40 via-gray-900/30 to-black/60 backdrop-blur-md border border-gray-700/50 rounded-xl overflow-hidden flex flex-col min-h-0">
-              <div className="flex items-center justify-between p-4 border-b border-gray-700/50 flex-shrink-0">
-                <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent flex items-center space-x-2">
-                  <LayoutDashboard className="h-6 w-6 text-silver-300" />
-                  <span>Dashboard Overview</span>
-                </h2>
+            ) : (
+              <div className="animate-fadeIn">
+                <ServiceDashboard 
+                  metrics={allMetrics} 
+                  targets={allTargets}
+                  loading={serviceLoading}
+                />
               </div>
-              
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-32 h-32 mx-auto mb-8 bg-white/5 backdrop-blur border border-white/10 rounded-full flex items-center justify-center">
-                    <LayoutDashboard className="w-16 h-16 text-white/20" />
-                  </div>
-                  <div className="text-6xl mb-4">🚧</div>
-                  <h3 className="text-2xl font-semibold text-white mb-2">Coming Soon</h3>
-                  <p className="text-white/70 max-w-md mx-auto">
-                    The <span className="text-white font-semibold">WORKSHOP DASHBOARD</span> analytics and management tools are under development.
-                  </p>
-                  <div className="mt-6 text-sm text-white/50">
-                    Use the <span className="text-white font-medium">Service & Warranty</span> tab above to access service contracts.
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
-      </div>
+      </main>
     </RouteProtector>
   );
 } 

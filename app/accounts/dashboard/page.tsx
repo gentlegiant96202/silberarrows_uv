@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 import RouteProtector from '@/components/shared/RouteProtector';
-import ServiceDashboard from '@/components/service/ServiceDashboard';
+import ServiceDashboard from '@/components/shared/ServiceDashboard';
 import ServiceDataGrid from '@/components/service/ServiceDataGrid';
 import ServiceTargetsManager from '@/components/service/ServiceTargetsManager';
 import SalesDataGrid from '@/components/sales/SalesDataGrid';

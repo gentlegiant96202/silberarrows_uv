@@ -1389,21 +1389,19 @@ const TargetAchievementForecastChart: React.FC<{
       const requiredDailyFor112 = remainingDays > 0 ? (target112 - currentSales) / remainingDays : 0;
       const currentDailyAvg = workingDaysElapsed > 0 ? currentSales / workingDaysElapsed : 0;
 
-      // Build chart data
+      // Build chart data - use WORKING DAYS not calendar days
       const data = [];
-      for (let day = 1; day <= totalWorkingDays; day++) {
-        const isHistorical = day <= workingDaysElapsed;
-        const historicalMetric = sortedMetrics.find(m => {
-          const metricDay = new Date(m.metric_date).getDate();
-          return metricDay === day;
-        });
+      for (let workingDay = 1; workingDay <= totalWorkingDays; workingDay++) {
+        const metric = sortedMetrics[workingDay - 1]; // Working day index matches array index
+        const isHistorical = workingDay <= workingDaysElapsed;
+        const dayOfMonth = metric ? new Date(metric.metric_date).getDate() : workingDay;
 
         data.push({
-          day: day,
-          actual: isHistorical ? (historicalMetric?.current_net_sales || 0) : null,
-          projected: !isHistorical ? (currentSales + (day - workingDaysElapsed) * currentDailyAvg) : null,
-          target100: (target100 / totalWorkingDays) * day,
-          target112: (target112 / totalWorkingDays) * day,
+          day: dayOfMonth,
+          actual: isHistorical && metric ? (metric.current_net_sales || 0) : null,
+          projected: !isHistorical ? (currentSales + (workingDay - workingDaysElapsed) * currentDailyAvg) : null,
+          target100: (target100 / totalWorkingDays) * workingDay,
+          target112: (target112 / totalWorkingDays) * workingDay,
         });
       }
 

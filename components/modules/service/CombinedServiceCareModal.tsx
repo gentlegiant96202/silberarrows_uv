@@ -383,7 +383,11 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
           variant: selectedVariant,
           year: selectedYear,
           serviceType: selectedTier,
-          invoiceAmount: invoiceAmount
+          invoiceAmount: invoiceAmount,
+          dealerName: 'SilberArrows',
+          dealerPhone: '+971 4 380 5515',
+          dealerEmail: 'service@silberarrows.com',
+          salesExecutive: 'Dubizzle Sales Team'
         }}
       />
     );

@@ -68,6 +68,10 @@ interface ServiceContractModalProps {
     year?: string;
     serviceType?: 'standard' | 'premium';
     invoiceAmount?: number;
+    dealerName?: string;
+    dealerPhone?: string;
+    dealerEmail?: string;
+    salesExecutive?: string;
   };
 }
 
@@ -81,6 +85,7 @@ export interface ServiceContractData {
   email: string;
   customerIdType: 'EID' | 'Passport';
   customerIdNumber: string;
+  salesExecutive: string;
   
   // Dealer Information (pre-filled)
   dealerName: string;
@@ -148,11 +153,12 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       email: '',
       customerIdType: 'EID' as 'EID' | 'Passport',
       customerIdNumber: '',
+      salesExecutive: prefilledData?.salesExecutive || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Current User',
       
       // Dealer Information
-      dealerName: '',
-      dealerPhone: '',
-      dealerEmail: '',
+      dealerName: prefilledData?.dealerName || 'SilberArrows',
+      dealerPhone: prefilledData?.dealerPhone || '+971 4 380 5515',
+      dealerEmail: prefilledData?.dealerEmail || 'service@silberarrows.com',
       
       // Vehicle Information
       vin: '',
@@ -187,6 +193,17 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       referenceNo: generateReferenceNo()
     }));
   }, [contractType]);
+
+  // Initialize dealer information and sales executive when prefilledData changes or on mount
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      dealerName: prefilledData?.dealerName || 'SilberArrows',
+      dealerPhone: prefilledData?.dealerPhone || '+971 4 380 5515',
+      dealerEmail: prefilledData?.dealerEmail || 'service@silberarrows.com',
+      salesExecutive: prefilledData?.salesExecutive || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Current User'
+    }));
+  }, [prefilledData, user]);
 
   // Search reservations function
   const searchReservations = async (query: string) => {
@@ -490,9 +507,18 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">Sales Executive</label>
-                  <div className="w-full h-[42px] px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-white/70 text-sm flex items-center">
-                    {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Current User'}
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Sales Executive
+                    {prefilledData?.salesExecutive ? (
+                      <span className="ml-2 text-xs text-green-400">(Locked)</span>
+                    ) : null}
+                  </label>
+                  <div className={`w-full h-[42px] px-4 py-3 border rounded-lg text-sm flex items-center ${
+                    prefilledData?.salesExecutive 
+                      ? 'bg-white/5 border-white/10 text-white/70' 
+                      : 'bg-black/20 border-white/10 text-white/70'
+                  }`}>
+                    {formData.salesExecutive}
                   </div>
                 </div>
                 
@@ -956,13 +982,14 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">
                     Dealer Name *
-                    <span className="ml-2 text-xs text-amber-400">(Required 15)</span>
+                    <span className="ml-2 text-xs text-green-400">(Locked)</span>
                   </label>
                   <input
                     type="text"
                     value={formData.dealerName}
                     onChange={(e) => handleInputChange('dealerName', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
+                    disabled
+                    className="w-full h-[42px] px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white cursor-not-allowed opacity-60"
                     placeholder="Enter dealer name"
                     required
                   />
@@ -970,13 +997,14 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">
                     Phone Number *
-                    <span className="ml-2 text-xs text-amber-400">(Required 16)</span>
+                    <span className="ml-2 text-xs text-green-400">(Locked)</span>
                   </label>
                   <input
                     type="tel"
                     value={formData.dealerPhone}
                     onChange={(e) => handleInputChange('dealerPhone', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
+                    disabled
+                    className="w-full h-[42px] px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white cursor-not-allowed opacity-60"
                     placeholder="Enter phone number"
                     required
                   />
@@ -984,13 +1012,14 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-white/80 mb-2">
                     Email Address *
-                    <span className="ml-2 text-xs text-amber-400">(Required 17)</span>
+                    <span className="ml-2 text-xs text-green-400">(Locked)</span>
                   </label>
                   <input
                     type="email"
                     value={formData.dealerEmail}
                     onChange={(e) => handleInputChange('dealerEmail', e.target.value)}
-                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
+                    disabled
+                    className="w-full h-[42px] px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white cursor-not-allowed opacity-60"
                     placeholder="Enter email address"
                     required
                   />

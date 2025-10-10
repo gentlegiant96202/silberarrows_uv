@@ -38,6 +38,7 @@ interface Contract {
   dealer_name?: string;
   dealer_phone?: string;
   dealer_email?: string;
+  sales_executive?: string;
 }
 
 interface ServicePageStats {
@@ -523,7 +524,7 @@ export default function ServiceWarrantyContent() {
               Customer
             </th>
             <th className="w-32 px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-              Dealer
+              Sales Executive
             </th>
             <th className="w-48 px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
               Vehicle
@@ -562,8 +563,7 @@ export default function ServiceWarrantyContent() {
                 <div className="text-white/60 text-xs">{contract.mobile_no}</div>
               </td>
               <td className="w-32 px-4 py-3">
-                <div className="text-white text-sm truncate">{contract.dealer_name || 'N/A'}</div>
-                <div className="text-white/60 text-xs">{contract.dealer_phone || ''}</div>
+                <div className="text-white text-sm truncate">{contract.sales_executive || 'N/A'}</div>
               </td>
               <td className="w-48 px-4 py-3">
                 <div className="text-white/80 text-sm truncate">{contract.vehicle_info}</div>

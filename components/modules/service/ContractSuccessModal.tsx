@@ -29,7 +29,7 @@ export default function ContractSuccessModal({ isOpen, onClose, contractData }: 
 
   const handleSendEmail = () => {
     const subject = `SilberArrows ServiceCare Contract - ${contractData.reference_no}`;
-    const emailBody = `ServiceCare Contract Summary
+    const emailBody = `ServiceCare Contract Summary - SilberArrows Platform
 Reference: ${contractData.reference_no}
 
 Customer Information:
@@ -48,7 +48,7 @@ Contract Details:
 - End Date: ${new Date(contractData.end_date).toLocaleDateString('en-GB')}
 - Amount: AED ${parseInt(contractData.invoice_amount).toLocaleString()}
 
-Thank you for choosing SilberArrows ServiceCare.`;
+Sales Executive: Dubizzle Sales Team`;
 
     // Build mailto URL
     let mailtoUrl = `mailto:${emailTo}`;

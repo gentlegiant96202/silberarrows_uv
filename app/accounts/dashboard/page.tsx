@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 import RouteProtector from '@/components/shared/RouteProtector';
+import ServiceDashboard from '@/components/service/ServiceDashboard';
 import ServiceDataGrid from '@/components/service/ServiceDataGrid';
 import ServiceTargetsManager from '@/components/service/ServiceTargetsManager';
 import SalesDataGrid from '@/components/sales/SalesDataGrid';
@@ -11,13 +12,13 @@ import ReservationsInvoicesGrid from '@/components/shared/accounting/Reservation
 import { useServiceData } from '@/lib/useServiceData';
 import { useSalesData } from '@/lib/useSalesData';
 import { supabase } from '@/lib/supabaseClient';
-import { Building2, Grid3X3, Target, TrendingUp, Calculator, Package, DollarSign, FileText } from 'lucide-react';
+import { Building2, Grid3X3, Target, TrendingUp, Calculator, Package, DollarSign, FileText, BarChart3 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { AccountsTabProvider, useAccountsTab } from '@/lib/AccountsTabContext';
 
 function AccountsDashboardContent() {
   const { activeTab, setActiveTab } = useAccountsTab();
-  const [serviceSubTab, setServiceSubTab] = useState<'grid' | 'targets'>('grid');
+  const [serviceSubTab, setServiceSubTab] = useState<'dashboard' | 'grid' | 'targets'>('dashboard');
   const [salesSubTab, setSalesSubTab] = useState<'dashboard' | 'grid' | 'targets' | 'accounting'>('dashboard');
   const [allMetrics, setAllMetrics] = useState<any[]>([]);
   const [allTargets, setAllTargets] = useState<any[]>([]);
@@ -133,11 +134,9 @@ function AccountsDashboardContent() {
     }
   };
 
-  const handleServiceSubTabChange = async (tab: 'grid' | 'targets') => {
+  const handleServiceSubTabChange = async (tab: 'dashboard' | 'grid' | 'targets') => {
     setServiceSubTab(tab);
-    if (tab === 'grid') {
-      await handleGridRefresh();
-    } else if (tab === 'targets') {
+    if (tab === 'dashboard' || tab === 'grid' || tab === 'targets') {
       await handleGridRefresh();
     }
   };
@@ -187,6 +186,17 @@ function AccountsDashboardContent() {
               <div className="mb-6">
                 <div className="flex space-x-1 bg-gray-900/50 p-1 rounded-lg border border-gray-700/50 backdrop-blur-sm">
 
+                  <button
+                    onClick={() => handleServiceSubTabChange('dashboard')}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                      serviceSubTab === 'dashboard'
+                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                    }`}
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </button>
                   <button
                     onClick={() => handleServiceSubTabChange('grid')}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
@@ -284,6 +294,13 @@ function AccountsDashboardContent() {
               {activeTab === 'service' ? (
                 <>
 
+                  {serviceSubTab === 'dashboard' && (
+                    <ServiceDashboard
+                      metrics={allMetrics}
+                      targets={allTargets}
+                      loading={loading}
+                    />
+                  )}
                   {serviceSubTab === 'grid' && (
                     <ServiceDataGrid
                       metrics={allMetrics}

@@ -431,7 +431,11 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <NetSalesProgressChart 
               metrics={metrics.filter(m => {
                 const date = new Date(m.metric_date);
-                return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
+                const metricDate = new Date(m.metric_date);
+                const selectedDateObj = new Date(selectedDate);
+                return date.getFullYear() === selectedYear && 
+                       (date.getMonth() + 1) === selectedMonth &&
+                       metricDate <= selectedDateObj;
               })}
               target={monthTarget}
             />
@@ -440,7 +444,11 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <LabourSalesProgressChart 
               metrics={metrics.filter(m => {
                 const date = new Date(m.metric_date);
-                return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
+                const metricDate = new Date(m.metric_date);
+                const selectedDateObj = new Date(selectedDate);
+                return date.getFullYear() === selectedYear && 
+                       (date.getMonth() + 1) === selectedMonth &&
+                       metricDate <= selectedDateObj;
               })}
               target={monthTarget}
             />
@@ -448,12 +456,18 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
           {/* New Additional Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            {/* Sales Velocity Chart */}
-            <SalesVelocityChart 
+            {/* Target Achievement Forecast Chart */}
+            <TargetAchievementForecastChart 
               metrics={metrics.filter(m => {
                 const date = new Date(m.metric_date);
-                return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
+                const metricDate = new Date(m.metric_date);
+                const selectedDateObj = new Date(selectedDate);
+                return date.getFullYear() === selectedYear && 
+                       (date.getMonth() + 1) === selectedMonth &&
+                       metricDate <= selectedDateObj;
               })}
+              target={monthTarget}
+              selectedDate={selectedDate}
             />
 
             {/* Labour vs Parts Breakdown Chart */}
@@ -1356,52 +1370,136 @@ const SalespersonCard: React.FC<{
   );
 };
 
-/* ---------------- Sales Velocity Chart (Day-over-Day Changes) ---------------- */
-const SalesVelocityChart: React.FC<{ 
+/* ---------------- Target Achievement Forecast Chart ---------------- */
+const TargetAchievementForecastChart: React.FC<{ 
   metrics: DailyServiceMetrics[];
-}> = ({ metrics }) => {
+  target: ServiceMonthlyTarget | null;
+  selectedDate: string;
+}> = ({ metrics, target, selectedDate }) => {
   const [chartData, setChartData] = useState<any[]>([]);
+  const [forecastStats, setForecastStats] = useState<any>({});
 
   useEffect(() => {
-    if (metrics.length > 1) {
+    if (metrics.length > 0 && target) {
       const sortedMetrics = [...metrics].sort((a, b) => 
         new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime()
       );
 
-      // Calculate day-over-day velocity
-      const data = sortedMetrics.map((metric, index) => {
-        const day = new Date(metric.metric_date).getDate();
-        const currentSales = metric.current_net_sales || 0;
-        const previousSales = index > 0 ? (sortedMetrics[index - 1].current_net_sales || 0) : currentSales;
-        const velocity = currentSales - previousSales;
-        
-        return {
+      const latestMetric = sortedMetrics[sortedMetrics.length - 1];
+      const currentSales = latestMetric.current_net_sales || 0;
+      const estimatedSales = latestMetric.estimated_net_sales || 0;
+      const workingDaysElapsed = latestMetric.working_days_elapsed || 1;
+      const totalWorkingDays = target.number_of_working_days || 1;
+      const remainingDays = totalWorkingDays - workingDaysElapsed;
+
+      // Calculate projections
+      const target100 = target.net_sales_target || 0;
+      const target112 = target.net_sales_112_percent || 0;
+      const projectedFinish = estimatedSales;
+      
+      // Calculate required daily average to hit targets
+      const requiredDailyFor100 = remainingDays > 0 ? (target100 - currentSales) / remainingDays : 0;
+      const requiredDailyFor112 = remainingDays > 0 ? (target112 - currentSales) / remainingDays : 0;
+      const currentDailyAvg = workingDaysElapsed > 0 ? currentSales / workingDaysElapsed : 0;
+
+      // Build chart data
+      const data = [];
+      for (let day = 1; day <= totalWorkingDays; day++) {
+        const isHistorical = day <= workingDaysElapsed;
+        const historicalMetric = sortedMetrics.find(m => {
+          const metricDay = new Date(m.metric_date).getDate();
+          return metricDay === day;
+        });
+
+        data.push({
           day: day,
-          velocity: velocity,
-          isPositive: velocity >= 0,
-        };
-      });
+          actual: isHistorical ? (historicalMetric?.current_net_sales || 0) : null,
+          projected: !isHistorical ? (currentSales + (day - workingDaysElapsed) * currentDailyAvg) : null,
+          target100: (target100 / totalWorkingDays) * day,
+          target112: (target112 / totalWorkingDays) * day,
+        });
+      }
 
       setChartData(data);
+      setForecastStats({
+        projectedFinish,
+        target100,
+        target112,
+        will100: projectedFinish >= target100,
+        will112: projectedFinish >= target112,
+        requiredDailyFor100,
+        requiredDailyFor112,
+        currentDailyAvg,
+        gap100: projectedFinish - target100,
+        gap112: projectedFinish - target112,
+      });
     }
-  }, [metrics]);
+  }, [metrics, target, selectedDate]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(Math.abs(value));
+    }).format(value);
   };
 
   return (
     <div className="rounded-xl bg-black backdrop-blur-xl border border-white/20 shadow-2xl p-6">
       <div className="mb-4">
-        <h3 className="text-base font-bold text-white mb-1">Sales Velocity</h3>
-        <p className="text-xs text-gray-400">Day-over-day sales change (acceleration/deceleration)</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white mb-1">Target Achievement Forecast</h3>
+            <p className="text-xs text-gray-400">Projected vs target trajectory</p>
+          </div>
+          {forecastStats.will100 !== undefined && (
+            <div className={`px-3 py-1 rounded-lg text-xs font-bold ${
+              forecastStats.will112 ? 'bg-emerald-500/20 text-emerald-300' :
+              forecastStats.will100 ? 'bg-amber-500/20 text-amber-300' :
+              'bg-red-500/20 text-red-300'
+            }`}>
+              {forecastStats.will112 ? '🎯 112% Track' : forecastStats.will100 ? '✓ 100% Track' : '⚠ Below Target'}
+            </div>
+          )}
+        </div>
       </div>
       
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: -20 }}>
+        <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: -20 }}>
+          <defs>
+            <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#10b981" stopOpacity={0.3}/>
+              <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
+            </linearGradient>
+            <linearGradient id="projectedGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3}/>
+              <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05}/>
+            </linearGradient>
+          </defs>
+          
+          {/* Safe/Danger Zones */}
+          {target && (
+            <>
+              <ReferenceArea 
+                y1={0} 
+                y2={forecastStats.target100 * 0.9} 
+                fill="#ef4444" 
+                fillOpacity={0.05}
+              />
+              <ReferenceArea 
+                y1={forecastStats.target100 * 0.9} 
+                y2={forecastStats.target100} 
+                fill="#f59e0b" 
+                fillOpacity={0.05}
+              />
+              <ReferenceArea 
+                y1={forecastStats.target100} 
+                y2={forecastStats.target112 * 1.1} 
+                fill="#10b981" 
+                fillOpacity={0.05}
+              />
+            </>
+          )}
+          
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
           <XAxis 
             dataKey="day" 
@@ -1427,48 +1525,73 @@ const SalesVelocityChart: React.FC<{
             }}
             labelStyle={{ color: '#ffffff', fontWeight: 700 }}
             itemStyle={{ color: '#d1d5db', fontSize: '12px' }}
-            formatter={(value: any) => {
-              const numValue = Number(value);
-              return [`AED ${formatCurrency(numValue)} ${numValue >= 0 ? '↑' : '↓'}`, numValue >= 0 ? 'Increase' : 'Decrease'];
-            }}
+            formatter={(value: any) => value ? `AED ${formatCurrency(Number(value))}` : 'N/A'}
             labelFormatter={(value: string | number) => `Day ${value}`}
           />
-          <ReferenceLine y={0} stroke="#ffffff" strokeWidth={1} strokeOpacity={0.3} />
-          <Bar 
-            dataKey="velocity" 
-            fill="#10b981"
-            radius={[4, 4, 0, 0]}
-            animationDuration={1000}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.isPositive ? '#10b981' : '#ef4444'} />
-            ))}
-          </Bar>
-        </BarChart>
+          
+          <Line 
+            type="monotone"
+            dataKey="target100" 
+            stroke="#ffffff" 
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            dot={false}
+            name="100% Target"
+            strokeOpacity={0.5}
+          />
+          <Line 
+            type="monotone"
+            dataKey="target112" 
+            stroke="#f59e0b" 
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            dot={false}
+            name="112% Target"
+            strokeOpacity={0.7}
+          />
+          <Area 
+            type="monotone"
+            dataKey="actual" 
+            fill="url(#actualGradient)" 
+            stroke="#10b981" 
+            strokeWidth={3}
+            dot={{ fill: '#10b981', r: 3 }}
+            name="Actual"
+          />
+          <Line 
+            type="monotone"
+            dataKey="projected" 
+            stroke="#6366f1" 
+            strokeWidth={3}
+            strokeDasharray="3 3"
+            dot={{ fill: '#6366f1', r: 3 }}
+            name="Projected"
+          />
+        </ComposedChart>
       </ResponsiveContainer>
 
-      {/* Stats */}
+      {/* Forecast Stats */}
       <div className="mt-4 grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
         <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Positive Days</p>
-          <p className="text-sm font-bold text-emerald-400">
-            {chartData.filter(d => d.isPositive && d.velocity > 0).length}
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Negative Days</p>
-          <p className="text-sm font-bold text-red-400">
-            {chartData.filter(d => !d.isPositive).length}
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Avg Change</p>
+          <p className="text-xs text-gray-400 mb-1">Projected Finish</p>
           <p className={`text-sm font-bold ${
-            chartData.reduce((sum, d) => sum + d.velocity, 0) / chartData.length >= 0 
-              ? 'text-emerald-400' 
-              : 'text-red-400'
+            forecastStats.will112 ? 'text-emerald-400' : 
+            forecastStats.will100 ? 'text-amber-400' : 
+            'text-red-400'
           }`}>
-            AED {chartData.length > 0 ? (chartData.reduce((sum, d) => sum + d.velocity, 0) / chartData.length / 1000).toFixed(0) : 0}K
+            AED {(forecastStats.projectedFinish / 1000).toFixed(0)}K
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Gap to 100%</p>
+          <p className={`text-sm font-bold ${forecastStats.gap100 >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {forecastStats.gap100 >= 0 ? '+' : ''}{(forecastStats.gap100 / 1000).toFixed(0)}K
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Gap to 112%</p>
+          <p className={`text-sm font-bold ${forecastStats.gap112 >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {forecastStats.gap112 >= 0 ? '+' : ''}{(forecastStats.gap112 / 1000).toFixed(0)}K
           </p>
         </div>
       </div>
@@ -1488,7 +1611,7 @@ const LabourPartsBreakdownChart: React.FC<{
   const partsSales = totalSales - labourSales;
 
   const pieData = [
-    { name: 'Labour Sales', value: labourSales, color: '#06b6d4' },
+    { name: 'Labour Sales', value: labourSales, color: '#10b981' },
     { name: 'Parts Sales', value: partsSales, color: '#f59e0b' },
   ];
 
@@ -1562,7 +1685,7 @@ const LabourPartsBreakdownChart: React.FC<{
       <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
             <span className="text-xs text-white/70">Labour Sales</span>
           </div>
           <span className="text-sm font-bold text-white">AED {formatCurrency(labourSales)}</span>
@@ -1576,7 +1699,7 @@ const LabourPartsBreakdownChart: React.FC<{
         </div>
         <div className="flex items-center justify-between pt-3 border-t border-white/10">
           <span className="text-xs font-bold text-white/90">Labour Ratio</span>
-          <span className="text-sm font-bold text-cyan-400">
+          <span className="text-sm font-bold text-emerald-400">
             {totalSales > 0 ? ((labourSales / totalSales) * 100).toFixed(1) : 0}%
           </span>
         </div>

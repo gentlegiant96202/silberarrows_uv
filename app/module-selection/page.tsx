@@ -220,7 +220,7 @@ export default function ModuleSelectionPage() {
             <div className="mb-12 text-center">
               {/* Logo */}
               <div className="mb-6 flex justify-center">
-                <div className="relative inline-block animate-fadeIn">
+                <div className="logo-rotating-border animate-fadeIn">
                   <Image
                     src="/MAIN LOGO.png"
                     alt="SilberArrows Logo"
@@ -373,7 +373,7 @@ export default function ModuleSelectionPage() {
               <div className="mb-8 md:mb-12 text-center">
                 {/* Logo */}
                 <div className="mb-6 flex justify-center">
-                  <div className="relative inline-block animate-fadeIn">
+                  <div className="logo-rotating-border animate-fadeIn">
                     <Image
                       src="/MAIN LOGO.png"
                       alt="SilberArrows Logo"

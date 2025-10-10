@@ -21,11 +21,11 @@ export default function WorkshopNavigation({ activeTab, onTabChange }: { activeT
     else setCurrentTab('DASHBOARD'); // Default fallback
   }, [pathname]);
 
-  // Fetch pending contracts count
+  // Fetch initial pending contracts count and set up realtime subscription
   useEffect(() => {
+    if (!user) return;
+
     const fetchPendingContracts = async () => {
-      if (!user) return;
-      
       try {
         const session = await supabase.auth.getSession();
         const token = session.data.session?.access_token;
@@ -59,11 +59,16 @@ export default function WorkshopNavigation({ activeTab, onTabChange }: { activeT
       }
     };
 
+    // Initial fetch
     fetchPendingContracts();
-    
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchPendingContracts, 30000);
-    return () => clearInterval(interval);
+
+    // Polling every 3 seconds for reliable updates
+    const interval = setInterval(fetchPendingContracts, 3000);
+
+    // Cleanup interval
+    return () => {
+      clearInterval(interval);
+    };
   }, [user]);
 
   return (

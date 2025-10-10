@@ -65,8 +65,11 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
       setDashboardData(selectedMetric);
 
-      // Calculate sum of invoices for the month (not cumulative, so we need to sum)
-      const invoiceSum = monthMetrics.reduce((sum, m) => sum + (m.number_of_invoices || 0), 0);
+      // Calculate sum of invoices UP TO the selected date (not cumulative, so we need to sum)
+      const selectedDateObj = selectedMetric ? new Date(selectedMetric.metric_date) : new Date();
+      const invoiceSum = monthMetrics
+        .filter(m => new Date(m.metric_date) <= selectedDateObj)
+        .reduce((sum, m) => sum + (m.number_of_invoices || 0), 0);
       setMonthlyInvoiceSum(invoiceSum);
     };
 

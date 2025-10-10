@@ -1,9 +1,12 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Calendar, DollarSign, TrendingUp, Target, FileText, AlertCircle } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, Target, FileText, AlertCircle, Activity, Zap, Shield } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { DailyServiceMetrics, ServiceMonthlyTarget } from '@/types/service';
+import CockpitGauge from './CockpitGauge';
+import LEDDisplay from './LEDDisplay';
+import CockpitStatusPanel from './CockpitStatusPanel';
 
 interface ServiceDashboardProps {
   metrics: DailyServiceMetrics[];
@@ -117,26 +120,55 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Header with Date/Month Selectors */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-6 bg-gradient-to-r from-white/10 via-white/5 to-transparent backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-            <Calendar className="w-5 h-5 text-white" />
+      {/* Cockpit-Style Header */}
+      <div className="relative bg-black border-2 border-cyan-500/50 rounded-none overflow-hidden">
+        {/* Corner Accents */}
+        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-cyan-400" />
+        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-cyan-400" />
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-cyan-400" />
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-cyan-400" />
+
+        {/* Scan Line */}
+        <div 
+          className="absolute inset-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50 animate-scan-horizontal"
+          style={{ animation: 'scanHorizontal 4s linear infinite' }}
+        />
+
+        <div className="relative flex flex-wrap items-center justify-between gap-4 p-6">
+          <div className="flex items-center space-x-4">
+            {/* Status Indicator */}
+            <div className="flex flex-col items-center gap-1">
+              <div 
+                className="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"
+                style={{ boxShadow: '0 0 20px rgba(0, 217, 255, 0.8), 0 0 40px rgba(0, 217, 255, 0.5)' }}
+              />
+              <span className="text-[8px] text-cyan-400 font-mono uppercase">LIVE</span>
+            </div>
+
+            {/* Title */}
+            <div>
+              <h2 className="text-2xl font-bold text-cyan-400 tracking-widest font-mono uppercase" style={{ textShadow: '0 0 20px rgba(0, 217, 255, 0.8)' }}>
+                SERVICE CONTROL CENTER
+              </h2>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="h-0.5 w-16 bg-gradient-to-r from-cyan-400 to-transparent" />
+                <span className="text-xs text-cyan-300/60 font-mono uppercase tracking-widest">OPERATIONAL</span>
+              </div>
+            </div>
           </div>
-          <h2 className="text-xl font-bold text-white tracking-wide">Service Department Dashboard</h2>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {/* Month Selector */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
-            <span className="text-white/70 text-xs font-semibold uppercase tracking-wider">Month</span>
+          
+          <div className="flex items-center gap-4">
+            {/* Month Selector */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-black/80 border-2 border-cyan-500/50 relative">
+              <div className="absolute top-0 right-0 w-2 h-2 bg-cyan-400 animate-pulse" />
+              <span className="text-cyan-400 text-[10px] font-mono font-semibold uppercase tracking-widest">MONTH</span>
             <select
               value={selectedMonth}
               onChange={(e) => {
                 setSelectedMonth(Number(e.target.value));
                 setSelectedDate(''); // Reset date when month changes
               }}
-              className="bg-transparent border-none text-white text-sm font-medium focus:outline-none focus:ring-0 cursor-pointer"
+              className="bg-black border-none text-cyan-300 text-sm font-mono font-bold focus:outline-none focus:ring-0 cursor-pointer uppercase"
             >
               {[
                 { value: 1, label: 'January' },
@@ -157,6 +189,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 </option>
               ))}
             </select>
+            </div>
           </div>
 
           {/* Year Selector */}

@@ -240,100 +240,93 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
         </div>
       ) : (
         <>
-          {/* Net Sales Metrics Row */}
-          <div className="grid grid-cols-5 gap-3">
-            {/* Current Net Sales */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Current Net Sales</p>
-                <DollarSign className="w-5 h-5 text-white/60" />
-              </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {formatCurrency(dashboardData.current_net_sales || 0)}
-              </p>
-              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
-                <div 
-                  className="bg-gradient-to-r from-white/80 to-white/60 h-2 rounded-full transition-all duration-500" 
-                  style={{ width: `${Math.min(dashboardData.current_net_sales_percentage || 0, 100)}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-white/50">
-                {formatPercentage(dashboardData.current_net_sales_percentage)}
-              </p>
+          {/* Cockpit Primary Instruments - Net Sales */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            {/* Primary Gauge - Current Net Sales vs Target */}
+            <div className="flex items-center justify-center bg-black/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-lg p-6">
+              <CockpitGauge
+                value={dashboardData.current_net_sales || 0}
+                max={monthTarget?.net_sales_target || 1}
+                label="NET SALES"
+                unit=""
+                size="large"
+                zones={{ red: 60, amber: 80, green: 100 }}
+              />
             </div>
 
-            {/* Estimated Sales Month End */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Est. Month End</p>
-                <TrendingUp className="w-5 h-5 text-white/60" />
+            {/* Secondary Gauges */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Estimated Month End */}
+              <div className="flex items-center justify-center bg-black/90 backdrop-blur-xl border border-cyan-500/30 rounded-lg p-4">
+                <CockpitGauge
+                  value={dashboardData.estimated_net_sales || 0}
+                  max={monthTarget?.net_sales_target || 1}
+                  label="EST. END"
+                  unit=""
+                  size="small"
+                  zones={{ red: 70, amber: 90, green: 100 }}
+                />
               </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {formatCurrency(dashboardData.estimated_net_sales || 0)}
-              </p>
-              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
-                <div 
-                  className="bg-gradient-to-r from-white/80 to-white/60 h-2 rounded-full transition-all duration-500" 
-                  style={{ width: `${Math.min(dashboardData.estimated_net_sales_percentage || 0, 100)}%` }}
-                ></div>
+
+              {/* 112% Target Gauge */}
+              <div className="flex items-center justify-center bg-black/90 backdrop-blur-xl border border-amber-500/30 rounded-lg p-4">
+                <CockpitGauge
+                  value={dashboardData.current_net_sales || 0}
+                  max={monthTarget?.net_sales_112_percent || 1}
+                  label="112% TGT"
+                  unit=""
+                  size="small"
+                  zones={{ red: 70, amber: 90, green: 100 }}
+                />
               </div>
-              <p className="text-xs text-white/50">
-                {formatPercentage(dashboardData.estimated_net_sales_percentage)}
-              </p>
+
+              {/* Daily Average LED */}
+              <div className="col-span-2 flex items-center justify-center">
+                <LEDDisplay
+                  value={formatCurrency(dashboardData.current_daily_average || 0)}
+                  label="DAILY AVG PACE"
+                  color="cyan"
+                  size="medium"
+                />
+              </div>
             </div>
 
-            {/* Daily Average */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Daily Average</p>
-                <DollarSign className="w-5 h-5 text-white/60" />
-              </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {formatCurrency(dashboardData.current_daily_average || 0)}
-              </p>
-              <p className="text-xs text-white/40">Daily pace</p>
-            </div>
-
-            {/* Net Sales Target - 100% */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Target - 100%</p>
-                <Target className="w-5 h-5 text-white/60" />
-              </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {monthTarget ? formatCurrency(monthTarget.net_sales_target) : 'N/A'}
-              </p>
-              <p className="text-xs text-white/40">
-                {(dashboardData.current_net_sales || 0) >= (monthTarget?.net_sales_target || 0) 
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget?.net_sales_target || 0))}`
-                  : `Remaining: ${formatCurrency((monthTarget?.net_sales_target || 0) - (dashboardData.current_net_sales || 0))}`
+            {/* Target Status Panel */}
+            <CockpitStatusPanel
+              title="TARGET STATUS"
+              items={[
+                {
+                  label: '100% Target',
+                  value: monthTarget ? formatCurrency(monthTarget.net_sales_target) : 'N/A',
+                  status: (dashboardData.current_net_sales || 0) >= (monthTarget?.net_sales_target || 0) ? 'success' : 'normal',
+                  icon: Target
+                },
+                {
+                  label: '112% Target',
+                  value: monthTarget ? formatCurrency(monthTarget.net_sales_112_percent) : 'N/A',
+                  status: (dashboardData.current_net_sales || 0) >= (monthTarget?.net_sales_112_percent || 0) ? 'success' : 'warning',
+                  icon: Zap
+                },
+                {
+                  label: 'Working Days',
+                  value: `${dashboardData.working_days_elapsed || 0} / ${monthTarget?.number_of_working_days || 0}`,
+                  status: 'normal',
+                  icon: Calendar
+                },
+                {
+                  label: 'Achievement',
+                  value: `${formatPercentage(dashboardData.current_net_sales_percentage)}`,
+                  status: (dashboardData.current_net_sales_percentage || 0) >= 100 ? 'success' : (dashboardData.current_net_sales_percentage || 0) >= 80 ? 'warning' : 'critical',
+                  icon: Activity
                 }
-              </p>
-            </div>
-
-            {/* Net Sales Target - 112% */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Target - 112%</p>
-                <Target className="w-5 h-5 text-white/60" />
-              </div>
-              <p className="text-3xl font-bold text-white mb-2">
-                {monthTarget ? formatCurrency(monthTarget.net_sales_112_percent) : 'N/A'}
-              </p>
-              <p className="text-xs text-white/40">
-                {monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget.net_sales_112_percent || 0))}`
-                  : monthTarget ? `Remaining: ${formatCurrency((monthTarget.net_sales_112_percent || 0) - (dashboardData.current_net_sales || 0))}` : 'N/A'
-                }
-              </p>
-            </div>
+              ]}
+            />
           </div>
 
-          {/* Labour to Net Sales Ratio */}
-          <div className="text-center py-3">
-            <div className="inline-flex items-center px-5 py-2 bg-white/5 backdrop-blur border border-white/10 rounded-lg">
-              <span className="text-xs text-white/60 uppercase tracking-wider font-semibold mr-3">Labour to Net Sales Ratio:</span>
-              <span className="text-base font-bold text-white">{formatPercentage(labourToNetSalesRatio)}</span>
+          {/* Divider Line */}
+          <div className="relative h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mb-6">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black px-4">
+              <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest">LABOUR METRICS</span>
             </div>
           </div>
 

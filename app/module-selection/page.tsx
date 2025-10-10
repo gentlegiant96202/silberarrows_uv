@@ -8,6 +8,7 @@ import Header from '@/components/shared/header/Header';
 import LightRays from '@/components/shared/LightRays';
 import Image from 'next/image';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
+import AnimatedLogoGlow from '@/components/shared/AnimatedLogoGlow';
 import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 
 interface ModuleCard {
@@ -219,16 +220,8 @@ export default function ModuleSelectionPage() {
             {/* Loading Text with consistent spacing */}
             <div className="mb-12 text-center">
               {/* Logo */}
-              <div className="mb-6 flex justify-center">
-                <div className="logo-rotating-border animate-fadeIn">
-                  <Image
-                    src="/MAIN LOGO.png"
-                    alt="SilberArrows Logo"
-                    width={120}
-                    height={120}
-                    className="object-contain opacity-50"
-                  />
-                </div>
+              <div className="mb-6 flex justify-center animate-fadeIn">
+                <AnimatedLogoGlow width={120} height={120} className="opacity-50" />
               </div>
               <h1 className="text-6xl font-bold text-white mb-6 opacity-50">
                 SilberArrows
@@ -372,16 +365,8 @@ export default function ModuleSelectionPage() {
               {/* Hero Section */}
               <div className="mb-8 md:mb-12 text-center">
                 {/* Logo */}
-                <div className="mb-6 flex justify-center">
-                  <div className="logo-rotating-border animate-fadeIn">
-                    <Image
-                      src="/MAIN LOGO.png"
-                      alt="SilberArrows Logo"
-                      width={120}
-                      height={120}
-                      className="object-contain logo-glow"
-                    />
-                  </div>
+                <div className="mb-6 flex justify-center animate-fadeIn">
+                  <AnimatedLogoGlow width={120} height={120} />
                 </div>
                 <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 md:mb-6">
                   SilberArrows

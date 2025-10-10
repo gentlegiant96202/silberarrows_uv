@@ -175,25 +175,8 @@ export default function ModuleSelectionPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black relative overflow-hidden">
-        {/* Light Rays Background - HIDDEN (uncomment to switch back) */}
-        {/* <div className="absolute inset-0">
-          <LightRays
-            raysOrigin="top-center"
-            raysColor="#ffffff"
-            raysSpeed={1.2}
-            lightSpread={0.8}
-            rayLength={1.8}
-            followMouse={true}
-            mouseInfluence={0.08}
-            noiseAmount={0.03}
-            distortion={0.03}
-            fadeDistance={1.0}
-            saturation={1.0}
-          />
-        </div> */}
-        
-        {/* Liquid Ether Layer - PRIMARY BACKGROUND */}
-        <div className="absolute inset-0">
+        {/* Liquid Ether Layer - BASE BACKGROUND */}
+        <div className="absolute inset-0 z-0">
           <LiquidEther
             colors={[ '#ffffff', '#f5f5f5', '#d9d9d9' ]}
             mouseForce={28}
@@ -211,6 +194,23 @@ export default function ModuleSelectionPage() {
             autoResumeDelay={2000}
             autoRampDuration={0.4}
             style={{ width: '100%', height: '100%' }}
+          />
+        </div>
+        
+        {/* Light Rays Layer - ABOVE ETHER */}
+        <div className="absolute inset-0 z-[1]">
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#ffffff"
+            raysSpeed={1.2}
+            lightSpread={0.8}
+            rayLength={1.8}
+            followMouse={true}
+            mouseInfluence={0.08}
+            noiseAmount={0.03}
+            distortion={0.03}
+            fadeDistance={1.0}
+            saturation={1.0}
           />
         </div>
         {/* Soft white glow overlay (above ether, below content) */}
@@ -332,24 +332,7 @@ export default function ModuleSelectionPage() {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* WebGL Light Rays Background - HIDDEN (uncomment to switch back) */}
-      {/* <div className="absolute inset-0 z-0">
-        <LightRays
-          raysOrigin="top-center"
-          raysColor="#ffffff"
-          raysSpeed={1.2}
-          lightSpread={0.8}
-          rayLength={1.8}
-          followMouse={true}
-          mouseInfluence={0.08}
-          noiseAmount={0.03}
-          distortion={0.03}
-          fadeDistance={1.0}
-          saturation={1.0}
-        />
-      </div> */}
-      
-      {/* Liquid Ether Layer - PRIMARY BACKGROUND */}
+      {/* Liquid Ether Layer - BASE BACKGROUND */}
       <div className="absolute inset-0 z-0">
         <LiquidEther
           colors={[ '#ffffff', '#f5f5f5', '#d9d9d9' ]}
@@ -368,6 +351,23 @@ export default function ModuleSelectionPage() {
           autoResumeDelay={2000}
           autoRampDuration={0.4}
           style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      
+      {/* Light Rays Layer - ABOVE ETHER */}
+      <div className="absolute inset-0 z-[1]">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#ffffff"
+          raysSpeed={1.2}
+          lightSpread={0.8}
+          rayLength={1.8}
+          followMouse={true}
+          mouseInfluence={0.08}
+          noiseAmount={0.03}
+          distortion={0.03}
+          fadeDistance={1.0}
+          saturation={1.0}
         />
       </div>
       {/* Soft white glow overlay (above ether, below content) */}

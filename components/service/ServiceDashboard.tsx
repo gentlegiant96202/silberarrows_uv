@@ -687,34 +687,42 @@ const NetSalesProgressChart: React.FC<{
       
       setCurrentDay(isCurrentMonth ? today : 0);
 
-      // Calculate cumulative target based on working days elapsed
-      const data = sortedMetrics.map((metric, index) => {
-        const day = new Date(metric.metric_date).getDate();
-        const workingDaysElapsed = metric.working_days_elapsed || 1;
-        const dailyCumulativeTarget = (target.daily_cumulative_target || 0) * workingDaysElapsed;
-        
-        return {
-          day: day,
-          cumulativeTarget: dailyCumulativeTarget,
-          currentNetSales: metric.current_net_sales || 0,
-          estimatedNetSales: metric.estimated_net_sales || 0,
-          target112: target.net_sales_112_percent || 0,
-          metricDate: metric.metric_date,
-        };
-      });
+      // Get total working days from target to build full timeline
+      const totalWorkingDays = target.number_of_working_days || 22;
+      const lastMetricDay = sortedMetrics.length > 0 ? new Date(sortedMetrics[sortedMetrics.length - 1].metric_date).getDate() : 1;
 
-      // Calculate statistics
-      const salesValues = data.map(d => d.currentNetSales);
-      const bestDay = Math.max(...salesValues);
-      const avgDaily = salesValues.reduce((a, b) => a + b, 0) / salesValues.length;
-      const latestData = data[data.length - 1];
+      // Build data for ALL working days (full timeline)
+      const data = [];
+      for (let workingDay = 1; workingDay <= totalWorkingDays; workingDay++) {
+        const dailyCumulativeTarget = (target.daily_cumulative_target || 0) * workingDay;
+        
+        // Find metric for this working day
+        const metric = sortedMetrics[workingDay - 1]; // Working day is 1-indexed, array is 0-indexed
+        const metricDayOfMonth = metric ? new Date(metric.metric_date).getDate() : null;
+        
+        data.push({
+          day: metricDayOfMonth || workingDay, // Use actual day of month if available
+          cumulativeTarget: dailyCumulativeTarget,
+          currentNetSales: metric ? (metric.current_net_sales || 0) : null,
+          estimatedNetSales: metric ? (metric.estimated_net_sales || 0) : null,
+          target112: target.net_sales_112_percent || 0,
+          metricDate: metric ? metric.metric_date : null,
+        });
+      }
+
+      // Calculate statistics (only from actual data)
+      const actualData = data.filter(d => d.currentNetSales !== null);
+      const salesValues = actualData.map(d => d.currentNetSales!);
+      const bestDay = salesValues.length > 0 ? Math.max(...salesValues) : 0;
+      const avgDaily = salesValues.length > 0 ? salesValues.reduce((a, b) => a + b, 0) / salesValues.length : 0;
+      const latestData = actualData[actualData.length - 1];
       const daysAheadBehind = latestData ? 
-        Math.round((latestData.currentNetSales - latestData.cumulativeTarget) / (target.daily_cumulative_target || 1)) : 0;
+        Math.round((latestData.currentNetSales! - latestData.cumulativeTarget) / (target.daily_cumulative_target || 1)) : 0;
       
       // Calculate trend
-      const recentData = data.slice(-3);
+      const recentData = actualData.slice(-3);
       const trend = recentData.length >= 2 ? 
-        (recentData[recentData.length - 1].currentNetSales - recentData[0].currentNetSales) / recentData.length : 0;
+        (recentData[recentData.length - 1].currentNetSales! - recentData[0].currentNetSales!) / recentData.length : 0;
 
       setStats({
         bestDay,
@@ -1020,42 +1028,58 @@ const LabourSalesProgressChart: React.FC<{
       
       setCurrentDay(isCurrentMonth ? today : 0);
 
-      const data = sortedMetrics.map((metric, index) => {
-        const day = new Date(metric.metric_date).getDate();
-        const workingDays = metric.working_days_elapsed || 1;
-        const currentAvg = (metric.current_net_sales || 0) / workingDays;
+      // Get total working days from target to build full timeline
+      const totalWorkingDays = target.number_of_working_days || 22;
+      const target112 = (target.net_sales_target || 0) * 1.12;
+
+      // Build data for ALL working days (full timeline)
+      const data = [];
+      for (let workingDay = 1; workingDay <= totalWorkingDays; workingDay++) {
+        // Find metric for this working day
+        const metric = sortedMetrics[workingDay - 1];
+        const metricDayOfMonth = metric ? new Date(metric.metric_date).getDate() : null;
         
-        // Calculate required daily average to hit 112%
-        const target112 = (target.net_sales_target || 0) * 1.12;
-        const remainingDays = (target.number_of_working_days || 1) - workingDays;
-        const requiredAvg = remainingDays > 0 
-          ? (target112 - (metric.current_net_sales || 0)) / remainingDays
-          : 0;
+        if (metric) {
+          const workingDays = metric.working_days_elapsed || workingDay;
+          const currentAvg = (metric.current_net_sales || 0) / workingDays;
+          const remainingDays = totalWorkingDays - workingDays;
+          const requiredAvg = remainingDays > 0 
+            ? (target112 - (metric.current_net_sales || 0)) / remainingDays
+            : 0;
 
-        return {
-          day: day,
-          currentAvg: currentAvg || 0,
-          requiredAvg: requiredAvg > 0 ? requiredAvg : 0,
-        };
-      });
+          data.push({
+            day: metricDayOfMonth || workingDay,
+            currentAvg: currentAvg || 0,
+            requiredAvg: requiredAvg > 0 ? requiredAvg : 0,
+          });
+        } else {
+          // Empty data point for future days
+          data.push({
+            day: workingDay,
+            currentAvg: null,
+            requiredAvg: null,
+          });
+        }
+      }
 
-      // Calculate statistics
-      const avgValues = data.map(d => d.currentAvg);
-      const bestDayAvg = Math.max(...avgValues);
-      const overallAvg = avgValues.reduce((a, b) => a + b, 0) / avgValues.length;
-      const latestData = data[data.length - 1];
-      const improvementNeeded = latestData ? latestData.requiredAvg - latestData.currentAvg : 0;
+      // Calculate statistics (only from actual data)
+      const actualData = data.filter(d => d.currentAvg !== null);
+      const avgValues = actualData.map(d => d.currentAvg!);
+      const bestDayAvg = avgValues.length > 0 ? Math.max(...avgValues) : 0;
+      const overallAvg = avgValues.length > 0 ? avgValues.reduce((a, b) => a + b, 0) / avgValues.length : 0;
+      const latestData = actualData[actualData.length - 1];
+      const improvementNeeded = latestData ? latestData.requiredAvg! - latestData.currentAvg! : 0;
       
       // Calculate 7-day moving average
-      const movingAvg7Day = data.length >= 7 ? 
-        data.slice(-7).reduce((sum, d) => sum + d.currentAvg, 0) / 7 : overallAvg;
+      const movingAvg7Day = actualData.length >= 7 ? 
+        actualData.slice(-7).reduce((sum, d) => sum + d.currentAvg!, 0) / 7 : overallAvg;
 
       setStats({
         bestDayAvg,
         overallAvg,
         improvementNeeded,
         movingAvg7Day,
-        isOnTrack: latestData ? latestData.currentAvg >= latestData.requiredAvg : false
+        isOnTrack: latestData ? latestData.currentAvg! >= latestData.requiredAvg! : false
       });
 
       setChartData(data);

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Calendar, DollarSign, TrendingUp, Target, FileText, AlertCircle } from 'lucide-react';
-import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea, CartesianGrid } from 'recharts';
 import type { DailyServiceMetrics, ServiceMonthlyTarget } from '@/types/service';
 
 interface ServiceDashboardProps {
@@ -10,6 +10,34 @@ interface ServiceDashboardProps {
   targets: ServiceMonthlyTarget[];
   loading?: boolean;
 }
+
+/* ---------------- Sparkline Component ---------------- */
+const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
+  const sparkData = data.map((value, index) => ({ value, index }));
+  
+  return (
+    <ResponsiveContainer width="100%" height={30}>
+      <ComposedChart data={sparkData}>
+        <defs>
+          <linearGradient id={`spark-${color}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.3}/>
+            <stop offset="100%" stopColor={color} stopOpacity={0.05}/>
+          </linearGradient>
+        </defs>
+        <Area 
+          type="monotone" 
+          dataKey="value" 
+          stroke={color} 
+          fill={`url(#spark-${color})`}
+          strokeWidth={2}
+          dot={false}
+          isAnimationActive={true}
+          animationDuration={800}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+};
 
 export default function ServiceDashboard({ metrics, targets, loading = false }: ServiceDashboardProps) {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -127,6 +155,24 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     ? (dashboardData.current_net_labor_sales / dashboardData.current_net_sales) * 100
     : 0;
 
+  // Calculate sparkline data (last 7 days)
+  const sparklineData = {
+    netSales: [] as number[],
+    labourSales: [] as number[],
+    dailyAverage: [] as number[],
+  };
+
+  if (availableDates.length > 0) {
+    const last7Dates = availableDates.slice(0, 7).reverse();
+    const last7Metrics = last7Dates.map(date => 
+      metrics.find(m => m.metric_date === date)
+    ).filter(m => m !== undefined) as DailyServiceMetrics[];
+
+    sparklineData.netSales = last7Metrics.map(m => m.current_net_sales || 0);
+    sparklineData.labourSales = last7Metrics.map(m => m.current_net_labor_sales || 0);
+    sparklineData.dailyAverage = last7Metrics.map(m => m.current_daily_average || 0);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -241,6 +287,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               <p className="text-4xl font-black text-white mb-3 drop-shadow-lg">
                 {formatCurrency(dashboardData.current_net_sales || 0)}
               </p>
+              
+              {/* Sparkline */}
+              {sparklineData.netSales.length > 0 && (
+                <div className="mb-3 opacity-70">
+                  <Sparkline data={sparklineData.netSales} color="#10b981" />
+                </div>
+              )}
+              
               <div className="w-full bg-white/10 rounded-full h-3 mb-3">
                 <div 
                   className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_net_sales_percentage || 0)} h-3 rounded-full transition-all duration-500 shadow-lg`}
@@ -281,6 +335,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               <p className="text-3xl font-bold text-white mb-2">
                 {formatCurrency(dashboardData.current_daily_average || 0)}
               </p>
+              
+              {/* Sparkline */}
+              {sparklineData.dailyAverage.length > 0 && (
+                <div className="mb-2 opacity-60">
+                  <Sparkline data={sparklineData.dailyAverage} color="#ffffff" />
+                </div>
+              )}
+              
               <p className="text-xs text-white/40">Daily pace</p>
             </div>
 
@@ -345,6 +407,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               <p className="text-3xl font-bold text-white mb-2">
                 {formatCurrency(dashboardData.current_net_labor_sales || 0)}
               </p>
+              
+              {/* Sparkline */}
+              {sparklineData.labourSales.length > 0 && (
+                <div className="mb-2 opacity-60">
+                  <Sparkline data={sparklineData.labourSales} color="#06b6d4" />
+                </div>
+              )}
+              
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
                   className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_labour_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
@@ -632,12 +702,26 @@ const NetSalesProgressChart: React.FC<{
   target: ServiceMonthlyTarget | null;
 }> = ({ metrics, target }) => {
   const [chartData, setChartData] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({});
+  const [currentDay, setCurrentDay] = useState<number>(0);
 
   useEffect(() => {
     if (metrics.length > 0 && target) {
       const sortedMetrics = [...metrics].sort((a, b) => 
         new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime()
       );
+
+      // Get today's date
+      const today = new Date().getDate();
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+      
+      // Check if we're in the same month as the metrics
+      const firstMetric = sortedMetrics[0];
+      const metricDate = new Date(firstMetric.metric_date);
+      const isCurrentMonth = metricDate.getMonth() + 1 === currentMonth && metricDate.getFullYear() === currentYear;
+      
+      setCurrentDay(isCurrentMonth ? today : 0);
 
       // Calculate cumulative target based on working days elapsed
       const data = sortedMetrics.map((metric, index) => {
@@ -651,7 +735,29 @@ const NetSalesProgressChart: React.FC<{
           currentNetSales: metric.current_net_sales || 0,
           estimatedNetSales: metric.estimated_net_sales || 0,
           target112: target.net_sales_112_percent || 0,
+          metricDate: metric.metric_date,
         };
+      });
+
+      // Calculate statistics
+      const salesValues = data.map(d => d.currentNetSales);
+      const bestDay = Math.max(...salesValues);
+      const avgDaily = salesValues.reduce((a, b) => a + b, 0) / salesValues.length;
+      const latestData = data[data.length - 1];
+      const daysAheadBehind = latestData ? 
+        Math.round((latestData.currentNetSales - latestData.cumulativeTarget) / (target.daily_cumulative_target || 1)) : 0;
+      
+      // Calculate trend
+      const recentData = data.slice(-3);
+      const trend = recentData.length >= 2 ? 
+        (recentData[recentData.length - 1].currentNetSales - recentData[0].currentNetSales) / recentData.length : 0;
+
+      setStats({
+        bestDay,
+        avgDaily,
+        daysAheadBehind,
+        trend: trend > 0 ? 'up' : trend < 0 ? 'down' : 'flat',
+        trendValue: Math.abs(trend)
       });
 
       setChartData(data);
@@ -683,13 +789,92 @@ const NetSalesProgressChart: React.FC<{
     );
   };
 
+  // Enhanced Tooltip Component
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    
+    const data = payload[0].payload;
+    const gap = data.currentNetSales - data.cumulativeTarget;
+    const percentageOfTarget = (data.currentNetSales / data.cumulativeTarget) * 100;
+    
+    return (
+      <div className="bg-black/98 border border-white/30 rounded-xl p-4 shadow-2xl">
+        <p className="text-white font-bold text-sm mb-3 border-b border-white/20 pb-2">Day {data.day}</p>
+        
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between items-center gap-4">
+            <span className="text-emerald-400 font-semibold flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-emerald-400" />
+              Current:
+            </span>
+            <span className="text-white font-mono">AED {formatCurrency(data.currentNetSales)}</span>
+          </div>
+          
+          <div className="flex justify-between items-center gap-4">
+            <span className="text-gray-400 font-semibold flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-gray-400" />
+              Target:
+            </span>
+            <span className="text-white font-mono">AED {formatCurrency(data.cumulativeTarget)}</span>
+          </div>
+          
+          <div className="border-t border-white/10 pt-2 mt-2">
+            <div className="flex justify-between items-center gap-4">
+              <span className={`font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {gap >= 0 ? '↑ Ahead:' : '↓ Behind:'}
+              </span>
+              <span className={`font-mono font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                AED {formatCurrency(Math.abs(gap))}
+              </span>
+            </div>
+            <div className="flex justify-between items-center gap-4 mt-1">
+              <span className="text-gray-400">Achievement:</span>
+              <span className={`font-bold ${percentageOfTarget >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {percentageOfTarget.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const latestData = chartData[chartData.length - 1];
+  const performance = latestData ? (latestData.currentNetSales / latestData.cumulativeTarget) * 100 : 0;
+
   return (
     <div className="rounded-xl bg-black backdrop-blur-xl border border-white/20 shadow-2xl p-6">
-      <div className="mb-4">
-        <h3 className="text-base font-bold text-white mb-1">Net Sales Progress</h3>
-        <p className="text-xs text-gray-400">Month-to-date cumulative performance vs targets</p>
+      {/* Header with Trend */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-white">Net Sales Progress</h3>
+            {stats.trend && (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                stats.trend === 'up' ? 'text-emerald-400 bg-emerald-500/20' : 
+                stats.trend === 'down' ? 'text-red-400 bg-red-500/20' : 
+                'text-gray-400 bg-gray-500/20'
+              }`}>
+                {stats.trend === 'up' ? '↗ Trending Up' : stats.trend === 'down' ? '↘ Trending Down' : '→ Flat'}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-400">Month-to-date cumulative performance vs targets</p>
+        </div>
+        
+        {/* Performance Badge */}
+        {latestData && (
+          <div className={`px-3 py-1 rounded-lg text-xs font-bold ${
+            performance >= 100 ? 'bg-emerald-500/20 text-emerald-300' :
+            performance >= 80 ? 'bg-amber-500/20 text-amber-300' :
+            'bg-red-500/20 text-red-300'
+          }`}>
+            {performance.toFixed(1)}% of Target
+          </div>
+        )}
       </div>
       
+      {/* Legend */}
       <div className="flex items-center justify-center gap-5 mb-6 flex-wrap">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/20">
           <div className="w-2.5 h-2.5 rounded-full bg-gray-400 opacity-40"></div>
@@ -717,6 +902,50 @@ const NetSalesProgressChart: React.FC<{
               <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
             </linearGradient>
           </defs>
+          
+          {/* Performance Zones */}
+          {target && (
+            <>
+              <ReferenceArea 
+                y1={0} 
+                y2={target.net_sales_target * 0.6} 
+                fill="#ef4444" 
+                fillOpacity={0.03}
+              />
+              <ReferenceArea 
+                y1={target.net_sales_target * 0.6} 
+                y2={target.net_sales_target * 0.9} 
+                fill="#f59e0b" 
+                fillOpacity={0.03}
+              />
+              <ReferenceArea 
+                y1={target.net_sales_target * 0.9} 
+                y2={target.net_sales_target * 1.3} 
+                fill="#10b981" 
+                fillOpacity={0.03}
+              />
+            </>
+          )}
+          
+          {/* Today Marker */}
+          {currentDay > 0 && (
+            <ReferenceLine 
+              x={currentDay} 
+              stroke="#ffffff" 
+              strokeWidth={2} 
+              strokeDasharray="3 3"
+              label={{ 
+                value: 'TODAY', 
+                position: 'top', 
+                fill: '#ffffff', 
+                fontSize: 10, 
+                fontWeight: 'bold'
+              }}
+            />
+          )}
+          
+          <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+          
           <XAxis 
             dataKey="day" 
             tick={{ fontSize: 10, fill: '#9ca3af' }}
@@ -732,26 +961,8 @@ const NetSalesProgressChart: React.FC<{
             tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact', compactDisplay: 'short' }).format(value)}
             width={50}
           />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.98)', 
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '12px',
-              padding: '12px',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
-            }}
-            labelStyle={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}
-            itemStyle={{ color: '#d1d5db', fontSize: '12px', padding: '4px 0' }}
-            labelFormatter={(value: string | number) => `Day ${value}`}
-            formatter={(value: any, name: string) => {
-              const formattedValue = `AED ${formatCurrency(value)}`;
-              if (name === 'Daily Cumulative Target') return [formattedValue, 'Daily Target'];
-              if (name === 'Current Net Sales') return [formattedValue, 'Current'];
-              if (name === 'Estimated Net Sales') return [formattedValue, 'Estimated'];
-              if (name === 'Net Sales 112%') return [formattedValue, '112% Target'];
-              return [formattedValue, name];
-            }}
-          />
+          <Tooltip content={<CustomTooltip />} />
+          
           <Line 
             type="monotone"
             dataKey="cumulativeTarget" 
@@ -760,16 +971,18 @@ const NetSalesProgressChart: React.FC<{
             strokeOpacity={0.4}
             dot={{ fill: '#9ca3af', r: 2, strokeWidth: 0, fillOpacity: 0.4 }}
             name="Daily Cumulative Target"
+            animationDuration={1000}
           />
           <Area 
             type="monotone"
             dataKey="currentNetSales" 
             fill="url(#netSalesGradient)" 
             stroke="#10b981" 
-            strokeWidth={3}
-            dot={{ fill: '#10b981', r: 3, strokeWidth: 2, stroke: '#065f46' }}
-            label={<CustomLabel />}
+            strokeWidth={4}
+            dot={{ fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#065f46' }}
+            activeDot={{ r: 6, strokeWidth: 3 }}
             name="Current Net Sales"
+            animationDuration={1500}
           />
           <Line 
             type="monotone"
@@ -779,6 +992,7 @@ const NetSalesProgressChart: React.FC<{
             strokeDasharray="4 4"
             dot={false}
             name="Estimated Net Sales"
+            animationDuration={1000}
           />
           <Line 
             type="monotone"
@@ -788,9 +1002,30 @@ const NetSalesProgressChart: React.FC<{
             strokeDasharray="6 3"
             dot={false}
             name="Net Sales 112%"
+            animationDuration={1000}
           />
         </ComposedChart>
       </ResponsiveContainer>
+      
+      {/* Mini Stats */}
+      {stats.avgDaily && (
+        <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-1">Best Day</p>
+            <p className="text-sm font-bold text-white">AED {(stats.bestDay / 1000).toFixed(0)}K</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-1">Avg Daily</p>
+            <p className="text-sm font-bold text-white">AED {(stats.avgDaily / 1000).toFixed(0)}K</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-1">Days {stats.daysAheadBehind >= 0 ? 'Ahead' : 'Behind'}</p>
+            <p className={`text-sm font-bold ${stats.daysAheadBehind >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {stats.daysAheadBehind >= 0 ? '+' : ''}{stats.daysAheadBehind}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -801,12 +1036,25 @@ const LabourSalesProgressChart: React.FC<{
   target: ServiceMonthlyTarget | null;
 }> = ({ metrics, target }) => {
   const [chartData, setChartData] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({});
+  const [currentDay, setCurrentDay] = useState<number>(0);
 
   useEffect(() => {
     if (metrics.length > 0 && target) {
       const sortedMetrics = [...metrics].sort((a, b) => 
         new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime()
       );
+
+      // Get today's date
+      const today = new Date().getDate();
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+      
+      const firstMetric = sortedMetrics[0];
+      const metricDate = new Date(firstMetric.metric_date);
+      const isCurrentMonth = metricDate.getMonth() + 1 === currentMonth && metricDate.getFullYear() === currentYear;
+      
+      setCurrentDay(isCurrentMonth ? today : 0);
 
       const data = sortedMetrics.map((metric, index) => {
         const day = new Date(metric.metric_date).getDate();
@@ -827,6 +1075,25 @@ const LabourSalesProgressChart: React.FC<{
         };
       });
 
+      // Calculate statistics
+      const avgValues = data.map(d => d.currentAvg);
+      const bestDayAvg = Math.max(...avgValues);
+      const overallAvg = avgValues.reduce((a, b) => a + b, 0) / avgValues.length;
+      const latestData = data[data.length - 1];
+      const improvementNeeded = latestData ? latestData.requiredAvg - latestData.currentAvg : 0;
+      
+      // Calculate 7-day moving average
+      const movingAvg7Day = data.length >= 7 ? 
+        data.slice(-7).reduce((sum, d) => sum + d.currentAvg, 0) / 7 : overallAvg;
+
+      setStats({
+        bestDayAvg,
+        overallAvg,
+        improvementNeeded,
+        movingAvg7Day,
+        isOnTrack: latestData ? latestData.currentAvg >= latestData.requiredAvg : false
+      });
+
       setChartData(data);
     }
   }, [metrics, target]);
@@ -838,49 +1105,93 @@ const LabourSalesProgressChart: React.FC<{
     }).format(value);
   };
 
-  const CustomAvgLabel = (props: any) => {
-    const { x, y, value, index } = props;
-    // Only show labels for every other point
-    if (index % 2 !== 0) return null;
+  // Enhanced Tooltip Component
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    
+    const data = payload[0].payload;
+    const gap = data.currentAvg - data.requiredAvg;
+    const percentageOfRequired = (data.currentAvg / data.requiredAvg) * 100;
+    
     return (
-      <text 
-        x={x} 
-        y={y - 8} 
-        fill="#06b6d4" 
-        fontSize="9" 
-        fontWeight="700"
-        textAnchor="middle"
-      >
-        AED {formatCurrency(value)}
-      </text>
+      <div className="bg-black/98 border border-white/30 rounded-xl p-4 shadow-2xl">
+        <p className="text-white font-bold text-sm mb-3 border-b border-white/20 pb-2">Day {data.day}</p>
+        
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between items-center gap-4">
+            <span className="text-cyan-400 font-semibold flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-cyan-400" />
+              Current Avg:
+            </span>
+            <span className="text-white font-mono">AED {formatCurrency(data.currentAvg)}</span>
+          </div>
+          
+          <div className="flex justify-between items-center gap-4">
+            <span className="text-orange-400 font-semibold flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-orange-400" />
+              Required:
+            </span>
+            <span className="text-white font-mono">AED {formatCurrency(data.requiredAvg)}</span>
+          </div>
+          
+          <div className="border-t border-white/10 pt-2 mt-2">
+            <div className="flex justify-between items-center gap-4">
+              <span className={`font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {gap >= 0 ? '✓ On Track:' : '⚠ Gap:'}
+              </span>
+              <span className={`font-mono font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                AED {formatCurrency(Math.abs(gap))}
+              </span>
+            </div>
+            <div className="flex justify-between items-center gap-4 mt-1">
+              <span className="text-gray-400">Performance:</span>
+              <span className={`font-bold ${percentageOfRequired >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {percentageOfRequired.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
 
-  const CustomRequiredLabel = (props: any) => {
-    const { x, y, value, index } = props;
-    // Only show labels for every other point
-    if (index % 2 !== 0) return null;
-    return (
-      <text 
-        x={x} 
-        y={y - 8} 
-        fill="#f97316" 
-        fontSize="9" 
-        fontWeight="700"
-        textAnchor="middle"
-      >
-        AED {formatCurrency(value)}
-      </text>
-    );
+  const latestData = chartData[chartData.length - 1];
+  
+  // Determine line color based on performance
+  const getLineColor = () => {
+    if (!latestData) return '#06b6d4';
+    if (latestData.currentAvg >= latestData.requiredAvg) return '#10b981'; // Green - on track
+    if (latestData.currentAvg >= latestData.requiredAvg * 0.9) return '#f59e0b'; // Amber - close
+    return '#ef4444'; // Red - behind
   };
 
   return (
     <div className="rounded-xl bg-black backdrop-blur-xl border border-white/20 shadow-2xl p-6">
-      <div className="mb-4">
-        <h3 className="text-base font-bold text-white mb-1">Net Sales Daily Average</h3>
-        <p className="text-xs text-gray-400">Current daily performance vs required pace for 112% target</p>
+      {/* Header with Status */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-white">Net Sales Daily Average</h3>
+            {stats.isOnTrack !== undefined && (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                stats.isOnTrack ? 'text-emerald-400 bg-emerald-500/20' : 'text-amber-400 bg-amber-500/20'
+              }`}>
+                {stats.isOnTrack ? '✓ On Track' : '⚠ Needs Improvement'}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-400">Current daily performance vs required pace for 112% target</p>
+        </div>
+        
+        {/* Improvement Badge */}
+        {stats.improvementNeeded !== undefined && stats.improvementNeeded > 0 && (
+          <div className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300">
+            +AED {(stats.improvementNeeded / 1000).toFixed(0)}K needed/day
+          </div>
+        )}
       </div>
       
+      {/* Legend */}
       <div className="flex items-center justify-center gap-5 mb-6 flex-wrap">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-cyan-500/30">
           <div className="w-2.5 h-2.5 rounded-full bg-cyan-500"></div>
@@ -896,10 +1207,54 @@ const LabourSalesProgressChart: React.FC<{
         <ComposedChart data={chartData} margin={{ top: 5, right: 30, bottom: 10, left: -20 }}>
           <defs>
             <linearGradient id="labourAvgGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.4}/>
-              <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.05}/>
+              <stop offset="0%" stopColor={getLineColor()} stopOpacity={0.4}/>
+              <stop offset="100%" stopColor={getLineColor()} stopOpacity={0.05}/>
             </linearGradient>
           </defs>
+          
+          {/* Performance Zones */}
+          {latestData && (
+            <>
+              <ReferenceArea 
+                y1={0} 
+                y2={latestData.requiredAvg * 0.7} 
+                fill="#ef4444" 
+                fillOpacity={0.03}
+              />
+              <ReferenceArea 
+                y1={latestData.requiredAvg * 0.7} 
+                y2={latestData.requiredAvg} 
+                fill="#f59e0b" 
+                fillOpacity={0.03}
+              />
+              <ReferenceArea 
+                y1={latestData.requiredAvg} 
+                y2={latestData.requiredAvg * 1.5} 
+                fill="#10b981" 
+                fillOpacity={0.03}
+              />
+            </>
+          )}
+          
+          {/* Today Marker */}
+          {currentDay > 0 && (
+            <ReferenceLine 
+              x={currentDay} 
+              stroke="#ffffff" 
+              strokeWidth={2} 
+              strokeDasharray="3 3"
+              label={{ 
+                value: 'TODAY', 
+                position: 'top', 
+                fill: '#ffffff', 
+                fontSize: 10, 
+                fontWeight: 'bold'
+              }}
+            />
+          )}
+          
+          <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+          
           <XAxis 
             dataKey="day" 
             tick={{ fontSize: 10, fill: '#9ca3af' }}
@@ -915,45 +1270,51 @@ const LabourSalesProgressChart: React.FC<{
             tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact', compactDisplay: 'short' }).format(value)}
             width={50}
           />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.98)', 
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '12px',
-              padding: '12px',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
-            }}
-            labelStyle={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}
-            itemStyle={{ color: '#d1d5db', fontSize: '12px', padding: '4px 0' }}
-            labelFormatter={(value: string | number) => `Day ${value}`}
-            formatter={(value: any, name: string) => {
-              const formattedValue = `AED ${formatCurrency(value)}`;
-              if (name === 'Current Daily Average') return [formattedValue, 'Current Avg'];
-              if (name === 'Required for 112%') return [formattedValue, 'Required Avg'];
-              return [formattedValue, name];
-            }}
-          />
+          <Tooltip content={<CustomTooltip />} />
+          
           <Area 
             type="monotone"
             dataKey="currentAvg" 
             fill="url(#labourAvgGradient)" 
-            stroke="#06b6d4" 
-            strokeWidth={3}
-            dot={{ fill: '#06b6d4', r: 3, strokeWidth: 2, stroke: '#0e7490' }}
-            label={<CustomAvgLabel />}
+            stroke={getLineColor()} 
+            strokeWidth={4}
+            dot={{ fill: getLineColor(), r: 4, strokeWidth: 2 }}
+            activeDot={{ r: 6, strokeWidth: 3 }}
             name="Current Daily Average"
+            animationDuration={1500}
           />
           <Line 
             type="monotone"
             dataKey="requiredAvg" 
             stroke="#f97316" 
             strokeWidth={2.5}
-            dot={{ fill: '#f97316', r: 3, strokeWidth: 2, stroke: '#c2410c' }}
-            label={<CustomRequiredLabel />}
+            strokeDasharray="4 4"
+            dot={false}
             name="Required for 112%"
+            animationDuration={1000}
           />
         </ComposedChart>
       </ResponsiveContainer>
+      
+      {/* Mini Stats */}
+      {stats.overallAvg && (
+        <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-1">Best Day Avg</p>
+            <p className="text-sm font-bold text-white">AED {(stats.bestDayAvg / 1000).toFixed(0)}K</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-1">7-Day Avg</p>
+            <p className="text-sm font-bold text-white">AED {(stats.movingAvg7Day / 1000).toFixed(0)}K</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-1">Status</p>
+            <p className={`text-sm font-bold ${stats.isOnTrack ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {stats.isOnTrack ? '✓ On Target' : '⚡ Push Harder'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

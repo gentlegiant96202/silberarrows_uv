@@ -6,7 +6,6 @@ import { useAllModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
 import Header from '@/components/shared/header/Header';
 import LightRays from '@/components/shared/LightRays';
-import LiquidEther from '@/components/shared/LiquidEther';
 import Image from 'next/image';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
 import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
@@ -175,30 +174,8 @@ export default function ModuleSelectionPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black relative overflow-hidden">
-        {/* Liquid Ether Layer - BASE BACKGROUND */}
+        {/* Light Rays Background */}
         <div className="absolute inset-0 z-0">
-          <LiquidEther
-            colors={[ '#ffffff', '#f5f5f5', '#d9d9d9' ]}
-            mouseForce={28}
-            cursorSize={120}
-            isViscous={false}
-            viscous={30}
-            iterationsViscous={32}
-            iterationsPoisson={32}
-            resolution={0.5}
-            isBounce={false}
-            autoDemo={false}
-            autoSpeed={0.7}
-            autoIntensity={2.8}
-            takeoverDuration={0.15}
-            autoResumeDelay={2000}
-            autoRampDuration={0.4}
-            style={{ width: '100%', height: '100%' }}
-          />
-        </div>
-        
-        {/* Light Rays Layer - ABOVE ETHER */}
-        <div className="absolute inset-0 z-[1]">
           <LightRays
             raysOrigin="top-center"
             raysColor="#ffffff"
@@ -213,7 +190,7 @@ export default function ModuleSelectionPage() {
             saturation={1.0}
           />
         </div>
-        {/* Soft white glow overlay (above ether, below content) */}
+        {/* Soft white glow overlay */}
         <div className="absolute inset-0 z-[2] pointer-events-none">
           <div
             className="absolute inset-0 opacity-30"
@@ -332,30 +309,8 @@ export default function ModuleSelectionPage() {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* Liquid Ether Layer - BASE BACKGROUND */}
+      {/* Light Rays Background */}
       <div className="absolute inset-0 z-0">
-        <LiquidEther
-          colors={[ '#ffffff', '#f5f5f5', '#d9d9d9' ]}
-          mouseForce={28}
-          cursorSize={120}
-          isViscous={false}
-          viscous={30}
-          iterationsViscous={32}
-          iterationsPoisson={32}
-          resolution={0.5}
-          isBounce={false}
-          autoDemo={false}
-          autoSpeed={0.7}
-          autoIntensity={2.8}
-          takeoverDuration={0.15}
-          autoResumeDelay={2000}
-          autoRampDuration={0.4}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
-      
-      {/* Light Rays Layer - ABOVE ETHER */}
-      <div className="absolute inset-0 z-[1]">
         <LightRays
           raysOrigin="top-center"
           raysColor="#ffffff"
@@ -370,7 +325,7 @@ export default function ModuleSelectionPage() {
           saturation={1.0}
         />
       </div>
-      {/* Soft white glow overlay (above ether, below content) */}
+      {/* Soft white glow overlay */}
       <div className="absolute inset-0 z-[2] pointer-events-none">
         <div
           className="absolute inset-0 opacity-30"

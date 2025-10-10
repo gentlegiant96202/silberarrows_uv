@@ -2,13 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, 
-  DollarSign, 
   Clock, 
   Target,
   Plus, 
   Edit3, 
   Trash2, 
-  Check, 
   X,
   Save
 } from 'lucide-react';
@@ -71,8 +69,8 @@ export default function ServiceTargetsManager({
       // Calculate derived fields
       const targetData = {
         ...formData,
-        net_sales_112_percent: formData.net_sales_target * 1.12, // 112% stretch target
-        daily_cumulative_target: formData.net_sales_target / formData.number_of_working_days // Daily pace needed
+        net_sales_112_percent: formData.net_sales_target * 1.12,
+        daily_cumulative_target: formData.net_sales_target / formData.number_of_working_days
       };
 
       if (editingId) {
@@ -155,12 +153,10 @@ export default function ServiceTargetsManager({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-AE', {
-      style: 'currency',
-      currency: 'AED',
+    return `AED ${new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount);
+    }).format(amount)}`;
   };
 
   const getMonthName = (month: number) => {
@@ -168,7 +164,7 @@ export default function ServiceTargetsManager({
   };
 
   // Sort targets by year and month (most recent first)
-  const sortedTargets = targets.sort((a, b) => {
+  const sortedTargets = [...targets].sort((a, b) => {
     if (a.year !== b.year) return b.year - a.year;
     return b.month - a.month;
   });
@@ -179,8 +175,8 @@ export default function ServiceTargetsManager({
       <div className="p-4 border-b border-gray-500/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-400 via-gray-300 to-gray-500 flex items-center justify-center shadow-lg">
-              <Target className="w-5 h-5 text-black" />
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-600 via-gray-500 to-gray-700 flex items-center justify-center shadow-lg">
+              <Target className="w-5 h-5 text-white" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Service Targets Management</h2>
@@ -190,7 +186,7 @@ export default function ServiceTargetsManager({
           
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-gray-400 via-gray-300 to-gray-500 text-black rounded-lg hover:from-gray-300 hover:to-gray-400 transition-all shadow-md transform hover:scale-105 font-semibold"
+            className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md hover:from-gray-500 hover:to-gray-600"
           >
             <Plus className="w-4 h-4" />
             <span>Add Target</span>
@@ -207,7 +203,7 @@ export default function ServiceTargetsManager({
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <div className="p-4 border-b border-gray-500/20 bg-gradient-to-r from-gray-800/30 to-gray-700/30">
+        <div className="p-4 border-b border-gray-400/30 bg-gradient-to-r from-gray-600/20 via-gray-500/20 to-gray-600/20 backdrop-blur-sm">
           <h3 className="text-lg font-semibold text-white mb-2">
             {editingId ? 'Edit Target' : 'Add New Target'}
           </h3>
@@ -238,7 +234,7 @@ export default function ServiceTargetsManager({
                 required
               >
                 {MONTHS.map(month => (
-                  <option key={month.value} value={month.value}>{month.label}</option>
+                  <option key={month.value} value={month.value} className="bg-gray-800">{month.label}</option>
                 ))}
               </select>
             </div>
@@ -250,7 +246,7 @@ export default function ServiceTargetsManager({
                 value={formData.net_sales_target}
                 onChange={(e) => setFormData(prev => ({ ...prev, net_sales_target: parseFloat(e.target.value) || 0 }))}
                 className="w-full px-3 py-2 bg-black/40 border border-gray-500/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-                step="1000"
+                step="0.01"
                 min="0"
                 required
               />
@@ -263,7 +259,7 @@ export default function ServiceTargetsManager({
                 value={formData.labour_sales_target}
                 onChange={(e) => setFormData(prev => ({ ...prev, labour_sales_target: parseFloat(e.target.value) || 0 }))}
                 className="w-full px-3 py-2 bg-black/40 border border-gray-500/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-                step="1000"
+                step="0.01"
                 min="0"
                 required
               />
@@ -286,7 +282,7 @@ export default function ServiceTargetsManager({
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-400 to-green-500 hover:from-green-300 hover:to-green-400 text-white rounded-lg transition-all shadow-md transform hover:scale-105 disabled:opacity-50 font-semibold"
+                className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md hover:from-gray-500 hover:to-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />
                 <span>{submitting ? 'Saving...' : editingId ? 'Update' : 'Save'}</span>
@@ -295,7 +291,7 @@ export default function ServiceTargetsManager({
               <button
                 type="button"
                 onClick={cancelEdit}
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-400 hover:to-gray-500 text-white rounded-lg transition-all shadow-md transform hover:scale-105 font-semibold"
+                className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-800/50"
               >
                 <X className="w-4 h-4" />
                 <span>Cancel</span>
@@ -306,107 +302,131 @@ export default function ServiceTargetsManager({
       )}
 
       {/* Targets List */}
-      <div className="p-4">
-        {loading ? (
-          <div className="text-center py-8 text-gray-400">Loading targets...</div>
-        ) : sortedTargets.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No targets set yet. Add your first target to get started.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-                             <thead>
-                 <tr className="bg-gradient-to-r from-gray-700/40 to-gray-600/40 border-b border-gray-500/20">
-                   <th className="text-left p-3 text-gray-300 font-semibold">Period</th>
-                   <th className="text-right p-3 text-gray-300 font-semibold">Net Sales Target</th>
-                   <th className="text-right p-3 text-gray-300 font-semibold text-xs">112% Stretch</th>
-                   <th className="text-right p-3 text-gray-300 font-semibold text-xs">Daily Pace</th>
-                   <th className="text-right p-3 text-gray-300 font-semibold">Labour Target</th>
-                   <th className="text-center p-3 text-gray-300 font-semibold">Working Days</th>
-                   <th className="text-center p-3 text-gray-300 font-semibold">Actions</th>
-                 </tr>
-               </thead>
-              <tbody>
-                {sortedTargets.map((target, index) => (
+      <div className="backdrop-blur-md bg-gradient-to-br from-gray-900/90 via-black/80 to-gray-800/90 rounded-xl border border-gray-500/30 shadow-2xl overflow-hidden">
+        <div className="overflow-x-auto max-w-full">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-gradient-to-r from-gray-600/30 via-gray-500/30 to-gray-600/30 backdrop-blur-sm border-b border-gray-400/30">
+                <th className="sticky left-0 bg-gradient-to-r from-gray-700/60 to-gray-600/60 backdrop-blur-sm px-3 py-4 text-left text-gray-100 font-semibold border-r border-gray-400/30">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-4 h-4 text-gray-300" />
+                    <span>Period</span>
+                  </div>
+                </th>
+                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                  <div className="flex items-center justify-center space-x-2">
+                    <Target className="w-4 h-4 text-gray-300" />
+                    <span className="text-gray-200">Net Sales Target</span>
+                  </div>
+                </th>
+                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                  <div className="flex items-center justify-center space-x-2">
+                    <Target className="w-4 h-4 text-gray-300" />
+                    <span className="text-gray-200">112% Stretch</span>
+                  </div>
+                </th>
+                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                  <div className="flex items-center justify-center space-x-2">
+                    <Target className="w-4 h-4 text-gray-300" />
+                    <span className="text-gray-200">Daily Pace</span>
+                  </div>
+                </th>
+                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                  <div className="flex items-center justify-center space-x-2">
+                    <Target className="w-4 h-4 text-gray-300" />
+                    <span className="text-gray-200">Labour Target</span>
+                  </div>
+                </th>
+                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                  <div className="flex items-center justify-center space-x-2">
+                    <Clock className="w-4 h-4 text-gray-300" />
+                    <span className="text-gray-200">Working Days</span>
+                  </div>
+                </th>
+                <th className="px-3 py-4 text-center text-gray-100 font-semibold">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-white/60">
+                    Loading targets...
+                  </td>
+                </tr>
+              ) : sortedTargets.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-white/60">
+                    No targets set yet. Click "Add Target" to get started.
+                  </td>
+                </tr>
+              ) : (
+                sortedTargets.map((target, index) => (
                   <tr 
                     key={target.id} 
-                    className={`border-b border-gray-500/10 transition-all hover:bg-gray-700/20 ${
-                      index % 2 === 0 ? 'bg-gray-800/20' : 'bg-gray-700/10'
+                    className={`border-b border-gray-400/10 hover:bg-gray-300/5 backdrop-blur-sm transition-colors ${
+                      index % 2 === 0 ? 'bg-black/5' : 'bg-gray-900/10'
                     }`}
                   >
-                    <td className="p-3">
+                    <td className="sticky left-0 bg-gradient-to-r from-gray-700/60 to-gray-600/60 backdrop-blur-sm px-3 py-3 border-r border-gray-400/30">
                       <div className="flex items-center space-x-2">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="text-white font-medium">
+                        <Calendar className="w-4 h-4 text-gray-300" />
+                        <span className="text-gray-100 font-medium">
                           {getMonthName(target.month)} {target.year}
                         </span>
                       </div>
                     </td>
-                                         <td className="p-3 text-right">
-                       <div className="flex items-center justify-end space-x-2">
-                         <DollarSign className="w-4 h-4 text-green-400" />
-                         <span className="text-green-300 font-mono">
-                           {formatCurrency(target.net_sales_target)}
-                         </span>
-                       </div>
-                     </td>
-                     <td className="p-3 text-right">
-                       <div className="flex items-center justify-end space-x-2">
-                         <DollarSign className="w-4 h-4 text-yellow-400" />
-                         <span className="text-yellow-300 font-mono text-sm">
-                           {formatCurrency(target.net_sales_112_percent || target.net_sales_target * 1.12)}
-                         </span>
-                       </div>
-                     </td>
-                     <td className="p-3 text-right">
-                       <div className="flex items-center justify-end space-x-2">
-                         <DollarSign className="w-4 h-4 text-orange-400" />
-                         <span className="text-orange-300 font-mono text-sm">
-                           {formatCurrency(target.daily_cumulative_target || target.net_sales_target / target.number_of_working_days)}
-                         </span>
-                       </div>
-                     </td>
-                     <td className="p-3 text-right">
-                       <div className="flex items-center justify-end space-x-2">
-                         <DollarSign className="w-4 h-4 text-blue-400" />
-                         <span className="text-blue-300 font-mono">
-                           {formatCurrency(target.labour_sales_target)}
-                         </span>
-                       </div>
-                     </td>
-                    <td className="p-3 text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Clock className="w-4 h-4 text-purple-400" />
-                        <span className="text-purple-300 font-mono">
-                          {target.number_of_working_days}
-                        </span>
-                      </div>
+                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
+                      <span className="text-gray-200 font-mono">
+                        {formatCurrency(target.net_sales_target)}
+                      </span>
                     </td>
-                    <td className="p-3">
+                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
+                      <span className="text-gray-200 font-mono">
+                        {formatCurrency(target.net_sales_112_percent || target.net_sales_target * 1.12)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
+                      <span className="text-gray-200 font-mono">
+                        {formatCurrency(target.daily_cumulative_target || target.net_sales_target / target.number_of_working_days)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
+                      <span className="text-gray-200 font-mono">
+                        {formatCurrency(target.labour_sales_target)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
+                      <span className="text-gray-200 font-mono">
+                        {target.number_of_working_days}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
                       <div className="flex items-center justify-center space-x-2">
                         <button
                           onClick={() => handleEdit(target)}
-                          className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-500 to-gray-600 hover:from-gray-400 hover:to-gray-500 text-white flex items-center justify-center transition-all shadow-md transform hover:scale-105"
+                          className="p-1 text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all duration-200 rounded"
+                          title="Edit"
                         >
-                          <Edit3 className="w-3 h-3" />
+                          <Edit3 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => target.id && handleDelete(target.id)}
-                          className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-400 to-red-500 hover:from-red-300 hover:to-red-400 text-white flex items-center justify-center transition-all shadow-md transform hover:scale-105"
+                          className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-all duration-200 rounded"
+                          title="Delete"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
-} 
+}

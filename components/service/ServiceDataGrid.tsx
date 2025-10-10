@@ -483,13 +483,18 @@ export default function ServiceDataGrid({
       ${metricDef?.category === 'target' ? 'text-purple-300' : ''}
     `;
 
+    // Special handling for date field
+    const displayValue = field === 'metric_date' 
+      ? (value ? new Date(value as string).toLocaleDateString('en-GB') : '-')
+      : formatServiceValue(value as any, metricDef?.type || 'count');
+
     return (
       <div
         className={cellClasses}
         onClick={() => isEditable && startEdit(row.id, field)}
-        title={`${metricDef?.name || field}: ${formatServiceValue(value as any, metricDef?.type || 'count')}`}
+        title={`${metricDef?.name || field}: ${displayValue}`}
       >
-        {formatServiceValue(value as any, metricDef?.type || 'count')}
+        {displayValue}
       </div>
     );
   };

@@ -1404,7 +1404,7 @@ const TargetAchievementForecastChart: React.FC<{
       const requiredDailyFor112 = remainingDays > 0 ? (target112 - currentSales) / remainingDays : 0;
       const currentDailyAvg = workingDaysElapsed > 0 ? currentSales / workingDaysElapsed : 0;
 
-      // MARKETING MAGIC FORECAST - accounts for 26% end-of-month surge (based on historical data)
+      // MARKETING FORECAST - accounts for 26% end-of-month surge (based on historical data)
       const END_OF_MONTH_SURGE_PCT = 0.26; // 26% of revenue comes in last 2 days
       const normalDays = Math.max(0, totalWorkingDays - 2); // Days before the rush
       const rushDays = 2; // Final 2 days
@@ -1412,13 +1412,25 @@ const TargetAchievementForecastChart: React.FC<{
       // Calculate what the month WOULD total at current pace (without surge)
       const linearProjection = currentSales + (remainingDays * currentDailyAvg);
       
-      // Marketing Magic: Boost the projection by accounting for end-of-month pattern
-      // If 26% comes in last 2 days, that means 74% comes in the first (totalWorkingDays - 2) days
-      // So: currentPace brings us to X in normal days, then we add 26% surge in final 2 days
-      const normalDaysRemaining = Math.max(0, normalDays - workingDaysElapsed);
-      const magicProjection = currentSales + (normalDaysRemaining * currentDailyAvg * 1.05); // Slight boost for normal days
-      const magicFinalTotal = magicProjection / (1 - END_OF_MONTH_SURGE_PCT); // If 74% = magicProjection, then 100% = this
-      const endOfMonthSurge = magicFinalTotal * END_OF_MONTH_SURGE_PCT;
+      // Marketing Forecast logic:
+      // IMPORTANT: Only apply surge boost if we're BEFORE the surge period
+      // Once we're IN the last 2 days, the surge is happening in real-time (in actual numbers)
+      let magicFinalTotal;
+      let endOfMonthSurge;
+      
+      if (workingDaysElapsed < normalDays) {
+        // We're BEFORE the surge period - apply the boost
+        // If 26% comes in last 2 days, that means 74% comes in the first (totalWorkingDays - 2) days
+        const normalDaysRemaining = Math.max(0, normalDays - workingDaysElapsed);
+        const magicProjection = currentSales + (normalDaysRemaining * currentDailyAvg * 1.05);
+        magicFinalTotal = magicProjection / (1 - END_OF_MONTH_SURGE_PCT); // If 74% = magicProjection, then 100% = this
+        endOfMonthSurge = magicFinalTotal * END_OF_MONTH_SURGE_PCT;
+      } else {
+        // We're IN the surge period (last 2 days) - surge is already happening!
+        // Just use linear projection - what you see is what you get
+        magicFinalTotal = linearProjection;
+        endOfMonthSurge = 0; // No future surge to add, it's happening now
+      }
 
       // Build chart data - use WORKING DAYS not calendar days
       const data = [];
@@ -1427,21 +1439,28 @@ const TargetAchievementForecastChart: React.FC<{
         const isHistorical = workingDay <= workingDaysElapsed;
         const dayOfMonth = metric ? new Date(metric.metric_date).getDate() : workingDay;
         
-        // Calculate Marketing Magic value for this day
+        // Calculate Marketing Forecast value for this day
         let marketingMagicValue = null;
         if (!isHistorical) {
           const daysIntoFuture = workingDay - workingDaysElapsed;
-          const daysUntilRush = Math.max(0, normalDays - workingDaysElapsed);
           
-          if (workingDay <= normalDays) {
-            // Normal growth phase
-            marketingMagicValue = currentSales + (daysIntoFuture * currentDailyAvg * 1.05);
+          if (workingDaysElapsed < normalDays) {
+            // We're BEFORE surge period - apply boost calculation
+            const daysUntilRush = Math.max(0, normalDays - workingDaysElapsed);
+            
+            if (workingDay <= normalDays) {
+              // Normal growth phase
+              marketingMagicValue = currentSales + (daysIntoFuture * currentDailyAvg * 1.05);
+            } else {
+              // RUSH PHASE - last 2 days (projected)
+              const baseBeforeRush = currentSales + (daysUntilRush * currentDailyAvg * 1.05);
+              const rushDayNumber = workingDay - normalDays; // 1 or 2
+              const surgePerDay = endOfMonthSurge / rushDays;
+              marketingMagicValue = baseBeforeRush + (rushDayNumber * surgePerDay);
+            }
           } else {
-            // RUSH PHASE - last 2 days!
-            const baseBeforeRush = currentSales + (daysUntilRush * currentDailyAvg * 1.05);
-            const rushDayNumber = workingDay - normalDays; // 1 or 2
-            const surgePerDay = endOfMonthSurge / rushDays;
-            marketingMagicValue = baseBeforeRush + (rushDayNumber * surgePerDay);
+            // We're IN surge period - just use linear (surge is happening in actuals)
+            marketingMagicValue = currentSales + (daysIntoFuture * currentDailyAvg);
           }
         }
 
@@ -1609,29 +1628,29 @@ const TargetAchievementForecastChart: React.FC<{
           <Line 
             type="monotone"
             dataKey="marketingMagic" 
-            stroke="#a855f7" 
+            stroke="#fbbf24" 
             strokeWidth={4}
             strokeDasharray="5 3"
-            dot={{ fill: '#a855f7', r: 4, strokeWidth: 2, stroke: '#7e22ce' }}
-            name="Marketing Magic ✨"
+            dot={{ fill: '#fbbf24', r: 4, strokeWidth: 2, stroke: '#f59e0b' }}
+            name="Marketing Forecast"
           />
         </ComposedChart>
       </ResponsiveContainer>
 
       {/* Forecast Stats */}
       <div className="mt-4 space-y-3">
-        {/* Marketing Magic Row */}
-        <div className="flex items-center justify-between p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+        {/* Marketing Forecast Row */}
+        <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
           <div className="flex items-center gap-2">
             <span className="text-xl">✨</span>
             <div>
-              <p className="text-xs font-semibold text-purple-400">Marketing Magic Forecast</p>
+              <p className="text-xs font-semibold text-amber-400">Marketing Forecast</p>
             </div>
           </div>
           <div className={`flex items-center gap-1 text-lg font-bold ${
             forecastStats.magicWill112 ? 'text-emerald-400' : 
             forecastStats.magicWill100 ? 'text-amber-400' : 
-            'text-purple-400'
+            'text-amber-400'
           }`}>
             <DirhamIcon className="w-4 h-4" />
             <span>{formatCurrency(forecastStats.marketingMagicFinish || 0)}</span>
@@ -1660,8 +1679,8 @@ const TargetAchievementForecastChart: React.FC<{
             </div>
           </div>
           <div className="text-center">
-            <p className="text-xs text-gray-400 mb-1">Magic Gap to 112%</p>
-            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.magicGap112 >= 0 ? 'text-emerald-400' : 'text-purple-400'}`}>
+            <p className="text-xs text-gray-400 mb-1">Marketing Gap to 112%</p>
+            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.magicGap112 >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
               <span>{forecastStats.magicGap112 >= 0 ? '+' : ''}</span>
               <DirhamIcon className="w-3 h-3" />
               <span>{formatCurrency(Math.abs(forecastStats.magicGap112 || 0))}</span>

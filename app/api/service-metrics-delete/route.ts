@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function DELETE(request: NextRequest) {
     console.log('Deleting service metrics for date:', date);
 
     // First, let's see what data exists for this date
-    const { data: existingData, error: queryError } = await supabase
+    const { data: existingData, error: queryError } = await supabaseAdmin
       .from('daily_service_metrics')
       .select('*')
       .eq('metric_date', date);
@@ -24,7 +24,7 @@ export async function DELETE(request: NextRequest) {
     console.log('Found existing data for date:', date, existingData);
 
     // Also check for any data with similar dates
-    const { data: allData, error: allError } = await supabase
+    const { data: allData, error: allError } = await supabaseAdmin
       .from('daily_service_metrics')
       .select('metric_date')
       .order('metric_date', { ascending: false })
@@ -33,7 +33,7 @@ export async function DELETE(request: NextRequest) {
     console.log('Recent dates in database:', allData?.map(d => d.metric_date));
 
     // Delete all metrics for the specified date
-    const { error, count } = await supabase
+    const { error, count } = await supabaseAdmin
       .from('daily_service_metrics')
       .delete()
       .eq('metric_date', date);

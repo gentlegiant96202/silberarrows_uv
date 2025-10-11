@@ -848,8 +848,10 @@ const NetSalesProgressChart: React.FC<{
     );
   };
 
-  const latestData = chartData[chartData.length - 1];
-  const performance = latestData ? (latestData.currentNetSales / latestData.cumulativeTarget) * 100 : 0;
+  // Get latest day WITH actual data (not future days)
+  const actualData = chartData.filter(d => d.currentNetSales !== null);
+  const latestData = actualData[actualData.length - 1];
+  const performance = latestData && latestData.cumulativeTarget > 0 ? (latestData.currentNetSales / latestData.cumulativeTarget) * 100 : 0;
 
   return (
     <div className="rounded-xl bg-black backdrop-blur-xl border border-white/20 shadow-2xl p-6">
@@ -934,23 +936,6 @@ const NetSalesProgressChart: React.FC<{
                 fillOpacity={0.03}
               />
             </>
-          )}
-          
-          {/* Today Marker */}
-          {currentDay > 0 && (
-            <ReferenceLine 
-              x={currentDay} 
-              stroke="#ffffff" 
-              strokeWidth={2} 
-              strokeDasharray="3 3"
-              label={{ 
-                value: 'TODAY', 
-                position: 'top', 
-                fill: '#ffffff', 
-                fontSize: 10, 
-                fontWeight: 'bold'
-              }}
-            />
           )}
           
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
@@ -1167,7 +1152,9 @@ const LabourSalesProgressChart: React.FC<{
     );
   };
 
-  const latestData = chartData[chartData.length - 1];
+  // Get latest day WITH actual data (not future days)
+  const actualDataDaily = chartData.filter(d => d.currentAvg !== null);
+  const latestData = actualDataDaily[actualDataDaily.length - 1];
   
   // Current Daily Average is always green
   const getLineColor = () => {
@@ -1245,23 +1232,6 @@ const LabourSalesProgressChart: React.FC<{
                 fillOpacity={0.03}
               />
             </>
-          )}
-          
-          {/* Today Marker */}
-          {currentDay > 0 && (
-            <ReferenceLine 
-              x={currentDay} 
-              stroke="#ffffff" 
-              strokeWidth={2} 
-              strokeDasharray="3 3"
-              label={{ 
-                value: 'TODAY', 
-                position: 'top', 
-                fill: '#ffffff', 
-                fontSize: 10, 
-                fontWeight: 'bold'
-              }}
-            />
           )}
           
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
@@ -1415,10 +1385,12 @@ const TargetAchievementForecastChart: React.FC<{
         new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime()
       );
 
-      const latestMetric = sortedMetrics[sortedMetrics.length - 1];
-      const currentSales = latestMetric.current_net_sales || 0;
-      const estimatedSales = latestMetric.estimated_net_sales || 0;
-      const workingDaysElapsed = latestMetric.working_days_elapsed || 1;
+      // Find the metric for the selected date, or use the latest if not found
+      const selectedMetric = sortedMetrics.find(m => m.metric_date === selectedDate) || sortedMetrics[sortedMetrics.length - 1];
+      
+      const currentSales = selectedMetric.current_net_sales || 0;
+      const estimatedSales = selectedMetric.estimated_net_sales || 0;
+      const workingDaysElapsed = selectedMetric.working_days_elapsed || 1;
       const totalWorkingDays = target.number_of_working_days || 1;
       const remainingDays = totalWorkingDays - workingDaysElapsed;
 

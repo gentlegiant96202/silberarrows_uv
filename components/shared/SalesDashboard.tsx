@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import DirhamIcon from '@/components/ui/DirhamIcon';
 
 interface SalesDashboardProps {
   metrics: any[];
@@ -132,8 +133,6 @@ const SalesKPICards: React.FC<{metrics: any[], targets?: any[], selectedYear: nu
 
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-AE', {
-      style: 'currency',
-      currency: 'AED',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -145,7 +144,10 @@ const SalesKPICards: React.FC<{metrics: any[], targets?: any[], selectedYear: nu
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-white/60">Monthly Gross Profit</p>
-              <p className="text-xl font-semibold text-white">{formatCurrency(kpi.monthlyGrossProfit)}</p>
+              <div className="flex items-center gap-2">
+                <DirhamIcon className="w-5 h-5 text-white/80" />
+                <p className="text-xl font-semibold text-white">{formatCurrency(kpi.monthlyGrossProfit)}</p>
+              </div>
               <p className="text-xs text-white/40">Month to date</p>
             </div>
             <div className="text-right">
@@ -157,17 +159,26 @@ const SalesKPICards: React.FC<{metrics: any[], targets?: any[], selectedYear: nu
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
           <p className="text-sm text-white/60">Monthly Target</p>
-          <p className="text-xl font-semibold text-white">{formatCurrency(kpi.monthlyTarget)}</p>
+          <div className="flex items-center gap-2">
+            <DirhamIcon className="w-5 h-5 text-white/80" />
+            <p className="text-xl font-semibold text-white">{formatCurrency(kpi.monthlyTarget)}</p>
+          </div>
           <p className="text-xs text-white/40">Current month goal</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
           <p className="text-sm text-white/60">Yearly Profit</p>
-          <p className="text-xl font-semibold text-white">{formatCurrency(kpi.yearlyGrossProfit)}</p>
+          <div className="flex items-center gap-2">
+            <DirhamIcon className="w-5 h-5 text-white/80" />
+            <p className="text-xl font-semibold text-white">{formatCurrency(kpi.yearlyGrossProfit)}</p>
+          </div>
           <p className="text-xs text-white/40">Year to date</p>
         </div>
         <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
           <p className="text-sm text-white/60">Yearly Target</p>
-          <p className="text-xl font-semibold text-white">{formatCurrency(kpi.yearlyTarget)}</p>
+          <div className="flex items-center gap-2">
+            <DirhamIcon className="w-5 h-5 text-white/80" />
+            <p className="text-xl font-semibold text-white">{formatCurrency(kpi.yearlyTarget)}</p>
+          </div>
           <p className="text-xs text-white/40">Full year goal</p>
         </div>
       </div>
@@ -234,8 +245,6 @@ const SalesPerformanceCards: React.FC<{metrics: any[], targets: any[], selectedY
 
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-AE', {
-      style: 'currency',
-      currency: 'AED',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -249,7 +258,10 @@ const SalesPerformanceCards: React.FC<{metrics: any[], targets: any[], selectedY
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
         <p className="text-sm text-white/60">Marketing</p>
-        <p className="text-xl font-semibold text-white">{formatCurrency(performance.marketingSpend)}</p>
+        <div className="flex items-center gap-2">
+          <DirhamIcon className="w-5 h-5 text-white/80" />
+          <p className="text-xl font-semibold text-white">{formatCurrency(performance.marketingSpend)}</p>
+        </div>
         <p className="text-xs text-white/40">Rate: {performance.marketingRate.toFixed(1)}%</p>
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
@@ -259,7 +271,10 @@ const SalesPerformanceCards: React.FC<{metrics: any[], targets: any[], selectedY
       </div>
       <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner">
         <p className="text-sm text-white/60">Avg Profit/Car</p>
-        <p className="text-xl font-semibold text-white">{formatCurrency(performance.avgProfitPerCar)}</p>
+        <div className="flex items-center gap-2">
+          <DirhamIcon className="w-5 h-5 text-white/80" />
+          <p className="text-xl font-semibold text-white">{formatCurrency(performance.avgProfitPerCar)}</p>
+        </div>
         <p className="text-xs text-white/40">Per unit sold</p>
       </div>
     </div>
@@ -396,7 +411,7 @@ const DailyCumulativeProgressChart: React.FC<{metrics: any[], targets: any[], se
               }}
               labelFormatter={(label: string | number) => `Working Day ${label}`}
               formatter={(value: any, name: string) => [
-                value ? `AED ${value.toLocaleString()}` : 'No data',
+                value ? value.toLocaleString() : 'No data',
                 name === 'targetPace' ? 'Target Pace' : 'Monthly Progress'
               ]}
             />
@@ -569,7 +584,7 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
               }}
               labelFormatter={(label: string | number) => `${label} ${new Date().getFullYear()}`}
               formatter={(value: any, name: string) => [
-                value ? `AED ${value.toLocaleString()}` : 'No data',
+                value ? value.toLocaleString() : 'No data',
                 name === 'cumulativeTarget' ? 'Target Pace' : 'Yearly Progress'
               ]}
             />

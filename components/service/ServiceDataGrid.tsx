@@ -323,7 +323,8 @@ export default function ServiceDataGrid({
 
     const sampleData = [
       ['2025-01-15', '10', '150000', '75000', '15', '5000', '50000', '40000', '30000', 'Sample entry'],
-      ['2025-01-16', '11', '165000', '82500', '18', '5200', '55000', '44000', '33000', 'Another entry']
+      ['2025-01-16', '11', '165,000', '82,500', '18', '5,200', '55,000', '44,000', '33,000', 'With commas'],
+      ['15/01/2025', '12', 'AED 175000', 'AED 87500', '20', 'AED 5400', 'AED 58000', 'AED 47000', 'AED 35000', 'With AED prefix']
     ];
 
     const csvContent = [headers, ...sampleData]
@@ -352,44 +353,125 @@ export default function ServiceDataGrid({
   };
 
   const parseCSVFile = async (file: File) => {
-    const text = await file.text();
-    const lines = text.split('\n').filter(line => line.trim());
-    
-    if (lines.length < 2) {
-      alert('CSV file must have at least a header row and one data row');
-      return;
-    }
-
-    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-    const data: CSVRow[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
+    try {
+      let text = await file.text();
       
-      if (values.length !== headers.length) continue;
+      // Remove BOM if present (common in Excel/Google Sheets exports)
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.slice(1);
+      }
+      
+      // Handle different line endings (CRLF, LF, CR)
+      const lines = text.split(/\r\n|\n|\r/).filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        alert('CSV file must have at least a header row and one data row');
+        return;
+      }
 
-      const row: any = {};
-      headers.forEach((header, index) => {
-        const value = values[index];
+      // Parse CSV line with proper quote handling
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
         
-        if (header === 'date') {
-          row.date = value;
-        } else if (header === 'notes') {
-          row.notes = value;
-        } else {
-          const numValue = parseFloat(value);
-          if (!isNaN(numValue)) {
-            row[header] = numValue;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const nextChar = line[i + 1];
+          
+          if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+              // Escaped quote
+              current += '"';
+              i++; // Skip next quote
+            } else {
+              // Toggle quote state
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            // End of field
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
           }
         }
-      });
+        
+        // Add last field
+        result.push(current.trim());
+        return result;
+      };
 
-      if (row.date) {
-        data.push(row as CSVRow);
+      const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+      const data: CSVRow[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        
+        // Skip empty lines
+        if (values.every(v => !v)) continue;
+        
+        // Allow flexible column count (partial data is ok)
+        if (values.length === 0) continue;
+
+        const row: any = {};
+        headers.forEach((header, index) => {
+          const value = values[index] || '';
+          
+          if (header === 'date') {
+            // Handle different date formats
+            if (value) {
+              // Try to parse date in various formats
+              let dateStr = value;
+              // Convert MM/DD/YYYY or DD/MM/YYYY to YYYY-MM-DD
+              if (value.includes('/')) {
+                const parts = value.split('/');
+                if (parts.length === 3) {
+                  // Assume DD/MM/YYYY format (more common internationally)
+                  const [day, month, year] = parts;
+                  dateStr = `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+              }
+              row.date = dateStr;
+            }
+          } else if (header === 'notes') {
+            row.notes = value;
+          } else {
+            // Handle numeric values with better error handling
+            // Remove currency symbols, text, commas, and spaces
+            const cleanValue = value
+              .replace(/AED/gi, '')           // Remove AED (case insensitive)
+              .replace(/[,$£€¥\s]/g, '')      // Remove currency symbols, commas, and spaces
+              .replace(/[a-zA-Z]/g, '')       // Remove any remaining letters
+              .trim();
+            
+            const numValue = parseFloat(cleanValue);
+            if (!isNaN(numValue) && cleanValue !== '') {
+              row[header] = numValue;
+            } else if (value && value.trim() !== '') {
+              // If value exists but isn't a number, set to 0
+              console.warn(`Could not parse numeric value for ${header}: "${value}" -> cleaned to "${cleanValue}"`);
+              row[header] = 0;
+            }
+          }
+        });
+
+        if (row.date) {
+          data.push(row as CSVRow);
+        }
       }
-    }
 
-    setCsvData(data);
+      if (data.length === 0) {
+        alert('No valid data rows found in CSV. Please check the format and try again.');
+        return;
+      }
+
+      setCsvData(data);
+      alert(`Successfully parsed ${data.length} rows from CSV`);
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      alert('Error parsing CSV file. Please ensure it is properly formatted.');
+    }
   };
 
   const importCSVData = async () => {
@@ -743,14 +825,28 @@ export default function ServiceDataGrid({
                 <p className="mt-1 text-xs text-gray-400">
                   CSV should have columns: date, working_days_elapsed, current_net_sales, current_net_labor_sales, number_of_invoices, current_marketing_spend, daniel_total_sales, essrar_total_sales, lucy_total_sales, notes
                 </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Supports Google Sheets exports. Date formats: YYYY-MM-DD or DD/MM/YYYY. Currency values can include "AED", commas, or currency symbols (e.g., "AED 150,000" or "150000").
+                </p>
               </div>
 
               {csvData.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-300 mb-2">
-                    Preview ({csvData.length} records)
-                  </h4>
-                  <div className="max-h-60 overflow-y-auto border border-gray-600 rounded">
+                <>
+                  <div className="flex items-start space-x-2 p-3 bg-yellow-900/20 border border-yellow-600/50 rounded-lg text-yellow-400">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs">
+                      <p className="font-medium">Import will overwrite existing data</p>
+                      <p className="text-yellow-400/80 mt-1">
+                        If any dates in your CSV already have data in the system, they will be updated with the CSV values. This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-300 mb-2">
+                      Preview ({csvData.length} records)
+                    </h4>
+                    <div className="max-h-60 overflow-y-auto border border-gray-600 rounded">
                     <table className="w-full text-xs">
                       <thead className="bg-gray-800">
                         <tr>
@@ -782,7 +878,8 @@ export default function ServiceDataGrid({
                       </tbody>
                     </table>
                   </div>
-                </div>
+                  </div>
+                </>
               )}
 
               <div className="flex items-center justify-end space-x-3">

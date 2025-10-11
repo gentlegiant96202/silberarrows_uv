@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 // GET: Fetch daily service metrics for a date range or specific date
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const year = searchParams.get('year');
     const month = searchParams.get('month');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('daily_service_metrics')
       .select('*')
       .order('metric_date', { ascending: false });
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     console.log('Upserting service metrics for date:', date, body);
 
     // Upsert the record (insert or update if exists)
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('daily_service_metrics')
       .upsert({
         metric_date: date,
@@ -149,7 +149,7 @@ export async function DELETE(request: NextRequest) {
 
     console.log('Deleting service metrics for date:', date);
 
-    const { error, count } = await supabase
+    const { error, count } = await supabaseAdmin
       .from('daily_service_metrics')
       .delete()
       .eq('metric_date', date);

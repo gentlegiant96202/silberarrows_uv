@@ -1404,17 +1404,52 @@ const TargetAchievementForecastChart: React.FC<{
       const requiredDailyFor112 = remainingDays > 0 ? (target112 - currentSales) / remainingDays : 0;
       const currentDailyAvg = workingDaysElapsed > 0 ? currentSales / workingDaysElapsed : 0;
 
+      // MARKETING MAGIC FORECAST - accounts for 26% end-of-month surge (based on historical data)
+      const END_OF_MONTH_SURGE_PCT = 0.26; // 26% of revenue comes in last 2 days
+      const normalDays = Math.max(0, totalWorkingDays - 2); // Days before the rush
+      const rushDays = 2; // Final 2 days
+      
+      // Calculate what the month WOULD total at current pace (without surge)
+      const linearProjection = currentSales + (remainingDays * currentDailyAvg);
+      
+      // Marketing Magic: Boost the projection by accounting for end-of-month pattern
+      // If 26% comes in last 2 days, that means 74% comes in the first (totalWorkingDays - 2) days
+      // So: currentPace brings us to X in normal days, then we add 26% surge in final 2 days
+      const normalDaysRemaining = Math.max(0, normalDays - workingDaysElapsed);
+      const magicProjection = currentSales + (normalDaysRemaining * currentDailyAvg * 1.05); // Slight boost for normal days
+      const magicFinalTotal = magicProjection / (1 - END_OF_MONTH_SURGE_PCT); // If 74% = magicProjection, then 100% = this
+      const endOfMonthSurge = magicFinalTotal * END_OF_MONTH_SURGE_PCT;
+
       // Build chart data - use WORKING DAYS not calendar days
       const data = [];
       for (let workingDay = 1; workingDay <= totalWorkingDays; workingDay++) {
         const metric = sortedMetrics[workingDay - 1]; // Working day index matches array index
         const isHistorical = workingDay <= workingDaysElapsed;
         const dayOfMonth = metric ? new Date(metric.metric_date).getDate() : workingDay;
+        
+        // Calculate Marketing Magic value for this day
+        let marketingMagicValue = null;
+        if (!isHistorical) {
+          const daysIntoFuture = workingDay - workingDaysElapsed;
+          const daysUntilRush = Math.max(0, normalDays - workingDaysElapsed);
+          
+          if (workingDay <= normalDays) {
+            // Normal growth phase
+            marketingMagicValue = currentSales + (daysIntoFuture * currentDailyAvg * 1.05);
+          } else {
+            // RUSH PHASE - last 2 days!
+            const baseBeforeRush = currentSales + (daysUntilRush * currentDailyAvg * 1.05);
+            const rushDayNumber = workingDay - normalDays; // 1 or 2
+            const surgePerDay = endOfMonthSurge / rushDays;
+            marketingMagicValue = baseBeforeRush + (rushDayNumber * surgePerDay);
+          }
+        }
 
         data.push({
           day: dayOfMonth,
           actual: isHistorical && metric ? (metric.current_net_sales || 0) : null,
           projected: !isHistorical ? (currentSales + (workingDay - workingDaysElapsed) * currentDailyAvg) : null,
+          marketingMagic: marketingMagicValue,
           target100: (target100 / totalWorkingDays) * workingDay,
           target112: (target112 / totalWorkingDays) * workingDay,
         });
@@ -1423,15 +1458,19 @@ const TargetAchievementForecastChart: React.FC<{
       setChartData(data);
       setForecastStats({
         projectedFinish,
+        marketingMagicFinish: magicFinalTotal,
         target100,
         target112,
         will100: projectedFinish >= target100,
         will112: projectedFinish >= target112,
+        magicWill100: magicFinalTotal >= target100,
+        magicWill112: magicFinalTotal >= target112,
         requiredDailyFor100,
         requiredDailyFor112,
         currentDailyAvg,
         gap100: projectedFinish - target100,
         gap112: projectedFinish - target112,
+        magicGap112: magicFinalTotal - target112,
       });
     }
   }, [metrics, target, selectedDate]);
@@ -1567,36 +1606,67 @@ const TargetAchievementForecastChart: React.FC<{
             dot={{ fill: '#6366f1', r: 3 }}
             name="Projected"
           />
+          <Line 
+            type="monotone"
+            dataKey="marketingMagic" 
+            stroke="#ec4899" 
+            strokeWidth={4}
+            strokeDasharray="5 3"
+            dot={{ fill: '#ec4899', r: 4, strokeWidth: 2, stroke: '#be185d' }}
+            name="Marketing Magic ✨"
+          />
         </ComposedChart>
       </ResponsiveContainer>
 
       {/* Forecast Stats */}
-      <div className="mt-4 grid grid-cols-3 gap-4 border-t border-white/10 pt-4">
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Projected Finish</p>
-          <div className={`flex items-center justify-center gap-1 text-sm font-bold ${
-            forecastStats.will112 ? 'text-emerald-400' : 
-            forecastStats.will100 ? 'text-amber-400' : 
-            'text-red-400'
+      <div className="mt-4 space-y-3">
+        {/* Marketing Magic Row */}
+        <div className="flex items-center justify-between p-3 bg-pink-500/10 border border-pink-500/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">✨</span>
+            <div>
+              <p className="text-xs font-semibold text-pink-400">Marketing Magic Forecast</p>
+              <p className="text-[10px] text-gray-400">Accounts for 26% end-of-month surge</p>
+            </div>
+          </div>
+          <div className={`flex items-center gap-1 text-lg font-bold ${
+            forecastStats.magicWill112 ? 'text-emerald-400' : 
+            forecastStats.magicWill100 ? 'text-amber-400' : 
+            'text-pink-400'
           }`}>
-            <DirhamIcon className="w-3 h-3" />
-            <span>{formatCurrency(forecastStats.projectedFinish || 0)}</span>
+            <DirhamIcon className="w-4 h-4" />
+            <span>{formatCurrency(forecastStats.marketingMagicFinish || 0)}</span>
           </div>
         </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Gap to 100%</p>
-          <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.gap100 >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            <span>{forecastStats.gap100 >= 0 ? '+' : ''}</span>
-            <DirhamIcon className="w-3 h-3" />
-            <span>{formatCurrency(Math.abs(forecastStats.gap100 || 0))}</span>
+        
+        {/* Standard Stats Grid */}
+        <div className="grid grid-cols-3 gap-4 border-t border-white/10 pt-3">
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-1">Projected Finish</p>
+            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${
+              forecastStats.will112 ? 'text-emerald-400' : 
+              forecastStats.will100 ? 'text-amber-400' : 
+              'text-red-400'
+            }`}>
+              <DirhamIcon className="w-3 h-3" />
+              <span>{formatCurrency(forecastStats.projectedFinish || 0)}</span>
+            </div>
           </div>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Gap to 112%</p>
-          <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.gap112 >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-            <span>{forecastStats.gap112 >= 0 ? '+' : ''}</span>
-            <DirhamIcon className="w-3 h-3" />
-            <span>{formatCurrency(Math.abs(forecastStats.gap112 || 0))}</span>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-1">Gap to 100%</p>
+            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.gap100 >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <span>{forecastStats.gap100 >= 0 ? '+' : ''}</span>
+              <DirhamIcon className="w-3 h-3" />
+              <span>{formatCurrency(Math.abs(forecastStats.gap100 || 0))}</span>
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-1">Magic Gap to 112%</p>
+            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.magicGap112 >= 0 ? 'text-emerald-400' : 'text-pink-400'}`}>
+              <span>{forecastStats.magicGap112 >= 0 ? '+' : ''}</span>
+              <DirhamIcon className="w-3 h-3" />
+              <span>{formatCurrency(Math.abs(forecastStats.magicGap112 || 0))}</span>
+            </div>
           </div>
         </div>
       </div>

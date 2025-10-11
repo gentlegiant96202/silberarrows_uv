@@ -1609,10 +1609,10 @@ const TargetAchievementForecastChart: React.FC<{
           <Line 
             type="monotone"
             dataKey="marketingMagic" 
-            stroke="#ec4899" 
+            stroke="#a855f7" 
             strokeWidth={4}
             strokeDasharray="5 3"
-            dot={{ fill: '#ec4899', r: 4, strokeWidth: 2, stroke: '#be185d' }}
+            dot={{ fill: '#a855f7', r: 4, strokeWidth: 2, stroke: '#7e22ce' }}
             name="Marketing Magic ✨"
           />
         </ComposedChart>
@@ -1621,18 +1621,17 @@ const TargetAchievementForecastChart: React.FC<{
       {/* Forecast Stats */}
       <div className="mt-4 space-y-3">
         {/* Marketing Magic Row */}
-        <div className="flex items-center justify-between p-3 bg-pink-500/10 border border-pink-500/30 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
           <div className="flex items-center gap-2">
             <span className="text-xl">✨</span>
             <div>
-              <p className="text-xs font-semibold text-pink-400">Marketing Magic Forecast</p>
-              <p className="text-[10px] text-gray-400">Accounts for 26% end-of-month surge</p>
+              <p className="text-xs font-semibold text-purple-400">Marketing Magic Forecast</p>
             </div>
           </div>
           <div className={`flex items-center gap-1 text-lg font-bold ${
             forecastStats.magicWill112 ? 'text-emerald-400' : 
             forecastStats.magicWill100 ? 'text-amber-400' : 
-            'text-pink-400'
+            'text-purple-400'
           }`}>
             <DirhamIcon className="w-4 h-4" />
             <span>{formatCurrency(forecastStats.marketingMagicFinish || 0)}</span>
@@ -1662,7 +1661,7 @@ const TargetAchievementForecastChart: React.FC<{
           </div>
           <div className="text-center">
             <p className="text-xs text-gray-400 mb-1">Magic Gap to 112%</p>
-            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.magicGap112 >= 0 ? 'text-emerald-400' : 'text-pink-400'}`}>
+            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.magicGap112 >= 0 ? 'text-emerald-400' : 'text-purple-400'}`}>
               <span>{forecastStats.magicGap112 >= 0 ? '+' : ''}</span>
               <DirhamIcon className="w-3 h-3" />
               <span>{formatCurrency(Math.abs(forecastStats.magicGap112 || 0))}</span>

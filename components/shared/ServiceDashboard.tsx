@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Calendar, TrendingUp, Target, FileText, AlertCircle } from 'lucide-react';
+import { Calendar, TrendingUp, Target, FileText, AlertCircle, ChevronDown, Sparkles, Zap, Users, BarChart3 } from 'lucide-react';
 import DirhamIcon from '@/components/ui/DirhamIcon';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea, CartesianGrid, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import type { DailyServiceMetrics, ServiceMonthlyTarget } from '@/types/service';
@@ -19,6 +19,15 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   const [dashboardData, setDashboardData] = useState<DailyServiceMetrics | null>(null);
   const [monthTarget, setMonthTarget] = useState<ServiceMonthlyTarget | null>(null);
   const [monthlyInvoiceSum, setMonthlyInvoiceSum] = useState(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Smooth loading animation
+  useEffect(() => {
+    if (isInitialLoad && !loading) {
+      const timer = setTimeout(() => setIsInitialLoad(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isInitialLoad]);
 
   // Get list of available dates for the selected month
   const availableDates = metrics
@@ -66,7 +75,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
       setDashboardData(selectedMetric);
 
-      // Calculate sum of invoices UP TO the selected date (not cumulative, so we need to sum)
+      // Calculate sum of invoices UP TO the selected date
       const selectedDateObj = selectedMetric ? new Date(selectedMetric.metric_date) : new Date();
       const invoiceSum = monthMetrics
         .filter(m => new Date(m.metric_date) <= selectedDateObj)
@@ -91,365 +100,265 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     return `${value.toFixed(1)}%`;
   };
 
-  // Helper function for color-coded progress bars
+  // Enhanced color system with better visual hierarchy
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'from-emerald-400/80 to-emerald-500/60';
-    if (percentage >= 80) return 'from-amber-400/80 to-amber-500/60';
-    return 'from-red-400/80 to-red-500/60';
+    if (percentage >= 100) return 'from-emerald-400 to-emerald-500';
+    if (percentage >= 85) return 'from-amber-400 to-amber-500';
+    if (percentage >= 70) return 'from-orange-400 to-orange-500';
+    return 'from-rose-400 to-rose-500';
   };
 
-  // Helper function for status badges
-  const getStatusBadge = (current: number, target: number, stretch?: boolean) => {
+  const getStatusVariant = (percentage: number) => {
+    if (percentage >= 100) return 'success';
+    if (percentage >= 85) return 'warning';
+    if (percentage >= 70) return 'caution';
+    return 'critical';
+  };
+
+  // Enhanced status badges with better animations
+  const StatusBadge = ({ current, target, stretch = false, className = '' }: { 
+    current: number; 
+    target: number; 
+    stretch?: boolean;
+    className?: string;
+  }) => {
     const targetValue = stretch ? target * 1.12 : target;
-    if (current >= targetValue) {
+    const isMet = current >= targetValue;
+    
+    if (!isMet) return null;
+
       return (
-        <span className="absolute -top-2 -right-2 text-[9px] px-2 py-1 bg-emerald-500/30 text-emerald-200 rounded-full font-bold border border-emerald-400/50 shadow-lg animate-pulse">
-          {stretch ? '⚡ STRETCH' : '✓ MET'}
-        </span>
-      );
-    }
-    return null;
+      <div className={`absolute -top-2 -right-2 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide backdrop-blur-sm border ${
+        stretch 
+          ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-100 border-amber-400/50 shadow-lg shadow-amber-500/20' 
+          : 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-100 border-emerald-400/50 shadow-lg shadow-emerald-500/20'
+      } ${className}`}>
+        {stretch ? (
+          <>
+            <Zap className="w-3 h-3" />
+            STRETCH
+          </>
+        ) : (
+          <>
+            <div className="w-1.5 h-1.5 rounded-full bg-current" />
+            MET
+          </>
+        )}
+      </div>
+    );
   };
 
-  // Calculate vehicle throughput (average invoices per working day)
+  // Calculate derived metrics
   const vehicleThroughput = dashboardData && dashboardData.working_days_elapsed > 0
     ? monthlyInvoiceSum / dashboardData.working_days_elapsed
     : 0;
 
-  // Calculate average invoice value
   const averageInvoiceValue = monthlyInvoiceSum > 0 && dashboardData
     ? dashboardData.current_net_sales / monthlyInvoiceSum
     : 0;
 
-  // Calculate marketing spend percentage
   const marketingSpendPercentage = dashboardData && dashboardData.current_net_sales > 0
     ? (dashboardData.current_marketing_spend / dashboardData.current_net_sales) * 100
     : 0;
 
-  // Calculate labour to net sales ratio
-  const labourToNetSalesRatio = dashboardData && dashboardData.current_net_sales > 0
-    ? (dashboardData.current_net_labor_sales / dashboardData.current_net_sales) * 100
-    : 0;
-
-  if (loading) {
+  if (loading || isInitialLoad) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-white/60">Loading dashboard...</div>
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white/60 text-lg font-medium">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Header with Date/Month Selectors */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-6 bg-gradient-to-r from-white/10 via-white/5 to-transparent backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-            <Calendar className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+        {/* Enhanced Header */}
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30">
+                <BarChart3 className="w-6 h-6 text-blue-400" />
           </div>
-          <h2 className="text-xl font-bold text-white tracking-wide">Service Department Dashboard</h2>
+              <div>
+                <h1 className="text-2xl font-bold text-white tracking-tight">Service Dashboard</h1>
+                <p className="text-white/60 text-sm">Real-time performance metrics and insights</p>
+              </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          {/* Month Selector */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
-            <span className="text-white/70 text-xs font-semibold uppercase tracking-wider">Month</span>
+            <div className="flex flex-wrap gap-3">
+              {/* Enhanced Month Selector */}
+              <div className="relative group">
             <select
               value={selectedMonth}
               onChange={(e) => {
                 setSelectedMonth(Number(e.target.value));
-                setSelectedDate(''); // Reset date when month changes
-              }}
-              className="bg-transparent border-none text-white text-sm font-medium focus:outline-none focus:ring-0 cursor-pointer"
-            >
-              {[
-                { value: 1, label: 'January' },
-                { value: 2, label: 'February' },
-                { value: 3, label: 'March' },
-                { value: 4, label: 'April' },
-                { value: 5, label: 'May' },
-                { value: 6, label: 'June' },
-                { value: 7, label: 'July' },
-                { value: 8, label: 'August' },
-                { value: 9, label: 'September' },
-                { value: 10, label: 'October' },
-                { value: 11, label: 'November' },
-                { value: 12, label: 'December' }
+                    setSelectedDate('');
+                  }}
+                  className="appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 cursor-pointer pr-10 hover:bg-white/10 transition-all duration-200"
+                >
+                  {[
+                    { value: 1, label: 'January' }, { value: 2, label: 'February' },
+                    { value: 3, label: 'March' }, { value: 4, label: 'April' },
+                    { value: 5, label: 'May' }, { value: 6, label: 'June' },
+                    { value: 7, label: 'July' }, { value: 8, label: 'August' },
+                    { value: 9, label: 'September' }, { value: 10, label: 'October' },
+                    { value: 11, label: 'November' }, { value: 12, label: 'December' }
               ].map(month => (
-                <option key={month.value} value={month.value} className="bg-gray-800 text-white">
+                    <option key={month.value} value={month.value} className="bg-slate-800 text-white">
                   {month.label}
                 </option>
               ))}
             </select>
+                <ChevronDown className="w-4 h-4 text-white/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none transition-transform group-hover:scale-110" />
           </div>
 
-          {/* Year Selector */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
-            <span className="text-white/70 text-xs font-semibold uppercase tracking-wider">Year</span>
+              {/* Enhanced Year Selector */}
+              <div className="relative group">
             <select
               value={selectedYear}
               onChange={(e) => {
                 setSelectedYear(Number(e.target.value));
-                setSelectedDate(''); // Reset date when year changes
+                    setSelectedDate('');
               }}
-              className="bg-transparent border-none text-white text-sm font-medium focus:outline-none focus:ring-0 cursor-pointer"
+                  className="appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 cursor-pointer pr-10 hover:bg-white/10 transition-all duration-200"
             >
               {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                <option key={year} value={year} className="bg-gray-800 text-white">{year}</option>
+                    <option key={year} value={year} className="bg-slate-800 text-white">{year}</option>
               ))}
             </select>
+                <ChevronDown className="w-4 h-4 text-white/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none transition-transform group-hover:scale-110" />
           </div>
 
-          {/* Report Date Selector */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
-            <span className="text-white/70 text-xs font-semibold uppercase tracking-wider">Report Date</span>
+              {/* Enhanced Date Selector */}
+              <div className="relative group">
             <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent border-none text-white text-sm font-medium focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 cursor-pointer pr-10 hover:bg-white/10 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={availableDates.length === 0}
             >
               {availableDates.length === 0 ? (
                 <option>No data available</option>
               ) : (
                 availableDates.map(date => (
-                  <option key={date} value={date} className="bg-gray-800 text-white">
-                    {new Date(date).toLocaleDateString('en-GB')}
+                      <option key={date} value={date} className="bg-slate-800 text-white">
+                        {new Date(date).toLocaleDateString('en-GB', { 
+                          day: 'numeric', 
+                          month: 'short',
+                          year: 'numeric'
+                        })}
                   </option>
                 ))
               )}
             </select>
+                <Calendar className="w-4 h-4 text-white/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none transition-transform group-hover:scale-110" />
+              </div>
           </div>
         </div>
       </div>
 
       {!dashboardData ? (
-        <div className="flex flex-col items-center justify-center h-64 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-          <AlertCircle className="w-16 h-16 text-white/40 mb-6" />
-          <p className="text-white/70 text-xl font-semibold">No data available for the selected period</p>
-          <p className="text-white/50 text-sm mt-3">Please select a different month or add data in the Data Grid tab</p>
+          <div className="flex flex-col items-center justify-center h-96 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 text-center">
+            <AlertCircle className="w-16 h-16 text-white/40 mb-4" />
+            <h3 className="text-xl font-semibold text-white/80 mb-2">No Data Available</h3>
+            <p className="text-white/50">Please select a different period or add data in the Data Grid tab</p>
         </div>
       ) : (
         <>
-          {/* Net Sales Metrics Row */}
-          <div className="grid grid-cols-5 gap-4">
-            {/* Current Net Sales - HERO CARD */}
-            <div className="relative rounded-xl bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-xl p-6 border-2 border-white/30 shadow-2xl" style={{ boxShadow: '0 0 40px rgba(255,255,255,0.1)' }}>
-              {/* Status Badge */}
-              {monthTarget && getStatusBadge(dashboardData.current_net_sales || 0, monthTarget.net_sales_target)}
-              
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-base font-bold text-white uppercase tracking-wide">Current Net Sales</p>
+            {/* Hero Metrics Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Net Sales - Hero Card */}
+              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl lg:col-span-2">
+                <StatusBadge 
+                  current={dashboardData.current_net_sales || 0} 
+                  target={monthTarget?.net_sales_target || 0} 
+                />
+                <StatusBadge 
+                  current={dashboardData.current_net_sales || 0} 
+                  target={monthTarget?.net_sales_target || 0} 
+                  stretch 
+                  className="-top-2 -right-20"
+                />
+                
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-white/60 text-sm font-medium uppercase tracking-wider">Net Sales</p>
+                    <h2 className="text-2xl font-bold text-white mt-1">Current Performance</h2>
               </div>
-              <div className="flex items-center gap-2 mb-3">
-                <DirhamIcon className="w-8 h-8 text-white/90" />
-                <p className="text-4xl font-black text-white drop-shadow-lg">
-                  {formatCurrency(dashboardData.current_net_sales || 0)}
-                </p>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+                    <TrendingUp className="w-5 h-5 text-blue-400" />
               </div>
-              <div className="w-full bg-white/10 rounded-full h-3 mb-3">
-                <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_net_sales_percentage || 0)} h-3 rounded-full transition-all duration-500 shadow-lg`}
-                  style={{ width: `${Math.min(dashboardData.current_net_sales_percentage || 0, 100)}%` }}
-                ></div>
-              </div>
-              <p className="text-sm font-bold text-white">
-                {formatPercentage(dashboardData.current_net_sales_percentage)}
-              </p>
             </div>
 
-            {/* Estimated Sales Month End */}
-            <div className="relative rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Est. Month End</p>
-                <TrendingUp className="w-5 h-5 text-white/60" />
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <MetricCard
+                    label="Current"
+                    value={dashboardData.current_net_sales || 0}
+                    percentage={dashboardData.current_net_sales_percentage || 0}
+                    format="currency"
+                    variant={getStatusVariant(dashboardData.current_net_sales_percentage || 0)}
+                  />
+                  <MetricCard
+                    label="Est. Month End"
+                    value={dashboardData.estimated_net_sales || 0}
+                    percentage={dashboardData.estimated_net_sales_percentage || 0}
+                    format="currency"
+                    variant={getStatusVariant(dashboardData.estimated_net_sales_percentage || 0)}
+                  />
+                  <MetricCard
+                    label="Daily Average"
+                    value={dashboardData.current_daily_average || 0}
+                    format="currency"
+                    variant="neutral"
+                  />
+                  <MetricCard
+                    label="Target 112%"
+                    value={monthTarget?.net_sales_112_percent || 0}
+                    format="currency"
+                    variant="premium"
+                    icon={<Zap className="w-4 h-4" />}
+                  />
               </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
-                  {formatCurrency(dashboardData.estimated_net_sales || 0)}
-                </p>
-              </div>
-              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
-                <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_net_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
-                  style={{ width: `${Math.min(dashboardData.estimated_net_sales_percentage || 0, 100)}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-white/50">
-                {formatPercentage(dashboardData.estimated_net_sales_percentage)}
-              </p>
             </div>
 
-            {/* Daily Average */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Daily Average</p>
+              {/* Labour Sales - Hero Card */}
+              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-white/60 text-sm font-medium uppercase tracking-wider">Labour Sales</p>
+                    <h2 className="text-2xl font-bold text-white mt-1">Team Performance</h2>
               </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
-                  {formatCurrency(dashboardData.current_daily_average || 0)}
-                </p>
+                  <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+                    <Users className="w-5 h-5 text-green-400" />
               </div>
-              <p className="text-xs text-white/40">Daily pace</p>
             </div>
 
-            {/* Net Sales Target - 100% */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Target - 100%</p>
-                <Target className="w-5 h-5 text-white/60" />
+                <div className="space-y-4">
+                  <MetricCard
+                    label="Current Labour"
+                    value={dashboardData.current_net_labor_sales || 0}
+                    percentage={dashboardData.current_labour_sales_percentage || 0}
+                    format="currency"
+                    variant={getStatusVariant(dashboardData.current_labour_sales_percentage || 0)}
+                    compact
+                  />
+                  <MetricCard
+                    label="Est. Labour End"
+                    value={dashboardData.estimated_labor_sales || 0}
+                    percentage={dashboardData.estimated_labor_sales_percentage || 0}
+                    format="currency"
+                    variant={getStatusVariant(dashboardData.estimated_labor_sales_percentage || 0)}
+                    compact
+                  />
               </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
-                  {monthTarget ? formatCurrency(monthTarget.net_sales_target) : 'N/A'}
-                </p>
               </div>
-              <p className="text-xs text-white/40">
-                {(dashboardData.current_net_sales || 0) >= (monthTarget?.net_sales_target || 0) 
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget?.net_sales_target || 0))}`
-                  : `Remaining: ${formatCurrency((monthTarget?.net_sales_target || 0) - (dashboardData.current_net_sales || 0))}`
-                }
-              </p>
             </div>
 
-            {/* Net Sales Target - 112% - GOLD ACCENT */}
-            <div className="relative rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur p-4 border-2 border-amber-500/50 shadow-lg">
-              {/* Stretch Goal Badge */}
-              {monthTarget && getStatusBadge(dashboardData.current_net_sales || 0, monthTarget.net_sales_target, true)}
-              
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-bold text-amber-200">Target - 112% ⚡</p>
-                <Target className="w-5 h-5 text-amber-300" />
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-amber-200" />
-                <p className="text-3xl font-bold text-amber-100">
-                  {monthTarget ? formatCurrency(monthTarget.net_sales_112_percent) : 'N/A'}
-                </p>
-              </div>
-              <p className={`text-xs font-semibold ${
-                monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
-                  ? 'text-emerald-300'
-                  : 'text-amber-300/70'
-              }`}>
-                {monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
-                  ? `✓ Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget.net_sales_112_percent || 0))}`
-                  : monthTarget ? `Remaining: ${formatCurrency((monthTarget.net_sales_112_percent || 0) - (dashboardData.current_net_sales || 0))}` : 'N/A'
-                }
-              </p>
-            </div>
-          </div>
-
-          {/* Labour Sales Metrics Row */}
-          <div className="grid grid-cols-5 gap-4">
-            {/* Current Labour Sales */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Current Labour</p>
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
-                  {formatCurrency(dashboardData.current_net_labor_sales || 0)}
-                </p>
-              </div>
-              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
-                <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_labour_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
-                  style={{ width: `${Math.min(dashboardData.current_labour_sales_percentage || 0, 100)}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-white/50">
-                {formatPercentage(dashboardData.current_labour_sales_percentage)}
-              </p>
-            </div>
-
-            {/* Estimated Labour Sales Month End */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Est. Labour End</p>
-                <TrendingUp className="w-5 h-5 text-white/60" />
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
-                  {formatCurrency(dashboardData.estimated_labor_sales || 0)}
-                </p>
-              </div>
-              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
-                <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_labor_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
-                  style={{ width: `${Math.min(dashboardData.estimated_labor_sales_percentage || 0, 100)}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-white/50">
-                {formatPercentage(dashboardData.estimated_labor_sales_percentage)}
-              </p>
-            </div>
-
-            {/* Daily Average */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Daily Average</p>
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
-                  {formatCurrency((dashboardData.working_days_elapsed || 0) > 0 
-                    ? (dashboardData.current_net_labor_sales || 0) / (dashboardData.working_days_elapsed || 1)
-                    : 0)}
-                </p>
-              </div>
-              <p className="text-xs text-white/40">Daily pace</p>
-            </div>
-
-            {/* Labour Sales Target - 100% */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Target - 100%</p>
-                <Target className="w-5 h-5 text-white/60" />
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
-                  {monthTarget ? formatCurrency(monthTarget.labour_sales_target) : 'N/A'}
-                </p>
-              </div>
-              <p className="text-xs text-white/40">
-                {(dashboardData.current_net_labor_sales || 0) >= (monthTarget?.labour_sales_target || 0)
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_labor_sales || 0) - (monthTarget?.labour_sales_target || 0))}`
-                  : `Remaining: ${formatCurrency((monthTarget?.labour_sales_target || 0) - (dashboardData.current_net_labor_sales || 0))}`
-                }
-              </p>
-            </div>
-
-            {/* Labour Sales Target - 112% */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Target - 112%</p>
-                <Target className="w-5 h-5 text-white/60" />
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
-                  {monthTarget ? formatCurrency(monthTarget.labour_sales_target * 1.12) : 'N/A'}
-                </p>
-              </div>
-              <p className="text-xs text-white/40">
-                {monthTarget && (dashboardData.current_net_labor_sales || 0) >= ((monthTarget.labour_sales_target || 0) * 1.12)
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_labor_sales || 0) - ((monthTarget.labour_sales_target || 0) * 1.12))}`
-                  : monthTarget ? `Remaining: ${formatCurrency(((monthTarget.labour_sales_target || 0) * 1.12) - (dashboardData.current_net_labor_sales || 0))}` : 'N/A'
-                }
-              </p>
-            </div>
-          </div>
-
-          {/* Progress Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            {/* Net Sales Progress Chart */}
+            {/* Progress Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <NetSalesProgressChart 
               metrics={metrics.filter(m => {
                 const date = new Date(m.metric_date);
@@ -462,7 +371,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               target={monthTarget}
             />
 
-            {/* Labour Sales Progress Chart */}
             <LabourSalesProgressChart 
               metrics={metrics.filter(m => {
                 const date = new Date(m.metric_date);
@@ -476,9 +384,8 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             />
           </div>
 
-          {/* New Additional Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            {/* Target Achievement Forecast Chart */}
+            {/* Additional Insights Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TargetAchievementForecastChart 
               metrics={metrics.filter(m => {
                 const date = new Date(m.metric_date);
@@ -492,73 +399,52 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               selectedDate={selectedDate}
             />
 
-            {/* Labour vs Parts Breakdown Chart */}
             <LabourPartsBreakdownChart 
               dashboardData={dashboardData}
               target={monthTarget}
             />
           </div>
 
-          {/* Charts and Additional Metrics Row */}
-          <div className="grid gap-4 lg:grid-cols-2 mb-4">
-            {/* Left column - 4 cards grid */}
-            <div className="grid gap-3 grid-cols-2 auto-rows-fr">
-              {/* Marketing Spend % */}
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-medium text-white/70">Marketing %</p>
-                  <DirhamIcon className="w-5 h-5 text-white/60" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-white mb-2">{formatPercentage(marketingSpendPercentage)}</p>
-                  <p className="text-xs text-white/40">Of sales</p>
-                </div>
+            {/* KPI Grid & Performance */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* KPI Cards */}
+              <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+                <KPICard
+                  icon={<FileText className="w-5 h-5" />}
+                  label="Marketing Spend %"
+                  value={marketingSpendPercentage}
+                  format="percentage"
+                  description="Of total sales"
+                  variant="neutral"
+                />
+                <KPICard
+                  icon={<FileText className="w-5 h-5" />}
+                  label="Avg Invoice Value"
+                  value={averageInvoiceValue}
+                  format="currency"
+                  description="Per invoice"
+                  variant="neutral"
+                />
+                <KPICard
+                  icon={<FileText className="w-5 h-5" />}
+                  label="Total Marketing"
+                  value={dashboardData.current_marketing_spend || 0}
+                  format="currency"
+                  description="This month"
+                  variant="neutral"
+                />
+                <KPICard
+                  icon={<FileText className="w-5 h-5" />}
+                  label="Total Invoices"
+                  value={monthlyInvoiceSum}
+                  format="number"
+                  description="This month"
+                  variant="neutral"
+                />
               </div>
 
-              {/* Average Invoice Value */}
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-medium text-white/70">Avg Invoice</p>
-                  <FileText className="w-5 h-5 text-white/60" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <DirhamIcon className="w-6 h-6 text-white/80" />
-                    <p className="text-3xl font-bold text-white">{formatCurrency(averageInvoiceValue)}</p>
-                  </div>
-                  <p className="text-xs text-white/40">Per invoice</p>
-                </div>
-              </div>
-
-              {/* Marketing Spend */}
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-medium text-white/70">Marketing</p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <DirhamIcon className="w-6 h-6 text-white/80" />
-                    <p className="text-3xl font-bold text-white">{formatCurrency(dashboardData.current_marketing_spend || 0)}</p>
-                  </div>
-                  <p className="text-xs text-white/40">Total spend</p>
-                </div>
-              </div>
-
-              {/* Number of Invoices */}
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-medium text-white/70">Invoices</p>
-                  <FileText className="w-5 h-5 text-white/60" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-white mb-2">{monthlyInvoiceSum}</p>
-                  <p className="text-xs text-white/40">This month</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right column: Vehicle Throughput */}
-            <div className="rounded-lg bg-black/40 backdrop-blur-xl border border-white/10 p-6">
+              {/* Vehicle Throughput */}
+              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Vehicle Throughput</h3>
               <div className="flex items-center justify-center">
                 <VehicleThroughputGauge value={vehicleThroughput} />
@@ -566,10 +452,13 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
           </div>
 
-          {/* Individual Salesperson Performance */}
-          <div className="rounded-lg bg-black/40 backdrop-blur-xl border border-white/10 p-6">
-            <h3 className="text-lg font-semibold text-white mb-6">Individual Performance</h3>
-            <div className="grid grid-cols-3 gap-4">
+            {/* Sales Team Performance */}
+            <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-white">Team Performance</h3>
+                <Users className="w-5 h-5 text-white/60" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <SalespersonCard 
                 name="DANIEL" 
                 amount={dashboardData.daniel_total_sales || 0}
@@ -628,21 +517,160 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }
 
+/* ---------------- Enhanced Metric Card Component ---------------- */
+const MetricCard: React.FC<{
+  label: string;
+  value: number;
+  percentage?: number;
+  format: 'currency' | 'percentage' | 'number';
+  variant: 'success' | 'warning' | 'caution' | 'critical' | 'neutral' | 'premium';
+  compact?: boolean;
+  icon?: React.ReactNode;
+}> = ({ label, value, percentage, format, variant, compact = false, icon }) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
 
-/* ---------------- Vehicle Throughput Gauge ---------------- */
+  const formatPercentage = (value: number) => {
+    return `${value.toFixed(1)}%`;
+  };
+
+  const variantStyles = {
+    success: 'from-emerald-500/10 to-emerald-600/5 border-emerald-500/20',
+    warning: 'from-amber-500/10 to-amber-600/5 border-amber-500/20',
+    caution: 'from-orange-500/10 to-orange-600/5 border-orange-500/20',
+    critical: 'from-rose-500/10 to-rose-600/5 border-rose-500/20',
+    neutral: 'from-slate-500/10 to-slate-600/5 border-slate-500/20',
+    premium: 'from-amber-500/10 to-yellow-500/5 border-amber-500/30'
+  };
+
+  const textColors = {
+    success: 'text-emerald-400',
+    warning: 'text-amber-400',
+    caution: 'text-orange-400',
+    critical: 'text-rose-400',
+    neutral: 'text-slate-300',
+    premium: 'text-amber-300'
+  };
+
+  return (
+    <div className={`relative bg-gradient-to-br ${variantStyles[variant]} backdrop-blur-sm rounded-xl border p-4 transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+      compact ? 'h-24' : 'h-32'
+    }`}>
+      <div className="flex items-start justify-between mb-2">
+        <p className="text-white/60 text-sm font-medium">{label}</p>
+        {icon && (
+          <div className="text-white/60">
+            {icon}
+          </div>
+        )}
+      </div>
+      
+      <div className="flex items-center gap-2 mb-2">
+        {format === 'currency' && <DirhamIcon className="w-5 h-5 text-white/80" />}
+        <p className={`text-2xl font-bold ${textColors[variant]}`}>
+          {format === 'currency' ? formatCurrency(value) : 
+           format === 'percentage' ? formatPercentage(value) : 
+           value.toLocaleString()}
+        </p>
+      </div>
+      
+      {percentage !== undefined && (
+        <div className="space-y-2">
+          <div className="w-full bg-white/10 rounded-full h-2">
+            <div 
+              className={`bg-gradient-to-r h-2 rounded-full transition-all duration-1000 ease-out ${
+                variant === 'success' ? 'from-emerald-400 to-emerald-500' :
+                variant === 'warning' ? 'from-amber-400 to-amber-500' :
+                variant === 'caution' ? 'from-orange-400 to-orange-500' :
+                variant === 'premium' ? 'from-amber-400 to-yellow-400' :
+                'from-rose-400 to-rose-500'
+              }`}
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-white/60 font-medium">
+            {formatPercentage(percentage)}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ---------------- Enhanced KPI Card Component ---------------- */
+const KPICard: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  format: 'currency' | 'percentage' | 'number';
+  description: string;
+  variant: 'success' | 'warning' | 'caution' | 'critical' | 'neutral';
+}> = ({ icon, label, value, format, description, variant }) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const textColors = {
+    success: 'text-emerald-400',
+    warning: 'text-amber-400',
+    caution: 'text-orange-400',
+    critical: 'text-rose-400',
+    neutral: 'text-slate-300'
+  };
+    
+    return (
+    <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4 transition-all duration-300 hover:bg-white/10">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+          {icon}
+        </div>
+        <div>
+          <p className="text-white/60 text-sm font-medium">{label}</p>
+        </div>
+          </div>
+          
+      <div className="flex items-center gap-2 mb-1">
+        {format === 'currency' && <DirhamIcon className="w-5 h-5 text-white/80" />}
+        <p className={`text-2xl font-bold ${textColors[variant]}`}>
+          {format === 'currency' ? formatCurrency(value) : 
+           format === 'percentage' ? `${value.toFixed(1)}%` : 
+           value.toLocaleString()}
+        </p>
+          </div>
+          
+      <p className="text-xs text-white/40">{description}</p>
+      </div>
+    );
+  };
+
+/* ---------------- Enhanced Vehicle Throughput Gauge ---------------- */
 const VehicleThroughputGauge: React.FC<{ value: number }> = ({ value }) => {
   const safeValue = value || 0;
   const maxValue = 15;
   const normalizedValue = Math.min(safeValue, maxValue);
   const percentage = (normalizedValue / maxValue) * 100;
 
+  const getGradientColor = (percent: number) => {
+    if (percent >= 80) return 'from-emerald-400 to-green-500';
+    if (percent >= 60) return 'from-amber-400 to-amber-500';
+    if (percent >= 40) return 'from-orange-400 to-orange-500';
+    return 'from-rose-400 to-rose-500';
+  };
+
   return (
     <div className="relative w-48 h-48">
-      {/* Background arc */}
       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 200 200">
         <circle
           cx="100"
@@ -650,7 +678,7 @@ const VehicleThroughputGauge: React.FC<{ value: number }> = ({ value }) => {
           r="80"
           fill="none"
           stroke="#374151"
-          strokeWidth="20"
+          strokeWidth="16"
           strokeDasharray="376.99"
           strokeDashoffset="125.66"
         />
@@ -659,38 +687,116 @@ const VehicleThroughputGauge: React.FC<{ value: number }> = ({ value }) => {
           cy="100"
           r="80"
           fill="none"
-          stroke="url(#silverGradient)"
-          strokeWidth="20"
+          stroke={`url(#throughputGradient)`}
+          strokeWidth="16"
           strokeDasharray="376.99"
           strokeDashoffset={125.66 + (251.33 * (1 - percentage / 100))}
           strokeLinecap="round"
           className="transition-all duration-1000 ease-out"
         />
-        <defs>
-          <linearGradient id="silverGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity={0.8} />
-            <stop offset="50%" stopColor="#d1d5db" stopOpacity={0.6} />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity={0.8} />
-          </linearGradient>
-        </defs>
+          <defs>
+          <linearGradient id="throughputGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity={0.9} />
+            <stop offset="50%" stopColor="#d1d5db" stopOpacity={0.7} />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity={0.9} />
+            </linearGradient>
+          </defs>
       </svg>
       
-      {/* Center value */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <p className="text-4xl font-bold text-white">{safeValue.toFixed(2)}</p>
-        <p className="text-xs text-white/60 mt-1">invoices/day</p>
-      </div>
-      
-      {/* Scale markers */}
-      <div className="absolute bottom-0 left-0 right-0 flex justify-between px-4 text-xs text-white/40">
-        <span>1.00</span>
-        <span>15.00</span>
+        <p className="text-4xl font-bold text-white">{safeValue.toFixed(1)}</p>
+        <p className="text-sm text-white/60 mt-1">invoices/day</p>
+        <div className={`w-16 h-1.5 mt-2 bg-gradient-to-r ${getGradientColor(percentage)} rounded-full`} />
       </div>
     </div>
   );
 };
 
-/* ---------------- Net Sales Progress Chart ---------------- */
+/* ---------------- Enhanced Salesperson Card ---------------- */
+const SalespersonCard: React.FC<{ 
+  name: string; 
+  amount: number; 
+  totalSales: number;
+  rank: number;
+}> = ({ name, amount, totalSales, rank }) => {
+  const percentage = totalSales > 0 ? (amount / totalSales) * 100 : 0;
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const getRankStyles = (rank: number) => {
+    switch(rank) {
+      case 1:
+        return {
+          badge: 'from-yellow-400 to-amber-500 border-yellow-400/50 shadow-lg shadow-yellow-500/25',
+          text: 'text-yellow-100',
+          glow: 'shadow-2xl shadow-yellow-500/20'
+        };
+      case 2:
+        return {
+          badge: 'from-gray-400 to-gray-500 border-gray-400/50 shadow-lg shadow-gray-500/25',
+          text: 'text-gray-100',
+          glow: 'shadow-xl shadow-gray-500/15'
+        };
+      case 3:
+        return {
+          badge: 'from-amber-700 to-amber-800 border-amber-600/50 shadow-lg shadow-amber-700/25',
+          text: 'text-amber-100',
+          glow: 'shadow-lg shadow-amber-700/10'
+        };
+      default:
+        return {
+          badge: 'from-slate-600 to-slate-700 border-slate-500/50',
+          text: 'text-slate-100',
+          glow: ''
+        };
+    }
+  };
+
+  const rankStyles = getRankStyles(rank);
+
+  return (
+    <div className={`relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 transition-all duration-300 hover:scale-105 ${rankStyles.glow}`}>
+      {/* Rank Badge */}
+      <div className={`absolute -top-3 -right-3 w-12 h-12 rounded-full bg-gradient-to-br ${rankStyles.badge} border-2 flex items-center justify-center shadow-lg backdrop-blur-sm`}>
+        <span className={`text-sm font-black ${rankStyles.text}`}>{rank}º</span>
+      </div>
+      
+      <div className="text-center mb-6">
+        <h4 className="text-xl font-black text-white uppercase tracking-wider">{name}</h4>
+        <div className="h-1 w-16 mx-auto mt-3 bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-full"></div>
+      </div>
+
+      <div className="text-center mb-6">
+        <p className="text-xs text-white/50 uppercase tracking-wider mb-2">Total Sales</p>
+        <div className="flex items-center justify-center gap-2">
+          <DirhamIcon className="w-6 h-6 text-white/80" />
+          <p className="text-3xl font-black text-white">{formatCurrency(amount)}</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
+          <div 
+            className="bg-gradient-to-r from-white/90 to-white/70 h-3 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-white/20"
+            style={{ width: `${percentage}%` }}
+          />
+      </div>
+
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-white/50">Share of total</span>
+          <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+            <span className="text-sm font-bold text-white/90">{percentage.toFixed(1)}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 const NetSalesProgressChart: React.FC<{ 
   metrics: DailyServiceMetrics[]; 
   target: ServiceMonthlyTarget | null;

@@ -259,7 +259,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Estimated Sales Month End */}
-            <div className="relative rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner hover:scale-105 transform transition-transform duration-200 cursor-pointer hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+            <div className="relative rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Est. Month End</p>
                 <TrendingUp className="w-5 h-5 text-white/60" />
@@ -282,7 +282,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Daily Average */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Daily Average</p>
               </div>
@@ -296,7 +296,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Net Sales Target - 100% */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Target - 100%</p>
                 <Target className="w-5 h-5 text-white/60" />
@@ -345,30 +345,33 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
           {/* Labour Sales Metrics Row */}
           <div className="grid grid-cols-5 gap-4">
-            {/* Current Labour Sales */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner hover:scale-105 transform transition-transform duration-200 cursor-pointer">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Current Labour</p>
+            {/* Current Labour Sales - HERO CARD */}
+            <div className="relative rounded-xl bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-xl p-6 border-2 border-white/30 shadow-2xl" style={{ boxShadow: '0 0 40px rgba(255,255,255,0.1)' }}>
+              {/* Status Badge */}
+              {monthTarget && getStatusBadge(dashboardData.current_net_labor_sales || 0, monthTarget.labour_sales_target)}
+              
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-base font-bold text-white uppercase tracking-wide">Current Labour Sales</p>
               </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
+              <div className="flex items-center gap-2 mb-3">
+                <DirhamIcon className="w-8 h-8 text-white/90" />
+                <p className="text-4xl font-black text-white drop-shadow-lg">
                   {formatCurrency(dashboardData.current_net_labor_sales || 0)}
                 </p>
               </div>
-              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+              <div className="w-full bg-white/10 rounded-full h-3 mb-3">
                 <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_labour_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_labour_sales_percentage || 0)} h-3 rounded-full transition-all duration-500 shadow-lg`}
                   style={{ width: `${Math.min(dashboardData.current_labour_sales_percentage || 0, 100)}%` }}
                 ></div>
               </div>
-              <p className="text-xs text-white/50">
+              <p className="text-sm font-bold text-white">
                 {formatPercentage(dashboardData.current_labour_sales_percentage)}
               </p>
             </div>
 
             {/* Estimated Labour Sales Month End */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Est. Labour End</p>
                 <TrendingUp className="w-5 h-5 text-white/60" />
@@ -379,9 +382,9 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   {formatCurrency(dashboardData.estimated_labor_sales || 0)}
                 </p>
               </div>
-              <div className="w-full bg-white/10 rounded-full h-3 mb-2">
+              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_labor_sales_percentage || 0)} h-3 rounded-full transition-all duration-500 shadow-md`}
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_labor_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
                   style={{ width: `${Math.min(dashboardData.estimated_labor_sales_percentage || 0, 100)}%` }}
                 ></div>
               </div>
@@ -391,7 +394,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Daily Average */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Daily Average</p>
               </div>
@@ -407,7 +410,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Labour Sales Target - 100% */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Target - 100%</p>
                 <Target className="w-5 h-5 text-white/60" />
@@ -426,21 +429,28 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </p>
             </div>
 
-            {/* Labour Sales Target - 112% */}
-            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+            {/* Labour Sales Target - 112% - GOLD ACCENT */}
+            <div className="relative rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur p-4 border-2 border-amber-500/50 shadow-lg">
+              {/* Stretch Goal Badge */}
+              {monthTarget && getStatusBadge(dashboardData.current_net_labor_sales || 0, monthTarget.labour_sales_target, true)}
+              
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Target - 112%</p>
-                <Target className="w-5 h-5 text-white/60" />
+                <p className="text-sm font-bold text-amber-200">Target - 112% ⚡</p>
+                <Target className="w-5 h-5 text-amber-300" />
               </div>
               <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
+                <DirhamIcon className="w-6 h-6 text-amber-200" />
+                <p className="text-3xl font-bold text-amber-100">
                   {monthTarget ? formatCurrency(monthTarget.labour_sales_target * 1.12) : 'N/A'}
                 </p>
               </div>
-              <p className="text-xs text-white/40">
+              <p className={`text-xs font-semibold ${
+                monthTarget && (dashboardData.current_net_labor_sales || 0) >= ((monthTarget.labour_sales_target || 0) * 1.12)
+                  ? 'text-emerald-300'
+                  : 'text-amber-300/70'
+              }`}>
                 {monthTarget && (dashboardData.current_net_labor_sales || 0) >= ((monthTarget.labour_sales_target || 0) * 1.12)
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_labor_sales || 0) - ((monthTarget.labour_sales_target || 0) * 1.12))}`
+                  ? `✓ Exceeded by: ${formatCurrency((dashboardData.current_net_labor_sales || 0) - ((monthTarget.labour_sales_target || 0) * 1.12))}`
                   : monthTarget ? `Remaining: ${formatCurrency(((monthTarget.labour_sales_target || 0) * 1.12) - (dashboardData.current_net_labor_sales || 0))}` : 'N/A'
                 }
               </p>
@@ -448,7 +458,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           </div>
 
           {/* Progress Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             {/* Net Sales Progress Chart */}
             <NetSalesProgressChart 
               metrics={metrics.filter(m => {
@@ -477,7 +487,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           </div>
 
           {/* New Additional Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             {/* Target Achievement Forecast Chart */}
             <TargetAchievementForecastChart 
               metrics={metrics.filter(m => {
@@ -504,7 +514,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             {/* Left column - 4 cards grid */}
             <div className="grid gap-3 grid-cols-2 auto-rows-fr">
               {/* Marketing Spend % */}
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-medium text-white/70">Marketing %</p>
                   <DirhamIcon className="w-5 h-5 text-white/60" />
@@ -516,7 +526,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </div>
 
               {/* Average Invoice Value */}
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-medium text-white/70">Avg Invoice</p>
                   <FileText className="w-5 h-5 text-white/60" />
@@ -531,7 +541,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </div>
 
               {/* Marketing Spend */}
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-medium text-white/70">Marketing</p>
                 </div>
@@ -545,7 +555,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </div>
 
               {/* Number of Invoices */}
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between hover:scale-105 transform transition-transform duration-200 cursor-pointer">
+              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-medium text-white/70">Invoices</p>
                   <FileText className="w-5 h-5 text-white/60" />
@@ -976,7 +986,7 @@ const NetSalesProgressChart: React.FC<{
             dot={{ fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#065f46' }}
             activeDot={{ r: 6, strokeWidth: 3 }}
             name="Current Net Sales"
-            animationDuration={1000}
+            animationDuration={1500}
           />
           <Line 
             type="monotone"
@@ -1262,7 +1272,7 @@ const LabourSalesProgressChart: React.FC<{
             dot={{ fill: getLineColor(), r: 4, strokeWidth: 2 }}
             activeDot={{ r: 6, strokeWidth: 3 }}
             name="Current Daily Average"
-            animationDuration={1000}
+            animationDuration={1500}
           />
           <Line 
             type="monotone"
@@ -1503,10 +1513,10 @@ const TargetAchievementForecastChart: React.FC<{
 
   return (
     <div className="rounded-xl bg-black backdrop-blur-xl border border-white/20 shadow-2xl p-6">
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-white mb-2">Target Achievement Forecast</h3>
+            <h3 className="text-base font-bold text-white mb-1">Target Achievement Forecast</h3>
             <p className="text-xs text-gray-400">Projected vs target trajectory</p>
           </div>
           {forecastStats.will100 !== undefined && (
@@ -1518,30 +1528,6 @@ const TargetAchievementForecastChart: React.FC<{
               {forecastStats.will112 ? '🎯 112% Track' : forecastStats.will100 ? '✓ 100% Track' : '⚠ Below Target'}
             </div>
           )}
-        </div>
-      </div>
-      
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-5 mb-6 flex-wrap">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-emerald-500/30">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-          <span className="text-xs font-medium text-emerald-300">Actual</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-indigo-500/30">
-          <div className="w-2.5 h-2.5 rounded-full bg-indigo-500"></div>
-          <span className="text-xs font-medium text-indigo-300">Projected</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-cyan-500/30">
-          <div className="w-2.5 h-2.5 rounded-full bg-cyan-500"></div>
-          <span className="text-xs font-medium text-cyan-300">Marketing Forecast</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/20">
-          <div className="w-2.5 h-2.5 rounded-full bg-white opacity-50"></div>
-          <span className="text-xs font-medium text-gray-300">100% Target</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-amber-500/30">
-          <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-          <span className="text-xs font-medium text-amber-300">112% Target</span>
         </div>
       </div>
       
@@ -1652,10 +1638,10 @@ const TargetAchievementForecastChart: React.FC<{
           <Line 
             type="monotone"
             dataKey="marketingMagic" 
-            stroke="#06b6d4" 
+            stroke="#fbbf24" 
             strokeWidth={4}
             strokeDasharray="5 3"
-            dot={{ fill: '#06b6d4', r: 4, strokeWidth: 2, stroke: '#0891b2' }}
+            dot={{ fill: '#fbbf24', r: 4, strokeWidth: 2, stroke: '#f59e0b' }}
             name="Marketing Forecast"
           />
         </ComposedChart>
@@ -1664,17 +1650,17 @@ const TargetAchievementForecastChart: React.FC<{
       {/* Forecast Stats */}
       <div className="mt-4 space-y-3">
         {/* Marketing Forecast Row */}
-        <div className="flex items-center justify-between p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg shadow-lg shadow-cyan-500/20">
+        <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
           <div className="flex items-center gap-2">
             <span className="text-xl">✨</span>
             <div>
-              <p className="text-xs font-semibold text-cyan-400">Marketing Forecast</p>
+              <p className="text-xs font-semibold text-amber-400">Marketing Forecast</p>
             </div>
           </div>
           <div className={`flex items-center gap-1 text-lg font-bold ${
             forecastStats.magicWill112 ? 'text-emerald-400' : 
             forecastStats.magicWill100 ? 'text-amber-400' : 
-            'text-cyan-400'
+            'text-amber-400'
           }`}>
             <DirhamIcon className="w-4 h-4" />
             <span>{formatCurrency(forecastStats.marketingMagicFinish || 0)}</span>
@@ -1704,7 +1690,7 @@ const TargetAchievementForecastChart: React.FC<{
           </div>
           <div className="text-center">
             <p className="text-xs text-gray-400 mb-1">Marketing Gap to 112%</p>
-            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.magicGap112 >= 0 ? 'text-emerald-400' : 'text-cyan-400'}`}>
+            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.magicGap112 >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
               <span>{forecastStats.magicGap112 >= 0 ? '+' : ''}</span>
               <DirhamIcon className="w-3 h-3" />
               <span>{formatCurrency(Math.abs(forecastStats.magicGap112 || 0))}</span>
@@ -1762,8 +1748,8 @@ const LabourPartsBreakdownChart: React.FC<{
 
   return (
     <div className="rounded-xl bg-black backdrop-blur-xl border border-white/20 shadow-2xl p-6">
-      <div className="mb-6">
-        <h3 className="text-base font-bold text-white mb-2">Revenue Mix</h3>
+      <div className="mb-4">
+        <h3 className="text-base font-bold text-white mb-1">Revenue Mix</h3>
         <p className="text-xs text-gray-400">Labour vs Parts sales breakdown</p>
       </div>
       

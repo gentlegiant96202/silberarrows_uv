@@ -694,13 +694,13 @@ const VehicleThroughputGauge: React.FC<{ value: number }> = ({ value }) => {
           strokeLinecap="round"
           className="transition-all duration-1000 ease-out"
         />
-          <defs>
+        <defs>
           <linearGradient id="throughputGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#ffffff" stopOpacity={0.9} />
             <stop offset="50%" stopColor="#d1d5db" stopOpacity={0.7} />
             <stop offset="100%" stopColor="#ffffff" stopOpacity={0.9} />
-            </linearGradient>
-          </defs>
+          </linearGradient>
+        </defs>
       </svg>
       
       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -1386,96 +1386,6 @@ const LabourSalesProgressChart: React.FC<{
   );
 };
 
-/* ---------------- Salesperson Performance Card ---------------- */
-const SalespersonCard: React.FC<{ 
-  name: string; 
-  amount: number; 
-  totalSales: number;
-  rank: number;
-}> = ({ name, amount, totalSales, rank }) => {
-  const percentage = totalSales > 0 ? (amount / totalSales) * 100 : 0;
-  
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-AE', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
-  const formatCompact = (amount: number) => {
-    if (amount >= 1000000) {
-      return `${(amount / 1000000).toFixed(1)}M`;
-    } else if (amount >= 1000) {
-      return `${(amount / 1000).toFixed(0)}K`;
-    }
-    return amount.toString();
-  };
-
-  const getRankBadge = (rank: number) => {
-    switch(rank) {
-      case 1:
-        return (
-          <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-white to-gray-300 border-2 border-white/20 flex items-center justify-center shadow-lg">
-            <span className="text-xs font-black text-gray-900">1st</span>
-          </div>
-        );
-      case 2:
-        return (
-          <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 border-2 border-white/20 flex items-center justify-center shadow-lg">
-            <span className="text-xs font-black text-gray-900">2nd</span>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 border-2 border-white/20 flex items-center justify-center shadow-lg">
-            <span className="text-xs font-black text-white">3rd</span>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className={`relative rounded-xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border ${
-      rank === 1 ? 'border-white/30 shadow-xl shadow-white/10' : 'border-white/10'
-    } p-5 transition-all duration-300 hover:scale-105 hover:shadow-2xl`}>
-      {getRankBadge(rank)}
-      
-      {/* Name */}
-      <div className="text-center mb-4">
-        <h4 className="text-lg font-black text-white uppercase tracking-wider">{name}</h4>
-        <div className="h-0.5 w-12 mx-auto mt-2 bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
-      </div>
-
-      {/* Total Sales Amount */}
-      <div className="text-center mb-4">
-        <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Sales</p>
-        <p className="text-2xl font-black text-white">{formatCompact(amount)}</p>
-        <p className="text-xs text-white/40 mt-1">{formatCurrency(amount)}</p>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="mb-4">
-        <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
-          <div 
-            className="bg-gradient-to-r from-white/90 to-white/70 h-2.5 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-white/20"
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Percentage of Total */}
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-          <span className="text-xs font-bold text-white/90">{percentage.toFixed(1)}%</span>
-          <span className="text-xs text-white/50 ml-1.5">of total</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 /* ---------------- Target Achievement Forecast Chart ---------------- */
 const TargetAchievementForecastChart: React.FC<{ 
   metrics: DailyServiceMetrics[];
@@ -1746,30 +1656,30 @@ const TargetAchievementForecastChart: React.FC<{
         
         {/* Standard Stats Grid */}
         <div className="grid grid-cols-3 gap-4 border-t border-white/10 pt-3">
-          <div className="text-center">
-            <p className="text-xs text-gray-400 mb-1">Projected Finish</p>
-            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${
-              forecastStats.will112 ? 'text-emerald-400' : 
-              forecastStats.will100 ? 'text-amber-400' : 
-              'text-red-400'
-            }`}>
-              <DirhamIcon className="w-3 h-3" />
-              <span>{formatCurrency(forecastStats.projectedFinish || 0)}</span>
-            </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Projected Finish</p>
+          <div className={`flex items-center justify-center gap-1 text-sm font-bold ${
+            forecastStats.will112 ? 'text-emerald-400' : 
+            forecastStats.will100 ? 'text-amber-400' : 
+            'text-red-400'
+          }`}>
+            <DirhamIcon className="w-3 h-3" />
+            <span>{formatCurrency(forecastStats.projectedFinish || 0)}</span>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-400 mb-1">Gap to 100%</p>
-            <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.gap100 >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              <span>{forecastStats.gap100 >= 0 ? '+' : ''}</span>
-              <DirhamIcon className="w-3 h-3" />
-              <span>{formatCurrency(Math.abs(forecastStats.gap100 || 0))}</span>
-            </div>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Gap to 100%</p>
+          <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.gap100 >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span>{forecastStats.gap100 >= 0 ? '+' : ''}</span>
+            <DirhamIcon className="w-3 h-3" />
+            <span>{formatCurrency(Math.abs(forecastStats.gap100 || 0))}</span>
           </div>
-          <div className="text-center">
+        </div>
+        <div className="text-center">
             <p className="text-xs text-gray-400 mb-1">Magic Gap to 112%</p>
             <div className={`flex items-center justify-center gap-1 text-sm font-bold ${forecastStats.magicGap112 >= 0 ? 'text-emerald-400' : 'text-purple-400'}`}>
               <span>{forecastStats.magicGap112 >= 0 ? '+' : ''}</span>
-              <DirhamIcon className="w-3 h-3" />
+            <DirhamIcon className="w-3 h-3" />
               <span>{formatCurrency(Math.abs(forecastStats.magicGap112 || 0))}</span>
             </div>
           </div>

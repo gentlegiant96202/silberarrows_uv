@@ -233,30 +233,33 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
         <>
           {/* Net Sales Metrics Row */}
           <div className="grid grid-cols-5 gap-4">
-            {/* Current Net Sales */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Current Net Sales</p>
+            {/* Current Net Sales - HERO CARD */}
+            <div className="relative rounded-xl bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-xl p-6 border-2 border-white/30 shadow-2xl" style={{ boxShadow: '0 0 40px rgba(255,255,255,0.1)' }}>
+              {/* Status Badge */}
+              {monthTarget && getStatusBadge(dashboardData.current_net_sales || 0, monthTarget.net_sales_target)}
+              
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-base font-bold text-white uppercase tracking-wide">Current Net Sales</p>
               </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
+              <div className="flex items-center gap-2 mb-3">
+                <DirhamIcon className="w-8 h-8 text-white/90" />
+                <p className="text-4xl font-black text-white drop-shadow-lg">
                   {formatCurrency(dashboardData.current_net_sales || 0)}
                 </p>
               </div>
-              <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+              <div className="w-full bg-white/10 rounded-full h-3 mb-3">
                 <div 
-                  className="bg-white h-2 rounded-full transition-all duration-500"
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_net_sales_percentage || 0)} h-3 rounded-full transition-all duration-500 shadow-lg`}
                   style={{ width: `${Math.min(dashboardData.current_net_sales_percentage || 0, 100)}%` }}
                 ></div>
               </div>
-              <p className="text-xs text-white/50">
+              <p className="text-sm font-bold text-white">
                 {formatPercentage(dashboardData.current_net_sales_percentage)}
               </p>
             </div>
 
             {/* Estimated Sales Month End */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+            <div className="relative rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Est. Month End</p>
                 <TrendingUp className="w-5 h-5 text-white/60" />
@@ -269,7 +272,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </div>
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
-                  className="bg-white h-2 rounded-full transition-all duration-500"
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_net_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
                   style={{ width: `${Math.min(dashboardData.estimated_net_sales_percentage || 0, 100)}%` }}
                 ></div>
               </div>
@@ -279,7 +282,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Daily Average */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Daily Average</p>
               </div>
@@ -293,7 +296,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Net Sales Target - 100% */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Target - 100%</p>
                 <Target className="w-5 h-5 text-white/60" />
@@ -312,21 +315,28 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </p>
             </div>
 
-            {/* Net Sales Target - 112% */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+            {/* Net Sales Target - 112% - GOLD ACCENT */}
+            <div className="relative rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur p-4 border-2 border-amber-500/50 shadow-lg">
+              {/* Stretch Goal Badge */}
+              {monthTarget && getStatusBadge(dashboardData.current_net_sales || 0, monthTarget.net_sales_target, true)}
+              
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-white/70">Target - 112%</p>
-                <Target className="w-5 h-5 text-white/60" />
+                <p className="text-sm font-bold text-amber-200">Target - 112% ⚡</p>
+                <Target className="w-5 h-5 text-amber-300" />
               </div>
               <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-white/80" />
-                <p className="text-3xl font-bold text-white">
+                <DirhamIcon className="w-6 h-6 text-amber-200" />
+                <p className="text-3xl font-bold text-amber-100">
                   {monthTarget ? formatCurrency(monthTarget.net_sales_112_percent) : 'N/A'}
                 </p>
               </div>
-              <p className="text-xs text-white/40">
+              <p className={`text-xs font-semibold ${
+                monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
+                  ? 'text-emerald-300'
+                  : 'text-amber-300/70'
+              }`}>
                 {monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget.net_sales_112_percent || 0))}`
+                  ? `✓ Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget.net_sales_112_percent || 0))}`
                   : monthTarget ? `Remaining: ${formatCurrency((monthTarget.net_sales_112_percent || 0) - (dashboardData.current_net_sales || 0))}` : 'N/A'
                 }
               </p>
@@ -336,7 +346,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           {/* Labour Sales Metrics Row */}
           <div className="grid grid-cols-5 gap-4">
             {/* Current Labour Sales */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Current Labour</p>
               </div>
@@ -348,7 +358,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </div>
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
-                  className="bg-white h-2 rounded-full transition-all duration-500"
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_labour_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
                   style={{ width: `${Math.min(dashboardData.current_labour_sales_percentage || 0, 100)}%` }}
                 ></div>
               </div>
@@ -358,7 +368,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Estimated Labour Sales Month End */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Est. Labour End</p>
                 <TrendingUp className="w-5 h-5 text-white/60" />
@@ -371,7 +381,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               </div>
               <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                 <div 
-                  className="bg-white h-2 rounded-full transition-all duration-500"
+                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_labor_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
                   style={{ width: `${Math.min(dashboardData.estimated_labor_sales_percentage || 0, 100)}%` }}
                 ></div>
               </div>
@@ -381,7 +391,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Daily Average */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Daily Average</p>
               </div>
@@ -397,7 +407,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Labour Sales Target - 100% */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Target - 100%</p>
                 <Target className="w-5 h-5 text-white/60" />
@@ -417,7 +427,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Labour Sales Target - 112% */}
-            <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+            <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-4 border border-white/10 shadow-inner">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-white/70">Target - 112%</p>
                 <Target className="w-5 h-5 text-white/60" />

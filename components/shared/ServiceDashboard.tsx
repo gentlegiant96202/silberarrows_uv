@@ -166,20 +166,21 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
   if (loading || isInitialLoad) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] p-8 space-y-6">
-        {/* Header Skeleton */}
-        <div className="flex items-center justify-between">
-          <div className="h-10 w-64 bg-[rgba(255,255,255,0.08)] rounded-xl animate-pulse"></div>
-          <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl px-6 py-3 flex items-center gap-5">
-            <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
-            <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
-            <div className="h-12 w-40 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
-            <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+      <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] p-5">
+        <div className="w-full flex flex-col gap-5">
+          {/* Header Skeleton - Matches actual header structure */}
+          <div className="flex items-center justify-between">
+            <div className="text-2xl font-bold text-[#C0C0C0]">Service Report</div>
+            <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl px-6 py-3 flex items-center gap-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+              <div className="h-12 w-24 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+              <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+              <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+              <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+            </div>
           </div>
-        </div>
 
-        {/* Main Grid Skeleton */}
-        <div className="grid grid-cols-6 auto-rows-auto gap-5">
+          {/* Main Grid Skeleton */}
+          <div className="grid grid-cols-6 auto-rows-auto gap-5">
           {/* Row 1: Net Sales Cards */}
           <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
             <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
@@ -302,6 +303,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <div className="h-[350px] w-full bg-[rgba(255,255,255,0.05)] rounded"></div>
           </div>
         </div>
+        </div>
       </div>
     );
   }
@@ -420,7 +422,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon progress={dashboardData.current_net_sales_percentage}><Wrench size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-7 h-7 mr-2" />
+                <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.current_net_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1 mb-2">
@@ -466,7 +468,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon progress={dashboardData.estimated_net_sales_percentage}><TrendingUp size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-7 h-7 mr-2" />
+                <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.estimated_net_sales || 0)}
               </CardValue>
               <div className="flex items-center gap-1 text-sm font-medium text-white">
@@ -480,7 +482,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon><CalendarDays size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-7 h-7 mr-2" />
+                <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.current_daily_average || 0)}
               </CardValue>
               <div className="flex items-center gap-1 text-sm font-medium text-white">
@@ -523,7 +525,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon progress={dashboardData.current_labour_sales_percentage}><Wrench size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-7 h-7 mr-2" />
+                <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.current_net_labor_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1 mb-2">
@@ -569,7 +571,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon progress={dashboardData.estimated_labor_sales_percentage}><TrendingUp size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-7 h-7 mr-2" />
+                <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.estimated_labor_sales || 0)}
               </CardValue>
               <div className="flex items-center gap-1 text-sm font-medium text-white">
@@ -583,7 +585,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon><CalendarDays size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-7 h-7 mr-2" />
+                <DirhamIcon className="w-5 h-5 mr-2" />
                 {formatCurrency((dashboardData.current_net_labor_sales || 0) / (dashboardData.working_days_elapsed || 1))}
               </CardValue>
               <div className="flex items-center gap-1 text-sm font-medium text-white">
@@ -643,7 +645,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon><TrendingUp size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-7 h-7 mr-2" />
+                <DirhamIcon className="w-5 h-5 mr-2" />
                 {formatCurrency(dashboardData.current_marketing_spend || 0)}
               </CardValue>
               <div className="flex items-center gap-1 text-sm font-medium text-white">
@@ -658,7 +660,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon><FileText size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <FileText className="w-7 h-7 mr-2" />
+                <FileText className="w-5 h-5 mr-2" />
                 {formatCurrency(averageInvoiceValue)}
               </CardValue>
               <div className="flex items-center gap-1 text-sm font-medium text-white">
@@ -796,18 +798,18 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 // Card Components
 function Card({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={`bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all duration-300 hover:translate-y-[-5px] hover:shadow-[0_8px_25px_rgba(0,0,0,0.3)] hover:border-[rgba(192,192,192,0.3)] hover:bg-[rgba(255,255,255,0.12)] ${className}`} style={style}>
+    <div className={`rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner ${className}`} style={style}>
       {children}
     </div>
   );
 }
 
 function CardHeader({ children }: { children: React.ReactNode }) {
-  return <div className="flex justify-between items-center mb-4">{children}</div>;
+  return <div className="flex justify-between items-center mb-3">{children}</div>;
 }
 
 function CardTitle({ children }: { children: React.ReactNode }) {
-  return <div className="text-base font-semibold text-[rgba(255,255,255,0.8)]">{children}</div>;
+  return <div className="text-sm font-medium text-white/70">{children}</div>;
 }
 
 function CardIcon({ children, progress }: { children: React.ReactNode; progress?: number }) {
@@ -856,7 +858,7 @@ function CardIcon({ children, progress }: { children: React.ReactNode; progress?
 }
 
 function CardValue({ children }: { children: React.ReactNode }) {
-  return <div className="text-[28px] font-bold mb-2.5 text-[#C0C0C0] flex items-center tabular-nums">{children}</div>;
+  return <div className="text-xl font-semibold mb-2 text-white flex items-center tabular-nums">{children}</div>;
 }
 
 function CardGrowth({ children, positive = true, percentage }: { children: React.ReactNode; positive?: boolean; percentage?: number }) {

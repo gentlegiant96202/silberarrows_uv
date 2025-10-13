@@ -545,12 +545,12 @@ export default function ServiceDataGrid({
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
+              e.preventDefault();
               saveRow(row.id);
             } else if (e.key === 'Escape') {
               cancelEdit(row.id);
             }
           }}
-          onBlur={() => saveRow(row.id)}
           className="w-full px-1 py-0.5 text-xs bg-gray-800 border border-gray-600 rounded focus:outline-none focus:border-blue-500 text-white"
         />
       );

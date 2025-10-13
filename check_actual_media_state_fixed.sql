@@ -145,3 +145,6 @@ If you have ~20 images per car and multiple cars, the 571 operations might repre
 This query will show us the REAL numbers and patterns!
 */
 
+
+
+

@@ -125,3 +125,6 @@ Was the 571 operations:
 The answer lies in finding the exact DELETE query and understanding its purpose.
 */
 
+
+
+

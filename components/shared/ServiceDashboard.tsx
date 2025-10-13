@@ -181,8 +181,8 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
         {/* Header with Title and Date Filters */}
         <div className="flex items-center justify-between">
           {/* Left-aligned Heading */}
-          <div className="text-2xl font-bold text-[#C0C0C0]">
-            Service Report
+            <div className="text-2xl font-bold text-[#C0C0C0]">
+              Service Report
           </div>
         
           {/* Date Filters Container */}
@@ -199,11 +199,36 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   <div className="flex flex-col">
                     <span className="text-xs text-[rgba(255,255,255,0.5)]">Days Remaining</span>
                     <span className="text-sm font-bold text-white">{daysRemaining} of {totalWorkingDays}</span>
-                  </div>
+        </div>
                 </div>
               );
             })()}
-            
+        
+            {/* Date Selector */}
+            <div className="relative">
+            <select
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+                className="appearance-none bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl pl-4 pr-10 py-2 text-[#E0E0E0] text-sm font-medium focus:outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-all disabled:opacity-50"
+              disabled={availableDates.length === 0}
+            >
+              {availableDates.length === 0 ? (
+                <option>No data available</option>
+              ) : (
+                availableDates.map(date => (
+                    <option key={date} value={date} className="bg-gray-900 text-white">
+                      {new Date(date).toLocaleDateString('en-GB', { 
+                        day: 'numeric', 
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                  </option>
+                ))
+              )}
+            </select>
+              <Calendar className="w-4 h-4 text-[rgba(255,255,255,0.5)] absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+          </div>
+
           {/* Month Selector */}
             <div className="relative">
             <select
@@ -246,32 +271,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </select>
               <ChevronDown className="w-4 h-4 text-[rgba(255,255,255,0.5)] absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
-
-            {/* Date Selector */}
-            <div className="relative">
-            <select
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-                className="appearance-none bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl pl-4 pr-10 py-2 text-[#E0E0E0] text-sm font-medium focus:outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-all disabled:opacity-50"
-              disabled={availableDates.length === 0}
-            >
-              {availableDates.length === 0 ? (
-                <option>No data available</option>
-              ) : (
-                availableDates.map(date => (
-                    <option key={date} value={date} className="bg-gray-900 text-white">
-                      {new Date(date).toLocaleDateString('en-GB', { 
-                        day: 'numeric', 
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                  </option>
-                ))
-              )}
-            </select>
-              <Calendar className="w-4 h-4 text-[rgba(255,255,255,0.5)] absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
-        </div>
         </div>
 
       {!dashboardData ? (
@@ -293,15 +293,15 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   {formatCurrency(dashboardData.current_net_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1 mb-2">
-                <CardGrowth positive={dashboardData.current_net_sales_percentage >= 100} percentage={dashboardData.current_net_sales_percentage}>
-                  {dashboardData.current_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_net_sales_percentage)} vs target
-                </CardGrowth>
+                <div className="flex items-center gap-1 text-sm font-medium text-white">
+                {dashboardData.current_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_net_sales_percentage)} vs target
+              </div>
                 {previousMonthData && (() => {
                   const prevDate = new Date(previousMonthData.metric_date);
                   const prevDateStr = prevDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                   const changePercent = ((dashboardData.current_net_sales - previousMonthData.current_net_sales) / previousMonthData.current_net_sales) * 100;
                   return (
-                    <div className={`text-xs ${changePercent >= 0 ? 'text-[rgba(76,217,100,0.7)]' : 'text-[rgba(255,59,48,0.7)]'}`}>
+                    <div className="text-xs text-white">
                       {changePercent >= 0 ? '↑' : '↓'}{' '}
                       {formatPercentage(Math.abs(changePercent))} vs {prevDateStr}
                     </div>
@@ -320,7 +320,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   return formatCurrency(amount);
                 };
                 return daysRemaining > 0 ? (
-                  <div className="flex items-center gap-1 text-xs text-[#FFC107]">
+                  <div className="flex items-center gap-1 text-xs text-white">
                     <span>Need</span>
                     <DirhamIcon className="w-3 h-3" />
                     <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
@@ -338,9 +338,9 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-7 h-7 mr-2" />
                   {formatCurrency(dashboardData.estimated_net_sales || 0)}
               </CardValue>
-              <CardGrowth positive={dashboardData.estimated_net_sales_percentage >= 100} percentage={dashboardData.estimated_net_sales_percentage}>
+              <div className="flex items-center gap-1 text-sm font-medium text-white">
                 {dashboardData.estimated_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.estimated_net_sales_percentage)} vs target
-              </CardGrowth>
+              </div>
             </Card>
 
             <Card className="col-span-1">
@@ -352,9 +352,9 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-7 h-7 mr-2" />
                   {formatCurrency(dashboardData.current_daily_average || 0)}
               </CardValue>
-              <CardGrowth positive={true}>
+              <div className="flex items-center gap-1 text-sm font-medium text-white">
                 Daily pace
-              </CardGrowth>
+              </div>
             </Card>
 
             <Card className="col-span-3">
@@ -396,15 +396,15 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   {formatCurrency(dashboardData.current_net_labor_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1 mb-2">
-                <CardGrowth positive={dashboardData.current_labour_sales_percentage >= 100} percentage={dashboardData.current_labour_sales_percentage}>
-                  {dashboardData.current_labour_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_labour_sales_percentage)} vs target
-                </CardGrowth>
+                <div className="flex items-center gap-1 text-sm font-medium text-white">
+                {dashboardData.current_labour_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_labour_sales_percentage)} vs target
+              </div>
                 {previousMonthData && (() => {
                   const prevDate = new Date(previousMonthData.metric_date);
                   const prevDateStr = prevDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                   const changePercent = ((dashboardData.current_net_labor_sales - previousMonthData.current_net_labor_sales) / previousMonthData.current_net_labor_sales) * 100;
                   return (
-                    <div className={`text-xs ${changePercent >= 0 ? 'text-[rgba(76,217,100,0.7)]' : 'text-[rgba(255,59,48,0.7)]'}`}>
+                    <div className="text-xs text-white">
                       {changePercent >= 0 ? '↑' : '↓'}{' '}
                       {formatPercentage(Math.abs(changePercent))} vs {prevDateStr}
                     </div>
@@ -423,7 +423,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   return formatCurrency(amount);
                 };
                 return daysRemaining > 0 ? (
-                  <div className="flex items-center gap-1 text-xs text-[#FFC107]">
+                  <div className="flex items-center gap-1 text-xs text-white">
                     <span>Need</span>
                     <DirhamIcon className="w-3 h-3" />
                     <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
@@ -441,9 +441,9 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-7 h-7 mr-2" />
                   {formatCurrency(dashboardData.estimated_labor_sales || 0)}
               </CardValue>
-              <CardGrowth positive={dashboardData.estimated_labor_sales_percentage >= 100} percentage={dashboardData.estimated_labor_sales_percentage}>
+              <div className="flex items-center gap-1 text-sm font-medium text-white">
                 {dashboardData.estimated_labor_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.estimated_labor_sales_percentage)} vs target
-              </CardGrowth>
+              </div>
             </Card>
 
             <Card className="col-span-1">
@@ -455,9 +455,9 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-7 h-7 mr-2" />
                 {formatCurrency((dashboardData.current_net_labor_sales || 0) / (dashboardData.working_days_elapsed || 1))}
               </CardValue>
-              <CardGrowth positive={true}>
+              <div className="flex items-center gap-1 text-sm font-medium text-white">
                 Daily pace
-              </CardGrowth>
+              </div>
             </Card>
 
             <Card className="col-span-3">
@@ -487,130 +487,174 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
             {/* Charts Section */}
             <NetSalesProgressChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} monthTarget={monthTarget} />
-            <DailyAverageChart dashboardData={dashboardData} monthTarget={monthTarget} metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+            <LabourSalesProgressChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} monthTarget={monthTarget} />
             <TargetForecastChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} monthTarget={monthTarget} />
-            <RevenueMixChart dashboardData={dashboardData} />
-            <AnnualNetSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} />
-            <AnnualLabourSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} />
+            <DailyAverageChart dashboardData={dashboardData} monthTarget={monthTarget} metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} />
 
-            {/* Marketing Performance */}
-            <Card className="col-span-1">
+            {/* Marketing Spend % */}
+            <Card className="col-span-1 row-span-2">
               <CardHeader>
-                <CardTitle>Marketing Performance</CardTitle>
+                <CardTitle>Marketing Spend %</CardTitle>
                 <CardIcon><TrendingUp size={20} /></CardIcon>
               </CardHeader>
-              <div className="flex flex-col gap-4 mt-2">
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-[rgba(255,255,255,0.8)]">Marketing Spend %</span>
-                    <span className="text-lg font-bold text-[#C0C0C0]">{marketingSpendPercentage.toFixed(1)}%</span>
+              <CardValue>
+                {marketingSpendPercentage.toFixed(1)}%
+              </CardValue>
+              <div className="flex items-center gap-1 text-sm font-medium text-white">
+                Budget allocation
           </div>
-                  <div className="text-xs text-[#FF3B30] flex items-center gap-1">
-                    <span>↓</span> Budget allocation
-                </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-[rgba(255,255,255,0.8)]">Marketing Spend</span>
-                    <div className="flex items-center gap-1">
-                      <DirhamIcon className="w-4 h-4" />
-                      <span className="text-lg font-bold text-[#C0C0C0]">{formatCurrency(dashboardData.current_marketing_spend || 0)}</span>
-              </div>
-                </div>
-                  <div className="text-xs text-[#FF3B30] flex items-center gap-1">
-                    <span>↓</span> Total spend
-                  </div>
-                </div>
+            </Card>
+
+            {/* Marketing Spend */}
+            <Card className="col-span-1 row-span-2">
+              <CardHeader>
+                <CardTitle>Marketing Spend</CardTitle>
+                <CardIcon><TrendingUp size={20} /></CardIcon>
+              </CardHeader>
+              <CardValue>
+                <DirhamIcon className="w-7 h-7 mr-2" />
+                {formatCurrency(dashboardData.current_marketing_spend || 0)}
+              </CardValue>
+              <div className="flex items-center gap-1 text-sm font-medium text-white">
+                Total spend
               </div>
             </Card>
 
             {/* Avg Invoice Value */}
-            <Card className="col-span-1">
+            <Card className="col-span-1 row-span-2">
               <CardHeader>
                 <CardTitle>Avg. Invoice Value</CardTitle>
                 <CardIcon><FileText size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-7 h-7 mr-2" />
+                <FileText className="w-7 h-7 mr-2" />
                 {formatCurrency(averageInvoiceValue)}
               </CardValue>
-              <CardGrowth positive={true}>
-                ↑ Per transaction
-              </CardGrowth>
+              <div className="flex items-center gap-1 text-sm font-medium text-white">
+                Per transaction
+              </div>
             </Card>
 
               {/* Number of Invoices */}
-            <Card className="col-span-1">
+            <Card className="col-span-1 row-span-2">
               <CardHeader>
                 <CardTitle>Number of Invoices</CardTitle>
-                <CardIcon><Receipt size={20} /></CardIcon>
+                <CardIcon><FileText size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
                 {monthlyInvoiceSum}
               </CardValue>
-              <CardGrowth positive={true}>
-                ↑ Total count
-              </CardGrowth>
+              <div className="flex items-center gap-1 text-sm font-medium text-white">
+                Total count
+              </div>
             </Card>
 
             {/* Vehicle Throughput */}
-            <Card className="col-span-1">
+            <Card className="col-span-1 row-span-2">
               <CardHeader>
                 <CardTitle>Vehicle Throughput</CardTitle>
                 <CardIcon><Gauge size={20} /></CardIcon>
               </CardHeader>
-              <div className="flex flex-col items-center justify-center h-[150px] relative">
-                <div className="w-[120px] h-[120px] rounded-full bg-[conic-gradient(#4CD964_0%_70%,#FFC107_70%_90%,#FF3B30_90%_100%)] relative flex items-center justify-center">
-                  <div className="w-[90px] h-[90px] bg-[#050505] rounded-full absolute"></div>
-                  <div className="absolute text-xl font-bold text-[#C0C0C0] z-10">
-                    {vehicleThroughput.toFixed(0)}
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="relative w-[200px] h-[120px]">
+                  {/* Speedometer Arc Background */}
+                  <svg viewBox="0 0 200 120" className="w-full h-full">
+                    {/* Background arc */}
+                    <path
+                      d="M 20 100 A 80 80 0 0 1 180 100"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.1)"
+                      strokeWidth="20"
+                      strokeLinecap="round"
+                    />
+                    {/* Colored segments - Red (1-5), Orange (5-8), Green (8-12) */}
+                    {/* Red zone: 0-41.67% of arc (5/12) */}
+                    <path
+                      d="M 20 100 A 80 80 0 0 1 73 35"
+                      fill="none"
+                      stroke="#FF3B30"
+                      strokeWidth="20"
+                      strokeLinecap="round"
+                    />
+                    {/* Orange zone: 41.67-66.67% of arc (5-8/12) */}
+                    <path
+                      d="M 73 35 A 80 80 0 0 1 127 35"
+                      fill="none"
+                      stroke="#FFC107"
+                      strokeWidth="20"
+                      strokeLinecap="round"
+                    />
+                    {/* Green zone: 66.67-100% of arc (8-12/12) */}
+                    <path
+                      d="M 127 35 A 80 80 0 0 1 180 100"
+                      fill="none"
+                      stroke="#4CD964"
+                      strokeWidth="20"
+                      strokeLinecap="round"
+                    />
+                    {/* Needle - rotates based on value (1-12 mapped to 180 degrees) */}
+                    <g transform={`rotate(${-90 + ((vehicleThroughput / vehicleThroughputTarget) * 180)} 100 100)`}>
+                      <line
+                        x1="100"
+                        y1="100"
+                        x2="100"
+                        y2="35"
+                        stroke="#ffffff"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="100" cy="100" r="8" fill="#ffffff" />
+                    </g>
+                  </svg>
                 </div>
+                {/* Value below speedometer */}
+                <div className="flex flex-col items-center mt-4">
+                  <div className="text-3xl font-bold text-white">
+                    {vehicleThroughput.toFixed(1)}
                 </div>
-                <div className="mt-2.5 text-sm text-[rgba(255,255,255,0.7)]">Vehicles per day</div>
-              </div>
-              <div className="mt-4">
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-[rgba(255,255,255,0.8)]">Target: {vehicleThroughputTarget} vehicles</span>
-                  <span className="text-sm text-[#C0C0C0]">{vehicleThroughputPercentage.toFixed(1)}%</span>
-            </div>
-                <div className="h-2 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#C0C0C0] rounded-full" style={{ width: `${Math.min(vehicleThroughputPercentage, 100)}%` }}></div>
+                  <div className="text-xs text-white/60">Vehicles per day</div>
               </div>
             </div>
             </Card>
 
+            <RevenueMixChart dashboardData={dashboardData} />
+
             {/* Team Performance */}
-            <div className="col-span-6 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-transform hover:translate-y-[-5px] hover:shadow-[0_8px_25px_rgba(0,0,0,0.3)]">
+            <div className="col-span-6 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
               <div className="flex justify-between items-center mb-6">
-                <div className="text-base font-semibold text-[rgba(255,255,255,0.8)]">Team Performance</div>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(192,192,192,0.2)] text-[#C0C0C0]">
+                <div>
+                  <div className="text-xl font-bold text-white mb-1">Team Performance</div>
+                  <div className="text-sm text-white/60">Individual contributions</div>
+                </div>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(255,255,255,0.1)] text-white">
                   <Users size={20} />
                 </div>
               </div>
             <div className="grid grid-cols-3 gap-4">
                 <TeamMember
-                  initial="D"
                   name="Daniel"
-                  role="Senior Technician"
+                  role="Service Advisor"
                   sales={dashboardData.daniel_total_sales || 0}
                   contribution={danielContribution}
                 />
                 <TeamMember
-                  initial="L"
                   name="Lucy"
                   role="Service Advisor"
                   sales={dashboardData.lucy_total_sales || 0}
                   contribution={lucyContribution}
                 />
                 <TeamMember
-                  initial="E"
                   name="Essrar"
-                  role="Technician"
+                  role="Service Advisor"
                   sales={dashboardData.essrar_total_sales || 0}
                   contribution={essrarContribution}
               />
             </div>
           </div>
+
+            {/* Annual Charts */}
+            <AnnualNetSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} />
+            <AnnualLabourSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} />
           </main>
       )}
       </div>
@@ -726,8 +770,8 @@ function TargetItem({ label, value, progress, current, daysRemaining, showDailyR
         <div className="flex items-center gap-1">
           <DirhamIcon className="w-4 h-4 text-[#C0C0C0]" />
           <span className="text-lg font-bold text-[#C0C0C0] tabular-nums">{formatCurrency(value)}</span>
-        </div>
-      </div>
+            </div>
+            </div>
       <div className="h-1.5 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden">
         <div 
           className="h-full rounded-full transition-all duration-300" 
@@ -764,7 +808,7 @@ function TargetItem({ label, value, progress, current, daysRemaining, showDailyR
   );
 }
 
-function TeamMember({ initial, name, role, sales, contribution }: { initial: string; name: string; role: string; sales: number; contribution: number }) {
+function TeamMember({ name, role, sales, contribution }: { name: string; role: string; sales: number; contribution: number }) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
@@ -772,18 +816,42 @@ function TeamMember({ initial, name, role, sales, contribution }: { initial: str
     }).format(amount);
   };
 
+  // Subtle ranking indicator
+  const isTopPerformer = contribution >= 40;
+
   return (
-    <div className="flex flex-col items-center gap-2.5 p-5 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-xl">
-      <div className="w-[70px] h-[70px] rounded-full bg-gradient-to-br from-[#C0C0C0] to-[#8A8A8A] flex items-center justify-center font-bold text-[#0A0A0A] text-2xl">
-        {initial}
+    <div className="relative flex flex-col items-center gap-4 p-6 bg-[rgba(255,255,255,0.05)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-xl transition-all duration-300 hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]">
+      {/* Subtle top performer indicator */}
+      {isTopPerformer && (
+        <div className="absolute top-3 right-3 w-2 h-2 bg-white/30 rounded-full"></div>
+      )}
+      
+      {/* Name and Role */}
+      <div className="text-center">
+        <div className="text-2xl font-bold text-white mb-1">{name}</div>
+        <div className="text-sm text-white/50">{role}</div>
           </div>
-      <div className="text-lg font-semibold text-[#C0C0C0]">{name}</div>
-      <div className="text-xs text-[rgba(255,255,255,0.7)]">{role}</div>
-      <div className="flex items-center gap-1">
-        <DirhamIcon className="w-5 h-5 text-[#C0C0C0]" />
-        <div className="text-[22px] font-bold text-[#C0C0C0]">{formatCurrency(sales)}</div>
+      
+      {/* Sales Amount */}
+      <div className="flex items-center gap-2">
+        <DirhamIcon className="w-5 h-5 text-white/60" />
+        <div className="text-2xl font-bold text-white tabular-nums">{formatCurrency(sales)}</div>
         </div>
-      <div className="text-sm text-[#4CD964]">{contribution.toFixed(1)}% of total</div>
+      
+      {/* Contribution Percentage */}
+      <div className="w-full">
+        {/* Progress bar */}
+        <div className="h-1.5 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden mb-2">
+          <div 
+            className="h-full bg-gradient-to-r from-white/40 to-white/60 rounded-full transition-all duration-500"
+            style={{ width: `${contribution}%` }}
+          ></div>
+        </div>
+        {/* Percentage text */}
+        <div className="text-center text-sm text-white/70 font-medium">
+          {contribution.toFixed(1)}% of total
+        </div>
+      </div>
           </div>
   );
 }
@@ -873,16 +941,35 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, monthTarg
     return null;
   };
 
+  // Calculate current performance for status badge
+  const latestMetric = monthMetrics[monthMetrics.length - 1];
+  const currentSales = latestMetric?.current_net_sales || 0;
+  const currentPercentage = monthTarget ? (currentSales / (monthTarget.net_sales_target * 1.12)) * 100 : 0;
+  
+  const statusText = currentPercentage >= 100 ? 'Target Achieved' : currentPercentage >= 85 ? 'On Pace' : 'Needs Improvement';
+  const statusColor = currentPercentage >= 100 ? '#4CD964' : currentPercentage >= 85 ? '#4CD964' : '#FFC107';
+  const statusBgColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.2)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.2)' : 'rgba(255, 193, 7, 0.2)';
+  const statusIcon = currentPercentage >= 100 ? '🎉' : currentPercentage >= 85 ? '✓' : '⚠';
+
   return (
     <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h3 className="text-xl font-bold text-white">Net Sales Progress</h3>
-            <div className="flex items-center gap-1 text-green-400">
-              <TrendingUp size={16} />
-              <span className="text-xs font-medium">+12%</span>
-            </div>
+            <span style={{ 
+              backgroundColor: statusBgColor, 
+              color: statusColor, 
+              padding: '4px 12px', 
+              borderRadius: '6px', 
+              fontSize: '12px', 
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>{statusIcon}</span> {statusText}
+            </span>
           </div>
           <p className="text-sm text-white/60">Cumulative sales progress vs targets</p>
         </div>
@@ -929,19 +1016,197 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, monthTarg
                 return [value, name];
               }}
             />
-            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#targetGradient)" stroke="#ffffff60" strokeWidth={1.5} name="cumulativeTarget" connectNulls={true} />
             <Line type="monotone" dataKey="target112" stroke="#ffffff" strokeWidth={1.5} strokeDasharray="3 3" strokeOpacity={0.4} name="target112" dot={false} />
+            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#targetGradient)" stroke="#ffffff60" strokeWidth={1.5} name="cumulativeTarget" connectNulls={true} />
             <Line 
-              type="monotone"
-              dataKey="currentNetSales" 
+            type="monotone"
+            dataKey="currentNetSales" 
               stroke="#4CD964" 
               strokeWidth={3} 
               name="currentNetSales" 
               dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
               activeDot={{ r: 6 }} 
               connectNulls={false} 
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+    </Card>
+  );
+}
+
+function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, monthTarget }: any) {
+  const formatCurrencyCompact = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
+  };
+
+  const formatCurrencyFull = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const monthMetrics = metrics
+    .filter((m: any) => {
+      const date = new Date(m.metric_date);
+      return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
+    })
+    .sort((a: any, b: any) => new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime());
+
+  const workingDays = monthTarget?.number_of_working_days || 30;
+  const dailyTarget = (monthTarget?.labour_sales_target || 0) / workingDays;
+  const dailyTarget112 = dailyTarget * 1.12;
+  const finalTarget112 = (monthTarget?.labour_sales_target || 0) * 1.12;
+
+  // Find the last calendar day with actual data
+  const lastDayWithData = monthMetrics.length > 0
+    ? Math.max(...monthMetrics.map((m: any) => new Date(m.metric_date).getDate()))
+    : 0;
+
+  // Use working days as the chart range (not last day with data)
+  const daysInMonth = workingDays;
+  
+
+  // Create full working days array with all days, even if no data exists
+  const chartData = Array.from({ length: workingDays }, (_, i) => {
+    const workingDay = i + 1;
+
+    // Get all metrics up to this working day (sorted by date)
+    const metricsUpToDay = monthMetrics.slice(0, workingDay);
+    const latestMetricUpToDay = metricsUpToDay[metricsUpToDay.length - 1];
+
+    // Calculate targets as a proportion of the total, reaching exact target values at the last working day
+    const progressRatio = workingDay / workingDays;
+    const cumulativeTargetValue = (monthTarget?.labour_sales_target || 0) * progressRatio;
+
+    // 112% target as a straight line proportional to working days
+    const dynamicTarget112 = finalTarget112 * progressRatio;
+
+    // Only show current labour sales data if we have actual data for this working day
+    const currentLabourSalesValue = (workingDay <= monthMetrics.length && latestMetricUpToDay) 
+      ? latestMetricUpToDay.current_net_labor_sales 
+      : null;
+
+    return {
+      day: workingDay.toString(),
+      cumulativeTarget: cumulativeTargetValue,
+      currentLabourSales: currentLabourSalesValue,
+      target112: dynamicTarget112,
+    };
+  });
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+    return (
+        <div style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '12px',
+          padding: '10px'
+        }}>
+          <p style={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}>{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} style={{ color: '#E0E0E0', fontSize: '12px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>{entry.name} : </span>
+              <DirhamIcon className="w-3 h-3" />
+              <span>{entry.value ? formatCurrencyFull(Number(entry.value)) : 'N/A'}</span>
+          </div>
+          ))}
+      </div>
+    );
+    }
+    return null;
+  };
+
+  // Calculate current performance for status badge
+  const latestMetric = monthMetrics[monthMetrics.length - 1];
+  const currentSales = latestMetric?.current_net_labor_sales || 0;
+  const currentPercentage = monthTarget ? (currentSales / (monthTarget.labour_sales_target * 1.12)) * 100 : 0;
+  
+  const statusText = currentPercentage >= 100 ? 'Target Achieved' : currentPercentage >= 85 ? 'On Pace' : 'Needs Improvement';
+  const statusColor = currentPercentage >= 100 ? '#4CD964' : currentPercentage >= 85 ? '#4CD964' : '#FFC107';
+  const statusBgColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.2)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.2)' : 'rgba(255, 193, 7, 0.2)';
+  const statusIcon = currentPercentage >= 100 ? '🎉' : currentPercentage >= 85 ? '✓' : '⚠';
+
+  return (
+    <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-xl font-bold text-white">Labour Sales Progress</h3>
+            <span style={{ 
+              backgroundColor: statusBgColor, 
+              color: statusColor, 
+              padding: '4px 12px', 
+              borderRadius: '6px', 
+              fontSize: '12px', 
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>{statusIcon}</span> {statusText}
+            </span>
+          </div>
+          <p className="text-sm text-white/60">Cumulative labour sales progress vs targets</p>
+        </div>
+      </div>
+      
+      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-white opacity-60"></div>
+            <span className="text-xs text-white/60">100% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 border-t-2 border-dashed border-white opacity-40"></div>
+            <span className="text-xs text-white/60">112% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/60">Current Labour Sales</span>
+          </div>
+        </div>
+
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+            <defs>
+              <linearGradient id="labourTargetGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.48}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.06}/>
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrencyCompact} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'rgba(0,0,0,0.9)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }}
+              formatter={(value: any, name: string) => {
+                if (name === 'cumulativeTarget') return [formatCurrencyFull(value), '100% Target'];
+                if (name === 'currentLabourSales') return [formatCurrencyFull(value), 'Current Labour Sales'];
+                if (name === 'target112') return [formatCurrencyFull(value), '112% Target'];
+                return [value, name];
+              }}
             />
-          </ComposedChart>
+            <Line type="monotone" dataKey="target112" stroke="#ffffff" strokeWidth={1.5} strokeDasharray="3 3" strokeOpacity={0.4} name="target112" dot={false} />
+            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#labourTargetGradient)" stroke="#ffffff60" strokeWidth={1.5} name="cumulativeTarget" connectNulls={true} />
+          <Line 
+            type="monotone"
+            dataKey="currentLabourSales" 
+              stroke="#4CD964" 
+              strokeWidth={3} 
+              name="currentLabourSales" 
+              dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
+              activeDot={{ r: 6 }} 
+              connectNulls={false} 
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
     </Card>
@@ -1085,10 +1350,6 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h3 className="text-xl font-bold text-white">Net Sales Daily Average</h3>
-            <div className="flex items-center gap-1 text-red-400">
-              <TrendingUp size={16} className="rotate-180" />
-              <span className="text-xs font-medium">-8%</span>
-            </div>
             <span style={{ 
               backgroundColor: 'rgba(255, 193, 7, 0.2)', 
               color: '#FFC107', 
@@ -1105,19 +1366,19 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
           </div>
           <p className="text-sm text-white/60 mb-3">Daily average performance and required daily average</p>
         </div>
-        <div style={{
-          backgroundColor: 'rgba(255, 193, 7, 0.15)',
-          border: '1px solid rgba(255, 193, 7, 0.3)',
-          borderRadius: '8px',
-          padding: '8px 16px',
+        <span style={{ 
+          backgroundColor: 'rgba(255, 193, 7, 0.2)', 
+          color: '#FFC107', 
+          padding: '4px 12px', 
+          borderRadius: '6px', 
+          fontSize: '12px', 
+          fontWeight: 600,
           display: 'flex',
           alignItems: 'center',
-          gap: '6px'
+          gap: '4px'
         }}>
-          <span style={{ color: '#FFC107', fontSize: '16px', fontWeight: 700 }}>
-            {formatCurrencyCompact(requiredFor112)} required/day
+          {formatCurrencyCompact(requiredFor112)} required/day
           </span>
-          </div>
       </div>
       
       <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
@@ -1131,8 +1392,8 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
             <div className="w-8 h-0.5 bg-[#4CD964]"></div>
             <span className="text-xs text-white/60">Current Daily Avg</span>
           </div>
-        </div>
-
+      </div>
+      
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
             <defs>
@@ -1146,16 +1407,16 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
           <Tooltip content={<CustomTooltip />} />
             <Area type="monotone" dataKey="requiredDailyAverage" fill="url(#requiredGradient)" stroke="#ffffff60" strokeWidth={1.5} name="Required Daily Average" />
             <Line 
-              type="monotone"
-              dataKey="currentAvg" 
+            type="monotone"
+            dataKey="currentAvg" 
               stroke="#4CD964" 
               strokeWidth={3} 
               name="currentAvg" 
               dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
-              activeDot={{ r: 6 }} 
-              connectNulls={false} 
-            />
-          </ComposedChart>
+              activeDot={{ r: 6 }}
+              connectNulls={false}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
     </Card>
@@ -1174,78 +1435,215 @@ function TargetForecastChart({ metrics, selectedYear, selectedMonth, monthTarget
     })
     .sort((a: any, b: any) => new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime());
 
-  const daysInMonth = monthTarget?.number_of_working_days || 30;
+  const totalWorkingDays = monthTarget?.number_of_working_days || 30;
   const lastMetric = monthMetrics[monthMetrics.length - 1];
-  const currentDay = lastMetric ? new Date(lastMetric.metric_date).getDate() : 1;
-  const estimatedEnd = lastMetric?.estimated_net_sales || 0;
+  const workingDaysElapsed = lastMetric?.working_days_elapsed || 1;
+  const currentSales = lastMetric?.current_net_sales || 0;
+  const estimatedSales = lastMetric?.estimated_net_sales || 0;
+  const remainingDays = totalWorkingDays - workingDaysElapsed;
+  const currentDailyAvg = workingDaysElapsed > 0 ? currentSales / workingDaysElapsed : 0;
 
-  const chartData = [
-    { week: 'Week 1', cumulativeTarget: (monthTarget?.net_sales_target || 0) * 0.2, current: monthMetrics[6]?.current_net_sales || null, forecasted: null },
-    { week: 'Week 2', cumulativeTarget: (monthTarget?.net_sales_target || 0) * 0.4, current: monthMetrics[13]?.current_net_sales || null, forecasted: null },
-    { week: 'Week 3', cumulativeTarget: (monthTarget?.net_sales_target || 0) * 0.6, current: monthMetrics[20]?.current_net_sales || null, forecasted: null },
-    { week: 'Week 4', cumulativeTarget: (monthTarget?.net_sales_target || 0) * 0.8, current: lastMetric?.current_net_sales || null, forecasted: null },
-    { week: 'Forecast', cumulativeTarget: monthTarget?.net_sales_target || 0, current: null, forecasted: estimatedEnd },
-  ];
+  const target100 = monthTarget?.net_sales_target || 0;
+  const target112 = (monthTarget?.net_sales_target || 0) * 1.12;
+
+  // Calculate projections
+  const linearProjection = currentSales + (remainingDays * currentDailyAvg);
+
+  // Marketing Magic with end-of-month surge (26% surge in last 2 days)
+  const END_OF_MONTH_SURGE_PCT = 0.26;
+  const normalDays = Math.max(0, totalWorkingDays - 2);
+  const rushDays = 2;
+  
+  let magicFinalTotal;
+  let endOfMonthSurge;
+  
+  if (workingDaysElapsed < normalDays) {
+    const normalDaysRemaining = Math.max(0, normalDays - workingDaysElapsed);
+    const magicProjection = currentSales + (normalDaysRemaining * currentDailyAvg * 1.05);
+    magicFinalTotal = magicProjection / (1 - END_OF_MONTH_SURGE_PCT);
+    endOfMonthSurge = magicFinalTotal * END_OF_MONTH_SURGE_PCT;
+  } else {
+    magicFinalTotal = linearProjection;
+    endOfMonthSurge = 0;
+  }
+
+  // Build chart data for each working day
+  const chartData = [];
+  for (let workingDay = 1; workingDay <= totalWorkingDays; workingDay++) {
+    const metric = monthMetrics[workingDay - 1];
+    const isHistorical = workingDay <= workingDaysElapsed;
+    
+    let marketingMagicValue = null;
+    if (!isHistorical) {
+      const daysIntoFuture = workingDay - workingDaysElapsed;
+      
+      if (workingDaysElapsed < normalDays) {
+        const daysUntilRush = Math.max(0, normalDays - workingDaysElapsed);
+        
+        if (workingDay <= normalDays) {
+          marketingMagicValue = currentSales + (daysIntoFuture * currentDailyAvg * 1.05);
+        } else {
+          const baseBeforeRush = currentSales + (daysUntilRush * currentDailyAvg * 1.05);
+          const rushDayNumber = workingDay - normalDays;
+          const surgePerDay = endOfMonthSurge / rushDays;
+          marketingMagicValue = baseBeforeRush + (rushDayNumber * surgePerDay);
+        }
+      } else {
+        marketingMagicValue = currentSales + (daysIntoFuture * currentDailyAvg);
+      }
+    }
+
+    chartData.push({
+      day: workingDay,
+      actual: isHistorical && metric ? (metric.current_net_sales || 0) : null,
+      projected: !isHistorical ? (currentSales + (workingDay - workingDaysElapsed) * currentDailyAvg) : null,
+      marketingMagic: marketingMagicValue,
+      target100: (target100 / totalWorkingDays) * workingDay,
+      target112: (target112 / totalWorkingDays) * workingDay,
+    });
+  }
+
+  // Calculate current performance for status badge
+  const currentPercentage = monthTarget ? (currentSales / (monthTarget.net_sales_target * 1.12)) * 100 : 0;
+  
+  const statusText = currentPercentage >= 100 ? 'Target Achieved' : currentPercentage >= 85 ? 'On Pace' : 'Needs Improvement';
+  const statusColor = currentPercentage >= 100 ? '#4CD964' : currentPercentage >= 85 ? '#4CD964' : '#FFC107';
+  const statusBgColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.2)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.2)' : 'rgba(255, 193, 7, 0.2)';
+  const statusIcon = currentPercentage >= 100 ? '🎉' : currentPercentage >= 85 ? '✓' : '⚠';
 
   return (
-    <Card className="col-span-3 row-span-2">
-      <CardHeader>
-        <CardTitle>Target Achievement Forecast</CardTitle>
-        <CardIcon><Target size={20} /></CardIcon>
-      </CardHeader>
-      <div className="h-[250px] flex items-center justify-center rounded-xl mt-2.5 relative">
+    <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-xl font-bold text-white">Target Achievement Forecast</h3>
+            <span style={{ 
+              backgroundColor: statusBgColor, 
+              color: statusColor, 
+              padding: '4px 12px', 
+              borderRadius: '6px', 
+              fontSize: '12px', 
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>{statusIcon}</span> {statusText}
+            </span>
+          </div>
+          <p className="text-sm text-white/60">Weekly progress and month-end forecast</p>
+        </div>
+      </div>
+      
+      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-white opacity-40"></div>
+            <span className="text-xs text-white/60">100% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-white opacity-60"></div>
+            <span className="text-xs text-white/60">112% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/60">Actual</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-white"></div>
+            <span className="text-xs text-white/60">Projected</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-white" style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }}></div>
+            <span className="text-xs text-white/60">Marketing Forecast</span>
+          </div>
+        </div>
+
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-          <XAxis 
-              dataKey="week" 
-              tick={{ fontSize: 11, fill: '#E0E0E0' }}
-              stroke="rgba(255,255,255,0.3)"
-          />
-          <YAxis 
-              tick={{ fontSize: 11, fill: '#E0E0E0' }}
-              stroke="rgba(255,255,255,0.3)"
-              tickFormatter={formatCurrency}
-          />
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+            <defs>
+              <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4CD964" stopOpacity={0.5}/>
+                <stop offset="50%" stopColor="#4CD964" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#4CD964" stopOpacity={0.05}/>
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrency} />
           <Tooltip 
             contentStyle={{ 
                 backgroundColor: 'rgba(0, 0, 0, 0.9)', 
               border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '12px',
-                padding: '10px'
+                borderRadius: '8px',
+                color: '#ffffff'
             }}
-            labelStyle={{ color: '#ffffff', fontWeight: 700 }}
-              itemStyle={{ color: '#E0E0E0', fontSize: '12px' }}
-            formatter={(value: any) => value ? `د.إ ${formatCurrency(Number(value))}` : 'N/A'}
+            formatter={(value: any) => {
+              if (!value) return 'N/A';
+              const formatted = new Intl.NumberFormat('en-AE', { 
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0 
+              }).format(Number(value));
+              return (
+                <>
+                  <DirhamIcon className="inline w-3 h-3 mr-1" />
+                  {formatted}
+                </>
+              );
+            }}
             />
-            <Legend 
-              wrapperStyle={{ paddingTop: '10px' }}
-              iconType="line"
-              formatter={(value: string) => <span className="text-xs text-[#E0E0E0]">{value}</span>}
+            
+            <Line 
+              type="monotone"
+              dataKey="target100" 
+              stroke="#ffffff" 
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+              strokeOpacity={0.4}
+              dot={false}
+              name="100% Target"
             />
-            <Area 
+            <Line 
             type="monotone"
-              dataKey="cumulativeTarget" 
-              fill="rgba(192, 192, 192, 0.1)" 
-              stroke="#C0C0C0" 
+              dataKey="target112" 
+              stroke="#ffffff" 
             strokeWidth={2}
-              name="Cumulative Target"
+              strokeDasharray="3 3"
+              strokeOpacity={0.6}
+              dot={false}
+              name="112% Target"
           />
           <Area 
             type="monotone"
-              dataKey="current" 
-              fill="rgba(0, 160, 233, 0.1)" 
-              stroke="#00A0E9" 
+              dataKey="actual" 
+              fill="url(#actualGradient)" 
+              stroke="#4CD964" 
+              strokeWidth={3}
+              dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }}
+              activeDot={{ r: 6 }}
+              name="Actual"
+            />
+            <Line 
+              type="monotone"
+              dataKey="projected" 
+              stroke="#ffffff" 
               strokeWidth={2}
-              name="Current"
+              strokeDasharray="3 3"
+              strokeOpacity={0.5}
+              dot={{ fill: '#ffffff', r: 3, strokeWidth: 0, fillOpacity: 0.5 }}
+              activeDot={{ r: 5 }}
+              name="Projected"
           />
           <Line 
             type="monotone"
-              dataKey="forecasted" 
-              stroke="#4CD964" 
+              dataKey="marketingMagic" 
+              stroke="#ffffff" 
               strokeWidth={2}
-              strokeDasharray="5 5"
-              name="Forecasted"
+              strokeDasharray="5 3"
+              strokeOpacity={0.5}
+              dot={{ fill: '#ffffff', r: 3, strokeWidth: 1, stroke: '#000000', fillOpacity: 0.5 }}
+              activeDot={{ r: 5, strokeWidth: 1 }}
+              name="Marketing Forecast"
           />
         </ComposedChart>
       </ResponsiveContainer>
@@ -1267,7 +1665,7 @@ function RevenueMixChart({ dashboardData }: any) {
     { name: 'Parts Sales', value: partsPercent },
   ];
 
-  const COLORS = ['rgba(0, 160, 233, 0.8)', 'rgba(192, 192, 192, 0.8)'];
+  const COLORS = ['#4CD964', 'rgba(192, 192, 192, 0.8)'];
 
     return (
     <Card className="col-span-1 row-span-2">
@@ -1313,13 +1711,40 @@ function RevenueMixChart({ dashboardData }: any) {
 
 function AnnualNetSalesChart({ metrics, targets, selectedYear }: any) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(amount);
+    return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
   };
+
+  const formatCurrencyFull = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  // Calculate cumulative monthly data
+  let cumulativeTarget = 0;
+  let cumulativeActual = 0;
+  
+  // Find the last month with actual data
+  const monthsWithData = Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1;
+    const monthMetrics = metrics.filter((m: any) => {
+      const date = new Date(m.metric_date);
+      return date.getFullYear() === selectedYear && (date.getMonth() + 1) === month;
+    });
+    return monthMetrics.length > 0 ? month : null;
+  }).filter(m => m !== null);
+  
+  const lastMonthWithData = monthsWithData.length > 0 ? Math.max(...monthsWithData) : 0;
 
   const monthlyData = Array.from({ length: 12 }, (_, i) => {
     const month = i + 1;
     const monthName = new Date(selectedYear, i, 1).toLocaleDateString('en-US', { month: 'short' });
     
+    // Find target for this month
+    const target = targets.find((t: any) => t.year === selectedYear && t.month === month);
+    
+    // Find latest metric for this month
     const monthMetrics = metrics
       .filter((m: any) => {
         const date = new Date(m.metric_date);
@@ -1329,55 +1754,109 @@ function AnnualNetSalesChart({ metrics, targets, selectedYear }: any) {
     
     const latestMetric = monthMetrics[0];
     
+    // Accumulate targets and actuals only if we have data
+    if (latestMetric || target) {
+      cumulativeTarget += (target?.net_sales_target || 0);
+      cumulativeActual += (latestMetric?.current_net_sales || 0);
+    }
+    
     return {
       month: monthName,
-      netSales: latestMetric?.current_net_sales || null,
+      monthNum: month,
+      cumulativeTarget: cumulativeTarget,
+      cumulativeActual: month <= lastMonthWithData && latestMetric ? cumulativeActual : null,
+      cumulative112Target: cumulativeTarget * 1.12,
+      hasData: !!latestMetric || !!target,
     };
   });
 
+  // Calculate annual totals
+  const annualNetSalesTarget = cumulativeTarget;
+  const annualNetSalesActual = cumulativeActual;
+  
+  const netSalesAchievementPercent = annualNetSalesTarget > 0 ? 
+    (annualNetSalesActual / annualNetSalesTarget) * 100 : 0;
+
+  const statusText = netSalesAchievementPercent >= 100 ? 'Target Achieved' : netSalesAchievementPercent >= 85 ? 'On Pace' : 'Needs Improvement';
+  const statusColor = netSalesAchievementPercent >= 100 ? '#4CD964' : netSalesAchievementPercent >= 85 ? '#4CD964' : '#FFC107';
+  const statusBgColor = netSalesAchievementPercent >= 100 ? 'rgba(76, 217, 100, 0.2)' : netSalesAchievementPercent >= 85 ? 'rgba(76, 217, 100, 0.2)' : 'rgba(255, 193, 7, 0.2)';
+  const statusIcon = netSalesAchievementPercent >= 100 ? '🎉' : netSalesAchievementPercent >= 85 ? '✓' : '⚠';
+
   return (
-    <Card className="col-span-3 row-span-2">
-      <CardHeader>
-        <CardTitle>Annual Net Sales</CardTitle>
-        <CardIcon><ChartLine size={20} /></CardIcon>
-      </CardHeader>
-      <div className="h-[250px] flex items-center justify-center rounded-xl mt-2.5 relative">
+    <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-xl font-bold text-white">Annual Net Sales {selectedYear}</h3>
+            <span style={{ 
+              backgroundColor: statusBgColor, 
+              color: statusColor, 
+              padding: '4px 12px', 
+              borderRadius: '6px', 
+              fontSize: '12px', 
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>{statusIcon}</span> {statusText}
+            </span>
+          </div>
+          <p className="text-sm text-white/60">Year-to-date cumulative performance</p>
+        </div>
+      </div>
+      
+      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-white opacity-60"></div>
+            <span className="text-xs text-white/60">100% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 border-t-2 border-dashed border-white opacity-40"></div>
+            <span className="text-xs text-white/60">112% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/60">Current Sales</span>
+          </div>
+        </div>
+
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-            <XAxis 
-              dataKey="month" 
-              tick={{ fontSize: 11, fill: '#E0E0E0' }}
-              stroke="rgba(255,255,255,0.3)"
-            />
-            <YAxis 
-              tick={{ fontSize: 11, fill: '#E0E0E0' }}
-              stroke="rgba(255,255,255,0.3)"
-              tickFormatter={formatCurrency}
-            />
+          <ComposedChart data={monthlyData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+            <defs>
+              <linearGradient id="annualNetTargetGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.48}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.06}/>
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrency} />
             <Tooltip 
               contentStyle={{ 
-                backgroundColor: 'rgba(0, 0, 0, 0.9)', 
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '12px',
-                padding: '10px'
+                backgroundColor: 'rgba(0,0,0,0.9)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
               }}
-              labelStyle={{ color: '#ffffff', fontWeight: 700 }}
-              itemStyle={{ color: '#E0E0E0', fontSize: '12px' }}
-              formatter={(value: any) => value ? `د.إ ${formatCurrency(Number(value))}` : 'N/A'}
+              formatter={(value: any, name: string) => {
+                if (name === 'cumulativeTarget') return [formatCurrencyFull(value), '100% Target'];
+                if (name === 'cumulativeActual') return [formatCurrencyFull(value), 'Current Sales'];
+                if (name === 'cumulative112Target') return [formatCurrencyFull(value), '112% Target'];
+                return [value, name];
+              }}
             />
-            <Legend 
-              wrapperStyle={{ paddingTop: '10px' }}
-              iconType="line"
-              formatter={(value: string) => <span className="text-xs text-[#E0E0E0]">{value}</span>}
-            />
-            <Area 
+            <Line type="monotone" dataKey="cumulative112Target" stroke="#ffffff" strokeWidth={1.5} strokeDasharray="3 3" strokeOpacity={0.4} name="cumulative112Target" dot={false} />
+            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#annualNetTargetGradient)" stroke="#ffffff60" strokeWidth={1.5} name="cumulativeTarget" />
+            <Line 
               type="monotone"
-              dataKey="netSales" 
-              fill="rgba(0, 160, 233, 0.1)" 
-              stroke="#00A0E9" 
-              strokeWidth={2}
-              name="Net Sales (د.إ)"
+              dataKey="cumulativeActual" 
+              stroke="#4CD964" 
+              strokeWidth={3} 
+              name="cumulativeActual" 
+              dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
+              activeDot={{ r: 6 }} 
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -1388,13 +1867,40 @@ function AnnualNetSalesChart({ metrics, targets, selectedYear }: any) {
 
 function AnnualLabourSalesChart({ metrics, targets, selectedYear }: any) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(amount);
+    return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
   };
+
+  const formatCurrencyFull = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  // Calculate cumulative monthly data
+  let cumulativeTarget = 0;
+  let cumulativeActual = 0;
+  
+  // Find the last month with actual data
+  const monthsWithData = Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1;
+    const monthMetrics = metrics.filter((m: any) => {
+      const date = new Date(m.metric_date);
+      return date.getFullYear() === selectedYear && (date.getMonth() + 1) === month;
+    });
+    return monthMetrics.length > 0 ? month : null;
+  }).filter(m => m !== null);
+  
+  const lastMonthWithData = monthsWithData.length > 0 ? Math.max(...monthsWithData) : 0;
 
   const monthlyData = Array.from({ length: 12 }, (_, i) => {
     const month = i + 1;
     const monthName = new Date(selectedYear, i, 1).toLocaleDateString('en-US', { month: 'short' });
     
+    // Find target for this month
+    const target = targets.find((t: any) => t.year === selectedYear && t.month === month);
+    
+    // Find latest metric for this month
     const monthMetrics = metrics
       .filter((m: any) => {
         const date = new Date(m.metric_date);
@@ -1404,55 +1910,109 @@ function AnnualLabourSalesChart({ metrics, targets, selectedYear }: any) {
     
     const latestMetric = monthMetrics[0];
     
+    // Accumulate targets and actuals only if we have data
+    if (latestMetric || target) {
+      cumulativeTarget += (target?.labour_sales_target || 0);
+      cumulativeActual += (latestMetric?.current_net_labor_sales || 0);
+    }
+    
     return {
       month: monthName,
-      labourSales: latestMetric?.current_net_labor_sales || null,
+      monthNum: month,
+      cumulativeTarget: cumulativeTarget,
+      cumulativeActual: month <= lastMonthWithData && latestMetric ? cumulativeActual : null,
+      cumulative112Target: cumulativeTarget * 1.12,
+      hasData: !!latestMetric || !!target,
     };
   });
 
+  // Calculate annual totals
+  const annualLabourTarget = cumulativeTarget;
+  const annualLabourActual = cumulativeActual;
+  
+  const labourAchievementPercent = annualLabourTarget > 0 ? 
+    (annualLabourActual / annualLabourTarget) * 100 : 0;
+
+  const statusText = labourAchievementPercent >= 100 ? 'Target Achieved' : labourAchievementPercent >= 85 ? 'On Pace' : 'Needs Improvement';
+  const statusColor = labourAchievementPercent >= 100 ? '#4CD964' : labourAchievementPercent >= 85 ? '#4CD964' : '#FFC107';
+  const statusBgColor = labourAchievementPercent >= 100 ? 'rgba(76, 217, 100, 0.2)' : labourAchievementPercent >= 85 ? 'rgba(76, 217, 100, 0.2)' : 'rgba(255, 193, 7, 0.2)';
+  const statusIcon = labourAchievementPercent >= 100 ? '🎉' : labourAchievementPercent >= 85 ? '✓' : '⚠';
+
   return (
-    <Card className="col-span-3 row-span-2">
-      <CardHeader>
-        <CardTitle>Annual Labour Sales</CardTitle>
-        <CardIcon><Wrench size={20} /></CardIcon>
-      </CardHeader>
-      <div className="h-[250px] flex items-center justify-center rounded-xl mt-2.5 relative">
+    <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-xl font-bold text-white">Annual Labour Sales {selectedYear}</h3>
+            <span style={{ 
+              backgroundColor: statusBgColor, 
+              color: statusColor, 
+              padding: '4px 12px', 
+              borderRadius: '6px', 
+              fontSize: '12px', 
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>{statusIcon}</span> {statusText}
+            </span>
+          </div>
+          <p className="text-sm text-white/60">Year-to-date cumulative performance</p>
+        </div>
+      </div>
+      
+      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-white opacity-60"></div>
+            <span className="text-xs text-white/60">100% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 border-t-2 border-dashed border-white opacity-40"></div>
+            <span className="text-xs text-white/60">112% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/60">Current Labour Sales</span>
+          </div>
+        </div>
+
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-            <XAxis 
-              dataKey="month" 
-              tick={{ fontSize: 11, fill: '#E0E0E0' }}
-              stroke="rgba(255,255,255,0.3)"
-            />
-            <YAxis 
-              tick={{ fontSize: 11, fill: '#E0E0E0' }}
-              stroke="rgba(255,255,255,0.3)"
-              tickFormatter={formatCurrency}
-            />
+          <ComposedChart data={monthlyData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+            <defs>
+              <linearGradient id="annualLabourTargetGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.48}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.06}/>
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrency} />
             <Tooltip 
               contentStyle={{ 
-                backgroundColor: 'rgba(0, 0, 0, 0.9)', 
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '12px',
-                padding: '10px'
+                backgroundColor: 'rgba(0,0,0,0.9)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
               }}
-              labelStyle={{ color: '#ffffff', fontWeight: 700 }}
-              itemStyle={{ color: '#E0E0E0', fontSize: '12px' }}
-              formatter={(value: any) => value ? `د.إ ${formatCurrency(Number(value))}` : 'N/A'}
+              formatter={(value: any, name: string) => {
+                if (name === 'cumulativeTarget') return [formatCurrencyFull(value), '100% Target'];
+                if (name === 'cumulativeActual') return [formatCurrencyFull(value), 'Current Labour Sales'];
+                if (name === 'cumulative112Target') return [formatCurrencyFull(value), '112% Target'];
+                return [value, name];
+              }}
             />
-            <Legend 
-              wrapperStyle={{ paddingTop: '10px' }}
-              iconType="line"
-              formatter={(value: string) => <span className="text-xs text-[#E0E0E0]">{value}</span>}
-            />
-            <Area 
+            <Line type="monotone" dataKey="cumulative112Target" stroke="#ffffff" strokeWidth={1.5} strokeDasharray="3 3" strokeOpacity={0.4} name="cumulative112Target" dot={false} />
+            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#annualLabourTargetGradient)" stroke="#ffffff60" strokeWidth={1.5} name="cumulativeTarget" />
+            <Line 
               type="monotone"
-              dataKey="labourSales" 
-              fill="rgba(192, 192, 192, 0.1)" 
-              stroke="#C0C0C0" 
-              strokeWidth={2}
-              name="Labour Sales (د.إ)"
+              dataKey="cumulativeActual" 
+              stroke="#4CD964" 
+              strokeWidth={3} 
+              name="cumulativeActual" 
+              dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
+              activeDot={{ r: 6 }} 
             />
           </ComposedChart>
         </ResponsiveContainer>

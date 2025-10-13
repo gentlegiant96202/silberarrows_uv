@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercedes-Benz Workshop Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #C0C0C0;
+            --primary-dark: #A0A0A0;
+            --secondary: #8A8A8A;
+            --accent: #00A0E9;
+            --accent-dark: #0085C7;
+            --success: #4CD964;
+            --warning: #FFC107;
+            --danger: #FF3B30;
+            --dark: #0A0A0A;
+            --darker: #050505;
+            --light: #E0E0E0;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #050505, #0A0A0A);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1800px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-rows: 80px 1fr;
+            gap: 20px;
+        }
+
+        /* Header Styles */
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dark);
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .brand-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .brand-text span {
+            color: var(--accent);
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 8px 15px;
+            width: 300px;
+        }
+
+        .search-bar input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--light);
+            margin-left: 10px;
+            width: 100%;
+        }
+
+        .search-bar input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .notification {
+            position: relative;
+            cursor: pointer;
+            color: var(--primary);
+        }
+
+        .notification::after {
+            content: '5';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--accent);
+            color: var(--dark);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--dark);
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-auto-rows: minmax(150px, auto);
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(192, 192, 192, 0.2);
+            color: var(--primary);
+        }
+
+        .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .card-growth {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            color: var(--success);
+        }
+
+        .card-growth.negative {
+            color: var(--danger);
+        }
+
+        .chart-card {
+            grid-column: span 3;
+            grid-row: span 2;
+        }
+
+        .chart-container {
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .stats-card {
+            grid-column: span 1;
+        }
+
+        .target-card {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .target-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .target-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .target-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .target-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .target-progress {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .target-progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        /* Section Headers */
+        .section-header {
+            grid-column: 1 / -1;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: -10px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 15px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .progress-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .progress-value {
+            font-size: 14px;
+            color: var(--primary);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        /* Team Performance */
+        .team-performance {
+            grid-column: span 3;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .team-member {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+        }
+
+        .member-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--dark);
+            font-size: 24px;
+        }
+
+        .member-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .member-role {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .member-sales {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .member-contribution {
+            font-size: 14px;
+            color: var(--success);
+        }
+
+        /* Speedometer */
+        .speedometer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            position: relative;
+        }
+
+        .speedometer {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: conic-gradient(var(--success) 0% 70%, var(--warning) 70% 90%, var(--danger) 90% 100%);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .speedometer::before {
+            content: '';
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: var(--darker);
+            border-radius: 50%;
+        }
+
+        .speedometer-value {
+            position: absolute;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            z-index: 1;
+        }
+
+        .speedometer-label {
+            margin-top: 10px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 1600px) {
+            .main-content {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .team-performance {
+                grid-column: span 4;
+            }
+            
+            .chart-card {
+                grid-column: span 4;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .team-performance {
+                grid-column: span 3;
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .chart-card {
+                grid-column: span 3;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .team-performance {
+                grid-column: span 2;
+            }
+
+            .team-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .chart-card {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .team-performance {
+                grid-column: span 1;
+            }
+
+            .team-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-card {
+                grid-column: span 1;
+            }
+            
+            .header {
+                flex-direction: column;
+                padding: 15px;
+                gap: 15px;
+                height: auto;
+            }
+            
+            .search-bar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header Section -->
+        <header class="header">
+            <div class="logo-container">
+                <div class="logo">MB</div>
+                <div class="brand-text">Mercedes-<span>Benz</span> Workshop</div>
+            </div>
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search vehicle, service, or customer...">
+            </div>
+            <div class="user-actions">
+                <div class="notification">
+                    <i class="far fa-bell"></i>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar">TS</div>
+                    <div class="user-info">
+                        <div class="user-name">Workshop Manager</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Net Sales Section Header -->
+            <div class="section-header">Net Sales</div>
+
+            <!-- Net Sales Row - 5 cards -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Current Net Sales</div>
+                    <div class="card-icon">
+                        <i class="fas fa-euro-sign"></i>
+                    </div>
+                </div>
+                <div class="card-value">€24,580</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>12.5% vs target</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Est. Sales Month End</div>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="card-value">€42,800</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>7.5% vs target</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Daily Average</div>
+                    <div class="card-icon">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                </div>
+                <div class="card-value">€1,640</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>8.2% vs target</span>
+                </div>
+            </div>
+
+            <div class="card target-card" style="grid-column: span 2;">
+                <div class="card-header">
+                    <div class="card-title">Net Sales Targets</div>
+                    <div class="card-icon">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                </div>
+                <div class="target-item">
+                    <div class="target-header">
+                        <div class="target-label">100% Target</div>
+                        <div class="target-value">€39,800</div>
+                    </div>
+                    <div class="target-progress">
+                        <div class="target-progress-fill" style="width: 62%"></div>
+                    </div>
+                </div>
+                <div class="target-item">
+                    <div class="target-header">
+                        <div class="target-label">112% Target</div>
+                        <div class="target-value">€44,576</div>
+                    </div>
+                    <div class="target-progress">
+                        <div class="target-progress-fill" style="width: 55%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Labour Sales Section Header -->
+            <div class="section-header">Labour Sales</div>
+
+            <!-- Labour Sales Row - 5 cards -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Current Labour Sales</div>
+                    <div class="card-icon">
+                        <i class="fas fa-wrench"></i>
+                    </div>
+                </div>
+                <div class="card-value">€12,350</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>9.8% vs target</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Est. Labour Month End</div>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                </div>
+                <div class="card-value">€21,500</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>5.2% vs target</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Daily Average</div>
+                    <div class="card-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+                <div class="card-value">€823</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>6.7% vs target</span>
+                </div>
+            </div>
+
+            <div class="card target-card" style="grid-column: span 2;">
+                <div class="card-header">
+                    <div class="card-title">Labour Sales Targets</div>
+                    <div class="card-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                </div>
+                <div class="target-item">
+                    <div class="target-header">
+                        <div class="target-label">100% Target</div>
+                        <div class="target-value">€20,400</div>
+                    </div>
+                    <div class="target-progress">
+                        <div class="target-progress-fill" style="width: 61%"></div>
+                    </div>
+                </div>
+                <div class="target-item">
+                    <div class="target-header">
+                        <div class="target-label">112% Target</div>
+                        <div class="target-value">€22,848</div>
+                    </div>
+                    <div class="target-progress">
+                        <div class="target-progress-fill" style="width: 54%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Net Sales Progress Chart -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <div class="card-title">Net Sales Progress</div>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="netSalesProgressChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Daily Average Cards - Right Column -->
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-header">
+                    <div class="card-title">Current Daily Average</div>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                </div>
+                <div class="card-value">€1,640</div>
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <div class="progress-label">Target: €1,515</div>
+                        <div class="progress-value">108.2%</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 82%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-header">
+                    <div class="card-title">Daily Average Required</div>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                </div>
+                <div class="card-value">€1,488</div>
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <div class="progress-label">Remaining: 9 days</div>
+                        <div class="progress-value">110.2%</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 75%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Mix Donut -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Revenue Mix</div>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueMixChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Target Achievement Forecast -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <div class="card-title">Target Achievement Forecast</div>
+                    <div class="card-icon">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="targetForecastChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Annual Net Sales to Date -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <div class="card-title">Annual Net Sales to Date</div>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="annualNetSalesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Annual Labour Sales -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <div class="card-title">Annual Labour Sales</div>
+                    <div class="card-icon">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="annualLabourSalesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Additional Metrics Cards -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Marketing Spend %</div>
+                    <div class="card-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                </div>
+                <div class="card-value">4.2%</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-down"></i>
+                    <span>0.3% decrease</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Marketing Spend</div>
+                    <div class="card-icon">
+                        <i class="fas fa-euro-sign"></i>
+                    </div>
+                </div>
+                <div class="card-value">€1,680</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-down"></i>
+                    <span>6.7% decrease</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Avg. Invoice Value</div>
+                    <div class="card-icon">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                </div>
+                <div class="card-value">€428</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>5.2% increase</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Number of Invoices</div>
+                    <div class="card-icon">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                </div>
+                <div class="card-value">58</div>
+                <div class="card-growth">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>3.6% increase</span>
+                </div>
+            </div>
+
+            <!-- Vehicle Throughput Speedometer -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Vehicle Throughput</div>
+                    <div class="card-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                </div>
+                <div class="speedometer-container">
+                    <div class="speedometer">
+                        <div class="speedometer-value">14</div>
+                    </div>
+                    <div class="speedometer-label">Vehicles per day</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <div class="progress-label">Target: 12 vehicles</div>
+                        <div class="progress-value">116.7%</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 85%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Performance -->
+            <div class="card team-performance">
+                <div class="card-header">
+                    <div class="card-title">Team Performance</div>
+                    <div class="card-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <div class="team-grid">
+                    <div class="team-member">
+                        <div class="member-avatar">D</div>
+                        <div class="member-name">Daniel</div>
+                        <div class="member-role">Senior Technician</div>
+                        <div class="member-sales">€8,420</div>
+                        <div class="member-contribution">34.2% of total</div>
+                    </div>
+                    <div class="team-member">
+                        <div class="member-avatar">L</div>
+                        <div class="member-name">Lucy</div>
+                        <div class="member-role">Service Advisor</div>
+                        <div class="member-sales">€7,150</div>
+                        <div class="member-contribution">29.1% of total</div>
+                    </div>
+                    <div class="team-member">
+                        <div class="member-avatar">E</div>
+                        <div class="member-name">Essrar</div>
+                        <div class="member-role">Technician</div>
+                        <div class="member-sales">€6,380</div>
+                        <div class="member-contribution">25.9% of total</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize charts when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Net Sales Progress Chart
+            const netSalesProgressCtx = document.getElementById('netSalesProgressChart').getContext('2d');
+            const netSalesProgressChart = new Chart(netSalesProgressCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1', '5', '10', '15', '20', '25', '30'],
+                    datasets: [
+                        {
+                            label: 'Cumulative Target',
+                            data: [5300, 10600, 15900, 21200, 26500, 31800, 37100],
+                            borderColor: '#C0C0C0',
+                            backgroundColor: 'rgba(192, 192, 192, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Current Net Sales',
+                            data: [5800, 11200, 16800, 22500, 27800, 33200, 38800],
+                            borderColor: '#00A0E9',
+                            backgroundColor: 'rgba(0, 160, 233, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Forecast',
+                            data: [null, null, null, null, null, 33200, 38800, 44500],
+                            borderColor: '#4CD964',
+                            backgroundColor: 'rgba(76, 217, 100, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            borderDash: [5, 5],
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#E0E0E0',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Day of Month',
+                                color: '#E0E0E0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#E0E0E0'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Sales (€)',
+                                color: '#E0E0E0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#E0E0E0'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Target Achievement Forecast Chart
+            const targetForecastCtx = document.getElementById('targetForecastChart').getContext('2d');
+            const targetForecastChart = new Chart(targetForecastCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Forecast'],
+                    datasets: [
+                        {
+                            label: 'Cumulative Target',
+                            data: [9300, 18600, 27900, 37200, 46500],
+                            borderColor: '#C0C0C0',
+                            backgroundColor: 'rgba(192, 192, 192, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Current',
+                            data: [10200, 19800, 29500, 39200, null],
+                            borderColor: '#00A0E9',
+                            backgroundColor: 'rgba(0, 160, 233, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Forecasted',
+                            data: [null, null, null, 39200, 48800],
+                            borderColor: '#4CD964',
+                            backgroundColor: 'rgba(76, 217, 100, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            borderDash: [5, 5],
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#E0E0E0',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#E0E0E0'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#E0E0E0'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Revenue Mix Donut Chart
+            const revenueMixCtx = document.getElementById('revenueMixChart').getContext('2d');
+            const revenueMixChart = new Chart(revenueMixCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Labour Sales', 'Parts Sales'],
+                    datasets: [{
+                        data: [52, 48],
+                        backgroundColor: [
+                            'rgba(0, 160, 233, 0.8)',
+                            'rgba(192, 192, 192, 0.8)'
+                        ],
+                        borderColor: [
+                            '#00A0E9',
+                            '#C0C0C0'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#E0E0E0',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Annual Net Sales Chart
+            const annualNetSalesCtx = document.getElementById('annualNetSalesChart').getContext('2d');
+            const annualNetSalesChart = new Chart(annualNetSalesCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Net Sales (€)',
+                        data: [38500, 41200, 39800, 43200, 45600, 48800, 47500, 49200, 46800, 50200, 52400, 55800],
+                        borderColor: '#00A0E9',
+                        backgroundColor: 'rgba(0, 160, 233, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#E0E0E0',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#E0E0E0'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#E0E0E0'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Annual Labour Sales Chart
+            const annualLabourSalesCtx = document.getElementById('annualLabourSalesChart').getContext('2d');
+            const annualLabourSalesChart = new Chart(annualLabourSalesCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Labour Sales (€)',
+                        data: [19800, 21500, 20800, 22400, 23800, 25200, 24500, 25800, 24200, 26200, 27400, 29200],
+                        borderColor: '#C0C0C0',
+                        backgroundColor: 'rgba(192, 192, 192, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#E0E0E0',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#E0E0E0'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#E0E0E0'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Add interactive effects
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                    this.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.3)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+

@@ -3,6 +3,13 @@ import './globals.css'
 import Providers from '@/components/shared/Providers'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import LayoutWrapper from '@/components/shared/LayoutWrapper'
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
   title: 'SilberArrows',
@@ -22,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${inter.variable}`}>
       <head>
         {/* PWA Manifest */}
         <link rel="manifest" href="/mobile-manifest.json" />

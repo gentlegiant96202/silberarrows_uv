@@ -276,19 +276,6 @@ function AccountsDashboardContent() {
               </div>
             )}
 
-            {/* Loading State */}
-            {/* The 'calculating' state is no longer destructured from useServiceData,
-                so this block will always show loading if 'loading' is true.
-                If 'loading' is false, it will show the content based on activeTab and serviceSubTab. */}
-            {(loading || salesLoading) && (
-              <div className="mb-6 p-4 backdrop-blur-md bg-gradient-to-r from-blue-900/40 via-blue-800/30 to-blue-700/40 border border-blue-500/30 rounded-lg flex items-center space-x-3 shadow-lg">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-400/20 border-t-blue-400"></div>
-                <span className="text-blue-100">
-                  {activeTab === 'sales' ? 'Loading sales data...' : 'Loading service data...'}
-                </span>
-              </div>
-            )}
-
             {/* Content */}
             <div className="space-y-6">
               {activeTab === 'service' ? (

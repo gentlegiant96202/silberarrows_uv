@@ -86,17 +86,16 @@ export default function WorkshopDashboard() {
     }
   }, [canView, permissionLoading, router]);
 
-  // Show loading while checking permissions
-  if (permissionLoading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <PulsatingLogo size={48} text="Checking access permissions..." />
-      </div>
-    );
-  }
+  // Redirect if no permission (but don't block rendering)
+  useEffect(() => {
+    if (!permissionLoading && !canView) {
+      // Show access denied inline
+      return;
+    }
+  }, [canView, permissionLoading]);
 
   // Show access denied if no permission
-  if (!canView) {
+  if (!permissionLoading && !canView) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-8">
@@ -120,21 +119,13 @@ export default function WorkshopDashboard() {
     <RouteProtector moduleName="workshop">
       <main className="h-full overflow-y-auto no-scrollbar relative bg-black">
         <div className="p-4 text-white text-sm">
-          {/* Service Dashboard */}
+          {/* Service Dashboard - Always render, let it handle loading state */}
           <div className="mb-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <PulsatingLogo size={48} text="Loading service metrics..." />
-              </div>
-            ) : (
-              <div className="animate-fadeIn">
-                <ServiceDashboard 
-                  metrics={allMetrics} 
-                  targets={allTargets}
-                  loading={serviceLoading}
-                />
-              </div>
-            )}
+            <ServiceDashboard 
+              metrics={allMetrics} 
+              targets={allTargets}
+              loading={permissionLoading || loading}
+            />
           </div>
         </div>
       </main>

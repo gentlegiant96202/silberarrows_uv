@@ -166,10 +166,141 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
   if (loading || isInitialLoad) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#C0C0C0]/30 border-t-[#C0C0C0] rounded-full animate-spin mx-auto mb-6"></div>
-          <p className="text-[#E0E0E0] text-xl font-medium">Loading Service Dashboard...</p>
+      <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] p-8 space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="h-10 w-64 bg-[rgba(255,255,255,0.08)] rounded-xl animate-pulse"></div>
+          <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl px-6 py-3 flex items-center gap-5">
+            <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+            <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+            <div className="h-12 w-40 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+            <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Main Grid Skeleton */}
+        <div className="grid grid-cols-6 auto-rows-auto gap-5">
+          {/* Row 1: Net Sales Cards */}
+          <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          
+          {/* Target Cards */}
+          <div className="col-span-1 row-span-2 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-28 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="space-y-3">
+              <div className="h-8 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+              <div className="h-8 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            </div>
+          </div>
+          <div className="col-span-1 row-span-2 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-28 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="space-y-3">
+              <div className="h-8 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+              <div className="h-8 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            </div>
+          </div>
+
+          {/* Row 2: Labour Sales Cards */}
+          <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+
+          {/* Charts Row */}
+          <div className="col-span-3 row-span-2 bg-[rgba(0,0,0,1)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-48 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-[350px] w-full bg-[rgba(255,255,255,0.05)] rounded"></div>
+          </div>
+          <div className="col-span-3 row-span-2 bg-[rgba(0,0,0,1)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-48 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-[350px] w-full bg-[rgba(255,255,255,0.05)] rounded"></div>
+          </div>
+
+          {/* Additional metric cards */}
+          <div className="col-span-1 row-span-2 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 row-span-2 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 row-span-2 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 row-span-2 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 row-span-2 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+          <div className="col-span-1 row-span-2 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-10 w-full bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-4 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+          </div>
+
+          {/* Team Performance Skeleton */}
+          <div className="col-span-6 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-48 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="h-48 bg-[rgba(255,255,255,0.05)] rounded-xl"></div>
+              <div className="h-48 bg-[rgba(255,255,255,0.05)] rounded-xl"></div>
+              <div className="h-48 bg-[rgba(255,255,255,0.05)] rounded-xl"></div>
+            </div>
+          </div>
+
+          {/* Annual Charts Skeleton */}
+          <div className="col-span-3 row-span-2 bg-[rgba(0,0,0,1)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-48 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-[350px] w-full bg-[rgba(255,255,255,0.05)] rounded"></div>
+          </div>
+          <div className="col-span-3 row-span-2 bg-[rgba(0,0,0,1)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
+            <div className="h-6 w-48 bg-[rgba(255,255,255,0.1)] rounded"></div>
+            <div className="h-[350px] w-full bg-[rgba(255,255,255,0.05)] rounded"></div>
+          </div>
         </div>
       </div>
     );

@@ -1354,7 +1354,7 @@ const TargetAchievementForecastChart: React.FC<{
         </div>
       </div>
       
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={500}>
         <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: -20 }}>
           <defs>
             <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
@@ -1485,7 +1485,7 @@ const TargetAchievementForecastChart: React.FC<{
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div className="mt-6 grid grid-cols-4 gap-4">
+      <div className="mt-8 grid grid-cols-4 gap-4">
         {/* Marketing Forecast */}
         <div className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 backdrop-blur-xl rounded-xl border-2 border-cyan-500/40 p-3">
           <div className="flex items-center gap-1.5 mb-2">

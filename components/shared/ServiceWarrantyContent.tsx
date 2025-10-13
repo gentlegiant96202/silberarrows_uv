@@ -648,18 +648,18 @@ export default function ServiceWarrantyContent() {
         style={{ height: "calc(100vh - 72px)" }}
       >
         {/* Fixed Header Section - completely outside scroll area */}
-        <div className="flex-shrink-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 overflow-hidden">
+        <div className="flex-shrink-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
           {/* Page Header with Search and Actions */}
-          <div className="flex items-start justify-between mb-6 min-w-0 overflow-hidden">
-            <div className="flex-1 min-w-0 pr-4">
-              <h1 className="text-3xl font-bold text-white mb-2 truncate">ServiceCare and Extended Warranty Management</h1>
+          <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 mb-6">
+            <div className="flex-shrink-0">
+              <h1 className="text-3xl font-bold text-white mb-2">ServiceCare and Extended Warranty Management</h1>
               <p className="text-white/60">Contract Management System</p>
             </div>
             
-            {/* Search and Filters - Flexible width */}
-            <div className="flex items-center space-x-3 flex-shrink-0">
+            {/* Search and Filters - Flexible width with wrapping support */}
+            <div className="flex items-center flex-wrap gap-3 flex-shrink-0">
               {/* Search */}
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-white/40" />
                 <input
                   type="text"
@@ -674,7 +674,7 @@ export default function ServiceWarrantyContent() {
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40"
+                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40 flex-shrink-0"
               >
                 <option value="" className="bg-gray-900">All Months</option>
                 <option value="1" className="bg-gray-900">January</option>
@@ -695,7 +695,7 @@ export default function ServiceWarrantyContent() {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
-                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40"
+                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40 flex-shrink-0"
               >
                 <option value="" className="bg-gray-900">All Years</option>
                 {availableYears.map(year => (
@@ -709,7 +709,7 @@ export default function ServiceWarrantyContent() {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40"
+                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40 flex-shrink-0"
               >
                 <option value="" className="bg-gray-900">All Status</option>
                 <option value="created" className="bg-gray-900">Created</option>
@@ -721,7 +721,7 @@ export default function ServiceWarrantyContent() {
               <select
                 value={selectedActiveStatus}
                 onChange={(e) => setSelectedActiveStatus(e.target.value)}
-                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40"
+                className="h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-white/40 flex-shrink-0"
               >
                 <option value="" className="bg-gray-900">All Contracts</option>
                 <option value="active" className="bg-gray-900">🟢 Active</option>
@@ -738,7 +738,7 @@ export default function ServiceWarrantyContent() {
                     setSelectedStatus('');
                     setSelectedActiveStatus('');
                   }}
-                  className="h-[42px] px-3 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded text-red-400 text-sm transition-colors flex items-center gap-2"
+                  className="h-[42px] px-3 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded text-red-400 text-sm transition-colors flex items-center gap-2 flex-shrink-0"
                   title="Clear all filters"
                 >
                   <X className="w-4 h-4" />
@@ -747,7 +747,7 @@ export default function ServiceWarrantyContent() {
               )}
 
               {/* PDF Buttons */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {/* ServiceCare Pricing Calculator Button */}
                 <button
                   onClick={() => setIsPricingCalculatorOpen(true)}
@@ -767,14 +767,15 @@ export default function ServiceWarrantyContent() {
                 </button>
               </div>
 
-              {/* New Contract Button */}
+              {/* New Contract Button - Ensure always visible */}
               {canCreate && (
                 <button 
                   onClick={() => setIsModalOpen(true)}
                   disabled={isCreatingContract}
-                  className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded text-white transition-all duration-200 disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded text-white transition-all duration-200 disabled:opacity-50 flex-shrink-0 whitespace-nowrap"
+                  title="Create new contract"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4 flex-shrink-0" />
                   <span>{isCreatingContract ? 'Creating...' : 'New Contract'}</span>
                 </button>
               )}

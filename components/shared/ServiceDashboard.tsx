@@ -1,9 +1,9 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Calendar, TrendingUp, Target, FileText, AlertCircle, ChevronDown, Zap, Users } from 'lucide-react';
+import { Calendar, TrendingUp, Target, FileText, AlertCircle, ChevronDown, Zap, Users, Search, Bell, BarChart3, Activity, Wrench, Trophy, DollarSign, CalendarDays, Percent, Receipt, ChartLine, ChartBar, PieChart as PieIcon, ChartPie, CalendarRange, BarChart4, LayoutGrid, Gauge } from 'lucide-react';
 import DirhamIcon from '@/components/ui/DirhamIcon';
-import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { ComposedChart, AreaChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import type { DailyServiceMetrics, ServiceMonthlyTarget } from '@/types/service';
 
 interface ServiceDashboardProps {
@@ -20,6 +20,8 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   const [monthTarget, setMonthTarget] = useState<ServiceMonthlyTarget | null>(null);
   const [monthlyInvoiceSum, setMonthlyInvoiceSum] = useState(0);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [compareWithPrevious, setCompareWithPrevious] = useState(false);
+  const [previousMonthData, setPreviousMonthData] = useState<DailyServiceMetrics | null>(null);
 
   useEffect(() => {
     if (isInitialLoad && !loading) {
@@ -78,6 +80,52 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     loadDashboardData();
   }, [selectedYear, selectedMonth, selectedDate, metrics, targets]);
 
+  // Load previous month data for comparison (same period)
+  useEffect(() => {
+    if (!dashboardData) {
+      setPreviousMonthData(null);
+      return;
+    }
+
+    const currentDate = new Date(dashboardData.metric_date);
+    const currentDayOfMonth = currentDate.getDate();
+    
+    const previousMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
+    const previousYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+
+    const prevMonthMetrics = metrics.filter(m => {
+      const date = new Date(m.metric_date);
+      return date.getFullYear() === previousYear && (date.getMonth() + 1) === previousMonth;
+    });
+
+    if (prevMonthMetrics.length > 0) {
+      // First try: Find metric with same day of month (e.g., 11th of Sept vs 11th of Oct)
+      let targetMetric = prevMonthMetrics.find(m => {
+        const prevDate = new Date(m.metric_date);
+        return prevDate.getDate() === currentDayOfMonth;
+      });
+      
+      // Second try: Find metric with same working days elapsed
+      if (!targetMetric) {
+        targetMetric = prevMonthMetrics.find(m => 
+          m.working_days_elapsed === dashboardData.working_days_elapsed
+        );
+      }
+      
+      // Last resort: Find closest by working days elapsed
+      if (!targetMetric) {
+        targetMetric = prevMonthMetrics.sort((a, b) => 
+          Math.abs((a.working_days_elapsed || 0) - (dashboardData.working_days_elapsed || 0)) -
+          Math.abs((b.working_days_elapsed || 0) - (dashboardData.working_days_elapsed || 0))
+        )[0];
+      }
+      
+      setPreviousMonthData(targetMetric);
+    } else {
+      setPreviousMonthData(null);
+    }
+  }, [dashboardData, selectedYear, selectedMonth, metrics]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
@@ -92,28 +140,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     return `${value.toFixed(1)}%`;
   };
 
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'from-emerald-400 to-emerald-500';
-    if (percentage >= 80) return 'from-amber-400 to-amber-500';
-    return 'from-rose-400 to-rose-500';
-  };
-
-  const getStatusBadge = (current: number, target: number, stretch?: boolean) => {
-    const targetValue = stretch ? target * 1.12 : target;
-    if (current >= targetValue) {
-      return (
-        <span className={`absolute -top-2 -right-2 text-[10px] px-2 py-1 rounded-full font-bold border backdrop-blur-sm ${
-          stretch 
-            ? 'bg-amber-500/30 text-amber-200 border-amber-400/50 shadow-lg shadow-amber-500/20' 
-            : 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50 shadow-lg shadow-emerald-500/20'
-        }`}>
-          {stretch ? '⚡ STRETCH' : '✓ MET'}
-        </span>
-      );
-    }
-    return null;
-  };
-
   const vehicleThroughput = dashboardData && dashboardData.working_days_elapsed > 0
     ? monthlyInvoiceSum / dashboardData.working_days_elapsed
     : 0;
@@ -126,1031 +152,555 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     ? (dashboardData.current_marketing_spend / dashboardData.current_net_sales) * 100
     : 0;
 
+  const vehicleThroughputTarget = 12;
+  const vehicleThroughputPercentage = (vehicleThroughput / vehicleThroughputTarget) * 100;
+
+  // Calculate team contributions (from existing logic)
+  const totalSales = dashboardData 
+    ? (dashboardData.daniel_total_sales || 0) + (dashboardData.essrar_total_sales || 0) + (dashboardData.lucy_total_sales || 0)
+    : 0;
+
+  const danielContribution = totalSales > 0 && dashboardData ? ((dashboardData.daniel_total_sales || 0) / totalSales) * 100 : 0;
+  const lucyContribution = totalSales > 0 && dashboardData ? ((dashboardData.lucy_total_sales || 0) / totalSales) * 100 : 0;
+  const essrarContribution = totalSales > 0 && dashboardData ? ((dashboardData.essrar_total_sales || 0) / totalSales) * 100 : 0;
+
   if (loading || isInitialLoad) {
     return (
-      <div className="h-screen bg-black flex items-center justify-center overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-6"></div>
-          <p className="text-white/80 text-xl font-medium">Loading Service Dashboard...</p>
+          <div className="w-16 h-16 border-4 border-[#C0C0C0]/30 border-t-[#C0C0C0] rounded-full animate-spin mx-auto mb-6"></div>
+          <p className="text-[#E0E0E0] text-xl font-medium">Loading Service Dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-black p-4 lg:p-8 overflow-auto">
-      <div className="fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)] pointer-events-none"></div>
-      
-      <div className="w-full space-y-8 relative z-10">
-        {/* Header */}
-        <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 shadow-2xl">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <h1 className="text-3xl font-bold text-white tracking-tight">Service Department Dashboard</h1>
-              <p className="text-white/60 text-base mt-2">Real-time performance metrics and business insights</p>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] p-5">
+      <div className="w-full flex flex-col gap-5">
+        {/* Header with Title and Date Filters */}
+        <div className="flex items-center justify-between">
+          {/* Left-aligned Heading */}
+          <div className="text-2xl font-bold text-[#C0C0C0]">
+            Service Report
+          </div>
         
-            <div className="flex flex-wrap gap-3">
-              <div className="relative">
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => {
-                    setSelectedMonth(Number(e.target.value));
-                    setSelectedDate('');
-                  }}
-                  className="appearance-none bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl pl-5 pr-12 py-3 text-white text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer hover:bg-white/5 transition-all duration-200"
-                >
-                  {[
-                    { value: 1, label: 'January' }, { value: 2, label: 'February' },
-                    { value: 3, label: 'March' }, { value: 4, label: 'April' },
-                    { value: 5, label: 'May' }, { value: 6, label: 'June' },
-                    { value: 7, label: 'July' }, { value: 8, label: 'August' },
-                    { value: 9, label: 'September' }, { value: 10, label: 'October' },
-                    { value: 11, label: 'November' }, { value: 12, label: 'December' }
-                  ].map(month => (
-                    <option key={month.value} value={month.value} className="bg-gray-900 text-white">
-                      {month.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-white/40 absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-              </div>
+          {/* Date Filters Container */}
+          <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl px-6 py-3 flex items-center gap-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+            {/* Days Remaining */}
+            {monthTarget && dashboardData && (() => {
+              const workingDaysElapsed = dashboardData.working_days_elapsed || 0;
+              const totalWorkingDays = monthTarget.number_of_working_days || 30;
+              const daysRemaining = Math.max(0, totalWorkingDays - workingDaysElapsed);
+              
+              return (
+                <div className="flex items-center gap-2 border-r border-[rgba(255,255,255,0.1)] pr-5">
+                  <CalendarDays size={16} className="text-white" />
+                  <div className="flex flex-col">
+                    <span className="text-xs text-[rgba(255,255,255,0.5)]">Days Remaining</span>
+                    <span className="text-sm font-bold text-white">{daysRemaining} of {totalWorkingDays}</span>
+                  </div>
+                </div>
+              );
+            })()}
+            
+          {/* Month Selector */}
+            <div className="relative">
+            <select
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(Number(e.target.value));
+                  setSelectedDate('');
+                }}
+                className="appearance-none bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl pl-4 pr-10 py-2 text-[#E0E0E0] text-sm font-medium focus:outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-all"
+              >
+                {[
+                  { value: 1, label: 'January' }, { value: 2, label: 'February' },
+                  { value: 3, label: 'March' }, { value: 4, label: 'April' },
+                  { value: 5, label: 'May' }, { value: 6, label: 'June' },
+                  { value: 7, label: 'July' }, { value: 8, label: 'August' },
+                  { value: 9, label: 'September' }, { value: 10, label: 'October' },
+                  { value: 11, label: 'November' }, { value: 12, label: 'December' }
+              ].map(month => (
+                  <option key={month.value} value={month.value} className="bg-gray-900 text-white">
+                  {month.label}
+                </option>
+              ))}
+            </select>
+              <ChevronDown className="w-4 h-4 text-[rgba(255,255,255,0.5)] absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+          </div>
 
-              <div className="relative">
-                <select
-                  value={selectedYear}
-                  onChange={(e) => {
-                    setSelectedYear(Number(e.target.value));
-                    setSelectedDate('');
-                  }}
-                  className="appearance-none bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl pl-5 pr-12 py-3 text-white text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer hover:bg-white/5 transition-all duration-200"
-                >
-                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                    <option key={year} value={year} className="bg-gray-900 text-white">{year}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-white/40 absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-              </div>
+          {/* Year Selector */}
+            <div className="relative">
+            <select
+              value={selectedYear}
+              onChange={(e) => {
+                setSelectedYear(Number(e.target.value));
+                  setSelectedDate('');
+              }}
+                className="appearance-none bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl pl-4 pr-10 py-2 text-[#E0E0E0] text-sm font-medium focus:outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-all"
+            >
+              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                  <option key={year} value={year} className="bg-gray-900 text-white">{year}</option>
+              ))}
+            </select>
+              <ChevronDown className="w-4 h-4 text-[rgba(255,255,255,0.5)] absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+          </div>
 
-              <div className="relative">
-                <select
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="appearance-none bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl pl-5 pr-12 py-3 text-white text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer hover:bg-white/5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            {/* Date Selector */}
+            <div className="relative">
+            <select
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+                className="appearance-none bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl pl-4 pr-10 py-2 text-[#E0E0E0] text-sm font-medium focus:outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-all disabled:opacity-50"
               disabled={availableDates.length === 0}
             >
               {availableDates.length === 0 ? (
                 <option>No data available</option>
               ) : (
                 availableDates.map(date => (
-                      <option key={date} value={date} className="bg-gray-900 text-white">
-                        {new Date(date).toLocaleDateString('en-GB', { 
-                          day: 'numeric', 
-                          month: 'short',
-                          year: 'numeric'
-                        })}
+                    <option key={date} value={date} className="bg-gray-900 text-white">
+                      {new Date(date).toLocaleDateString('en-GB', { 
+                        day: 'numeric', 
+                        month: 'short',
+                        year: 'numeric'
+                      })}
                   </option>
                 ))
               )}
-                </select>
-                <Calendar className="w-4 h-4 text-white/40 absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
+            </select>
+              <Calendar className="w-4 h-4 text-[rgba(255,255,255,0.5)] absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
-      </div>
+        </div>
 
       {!dashboardData ? (
-          <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-            <AlertCircle className="w-20 h-20 text-white/40 mb-6" />
-            <h3 className="text-2xl font-semibold text-white/80 mb-3">No Data Available</h3>
-            <p className="text-white/50 text-lg">Please select a different period or add data in the Data Grid tab</p>
+          <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
+            <AlertCircle className="w-20 h-20 text-[rgba(255,255,255,0.4)] mb-6" />
+            <h3 className="text-2xl font-semibold text-[rgba(255,255,255,0.8)] mb-3">No Data Available</h3>
+            <p className="text-[rgba(255,255,255,0.5)] text-lg">Please select a different period or add data in the Data Grid tab</p>
         </div>
       ) : (
-        <>
-            {/* Net Sales Metrics */}
-            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-              <div className="relative bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 xl:col-span-2">
-              {monthTarget && getStatusBadge(dashboardData.current_net_sales || 0, monthTarget.net_sales_target)}
-              
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <p className="text-white/60 text-sm font-medium uppercase tracking-wider mb-2">Current Net Sales</p>
-                    <h2 className="text-2xl font-bold text-white">Performance Overview</h2>
-              </div>
-                  <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
-                    <TrendingUp className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 mb-6">
-                  <DirhamIcon className="w-12 h-12 text-white/90" />
-                  <p className="text-5xl font-black text-white">
+          <main className="grid grid-cols-6 auto-rows-auto gap-5">
+            {/* Net Sales Row - 4 cards */}
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Current Net Sales</CardTitle>
+                <CardIcon progress={dashboardData.current_net_sales_percentage}><Wrench size={20} /></CardIcon>
+              </CardHeader>
+              <CardValue>
+                <DirhamIcon className="w-7 h-7 mr-2" />
                   {formatCurrency(dashboardData.current_net_sales || 0)}
-                </p>
+              </CardValue>
+              <div className="flex flex-col gap-1 mb-2">
+                <CardGrowth positive={dashboardData.current_net_sales_percentage >= 100} percentage={dashboardData.current_net_sales_percentage}>
+                  {dashboardData.current_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_net_sales_percentage)} vs target
+                </CardGrowth>
+                {previousMonthData && (() => {
+                  const prevDate = new Date(previousMonthData.metric_date);
+                  const prevDateStr = prevDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                  const changePercent = ((dashboardData.current_net_sales - previousMonthData.current_net_sales) / previousMonthData.current_net_sales) * 100;
+                  return (
+                    <div className={`text-xs ${changePercent >= 0 ? 'text-[rgba(76,217,100,0.7)]' : 'text-[rgba(255,59,48,0.7)]'}`}>
+                      {changePercent >= 0 ? '↑' : '↓'}{' '}
+                      {formatPercentage(Math.abs(changePercent))} vs {prevDateStr}
+                    </div>
+                  );
+                })()}
               </div>
-                <div className="w-full bg-white/10 rounded-full h-3 mb-4">
-                <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_net_sales_percentage || 0)} h-3 rounded-full transition-all duration-500 shadow-lg`}
-                  style={{ width: `${Math.min(dashboardData.current_net_sales_percentage || 0, 100)}%` }}
-                ></div>
-              </div>
-                <p className="text-xl font-bold text-white">
-                {formatPercentage(dashboardData.current_net_sales_percentage)}
-              </p>
-            </div>
+              {monthTarget && dashboardData && dashboardData.current_net_sales_percentage < 112 && (() => {
+                const target112 = (monthTarget.net_sales_target || 0) * 1.12;
+                const remaining = Math.max(0, target112 - dashboardData.current_net_sales);
+                const daysRemaining = Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0));
+                const dailyRateNeeded = daysRemaining > 0 ? remaining / daysRemaining : 0;
+                const formatCompact = (amount: number) => {
+                  if (amount >= 1000) {
+                    return `${(amount / 1000).toFixed(1)}K`;
+                  }
+                  return formatCurrency(amount);
+                };
+                return daysRemaining > 0 ? (
+                  <div className="flex items-center gap-1 text-xs text-[#FFC107]">
+                    <span>Need</span>
+                    <DirhamIcon className="w-3 h-3" />
+                    <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
+                  </div>
+                ) : null;
+              })()}
+            </Card>
 
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-white/70 font-medium">Est. Month End</p>
-                <TrendingUp className="w-5 h-5 text-white/60" />
-              </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <DirhamIcon className="w-7 h-7 text-white/80" />
-                  <p className="text-2xl font-bold text-white">
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Est. Sales Month End</CardTitle>
+                <CardIcon progress={dashboardData.estimated_net_sales_percentage}><TrendingUp size={20} /></CardIcon>
+              </CardHeader>
+              <CardValue>
+                <DirhamIcon className="w-7 h-7 mr-2" />
                   {formatCurrency(dashboardData.estimated_net_sales || 0)}
-                </p>
-              </div>
-                <div className="w-full bg-white/10 rounded-full h-2 mb-3">
-                <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_net_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
-                  style={{ width: `${Math.min(dashboardData.estimated_net_sales_percentage || 0, 100)}%` }}
-                ></div>
-              </div>
-                <p className="text-white/50 text-sm">
-                {formatPercentage(dashboardData.estimated_net_sales_percentage)}
-              </p>
-            </div>
+              </CardValue>
+              <CardGrowth positive={dashboardData.estimated_net_sales_percentage >= 100} percentage={dashboardData.estimated_net_sales_percentage}>
+                {dashboardData.estimated_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.estimated_net_sales_percentage)} vs target
+              </CardGrowth>
+            </Card>
 
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-white/70 font-medium">Daily Average</p>
-              </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <DirhamIcon className="w-7 h-7 text-white/80" />
-                  <p className="text-2xl font-bold text-white">
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Daily Average</CardTitle>
+                <CardIcon><CalendarDays size={20} /></CardIcon>
+              </CardHeader>
+              <CardValue>
+                <DirhamIcon className="w-7 h-7 mr-2" />
                   {formatCurrency(dashboardData.current_daily_average || 0)}
-                </p>
-              </div>
-                <p className="text-white/40 text-sm">Daily pace</p>
-            </div>
+              </CardValue>
+              <CardGrowth positive={true}>
+                Daily pace
+              </CardGrowth>
+            </Card>
 
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 space-y-4">
-                {/* 100% Target */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-white/70 font-medium">Target - 100%</p>
-                <Target className="w-5 h-5 text-white/60" />
+            <Card className="col-span-3">
+              <CardHeader>
+                <CardTitle>Net Sales Targets</CardTitle>
+                <CardIcon><Trophy size={20} /></CardIcon>
+              </CardHeader>
+              <div className="flex flex-col gap-4 mt-2">
+                <TargetItem
+                  label="100% Target"
+                  value={monthTarget?.net_sales_target || 0}
+                  progress={(dashboardData.current_net_sales / (monthTarget?.net_sales_target || 1)) * 100}
+                  current={dashboardData.current_net_sales}
+                  daysRemaining={monthTarget && dashboardData ? Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0)) : 0}
+                  showDailyRate={false}
+                />
+                <TargetItem
+                  label="112% Target"
+                  value={(monthTarget?.net_sales_target || 0) * 1.12}
+                  progress={(dashboardData.current_net_sales / ((monthTarget?.net_sales_target || 1) * 1.12)) * 100}
+                  current={dashboardData.current_net_sales}
+                  daysRemaining={monthTarget && dashboardData ? Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0)) : 0}
+                  showDailyRate={false}
+                />
               </div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <DirhamIcon className="w-7 h-7 text-white/80" />
-                    <p className="text-2xl font-bold text-white">
-                  {monthTarget ? formatCurrency(monthTarget.net_sales_target) : 'N/A'}
-                </p>
-              </div>
-                  <p className="text-white/40 text-sm">
-                {(dashboardData.current_net_sales || 0) >= (monthTarget?.net_sales_target || 0) 
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget?.net_sales_target || 0))}`
-                  : `Remaining: ${formatCurrency((monthTarget?.net_sales_target || 0) - (dashboardData.current_net_sales || 0))}`
-                }
-              </p>
-            </div>
+            </Card>
 
-                {/* Divider */}
-                <div className="border-t border-white/10"></div>
+            {/* Divider between Net Sales and Labour Sales */}
+            <div className="col-span-6 border-t border-[rgba(255,255,255,0.1)] my-2"></div>
 
-                {/* 112% Stretch Goal - Nested Inside */}
-                <div className="relative bg-gradient-to-br from-amber-500/20 to-amber-600/10 rounded-xl border-2 border-amber-500/40 p-4">
-              {monthTarget && getStatusBadge(dashboardData.current_net_sales || 0, monthTarget.net_sales_target, true)}
-              
-              <div className="flex items-center justify-between mb-3">
-                    <p className="text-amber-200 font-bold text-sm">Stretch Goal - 112% ⚡</p>
-                    <Zap className="w-4 h-4 text-amber-300" />
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <DirhamIcon className="w-6 h-6 text-amber-200" />
-                    <p className="text-xl font-bold text-amber-100">
-                  {monthTarget ? formatCurrency(monthTarget.net_sales_112_percent) : 'N/A'}
-                </p>
-              </div>
-              <p className={`text-xs font-semibold ${
-                monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
-                  ? 'text-emerald-300'
-                  : 'text-amber-300/70'
-              }`}>
-                {monthTarget && (dashboardData.current_net_sales || 0) >= (monthTarget.net_sales_112_percent || 0)
-                  ? `✓ Exceeded by: ${formatCurrency((dashboardData.current_net_sales || 0) - (monthTarget.net_sales_112_percent || 0))}`
-                  : monthTarget ? `Remaining: ${formatCurrency((monthTarget.net_sales_112_percent || 0) - (dashboardData.current_net_sales || 0))}` : 'N/A'
-                }
-              </p>
-                </div>
-            </div>
-          </div>
-
-            {/* Labour Sales Metrics */}
-            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-white/70 font-medium">Current Labour</p>
-              </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <DirhamIcon className="w-7 h-7 text-white/80" />
-                  <p className="text-2xl font-bold text-white">
+            {/* Labour Sales Row - 4 cards */}
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Current Labour Sales</CardTitle>
+                <CardIcon progress={dashboardData.current_labour_sales_percentage}><Wrench size={20} /></CardIcon>
+              </CardHeader>
+              <CardValue>
+                <DirhamIcon className="w-7 h-7 mr-2" />
                   {formatCurrency(dashboardData.current_net_labor_sales || 0)}
-                </p>
+              </CardValue>
+              <div className="flex flex-col gap-1 mb-2">
+                <CardGrowth positive={dashboardData.current_labour_sales_percentage >= 100} percentage={dashboardData.current_labour_sales_percentage}>
+                  {dashboardData.current_labour_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_labour_sales_percentage)} vs target
+                </CardGrowth>
+                {previousMonthData && (() => {
+                  const prevDate = new Date(previousMonthData.metric_date);
+                  const prevDateStr = prevDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                  const changePercent = ((dashboardData.current_net_labor_sales - previousMonthData.current_net_labor_sales) / previousMonthData.current_net_labor_sales) * 100;
+                  return (
+                    <div className={`text-xs ${changePercent >= 0 ? 'text-[rgba(76,217,100,0.7)]' : 'text-[rgba(255,59,48,0.7)]'}`}>
+                      {changePercent >= 0 ? '↑' : '↓'}{' '}
+                      {formatPercentage(Math.abs(changePercent))} vs {prevDateStr}
+                    </div>
+                  );
+                })()}
               </div>
-                <div className="w-full bg-white/10 rounded-full h-2 mb-3">
-                <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.current_labour_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
-                  style={{ width: `${Math.min(dashboardData.current_labour_sales_percentage || 0, 100)}%` }}
-                ></div>
-              </div>
-                <p className="text-white/50 text-sm">
-                {formatPercentage(dashboardData.current_labour_sales_percentage)}
-              </p>
-            </div>
+              {monthTarget && dashboardData && (dashboardData.current_net_labor_sales / ((monthTarget.labour_sales_target || 1) * 1.12) * 100) < 112 && (() => {
+                const target112 = (monthTarget.labour_sales_target || 0) * 1.12;
+                const remaining = Math.max(0, target112 - dashboardData.current_net_labor_sales);
+                const daysRemaining = Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0));
+                const dailyRateNeeded = daysRemaining > 0 ? remaining / daysRemaining : 0;
+                const formatCompact = (amount: number) => {
+                  if (amount >= 1000) {
+                    return `${(amount / 1000).toFixed(1)}K`;
+                  }
+                  return formatCurrency(amount);
+                };
+                return daysRemaining > 0 ? (
+                  <div className="flex items-center gap-1 text-xs text-[#FFC107]">
+                    <span>Need</span>
+                    <DirhamIcon className="w-3 h-3" />
+                    <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
+                  </div>
+                ) : null;
+              })()}
+            </Card>
 
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-white/70 font-medium">Est. Labour End</p>
-                <TrendingUp className="w-5 h-5 text-white/60" />
-              </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <DirhamIcon className="w-7 h-7 text-white/80" />
-                  <p className="text-2xl font-bold text-white">
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Est. Labour Month End</CardTitle>
+                <CardIcon progress={dashboardData.estimated_labor_sales_percentage}><TrendingUp size={20} /></CardIcon>
+              </CardHeader>
+              <CardValue>
+                <DirhamIcon className="w-7 h-7 mr-2" />
                   {formatCurrency(dashboardData.estimated_labor_sales || 0)}
-                </p>
-              </div>
-                <div className="w-full bg-white/10 rounded-full h-2 mb-3">
-                <div 
-                  className={`bg-gradient-to-r ${getProgressColor(dashboardData.estimated_labor_sales_percentage || 0)} h-2 rounded-full transition-all duration-500 shadow-md`}
-                  style={{ width: `${Math.min(dashboardData.estimated_labor_sales_percentage || 0, 100)}%` }}
-                ></div>
-              </div>
-                <p className="text-white/50 text-sm">
-                {formatPercentage(dashboardData.estimated_labor_sales_percentage)}
-              </p>
-            </div>
+              </CardValue>
+              <CardGrowth positive={dashboardData.estimated_labor_sales_percentage >= 100} percentage={dashboardData.estimated_labor_sales_percentage}>
+                {dashboardData.estimated_labor_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.estimated_labor_sales_percentage)} vs target
+              </CardGrowth>
+            </Card>
 
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-white/70 font-medium">Daily Average</p>
-              </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <DirhamIcon className="w-7 h-7 text-white/80" />
-                  <p className="text-2xl font-bold text-white">
-                  {formatCurrency((dashboardData.working_days_elapsed || 0) > 0 
-                    ? (dashboardData.current_net_labor_sales || 0) / (dashboardData.working_days_elapsed || 1)
-                    : 0)}
-                </p>
-              </div>
-                <p className="text-white/40 text-sm">Daily pace</p>
-            </div>
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Daily Average</CardTitle>
+                <CardIcon><CalendarDays size={20} /></CardIcon>
+              </CardHeader>
+              <CardValue>
+                <DirhamIcon className="w-7 h-7 mr-2" />
+                {formatCurrency((dashboardData.current_net_labor_sales || 0) / (dashboardData.working_days_elapsed || 1))}
+              </CardValue>
+              <CardGrowth positive={true}>
+                Daily pace
+              </CardGrowth>
+            </Card>
 
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-white/70 font-medium">Target - 100%</p>
-                <Target className="w-5 h-5 text-white/60" />
-              </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <DirhamIcon className="w-7 h-7 text-white/80" />
-                  <p className="text-2xl font-bold text-white">
-                  {monthTarget ? formatCurrency(monthTarget.labour_sales_target) : 'N/A'}
-                </p>
-              </div>
-                <p className="text-white/40 text-sm">
-                {(dashboardData.current_net_labor_sales || 0) >= (monthTarget?.labour_sales_target || 0)
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_labor_sales || 0) - (monthTarget?.labour_sales_target || 0))}`
-                  : `Remaining: ${formatCurrency((monthTarget?.labour_sales_target || 0) - (dashboardData.current_net_labor_sales || 0))}`
-                }
-              </p>
-            </div>
-
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-white/70 font-medium">Target - 112%</p>
-                <Target className="w-5 h-5 text-white/60" />
-              </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <DirhamIcon className="w-7 h-7 text-white/80" />
-                  <p className="text-2xl font-bold text-white">
-                  {monthTarget ? formatCurrency(monthTarget.labour_sales_target * 1.12) : 'N/A'}
-                </p>
-              </div>
-                <p className="text-white/40 text-sm">
-                {monthTarget && (dashboardData.current_net_labor_sales || 0) >= ((monthTarget.labour_sales_target || 0) * 1.12)
-                  ? `Exceeded by: ${formatCurrency((dashboardData.current_net_labor_sales || 0) - ((monthTarget.labour_sales_target || 0) * 1.12))}`
-                  : monthTarget ? `Remaining: ${formatCurrency(((monthTarget.labour_sales_target || 0) * 1.12) - (dashboardData.current_net_labor_sales || 0))}` : 'N/A'
-                }
-              </p>
-            </div>
-          </div>
-
-            {/* Progress Charts */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <NetSalesProgressChart 
-              metrics={metrics.filter(m => {
-                const date = new Date(m.metric_date);
-                const metricDate = new Date(m.metric_date);
-                const selectedDateObj = new Date(selectedDate);
-                return date.getFullYear() === selectedYear && 
-                       (date.getMonth() + 1) === selectedMonth &&
-                       metricDate <= selectedDateObj;
-              })}
-              target={monthTarget}
-            />
-
-            <LabourSalesProgressChart 
-              metrics={metrics.filter(m => {
-                const date = new Date(m.metric_date);
-                const metricDate = new Date(m.metric_date);
-                const selectedDateObj = new Date(selectedDate);
-                return date.getFullYear() === selectedYear && 
-                       (date.getMonth() + 1) === selectedMonth &&
-                       metricDate <= selectedDateObj;
-              })}
-              target={monthTarget}
+            <Card className="col-span-3">
+              <CardHeader>
+                <CardTitle>Labour Sales Targets</CardTitle>
+                <CardIcon><Trophy size={20} /></CardIcon>
+              </CardHeader>
+              <div className="flex flex-col gap-4 mt-2">
+                <TargetItem
+                  label="100% Target"
+                  value={monthTarget?.labour_sales_target || 0}
+                  progress={(dashboardData.current_net_labor_sales / (monthTarget?.labour_sales_target || 1)) * 100}
+                  current={dashboardData.current_net_labor_sales}
+                  daysRemaining={monthTarget && dashboardData ? Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0)) : 0}
+                  showDailyRate={false}
+                />
+                <TargetItem
+                  label="112% Target"
+                  value={(monthTarget?.labour_sales_target || 0) * 1.12}
+                  progress={(dashboardData.current_net_labor_sales / ((monthTarget?.labour_sales_target || 1) * 1.12)) * 100}
+                  current={dashboardData.current_net_labor_sales}
+                  daysRemaining={monthTarget && dashboardData ? Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0)) : 0}
+                  showDailyRate={false}
             />
           </div>
+            </Card>
 
-            {/* Additional Charts */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <TargetAchievementForecastChart 
-              metrics={metrics.filter(m => {
-                const date = new Date(m.metric_date);
-                const metricDate = new Date(m.metric_date);
-                const selectedDateObj = new Date(selectedDate);
-                return date.getFullYear() === selectedYear && 
-                       (date.getMonth() + 1) === selectedMonth &&
-                       metricDate <= selectedDateObj;
-              })}
-              target={monthTarget}
-              selectedDate={selectedDate}
-            />
+            {/* Charts Section */}
+            <NetSalesProgressChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} monthTarget={monthTarget} />
+            <DailyAverageChart dashboardData={dashboardData} monthTarget={monthTarget} metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+            <TargetForecastChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} monthTarget={monthTarget} />
+            <RevenueMixChart dashboardData={dashboardData} />
+            <AnnualNetSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} />
+            <AnnualLabourSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} />
 
-            <LabourPartsBreakdownChart 
-              dashboardData={dashboardData}
-              target={monthTarget}
-            />
+            {/* Marketing Performance */}
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Marketing Performance</CardTitle>
+                <CardIcon><TrendingUp size={20} /></CardIcon>
+              </CardHeader>
+              <div className="flex flex-col gap-4 mt-2">
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-[rgba(255,255,255,0.8)]">Marketing Spend %</span>
+                    <span className="text-lg font-bold text-[#C0C0C0]">{marketingSpendPercentage.toFixed(1)}%</span>
           </div>
-
-            {/* Annual Performance Charts - Full Width */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-              <AnnualNetSalesChart 
-                metrics={metrics}
-                targets={targets}
-                selectedYear={selectedYear}
-              />
-              <AnnualLabourSalesChart 
-                metrics={metrics}
-                targets={targets}
-                selectedYear={selectedYear}
-              />
-            </div>
-
-            {/* KPI Grid & Performance */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              <div className="grid grid-cols-2 gap-6 xl:col-span-2">
-                <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-white/70 font-medium">Marketing %</p>
-                  <DirhamIcon className="w-5 h-5 text-white/60" />
+                  <div className="text-xs text-[#FF3B30] flex items-center gap-1">
+                    <span>↓</span> Budget allocation
                 </div>
-                  <p className="text-3xl font-bold text-white mb-2">{formatPercentage(marketingSpendPercentage)}</p>
-                  <p className="text-white/40 text-sm">Of sales</p>
-              </div>
-
-                <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-white/70 font-medium">Avg Invoice</p>
-                  <FileText className="w-5 h-5 text-white/60" />
                 </div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <DirhamIcon className="w-6 h-6 text-white/80" />
-                    <p className="text-3xl font-bold text-white">{formatCurrency(averageInvoiceValue)}</p>
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-[rgba(255,255,255,0.8)]">Marketing Spend</span>
+                    <div className="flex items-center gap-1">
+                      <DirhamIcon className="w-4 h-4" />
+                      <span className="text-lg font-bold text-[#C0C0C0]">{formatCurrency(dashboardData.current_marketing_spend || 0)}</span>
+              </div>
+                </div>
+                  <div className="text-xs text-[#FF3B30] flex items-center gap-1">
+                    <span>↓</span> Total spend
                   </div>
-                  <p className="text-white/40 text-sm">Per invoice</p>
-              </div>
-
-                <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-white/70 font-medium">Marketing</p>
                 </div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <DirhamIcon className="w-6 h-6 text-white/80" />
-                    <p className="text-3xl font-bold text-white">{formatCurrency(dashboardData.current_marketing_spend || 0)}</p>
-                  </div>
-                  <p className="text-white/40 text-sm">Total spend</p>
               </div>
+            </Card>
 
-                <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-white/70 font-medium">Invoices</p>
-                  <FileText className="w-5 h-5 text-white/60" />
+            {/* Avg Invoice Value */}
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Avg. Invoice Value</CardTitle>
+                <CardIcon><FileText size={20} /></CardIcon>
+              </CardHeader>
+              <CardValue>
+                <DirhamIcon className="w-7 h-7 mr-2" />
+                {formatCurrency(averageInvoiceValue)}
+              </CardValue>
+              <CardGrowth positive={true}>
+                ↑ Per transaction
+              </CardGrowth>
+            </Card>
+
+              {/* Number of Invoices */}
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Number of Invoices</CardTitle>
+                <CardIcon><Receipt size={20} /></CardIcon>
+              </CardHeader>
+              <CardValue>
+                {monthlyInvoiceSum}
+              </CardValue>
+              <CardGrowth positive={true}>
+                ↑ Total count
+              </CardGrowth>
+            </Card>
+
+            {/* Vehicle Throughput */}
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Vehicle Throughput</CardTitle>
+                <CardIcon><Gauge size={20} /></CardIcon>
+              </CardHeader>
+              <div className="flex flex-col items-center justify-center h-[150px] relative">
+                <div className="w-[120px] h-[120px] rounded-full bg-[conic-gradient(#4CD964_0%_70%,#FFC107_70%_90%,#FF3B30_90%_100%)] relative flex items-center justify-center">
+                  <div className="w-[90px] h-[90px] bg-[#050505] rounded-full absolute"></div>
+                  <div className="absolute text-xl font-bold text-[#C0C0C0] z-10">
+                    {vehicleThroughput.toFixed(0)}
                 </div>
-                  <p className="text-3xl font-bold text-white mb-2">{monthlyInvoiceSum}</p>
-                  <p className="text-white/40 text-sm">This month</p>
+                </div>
+                <div className="mt-2.5 text-sm text-[rgba(255,255,255,0.7)]">Vehicles per day</div>
+              </div>
+              <div className="mt-4">
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm text-[rgba(255,255,255,0.8)]">Target: {vehicleThroughputTarget} vehicles</span>
+                  <span className="text-sm text-[#C0C0C0]">{vehicleThroughputPercentage.toFixed(1)}%</span>
+            </div>
+                <div className="h-2 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#C0C0C0] rounded-full" style={{ width: `${Math.min(vehicleThroughputPercentage, 100)}%` }}></div>
               </div>
             </div>
-
-              <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-                <h3 className="text-xl font-semibold text-white mb-6">Vehicle Throughput</h3>
-              <div className="flex items-center justify-center">
-                <VehicleThroughputGauge value={vehicleThroughput} />
-              </div>
-            </div>
-          </div>
+            </Card>
 
             {/* Team Performance */}
-            <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-semibold text-white">Team Performance</h3>
-                <Users className="w-6 h-6 text-white/60" />
+            <div className="col-span-6 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-transform hover:translate-y-[-5px] hover:shadow-[0_8px_25px_rgba(0,0,0,0.3)]">
+              <div className="flex justify-between items-center mb-6">
+                <div className="text-base font-semibold text-[rgba(255,255,255,0.8)]">Team Performance</div>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(192,192,192,0.2)] text-[#C0C0C0]">
+                  <Users size={20} />
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <SalespersonCard 
-                name="DANIEL" 
-                amount={dashboardData.daniel_total_sales || 0}
-                totalSales={
-                  (dashboardData.daniel_total_sales || 0) +
-                  (dashboardData.lucy_total_sales || 0) +
-                  (dashboardData.essrar_total_sales || 0)
-                }
-                rank={
-                  [
-                    { name: 'DANIEL', amount: dashboardData.daniel_total_sales || 0 },
-                    { name: 'LUCY', amount: dashboardData.lucy_total_sales || 0 },
-                    { name: 'ESSRAR', amount: dashboardData.essrar_total_sales || 0 }
-                  ]
-                    .sort((a, b) => b.amount - a.amount)
-                    .findIndex(p => p.name === 'DANIEL') + 1
-                }
-              />
-              <SalespersonCard 
-                name="LUCY" 
-                amount={dashboardData.lucy_total_sales || 0}
-                totalSales={
-                  (dashboardData.daniel_total_sales || 0) +
-                  (dashboardData.lucy_total_sales || 0) +
-                  (dashboardData.essrar_total_sales || 0)
-                }
-                rank={
-                  [
-                    { name: 'DANIEL', amount: dashboardData.daniel_total_sales || 0 },
-                    { name: 'LUCY', amount: dashboardData.lucy_total_sales || 0 },
-                    { name: 'ESSRAR', amount: dashboardData.essrar_total_sales || 0 }
-                  ]
-                    .sort((a, b) => b.amount - a.amount)
-                    .findIndex(p => p.name === 'LUCY') + 1
-                }
-              />
-              <SalespersonCard 
-                name="ESSRAR" 
-                amount={dashboardData.essrar_total_sales || 0}
-                totalSales={
-                  (dashboardData.daniel_total_sales || 0) +
-                  (dashboardData.lucy_total_sales || 0) +
-                  (dashboardData.essrar_total_sales || 0)
-                }
-                rank={
-                  [
-                    { name: 'DANIEL', amount: dashboardData.daniel_total_sales || 0 },
-                    { name: 'LUCY', amount: dashboardData.lucy_total_sales || 0 },
-                    { name: 'ESSRAR', amount: dashboardData.essrar_total_sales || 0 }
-                  ]
-                    .sort((a, b) => b.amount - a.amount)
-                    .findIndex(p => p.name === 'ESSRAR') + 1
-                }
+            <div className="grid grid-cols-3 gap-4">
+                <TeamMember
+                  initial="D"
+                  name="Daniel"
+                  role="Senior Technician"
+                  sales={dashboardData.daniel_total_sales || 0}
+                  contribution={danielContribution}
+                />
+                <TeamMember
+                  initial="L"
+                  name="Lucy"
+                  role="Service Advisor"
+                  sales={dashboardData.lucy_total_sales || 0}
+                  contribution={lucyContribution}
+                />
+                <TeamMember
+                  initial="E"
+                  name="Essrar"
+                  role="Technician"
+                  sales={dashboardData.essrar_total_sales || 0}
+                  contribution={essrarContribution}
               />
             </div>
           </div>
-        </>
+          </main>
       )}
       </div>
     </div>
   );
 }
 
-/* ---------------- Vehicle Throughput Gauge ---------------- */
-const VehicleThroughputGauge: React.FC<{ value: number }> = ({ value }) => {
-  const safeValue = value || 0;
-  const maxValue = 15;
-  const normalizedValue = Math.min(safeValue, maxValue);
-  const percentage = (normalizedValue / maxValue) * 100;
-
+// Card Components
+function Card({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className="relative w-56 h-56">
-      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 200 200">
-        <circle
-          cx="100"
-          cy="100"
-          r="85"
-          fill="none"
-          stroke="rgba(255,255,255,0.1)"
-          strokeWidth="12"
-          strokeDasharray="376.99"
-          strokeDashoffset="125.66"
-        />
-        <circle
-          cx="100"
-          cy="100"
-          r="85"
-          fill="none"
-          stroke="url(#silverGradient)"
-          strokeWidth="12"
-          strokeDasharray="376.99"
-          strokeDashoffset={125.66 + (251.33 * (1 - percentage / 100))}
-          strokeLinecap="round"
-          className="transition-all duration-1000 ease-out"
-        />
-        <defs>
-          <linearGradient id="silverGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity={0.9} />
-            <stop offset="50%" stopColor="#d1d5db" stopOpacity={0.7} />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity={0.9} />
-          </linearGradient>
-        </defs>
-      </svg>
-      
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <p className="text-4xl font-bold text-white">{safeValue.toFixed(1)}</p>
-        <p className="text-white/60 text-sm mt-2">invoices/day</p>
-      </div>
+    <div className={`bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all duration-300 hover:translate-y-[-5px] hover:shadow-[0_8px_25px_rgba(0,0,0,0.3)] hover:border-[rgba(192,192,192,0.3)] hover:bg-[rgba(255,255,255,0.12)] ${className}`} style={style}>
+      {children}
     </div>
   );
-};
+}
 
-/* ---------------- Net Sales Progress Chart ---------------- */
-const NetSalesProgressChart: React.FC<{ 
-  metrics: DailyServiceMetrics[]; 
-  target: ServiceMonthlyTarget | null;
-}> = ({ metrics, target }) => {
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>({});
+function CardHeader({ children }: { children: React.ReactNode }) {
+  return <div className="flex justify-between items-center mb-4">{children}</div>;
+}
 
-  useEffect(() => {
-    if (metrics.length > 0 && target) {
-      const sortedMetrics = [...metrics].sort((a, b) => 
-        new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime()
-      );
+function CardTitle({ children }: { children: React.ReactNode }) {
+  return <div className="text-base font-semibold text-[rgba(255,255,255,0.8)]">{children}</div>;
+}
 
-      const totalWorkingDays = target.number_of_working_days || 22;
-      const data = [];
-      
-      for (let workingDay = 1; workingDay <= totalWorkingDays; workingDay++) {
-        const dailyCumulativeTarget = (target.daily_cumulative_target || 0) * workingDay;
-        const metric = sortedMetrics[workingDay - 1];
-        const metricDayOfMonth = metric ? new Date(metric.metric_date).getDate() : null;
-        
-        data.push({
-          day: metricDayOfMonth || workingDay,
-          cumulativeTarget: dailyCumulativeTarget,
-          currentNetSales: metric ? (metric.current_net_sales || 0) : null,
-          estimatedNetSales: metric ? (metric.estimated_net_sales || 0) : null,
-          target112: target.net_sales_112_percent || 0,
-        });
-      }
-
-      const actualData = data.filter(d => d.currentNetSales !== null);
-      const salesValues = actualData.map(d => d.currentNetSales!);
-      const bestDay = salesValues.length > 0 ? Math.max(...salesValues) : 0;
-      const avgDaily = salesValues.length > 0 ? salesValues.reduce((a, b) => a + b, 0) / salesValues.length : 0;
-      const latestData = actualData[actualData.length - 1];
-      const daysAheadBehind = latestData ? 
-        Math.round((latestData.currentNetSales! - latestData.cumulativeTarget) / (target.daily_cumulative_target || 1)) : 0;
-      
-      const recentData = actualData.slice(-3);
-      const trend = recentData.length >= 2 ? 
-        (recentData[recentData.length - 1].currentNetSales! - recentData[0].currentNetSales!) / recentData.length : 0;
-
-      setStats({
-        bestDay,
-        avgDaily,
-        daysAheadBehind,
-        trend: trend > 0 ? 'up' : trend < 0 ? 'down' : 'flat',
-        trendValue: Math.abs(trend)
-      });
-
-      setChartData(data);
-    }
-  }, [metrics, target]);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-AE', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || !payload.length) return null;
-    
-    const data = payload[0].payload;
-    const gap = data.currentNetSales - data.cumulativeTarget;
-    const percentageOfTarget = (data.currentNetSales / data.cumulativeTarget) * 100;
-    
-    return (
-      <div className="bg-black/98 backdrop-blur-2xl border border-white/30 rounded-2xl p-4 shadow-2xl">
-        <p className="text-white font-bold text-sm mb-3">Day {data.day}</p>
-        
-        <div className="space-y-2 text-xs">
-          <div className="flex justify-between items-center gap-4">
-            <span className="text-emerald-400 font-semibold">Current:</span>
-            <span className="text-white font-mono">{formatCurrency(data.currentNetSales)}</span>
-          </div>
-          
-          <div className="flex justify-between items-center gap-4">
-            <span className="text-gray-400 font-semibold">Target:</span>
-            <span className="text-white font-mono">{formatCurrency(data.cumulativeTarget)}</span>
-          </div>
-          
-          <div className="border-t border-white/10 pt-2 mt-2">
-            <div className="flex justify-between items-center gap-4">
-              <span className={`font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {gap >= 0 ? '↑ Ahead:' : '↓ Behind:'}
-              </span>
-              <span className={`font-mono font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {formatCurrency(Math.abs(gap))}
-              </span>
-            </div>
-            <div className="flex justify-between items-center gap-4 mt-1">
-              <span className="text-gray-400">Achievement:</span>
-              <span className={`font-bold ${percentageOfTarget >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {percentageOfTarget.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const actualData = chartData.filter(d => d.currentNetSales !== null);
-  const latestData = actualData[actualData.length - 1];
-  const performance = latestData && latestData.cumulativeTarget > 0 ? (latestData.currentNetSales / latestData.cumulativeTarget) * 100 : 0;
-
-  return (
-    <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold text-white">Net Sales Progress</h3>
-            {stats.trend && (
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                stats.trend === 'up' ? 'text-emerald-400 bg-emerald-500/20' : 
-                stats.trend === 'down' ? 'text-red-400 bg-red-500/20' : 
-                'text-gray-400 bg-gray-500/20'
-              }`}>
-                {stats.trend === 'up' ? '↗ Trending Up' : stats.trend === 'down' ? '↘ Trending Down' : '→ Flat'}
-              </span>
-            )}
-          </div>
-          <p className="text-white/60">Month-to-date cumulative performance vs targets</p>
-        </div>
-        
-        {latestData && (
-          <div className={`px-3 py-1 rounded-lg text-xs font-bold ${
-            performance >= 100 ? 'bg-emerald-500/20 text-emerald-300' :
-            performance >= 80 ? 'bg-amber-500/20 text-amber-300' :
-            'bg-red-500/20 text-red-300'
-          }`}>
-            {performance.toFixed(1)}% of Target
-          </div>
-        )}
-      </div>
-      
-      <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={chartData} margin={{ top: 5, right: 30, bottom: 10, left: -20 }}>
-          <defs>
-            <linearGradient id="netSalesGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.6}/>
-              <stop offset="50%" stopColor="#10b981" stopOpacity={0.3}/>
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          
-          {target && (
-            <>
-              <ReferenceArea 
-                y1={0} 
-                y2={target.net_sales_target * 0.6} 
-                fill="#ef4444" 
-                fillOpacity={0.05}
-              />
-              <ReferenceArea 
-                y1={target.net_sales_target * 0.6} 
-                y2={target.net_sales_target * 0.9} 
-                fill="#f59e0b" 
-                fillOpacity={0.05}
-              />
-              <ReferenceArea 
-                y1={target.net_sales_target * 0.9} 
-                y2={target.net_sales_target * 1.3} 
-                fill="#10b981" 
-                fillOpacity={0.05}
-              />
-            </>
-          )}
-          
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.15)" />
-          
-          <XAxis 
-            dataKey="day" 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
-          />
-          <YAxis 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
-            tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(value)}
-            width={50}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend 
-            wrapperStyle={{ paddingTop: '20px' }}
-            iconType="line"
-            formatter={(value: string) => <span className="text-xs text-white/80">{value}</span>}
-          />
-          
-          <Line 
-            type="monotone"
-            dataKey="cumulativeTarget" 
-            stroke="rgba(255,255,255,0.4)" 
-            strokeWidth={2.5}
-            strokeDasharray="4 4"
-            dot={false}
-            name="Daily Cumulative Target"
-          />
-          <Area 
-            type="monotone"
-            dataKey="currentNetSales" 
-            fill="url(#netSalesGradient)" 
-            stroke="#10b981" 
-            strokeWidth={4}
-            dot={{ fill: '#10b981', r: 6, strokeWidth: 2, stroke: '#065f46' }}
-            activeDot={{ r: 8, strokeWidth: 3 }}
-            name="Current Net Sales"
-            filter="url(#glow)"
-          />
-          <Line 
-            type="monotone"
-            dataKey="target112" 
-            stroke="#f59e0b" 
-            strokeWidth={3}
-            strokeDasharray="5 3"
-            dot={false}
-            name="112% Target"
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-/* ---------------- Labour Sales Progress Chart ---------------- */
-const LabourSalesProgressChart: React.FC<{ 
-  metrics: DailyServiceMetrics[]; 
-  target: ServiceMonthlyTarget | null;
-}> = ({ metrics, target }) => {
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>({});
-
-  useEffect(() => {
-    if (metrics.length > 0 && target) {
-      const sortedMetrics = [...metrics].sort((a, b) => 
-        new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime()
-      );
-
-      const totalWorkingDays = target.number_of_working_days || 22;
-      const target112 = (target.net_sales_target || 0) * 1.12;
-
-      const data = [];
-      for (let workingDay = 1; workingDay <= totalWorkingDays; workingDay++) {
-        const metric = sortedMetrics[workingDay - 1];
-        const metricDayOfMonth = metric ? new Date(metric.metric_date).getDate() : null;
-        
-        if (metric) {
-          const workingDays = metric.working_days_elapsed || workingDay;
-          const currentAvg = (metric.current_net_sales || 0) / workingDays;
-          const remainingDays = totalWorkingDays - workingDays;
-          const requiredAvg = remainingDays > 0 
-            ? (target112 - (metric.current_net_sales || 0)) / remainingDays
-            : 0;
-
-          data.push({
-            day: metricDayOfMonth || workingDay,
-            currentAvg: currentAvg || 0,
-            requiredAvg: requiredAvg > 0 ? requiredAvg : 0,
-          });
-        } else {
-          data.push({
-            day: workingDay,
-            currentAvg: null,
-            requiredAvg: null,
-          });
-        }
-      }
-
-      const actualData = data.filter(d => d.currentAvg !== null);
-      const avgValues = actualData.map(d => d.currentAvg!);
-      const bestDayAvg = avgValues.length > 0 ? Math.max(...avgValues) : 0;
-      const overallAvg = avgValues.length > 0 ? avgValues.reduce((a, b) => a + b, 0) / avgValues.length : 0;
-      const latestData = actualData[actualData.length - 1];
-      const improvementNeeded = latestData ? latestData.requiredAvg! - latestData.currentAvg! : 0;
-      
-      const movingAvg7Day = actualData.length >= 7 ? 
-        actualData.slice(-7).reduce((sum, d) => sum + d.currentAvg!, 0) / 7 : overallAvg;
-
-      setStats({
-        bestDayAvg,
-        overallAvg,
-        improvementNeeded,
-        movingAvg7Day,
-        isOnTrack: latestData ? latestData.currentAvg! >= latestData.requiredAvg! : false
-      });
-
-      setChartData(data);
-    }
-  }, [metrics, target]);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-AE', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || !payload.length) return null;
-    
-    const data = payload[0].payload;
-    const gap = data.currentAvg - data.requiredAvg;
-    const percentageOfRequired = (data.currentAvg / data.requiredAvg) * 100;
-    
-    return (
-      <div className="bg-black/98 backdrop-blur-2xl border border-white/30 rounded-2xl p-4 shadow-2xl">
-        <p className="text-white font-bold text-sm mb-3">Day {data.day}</p>
-        
-        <div className="space-y-2 text-xs">
-          <div className="flex justify-between items-center gap-4">
-            <span className="text-emerald-400 font-semibold">Current Avg:</span>
-            <span className="text-white font-mono">{formatCurrency(data.currentAvg)}</span>
-          </div>
-          
-          <div className="flex justify-between items-center gap-4">
-            <span className="text-orange-400 font-semibold">Required:</span>
-            <span className="text-white font-mono">{formatCurrency(data.requiredAvg)}</span>
-          </div>
-          
-          <div className="border-t border-white/10 pt-2 mt-2">
-            <div className="flex justify-between items-center gap-4">
-              <span className={`font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {gap >= 0 ? '✓ On Track:' : '⚠ Gap:'}
-              </span>
-              <span className={`font-mono font-bold ${gap >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {formatCurrency(Math.abs(gap))}
-              </span>
-            </div>
-            <div className="flex justify-between items-center gap-4 mt-1">
-              <span className="text-gray-400">Performance:</span>
-              <span className={`font-bold ${percentageOfRequired >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {percentageOfRequired.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const actualDataDaily = chartData.filter(d => d.currentAvg !== null);
-  const latestData = actualDataDaily[actualDataDaily.length - 1];
-
-  return (
-    <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold text-white">Net Sales Daily Average</h3>
-            {stats.isOnTrack !== undefined && (
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                stats.isOnTrack ? 'text-emerald-400 bg-emerald-500/20' : 'text-amber-400 bg-amber-500/20'
-              }`}>
-                {stats.isOnTrack ? '✓ On Track' : '⚠ Needs Improvement'}
-              </span>
-            )}
-          </div>
-          <p className="text-white/60">Current daily performance vs required pace for 112% target</p>
-        </div>
-        
-        {stats.improvementNeeded !== undefined && stats.improvementNeeded > 0 && (
-          <div className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 flex items-center gap-1">
-            <span>+</span>
-            <span>{(stats.improvementNeeded / 1000).toFixed(0)}K needed/day</span>
-          </div>
-        )}
-      </div>
-      
-      <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={chartData} margin={{ top: 5, right: 30, bottom: 10, left: -20 }}>
-          <defs>
-            <linearGradient id="labourAvgGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.6}/>
-              <stop offset="50%" stopColor="#10b981" stopOpacity={0.3}/>
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
-            </linearGradient>
-            <filter id="glowLabour">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          
-          {latestData && (
-            <>
-              <ReferenceArea 
-                y1={0} 
-                y2={latestData.requiredAvg * 0.7} 
-                fill="#ef4444" 
-                fillOpacity={0.05}
-              />
-              <ReferenceArea 
-                y1={latestData.requiredAvg * 0.7} 
-                y2={latestData.requiredAvg} 
-                fill="#f59e0b" 
-                fillOpacity={0.05}
-              />
-              <ReferenceArea 
-                y1={latestData.requiredAvg} 
-                y2={latestData.requiredAvg * 1.5} 
-                fill="#10b981" 
-                fillOpacity={0.05}
-              />
-            </>
-          )}
-          
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.15)" />
-          
-          <XAxis 
-            dataKey="day" 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
-          />
-          <YAxis 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
-            tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(value)}
-            width={50}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend 
-            wrapperStyle={{ paddingTop: '20px' }}
-            iconType="line"
-            formatter={(value: string) => <span className="text-xs text-white/80">{value}</span>}
-          />
-          
-          <Area 
-            type="monotone"
-            dataKey="currentAvg" 
-            fill="url(#labourAvgGradient)" 
-            stroke="#10b981" 
-            strokeWidth={4}
-            dot={{ fill: '#10b981', r: 6, strokeWidth: 2, stroke: '#065f46' }}
-            activeDot={{ r: 8, strokeWidth: 3 }}
-            name="Current Daily Average"
-            filter="url(#glowLabour)"
-          />
-          <Line 
-            type="monotone"
-            dataKey="requiredAvg" 
-            stroke="#f97316" 
-            strokeWidth={3}
-            strokeDasharray="4 4"
-            dot={false}
-            name="Required for 112%"
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-/* ---------------- Salesperson Performance Card ---------------- */
-const SalespersonCard: React.FC<{ 
-  name: string; 
-  amount: number; 
-  totalSales: number;
-  rank: number;
-}> = ({ name, amount, totalSales, rank }) => {
-  const percentage = totalSales > 0 ? (amount / totalSales) * 100 : 0;
+function CardIcon({ children, progress }: { children: React.ReactNode; progress?: number }) {
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  // Cap progress at 112% for visual display, but keep color logic based on actual percentage
+  const displayProgress = progress !== undefined ? Math.min(progress, 112) : undefined;
+  const strokeDashoffset = displayProgress !== undefined ? circumference - (displayProgress / 112) * circumference : 0;
   
+  const getProgressColor = () => {
+    if (progress === undefined) return '#C0C0C0';
+    if (progress >= 100) return '#4CD964';
+    if (progress >= 85) return '#FFC107';
+    return '#FF3B30';
+  };
+
+  return (
+    <div className="relative w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(192,192,192,0.2)] text-[#C0C0C0]">
+      {progress !== undefined && (
+        <svg className="absolute inset-0 w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+          <circle
+            cx="20"
+            cy="20"
+            r={radius}
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth="2"
+            fill="none"
+          />
+          <circle
+            cx="20"
+            cy="20"
+            r={radius}
+            stroke={getProgressColor()}
+            strokeWidth="2"
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-500"
+          />
+        </svg>
+      )}
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+}
+
+function CardValue({ children }: { children: React.ReactNode }) {
+  return <div className="text-[28px] font-bold mb-2.5 text-[#C0C0C0] flex items-center tabular-nums">{children}</div>;
+}
+
+function CardGrowth({ children, positive = true, percentage }: { children: React.ReactNode; positive?: boolean; percentage?: number }) {
+  // Color coding based on percentage to target
+  const getColor = () => {
+    if (!percentage) return positive ? 'text-[#4CD964]' : 'text-[#FF3B30]';
+    if (percentage >= 100) return 'text-[#4CD964]'; // Green for on/above target
+    if (percentage >= 85) return 'text-[#FFC107]'; // Yellow/amber for approaching target
+    return 'text-[#FF3B30]'; // Red for below target
+  };
+
+    return (
+    <div className={`flex items-center gap-1 text-sm font-medium ${getColor()}`}>
+      {children}
+      </div>
+  );
+}
+
+function TargetItem({ label, value, progress, current, daysRemaining, showDailyRate = false }: { label: string; value: number; progress: number; current: number; daysRemaining?: number; showDailyRate?: boolean }) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
@@ -1158,834 +708,755 @@ const SalespersonCard: React.FC<{
     }).format(amount);
   };
 
-  const getRankBadge = (rank: number) => {
-    switch(rank) {
-      case 1:
-        return (
-          <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 border-2 border-white/20 flex items-center justify-center shadow-lg shadow-yellow-500/25">
-            <span className="text-xs font-black text-gray-900">1st</span>
-          </div>
-        );
-      case 2:
-        return (
-          <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 border-2 border-white/20 flex items-center justify-center shadow-lg shadow-gray-500/25">
-            <span className="text-xs font-black text-gray-900">2nd</span>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-amber-700 to-amber-800 border-2 border-white/20 flex items-center justify-center shadow-lg shadow-amber-700/25">
-            <span className="text-xs font-black text-white">3rd</span>
-          </div>
-        );
-      default:
-        return null;
+  const formatCompact = (amount: number) => {
+    if (amount >= 1000) {
+      return `${(amount / 1000).toFixed(1)}K`;
     }
+    return formatCurrency(amount);
   };
 
+  const remaining = Math.max(0, value - current);
+  const isAchieved = progress >= 100;
+  const dailyRateNeeded = daysRemaining && daysRemaining > 0 ? remaining / daysRemaining : 0;
+
   return (
-    <div className={`relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 transition-all duration-300 hover:scale-105 ${
-      rank === 1 ? 'shadow-xl shadow-white/10' : ''
-    }`}>
-      {getRankBadge(rank)}
-      
-      <div className="text-center mb-4">
-        <h4 className="text-lg font-black text-white uppercase tracking-wider">{name}</h4>
-        <div className="h-0.5 w-12 mx-auto mt-2 bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
-      </div>
-
-      <div className="text-center mb-4">
-        <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Sales</p>
-        <div className="flex items-center justify-center gap-2">
-          <DirhamIcon className="w-6 h-6 text-white/80" />
-          <p className="text-2xl font-black text-white">{formatCurrency(amount)}</p>
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-between items-center">
+        <span className="text-sm text-[rgba(255,255,255,0.8)]">{label}</span>
+        <div className="flex items-center gap-1">
+          <DirhamIcon className="w-4 h-4 text-[#C0C0C0]" />
+          <span className="text-lg font-bold text-[#C0C0C0] tabular-nums">{formatCurrency(value)}</span>
         </div>
       </div>
-
-      <div className="space-y-3">
-        <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
-          <div 
-            className="bg-gradient-to-r from-white/90 to-white/70 h-2.5 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-white/20"
-            style={{ width: `${percentage}%` }}
-          />
+      <div className="h-1.5 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden">
+        <div 
+          className="h-full rounded-full transition-all duration-300" 
+          style={{ 
+            width: `${Math.min(progress, 100)}%`,
+            background: isAchieved 
+              ? 'linear-gradient(90deg, #4CD964 0%, #34C759 100%)'
+              : 'linear-gradient(90deg, #C0C0C0 0%, #A0A0A0 100%)'
+          }}
+        ></div>
       </div>
-
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-white/50">Share of total</span>
-          <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-            <span className="text-sm font-bold text-white/90">{percentage.toFixed(1)}%</span>
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-[rgba(255,255,255,0.5)]">
+          {isAchieved ? 'Target Achieved! 🎉' : 'Remaining'}
+        </span>
+        {!isAchieved && (
+          <div className="flex items-center gap-1">
+            <DirhamIcon className="w-3 h-3 text-[rgba(255,255,255,0.5)]" />
+            <span className="text-sm font-semibold text-[rgba(255,255,255,0.7)] tabular-nums">
+              {formatCurrency(remaining)}
+            </span>
           </div>
-        </div>
+        )}
       </div>
+      {!isAchieved && showDailyRate && daysRemaining && daysRemaining > 0 && (
+        <div className="flex items-center gap-1 text-xs text-[#FFC107] bg-[rgba(255,193,7,0.1)] px-2 py-1 rounded">
+          <span>Need</span>
+          <DirhamIcon className="w-3 h-3" />
+          <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
+          <span>to hit target</span>
+        </div>
+      )}
     </div>
   );
-};
+}
 
-/* ---------------- Target Achievement Forecast Chart ---------------- */
-const TargetAchievementForecastChart: React.FC<{ 
-  metrics: DailyServiceMetrics[];
-  target: ServiceMonthlyTarget | null;
-  selectedDate: string;
-}> = ({ metrics, target, selectedDate }) => {
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [forecastStats, setForecastStats] = useState<any>({});
-
-  useEffect(() => {
-    if (metrics.length > 0 && target) {
-      const sortedMetrics = [...metrics].sort((a, b) => 
-        new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime()
-      );
-
-      const selectedMetric = sortedMetrics.find(m => m.metric_date === selectedDate) || sortedMetrics[sortedMetrics.length - 1];
-      
-      const currentSales = selectedMetric.current_net_sales || 0;
-      const estimatedSales = selectedMetric.estimated_net_sales || 0;
-      const workingDaysElapsed = selectedMetric.working_days_elapsed || 1;
-      const totalWorkingDays = target.number_of_working_days || 1;
-      const remainingDays = totalWorkingDays - workingDaysElapsed;
-
-      const target100 = target.net_sales_target || 0;
-      const target112 = target.net_sales_112_percent || 0;
-      const projectedFinish = estimatedSales;
-      
-      const requiredDailyFor100 = remainingDays > 0 ? (target100 - currentSales) / remainingDays : 0;
-      const requiredDailyFor112 = remainingDays > 0 ? (target112 - currentSales) / remainingDays : 0;
-      const currentDailyAvg = workingDaysElapsed > 0 ? currentSales / workingDaysElapsed : 0;
-
-      const END_OF_MONTH_SURGE_PCT = 0.26;
-      const normalDays = Math.max(0, totalWorkingDays - 2);
-      const rushDays = 2;
-      
-      const linearProjection = currentSales + (remainingDays * currentDailyAvg);
-      
-      let magicFinalTotal;
-      let endOfMonthSurge;
-      
-      if (workingDaysElapsed < normalDays) {
-        const normalDaysRemaining = Math.max(0, normalDays - workingDaysElapsed);
-        const magicProjection = currentSales + (normalDaysRemaining * currentDailyAvg * 1.05);
-        magicFinalTotal = magicProjection / (1 - END_OF_MONTH_SURGE_PCT);
-        endOfMonthSurge = magicFinalTotal * END_OF_MONTH_SURGE_PCT;
-      } else {
-        magicFinalTotal = linearProjection;
-        endOfMonthSurge = 0;
-      }
-
-      const data = [];
-      for (let workingDay = 1; workingDay <= totalWorkingDays; workingDay++) {
-        const metric = sortedMetrics[workingDay - 1];
-        const isHistorical = workingDay <= workingDaysElapsed;
-        const dayOfMonth = metric ? new Date(metric.metric_date).getDate() : workingDay;
-        
-        let marketingMagicValue = null;
-        if (!isHistorical) {
-          const daysIntoFuture = workingDay - workingDaysElapsed;
-          
-          if (workingDaysElapsed < normalDays) {
-            const daysUntilRush = Math.max(0, normalDays - workingDaysElapsed);
-            
-            if (workingDay <= normalDays) {
-              marketingMagicValue = currentSales + (daysIntoFuture * currentDailyAvg * 1.05);
-            } else {
-              const baseBeforeRush = currentSales + (daysUntilRush * currentDailyAvg * 1.05);
-              const rushDayNumber = workingDay - normalDays;
-              const surgePerDay = endOfMonthSurge / rushDays;
-              marketingMagicValue = baseBeforeRush + (rushDayNumber * surgePerDay);
-            }
-          } else {
-            marketingMagicValue = currentSales + (daysIntoFuture * currentDailyAvg);
-          }
-        }
-
-        data.push({
-          day: dayOfMonth,
-          actual: isHistorical && metric ? (metric.current_net_sales || 0) : null,
-          projected: !isHistorical ? (currentSales + (workingDay - workingDaysElapsed) * currentDailyAvg) : null,
-          marketingMagic: marketingMagicValue,
-          target100: (target100 / totalWorkingDays) * workingDay,
-          target112: (target112 / totalWorkingDays) * workingDay,
-        });
-      }
-
-      setChartData(data);
-      setForecastStats({
-        projectedFinish,
-        marketingMagicFinish: magicFinalTotal,
-        target100,
-        target112,
-        will100: projectedFinish >= target100,
-        will112: projectedFinish >= target112,
-        magicWill100: magicFinalTotal >= target100,
-        magicWill112: magicFinalTotal >= target112,
-        requiredDailyFor100,
-        requiredDailyFor112,
-        currentDailyAvg,
-        gap100: projectedFinish - target100,
-        gap112: projectedFinish - target112,
-        magicGap112: magicFinalTotal - target112,
-      });
-    }
-  }, [metrics, target, selectedDate]);
-
-  const formatCurrency = (value: number) => {
+function TeamMember({ initial, name, role, sales, contribution }: { initial: string; name: string; role: string; sales: number; contribution: number }) {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(value);
+    }).format(amount);
   };
 
   return (
-    <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-white mb-2">Target Achievement Forecast</h3>
-            <p className="text-white/60">Projected vs target trajectory</p>
+    <div className="flex flex-col items-center gap-2.5 p-5 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-xl">
+      <div className="w-[70px] h-[70px] rounded-full bg-gradient-to-br from-[#C0C0C0] to-[#8A8A8A] flex items-center justify-center font-bold text-[#0A0A0A] text-2xl">
+        {initial}
           </div>
-          {forecastStats.will100 !== undefined && (
-            <div className={`px-3 py-1 rounded-lg text-xs font-bold ${
-              forecastStats.will112 ? 'bg-emerald-500/20 text-emerald-300' :
-              forecastStats.will100 ? 'bg-amber-500/20 text-amber-300' :
-              'bg-red-500/20 text-red-300'
-            }`}>
-              {forecastStats.will112 ? '🎯 112% Track' : forecastStats.will100 ? '✓ 100% Track' : '⚠ Below Target'}
+      <div className="text-lg font-semibold text-[#C0C0C0]">{name}</div>
+      <div className="text-xs text-[rgba(255,255,255,0.7)]">{role}</div>
+      <div className="flex items-center gap-1">
+        <DirhamIcon className="w-5 h-5 text-[#C0C0C0]" />
+        <div className="text-[22px] font-bold text-[#C0C0C0]">{formatCurrency(sales)}</div>
+        </div>
+      <div className="text-sm text-[#4CD964]">{contribution.toFixed(1)}% of total</div>
+          </div>
+  );
+}
+
+// Chart Components
+function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, monthTarget }: any) {
+  const formatCurrencyCompact = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
+  };
+
+  const formatCurrencyFull = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const monthMetrics = metrics
+    .filter((m: any) => {
+      const date = new Date(m.metric_date);
+      return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
+    })
+    .sort((a: any, b: any) => new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime());
+
+  const workingDays = monthTarget?.number_of_working_days || 30;
+  const dailyTarget = (monthTarget?.net_sales_target || 0) / workingDays;
+  const dailyTarget112 = dailyTarget * 1.12;
+  const finalTarget112 = (monthTarget?.net_sales_target || 0) * 1.12;
+
+  // Find the last calendar day with actual data
+  const lastDayWithData = monthMetrics.length > 0
+    ? Math.max(...monthMetrics.map((m: any) => new Date(m.metric_date).getDate()))
+    : 0;
+
+  // Use working days as the chart range (not last day with data)
+  const daysInMonth = workingDays;
+  
+
+  // Create full working days array with all days, even if no data exists
+  const chartData = Array.from({ length: workingDays }, (_, i) => {
+    const workingDay = i + 1;
+
+    // Get all metrics up to this working day (sorted by date)
+    const metricsUpToDay = monthMetrics.slice(0, workingDay);
+    const latestMetricUpToDay = metricsUpToDay[metricsUpToDay.length - 1];
+
+    // Calculate targets as a proportion of the total, reaching exact target values at the last working day
+    const progressRatio = workingDay / workingDays;
+    const cumulativeTargetValue = (monthTarget?.net_sales_target || 0) * progressRatio;
+
+    // 112% target as a straight line proportional to working days
+    const dynamicTarget112 = finalTarget112 * progressRatio;
+
+    // Only show current net sales data if we have actual data for this working day
+    const currentNetSalesValue = (workingDay <= monthMetrics.length && latestMetricUpToDay) 
+      ? latestMetricUpToDay.current_net_sales 
+      : null;
+
+    return {
+      day: workingDay.toString(),
+      cumulativeTarget: cumulativeTargetValue,
+      currentNetSales: currentNetSalesValue,
+      target112: dynamicTarget112,
+    };
+  });
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+    return (
+        <div style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '12px',
+          padding: '10px'
+        }}>
+          <p style={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}>{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} style={{ color: '#E0E0E0', fontSize: '12px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>{entry.name} : </span>
+              <DirhamIcon className="w-3 h-3" />
+              <span>{entry.value ? formatCurrencyFull(Number(entry.value)) : 'N/A'}</span>
+          </div>
+          ))}
+      </div>
+    );
+    }
+    return null;
+  };
+
+  return (
+    <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-xl font-bold text-white">Net Sales Progress</h3>
+            <div className="flex items-center gap-1 text-green-400">
+              <TrendingUp size={16} />
+              <span className="text-xs font-medium">+12%</span>
             </div>
-          )}
+          </div>
+          <p className="text-sm text-white/60">Cumulative sales progress vs targets</p>
         </div>
       </div>
       
-      <ResponsiveContainer width="100%" height={500}>
-        <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: -20 }}>
-          <defs>
-            <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.5}/>
-              <stop offset="50%" stopColor="#10b981" stopOpacity={0.3}/>
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
-            </linearGradient>
-            <linearGradient id="projectedGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.5}/>
-              <stop offset="50%" stopColor="#6366f1" stopOpacity={0.3}/>
-              <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05}/>
-            </linearGradient>
-            <filter id="glowForecast">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
+      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-white opacity-60"></div>
+            <span className="text-xs text-white/60">100% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 border-t-2 border-dashed border-white opacity-40"></div>
+            <span className="text-xs text-white/60">112% Target</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/60">Current Sales</span>
+          </div>
+        </div>
+
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+            <defs>
+              <linearGradient id="targetGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.48}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.06}/>
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrencyCompact} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'rgba(0,0,0,0.9)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px',
+                color: '#ffffff'
+              }}
+              formatter={(value: any, name: string) => {
+                if (name === 'cumulativeTarget') return [formatCurrencyFull(value), '100% Target'];
+                if (name === 'currentNetSales') return [formatCurrencyFull(value), 'Current Sales'];
+                if (name === 'target112') return [formatCurrencyFull(value), '112% Target'];
+                return [value, name];
+              }}
+            />
+            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#targetGradient)" stroke="#ffffff60" strokeWidth={1.5} name="cumulativeTarget" connectNulls={true} />
+            <Line type="monotone" dataKey="target112" stroke="#ffffff" strokeWidth={1.5} strokeDasharray="3 3" strokeOpacity={0.4} name="target112" dot={false} />
+            <Line 
+              type="monotone"
+              dataKey="currentNetSales" 
+              stroke="#4CD964" 
+              strokeWidth={3} 
+              name="currentNetSales" 
+              dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
+              activeDot={{ r: 6 }} 
+              connectNulls={false} 
+            />
+          </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+    </Card>
+  );
+}
+
+function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, selectedMonth }: any) {
+  const formatCurrencyCompact = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
+  };
+
+  const formatCurrencyFull = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const monthMetrics = metrics
+    .filter((m: any) => {
+      const date = new Date(m.metric_date);
+      return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
+    })
+    .sort((a: any, b: any) => new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime());
+
+  const currentDailyAverage = dashboardData?.current_daily_average || 0;
+  const target112 = monthTarget ? (monthTarget.net_sales_target * 1.12) : 0;
+  const workingDays = monthTarget?.number_of_working_days || 30;
+  const currentDay = dashboardData?.working_days_elapsed || 0;
+
+  // Calculate current required daily average based on remaining days (fluctuates with performance)
+  const currentSales = dashboardData?.current_net_sales || 0;
+  const remainingTarget = target112 - currentSales;
+  const remainingDays = workingDays - currentDay;
+  const requiredFor112 = remainingDays > 0 ? Math.round(remainingTarget / remainingDays) : 0;
+
+  const gap = requiredFor112 - currentDailyAverage;
+  const performance = requiredFor112 > 0 ? (currentDailyAverage / requiredFor112) * 100 : 0;
+
+  // Find the last calendar day with actual data
+  const lastDayWithData = monthMetrics.length > 0 
+    ? Math.max(...monthMetrics.map((m: any) => new Date(m.metric_date).getDate()))
+    : currentDay;
+  
+  // Use working days as the chart range (not calendar days)
+  const daysInMonth = workingDays;
+
+  // Create chart data array for all working days, but only populate elapsed days
+  const chartData = Array.from({ length: workingDays }, (_, i) => {
+    const day = i + 1;
+
+    // Only populate data for elapsed working days
+    if (day > currentDay) {
+      return {
+        day: day.toString(),
+        currentAvg: null,
+        requiredDailyAverage: null,
+        performance: null,
+        displayDay: day,
+      };
+    }
+
+    const metric = monthMetrics.find((m: any) => new Date(m.metric_date).getDate() === day);
+
+    // Calculate cumulative average up to this day (use latest available if no data for this day)
+    const metricsUpToDay = monthMetrics.filter((m: any) => new Date(m.metric_date).getDate() <= day);
+    const latestMetricUpToDay = metricsUpToDay[metricsUpToDay.length - 1];
+
+    let dailyAvg = null;
+    let currentSalesForDay = 0;
+    let requiredDailyAverage = null;
+    let performanceForDay = null;
+
+    if (latestMetricUpToDay) {
+      dailyAvg = latestMetricUpToDay.current_daily_average;
+      currentSalesForDay = latestMetricUpToDay.current_net_sales;
+
+      // Calculate required daily average for this specific day
+      // For current day, use same values as header for consistency
+      const salesUpToDay = (day === currentDay) ? currentSales : currentSalesForDay;
+      const targetAtDay = target112;
+      const daysElapsedAtDay = day;
+      const remainingDaysAtDay = workingDays - daysElapsedAtDay;
+      requiredDailyAverage = remainingDaysAtDay > 0 ? Math.round((targetAtDay - salesUpToDay) / remainingDaysAtDay) : 0;
+
+      performanceForDay = dailyAvg && requiredDailyAverage > 0 ? (dailyAvg / requiredDailyAverage) * 100 : null;
+    }
+
+    return {
+      day: day.toString(),
+      currentAvg: dailyAvg,
+      requiredDailyAverage: requiredDailyAverage,
+      performance: performanceForDay,
+      displayDay: day,
+    };
+  });
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const dayData = chartData[parseInt(label) - 1];
+      if (dayData && dayData.currentAvg !== null) {
+        const requiredColor = dayData.requiredDailyAverage && dayData.requiredDailyAverage > dayData.currentAvg ? '#FF3B30' : '#4CD964';
+        const performanceColor = dayData.performance >= 100 ? '#4CD964' : dayData.performance >= 85 ? '#FFC107' : '#FF3B30';
+    return (
+          <div style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            minWidth: '200px'
+          }}>
+            <p style={{ color: '#ffffff', fontWeight: 700, marginBottom: '10px', fontSize: '14px' }}>Day {label}</p>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ color: requiredColor, fontSize: '12px' }}>Required Avg:</span>
+              <span style={{ color: requiredColor, fontSize: '12px', fontWeight: 600 }}>{dayData.requiredDailyAverage !== null ? Math.round(dayData.requiredDailyAverage).toLocaleString() : 'N/A'}</span>
+          </div>
           
-          {target && (
-            <>
-              <ReferenceArea 
-                y1={0} 
-                y2={forecastStats.target100 * 0.9} 
-                fill="#ef4444" 
-                fillOpacity={0.05}
-              />
-              <ReferenceArea 
-                y1={forecastStats.target100 * 0.9} 
-                y2={forecastStats.target100} 
-                fill="#f59e0b" 
-                fillOpacity={0.05}
-              />
-              <ReferenceArea 
-                y1={forecastStats.target100} 
-                y2={forecastStats.target112 * 1.1} 
-                fill="#10b981" 
-                fillOpacity={0.05}
-              />
-            </>
-          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ color: '#4CD964', fontSize: '12px' }}>Current Avg:</span>
+              <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 600 }}>{Math.round(dayData.currentAvg).toLocaleString()}</span>
+          </div>
           
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.15)" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>Performance:</span>
+              <span style={{ color: performanceColor, fontSize: '12px', fontWeight: 600 }}>{dayData.performance !== null ? dayData.performance.toFixed(1) : '0.0'}%</span>
+        </div>
+      </div>
+    );
+      }
+    }
+    return null;
+  };
+
+  const statusColor = performance >= 100 ? '#4CD964' : performance >= 85 ? '#FFC107' : '#FF3B30';
+  const statusText = performance >= 100 ? 'On Track' : 'Needs Improvement';
+
+  return (
+    <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-xl font-bold text-white">Net Sales Daily Average</h3>
+            <div className="flex items-center gap-1 text-red-400">
+              <TrendingUp size={16} className="rotate-180" />
+              <span className="text-xs font-medium">-8%</span>
+            </div>
+            <span style={{ 
+              backgroundColor: 'rgba(255, 193, 7, 0.2)', 
+              color: '#FFC107', 
+              padding: '4px 12px', 
+              borderRadius: '6px', 
+              fontSize: '12px', 
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>⚠</span> {statusText}
+              </span>
+          </div>
+          <p className="text-sm text-white/60 mb-3">Daily average performance and required daily average</p>
+        </div>
+        <div style={{
+          backgroundColor: 'rgba(255, 193, 7, 0.15)',
+          border: '1px solid rgba(255, 193, 7, 0.3)',
+          borderRadius: '8px',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <span style={{ color: '#FFC107', fontSize: '16px', fontWeight: 700 }}>
+            {formatCurrencyCompact(requiredFor112)} required/day
+          </span>
+          </div>
+      </div>
+      
+      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-white opacity-60"></div>
+            <span className="text-xs text-white/60">Required Daily Avg (112%)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/60">Current Daily Avg</span>
+          </div>
+        </div>
+
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+            <defs>
+              <linearGradient id="requiredGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.36}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.03}/>
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#ffffff60' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrencyCompact} />
+          <Tooltip content={<CustomTooltip />} />
+            <Area type="monotone" dataKey="requiredDailyAverage" fill="url(#requiredGradient)" stroke="#ffffff60" strokeWidth={1.5} name="Required Daily Average" />
+            <Line 
+              type="monotone"
+              dataKey="currentAvg" 
+              stroke="#4CD964" 
+              strokeWidth={3} 
+              name="currentAvg" 
+              dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
+              activeDot={{ r: 6 }} 
+              connectNulls={false} 
+            />
+          </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+    </Card>
+  );
+}
+
+function TargetForecastChart({ metrics, selectedYear, selectedMonth, monthTarget }: any) {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(amount);
+  };
+
+  const monthMetrics = metrics
+    .filter((m: any) => {
+      const date = new Date(m.metric_date);
+      return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
+    })
+    .sort((a: any, b: any) => new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime());
+
+  const daysInMonth = monthTarget?.number_of_working_days || 30;
+  const lastMetric = monthMetrics[monthMetrics.length - 1];
+  const currentDay = lastMetric ? new Date(lastMetric.metric_date).getDate() : 1;
+  const estimatedEnd = lastMetric?.estimated_net_sales || 0;
+
+  const chartData = [
+    { week: 'Week 1', cumulativeTarget: (monthTarget?.net_sales_target || 0) * 0.2, current: monthMetrics[6]?.current_net_sales || null, forecasted: null },
+    { week: 'Week 2', cumulativeTarget: (monthTarget?.net_sales_target || 0) * 0.4, current: monthMetrics[13]?.current_net_sales || null, forecasted: null },
+    { week: 'Week 3', cumulativeTarget: (monthTarget?.net_sales_target || 0) * 0.6, current: monthMetrics[20]?.current_net_sales || null, forecasted: null },
+    { week: 'Week 4', cumulativeTarget: (monthTarget?.net_sales_target || 0) * 0.8, current: lastMetric?.current_net_sales || null, forecasted: null },
+    { week: 'Forecast', cumulativeTarget: monthTarget?.net_sales_target || 0, current: null, forecasted: estimatedEnd },
+  ];
+
+  return (
+    <Card className="col-span-3 row-span-2">
+      <CardHeader>
+        <CardTitle>Target Achievement Forecast</CardTitle>
+        <CardIcon><Target size={20} /></CardIcon>
+      </CardHeader>
+      <div className="h-[250px] flex items-center justify-center rounded-xl mt-2.5 relative">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
           <XAxis 
-            dataKey="day" 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
+              dataKey="week" 
+              tick={{ fontSize: 11, fill: '#E0E0E0' }}
+              stroke="rgba(255,255,255,0.3)"
           />
           <YAxis 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
-            tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(value)}
-            width={50}
+              tick={{ fontSize: 11, fill: '#E0E0E0' }}
+              stroke="rgba(255,255,255,0.3)"
+              tickFormatter={formatCurrency}
           />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.98)', 
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              borderRadius: '16px',
-              padding: '12px',
-              backdropFilter: 'blur(16px)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                backgroundColor: 'rgba(0, 0, 0, 0.9)', 
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '12px',
+                padding: '10px'
             }}
             labelStyle={{ color: '#ffffff', fontWeight: 700 }}
-            itemStyle={{ color: '#d1d5db', fontSize: '12px' }}
+              itemStyle={{ color: '#E0E0E0', fontSize: '12px' }}
             formatter={(value: any) => value ? `د.إ ${formatCurrency(Number(value))}` : 'N/A'}
-            labelFormatter={(value: string | number) => `Day ${value}`}
-          />
-          <Legend 
-            wrapperStyle={{ paddingTop: '20px' }}
-            iconType="line"
-            formatter={(value: string) => <span className="text-xs text-white/80">{value}</span>}
-          />
-          
-          <Line 
+            />
+            <Legend 
+              wrapperStyle={{ paddingTop: '10px' }}
+              iconType="line"
+              formatter={(value: string) => <span className="text-xs text-[#E0E0E0]">{value}</span>}
+            />
+            <Area 
             type="monotone"
-            dataKey="target112" 
-            stroke="#f59e0b" 
-            strokeWidth={3}
-            strokeDasharray="5 5"
-            dot={false}
-            name="112% Target"
-            strokeOpacity={0.8}
-          />
-          <Line 
-            type="monotone"
-            dataKey="target100" 
-            stroke="#ffffff" 
-            strokeWidth={2.5}
-            strokeDasharray="5 5"
-            dot={false}
-            name="100% Target"
-            strokeOpacity={0.6}
+              dataKey="cumulativeTarget" 
+              fill="rgba(192, 192, 192, 0.1)" 
+              stroke="#C0C0C0" 
+            strokeWidth={2}
+              name="Cumulative Target"
           />
           <Area 
             type="monotone"
-            dataKey="actual" 
-            fill="url(#actualGradient)" 
-            stroke="#10b981" 
-            strokeWidth={4}
-            dot={{ fill: '#10b981', r: 5, strokeWidth: 2, stroke: '#065f46' }}
-            activeDot={{ r: 7, strokeWidth: 3 }}
-            name="Actual"
-            filter="url(#glowForecast)"
+              dataKey="current" 
+              fill="rgba(0, 160, 233, 0.1)" 
+              stroke="#00A0E9" 
+              strokeWidth={2}
+              name="Current"
           />
           <Line 
             type="monotone"
-            dataKey="projected" 
-            stroke="#6366f1" 
-            strokeWidth={4}
-            strokeDasharray="3 3"
-            dot={{ fill: '#6366f1', r: 5, strokeWidth: 2, stroke: '#4338ca' }}
-            activeDot={{ r: 7, strokeWidth: 3 }}
-            name="Projected"
-          />
-          <Line 
-            type="monotone"
-            dataKey="marketingMagic" 
-            stroke="#06b6d4" 
-            strokeWidth={4}
-            strokeDasharray="5 3"
-            dot={{ fill: '#06b6d4', r: 5, strokeWidth: 2, stroke: '#0891b2' }}
-            activeDot={{ r: 7, strokeWidth: 3 }}
-            name="Marketing Forecast"
+              dataKey="forecasted" 
+              stroke="#4CD964" 
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              name="Forecasted"
           />
         </ComposedChart>
       </ResponsiveContainer>
-
-      <div className="mt-8 grid grid-cols-4 gap-4">
-        {/* Marketing Forecast */}
-        <div className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 backdrop-blur-xl rounded-xl border-2 border-cyan-500/40 p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-sm">✨</span>
-            <p className="text-xs font-semibold text-cyan-200">Marketing Forecast</p>
           </div>
-          <div className="flex items-center gap-1.5 text-cyan-300">
-            <DirhamIcon className="w-4 h-4" />
-            <span className="text-lg font-bold">{formatCurrency(forecastStats.marketingMagicFinish || 0)}</span>
-          </div>
-        </div>
-
-        {/* Projected Finish */}
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-3">
-          <p className="text-xs font-semibold text-white/60 mb-2">Projected Finish</p>
-          <div className={`flex items-center gap-1.5 ${
-            forecastStats.will112 ? 'text-emerald-400' : 
-            forecastStats.will100 ? 'text-amber-400' : 
-            'text-red-400'
-          }`}>
-            <DirhamIcon className="w-4 h-4" />
-            <span className="text-lg font-bold">{formatCurrency(forecastStats.projectedFinish || 0)}</span>
-          </div>
-        </div>
-
-        {/* Gap to 100% */}
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-3">
-          <p className="text-xs font-semibold text-white/60 mb-2">Gap to 100%</p>
-          <div className={`flex items-center gap-1.5 ${forecastStats.gap100 >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            <span className="text-lg font-bold">{forecastStats.gap100 >= 0 ? '+' : '-'}</span>
-            <DirhamIcon className="w-4 h-4" />
-            <span className="text-lg font-bold">{formatCurrency(Math.abs(forecastStats.gap100 || 0))}</span>
-          </div>
-        </div>
-
-        {/* Marketing Gap to 112% */}
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-3">
-          <p className="text-xs font-semibold text-white/60 mb-2">Gap to 112%</p>
-          <div className={`flex items-center gap-1.5 ${forecastStats.magicGap112 >= 0 ? 'text-emerald-400' : 'text-cyan-400'}`}>
-            <span className="text-lg font-bold">{forecastStats.magicGap112 >= 0 ? '+' : '-'}</span>
-            <DirhamIcon className="w-4 h-4" />
-            <span className="text-lg font-bold">{formatCurrency(Math.abs(forecastStats.magicGap112 || 0))}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    </Card>
   );
-};
+}
 
-/* ---------------- Labour vs Parts Breakdown Chart ---------------- */
-const LabourPartsBreakdownChart: React.FC<{ 
-  dashboardData: DailyServiceMetrics | null;
-  target: ServiceMonthlyTarget | null;
-}> = ({ dashboardData, target }) => {
-  if (!dashboardData) return null;
+function RevenueMixChart({ dashboardData }: any) {
+  const labourSales = dashboardData?.current_net_labor_sales || 0;
+  const partsSales = (dashboardData?.current_net_sales || 0) - labourSales;
+  const total = labourSales + partsSales;
+  
+  const labourPercent = total > 0 ? (labourSales / total) * 100 : 50;
+  const partsPercent = total > 0 ? (partsSales / total) * 100 : 50;
 
-  const labourSales = dashboardData.current_net_labor_sales || 0;
-  const totalSales = dashboardData.current_net_sales || 0;
-  const partsSales = totalSales - labourSales;
-
-  const pieData = [
-    { name: 'Labour Sales', value: labourSales, color: '#10b981' },
-    { name: 'Parts Sales', value: partsSales, color: '#f59e0b' },
+  const chartData = [
+    { name: 'Labour Sales', value: labourPercent },
+    { name: 'Parts Sales', value: partsPercent },
   ];
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-AE', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
-  const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const COLORS = ['rgba(0, 160, 233, 0.8)', 'rgba(192, 192, 192, 0.8)'];
 
     return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="white" 
-        textAnchor={x > cx ? 'start' : 'end'} 
-        dominantBaseline="central"
-        fontSize="14"
-        fontWeight="bold"
-      >
-        {`${(percent * 100).toFixed(1)}%`}
-      </text>
-    );
-  };
-
-  return (
-    <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-      <div className="mb-6">
-        <h3 className="text-xl font-bold text-white mb-2">Revenue Mix</h3>
-        <p className="text-white/60">Labour vs Parts sales breakdown</p>
-      </div>
-      
-      <div className="flex items-center justify-center">
-        <ResponsiveContainer width="100%" height={300}>
+    <Card className="col-span-1 row-span-2">
+      <CardHeader>
+        <CardTitle>Revenue Mix</CardTitle>
+        <CardIcon><ChartPie size={20} /></CardIcon>
+      </CardHeader>
+      <div className="h-[250px] flex items-center justify-center rounded-xl mt-2.5">
+        <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={pieData}
+              data={chartData}
               cx="50%"
               cy="50%"
-              labelLine={false}
-              label={CustomLabel}
-              outerRadius={100}
+              innerRadius={60}
+              outerRadius={80}
               fill="#8884d8"
+              paddingAngle={5}
               dataKey="value"
-              animationDuration={1000}
-              activeShape={false}
             >
-              {pieData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.9)', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px'
+              }}
+              formatter={(value: any) => `${Number(value).toFixed(1)}%`}
+            />
+            <Legend 
+              wrapperStyle={{ paddingTop: '10px' }}
+              formatter={(value: string) => <span className="text-xs text-[#E0E0E0]">{value}</span>}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
-
-      <div className="mt-6 space-y-3 border-t border-white/10 pt-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-            <span className="text-white/70">Labour Sales</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <DirhamIcon className="w-3 h-3 text-white" />
-            <span className="text-sm font-bold text-white">{formatCurrency(labourSales)}</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-            <span className="text-white/70">Parts Sales</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <DirhamIcon className="w-3 h-3 text-white" />
-            <span className="text-sm font-bold text-white">{formatCurrency(partsSales)}</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between pt-3 border-t border-white/10">
-          <span className="text-white/90 font-bold">Labour Ratio</span>
-          <span className="text-emerald-400 font-bold">
-            {totalSales > 0 ? ((labourSales / totalSales) * 100).toFixed(1) : 0}%
-          </span>
-        </div>
-      </div>
-    </div>
+    </Card>
   );
-};
+}
 
-/* ---------------- Annual Net Sales Chart ---------------- */
-const AnnualNetSalesChart: React.FC<{
-  metrics: DailyServiceMetrics[];
-  targets: ServiceMonthlyTarget[];
-  selectedYear: number;
-}> = ({ metrics, targets, selectedYear }) => {
+function AnnualNetSalesChart({ metrics, targets, selectedYear }: any) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-AE', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    return new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(amount);
   };
 
-  // Calculate cumulative monthly data
-  let cumulativeTarget = 0;
-  let cumulativeActual = 0;
-  
   const monthlyData = Array.from({ length: 12 }, (_, i) => {
     const month = i + 1;
     const monthName = new Date(selectedYear, i, 1).toLocaleDateString('en-US', { month: 'short' });
     
-    // Find target for this month
-    const target = targets.find(t => t.year === selectedYear && t.month === month);
-    
-    // Find latest metric for this month
     const monthMetrics = metrics
-      .filter(m => {
+      .filter((m: any) => {
         const date = new Date(m.metric_date);
         return date.getFullYear() === selectedYear && (date.getMonth() + 1) === month;
       })
-      .sort((a, b) => new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime());
+      .sort((a: any, b: any) => new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime());
     
     const latestMetric = monthMetrics[0];
     
-    // Accumulate targets and actuals
-    cumulativeTarget += (target?.net_sales_target || 0);
-    cumulativeActual += (latestMetric?.current_net_sales || 0);
-    
     return {
       month: monthName,
-      monthNum: month,
-      cumulativeTarget: cumulativeTarget,
-      cumulativeActual: cumulativeActual,
-      cumulative112Target: cumulativeTarget * 1.12,
-      hasData: !!latestMetric || !!target,
+      netSales: latestMetric?.current_net_sales || null,
     };
-  }).filter(d => d.hasData); // Only show months with data
-
-  // Calculate annual totals
-  const annualNetSalesTarget = cumulativeTarget;
-  const annualNetSalesActual = cumulativeActual;
-  
-  const netSalesAchievementPercent = annualNetSalesTarget > 0 ? 
-    (annualNetSalesActual / annualNetSalesTarget) * 100 : 0;
-
-  if (monthlyData.length === 0) {
-    return null;
-  }
+  });
 
   return (
-    <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 shadow-2xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-xl font-bold text-white mb-1">Annual Net Sales {selectedYear}</h3>
-          <p className="text-white/60 text-sm">Year-to-date cumulative performance</p>
-        </div>
-        
-        {/* Achievement Badge */}
-        <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border ${
-          netSalesAchievementPercent >= 100 ? 'bg-emerald-500/20 border-emerald-500/30' : 
-          netSalesAchievementPercent >= 85 ? 'bg-amber-500/20 border-amber-500/30' : 
-          'bg-red-500/20 border-red-500/30'
-        }`}>
-          <p className={`text-2xl font-black ${
-            netSalesAchievementPercent >= 100 ? 'text-emerald-400' : 
-            netSalesAchievementPercent >= 85 ? 'text-amber-400' : 
-            'text-red-400'
-          }`}>
-            {netSalesAchievementPercent.toFixed(1)}% of Target
-          </p>
-        </div>
-      </div>
-
-      <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={monthlyData} margin={{ top: 5, right: 30, bottom: 10, left: -20 }}>
-          <defs>
-            <linearGradient id="annualNetSalesGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.6}/>
-              <stop offset="50%" stopColor="#10b981" stopOpacity={0.3}/>
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
-            </linearGradient>
-            <linearGradient id="annualLabourGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.6}/>
-              <stop offset="50%" stopColor="#3b82f6" stopOpacity={0.3}/>
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05}/>
-            </linearGradient>
-            <filter id="glowAnnual">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.15)" />
-          
-          <XAxis 
-            dataKey="month" 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
-          />
-          <YAxis 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
-            tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(value)}
-            width={60}
-          />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.98)', 
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              borderRadius: '16px',
-              padding: '12px',
-              backdropFilter: 'blur(16px)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-            }}
-            labelStyle={{ color: '#ffffff', fontWeight: 700 }}
-            itemStyle={{ color: '#d1d5db', fontSize: '12px' }}
-            formatter={(value: any) => value ? `د.إ ${formatCurrency(Number(value))}` : 'N/A'}
-          />
-          <Legend 
-            wrapperStyle={{ paddingTop: '20px' }}
-            iconType="line"
-            formatter={(value: string) => <span className="text-xs text-white/80">{value}</span>}
-          />
-          
-          {/* Cumulative Net Sales Actual */}
-          <Area 
-            type="monotone"
-            dataKey="cumulativeActual" 
-            fill="url(#annualNetSalesGradient)" 
-            stroke="#10b981" 
-            strokeWidth={4}
-            dot={{ fill: '#10b981', r: 6, strokeWidth: 2, stroke: '#059669' }}
-            activeDot={{ r: 8, strokeWidth: 3 }}
-            name="Current Net Sales"
-            filter="url(#glowAnnual)"
-          />
-          
-          {/* Cumulative Target */}
-          <Line 
-            type="monotone"
-            dataKey="cumulativeTarget" 
-            stroke="rgba(255,255,255,0.5)" 
-            strokeWidth={2.5}
-            strokeDasharray="4 4"
-            dot={{ fill: '#ffffff', r: 4 }}
-            name="Cumulative Target"
-          />
-          
-          {/* 112% Target */}
-          <Line 
-            type="monotone"
-            dataKey="cumulative112Target" 
-            stroke="#f59e0b" 
-            strokeWidth={2.5}
-            strokeDasharray="5 5"
-            dot={{ fill: '#f59e0b', r: 4 }}
-            name="112% Target"
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+    <Card className="col-span-3 row-span-2">
+      <CardHeader>
+        <CardTitle>Annual Net Sales</CardTitle>
+        <CardIcon><ChartLine size={20} /></CardIcon>
+      </CardHeader>
+      <div className="h-[250px] flex items-center justify-center rounded-xl mt-2.5 relative">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+            <XAxis 
+              dataKey="month" 
+              tick={{ fontSize: 11, fill: '#E0E0E0' }}
+              stroke="rgba(255,255,255,0.3)"
+            />
+            <YAxis 
+              tick={{ fontSize: 11, fill: '#E0E0E0' }}
+              stroke="rgba(255,255,255,0.3)"
+              tickFormatter={formatCurrency}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.9)', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                padding: '10px'
+              }}
+              labelStyle={{ color: '#ffffff', fontWeight: 700 }}
+              itemStyle={{ color: '#E0E0E0', fontSize: '12px' }}
+              formatter={(value: any) => value ? `د.إ ${formatCurrency(Number(value))}` : 'N/A'}
+            />
+            <Legend 
+              wrapperStyle={{ paddingTop: '10px' }}
+              iconType="line"
+              formatter={(value: string) => <span className="text-xs text-[#E0E0E0]">{value}</span>}
+            />
+            <Area 
+              type="monotone"
+              dataKey="netSales" 
+              fill="rgba(0, 160, 233, 0.1)" 
+              stroke="#00A0E9" 
+              strokeWidth={2}
+              name="Net Sales (د.إ)"
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+          </div>
+    </Card>
   );
-};
+}
 
-/* ---------------- Annual Labour Sales Chart ---------------- */
-const AnnualLabourSalesChart: React.FC<{
-  metrics: DailyServiceMetrics[];
-  targets: ServiceMonthlyTarget[];
-  selectedYear: number;
-}> = ({ metrics, targets, selectedYear }) => {
+function AnnualLabourSalesChart({ metrics, targets, selectedYear }: any) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-AE', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    return new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(amount);
   };
 
-  // Calculate cumulative monthly data
-  let cumulativeTarget = 0;
-  let cumulativeActual = 0;
-  
   const monthlyData = Array.from({ length: 12 }, (_, i) => {
     const month = i + 1;
     const monthName = new Date(selectedYear, i, 1).toLocaleDateString('en-US', { month: 'short' });
     
-    // Find target for this month
-    const target = targets.find(t => t.year === selectedYear && t.month === month);
-    
-    // Find latest metric for this month
     const monthMetrics = metrics
-      .filter(m => {
+      .filter((m: any) => {
         const date = new Date(m.metric_date);
         return date.getFullYear() === selectedYear && (date.getMonth() + 1) === month;
       })
-      .sort((a, b) => new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime());
+      .sort((a: any, b: any) => new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime());
     
     const latestMetric = monthMetrics[0];
     
-    // Accumulate targets and actuals
-    cumulativeTarget += (target?.labour_sales_target || 0);
-    cumulativeActual += (latestMetric?.current_net_labor_sales || 0);
-    
     return {
       month: monthName,
-      monthNum: month,
-      cumulativeTarget: cumulativeTarget,
-      cumulativeActual: cumulativeActual,
-      cumulative112Target: cumulativeTarget * 1.12,
-      hasData: !!latestMetric || !!target,
+      labourSales: latestMetric?.current_net_labor_sales || null,
     };
-  }).filter(d => d.hasData); // Only show months with data
-
-  // Calculate annual totals
-  const annualLabourTarget = cumulativeTarget;
-  const annualLabourActual = cumulativeActual;
-  
-  const labourAchievementPercent = annualLabourTarget > 0 ? 
-    (annualLabourActual / annualLabourTarget) * 100 : 0;
-
-  if (monthlyData.length === 0) {
-    return null;
-  }
+  });
 
   return (
-    <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 shadow-2xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-xl font-bold text-white mb-1">Annual Labour Sales {selectedYear}</h3>
-          <p className="text-white/60 text-sm">Year-to-date cumulative performance</p>
-        </div>
-        
-        {/* Achievement Badge */}
-        <div className={`px-4 py-2 rounded-xl backdrop-blur-sm border ${
-          labourAchievementPercent >= 100 ? 'bg-emerald-500/20 border-emerald-500/30' : 
-          labourAchievementPercent >= 85 ? 'bg-amber-500/20 border-amber-500/30' : 
-          'bg-red-500/20 border-red-500/30'
-        }`}>
-          <p className={`text-2xl font-black ${
-            labourAchievementPercent >= 100 ? 'text-emerald-400' : 
-            labourAchievementPercent >= 85 ? 'text-amber-400' : 
-            'text-red-400'
-          }`}>
-            {labourAchievementPercent.toFixed(1)}% of Target
-          </p>
-        </div>
+    <Card className="col-span-3 row-span-2">
+      <CardHeader>
+        <CardTitle>Annual Labour Sales</CardTitle>
+        <CardIcon><Wrench size={20} /></CardIcon>
+      </CardHeader>
+      <div className="h-[250px] flex items-center justify-center rounded-xl mt-2.5 relative">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+            <XAxis 
+              dataKey="month" 
+              tick={{ fontSize: 11, fill: '#E0E0E0' }}
+              stroke="rgba(255,255,255,0.3)"
+            />
+            <YAxis 
+              tick={{ fontSize: 11, fill: '#E0E0E0' }}
+              stroke="rgba(255,255,255,0.3)"
+              tickFormatter={formatCurrency}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.9)', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                padding: '10px'
+              }}
+              labelStyle={{ color: '#ffffff', fontWeight: 700 }}
+              itemStyle={{ color: '#E0E0E0', fontSize: '12px' }}
+              formatter={(value: any) => value ? `د.إ ${formatCurrency(Number(value))}` : 'N/A'}
+            />
+            <Legend 
+              wrapperStyle={{ paddingTop: '10px' }}
+              iconType="line"
+              formatter={(value: string) => <span className="text-xs text-[#E0E0E0]">{value}</span>}
+            />
+            <Area 
+              type="monotone"
+              dataKey="labourSales" 
+              fill="rgba(192, 192, 192, 0.1)" 
+              stroke="#C0C0C0" 
+              strokeWidth={2}
+              name="Labour Sales (د.إ)"
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
-
-      <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={monthlyData} margin={{ top: 5, right: 30, bottom: 10, left: -20 }}>
-          <defs>
-            <linearGradient id="annualLabourGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.6}/>
-              <stop offset="50%" stopColor="#3b82f6" stopOpacity={0.3}/>
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05}/>
-            </linearGradient>
-            <filter id="glowLabourAnnual">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.15)" />
-          
-          <XAxis 
-            dataKey="month" 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
-          />
-          <YAxis 
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            stroke="rgba(255,255,255,0.3)"
-            tickFormatter={(value: number) => new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(value)}
-            width={60}
-          />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.98)', 
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              borderRadius: '16px',
-              padding: '12px',
-              backdropFilter: 'blur(16px)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-            }}
-            labelStyle={{ color: '#ffffff', fontWeight: 700 }}
-            itemStyle={{ color: '#d1d5db', fontSize: '12px' }}
-            formatter={(value: any) => value ? `د.إ ${formatCurrency(Number(value))}` : 'N/A'}
-          />
-          <Legend 
-            wrapperStyle={{ paddingTop: '20px' }}
-            iconType="line"
-            formatter={(value: string) => <span className="text-xs text-white/80">{value}</span>}
-          />
-          
-          {/* Cumulative Labour Sales Actual */}
-          <Area 
-            type="monotone"
-            dataKey="cumulativeActual" 
-            fill="url(#annualLabourGradient)" 
-            stroke="#3b82f6" 
-            strokeWidth={4}
-            dot={{ fill: '#3b82f6', r: 6, strokeWidth: 2, stroke: '#2563eb' }}
-            activeDot={{ r: 8, strokeWidth: 3 }}
-            name="Current Labour Sales"
-            filter="url(#glowLabourAnnual)"
-          />
-          
-          {/* Cumulative Target */}
-          <Line 
-            type="monotone"
-            dataKey="cumulativeTarget" 
-            stroke="rgba(255,255,255,0.5)" 
-            strokeWidth={2.5}
-            strokeDasharray="4 4"
-            dot={{ fill: '#ffffff', r: 4 }}
-            name="Cumulative Target"
-          />
-          
-          {/* 112% Target */}
-          <Line 
-            type="monotone"
-            dataKey="cumulative112Target" 
-            stroke="#f59e0b" 
-            strokeWidth={2.5}
-            strokeDasharray="5 5"
-            dot={{ fill: '#f59e0b', r: 4 }}
-            name="112% Target"
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+    </Card>
   );
-};
+}

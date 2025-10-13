@@ -1044,7 +1044,7 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
       const dayData = chartData[parseInt(label) - 1];
       if (dayData && dayData.currentAvg !== null) {
         const requiredColor = dayData.requiredDailyAverage && dayData.requiredDailyAverage > dayData.currentAvg ? '#FF3B30' : '#4CD964';
-        const performanceColor = dayData.performance >= 100 ? '#4CD964' : dayData.performance >= 85 ? '#FFC107' : '#FF3B30';
+        const performanceColor = dayData.performance && dayData.performance >= 100 ? '#4CD964' : dayData.performance && dayData.performance >= 85 ? '#FFC107' : '#FF3B30';
     return (
           <div style={{
             backgroundColor: 'rgba(0, 0, 0, 0.95)',

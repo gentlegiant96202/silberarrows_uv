@@ -425,7 +425,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.current_net_sales || 0)}
               </CardValue>
-              <div className="flex flex-col gap-1 mb-2">
+              <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1 text-sm font-medium text-white">
                 {dashboardData.current_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_net_sales_percentage)} vs target
               </div>
@@ -441,25 +441,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   );
                 })()}
               </div>
-              {monthTarget && dashboardData && dashboardData.current_net_sales_percentage < 112 && (() => {
-                const target112 = (monthTarget.net_sales_target || 0) * 1.12;
-                const remaining = Math.max(0, target112 - dashboardData.current_net_sales);
-                const daysRemaining = Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0));
-                const dailyRateNeeded = daysRemaining > 0 ? remaining / daysRemaining : 0;
-                const formatCompact = (amount: number) => {
-                  if (amount >= 1000) {
-                    return `${(amount / 1000).toFixed(1)}K`;
-                  }
-                  return formatCurrency(amount);
-                };
-                return daysRemaining > 0 ? (
-                  <div className="flex items-center gap-1 text-xs text-white">
-                    <span>Need</span>
-                    <DirhamIcon className="w-3 h-3" />
-                    <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
-                  </div>
-                ) : null;
-              })()}
             </Card>
 
             <Card className="col-span-1">
@@ -485,17 +466,29 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.current_daily_average || 0)}
               </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-white">
-                Daily pace
-              </div>
+              {monthTarget && dashboardData && dashboardData.current_net_sales_percentage < 112 && (() => {
+                const target112 = (monthTarget.net_sales_target || 0) * 1.12;
+                const remaining = Math.max(0, target112 - dashboardData.current_net_sales);
+                const daysRemaining = Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0));
+                const dailyRateNeeded = daysRemaining > 0 ? remaining / daysRemaining : 0;
+                const formatCompact = (amount: number) => {
+                  if (amount >= 1000) {
+                    return `${(amount / 1000).toFixed(1)}K`;
+                  }
+                  return formatCurrency(amount);
+                };
+                return daysRemaining > 0 ? (
+                  <div className="flex items-center gap-1 text-xs text-white">
+                    <span>Need</span>
+                    <DirhamIcon className="w-3 h-3" />
+                    <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
+                  </div>
+                ) : null;
+              })()}
             </Card>
 
             <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle>Net Sales Targets</CardTitle>
-                <CardIcon><Trophy size={20} /></CardIcon>
-              </CardHeader>
-              <div className="flex flex-col gap-4 mt-2">
+              <div className="flex flex-col gap-2">
                 <TargetItem
                   label="100% Target"
                   value={monthTarget?.net_sales_target || 0}
@@ -528,7 +521,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.current_net_labor_sales || 0)}
               </CardValue>
-              <div className="flex flex-col gap-1 mb-2">
+              <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1 text-sm font-medium text-white">
                 {dashboardData.current_labour_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_labour_sales_percentage)} vs target
               </div>
@@ -544,25 +537,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   );
                 })()}
               </div>
-              {monthTarget && dashboardData && (dashboardData.current_net_labor_sales / ((monthTarget.labour_sales_target || 1) * 1.12) * 100) < 112 && (() => {
-                const target112 = (monthTarget.labour_sales_target || 0) * 1.12;
-                const remaining = Math.max(0, target112 - dashboardData.current_net_labor_sales);
-                const daysRemaining = Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0));
-                const dailyRateNeeded = daysRemaining > 0 ? remaining / daysRemaining : 0;
-                const formatCompact = (amount: number) => {
-                  if (amount >= 1000) {
-                    return `${(amount / 1000).toFixed(1)}K`;
-                  }
-                  return formatCurrency(amount);
-                };
-                return daysRemaining > 0 ? (
-                  <div className="flex items-center gap-1 text-xs text-white">
-                    <span>Need</span>
-                    <DirhamIcon className="w-3 h-3" />
-                    <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
-                  </div>
-                ) : null;
-              })()}
             </Card>
 
             <Card className="col-span-1">
@@ -588,17 +562,29 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-5 h-5 mr-2" />
                 {formatCurrency((dashboardData.current_net_labor_sales || 0) / (dashboardData.working_days_elapsed || 1))}
               </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-white">
-                Daily pace
-              </div>
+              {monthTarget && dashboardData && (dashboardData.current_net_labor_sales / ((monthTarget.labour_sales_target || 1) * 1.12) * 100) < 112 && (() => {
+                const target112 = (monthTarget.labour_sales_target || 0) * 1.12;
+                const remaining = Math.max(0, target112 - dashboardData.current_net_labor_sales);
+                const daysRemaining = Math.max(0, (monthTarget.number_of_working_days || 0) - (dashboardData.working_days_elapsed || 0));
+                const dailyRateNeeded = daysRemaining > 0 ? remaining / daysRemaining : 0;
+                const formatCompact = (amount: number) => {
+                  if (amount >= 1000) {
+                    return `${(amount / 1000).toFixed(1)}K`;
+                  }
+                  return formatCurrency(amount);
+                };
+                return daysRemaining > 0 ? (
+                  <div className="flex items-center gap-1 text-xs text-white">
+                    <span>Need</span>
+                    <DirhamIcon className="w-3 h-3" />
+                    <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
+                  </div>
+                ) : null;
+              })()}
             </Card>
 
             <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle>Labour Sales Targets</CardTitle>
-                <CardIcon><Trophy size={20} /></CardIcon>
-              </CardHeader>
-              <div className="flex flex-col gap-4 mt-2">
+              <div className="flex flex-col gap-2">
                 <TargetItem
                   label="100% Target"
                   value={monthTarget?.labour_sales_target || 0}
@@ -624,66 +610,73 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <TargetForecastChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} monthTarget={monthTarget} />
             <DailyAverageChart dashboardData={dashboardData} monthTarget={monthTarget} metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} />
 
-            {/* Marketing Spend % */}
-            <Card className="col-span-1 row-span-2">
+            {/* Two Column Layout Container */}
+            <div className="col-span-6 grid grid-cols-2 gap-5">
+              {/* Left Column: Marketing & Invoice Metrics */}
+              <div className="grid grid-cols-2 gap-5">
+                {/* Marketing Spend % */}
+            <Card className="col-span-1">
               <CardHeader>
-                <CardTitle>Marketing Spend %</CardTitle>
+                    <CardTitle>Marketing Spend %</CardTitle>
                 <CardIcon><TrendingUp size={20} /></CardIcon>
               </CardHeader>
-              <CardValue>
-                {marketingSpendPercentage.toFixed(1)}%
-              </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-white">
-                Budget allocation
+                  <CardValue>
+                    {marketingSpendPercentage.toFixed(1)}%
+                  </CardValue>
+                  <div className="flex items-center gap-1 text-sm font-medium text-white">
+                    Budget allocation
           </div>
-            </Card>
+                </Card>
 
-            {/* Marketing Spend */}
-            <Card className="col-span-1 row-span-2">
-              <CardHeader>
-                <CardTitle>Marketing Spend</CardTitle>
-                <CardIcon><TrendingUp size={20} /></CardIcon>
-              </CardHeader>
-              <CardValue>
-                <DirhamIcon className="w-5 h-5 mr-2" />
-                {formatCurrency(dashboardData.current_marketing_spend || 0)}
-              </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-white">
-                Total spend
+                {/* Marketing Spend */}
+                <Card className="col-span-1">
+                  <CardHeader>
+                    <CardTitle>Marketing Spend</CardTitle>
+                    <CardIcon><TrendingUp size={20} /></CardIcon>
+                  </CardHeader>
+                  <CardValue>
+                    <DirhamIcon className="w-5 h-5 mr-2" />
+                    {formatCurrency(dashboardData.current_marketing_spend || 0)}
+                  </CardValue>
+                  <div className="flex items-center gap-1 text-sm font-medium text-white">
+                    Total spend
               </div>
             </Card>
 
             {/* Avg Invoice Value */}
-            <Card className="col-span-1 row-span-2">
+            <Card className="col-span-1">
               <CardHeader>
                 <CardTitle>Avg. Invoice Value</CardTitle>
                 <CardIcon><FileText size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <FileText className="w-5 h-5 mr-2" />
+                    <FileText className="w-5 h-5 mr-2" />
                 {formatCurrency(averageInvoiceValue)}
               </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-white">
-                Per transaction
-              </div>
+                  <div className="flex items-center gap-1 text-sm font-medium text-white">
+                    Per transaction
+                  </div>
             </Card>
 
               {/* Number of Invoices */}
-            <Card className="col-span-1 row-span-2">
+            <Card className="col-span-1">
               <CardHeader>
                 <CardTitle>Number of Invoices</CardTitle>
-                <CardIcon><FileText size={20} /></CardIcon>
+                    <CardIcon><FileText size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
                 {monthlyInvoiceSum}
               </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-white">
-                Total count
-              </div>
+                  <div className="flex items-center gap-1 text-sm font-medium text-white">
+                    Total count
+                  </div>
             </Card>
+              </div>
 
+              {/* Right Column: Vehicle Throughput & Revenue Mix */}
+              <div className="grid grid-cols-2 gap-5">
             {/* Vehicle Throughput */}
-            <Card className="col-span-1 row-span-2">
+            <Card className="col-span-1">
               <CardHeader>
                 <CardTitle>Vehicle Throughput</CardTitle>
                 <CardIcon><Gauge size={20} /></CardIcon>
@@ -750,7 +743,10 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
             </Card>
 
-            <RevenueMixChart dashboardData={dashboardData} />
+                {/* Revenue Mix */}
+                <RevenueMixChart dashboardData={dashboardData} />
+              </div>
+            </div>
 
             {/* Team Performance */}
             <div className="col-span-6 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
@@ -797,8 +793,10 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
 // Card Components
 function Card({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+  // If backgroundColor is provided in style, use solid background, otherwise use gradient
+  const bgClass = style?.backgroundColor ? '' : 'bg-gradient-to-br from-white/10 to-white/5';
   return (
-    <div className={`rounded-lg bg-gradient-to-br from-white/10 to-white/5 backdrop-blur p-3 border border-white/10 shadow-inner ${className}`} style={style}>
+    <div className={`rounded-lg ${bgClass} backdrop-blur p-3 border border-white/10 shadow-inner ${className}`} style={style}>
       {children}
     </div>
   );
@@ -897,12 +895,12 @@ function TargetItem({ label, value, progress, current, daysRemaining, showDailyR
   const dailyRateNeeded = daysRemaining && daysRemaining > 0 ? remaining / daysRemaining : 0;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       <div className="flex justify-between items-center">
         <span className="text-sm text-[rgba(255,255,255,0.8)]">{label}</span>
         <div className="flex items-center gap-1">
           <DirhamIcon className="w-4 h-4 text-[#C0C0C0]" />
-          <span className="text-lg font-bold text-[#C0C0C0] tabular-nums">{formatCurrency(value)}</span>
+          <span className="text-base font-bold text-[#C0C0C0] tabular-nums">{formatCurrency(value)}</span>
             </div>
             </div>
       <div className="h-1.5 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden">
@@ -1801,7 +1799,7 @@ function RevenueMixChart({ dashboardData }: any) {
   const COLORS = ['#4CD964', 'rgba(192, 192, 192, 0.8)'];
 
     return (
-    <Card className="col-span-1 row-span-2">
+    <Card className="col-span-1">
       <CardHeader>
         <CardTitle>Revenue Mix</CardTitle>
         <CardIcon><ChartPie size={20} /></CardIcon>
@@ -1827,9 +1825,12 @@ function RevenueMixChart({ dashboardData }: any) {
               contentStyle={{ 
                 backgroundColor: 'rgba(0, 0, 0, 0.9)', 
                 border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '12px'
+                borderRadius: '12px',
+                color: '#ffffff'
               }}
-              formatter={(value: any) => `${Number(value).toFixed(1)}%`}
+              labelStyle={{ color: '#ffffff' }}
+              itemStyle={{ color: '#ffffff' }}
+              formatter={(value: any) => [`${Number(value).toFixed(1)}%`, '']}
             />
             <Legend 
               wrapperStyle={{ paddingTop: '10px' }}

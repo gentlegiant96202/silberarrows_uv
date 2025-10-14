@@ -23,6 +23,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   const [compareWithPrevious, setCompareWithPrevious] = useState(false);
   const [previousMonthData, setPreviousMonthData] = useState<DailyServiceMetrics | null>(null);
 
+  // Reset isInitialLoad when loading starts
+  useEffect(() => {
+    if (loading) {
+      setIsInitialLoad(true);
+    }
+  }, [loading]);
+
+  // Turn off isInitialLoad after loading finishes
   useEffect(() => {
     if (isInitialLoad && !loading) {
       const timer = setTimeout(() => setIsInitialLoad(false), 500);
@@ -605,10 +613,10 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </Card>
 
             {/* Charts Section */}
-            <NetSalesProgressChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} monthTarget={monthTarget} />
-            <LabourSalesProgressChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} monthTarget={monthTarget} />
-            <TargetForecastChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} monthTarget={monthTarget} />
-            <DailyAverageChart dashboardData={dashboardData} monthTarget={monthTarget} metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} />
+            <NetSalesProgressChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} monthTarget={monthTarget} />
+            <LabourSalesProgressChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} monthTarget={monthTarget} />
+            <TargetForecastChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} monthTarget={monthTarget} />
+            <DailyAverageChart dashboardData={dashboardData} monthTarget={monthTarget} metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} />
 
             {/* Two Column Layout Container */}
             <div className="col-span-6 grid grid-cols-2 gap-5">
@@ -782,8 +790,8 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           </div>
 
             {/* Annual Charts */}
-            <AnnualNetSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} />
-            <AnnualLabourSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} />
+            <AnnualNetSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} />
+            <AnnualLabourSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} />
           </main>
       )}
       </div>
@@ -988,7 +996,7 @@ function TeamMember({ name, role, sales, contribution }: { name: string; role: s
 }
 
 // Chart Components
-function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, monthTarget }: any) {
+function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, selectedDate, monthTarget }: any) {
   const formatCurrencyCompact = (amount: number) => {
     return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
   };
@@ -1003,6 +1011,12 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, monthTarg
   const monthMetrics = metrics
     .filter((m: any) => {
       const date = new Date(m.metric_date);
+      if (selectedDate) {
+        // If a specific date is selected, only show data up to that date
+        return date.getFullYear() === selectedYear && 
+               (date.getMonth() + 1) === selectedMonth &&
+               m.metric_date <= selectedDate;
+      }
       return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
     })
     .sort((a: any, b: any) => new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime());
@@ -1166,7 +1180,7 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, monthTarg
   );
 }
 
-function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, monthTarget }: any) {
+function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, selectedDate, monthTarget }: any) {
   const formatCurrencyCompact = (amount: number) => {
     return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
   };
@@ -1181,6 +1195,12 @@ function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, monthT
   const monthMetrics = metrics
     .filter((m: any) => {
       const date = new Date(m.metric_date);
+      if (selectedDate) {
+        // If a specific date is selected, only show data up to that date
+        return date.getFullYear() === selectedYear && 
+               (date.getMonth() + 1) === selectedMonth &&
+               m.metric_date <= selectedDate;
+      }
       return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
     })
     .sort((a: any, b: any) => new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime());
@@ -1344,7 +1364,7 @@ function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, monthT
   );
 }
 
-function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, selectedMonth }: any) {
+function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, selectedMonth, selectedDate }: any) {
   const formatCurrencyCompact = (amount: number) => {
     return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
   };
@@ -1359,6 +1379,12 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
   const monthMetrics = metrics
     .filter((m: any) => {
       const date = new Date(m.metric_date);
+      if (selectedDate) {
+        // If a specific date is selected, only show data up to that date
+        return date.getFullYear() === selectedYear && 
+               (date.getMonth() + 1) === selectedMonth &&
+               m.metric_date <= selectedDate;
+      }
       return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
     })
     .sort((a: any, b: any) => new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime());
@@ -1387,23 +1413,24 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
 
   // Create chart data array for all working days, but only populate elapsed days
   const chartData = Array.from({ length: workingDays }, (_, i) => {
-    const day = i + 1;
+    const workingDay = i + 1;
 
     // Only populate data for elapsed working days
-    if (day > currentDay) {
+    if (workingDay > currentDay) {
       return {
-        day: day.toString(),
+        day: workingDay.toString(),
         currentAvg: null,
         requiredDailyAverage: null,
         performance: null,
-        displayDay: day,
+        displayDay: workingDay,
       };
     }
 
-    const metric = monthMetrics.find((m: any) => new Date(m.metric_date).getDate() === day);
+    // Find the metric for this working day number (not calendar day)
+    const metric = monthMetrics.find((m: any) => m.working_days_elapsed === workingDay);
 
-    // Calculate cumulative average up to this day (use latest available if no data for this day)
-    const metricsUpToDay = monthMetrics.filter((m: any) => new Date(m.metric_date).getDate() <= day);
+    // Get all metrics up to this working day
+    const metricsUpToDay = monthMetrics.filter((m: any) => m.working_days_elapsed <= workingDay);
     const latestMetricUpToDay = metricsUpToDay[metricsUpToDay.length - 1];
 
     let dailyAvg = null;
@@ -1415,23 +1442,27 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
       dailyAvg = latestMetricUpToDay.current_daily_average;
       currentSalesForDay = latestMetricUpToDay.current_net_sales;
 
-      // Calculate required daily average for this specific day
-      // For current day, use same values as header for consistency
-      const salesUpToDay = (day === currentDay) ? currentSales : currentSalesForDay;
+      // Calculate required daily average based on THIS working day's context
+      // This value should be fixed for this day - it shows what was needed from this day forward
+      const salesUpToThisDay = currentSalesForDay;
       const targetAtDay = target112;
-      const daysElapsedAtDay = day;
-      const remainingDaysAtDay = workingDays - daysElapsedAtDay;
-      requiredDailyAverage = remainingDaysAtDay > 0 ? Math.round((targetAtDay - salesUpToDay) / remainingDaysAtDay) : 0;
+      const daysElapsedAtThisDay = workingDay;
+      const remainingDaysFromThisDay = workingDays - daysElapsedAtThisDay;
+      
+      // Required average = (remaining target from this day) / (remaining days from this day)
+      requiredDailyAverage = remainingDaysFromThisDay > 0 
+        ? Math.round((targetAtDay - salesUpToThisDay) / remainingDaysFromThisDay) 
+        : 0;
 
       performanceForDay = dailyAvg && requiredDailyAverage > 0 ? (dailyAvg / requiredDailyAverage) * 100 : null;
     }
 
     return {
-      day: day.toString(),
+      day: workingDay.toString(),
       currentAvg: dailyAvg,
       requiredDailyAverage: requiredDailyAverage,
       performance: performanceForDay,
-      displayDay: day,
+      displayDay: workingDay,
     };
   });
 
@@ -1554,7 +1585,7 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
   );
 }
 
-function TargetForecastChart({ metrics, selectedYear, selectedMonth, monthTarget }: any) {
+function TargetForecastChart({ metrics, selectedYear, selectedMonth, selectedDate, monthTarget }: any) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(amount);
   };
@@ -1562,6 +1593,12 @@ function TargetForecastChart({ metrics, selectedYear, selectedMonth, monthTarget
   const monthMetrics = metrics
     .filter((m: any) => {
       const date = new Date(m.metric_date);
+      if (selectedDate) {
+        // If a specific date is selected, only show data up to that date
+        return date.getFullYear() === selectedYear && 
+               (date.getMonth() + 1) === selectedMonth &&
+               m.metric_date <= selectedDate;
+      }
       return date.getFullYear() === selectedYear && (date.getMonth() + 1) === selectedMonth;
     })
     .sort((a: any, b: any) => new Date(a.metric_date).getTime() - new Date(b.metric_date).getTime());
@@ -1848,7 +1885,7 @@ function RevenueMixChart({ dashboardData }: any) {
   );
 }
 
-function AnnualNetSalesChart({ metrics, targets, selectedYear }: any) {
+function AnnualNetSalesChart({ metrics, targets, selectedYear, selectedMonth, selectedDate }: any) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
   };
@@ -1864,11 +1901,21 @@ function AnnualNetSalesChart({ metrics, targets, selectedYear }: any) {
   let cumulativeTarget = 0;
   let cumulativeActual = 0;
   
-  // Find the last month with actual data
+  // Find the last month with actual data, respecting the selected date
   const monthsWithData = Array.from({ length: 12 }, (_, i) => {
     const month = i + 1;
+    // If we have a selected date and this month is after the selected month, skip it
+    if (selectedDate && month > selectedMonth) {
+      return null;
+    }
     const monthMetrics = metrics.filter((m: any) => {
       const date = new Date(m.metric_date);
+      // If this is the selected month, only include data up to the selected date
+      if (selectedDate && month === selectedMonth) {
+        return date.getFullYear() === selectedYear && 
+               (date.getMonth() + 1) === month &&
+               m.metric_date <= selectedDate;
+      }
       return date.getFullYear() === selectedYear && (date.getMonth() + 1) === month;
     });
     return monthMetrics.length > 0 ? month : null;
@@ -1883,10 +1930,16 @@ function AnnualNetSalesChart({ metrics, targets, selectedYear }: any) {
     // Find target for this month
     const target = targets.find((t: any) => t.year === selectedYear && t.month === month);
     
-    // Find latest metric for this month
+    // Find latest metric for this month, respecting the selected date
     const monthMetrics = metrics
       .filter((m: any) => {
         const date = new Date(m.metric_date);
+        // If this is the selected month, only include data up to the selected date
+        if (selectedDate && month === selectedMonth) {
+          return date.getFullYear() === selectedYear && 
+                 (date.getMonth() + 1) === month &&
+                 m.metric_date <= selectedDate;
+        }
         return date.getFullYear() === selectedYear && (date.getMonth() + 1) === month;
       })
       .sort((a: any, b: any) => new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime());
@@ -2004,7 +2057,7 @@ function AnnualNetSalesChart({ metrics, targets, selectedYear }: any) {
   );
 }
 
-function AnnualLabourSalesChart({ metrics, targets, selectedYear }: any) {
+function AnnualLabourSalesChart({ metrics, targets, selectedYear, selectedMonth, selectedDate }: any) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', { notation: 'compact', maximumFractionDigits: 1 }).format(amount);
   };
@@ -2020,11 +2073,21 @@ function AnnualLabourSalesChart({ metrics, targets, selectedYear }: any) {
   let cumulativeTarget = 0;
   let cumulativeActual = 0;
   
-  // Find the last month with actual data
+  // Find the last month with actual data, respecting the selected date
   const monthsWithData = Array.from({ length: 12 }, (_, i) => {
     const month = i + 1;
+    // If we have a selected date and this month is after the selected month, skip it
+    if (selectedDate && month > selectedMonth) {
+      return null;
+    }
     const monthMetrics = metrics.filter((m: any) => {
       const date = new Date(m.metric_date);
+      // If this is the selected month, only include data up to the selected date
+      if (selectedDate && month === selectedMonth) {
+        return date.getFullYear() === selectedYear && 
+               (date.getMonth() + 1) === month &&
+               m.metric_date <= selectedDate;
+      }
       return date.getFullYear() === selectedYear && (date.getMonth() + 1) === month;
     });
     return monthMetrics.length > 0 ? month : null;
@@ -2039,10 +2102,16 @@ function AnnualLabourSalesChart({ metrics, targets, selectedYear }: any) {
     // Find target for this month
     const target = targets.find((t: any) => t.year === selectedYear && t.month === month);
     
-    // Find latest metric for this month
+    // Find latest metric for this month, respecting the selected date
     const monthMetrics = metrics
       .filter((m: any) => {
         const date = new Date(m.metric_date);
+        // If this is the selected month, only include data up to the selected date
+        if (selectedDate && month === selectedMonth) {
+          return date.getFullYear() === selectedYear && 
+                 (date.getMonth() + 1) === month &&
+                 m.metric_date <= selectedDate;
+        }
         return date.getFullYear() === selectedYear && (date.getMonth() + 1) === month;
       })
       .sort((a: any, b: any) => new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime());

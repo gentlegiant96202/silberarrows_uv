@@ -379,18 +379,18 @@ export default function CustomersPage() {
 
         {/* Table */}
         <div className="overflow-x-auto border border-white/10 rounded-lg">
-          <table className="min-w-full text-sm text-white">
+          <table className="w-full text-sm text-white table-fixed">
             <thead className="bg-white/5 backdrop-blur-sm text-left sticky top-0 z-10 shadow-md shadow-black/40">
               <tr>
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Phone</th>
-                <th className="px-4 py-2">Model</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Max Age</th>
-                <th className="px-4 py-2">Payment</th>
-                <th className="px-4 py-2">Budget</th>
+                <th className="px-4 py-2 w-[15%]">Name</th>
+                <th className="px-4 py-2 w-[13%]">Phone</th>
+                <th className="px-4 py-2 w-[10%]">Model</th>
+                <th className="px-4 py-2 w-[12%]">Status</th>
+                <th className="px-4 py-2 w-[8%]">Max Age</th>
+                <th className="px-4 py-2 w-[10%]">Payment</th>
+                <th className="px-4 py-2 w-[12%]">Budget</th>
                 {/* Always reserve space for Lost Reason column to prevent layout shift */}
-                <th className={`px-4 py-2 ${!(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) ? 'text-transparent' : ''}`}>
+                <th className={`px-4 py-2 w-[20%] ${!(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) ? 'text-transparent' : ''}`}>
                   Lost Reason
                 </th>
               </tr>
@@ -426,9 +426,9 @@ export default function CustomersPage() {
                     key={r.id}
                     className="border-t border-white/10 hover:bg-white/10 odd:bg-white/5 transition-colors"
                   >
-                    <td className="px-4 py-2 whitespace-nowrap">{r.full_name}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <span className="group inline-flex items-center gap-1">
+                    <td className="px-4 py-2 truncate">{r.full_name}</td>
+                    <td className="px-4 py-2">
+                      <span className="group inline-flex items-center gap-1 whitespace-nowrap">
                         {r.country_code} {r.phone_number}
                         <button
                           type="button"
@@ -440,13 +440,13 @@ export default function CustomersPage() {
                         </button>
                       </span>
                     </td>
-                    <td className="px-4 py-2">{r.model_of_interest}</td>
-                    <td className="px-4 py-2 capitalize">
+                    <td className="px-4 py-2 truncate">{r.model_of_interest}</td>
+                    <td className="px-4 py-2 capitalize truncate">
                       {r.status.replace('_', ' ')}
                     </td>
-                    <td className="px-4 py-2">{r.max_age}</td>
-                    <td className="px-4 py-2 capitalize">{r.payment_type}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-2 truncate">{r.max_age}</td>
+                    <td className="px-4 py-2 capitalize truncate">{r.payment_type}</td>
+                    <td className="px-4 py-2 truncate">
                       {r.payment_type === 'monthly'
                         ? `AED ${r.monthly_budget?.toLocaleString() || 0}/mo`
                         : `AED ${r.total_budget?.toLocaleString() || 0}`}
@@ -454,7 +454,7 @@ export default function CustomersPage() {
                     {/* Always include Lost Reason cell to prevent layout shift */}
                     <td className={`px-4 py-2 ${!(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) ? 'text-transparent' : ''}`}>
                       {(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) && (
-                        <div className="max-w-xs">
+                        <div>
                           {r.lost_reason && (
                             <div className="text-xs">
                               <span className="font-medium text-red-400">{r.lost_reason}</span>
@@ -476,7 +476,7 @@ export default function CustomersPage() {
                         </div>
                       )}
                       {!(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) && (
-                        <div className="h-6"></div> // Reserve space when not showing
+                        <div className="h-6"></div>
                       )}
                     </td>
                   </tr>

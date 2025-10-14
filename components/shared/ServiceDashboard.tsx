@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Calendar, TrendingUp, Target, FileText, AlertCircle, ChevronDown, Zap, Users, Search, Bell, BarChart3, Activity, Wrench, Trophy, DollarSign, CalendarDays, Percent, Receipt, ChartLine, ChartBar, PieChart as PieIcon, ChartPie, CalendarRange, BarChart4, LayoutGrid, Gauge } from 'lucide-react';
+import { Calendar, TrendingUp, Target, FileText, AlertCircle, ChevronDown, Zap, Users, Search, Bell, BarChart3, Activity, Wrench, Trophy, DollarSign, CalendarDays, Percent, Receipt, ChartLine, ChartBar, PieChart as PieIcon, ChartPie, CalendarRange, BarChart4, LayoutGrid, Gauge, Phone, CheckCircle, XCircle, Award } from 'lucide-react';
 import DirhamIcon from '@/components/ui/DirhamIcon';
 import { ComposedChart, AreaChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import type { DailyServiceMetrics, ServiceMonthlyTarget } from '@/types/service';
@@ -10,6 +10,21 @@ interface ServiceDashboardProps {
   metrics: DailyServiceMetrics[];
   targets: ServiceMonthlyTarget[];
   loading?: boolean;
+}
+
+interface CallLogEntry {
+  id: string;
+  call_date: string;
+  call_time: string;
+  customer_name: string;
+  phone_number: string;
+  reach_out_method: string;
+  person_in_charge: string;
+  answered_yn: string;
+  action_taken: string;
+  person_in_charge_2: string;
+  answered_yn_2: string;
+  notes: string;
 }
 
 export default function ServiceDashboard({ metrics, targets, loading = false }: ServiceDashboardProps) {
@@ -22,6 +37,8 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [compareWithPrevious, setCompareWithPrevious] = useState(false);
   const [previousMonthData, setPreviousMonthData] = useState<DailyServiceMetrics | null>(null);
+  const [callLogs, setCallLogs] = useState<CallLogEntry[]>([]);
+  const [callLogsLoading, setCallLogsLoading] = useState(false);
 
   // Reset isInitialLoad when loading starts
   useEffect(() => {
@@ -134,6 +151,34 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     }
   }, [dashboardData, selectedYear, selectedMonth, metrics]);
 
+  // Fetch call logs for Service department
+  useEffect(() => {
+    const fetchCallLogs = async () => {
+      setCallLogsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('call_management')
+          .select('*')
+          .eq('record_type', 'call_entry')
+          .order('call_date', { ascending: false })
+          .order('call_time', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching call logs:', error);
+          return;
+        }
+
+        setCallLogs(data || []);
+      } catch (error) {
+        console.error('Error fetching call logs:', error);
+      } finally {
+        setCallLogsLoading(false);
+      }
+    };
+
+    fetchCallLogs();
+  }, []);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
@@ -180,10 +225,20 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           <div className="bg-gradient-to-r from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] rounded-2xl pl-8 pr-6 py-4 shadow-[0_4px_20px_rgba(192,192,192,0.3)] flex items-center justify-between">
             <div className="text-3xl font-extrabold text-[#3A3A3A] tracking-tight">Dashboard</div>
             <div className="flex items-center gap-5">
-              <div className="h-12 w-24 bg-[#3A3A3A]/10 rounded-xl animate-pulse"></div>
-              <div className="h-12 w-32 bg-[#3A3A3A]/10 rounded-xl animate-pulse"></div>
-              <div className="h-12 w-32 bg-[#3A3A3A]/10 rounded-xl animate-pulse"></div>
-              <div className="h-12 w-32 bg-[#3A3A3A]/10 rounded-xl animate-pulse"></div>
+              {/* Days Remaining Skeleton */}
+              <div className="flex items-center gap-2 border-r border-[#3A3A3A]/20 pr-5">
+                <div className="w-4 h-4 bg-[#3A3A3A]/20 rounded animate-pulse"></div>
+                <div className="flex flex-col gap-1">
+                  <div className="h-3 w-24 bg-[#3A3A3A]/10 rounded animate-pulse"></div>
+                  <div className="h-4 w-16 bg-[#3A3A3A]/20 rounded animate-pulse"></div>
+                </div>
+              </div>
+              {/* Date Filter Skeleton */}
+              <div className="h-9 w-24 bg-white/20 border border-[#3A3A3A]/20 rounded-xl animate-pulse"></div>
+              {/* Month Filter Skeleton */}
+              <div className="h-9 w-32 bg-white/20 border border-[#3A3A3A]/20 rounded-xl animate-pulse"></div>
+              {/* Year Filter Skeleton */}
+              <div className="h-9 w-32 bg-white/20 border border-[#3A3A3A]/20 rounded-xl animate-pulse"></div>
             </div>
           </div>
 
@@ -430,7 +485,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon progress={dashboardData.current_net_sales_percentage}><Wrench size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-5 h-5 mr-2" />
+                <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                   {formatCurrency(dashboardData.current_net_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1">
@@ -457,7 +512,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon progress={dashboardData.estimated_net_sales_percentage}><TrendingUp size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-5 h-5 mr-2" />
+                <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                   {formatCurrency(dashboardData.estimated_net_sales || 0)}
               </CardValue>
               <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
@@ -471,7 +526,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon><CalendarDays size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-5 h-5 mr-2" />
+                <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                   {formatCurrency(dashboardData.current_daily_average || 0)}
               </CardValue>
               {monthTarget && dashboardData && dashboardData.current_net_sales_percentage < 112 && (() => {
@@ -526,7 +581,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon progress={dashboardData.current_labour_sales_percentage}><Wrench size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-5 h-5 mr-2" />
+                <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                   {formatCurrency(dashboardData.current_net_labor_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1">
@@ -553,7 +608,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon progress={dashboardData.estimated_labor_sales_percentage}><TrendingUp size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-5 h-5 mr-2" />
+                <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                   {formatCurrency(dashboardData.estimated_labor_sales || 0)}
               </CardValue>
               <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
@@ -567,7 +622,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardIcon><CalendarDays size={20} /></CardIcon>
               </CardHeader>
               <CardValue>
-                <DirhamIcon className="w-5 h-5 mr-2" />
+                <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                 {formatCurrency((dashboardData.current_net_labor_sales || 0) / (dashboardData.working_days_elapsed || 1))}
               </CardValue>
               {monthTarget && dashboardData && (dashboardData.current_net_labor_sales / ((monthTarget.labour_sales_target || 1) * 1.12) * 100) < 112 && (() => {
@@ -618,6 +673,9 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <TargetForecastChart metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} monthTarget={monthTarget} />
             <DailyAverageChart dashboardData={dashboardData} monthTarget={monthTarget} metrics={metrics} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} />
 
+            {/* Call Metrics Section */}
+            <CallMetricsSection callLogs={callLogs} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} loading={callLogsLoading} />
+
             {/* Two Column Layout Container */}
             <div className="col-span-6 grid grid-cols-2 gap-5">
               {/* Left Column: Marketing & Invoice Metrics */}
@@ -643,7 +701,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                     <CardIcon><TrendingUp size={20} /></CardIcon>
                   </CardHeader>
                   <CardValue>
-                    <DirhamIcon className="w-5 h-5 mr-2" />
+                    <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                     {formatCurrency(dashboardData.current_marketing_spend || 0)}
                   </CardValue>
                   <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
@@ -991,6 +1049,141 @@ function TeamMember({ name, role, sales, contribution }: { name: string; role: s
           {contribution.toFixed(1)}% of total
         </div>
       </div>
+          </div>
+  );
+}
+
+// Call Metrics Section Component
+function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDate, loading }: { callLogs: CallLogEntry[], selectedYear: number, selectedMonth: number, selectedDate: string, loading: boolean }) {
+  // Filter call logs based on selected filters (NO staff filter - show ALL service calls)
+  const filteredCalls = callLogs.filter(call => {
+    if (!call.call_date) return false;
+    
+    // Parse date string directly (format: YYYY-MM-DD)
+    const dateParts = call.call_date.split('-');
+    if (dateParts.length !== 3) return false;
+    
+    const callYear = parseInt(dateParts[0]);
+    const callMonth = parseInt(dateParts[1]);
+    const callDay = parseInt(dateParts[2]);
+    
+    // Filter by year and month
+    if (callYear !== selectedYear || callMonth !== selectedMonth) {
+      return false;
+    }
+    
+    // Filter by selected date if provided
+    if (selectedDate) {
+      const selectedParts = selectedDate.split('-');
+      if (selectedParts.length === 3) {
+        const selectedDay = parseInt(selectedParts[2]);
+        if (callDay > selectedDay) {
+          return false;
+        }
+      }
+    }
+    
+    // Show ALL calls (no staff filtering)
+    return true;
+  });
+
+  // Calculate metrics
+  const totalCalls = filteredCalls.length;
+  const answeredCalls = filteredCalls.filter(call => 
+    call.answered_yn === 'Yes' || call.answered_yn_2 === 'Yes'
+  ).length;
+  const missedCalls = totalCalls - answeredCalls;
+  const answerRate = totalCalls > 0 ? (answeredCalls / totalCalls) * 100 : 0;
+  
+  // Calculate calls by staff member (count all unique staff)
+  const callsByStaff: { [key: string]: number } = {};
+  filteredCalls.forEach(call => {
+    if (call.person_in_charge) {
+      callsByStaff[call.person_in_charge] = (callsByStaff[call.person_in_charge] || 0) + 1;
+    }
+    if (call.person_in_charge_2) {
+      callsByStaff[call.person_in_charge_2] = (callsByStaff[call.person_in_charge_2] || 0) + 1;
+    }
+  });
+  
+  const topPerformer = Object.entries(callsByStaff).length > 0 
+    ? Object.entries(callsByStaff).reduce((a, b) => a[1] > b[1] ? a : b)
+    : ['N/A', 0];
+
+  if (loading) {
+    return (
+      <div className="col-span-6 grid grid-cols-4 gap-5 animate-pulse">
+        <div className="h-32 bg-[rgba(255,255,255,0.08)] rounded-lg"></div>
+        <div className="h-32 bg-[rgba(255,255,255,0.08)] rounded-lg"></div>
+        <div className="h-32 bg-[rgba(255,255,255,0.08)] rounded-lg"></div>
+        <div className="h-32 bg-[rgba(255,255,255,0.08)] rounded-lg"></div>
+      </div>
+    );
+  }
+
+  // Calculate average calls per day (based on days that have calls)
+  const uniqueDays = new Set(filteredCalls.map(call => call.call_date)).size;
+  const avgCallsPerDay = uniqueDays > 0 ? totalCalls / uniqueDays : 0;
+
+  return (
+    <div className="col-span-6 grid grid-cols-4 gap-5">
+      {/* Total Calls */}
+      <Card className="col-span-1">
+        <CardHeader>
+          <CardTitle>Total Calls</CardTitle>
+          <CardIcon><Phone size={20} /></CardIcon>
+        </CardHeader>
+        <CardValue>
+          {totalCalls}
+        </CardValue>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+            {avgCallsPerDay.toFixed(1)} avg/day
+          </div>
+        </div>
+      </Card>
+
+      {/* Answered Calls */}
+      <Card className="col-span-1">
+        <CardHeader>
+          <CardTitle>Answered Calls</CardTitle>
+          <CardIcon><CheckCircle size={20} /></CardIcon>
+        </CardHeader>
+        <CardValue>
+          {answeredCalls}
+        </CardValue>
+        <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+          {answerRate.toFixed(1)}% answer rate
+        </div>
+      </Card>
+
+      {/* Missed Calls */}
+      <Card className="col-span-1">
+        <CardHeader>
+          <CardTitle>Missed Calls</CardTitle>
+          <CardIcon><XCircle size={20} /></CardIcon>
+        </CardHeader>
+        <CardValue>
+          {missedCalls}
+        </CardValue>
+        <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+          {((100 - answerRate)).toFixed(1)}% missed
+        </div>
+      </Card>
+
+      {/* Top Performer */}
+      <Card className="col-span-1">
+        <CardHeader>
+          <CardTitle>Top Performer</CardTitle>
+          <CardIcon><Award size={20} /></CardIcon>
+        </CardHeader>
+        <CardValue>
+          {topPerformer[0] || 'N/A'}
+        </CardValue>
+        <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+          {topPerformer[1]} calls handled
+        </div>
+      </Card>
           </div>
   );
 }

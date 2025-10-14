@@ -7,7 +7,6 @@ import MusicPlayer from './sections/MusicPlayer';
 import ProfileDropdown from './sections/ProfileDropdown';
 import FinanceCalculator from './modules/uv-crm/FinanceCalculator';
 import AccountsNavigation from './modules/accounts/AccountsNavigation';
-import MarketingTicketsDropdown from '@/components/shared/MarketingTicketsDropdown';
 import { useAccountsTab } from '@/lib/AccountsTabContext';
 
 interface HeaderProps {
@@ -87,11 +86,6 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
             {/* Search Bar */}
             {!isModuleSelectionPage && (
               <SearchBar />
-            )}
-
-            {/* Marketing Tickets Dropdown */}
-            {!isModuleSelectionPage && (
-              <MarketingTicketsDropdown />
             )}
             
             {/* Finance Calculator for CRM module only */}

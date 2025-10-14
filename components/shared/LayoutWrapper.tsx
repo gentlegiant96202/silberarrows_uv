@@ -1,12 +1,13 @@
 "use client";
 import { usePathname } from 'next/navigation';
 import Header from '@/components/shared/header/Header';
+import Sidebar from '@/components/shared/sidebar/Sidebar';
 import { AccountsTabProvider } from '@/lib/AccountsTabContext';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   
-  // Pages that should NOT show the header
+  // Pages that should NOT show the header/sidebar
   const noHeaderPages = [
     '/login',
     '/signup', 
@@ -22,18 +23,29 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const isDubizzlePage = pathname.startsWith('/dubizzle/');
   
   const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage && !isDubizzlePage;
+  const shouldShowSidebar = shouldShowHeader; // Sidebar appears with header
   const isAccountsPage = pathname.startsWith('/accounts');
   
   const content = (
-    <>
-      {/* Persistent Header - fixed at top */}
-      {shouldShowHeader && <Header />}
+    <div className="flex h-screen overflow-hidden bg-black">
+      {/* Persistent Sidebar - takes space in layout */}
+      {shouldShowSidebar && <Sidebar />}
       
-      {/* Page Content - add top padding equal to header height */}
-      <div className={shouldShowHeader ? 'pt-[72px] min-h-[calc(100vh-72px)]' : 'min-h-screen'}>
-        {children}
+      {/* Main content area with header and page content */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Persistent Header - stays at top */}
+        {shouldShowHeader && (
+          <div className="flex-shrink-0">
+            <Header />
+          </div>
+        )}
+        
+        {/* Page Content - scrollable area */}
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
       </div>
-    </>
+    </div>
   );
   
   // Wrap with AccountsTabProvider if on accounts pages

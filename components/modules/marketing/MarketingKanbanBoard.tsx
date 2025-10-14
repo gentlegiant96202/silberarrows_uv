@@ -1054,7 +1054,7 @@ export default function MarketingKanbanBoard() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 top-[72px] px-4 overflow-hidden bg-black">
+      <div className="h-full px-4 overflow-hidden bg-black">
         <div className="flex gap-3 pb-4 w-full h-full">
           {columns
             .filter(col => showArchived || col.key !== 'archived')
@@ -1071,7 +1071,7 @@ export default function MarketingKanbanBoard() {
   }
 
   return (
-    <div className="fixed inset-0 top-[72px] px-4 overflow-hidden">
+    <div className="h-full px-4 overflow-hidden">
       <div className={`flex gap-3 pb-4 w-full h-full transition-all duration-700 ease-out transform ${
         columnsVisible 
           ? 'opacity-100 translate-y-0' 

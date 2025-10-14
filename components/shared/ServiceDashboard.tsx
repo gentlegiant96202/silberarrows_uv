@@ -168,14 +168,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] p-5">
         <div className="w-full flex flex-col gap-5">
-          {/* Header Skeleton - Matches actual header structure */}
-          <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold text-[#C0C0C0]">Service Report</div>
-            <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl px-6 py-3 flex items-center gap-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-              <div className="h-12 w-24 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
-              <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
-              <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
-              <div className="h-12 w-32 bg-[rgba(255,255,255,0.05)] rounded-xl animate-pulse"></div>
+          {/* Header Skeleton - Matches actual header structure with silver gradient */}
+          <div className="bg-gradient-to-r from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] rounded-2xl pl-8 pr-6 py-4 shadow-[0_4px_20px_rgba(192,192,192,0.3)] flex items-center justify-between">
+            <div className="text-3xl font-extrabold text-[#3A3A3A] tracking-tight">Dashboard</div>
+            <div className="flex items-center gap-5">
+              <div className="h-12 w-24 bg-[#3A3A3A]/10 rounded-xl animate-pulse"></div>
+              <div className="h-12 w-32 bg-[#3A3A3A]/10 rounded-xl animate-pulse"></div>
+              <div className="h-12 w-32 bg-[#3A3A3A]/10 rounded-xl animate-pulse"></div>
+              <div className="h-12 w-32 bg-[#3A3A3A]/10 rounded-xl animate-pulse"></div>
             </div>
           </div>
 
@@ -311,15 +311,15 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] p-5">
       <div className="w-full flex flex-col gap-5">
-        {/* Header with Title and Date Filters */}
-        <div className="flex items-center justify-between">
+        {/* Header with Title and Date Filters - Silver Gradient Container */}
+        <div className="bg-gradient-to-r from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] rounded-2xl pl-8 pr-6 py-4 shadow-[0_4px_20px_rgba(192,192,192,0.3)] flex items-center justify-between">
           {/* Left-aligned Heading */}
-            <div className="text-2xl font-bold text-[#C0C0C0]">
-              Service Report
-          </div>
+            <div className="text-3xl font-extrabold text-[#3A3A3A] tracking-tight">
+              Dashboard
+        </div>
         
           {/* Date Filters Container */}
-          <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl px-6 py-3 flex items-center gap-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+          <div className="flex items-center gap-5">
             {/* Days Remaining */}
             {monthTarget && dashboardData && (() => {
               const workingDaysElapsed = dashboardData.working_days_elapsed || 0;
@@ -327,11 +327,11 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               const daysRemaining = Math.max(0, totalWorkingDays - workingDaysElapsed);
               
               return (
-                <div className="flex items-center gap-2 border-r border-[rgba(255,255,255,0.1)] pr-5">
-                  <CalendarDays size={16} className="text-white" />
+                <div className="flex items-center gap-2 border-r border-[#3A3A3A]/20 pr-5">
+                  <CalendarDays size={16} className="text-[#3A3A3A]" />
                   <div className="flex flex-col">
-                    <span className="text-xs text-[rgba(255,255,255,0.5)]">Days Remaining</span>
-                    <span className="text-sm font-bold text-white">{daysRemaining} of {totalWorkingDays}</span>
+                    <span className="text-xs text-[#3A3A3A]/70">Days Remaining</span>
+                    <span className="text-sm font-bold text-[#3A3A3A]">{daysRemaining} of {totalWorkingDays}</span>
         </div>
                 </div>
               );
@@ -342,14 +342,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-                className="appearance-none bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl pl-4 pr-10 py-2 text-[#E0E0E0] text-sm font-medium focus:outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-all disabled:opacity-50"
+                className="appearance-none bg-white/20 border border-[#3A3A3A]/20 rounded-xl pl-4 pr-10 py-2 text-[#3A3A3A] text-sm font-medium focus:outline-none cursor-pointer hover:bg-white/30 transition-all disabled:opacity-50"
               disabled={availableDates.length === 0}
             >
               {availableDates.length === 0 ? (
-                <option>No data available</option>
+                <option className="text-[#3A3A3A]">No data available</option>
               ) : (
                 availableDates.map(date => (
-                    <option key={date} value={date} className="bg-gray-900 text-white">
+                    <option key={date} value={date} className="bg-white text-[#3A3A3A]">
                       {new Date(date).toLocaleDateString('en-GB', { 
                         day: 'numeric', 
                         month: 'short',
@@ -359,7 +359,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 ))
               )}
             </select>
-              <Calendar className="w-4 h-4 text-[rgba(255,255,255,0.5)] absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+              <Calendar className="w-4 h-4 text-[#3A3A3A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* Month Selector */}
@@ -370,7 +370,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 setSelectedMonth(Number(e.target.value));
                   setSelectedDate('');
                 }}
-                className="appearance-none bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl pl-4 pr-10 py-2 text-[#E0E0E0] text-sm font-medium focus:outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-all"
+                className="appearance-none bg-white/20 border border-[#3A3A3A]/20 rounded-xl pl-4 pr-10 py-2 text-[#3A3A3A] text-sm font-medium focus:outline-none cursor-pointer hover:bg-white/30 transition-all"
               >
                 {[
                   { value: 1, label: 'January' }, { value: 2, label: 'February' },
@@ -380,12 +380,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   { value: 9, label: 'September' }, { value: 10, label: 'October' },
                   { value: 11, label: 'November' }, { value: 12, label: 'December' }
               ].map(month => (
-                  <option key={month.value} value={month.value} className="bg-gray-900 text-white">
+                  <option key={month.value} value={month.value} className="bg-white text-[#3A3A3A]">
                   {month.label}
                 </option>
               ))}
             </select>
-              <ChevronDown className="w-4 h-4 text-[rgba(255,255,255,0.5)] absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-[#3A3A3A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* Year Selector */}
@@ -396,13 +396,13 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 setSelectedYear(Number(e.target.value));
                   setSelectedDate('');
               }}
-                className="appearance-none bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl pl-4 pr-10 py-2 text-[#E0E0E0] text-sm font-medium focus:outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-all"
+                className="appearance-none bg-white/20 border border-[#3A3A3A]/20 rounded-xl pl-4 pr-10 py-2 text-[#3A3A3A] text-sm font-medium focus:outline-none cursor-pointer hover:bg-white/30 transition-all"
             >
               {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                  <option key={year} value={year} className="bg-gray-900 text-white">{year}</option>
+                  <option key={year} value={year} className="bg-white text-[#3A3A3A]">{year}</option>
               ))}
             </select>
-              <ChevronDown className="w-4 h-4 text-[rgba(255,255,255,0.5)] absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-[#3A3A3A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
           </div>
         </div>
@@ -426,7 +426,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   {formatCurrency(dashboardData.current_net_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-sm font-medium text-white">
+                <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
                 {dashboardData.current_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_net_sales_percentage)} vs target
               </div>
                 {previousMonthData && (() => {
@@ -434,7 +434,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   const prevDateStr = prevDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                   const changePercent = ((dashboardData.current_net_sales - previousMonthData.current_net_sales) / previousMonthData.current_net_sales) * 100;
                   return (
-                    <div className="text-xs text-white">
+                    <div className="text-xs text-[#3A3A3A]/70">
                       {changePercent >= 0 ? '↑' : '↓'}{' '}
                       {formatPercentage(Math.abs(changePercent))} vs {prevDateStr}
                     </div>
@@ -452,7 +452,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.estimated_net_sales || 0)}
               </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-white">
+              <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
                 {dashboardData.estimated_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.estimated_net_sales_percentage)} vs target
               </div>
             </Card>
@@ -478,7 +478,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   return formatCurrency(amount);
                 };
                 return daysRemaining > 0 ? (
-                  <div className="flex items-center gap-1 text-xs text-white">
+                  <div className="flex items-center gap-1 text-xs text-[#3A3A3A]">
                     <span>Need</span>
                     <DirhamIcon className="w-3 h-3" />
                     <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
@@ -522,7 +522,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   {formatCurrency(dashboardData.current_net_labor_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-sm font-medium text-white">
+                <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
                 {dashboardData.current_labour_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_labour_sales_percentage)} vs target
               </div>
                 {previousMonthData && (() => {
@@ -530,7 +530,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   const prevDateStr = prevDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                   const changePercent = ((dashboardData.current_net_labor_sales - previousMonthData.current_net_labor_sales) / previousMonthData.current_net_labor_sales) * 100;
                   return (
-                    <div className="text-xs text-white">
+                    <div className="text-xs text-[#3A3A3A]">
                       {changePercent >= 0 ? '↑' : '↓'}{' '}
                       {formatPercentage(Math.abs(changePercent))} vs {prevDateStr}
                     </div>
@@ -548,7 +548,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-5 h-5 mr-2" />
                   {formatCurrency(dashboardData.estimated_labor_sales || 0)}
               </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-white">
+              <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
                 {dashboardData.estimated_labor_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.estimated_labor_sales_percentage)} vs target
               </div>
             </Card>
@@ -574,7 +574,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   return formatCurrency(amount);
                 };
                 return daysRemaining > 0 ? (
-                  <div className="flex items-center gap-1 text-xs text-white">
+                  <div className="flex items-center gap-1 text-xs text-[#3A3A3A]">
                     <span>Need</span>
                     <DirhamIcon className="w-3 h-3" />
                     <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
@@ -623,7 +623,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   <CardValue>
                     {marketingSpendPercentage.toFixed(1)}%
                   </CardValue>
-                  <div className="flex items-center gap-1 text-sm font-medium text-white">
+                  <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
                     Budget allocation
           </div>
                 </Card>
@@ -638,7 +638,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                     <DirhamIcon className="w-5 h-5 mr-2" />
                     {formatCurrency(dashboardData.current_marketing_spend || 0)}
                   </CardValue>
-                  <div className="flex items-center gap-1 text-sm font-medium text-white">
+                  <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
                     Total spend
               </div>
             </Card>
@@ -653,7 +653,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                     <FileText className="w-5 h-5 mr-2" />
                 {formatCurrency(averageInvoiceValue)}
               </CardValue>
-                  <div className="flex items-center gap-1 text-sm font-medium text-white">
+                  <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
                     Per transaction
                   </div>
             </Card>
@@ -667,7 +667,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               <CardValue>
                 {monthlyInvoiceSum}
               </CardValue>
-                  <div className="flex items-center gap-1 text-sm font-medium text-white">
+                  <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
                     Total count
                   </div>
             </Card>
@@ -725,20 +725,20 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                         y1="100"
                         x2="100"
                         y2="35"
-                        stroke="#ffffff"
+                        stroke="#3A3A3A"
                         strokeWidth="3"
                         strokeLinecap="round"
                       />
-                      <circle cx="100" cy="100" r="8" fill="#ffffff" />
+                      <circle cx="100" cy="100" r="8" fill="#3A3A3A" />
                     </g>
                   </svg>
                 </div>
                 {/* Value below speedometer */}
                 <div className="flex flex-col items-center mt-4">
-                  <div className="text-3xl font-bold text-white">
+                  <div className="text-3xl font-bold text-[#3A3A3A]">
                     {vehicleThroughput.toFixed(1)}
                 </div>
-                  <div className="text-xs text-white/60">Vehicles per day</div>
+                  <div className="text-xs text-[#3A3A3A]/60">Vehicles per day</div>
               </div>
             </div>
             </Card>
@@ -793,10 +793,10 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
 // Card Components
 function Card({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
-  // If backgroundColor is provided in style, use solid background, otherwise use gradient
-  const bgClass = style?.backgroundColor ? '' : 'bg-gradient-to-br from-white/10 to-white/5';
+  // If backgroundColor is provided in style (like black for charts), use solid background, otherwise use silver gradient
+  const bgClass = style?.backgroundColor ? '' : 'bg-gradient-to-br from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0]';
   return (
-    <div className={`rounded-lg ${bgClass} backdrop-blur p-3 border border-white/10 shadow-inner ${className}`} style={style}>
+    <div className={`rounded-lg ${bgClass} p-3 border border-white/10 shadow-[0_4px_20px_rgba(192,192,192,0.3)] ${className}`} style={style}>
       {children}
     </div>
   );
@@ -807,7 +807,7 @@ function CardHeader({ children }: { children: React.ReactNode }) {
 }
 
 function CardTitle({ children }: { children: React.ReactNode }) {
-  return <div className="text-sm font-medium text-white/70">{children}</div>;
+  return <div className="text-sm font-medium text-[#3A3A3A]/80">{children}</div>;
 }
 
 function CardIcon({ children, progress }: { children: React.ReactNode; progress?: number }) {
@@ -818,21 +818,21 @@ function CardIcon({ children, progress }: { children: React.ReactNode; progress?
   const strokeDashoffset = displayProgress !== undefined ? circumference - (displayProgress / 112) * circumference : 0;
   
   const getProgressColor = () => {
-    if (progress === undefined) return '#C0C0C0';
+    if (progress === undefined) return '#3A3A3A';
     if (progress >= 100) return '#4CD964';
     if (progress >= 85) return '#FFC107';
     return '#FF3B30';
   };
 
   return (
-    <div className="relative w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(192,192,192,0.2)] text-[#C0C0C0]">
+    <div className="relative w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(0,0,0,0.1)] text-[#3A3A3A]">
       {progress !== undefined && (
         <svg className="absolute inset-0 w-10 h-10 -rotate-90" viewBox="0 0 40 40">
           <circle
             cx="20"
             cy="20"
             r={radius}
-            stroke="rgba(255,255,255,0.1)"
+            stroke="rgba(0,0,0,0.1)"
             strokeWidth="2"
             fill="none"
           />
@@ -856,7 +856,7 @@ function CardIcon({ children, progress }: { children: React.ReactNode; progress?
 }
 
 function CardValue({ children }: { children: React.ReactNode }) {
-  return <div className="text-xl font-semibold mb-2 text-white flex items-center tabular-nums">{children}</div>;
+  return <div className="text-xl font-semibold mb-2 text-[#3A3A3A] flex items-center tabular-nums">{children}</div>;
 }
 
 function CardGrowth({ children, positive = true, percentage }: { children: React.ReactNode; positive?: boolean; percentage?: number }) {
@@ -897,31 +897,31 @@ function TargetItem({ label, value, progress, current, daysRemaining, showDailyR
   return (
     <div className="flex flex-col gap-1">
       <div className="flex justify-between items-center">
-        <span className="text-sm text-[rgba(255,255,255,0.8)]">{label}</span>
+        <span className="text-sm text-[#3A3A3A]/80">{label}</span>
         <div className="flex items-center gap-1">
-          <DirhamIcon className="w-4 h-4 text-[#C0C0C0]" />
-          <span className="text-base font-bold text-[#C0C0C0] tabular-nums">{formatCurrency(value)}</span>
+          <DirhamIcon className="w-4 h-4 text-[#3A3A3A]" />
+          <span className="text-base font-bold text-[#3A3A3A] tabular-nums">{formatCurrency(value)}</span>
             </div>
             </div>
-      <div className="h-1.5 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden">
+      <div className="h-1.5 bg-[rgba(0,0,0,0.1)] rounded-full overflow-hidden">
         <div 
           className="h-full rounded-full transition-all duration-300" 
           style={{ 
             width: `${Math.min(progress, 100)}%`,
             background: isAchieved 
               ? 'linear-gradient(90deg, #4CD964 0%, #34C759 100%)'
-              : 'linear-gradient(90deg, #C0C0C0 0%, #A0A0A0 100%)'
+              : 'linear-gradient(90deg, #3A3A3A 0%, #5A5A5A 100%)'
           }}
         ></div>
       </div>
       <div className="flex justify-between items-center">
-        <span className="text-xs text-[rgba(255,255,255,0.5)]">
+        <span className="text-xs text-[#3A3A3A]/60">
           {isAchieved ? 'Target Achieved! 🎉' : 'Remaining'}
         </span>
         {!isAchieved && (
           <div className="flex items-center gap-1">
-            <DirhamIcon className="w-3 h-3 text-[rgba(255,255,255,0.5)]" />
-            <span className="text-sm font-semibold text-[rgba(255,255,255,0.7)] tabular-nums">
+            <DirhamIcon className="w-3 h-3 text-[#3A3A3A]/60" />
+            <span className="text-sm font-semibold text-[#3A3A3A]/80 tabular-nums">
               {formatCurrency(remaining)}
             </span>
           </div>
@@ -1796,7 +1796,7 @@ function RevenueMixChart({ dashboardData }: any) {
     { name: 'Parts Sales', value: partsPercent },
   ];
 
-  const COLORS = ['#4CD964', 'rgba(192, 192, 192, 0.8)'];
+  const COLORS = ['#4CD964', '#3A3A3A'];
 
     return (
     <Card className="col-span-1">
@@ -1804,7 +1804,7 @@ function RevenueMixChart({ dashboardData }: any) {
         <CardTitle>Revenue Mix</CardTitle>
         <CardIcon><ChartPie size={20} /></CardIcon>
       </CardHeader>
-      <div className="h-[250px] flex items-center justify-center rounded-xl mt-2.5">
+      <div className="h-[250px] flex items-center justify-center rounded-xl mt-2.5 relative">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -1834,10 +1834,15 @@ function RevenueMixChart({ dashboardData }: any) {
             />
             <Legend 
               wrapperStyle={{ paddingTop: '10px' }}
-              formatter={(value: string) => <span className="text-xs text-[#E0E0E0]">{value}</span>}
+              formatter={(value: string) => <span className="text-xs text-[#3A3A3A]">{value}</span>}
             />
           </PieChart>
         </ResponsiveContainer>
+        {/* Center text showing labour sales percentage */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center" style={{ marginTop: '-20px' }}>
+          <div className="text-3xl font-bold text-[#3A3A3A] tabular-nums">{labourPercent.toFixed(1)}%</div>
+          <div className="text-xs text-[#3A3A3A]/60">Labour</div>
+        </div>
       </div>
     </Card>
   );

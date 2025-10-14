@@ -18,6 +18,7 @@ const marketingTabs = [
       { key: 'tech_tips_tuesday', title: 'Tech Tips Tuesday', href: '/marketing/tech-tips-tuesday' }
     ]
   },
+  { key: 'buyer_journey', title: 'BUYER JOURNEY', hasDropdown: false },
   { key: 'business_cards', title: 'BUSINESS CARDS', hasDropdown: false },
   { key: 'blog', title: 'BLOG', hasDropdown: false },
   { key: 'email', title: 'EMAIL SIGNATURE', hasDropdown: false }

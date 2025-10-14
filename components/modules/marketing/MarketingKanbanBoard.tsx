@@ -1071,12 +1071,12 @@ export default function MarketingKanbanBoard() {
   }
 
   return (
-    <div className="h-full px-4 overflow-hidden">
-      <div className={`flex gap-3 pb-4 w-full h-full transition-all duration-700 ease-out transform ${
+    <div className="px-4 overflow-hidden" style={{ height: 'calc(100vh - 72px)' }}>
+      <div className={`flex gap-3 pb-4 w-full overflow-hidden transition-all duration-700 ease-out transform ${
         columnsVisible 
           ? 'opacity-100 translate-y-0' 
           : 'opacity-0 translate-y-4'
-      }`}>
+      }`} style={{ height: 'calc(100% - 16px)' }}>
         {columns
           .filter(col => showArchived || col.key !== 'archived')
           .map(col => (

@@ -9,6 +9,7 @@ import CallLogBoard from '@/components/modules/marketing/CallLogBoard';
 import ContentPillarsBoard from '@/components/modules/marketing/ContentPillarsBoard';
 import BusinessCardBoard from '@/components/modules/marketing/BusinessCardBoard';
 import EmailSignatureBoard from '@/components/modules/marketing/EmailSignatureBoard';
+import BuyerJourneyCanvas from '@/components/modules/marketing/BuyerJourneyCanvas';
 import RouteProtector from '@/components/shared/RouteProtector';
 
 function MarketingDashboardContent() {
@@ -42,6 +43,10 @@ function MarketingDashboardContent() {
       return <ContentPillarsBoard />;
     }
     
+    if (activeTab === 'buyer_journey') {
+      return <BuyerJourneyCanvas />;
+    }
+    
     if (activeTab === 'business_cards') {
       return <BusinessCardBoard />;
     }
@@ -64,9 +69,9 @@ function MarketingDashboardContent() {
   };
 
   return (
-    <div className="h-full bg-black">
-      <div className="flex h-full">
-        <div className="flex-1 overflow-auto">
+    <div className="h-full bg-black overflow-hidden">
+      <div className="flex h-full overflow-hidden">
+        <div className="flex-1 overflow-hidden">
           {renderContent()}
         </div>
       </div>

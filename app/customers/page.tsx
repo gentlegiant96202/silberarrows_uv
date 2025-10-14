@@ -233,7 +233,7 @@ export default function CustomersPage() {
   }, [selectedStatuses]);
 
   return (
-    <div className="h-full">
+    <div className="h-full overflow-auto">
       <main className="p-6 space-y-4">
         {/* Filters - Flexbox layout with buttons on the right */}
         <div className="flex flex-wrap items-center gap-3 justify-between">

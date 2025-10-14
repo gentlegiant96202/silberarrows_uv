@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useSearchStore } from '@/lib/searchStore';
 
 import { Copy } from 'lucide-react';
 
@@ -45,6 +46,7 @@ const lostReasonOptions = [
 // fallback initial empty array
 
 export default function CustomersPage() {
+  const { query: searchQuery } = useSearchStore();
   const [rows, setRows] = useState<LeadRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [model, setModel] = useState('');
@@ -68,6 +70,11 @@ export default function CustomersPage() {
       .select('*')
       .order('created_at', { ascending: false })
       .range(from, to);
+
+    // Apply search query (searches name, phone, and model)
+    if (searchQuery) {
+      query = query.or(`full_name.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%,model_of_interest.ilike.%${searchQuery}%`);
+    }
 
     if (model) query = query.eq('model_of_interest', model);
 
@@ -97,6 +104,11 @@ export default function CustomersPage() {
       .from('leads')
       .select('*')
       .order('created_at', { ascending: false });
+
+    // Apply search query
+    if (searchQuery) {
+      query = query.or(`full_name.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%,model_of_interest.ilike.%${searchQuery}%`);
+    }
 
     if (model) query = query.eq('model_of_interest', model);
     if (selectedStatuses.length > 0) query = query.in('status', selectedStatuses);
@@ -203,12 +215,12 @@ export default function CustomersPage() {
   // initial + whenever page or filters change
   useEffect(() => {
     fetchRows();
-  }, [model, maxAge, lostReason, page, selectedStatuses]);
+  }, [model, maxAge, lostReason, page, selectedStatuses, searchQuery]);
 
   // reset page to 0 when filters change
   useEffect(() => {
     setPage(0);
-  }, [model, maxAge, lostReason, selectedStatuses]);
+  }, [model, maxAge, lostReason, selectedStatuses, searchQuery]);
 
   // Reset lost reason when neither lost nor archived is active
   useEffect(() => {

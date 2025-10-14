@@ -176,25 +176,21 @@ export default function ModuleSelectionPage() {
     return (
       <div className="min-h-screen bg-black relative overflow-hidden">
         {/* Fixed Logo in Sidebar Position */}
-        <div className="fixed top-0 left-0 w-[64px] h-screen z-30 pointer-events-none">
-          <div className="p-3 border-b border-white/10 border-r border-white/10 bg-black/95 backdrop-blur-md">
-            <div className="flex items-center justify-center h-10">
-              <div className="w-10 h-10 relative">
-                {/* Logo container */}
-                <div className="relative w-full h-full rounded-lg bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center overflow-hidden shadow-lg">
-                  <img 
-                    src="/MAIN LOGO.png" 
-                    alt="SilberArrows" 
-                    className="w-8 h-8 object-contain brightness-150"
-                  />
-                </div>
-                {/* Point glow following rectangular border path */}
-                <div className="absolute inset-0 z-10 rounded-lg overflow-visible">
-                  <div className="absolute -translate-x-1/2 -translate-y-1/2 animate-border-glow">
-                    <div className="w-1 h-1 rounded-full bg-white shadow-[0_0_8px_3px_rgba(255,255,255,0.8),0_0_12px_6px_rgba(200,200,200,0.3)]">
-                      <div className="absolute inset-0 rounded-full bg-white/60 blur-[1px]"></div>
-                    </div>
-                  </div>
+        <div className="fixed top-3 left-3 z-30 pointer-events-none">
+          <div className="w-10 h-10 relative">
+            {/* Logo container */}
+            <div className="relative w-full h-full rounded-lg bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center overflow-hidden shadow-lg">
+              <img 
+                src="/MAIN LOGO.png" 
+                alt="SilberArrows" 
+                className="w-8 h-8 object-contain brightness-150"
+              />
+            </div>
+            {/* Point glow following rectangular border path */}
+            <div className="absolute inset-0 z-10 rounded-lg overflow-visible">
+              <div className="absolute -translate-x-1/2 -translate-y-1/2 animate-border-glow">
+                <div className="w-1 h-1 rounded-full bg-white shadow-[0_0_8px_3px_rgba(255,255,255,0.8),0_0_12px_6px_rgba(200,200,200,0.3)]">
+                  <div className="absolute inset-0 rounded-full bg-white/60 blur-[1px]"></div>
                 </div>
               </div>
             </div>
@@ -245,10 +241,6 @@ export default function ModuleSelectionPage() {
           <div className="px-6 max-w-7xl mx-auto animate-fadeIn">
             {/* Loading Text with consistent spacing */}
             <div className="mb-12 text-center">
-              {/* Logo */}
-              <div className="mb-6 flex justify-center animate-fadeIn">
-                <AnimatedLogoGlow width={120} height={120} className="opacity-50" />
-              </div>
               <h1 className="text-6xl font-bold text-white mb-6 opacity-50">
                 SilberArrows
               </h1>
@@ -329,25 +321,21 @@ export default function ModuleSelectionPage() {
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
       {/* Fixed Logo in Sidebar Position */}
-      <div className="fixed top-0 left-0 w-[64px] h-screen z-30 pointer-events-none">
-        <div className="p-3 border-b border-white/10 border-r border-white/10 bg-black/95 backdrop-blur-md">
-          <div className="flex items-center justify-center h-10">
-            <div className="w-10 h-10 relative">
-              {/* Logo container */}
-              <div className="relative w-full h-full rounded-lg bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center overflow-hidden shadow-lg">
-                <img 
-                  src="/MAIN LOGO.png" 
-                  alt="SilberArrows" 
-                  className="w-8 h-8 object-contain brightness-150"
-                />
-              </div>
-              {/* Point glow following rectangular border path */}
-              <div className="absolute inset-0 z-10 rounded-lg overflow-visible">
-                <div className="absolute -translate-x-1/2 -translate-y-1/2 animate-border-glow">
-                  <div className="w-1 h-1 rounded-full bg-white shadow-[0_0_8px_3px_rgba(255,255,255,0.8),0_0_12px_6px_rgba(200,200,200,0.3)]">
-                    <div className="absolute inset-0 rounded-full bg-white/60 blur-[1px]"></div>
-                  </div>
-                </div>
+      <div className="fixed top-3 left-3 z-30 pointer-events-none">
+        <div className="w-10 h-10 relative">
+          {/* Logo container */}
+          <div className="relative w-full h-full rounded-lg bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center overflow-hidden shadow-lg">
+            <img 
+              src="/MAIN LOGO.png" 
+              alt="SilberArrows" 
+              className="w-8 h-8 object-contain brightness-150"
+            />
+          </div>
+          {/* Point glow following rectangular border path */}
+          <div className="absolute inset-0 z-10 rounded-lg overflow-visible">
+            <div className="absolute -translate-x-1/2 -translate-y-1/2 animate-border-glow">
+              <div className="w-1 h-1 rounded-full bg-white shadow-[0_0_8px_3px_rgba(255,255,255,0.8),0_0_12px_6px_rgba(200,200,200,0.3)]">
+                <div className="absolute inset-0 rounded-full bg-white/60 blur-[1px]"></div>
               </div>
             </div>
           </div>
@@ -388,8 +376,8 @@ export default function ModuleSelectionPage() {
         />
       </div>
 
-      {/* Header with transparent background - shifted right for logo */}
-      <div className="relative z-20 ml-[64px]">
+      {/* Header with transparent background */}
+      <div className="relative z-20">
         <Header />
       </div>
 
@@ -416,10 +404,6 @@ export default function ModuleSelectionPage() {
             <>
               {/* Hero Section */}
               <div className="mb-8 md:mb-12 text-center">
-                {/* Logo */}
-                <div className="mb-6 flex justify-center animate-fadeIn">
-                  <AnimatedLogoGlow width={120} height={120} />
-                </div>
                 <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 md:mb-6">
                   SilberArrows
                 </h1>

@@ -66,9 +66,9 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
       <div className="px-4">
         <div className="flex items-center justify-between py-2.5">
           
-          {/* Left side - Department name or Logo/Accounts tabs */}
+          {/* Left side - Department name or Accounts tabs */}
           {isModuleSelectionPage ? (
-            <Logo />
+            <div className="w-12" />
           ) : currentModule === 'accounts' ? (
             <AccountsNavigation 
               activeTab={accountsTabState?.activeTab || activeTab} 

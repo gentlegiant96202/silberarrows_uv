@@ -234,41 +234,43 @@ export default function CustomersPage() {
 
   return (
     <div className="h-full">
-      <main className="p-4 space-y-4">
-        {/* Filters - Fixed layout to prevent shifts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-center">
-          <select
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded min-w-[140px]"
-          >
-            <option value="">Model (Any)</option>
-            {modelOptions.length === 0 ? (
-              <option disabled>Loading...</option>
-            ) : (
-              modelOptions.map((m) => (
-                <option key={m} value={m}>
-                  {m}
+      <main className="p-6 space-y-4">
+        {/* Filters - Flexbox layout with buttons on the right */}
+        <div className="flex flex-wrap items-center gap-3 justify-between">
+          {/* Left side - Filter dropdowns */}
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded min-w-[140px]"
+            >
+              <option value="">Model (Any)</option>
+              {modelOptions.length === 0 ? (
+                <option disabled>Loading...</option>
+              ) : (
+                modelOptions.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))
+              )}
+            </select>
+
+            <select
+              value={maxAge}
+              onChange={(e) => setMaxAge(e.target.value)}
+              className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded min-w-[130px]"
+            >
+              <option value="">Max Age (Any)</option>
+              {maxAgeOptions.map((a) => (
+                <option key={a} value={a}>
+                  {a}
                 </option>
-              ))
-            )}
-          </select>
+              ))}
+            </select>
 
-          <select
-            value={maxAge}
-            onChange={(e) => setMaxAge(e.target.value)}
-            className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded min-w-[130px]"
-          >
-            <option value="">Max Age (Any)</option>
-            {maxAgeOptions.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
-
-          {/* Status Multi-select Dropdown */}
-          <div className="relative min-w-[220px]">
+            {/* Status Multi-select Dropdown */}
+            <div className="relative min-w-[220px]">
             <button
               type="button"
               onClick={() => setIsStatusDropdownOpen((o) => !o)}
@@ -322,59 +324,63 @@ export default function CustomersPage() {
                 </div>
               </div>
             )}
+            </div>
+
+            {/* Always reserve space for Lost Reason Filter to prevent layout shift */}
+            <div className="min-w-[140px]">
+              {(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) ? (
+                <select
+                  value={lostReason}
+                  onChange={(e) => setLostReason(e.target.value)}
+                  className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded w-full"
+                >
+                  <option value="">Lost Reason (Any)</option>
+                  {lostReasonOptions.map((reason) => (
+                    <option key={reason} value={reason}>
+                      {reason}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="h-[38px]"></div>
+              )}
+            </div>
           </div>
 
-          {/* Always reserve space for Lost Reason Filter to prevent layout shift */}
-          <div className="min-w-[140px]">
-            {(selectedStatuses.includes('lost') || selectedStatuses.includes('archived')) ? (
-              <select
-                value={lostReason}
-                onChange={(e) => setLostReason(e.target.value)}
-                className="bg-black border border-white/10 text-white text-sm px-4 py-2 rounded w-full"
-              >
-                <option value="">Lost Reason (Any)</option>
-                {lostReasonOptions.map((reason) => (
-                  <option key={reason} value={reason}>
-                    {reason}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="h-[38px]"></div> // Reserve space when not showing
-            )}
+          {/* Right side - Action buttons */}
+          <div className="flex items-center gap-3 ml-auto">
+            <button
+              onClick={() => {
+                setModel('');
+                setMaxAge('');
+                setLostReason('');
+                setSelectedStatuses([]);
+              }}
+              className="px-4 py-2 bg-white/10 text-white text-sm rounded hover:bg-white/20 transition-colors min-w-[100px]"
+            >
+              Clear Filters
+            </button>
+
+            {/* CSV Export Button - Small Excel Icon */}
+            <button
+              onClick={exportToCSV}
+              disabled={loading || exporting}
+              title={exporting ? 'Exporting…' : 'Export to Excel'}
+              className="p-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded w-[38px] h-[38px] flex items-center justify-center"
+            >
+              {exporting ? (
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-20" />
+                  <path d="M4 12a8 8 0 018-8" strokeWidth="4" className="opacity-80" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                  <path d="M15.5 11L13.5 13L15.5 15L14 16.5L12 14.5L10 16.5L8.5 15L10.5 13L8.5 11L10 9.5L12 11.5L14 9.5L15.5 11Z" />
+                </svg>
+              )}
+            </button>
           </div>
-
-          <button
-            onClick={() => {
-              setModel('');
-              setMaxAge('');
-              setLostReason('');
-              setSelectedStatuses([]);
-            }}
-            className="px-4 py-2 bg-white/10 text-white text-sm rounded hover:bg-white/20 transition-colors min-w-[100px]"
-          >
-            Clear Filters
-          </button>
-
-          {/* CSV Export Button - Small Excel Icon */}
-          <button
-            onClick={exportToCSV}
-            disabled={loading || exporting}
-            title={exporting ? 'Exporting…' : 'Export to Excel'}
-            className="p-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded w-[38px] h-[38px] flex items-center justify-center"
-          >
-            {exporting ? (
-              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-20" />
-                <path d="M4 12a8 8 0 018-8" strokeWidth="4" className="opacity-80" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                <path d="M15.5 11L13.5 13L15.5 15L14 16.5L12 14.5L10 16.5L8.5 15L10.5 13L8.5 11L10 9.5L12 11.5L14 9.5L15.5 11Z" />
-              </svg>
-            )}
-          </button>
         </div>
 
         {/* Table */}

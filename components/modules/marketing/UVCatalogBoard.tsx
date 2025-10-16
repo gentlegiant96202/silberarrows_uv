@@ -366,7 +366,7 @@ export default function UVCatalogBoard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-6">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-black via-gray-900 to-black text-white p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

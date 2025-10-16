@@ -1528,7 +1528,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
   // --- Main return ---
   return (
-    <div className={`fixed inset-0 top-[72px] bg-black/85 ${performanceMode ? '' : 'backdrop-blur-2xl'} z-[100] flex`} style={{ height: 'calc(100vh - 72px)' }}>
+    <div className={`fixed inset-0 bg-black/85 ${performanceMode ? '' : 'backdrop-blur-2xl'} z-[9999] flex`}>
 
       {/* Main Content */}
       <div className="flex w-full h-full min-h-0">

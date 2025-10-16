@@ -32,7 +32,7 @@ export default function BuyerJourneyCanvas() {
   // State
   const [nodes, setNodes] = useState<JourneyNode[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
-  const [selectedDepartment, setSelectedDepartment] = useState<'used_car' | 'service'>('used_car');
+  const [selectedDepartment, setSelectedDepartment] = useState<'used_car' | 'service' | 'all'>('used_car');
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);

@@ -45,8 +45,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           </div>
         )}
         
-        {/* Page Content - no overflow for pages that handle their own scrolling */}
-        <main className="flex-1 overflow-hidden">
+        {/* Page Content - scrollable area */}
+        <main className="flex-1 overflow-auto">
           {children}
         </main>
       </div>

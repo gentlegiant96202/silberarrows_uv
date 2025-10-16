@@ -273,7 +273,7 @@ export default function RouteProtector({
   };
 
   return (
-    <div className="relative h-full overflow-hidden">
+    <div className="relative h-full">
       {/* Skeleton - fades out */}
       <div className={`absolute inset-0 transition-opacity duration-500 ease-out ${
         skeletonVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'

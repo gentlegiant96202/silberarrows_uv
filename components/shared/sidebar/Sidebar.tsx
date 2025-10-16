@@ -24,7 +24,8 @@ import {
   TrendingUp,
   ShoppingBag,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Route
 } from 'lucide-react';
 
 interface NavItem {
@@ -128,6 +129,7 @@ export default function Sidebar() {
           { key: 'tech_tips', label: 'Tech Tips Tuesday', icon: Lightbulb, href: '/marketing/tech-tips-tuesday' }
         ]
       },
+      { key: 'buyer_journey', label: 'Buyer Journey', icon: Route, href: '/marketing/dashboard?tab=buyer_journey' },
       { key: 'business_cards', label: 'Business Cards', icon: CreditCard, href: '/marketing/dashboard?tab=business_cards' },
       { key: 'blog', label: 'Blog', icon: BookOpen, href: '/marketing/dashboard?tab=blog' },
       { key: 'email', label: 'Email Signature', icon: Mail, href: '/marketing/dashboard?tab=email' }

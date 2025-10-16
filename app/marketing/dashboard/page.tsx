@@ -69,12 +69,8 @@ function MarketingDashboardContent() {
   };
 
   return (
-    <div className="h-full bg-black overflow-hidden">
-      <div className="flex h-full overflow-hidden">
-        <div className="flex-1 overflow-hidden">
-          {renderContent()}
-        </div>
-      </div>
+    <div className="h-full bg-black overflow-hidden flex flex-col">
+      {renderContent()}
     </div>
   );
 }

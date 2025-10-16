@@ -32,7 +32,7 @@ export default function BuyerJourneyCanvas() {
   // State
   const [nodes, setNodes] = useState<JourneyNode[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
-  const [selectedDepartment, setSelectedDepartment] = useState<'used_car' | 'service' | 'all'>('all');
+  const [selectedDepartment, setSelectedDepartment] = useState<'used_car' | 'service'>('used_car');
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
@@ -356,7 +356,7 @@ export default function BuyerJourneyCanvas() {
     };
   };
 
-  // Filter nodes by department
+  // Filter nodes by department - show one department at a time
   const filteredNodes = nodes.filter((node) => {
     if (selectedDepartment === 'all') return true;
     return node.department === selectedDepartment;
@@ -416,70 +416,62 @@ export default function BuyerJourneyCanvas() {
     <div className="h-screen bg-black text-white flex flex-col">
       {/* Toolbar */}
       <div className="bg-black/40 backdrop-blur-sm border-b border-white/10 p-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <h2 className="text-xl font-semibold bg-gradient-to-r from-gray-200 to-gray-400 bg-clip-text text-transparent">
             Buyer Journey Builder
           </h2>
-        </div>
-
-        {/* Department Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-white/70">Department:</span>
-          <select
-            value={selectedDepartment}
-            onChange={(e) => setSelectedDepartment(e.target.value as any)}
-            className="px-3 py-1.5 rounded-lg bg-black/60 border border-white/20 text-white text-sm focus:outline-none focus:border-white/40"
-          >
-            <option value="all">All Departments</option>
-            <option value="used_car">Used Car Department</option>
-            <option value="service">Service Department</option>
-          </select>
-        </div>
-
-        {/* Add Node Buttons */}
-        <div className="flex items-center gap-2">
+          
+          {/* Add Node Button - Shows based on selected department */}
           <button
-            onClick={() => createNode('used_car')}
+            onClick={() => createNode(selectedDepartment as 'used_car' | 'service')}
             className="px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-lg font-medium text-sm flex items-center gap-2 hover:scale-105 transition-transform"
           >
             <Plus className="w-4 h-4" />
-            Add Used Car Stage
-          </button>
-          <button
-            onClick={() => createNode('service')}
-            className="px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-lg font-medium text-sm flex items-center gap-2 hover:scale-105 transition-transform"
-          >
-            <Plus className="w-4 h-4" />
-            Add Service Stage
+            Add {selectedDepartment === 'used_car' ? 'Used Car' : 'Service'} Stage
           </button>
         </div>
 
-        {/* Zoom Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setScale((prev) => Math.min(prev + 0.1, 3))}
-            className="p-2 bg-black/60 border border-white/20 rounded-lg hover:bg-black/80 transition-colors"
-          >
-            <ZoomIn className="w-4 h-4" />
-          </button>
-          <span className="text-sm text-white/70 min-w-[50px] text-center">
-            {Math.round(scale * 100)}%
-          </span>
-          <button
-            onClick={() => setScale((prev) => Math.max(prev - 0.1, 0.1))}
-            className="p-2 bg-black/60 border border-white/20 rounded-lg hover:bg-black/80 transition-colors"
-          >
-            <ZoomOut className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => {
-              setScale(1);
-              setOffset({ x: 0, y: 0 });
-            }}
-            className="px-3 py-2 bg-black/60 border border-white/20 rounded-lg hover:bg-black/80 transition-colors text-sm"
-          >
-            Reset View
-          </button>
+        <div className="flex items-center gap-6">
+          {/* Department Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-white/70">Department:</span>
+            <select
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value as any)}
+              className="px-3 py-1.5 rounded-lg bg-black/60 border border-white/20 text-white text-sm focus:outline-none focus:border-white/40"
+            >
+              <option value="used_car">Used Car Department</option>
+              <option value="service">Service Department</option>
+            </select>
+          </div>
+
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setScale((prev) => Math.min(prev + 0.1, 3))}
+              className="p-2 bg-black/60 border border-white/20 rounded-lg hover:bg-black/80 transition-colors"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <span className="text-sm text-white/70 min-w-[50px] text-center">
+              {Math.round(scale * 100)}%
+            </span>
+            <button
+              onClick={() => setScale((prev) => Math.max(prev - 0.1, 0.1))}
+              className="p-2 bg-black/60 border border-white/20 rounded-lg hover:bg-black/80 transition-colors"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                setScale(1);
+                setOffset({ x: 0, y: 0 });
+              }}
+              className="px-3 py-2 bg-black/60 border border-white/20 rounded-lg hover:bg-black/80 transition-colors text-sm"
+            >
+              Reset View
+            </button>
+          </div>
         </div>
       </div>
 
@@ -565,23 +557,24 @@ export default function BuyerJourneyCanvas() {
         </div>
 
         {/* Instructions */}
-        {nodes.length === 0 && (
+        {filteredNodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center text-white/50">
-              <p className="text-lg mb-2">No journey stages yet</p>
-              <p className="text-sm">Click "Add Used Car Stage" or "Add Service Stage" to begin</p>
+              <p className="text-lg mb-2">No {selectedDepartment === 'used_car' ? 'Used Car' : 'Service'} journey stages yet</p>
+              <p className="text-sm">Click "Add {selectedDepartment === 'used_car' ? 'Used Car' : 'Service'} Stage" to begin</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Instructions Panel */}
+        {/* Instructions Panel */}
       <div className="bg-black/40 backdrop-blur-sm border-t border-white/10 p-3">
         <div className="flex items-center justify-center gap-6 text-xs text-white/50">
           <span>💡 Drag cards to reposition</span>
           <span>🔗 Click "Connect" then click another card to link</span>
           <span>🖱️ Drag canvas to pan • Ctrl+Scroll to zoom</span>
           <span>📹 Upload videos and add captions to each stage</span>
+          <span>🏢 Switch departments to see different journeys</span>
         </div>
       </div>
     </div>

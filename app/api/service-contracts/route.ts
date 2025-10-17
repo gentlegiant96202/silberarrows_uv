@@ -227,6 +227,40 @@ export async function POST(request: NextRequest) {
     });
     const { type, ...contractData } = data;
 
+    // Validate required fields
+    const validationErrors: string[] = [];
+    
+    // Customer Information
+    if (!contractData.owner_name?.trim()) validationErrors.push('Customer name is required');
+    if (!contractData.mobile_no?.trim()) validationErrors.push('Mobile number is required');
+    if (!contractData.email?.trim()) validationErrors.push('Email is required');
+    if (!contractData.customer_id_type?.trim()) validationErrors.push('Customer ID type is required');
+    if (!contractData.customer_id_number?.trim()) validationErrors.push('Customer ID number is required');
+    
+    // Vehicle Information
+    if (!contractData.vin?.trim()) validationErrors.push('VIN is required');
+    if (!contractData.make?.trim()) validationErrors.push('Vehicle make is required');
+    if (!contractData.model?.trim()) validationErrors.push('Vehicle model is required');
+    if (!contractData.model_year) validationErrors.push('Model year is required');
+    if (!contractData.exterior_colour?.trim()) validationErrors.push('Exterior colour is required');
+    if (!contractData.interior_colour?.trim()) validationErrors.push('Interior colour is required');
+    if (!contractData.current_odometer) validationErrors.push('Current odometer is required');
+    
+    // Contract Details
+    if (type === 'service' && !contractData.service_type?.trim()) {
+      validationErrors.push('Service type is required');
+    }
+    if (!contractData.invoice_amount || parseFloat(contractData.invoice_amount) <= 0) {
+      validationErrors.push('Invoice amount is required and must be greater than 0');
+    }
+    
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: validationErrors },
+        { status: 400 }
+      );
+    }
+
     // Get user information for sales_executive field
     const { user } = validation;
     const userEmail = user?.email || 'Unknown User';

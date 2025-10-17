@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Music2, Check, ChevronDown } from 'lucide-react';
 
 // -------------------- Global Calm-Mode Audio --------------------
@@ -187,13 +188,14 @@ export default function MusicPlayer() {
         <ChevronDown className="w-3 h-3" />
       </button>
 
-      {/* Dropdown */}
-      {showSelector && (
+      {/* Dropdown rendered via Portal */}
+      {showSelector && typeof window !== 'undefined' && createPortal(
         <div 
-          className="fixed w-40 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-3 z-[9999] origin-top transition-transform transition-opacity duration-200"
+          className="fixed w-40 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-3 origin-top transition-transform transition-opacity duration-200 animate-in slide-in-from-top-2"
           style={{
             top: `${dropdownPosition.top}px`,
-            right: `${dropdownPosition.right}px`
+            right: `${dropdownPosition.right}px`,
+            zIndex: 999999
           }}
         >
           <p className="text-white/60 mb-2">Select Track</p>
@@ -220,7 +222,8 @@ export default function MusicPlayer() {
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

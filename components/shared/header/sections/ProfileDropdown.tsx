@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { LogOut, User, ChevronDown, Settings } from 'lucide-react';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useUserRole } from '@/lib/useUserRole';
@@ -10,7 +11,9 @@ export default function ProfileDropdown() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserRole();
   const [showProfile, setShowProfile] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
   const profileRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Get user's name from metadata
   const userName = user?.user_metadata?.full_name;
@@ -18,23 +21,55 @@ export default function ProfileDropdown() {
     (user?.email?.split('@')[0]?.replace(/\./g, ' ')?.replace(/\b\w/g, l => l.toUpperCase())) || 
     'User';
 
-  // close dropdown on outside click
+  // Update dropdown position
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right
+      });
+    }
+  };
+
+  // Handle toggle and position update
+  const handleToggle = () => {
+    if (!showProfile) {
+      updateDropdownPosition();
+    }
+    setShowProfile(!showProfile);
+  };
+
+  // close dropdown on outside click and handle resize
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node) &&
+          buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
         setShowProfile(false);
       }
     }
+    
+    function handleResize() {
+      if (showProfile) {
+        updateDropdownPosition();
+      }
+    }
+    
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [showProfile]);
 
   return (
-    <div ref={profileRef} className="relative flex items-center ml-4">
+    <div className="relative flex items-center ml-4">
       {user ? (
         <>
           <button
-            onClick={() => setShowProfile(prev => !prev)}
+            ref={buttonRef}
+            onClick={handleToggle}
             className="flex items-center space-x-1 px-2 py-1.5 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-full shadow-inner hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-brand"
             title={user.email || 'User'}
           >
@@ -42,10 +77,17 @@ export default function ProfileDropdown() {
             <ChevronDown className="w-4 h-4" />
           </button>
 
-          {/* Animated dropdown */}
-          <div
-            className={`fixed right-4 top-16 w-56 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 z-50 origin-top transition-transform transition-opacity duration-200 ${showProfile ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 pointer-events-none'}`}
-          >
+          {/* Dropdown rendered via Portal */}
+          {showProfile && typeof window !== 'undefined' && createPortal(
+            <div
+              ref={profileRef}
+              className="fixed w-56 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 origin-top transition-transform transition-opacity duration-200 animate-in slide-in-from-top-2"
+              style={{
+                top: `${dropdownPosition.top}px`,
+                right: `${dropdownPosition.right}px`,
+                zIndex: 999999
+              }}
+            >
               {/* Personalized Welcome */}
               <div className="mb-3">
                 <p className="text-sm font-medium text-white">Welcome back,</p>
@@ -82,7 +124,9 @@ export default function ProfileDropdown() {
                 <LogOut className="w-4 h-4" />
                 <span>Logout</span>
               </button>
-          </div>
+            </div>,
+            document.body
+          )}
         </>
       ) : (
         <a

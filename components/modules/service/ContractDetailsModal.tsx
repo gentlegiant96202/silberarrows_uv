@@ -210,7 +210,48 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     }));
   };
 
+  // Validate form before saving
+  const validateForm = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    // Customer Information
+    if (!formData.owner_name?.trim()) errors.push('Customer Name is required');
+    if (!formData.mobile_no?.trim()) errors.push('Mobile Number is required');
+    if (!formData.email?.trim()) errors.push('Email Address is required');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.push('Invalid email format');
+    if (!formData.customer_id_type?.trim()) errors.push('ID Type is required');
+    if (!formData.customer_id_number?.trim()) errors.push('ID Number is required');
+
+    // Vehicle Information
+    if (!formData.vin?.trim()) errors.push('VIN Number is required');
+    if (!formData.make?.trim()) errors.push('Vehicle Make is required');
+    if (!formData.model?.trim()) errors.push('Vehicle Model is required');
+    if (!formData.model_year?.trim()) errors.push('Model Year is required');
+    if (!formData.exterior_colour?.trim()) errors.push('Exterior Colour is required');
+    if (!formData.interior_colour?.trim()) errors.push('Interior Colour is required');
+    if (!formData.current_odometer?.trim()) errors.push('Current Odometer is required');
+
+    // Contract Details
+    if (displayContract.contract_type === 'service' && !formData.service_type?.trim()) {
+      errors.push('Service Type is required');
+    }
+    if (!formData.invoice_amount?.trim() || parseFloat(formData.invoice_amount) <= 0) {
+      errors.push('Invoice Amount is required and must be greater than 0');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  };
+
   const handleSave = async () => {
+    // Validate form if editing
+    if (isEditing) {
+      const validation = validateForm();
+      if (!validation.isValid) {
+        alert('Please fill in all required fields:\n\n' + validation.errors.join('\n'));
+        return;
+      }
+    }
+    
     setLoading(true);
     try {
       const headers = await getAuthHeaders();

@@ -330,7 +330,13 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
       if (!response.ok) {
         const error = await response.json();
         console.error('Failed to create contract:', error);
-        alert('Failed to create contract. Please try again.');
+        
+        // Show detailed validation errors if available
+        if (error.details && Array.isArray(error.details)) {
+          alert('Please ensure all required fields are filled:\n\n' + error.details.join('\n'));
+        } else {
+          alert('Failed to create contract: ' + (error.error || 'Please try again.'));
+        }
         return;
       }
 

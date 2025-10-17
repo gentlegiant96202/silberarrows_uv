@@ -349,8 +349,46 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
     };
   }, [showResults]);
 
+  // Validate form before submission
+  const validateForm = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    // Customer Information (Required 1-5)
+    if (!formData.ownerName?.trim()) errors.push('Customer Name is required');
+    if (!formData.mobileNo?.trim()) errors.push('Mobile Number is required');
+    if (!formData.email?.trim()) errors.push('Email Address is required');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.push('Invalid email format');
+    if (!formData.customerIdType?.trim()) errors.push('ID Type is required');
+    if (!formData.customerIdNumber?.trim()) errors.push('ID Number is required');
+
+    // Vehicle Information (Required 6-12)
+    if (!formData.vin?.trim()) errors.push('VIN Number is required');
+    if (!formData.make?.trim()) errors.push('Vehicle Make is required');
+    if (!formData.model?.trim()) errors.push('Vehicle Model is required');
+    if (!formData.modelYear?.trim()) errors.push('Model Year is required');
+    if (!formData.exteriorColour?.trim()) errors.push('Exterior Colour is required');
+    if (!formData.interiorColour?.trim()) errors.push('Interior Colour is required');
+    if (!formData.currentOdometer?.trim()) errors.push('Current Odometer is required');
+
+    // Contract Details (Required 13-14)
+    if (!formData.serviceType?.trim()) errors.push('Service Type is required');
+    if (!formData.invoiceAmount?.trim() || parseFloat(formData.invoiceAmount) <= 0) {
+      errors.push('Invoice Amount is required and must be greater than 0');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form
+    const validation = validateForm();
+    if (!validation.isValid) {
+      alert('Please fill in all required fields:\n\n' + validation.errors.join('\n'));
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -360,6 +398,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       setFormData(getSmartDefaults());
     } catch (error) {
       console.error('Error creating contract:', error);
+      alert('Failed to create contract. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -509,17 +548,14 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">
                     Sales Executive
-                    {prefilledData?.salesExecutive ? (
-                      <span className="ml-2 text-xs text-green-400">(Locked)</span>
-                    ) : null}
                   </label>
-                  <div className={`w-full h-[42px] px-4 py-3 border rounded-lg text-sm flex items-center ${
-                    prefilledData?.salesExecutive 
-                      ? 'bg-white/5 border-white/10 text-white/70' 
-                      : 'bg-black/20 border-white/10 text-white/70'
-                  }`}>
-                    {formData.salesExecutive}
-                  </div>
+                  <input
+                    type="text"
+                    value={formData.salesExecutive}
+                    onChange={(e) => handleInputChange('salesExecutive', e.target.value)}
+                    className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 [&:-webkit-autofill]:bg-white/10 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.1)] [&:-webkit-autofill]:text-white"
+                    placeholder="Enter sales executive name"
+                  />
                 </div>
                 
                 <div>

@@ -168,6 +168,15 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           return;
         }
 
+        console.log('Call logs fetched:', {
+          total: data?.length || 0,
+          sample: data?.slice(0, 3).map(d => ({ call_date: d.call_date, customer_name: d.customer_name })),
+          octoberCount: data?.filter(d => {
+            const date = new Date(d.call_date);
+            return date.getFullYear() === 2025 && date.getMonth() === 9; // October is month 9 (0-indexed)
+          }).length || 0
+        });
+
         setCallLogs(data || []);
       } catch (error) {
         console.error('Error fetching call logs:', error);
@@ -1055,29 +1064,61 @@ function TeamMember({ name, role, sales, contribution }: { name: string; role: s
 
 // Call Metrics Section Component
 function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDate, loading }: { callLogs: CallLogEntry[], selectedYear: number, selectedMonth: number, selectedDate: string, loading: boolean }) {
+  console.log('🔍 CallMetricsSection PARAMS:', { 
+    selectedYear, 
+    selectedMonth, 
+    selectedDate,
+    totalCallLogs: callLogs.length 
+  });
+
   // Filter call logs based on selected filters (NO staff filter - show ALL service calls)
   const filteredCalls = callLogs.filter(call => {
     if (!call.call_date) return false;
     
-    // Parse date string directly (format: YYYY-MM-DD)
-    const dateParts = call.call_date.split('-');
-    if (dateParts.length !== 3) return false;
+    // Use Date object for more reliable date comparisons
+    const callDate = new Date(call.call_date);
     
-    const callYear = parseInt(dateParts[0]);
-    const callMonth = parseInt(dateParts[1]);
-    const callDay = parseInt(dateParts[2]);
+    // Check if date is valid
+    if (isNaN(callDate.getTime())) {
+      console.warn('Invalid call_date format:', call.call_date);
+      return false;
+    }
+    
+    const callYear = callDate.getFullYear();
+    const callMonth = callDate.getMonth() + 1; // getMonth() returns 0-11, need 1-12
+    
+    // Debug logging for October 2025
+    if (callYear === 2025 && callMonth === 10) {
+      const matches = callYear === selectedYear && callMonth === selectedMonth;
+      console.log(`October 2025 call: ${call.call_date} | Year match: ${callYear === selectedYear} (${callYear} vs ${selectedYear}) | Month match: ${callMonth === selectedMonth} (${callMonth} vs ${selectedMonth}) | PASSES: ${matches}`);
+      
+      if (!matches) {
+        console.error('❌ October call REJECTED:', {
+          call_date: call.call_date,
+          callYear,
+          callMonth,
+          selectedYear,
+          selectedMonth,
+          yearMatch: callYear === selectedYear,
+          monthMatch: callMonth === selectedMonth
+        });
+      }
+    }
     
     // Filter by year and month
     if (callYear !== selectedYear || callMonth !== selectedMonth) {
       return false;
     }
     
-    // Filter by selected date if provided
+    // Filter by selected date if provided (only show calls up to selected date)
     if (selectedDate) {
-      const selectedParts = selectedDate.split('-');
-      if (selectedParts.length === 3) {
-        const selectedDay = parseInt(selectedParts[2]);
-        if (callDay > selectedDay) {
+      const selectedDateObj = new Date(selectedDate);
+      if (!isNaN(selectedDateObj.getTime())) {
+        // Compare just the dates (ignore time)
+        const callDateOnly = new Date(callDate.getFullYear(), callDate.getMonth(), callDate.getDate());
+        const selectedDateOnly = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate());
+        
+        if (callDateOnly > selectedDateOnly) {
           return false;
         }
       }
@@ -1087,8 +1128,20 @@ function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDat
     return true;
   });
 
+  // Debug: Log filtering results
+  console.log(`📊 FILTERING RESULTS: ${filteredCalls.length} calls found out of ${callLogs.length} total | Year: ${selectedYear} | Month: ${selectedMonth} | Date: ${selectedDate || 'ALL'}`);
+  console.log('CallMetricsSection filtering:', {
+    totalCallLogs: callLogs.length,
+    filteredCalls: filteredCalls.length,
+    selectedYear,
+    selectedMonth,
+    selectedDate,
+    sampleFiltered: filteredCalls.slice(0, 2).map(c => ({ call_date: c.call_date, customer_name: c.customer_name }))
+  });
+
   // Calculate metrics
   const totalCalls = filteredCalls.length;
+  console.log(`🎯 TOTAL CALLS TO DISPLAY: ${totalCalls}`);
   const answeredCalls = filteredCalls.filter(call => 
     call.answered_yn === 'Yes' || call.answered_yn_2 === 'Yes'
   ).length;

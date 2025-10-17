@@ -62,18 +62,34 @@ export default function BuyerJourneyCanvas() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'buyer_journey_nodes' },
         (payload) => {
+          console.log('🔄 Realtime event received:', payload);
           if (payload.eventType === 'INSERT') {
-            setNodes((prev) => [...prev, payload.new as JourneyNode]);
+            console.log('➕ Adding new node from realtime:', payload.new);
+            setNodes((prev) => {
+              // Prevent duplicates
+              const exists = prev.some(node => node.id === payload.new.id);
+              if (exists) {
+                console.log('⚠️ Node already exists, skipping duplicate');
+                return prev;
+              }
+              const newNodes = [...prev, payload.new as JourneyNode];
+              console.log('📊 Updated nodes array:', newNodes.length);
+              return newNodes;
+            });
           } else if (payload.eventType === 'UPDATE') {
+            console.log('🔄 Updating node from realtime:', payload.new);
             setNodes((prev) =>
               prev.map((node) => (node.id === payload.new.id ? payload.new as JourneyNode : node))
             );
           } else if (payload.eventType === 'DELETE') {
+            console.log('🗑️ Deleting node from realtime:', payload.old);
             setNodes((prev) => prev.filter((node) => node.id !== payload.old.id));
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Realtime subscription status:', status);
+      });
 
     const connectionsChannel = supabase
       .channel('buyer_journey_connections_changes')
@@ -81,14 +97,26 @@ export default function BuyerJourneyCanvas() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'buyer_journey_connections' },
         (payload) => {
+          console.log('🔄 Connection realtime event:', payload);
           if (payload.eventType === 'INSERT') {
-            setConnections((prev) => [...prev, payload.new as Connection]);
+            setConnections((prev) => {
+              // Prevent duplicates from realtime
+              const exists = prev.some(conn => conn.id === payload.new.id);
+              if (exists) {
+                console.log('⚠️ Connection already exists from manual add, skipping realtime duplicate');
+                return prev;
+              }
+              console.log('➕ Adding connection from realtime:', payload.new);
+              return [...prev, payload.new as Connection];
+            });
           } else if (payload.eventType === 'DELETE') {
             setConnections((prev) => prev.filter((conn) => conn.id !== payload.old.id));
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Connection realtime subscription status:', status);
+      });
 
     return () => {
       supabase.removeChannel(nodesChannel);
@@ -98,22 +126,57 @@ export default function BuyerJourneyCanvas() {
 
   const loadData = async () => {
     try {
+      console.log('📊 Loading buyer journey data...');
+      
       const [nodesRes, connectionsRes] = await Promise.all([
         supabase.from('buyer_journey_nodes').select('*').order('created_at', { ascending: true }),
         supabase.from('buyer_journey_connections').select('*')
       ]);
 
-      if (nodesRes.data) setNodes(nodesRes.data);
-      if (connectionsRes.data) setConnections(connectionsRes.data);
+      console.log('🔍 Nodes query result:', nodesRes);
+      console.log('🔍 Connections query result:', connectionsRes);
+
+      if (nodesRes.error) {
+        console.error('❌ Nodes query error:', nodesRes.error);
+        if (nodesRes.error.message.includes('relation "buyer_journey_nodes" does not exist')) {
+          alert('Database tables not created yet. Please run the SQL setup files first:\n1. create_buyer_journey_tables.sql\n2. create_buyer_journey_storage.sql');
+        }
+      }
+
+      if (connectionsRes.error) {
+        console.error('❌ Connections query error:', connectionsRes.error);
+      }
+
+      if (nodesRes.data) {
+        console.log('✅ Loaded nodes:', nodesRes.data.length);
+        setNodes(nodesRes.data);
+      }
+      if (connectionsRes.data) {
+        console.log('✅ Loaded connections:', connectionsRes.data.length);
+        setConnections(connectionsRes.data);
+      }
     } catch (error) {
-      console.error('Error loading buyer journey data:', error);
+      console.error('❌ Error loading buyer journey data:', error);
     }
   };
 
   // Create new node
   const createNode = async (department: 'used_car' | 'service') => {
     try {
+      console.log('🚀 Creating new node for department:', department);
+      
       const { data: userData } = await supabase.auth.getUser();
+      console.log('👤 User data:', userData?.user?.id);
+      
+      // Calculate position to avoid overlap - spread nodes in a grid pattern
+      const existingNodesCount = nodes.filter(n => n.department === department).length;
+      const gridCols = 3;
+      const nodeWidth = 300;
+      const nodeHeight = 400;
+      const spacing = 50;
+      
+      const gridX = (existingNodesCount % gridCols) * (nodeWidth + spacing);
+      const gridY = Math.floor(existingNodesCount / gridCols) * (nodeHeight + spacing);
       
       const newNode = {
         department,
@@ -121,10 +184,12 @@ export default function BuyerJourneyCanvas() {
         caption: 'Add description here...',
         video_url: null,
         video_filename: null,
-        position_x: (300 - offset.x) / scale,
-        position_y: (200 - offset.y) / scale,
+        position_x: gridX,
+        position_y: gridY,
         created_by: userData?.user?.id
       };
+
+      console.log('📝 New node data:', newNode);
 
       const { data, error } = await supabase
         .from('buyer_journey_nodes')
@@ -132,10 +197,22 @@ export default function BuyerJourneyCanvas() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Node created successfully:', data);
+      
+      // Manually refresh data since realtime might not work due to WebSocket issues
+      setTimeout(() => {
+        console.log('🔄 Manually refreshing data after node creation...');
+        loadData();
+      }, 500);
+      
     } catch (error) {
-      console.error('Error creating node:', error);
-      alert('Failed to create node');
+      console.error('❌ Error creating node:', error);
+      alert(`Failed to create node: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -201,25 +278,62 @@ export default function BuyerJourneyCanvas() {
 
   // Create connection
   const createConnection = async (fromNodeId: string, toNodeId: string) => {
-    if (fromNodeId === toNodeId) return;
+    console.log('🚀 createConnection called with:', { fromNodeId, toNodeId });
     
-    // Check if connection already exists
+    if (fromNodeId === toNodeId) {
+      console.log('❌ Cannot connect node to itself');
+      return;
+    }
+    
+    // Check if connection already exists (only one direction needed)
     const exists = connections.some(
-      (conn) =>
-        (conn.from_node_id === fromNodeId && conn.to_node_id === toNodeId) ||
-        (conn.from_node_id === toNodeId && conn.to_node_id === fromNodeId)
+      (conn) => conn.from_node_id === fromNodeId && conn.to_node_id === toNodeId
     );
     
-    if (exists) return;
+    if (exists) {
+      console.log('❌ Connection already exists');
+      return;
+    }
 
     try {
-      const { error } = await supabase
+      console.log('🔗 Creating connection from:', fromNodeId, 'to:', toNodeId);
+      
+      const { data, error } = await supabase
         .from('buyer_journey_connections')
-        .insert([{ from_node_id: fromNodeId, to_node_id: toNodeId }]);
+        .insert([{ from_node_id: fromNodeId, to_node_id: toNodeId }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error creating connection:', error);
+        console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+        throw error;
+      }
+      
+      console.log('✅ Connection created successfully:', data);
+      
+      // Manually add to local state since realtime might not work
+      const newConnection = {
+        id: data[0].id,
+        from_node_id: fromNodeId,
+        to_node_id: toNodeId
+      };
+      
+      console.log('📝 Adding to local state:', newConnection);
+      setConnections(prev => {
+        // Check if connection already exists to prevent duplicates
+        const exists = prev.some(conn => conn.id === newConnection.id);
+        if (exists) {
+          console.log('⚠️ Connection already exists in state, skipping duplicate');
+          return prev;
+        }
+        const updated = [...prev, newConnection];
+        console.log('📊 Updated connections array:', updated);
+        return updated;
+      });
+      
     } catch (error) {
-      console.error('Error creating connection:', error);
+      console.error('❌ Error creating connection:', error);
+      alert(`Failed to create connection: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -247,32 +361,52 @@ export default function BuyerJourneyCanvas() {
   }, []);
 
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && e.target === canvasRef.current)) {
+    // Start panning if clicking on canvas, svg, or background (not on nodes/connections/buttons)
+    const target = e.target as HTMLElement;
+    
+    // Don't pan if clicking on a button or node
+    if (target.closest('button') || target.closest('.node-card')) {
+      console.log('🚫 Canvas pan prevented - clicked on button or node');
+      return;
+    }
+    
+    const isCanvas = target === canvasRef.current || 
+                     target.tagName === 'svg' || 
+                     target.classList.contains('canvas-background');
+    
+    if (isCanvas) {
+      console.log('🎯 Starting canvas pan');
       setIsPanning(true);
       setPanStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+      e.preventDefault();
     }
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent) => {
     if (isPanning) {
-      setOffset({
+      const newOffset = {
         x: e.clientX - panStart.x,
         y: e.clientY - panStart.y
-      });
+      };
+      setOffset(newOffset);
+      e.preventDefault();
     }
 
     // Update connection preview
     if (connectingFrom && canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
       setConnectionPreview({
-        x: (e.clientX - rect.left - offset.x) / scale,
-        y: (e.clientY - rect.top - offset.y) / scale
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
       });
     }
   };
 
-  const handleCanvasMouseUp = () => {
-    setIsPanning(false);
+  const handleCanvasMouseUp = (e: React.MouseEvent) => {
+    if (isPanning) {
+      setIsPanning(false);
+      e.preventDefault();
+    }
     if (connectingFrom) {
       setConnectingFrom(null);
       setConnectionPreview(null);
@@ -281,40 +415,55 @@ export default function BuyerJourneyCanvas() {
 
   // Node drag handlers
   const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
-    if ((e.target as HTMLElement).closest('.node-control')) return;
+    // If in connecting mode, don't start dragging - we want to complete the connection
+    if (connectingFrom) {
+      console.log('🚫 Node drag prevented - in connecting mode');
+      return;
+    }
     
+    // Don't start dragging if clicking on connection points, controls, or buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('.node-control') || 
+        target.closest('button') ||
+        target.closest('[title*="Connection point"]')) {
+      console.log('🚫 Node drag prevented - clicked on control, button, or connection point');
+      return;
+    }
+    
+    console.log('🎯 Node drag started for:', nodeId);
     e.stopPropagation();
+    e.preventDefault();
     setDraggingNode(nodeId);
     setSelectedNode(nodeId);
     
     const node = nodes.find((n) => n.id === nodeId);
     if (node) {
       setDragStart({
-        x: e.clientX / scale - node.position_x,
-        y: e.clientY / scale - node.position_y
+        x: e.clientX - node.position_x * scale,
+        y: e.clientY - node.position_y * scale
       });
     }
   };
 
-  const handleNodeMouseMove = useCallback((e: React.MouseEvent) => {
+  const handleNodeMouseMove = useCallback((e: MouseEvent) => {
     if (draggingNode && dragStart) {
-      const node = nodes.find((n) => n.id === draggingNode);
-      if (node) {
-        const newX = e.clientX / scale - dragStart.x;
-        const newY = e.clientY / scale - dragStart.y;
-        
-        setNodes((prev) =>
-          prev.map((n) =>
-            n.id === draggingNode
-              ? { ...n, position_x: newX, position_y: newY }
-              : n
-          )
-        );
-      }
+      e.preventDefault();
+      
+      const newX = (e.clientX - dragStart.x) / scale;
+      const newY = (e.clientY - dragStart.y) / scale;
+      
+      // Update immediately without requestAnimationFrame for smoother connection tracking
+      setNodes((prev) =>
+        prev.map((n) =>
+          n.id === draggingNode
+            ? { ...n, position_x: newX, position_y: newY }
+            : n
+        )
+      );
     }
-  }, [draggingNode, dragStart, nodes, scale]);
+  }, [draggingNode, dragStart, scale]);
 
-  const handleNodeMouseUp = () => {
+  const handleNodeMouseUp = useCallback((e: MouseEvent) => {
     if (draggingNode) {
       const node = nodes.find((n) => n.id === draggingNode);
       if (node) {
@@ -326,27 +475,33 @@ export default function BuyerJourneyCanvas() {
       setDraggingNode(null);
       setDragStart(null);
     }
-  };
+  }, [draggingNode, nodes, updateNode]);
 
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (draggingNode) {
-        handleNodeMouseMove(e as any);
+        handleNodeMouseMove(e);
       }
     };
 
-    const handleGlobalMouseUp = () => {
-      handleNodeMouseUp();
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      handleNodeMouseUp(e);
     };
 
-    window.addEventListener('mousemove', handleGlobalMouseMove);
-    window.addEventListener('mouseup', handleGlobalMouseUp);
+    if (draggingNode) {
+      document.addEventListener('mousemove', handleGlobalMouseMove, { passive: false });
+      document.addEventListener('mouseup', handleGlobalMouseUp, { passive: false });
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'grabbing';
+    }
 
     return () => {
-      window.removeEventListener('mousemove', handleGlobalMouseMove);
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
     };
-  }, [draggingNode, handleNodeMouseMove]);
+  }, [draggingNode, handleNodeMouseMove, handleNodeMouseUp]);
 
   // Get node position for rendering
   const getNodeScreenPosition = (node: JourneyNode) => {
@@ -358,56 +513,136 @@ export default function BuyerJourneyCanvas() {
 
   // Filter nodes by department - show one department at a time
   const filteredNodes = nodes.filter((node) => {
+    console.log('🔍 Filtering node:', node.id, 'department:', node.department, 'selected:', selectedDepartment);
     if (selectedDepartment === 'all') return true;
     return node.department === selectedDepartment;
   });
+  
+  console.log('📊 Total nodes:', nodes.length);
+  console.log('📊 Filtered nodes:', filteredNodes.length);
+  console.log('📊 Selected department:', selectedDepartment);
+  console.log('📊 Total connections:', connections.length);
+  console.log('📊 Connections data:', connections);
 
   // Render connection line with arrow
   const renderConnection = (conn: Connection) => {
     const fromNode = nodes.find((n) => n.id === conn.from_node_id);
     const toNode = nodes.find((n) => n.id === conn.to_node_id);
 
-    if (!fromNode || !toNode) return null;
+    if (!fromNode || !toNode) {
+      console.log('❌ Missing nodes for connection:', conn.id, 'from:', conn.from_node_id, 'to:', conn.to_node_id);
+      return null;
+    }
 
     // Filter by department
     if (selectedDepartment !== 'all') {
       if (fromNode.department !== selectedDepartment || toNode.department !== selectedDepartment) {
+        console.log('🔍 Connection filtered out by department:', fromNode.department, 'vs', selectedDepartment);
         return null;
       }
     }
 
-    const from = getNodeScreenPosition(fromNode);
-    const to = getNodeScreenPosition(toNode);
+    // Calculate connection points from the small dots on the right/left of cards
+    // The dot is positioned at right: 0, top: 50% with translate-x-1/2 (6px offset)
+    // Card height is approximately 200px, so middle is at 100px
+    const cardMidHeight = 100;
+    const dotRadius = 1.5; // Small dot is 3x3 pixels (w-3 h-3), radius is 1.5px
+    
+    const fromConnectionPoint = {
+      x: (fromNode.position_x + 300) * scale + offset.x + dotRadius, // Start from the dot center
+      y: (fromNode.position_y + cardMidHeight) * scale + offset.y
+    };
+    
+    const toConnectionPoint = {
+      x: toNode.position_x * scale + offset.x - dotRadius, // End at the dot center
+      y: (toNode.position_y + cardMidHeight) * scale + offset.y
+    };
+
+    console.log('🔗 Rendering connection:', conn.id, 'from:', fromConnectionPoint, 'to:', toConnectionPoint);
 
     // Calculate arrow angle
-    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    const angle = Math.atan2(toConnectionPoint.y - fromConnectionPoint.y, toConnectionPoint.x - fromConnectionPoint.x);
     const arrowSize = 10;
 
+    // Create smooth bezier curve path
+    const controlPointOffset = Math.abs(toConnectionPoint.x - fromConnectionPoint.x) * 0.5;
+    const controlPoint1X = fromConnectionPoint.x + controlPointOffset;
+    const controlPoint1Y = fromConnectionPoint.y;
+    const controlPoint2X = toConnectionPoint.x - controlPointOffset;
+    const controlPoint2Y = toConnectionPoint.y;
+    
+    const pathD = `M ${fromConnectionPoint.x} ${fromConnectionPoint.y} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${toConnectionPoint.x} ${toConnectionPoint.y}`;
+    
+    // Calculate path midpoint for delete button using bezier formula
+    const t = 0.5;
+    const bezierMidX = Math.pow(1-t, 3) * fromConnectionPoint.x + 
+                       3 * Math.pow(1-t, 2) * t * controlPoint1X + 
+                       3 * (1-t) * Math.pow(t, 2) * controlPoint2X + 
+                       Math.pow(t, 3) * toConnectionPoint.x;
+    const bezierMidY = Math.pow(1-t, 3) * fromConnectionPoint.y + 
+                       3 * Math.pow(1-t, 2) * t * controlPoint1Y + 
+                       3 * (1-t) * Math.pow(t, 2) * controlPoint2Y + 
+                       Math.pow(t, 3) * toConnectionPoint.y;
+
     return (
-      <g key={conn.id}>
-        <line
-          x1={from.x + 150 * scale}
-          y1={from.y + 100 * scale}
-          x2={to.x + 150 * scale}
-          y2={to.y + 100 * scale}
-          stroke="rgba(255, 255, 255, 0.3)"
-          strokeWidth={2}
-          className="cursor-pointer hover:stroke-white/60 transition-all"
-          onClick={() => {
-            if (confirm('Delete this connection?')) {
-              deleteConnection(conn.id);
-            }
-          }}
+      <g key={conn.id} className="connection-group">
+        {/* Invisible wider path for easier hover */}
+        <path
+          d={pathD}
+          stroke="transparent"
+          strokeWidth={20}
+          fill="none"
+          className="cursor-pointer pointer-events-auto"
         />
-        {/* Arrow head */}
+        
+        {/* Visible smooth bezier curve */}
+        <path
+          d={pathD}
+          stroke="rgba(255, 255, 255, 0.6)"
+          strokeWidth={2.5}
+          fill="none"
+          className="cursor-pointer hover:stroke-white transition-all pointer-events-none"
+        />
+        
+        {/* Arrow head at end */}
         <polygon
           points={`
-            ${to.x + 150 * scale - arrowSize * Math.cos(angle - Math.PI / 6)},${to.y + 100 * scale - arrowSize * Math.sin(angle - Math.PI / 6)}
-            ${to.x + 150 * scale},${to.y + 100 * scale}
-            ${to.x + 150 * scale - arrowSize * Math.cos(angle + Math.PI / 6)},${to.y + 100 * scale - arrowSize * Math.sin(angle + Math.PI / 6)}
+            ${toConnectionPoint.x - arrowSize * Math.cos(angle - Math.PI / 6)},${toConnectionPoint.y - arrowSize * Math.sin(angle - Math.PI / 6)}
+            ${toConnectionPoint.x},${toConnectionPoint.y}
+            ${toConnectionPoint.x - arrowSize * Math.cos(angle + Math.PI / 6)},${toConnectionPoint.y - arrowSize * Math.sin(angle + Math.PI / 6)}
           `}
-          fill="rgba(255, 255, 255, 0.3)"
+          fill="rgba(255, 255, 255, 0.7)"
+          className="pointer-events-none"
         />
+        
+        {/* Delete button at midpoint */}
+        <g className="connection-delete-btn opacity-0 transition-opacity pointer-events-auto" style={{ cursor: 'pointer' }}>
+          <circle
+            cx={bezierMidX}
+            cy={bezierMidY}
+            r={14}
+            fill="rgba(239, 68, 68, 0.95)"
+            stroke="white"
+            strokeWidth="2"
+            className="hover:scale-110 transition-transform"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteConnection(conn.id);
+            }}
+          />
+          <text
+            x={bezierMidX}
+            y={bezierMidY + 1}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="white"
+            fontSize="16"
+            fontWeight="bold"
+            className="pointer-events-none"
+          >
+            ×
+          </text>
+        </g>
       </g>
     );
   };
@@ -478,18 +713,35 @@ export default function BuyerJourneyCanvas() {
       {/* Canvas */}
       <div
         ref={canvasRef}
-        className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing"
+        className={`flex-1 relative overflow-hidden canvas-background ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
         onMouseDown={handleCanvasMouseDown}
         onMouseMove={handleCanvasMouseMove}
         onMouseUp={handleCanvasMouseUp}
+        onMouseLeave={handleCanvasMouseUp}
         onWheel={handleWheel}
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
+          backgroundSize: '20px 20px',
+          backgroundPosition: `${offset.x}px ${offset.y}px`
+        }}
       >
         {/* SVG Layer for connections */}
         <svg
           ref={svgRef}
-          className="absolute inset-0 w-full h-full pointer-events-none"
+          className="absolute inset-0 w-full h-full pointer-events-none connection-svg"
           style={{ zIndex: 1 }}
         >
+          <style>{`
+            .connection-group:hover .connection-delete-btn {
+              opacity: 1;
+            }
+            .connection-svg {
+              will-change: transform;
+            }
+            .connection-group path {
+              transition: stroke 0.2s ease;
+            }
+          `}</style>
           <defs>
             <marker
               id="arrowhead"
@@ -503,54 +755,90 @@ export default function BuyerJourneyCanvas() {
             </marker>
           </defs>
           
+          {/* Debug info */}
+          {connections.length > 0 && (
+            <text x="10" y="20" fill="white" fontSize="12">
+              Connections: {connections.length}
+            </text>
+          )}
+          
           {/* Render all connections */}
-          {connections.map((conn) => renderConnection(conn))}
+          {connections.map((conn) => {
+            console.log('🎯 About to render connection:', conn.id);
+            return renderConnection(conn);
+          })}
 
-          {/* Connection preview */}
+          {/* Connection preview with smooth curve */}
           {connectingFrom && connectionPreview && (() => {
             const fromNode = nodes.find((n) => n.id === connectingFrom);
             if (!fromNode) return null;
-            const from = getNodeScreenPosition(fromNode);
+            
+            const fromConnectionPoint = {
+              x: (fromNode.position_x + 300) * scale + offset.x + 1.5, // From the dot
+              y: (fromNode.position_y + 100) * scale + offset.y
+            };
+            
+            const controlPointOffset = Math.abs(connectionPreview.x - fromConnectionPoint.x) * 0.5;
+            const controlPoint1X = fromConnectionPoint.x + controlPointOffset;
+            const controlPoint1Y = fromConnectionPoint.y;
+            const controlPoint2X = connectionPreview.x - controlPointOffset;
+            const controlPoint2Y = connectionPreview.y;
+            
+            const pathD = `M ${fromConnectionPoint.x} ${fromConnectionPoint.y} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${connectionPreview.x} ${connectionPreview.y}`;
+            
             return (
-              <line
-                x1={from.x + 150 * scale}
-                y1={from.y + 100 * scale}
-                x2={connectionPreview.x * scale + offset.x}
-                y2={connectionPreview.y * scale + offset.y}
-                stroke="rgba(255, 255, 255, 0.5)"
-                strokeWidth={2}
-                strokeDasharray="5,5"
+              <path
+                d={pathD}
+                stroke="rgba(255, 200, 100, 0.7)"
+                strokeWidth={2.5}
+                fill="none"
+                strokeDasharray="6 3"
               />
             );
           })()}
         </svg>
 
-        {/* Nodes Layer */}
-        <div className="absolute inset-0" style={{ zIndex: 2 }}>
+        {/* Nodes Layer - pointer-events-none on container, re-enable on nodes */}
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
           {filteredNodes.map((node) => {
-            const pos = getNodeScreenPosition(node);
             return (
               <JourneyNodeCard
                 key={node.id}
                 node={node}
-                position={pos}
+                position={{ x: node.position_x, y: node.position_y }}
                 scale={scale}
+                offset={offset}
                 isSelected={selectedNode === node.id}
+                isDragging={draggingNode === node.id}
                 onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
                 onUpdateNode={updateNode}
                 onDeleteNode={deleteNode}
                 onUploadVideo={uploadVideo}
-                onStartConnection={(nodeId) => {
-                  setConnectingFrom(nodeId);
-                }}
+        onStartConnection={(nodeId) => {
+          console.log('🎯🎯🎯 onStartConnection called for node:', nodeId);
+          if (nodeId === '') {
+            // Cancel connection mode
+            console.log('❌ Cancelling connection mode');
+            setConnectingFrom(null);
+            setConnectionPreview(null);
+          } else {
+            console.log('✅✅✅ Setting connectingFrom to:', nodeId);
+            setConnectingFrom(nodeId);
+          }
+          console.log('📊 New connectingFrom state will be:', nodeId === '' ? null : nodeId);
+        }}
                 onEndConnection={(nodeId) => {
+                  console.log('🎯 onEndConnection called:', { connectingFrom, nodeId });
                   if (connectingFrom) {
+                    console.log('🔗 Calling createConnection...');
                     createConnection(connectingFrom, nodeId);
                     setConnectingFrom(null);
                     setConnectionPreview(null);
+                  } else {
+                    console.log('❌ No connectingFrom node set');
                   }
                 }}
-                isConnecting={connectingFrom === node.id}
+                isConnecting={!!connectingFrom && connectingFrom !== node.id}
               />
             );
           })}
@@ -569,13 +857,27 @@ export default function BuyerJourneyCanvas() {
 
         {/* Instructions Panel */}
       <div className="bg-black/40 backdrop-blur-sm border-t border-white/10 p-3">
-        <div className="flex items-center justify-center gap-6 text-xs text-white/50">
-          <span>💡 Drag cards to reposition</span>
-          <span>🔗 Click "Connect" then click another card to link</span>
-          <span>🖱️ Drag canvas to pan • Ctrl+Scroll to zoom</span>
-          <span>📹 Upload videos and add captions to each stage</span>
-          <span>🏢 Switch departments to see different journeys</span>
-        </div>
+        {connectingFrom ? (
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <span className="text-yellow-400 font-bold animate-pulse">🔗 CONNECTING MODE: Click on any card to connect</span>
+            <button
+              onClick={() => {
+                setConnectingFrom(null);
+                setConnectionPreview(null);
+              }}
+              className="px-3 py-1 bg-red-500/20 text-red-300 rounded hover:bg-red-500/30"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-6 text-xs text-white/50">
+            <span>💡 Drag cards to reposition</span>
+            <span>🔗 Click 🔗 button in card header, then click another card to connect</span>
+            <span>🖱️ Drag canvas to pan • Ctrl+Scroll to zoom</span>
+            <span>📹 Upload videos and add captions to each stage</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -586,7 +888,9 @@ interface JourneyNodeCardProps {
   node: JourneyNode;
   position: Point;
   scale: number;
+  offset: Point;
   isSelected: boolean;
+  isDragging: boolean;
   onMouseDown: (e: React.MouseEvent) => void;
   onUpdateNode: (nodeId: string, updates: Partial<JourneyNode>) => void;
   onDeleteNode: (nodeId: string) => void;
@@ -600,7 +904,9 @@ function JourneyNodeCard({
   node,
   position,
   scale,
+  offset,
   isSelected,
+  isDragging,
   onMouseDown,
   onUpdateNode,
   onDeleteNode,
@@ -650,26 +956,72 @@ function JourneyNodeCard({
     }
   };
 
+  // Silver gradient for all cards, with subtle department differentiation
   const departmentColor = node.department === 'used_car' 
-    ? 'from-blue-500/20 to-blue-600/20 border-blue-500/30'
-    : 'from-green-500/20 to-green-600/20 border-green-500/30';
+    ? 'from-gray-700/40 via-gray-600/30 to-gray-800/40 border-gray-500/40'
+    : 'from-gray-700/40 via-gray-600/30 to-gray-800/40 border-gray-500/40';
 
   return (
     <div
-      className={`absolute bg-gradient-to-br ${departmentColor} backdrop-blur-md border-2 rounded-xl shadow-2xl transition-all ${
+      className={`node-card absolute bg-gradient-to-br ${departmentColor} backdrop-blur-md border-2 rounded-xl shadow-2xl transition-all pointer-events-auto ${
         isSelected ? 'ring-2 ring-white/50 shadow-white/20' : ''
-      } ${isConnecting ? 'ring-2 ring-yellow-500/50' : ''}`}
-      style={{
-        left: position.x,
-        top: position.y,
-        width: 300 * scale,
-        transform: `scale(${scale})`,
-        transformOrigin: 'top left',
-        cursor: 'move'
+      } ${isConnecting ? 'ring-4 ring-yellow-400/80 animate-pulse cursor-pointer' : ''}`}
+        style={{
+          left: position.x * scale + offset.x,
+          top: position.y * scale + offset.y,
+          width: 300,
+          transformOrigin: 'top left',
+          cursor: isDragging ? 'grabbing' : isConnecting ? 'pointer' : 'grab',
+          zIndex: isDragging ? 1000 : 'auto',
+          transition: isDragging ? 'none' : 'all 0.1s ease-out'
+        }}
+      onMouseDown={(e) => {
+        console.log('🔍 Card mousedown event:', { isConnecting, target: (e.target as HTMLElement).className });
+        
+        // Don't handle onMouseDown if clicking a button
+        const target = e.target as HTMLElement;
+        if (target.closest('button')) {
+          console.log('🚫 Skipping mousedown - button click');
+          return;
+        }
+        
+        // If we're in connecting mode, complete the connection
+        if (isConnecting) {
+          e.stopPropagation();
+          e.preventDefault();
+          console.log('🎯 Card clicked (onMouseDown) while connecting - completing connection to:', node.id);
+          onEndConnection(node.id);
+          return;
+        }
+        // Otherwise, handle normal drag
+        console.log('🎯 Starting drag for node:', node.id);
+        onMouseDown(e);
       }}
-      onMouseDown={onMouseDown}
     >
-      <div className="p-4 space-y-3 pointer-events-auto" style={{ transform: `scale(${1 / scale})`, transformOrigin: 'top left' }}>
+      {/* Connection overlay when in connecting mode */}
+      {isConnecting && (
+        <div 
+          className="absolute inset-0 bg-yellow-400/20 rounded-xl flex items-center justify-center cursor-pointer z-50"
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            console.log('🎯 Overlay mousedown - completing connection to:', node.id);
+            onEndConnection(node.id);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            console.log('🎯 Overlay clicked - completing connection to:', node.id);
+            onEndConnection(node.id);
+          }}
+        >
+          <div className="bg-black/80 px-6 py-3 rounded-lg border-2 border-yellow-400 pointer-events-none">
+            <span className="text-yellow-400 font-bold text-lg">CLICK TO CONNECT</span>
+          </div>
+        </div>
+      )}
+      
+      <div className="p-4 space-y-3 pointer-events-auto">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -679,25 +1031,44 @@ function JourneyNodeCard({
             </span>
           </div>
           <div className="flex items-center gap-1 node-control">
+            {/* Connection button */}
             <button
-              onClick={() => {
+              type="button"
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                console.log('🎯 Connection button mousedown for node:', node.id, 'isConnecting:', isConnecting);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('🎯 Connection button clicked for node:', node.id, 'isConnecting:', isConnecting);
                 if (isConnecting) {
-                  onEndConnection(node.id);
+                  // If this card is in connecting mode, cancel it
+                  console.log('🚫 Cancelling connection mode');
+                  onStartConnection(''); // Clear by passing empty string
                 } else {
+                  console.log('✅ Starting connection mode for node:', node.id);
                   onStartConnection(node.id);
                 }
               }}
-              className={`p-1.5 rounded-lg transition-all text-xs ${
-                isConnecting
-                  ? 'bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30'
-                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+              className={`p-1.5 rounded-lg transition-all pointer-events-auto ${
+                isConnecting 
+                  ? 'bg-yellow-500/40 text-yellow-200 animate-pulse scale-110' 
+                  : 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black hover:scale-105'
               }`}
-              title={isConnecting ? 'Click another card to connect' : 'Start connection'}
+              title={isConnecting ? "Click to cancel connection mode" : "Click to connect to another stage"}
             >
               🔗
             </button>
             <button
-              onClick={() => onDeleteNode(node.id)}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onDeleteNode(node.id);
+              }}
               className="p-1.5 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-all"
             >
               <Trash2 className="w-3 h-3" />
@@ -806,6 +1177,9 @@ function JourneyNodeCard({
           </div>
         )}
       </div>
+
+      {/* Small connection point indicator on the right */}
+      <div className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 rounded-full border border-white shadow-md pointer-events-none z-10" />
     </div>
   );
 }

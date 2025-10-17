@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Calculator } from 'lucide-react';
 
 export default function FinanceCalculator() {
@@ -69,12 +70,13 @@ export default function FinanceCalculator() {
       >
         <Calculator className="w-4 h-4" />
       </button>
-      {showFinance && (
+      {showFinance && typeof window !== 'undefined' && createPortal(
         <div 
-          className="fixed w-60 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 z-[9999] origin-top transition-transform transition-opacity duration-200"
+          className="fixed w-60 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 origin-top transition-transform transition-opacity duration-200 animate-in slide-in-from-top-2"
           style={{
             top: `${dropdownPosition.top}px`,
-            right: `${dropdownPosition.right}px`
+            right: `${dropdownPosition.right}px`,
+            zIndex: 999999
           }}
         >
           <p className="text-white/70 text-sm mb-2">Finance Calculator</p>
@@ -105,7 +107,8 @@ export default function FinanceCalculator() {
               </div>
             );
           })()}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

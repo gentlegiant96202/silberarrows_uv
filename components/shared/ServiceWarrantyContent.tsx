@@ -183,7 +183,14 @@ export default function ServiceWarrantyContent() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create service contract');
+        const error = await response.json();
+        
+        // Show detailed validation errors if available
+        if (error.details && Array.isArray(error.details)) {
+          throw new Error('Validation failed:\n\n' + error.details.join('\n'));
+        } else {
+          throw new Error(error.error || 'Failed to create service contract');
+        }
       }
 
       const result = await response.json();

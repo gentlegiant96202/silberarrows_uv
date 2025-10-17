@@ -26,6 +26,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage && !isDubizzlePage;
   const shouldShowSidebar = shouldShowHeader; // Sidebar appears with header
   const isAccountsPage = pathname.startsWith('/accounts');
+  const isMarketingPage = pathname.startsWith('/marketing');
   
   const content = (
     <div className="flex h-screen overflow-hidden bg-black">
@@ -45,8 +46,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           </div>
         )}
         
-        {/* Page Content - scrollable area */}
-        <main className="flex-1 overflow-auto">
+        {/* Page Content - scrollable area (overflow-hidden for marketing page to remove scrollbar) */}
+        <main className={`flex-1 ${isMarketingPage ? 'overflow-hidden' : 'overflow-auto'}`}>
           {children}
         </main>
       </div>

@@ -139,9 +139,20 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
   const getSmartDefaults = () => {
     const today = new Date();
     const startDate = today.toISOString().split('T')[0];
-    const endDate = new Date(today.setFullYear(
-      today.getFullYear() + (contractType === 'warranty' ? 1 : 2)
-    )).toISOString().split('T')[0];
+    
+    // Calculate end date based on contract type
+    let endDate: string;
+    if (contractType === 'warranty') {
+      // Warranty is ALWAYS 1 year (12 months) for both standard and premium
+      const warrantyEndDate = new Date(today);
+      warrantyEndDate.setFullYear(warrantyEndDate.getFullYear() + 1);
+      endDate = warrantyEndDate.toISOString().split('T')[0];
+    } else {
+      // Service: 2 years for standard, but will be updated when serviceType changes
+      const serviceEndDate = new Date(today);
+      serviceEndDate.setFullYear(serviceEndDate.getFullYear() + 2);
+      endDate = serviceEndDate.toISOString().split('T')[0];
+    }
     
     return {
       referenceNo: generateReferenceNo(),
@@ -421,6 +432,26 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
           // Service: Current Mileage + (30K for Standard, 60K for Premium)
           const additionalKm = updated.serviceType === 'premium' ? 60000 : 30000;
           updated.cutOffKm = (currentMileage + additionalKm).toString();
+        }
+      }
+      
+      // Recalculate end date and cut-off KM when service type changes
+      // NOTE: For warranty contracts, both Standard and Premium are identical (1 year, +20K KM),
+      // so we don't need to recalculate when switching between them
+      if (field === 'serviceType' && value && contractType === 'service') {
+        const currentMileage = parseInt(prev.currentOdometer || '0') || 0;
+        const startDate = prev.startDate;
+        
+        // Service: Extract months and KM from the service type string
+        const monthsMatch = value.match(/\((\d+)\s+Months?\s*\/\s*([0-9,]+)\s*KM\)/);
+        if (monthsMatch && startDate) {
+          const months = parseInt(monthsMatch[1]);
+          const kmValue = parseInt(monthsMatch[2].replace(/,/g, ''));
+          
+          const newEndDate = new Date(startDate);
+          newEndDate.setMonth(newEndDate.getMonth() + months);
+          updated.endDate = newEndDate.toISOString().split('T')[0];
+          updated.cutOffKm = (currentMileage + kmValue).toString();
         }
       }
       
@@ -793,48 +824,40 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                     value={formData.serviceType}
                     onChange={(e) => {
                       const type = e.target.value as 'standard' | 'premium';
-                      const today = new Date();
-                      const startDate = today.toISOString().split('T')[0];
                       
+                      setFormData(prev => {
+                        const currentMileage = parseInt(prev.currentOdometer) || 0;
+                        const today = new Date();
+                        const startDate = today.toISOString().split('T')[0];
+                        let endDate: string;
+                        let cutOffKm: string;
+                        
                         if (contractType === 'warranty') {
-                          // Warranty periods are always 12 months
-                          const endDate = new Date(today.setFullYear(
-                            today.getFullYear() + 1
-                          )).toISOString().split('T')[0];
+                          // Warranty is ALWAYS 1 year (12 months) for BOTH standard and premium
+                          const warrantyEndDate = new Date(today);
+                          warrantyEndDate.setFullYear(warrantyEndDate.getFullYear() + 1);
+                          endDate = warrantyEndDate.toISOString().split('T')[0];
                           
-                          setFormData(prev => {
-                            // Calculate warranty cut-off: Current Mileage + 20,000 KM
-                            const currentMileage = parseInt(prev.currentOdometer) || 0;
-                            const warrantyCutOff = currentMileage + 20000;
-                            
-                            return {
-                              ...prev,
-                              serviceType: type,
-                              startDate: startDate,
-                              endDate: endDate,
-                              cutOffKm: warrantyCutOff.toString()
-                            };
-                          });
+                          // Warranty cut-off: ALWAYS Current Mileage + 20,000 KM for both types
+                          cutOffKm = (currentMileage + 20000).toString();
                         } else {
-                          // Service contract periods
-                          const endDate = new Date(today.setFullYear(
-                            today.getFullYear() + (type === 'premium' ? 4 : 2)
-                          )).toISOString().split('T')[0];
+                          // Service contract periods: 2 years (standard) or 4 years (premium)
+                          const serviceEndDate = new Date(today);
+                          serviceEndDate.setFullYear(serviceEndDate.getFullYear() + (type === 'premium' ? 4 : 2));
+                          endDate = serviceEndDate.toISOString().split('T')[0];
                           
-                          setFormData(prev => {
-                            // Calculate service cut-off: Current Mileage + (30K for Standard, 60K for Premium)
-                            const currentMileage = parseInt(prev.currentOdometer) || 0;
-                            const serviceCutOff = currentMileage + (type === 'premium' ? 60000 : 30000);
-                            
-                            return {
-                              ...prev,
-                              serviceType: type,
-                              startDate: startDate,
-                              endDate: endDate,
-                              cutOffKm: serviceCutOff.toString()
-                            };
-                          });
+                          // Service cut-off: Current Mileage + (30K for Standard, 60K for Premium)
+                          cutOffKm = (currentMileage + (type === 'premium' ? 60000 : 30000)).toString();
                         }
+                        
+                        return {
+                          ...prev,
+                          serviceType: type,
+                          startDate: startDate,
+                          endDate: endDate,
+                          cutOffKm: cutOffKm
+                        };
+                      });
                     }}
                     disabled={prefilledData?.serviceType !== undefined}
                     className={`w-full h-[42px] px-4 py-3 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 overflow-hidden text-ellipsis ${
@@ -847,8 +870,8 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                   >
                     {contractType === 'warranty' ? (
                       <>
-                        <option value="standard">Standard Warranty</option>
-                        <option value="premium">Premium Warranty</option>
+                        <option value="standard">Standard Warranty (12 Months / +20K KM)</option>
+                        <option value="premium">Premium Warranty (12 Months / +20K KM)</option>
                       </>
                     ) : (
                       <>

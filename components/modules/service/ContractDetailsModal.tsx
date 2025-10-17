@@ -151,12 +151,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       setLocalContract(contract);
       
       // Initialize form data from contract
-      console.log('🔍 MODAL OPEN DEBUG - Contract data:', {
-        customer_id_number: contract?.customer_id_number,
-        exterior_colour: contract?.exterior_colour,
-        interior_colour: contract?.interior_colour,
-        notes: contract?.notes
-      });
       initializeFormData(contract);
     }
   }, [isOpen, contract]);
@@ -204,10 +198,61 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Get the contract type from the contract prop (it's stable)
+      const currentContract = localContract || contract;
+      const contractType = currentContract?.contract_type || 'service';
+      
+      
+      // Recalculate cut-off KM when current odometer changes
+      if (field === 'current_odometer' && value) {
+        const currentMileage = parseInt(value) || 0;
+        
+        if (contractType === 'warranty') {
+          // Warranty: Current Mileage + 20,000 KM
+          updated.cut_off_km = (currentMileage + 20000).toString();
+        } else {
+          // Service: Current Mileage + (30K for Standard, 60K for Premium)
+          const additionalKm = updated.service_type === 'premium' ? 60000 : 30000;
+          updated.cut_off_km = (currentMileage + additionalKm).toString();
+        }
+      }
+      
+      // Recalculate end date and cut-off KM when service type changes
+      // NOTE: For warranty contracts, both Standard and Premium are identical (1 year, +20K KM),
+      // so we don't need to recalculate when switching between them
+      if (field === 'service_type' && value) {
+        if (contractType === 'service') {
+          // Only recalculate for SERVICE contracts, not WARRANTY
+          const currentMileage = parseInt(prev.current_odometer || '0') || 0;
+          const startDate = prev.start_date;
+          
+          // Service: Extract months and KM from the service type string if it matches pattern
+          const monthsMatch = value.match(/\((\d+)\s+Months?\s*\/\s*([0-9,]+)\s*KM\)/);
+          if (monthsMatch && startDate) {
+            const months = parseInt(monthsMatch[1]);
+            const kmValue = parseInt(monthsMatch[2].replace(/,/g, ''));
+            
+            const newEndDate = new Date(startDate);
+            newEndDate.setMonth(newEndDate.getMonth() + months);
+            updated.end_date = newEndDate.toISOString().split('T')[0];
+            updated.cut_off_km = (currentMileage + kmValue).toString();
+          } else {
+            // For simple 'standard' or 'premium' values (no pattern match)
+            const additionalKm = value === 'premium' ? 60000 : 30000;
+            updated.cut_off_km = (currentMileage + additionalKm).toString();
+          }
+        }
+        // For warranty contracts, do nothing - both standard and premium are identical
+      }
+      
+      return updated;
+    });
   };
 
   // Validate form before saving
@@ -235,7 +280,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     if (displayContract.contract_type === 'service' && !formData.service_type?.trim()) {
       errors.push('Service Type is required');
     }
-    if (!formData.invoice_amount?.trim() || parseFloat(formData.invoice_amount) <= 0) {
+    
+    // Invoice amount validation - handle both string and number types
+    const invoiceAmountStr = String(formData.invoice_amount || '').trim();
+    if (!invoiceAmountStr || parseFloat(invoiceAmountStr) <= 0) {
       errors.push('Invoice Amount is required and must be greater than 0');
     }
 
@@ -1356,22 +1404,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                     {isEditing && !isTransferMode ? (
                       <select
                         value={formData.service_type || 'standard'}
-                        onChange={(e) => {
-                          const type = e.target.value as 'standard' | 'premium';
-                          const today = new Date();
-                          const startDate = today.toISOString().split('T')[0];
-                          const endDate = new Date(today.setFullYear(
-                            today.getFullYear() + (type === 'premium' ? 4 : 2)
-                          )).toISOString().split('T')[0];
-                          
-                          setFormData(prev => ({
-                            ...prev,
-                            service_type: type,
-                            start_date: startDate,
-                            end_date: endDate,
-                            cut_off_km: type === 'premium' ? '60000' : '30000'
-                          }));
-                        }}
+                        onChange={(e) => handleInputChange('service_type', e.target.value)}
                         className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                       >
                         {displayContract.contract_type === 'warranty' ? (
@@ -1393,7 +1426,7 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
                         : 'bg-white/5 border border-white/10 text-white'
                     }`}>
                       {displayContract.contract_type === 'warranty' 
-                        ? (displayContract.service_type === 'premium' ? 'Premium Warranty' : 'Standard Warranty')
+                        ? ((displayContract.warranty_type || displayContract.service_type) === 'premium' ? 'Premium Warranty' : 'Standard Warranty')
                         : (displayContract.service_type === 'premium' ? 'Premium (48 Months)' : 'Standard (24 Months)')
                       }
                     </div>

@@ -42,7 +42,8 @@ export default function MusicPlayer() {
   // Close dropdown when clicking outside and handle window resize
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+          buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
         setShowSelector(false);
       }
     }
@@ -53,8 +54,10 @@ export default function MusicPlayer() {
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('resize', handleResize);
+    if (showSelector) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('resize', handleResize);
+    }
     
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -165,7 +168,7 @@ export default function MusicPlayer() {
   };
 
   return (
-    <div className="relative flex items-center mr-3" ref={dropdownRef}>
+    <div className="relative flex items-center mr-3">
       {/* Play / Pause toggle */}
       <button
         onClick={togglePlay}
@@ -191,6 +194,7 @@ export default function MusicPlayer() {
       {/* Dropdown rendered via Portal */}
       {showSelector && typeof window !== 'undefined' && createPortal(
         <div 
+          ref={dropdownRef}
           className="fixed w-40 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-3 origin-top transition-transform transition-opacity duration-200 animate-in slide-in-from-top-2"
           style={{
             top: `${dropdownPosition.top}px`,

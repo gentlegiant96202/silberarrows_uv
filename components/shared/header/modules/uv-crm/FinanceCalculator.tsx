@@ -14,7 +14,8 @@ export default function FinanceCalculator() {
   // Close dropdown when clicking outside and handle window resize
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+          buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
         setShowFinance(false);
       }
     }
@@ -25,8 +26,10 @@ export default function FinanceCalculator() {
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('resize', handleResize);
+    if (showFinance) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('resize', handleResize);
+    }
     
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -61,7 +64,7 @@ export default function FinanceCalculator() {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       <button
         ref={buttonRef}
         onClick={handleToggleDropdown}
@@ -72,6 +75,7 @@ export default function FinanceCalculator() {
       </button>
       {showFinance && typeof window !== 'undefined' && createPortal(
         <div 
+          ref={dropdownRef}
           className="fixed w-60 bg-black/90 backdrop-blur border border-white/10 rounded-lg shadow-lg p-4 origin-top transition-transform transition-opacity duration-200 animate-in slide-in-from-top-2"
           style={{
             top: `${dropdownPosition.top}px`,

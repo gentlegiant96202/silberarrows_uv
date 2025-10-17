@@ -23,7 +23,7 @@ interface ContractSuccessModalProps {
 }
 
 export default function ContractSuccessModal({ isOpen, onClose, contractData }: ContractSuccessModalProps) {
-  const [emailTo, setEmailTo] = useState(contractData.email);
+  const [emailTo, setEmailTo] = useState('');
   const [emailCc, setEmailCc] = useState('');
   const [emailSent, setEmailSent] = useState(false);
 

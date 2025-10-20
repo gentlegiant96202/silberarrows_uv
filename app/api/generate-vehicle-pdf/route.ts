@@ -528,7 +528,7 @@ function buildVehicleShowcaseHtml(
           /* Equipment Grid */
           .equipment-grid {
               columns: 2;
-              column-gap: 25px;
+              column-gap: 40px;
               column-fill: balance;
           }
           
@@ -536,12 +536,14 @@ function buildVehicleShowcaseHtml(
               display: block;
               break-inside: avoid;
               padding: 4px 0;
-              font-size: 9px;
+              font-size: 8.5px;
               color: rgba(255, 255, 255, 0.8);
               border-bottom: 1px solid rgba(255, 255, 255, 0.04);
               margin-bottom: 3px;
               font-weight: 400;
               line-height: 1.3;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
           }
           
           .description-content {

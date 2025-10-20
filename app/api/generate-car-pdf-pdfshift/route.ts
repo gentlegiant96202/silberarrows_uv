@@ -756,7 +756,7 @@ export async function POST(request: NextRequest) {
               /* Equipment Grid */
               .equipment-grid {
                   columns: 2;
-                  column-gap: 25px; /* retain gap */
+                  column-gap: 40px;
                   column-fill: balance;
               }
               
@@ -764,12 +764,14 @@ export async function POST(request: NextRequest) {
                   display: block;
                   break-inside: avoid;
                   padding: 4px 0;
-                  font-size: 9px;
+                  font-size: 8.5px;
                   color: rgba(255, 255, 255, 0.8);
                   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
                   margin-bottom: 3px;
                   font-weight: 400;
                   line-height: 1.3;
+                  word-wrap: break-word;
+                  overflow-wrap: break-word;
               }
               
               /* Bullet points removed - dashes already present in content */

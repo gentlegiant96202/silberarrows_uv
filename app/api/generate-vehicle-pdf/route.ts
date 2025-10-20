@@ -62,12 +62,13 @@ function buildVehicleShowcaseHtml(
           
           .showcase-container {
               page-break-inside: avoid;
-              padding: 30px 40px;
+              padding: 30px 40px 120px 40px;
               display: flex;
               flex-direction: column;
               justify-content: center;
               min-height: calc(100vh - 100px);
               margin: auto 0;
+              position: relative;
           }
           
           .showcase-container {
@@ -775,7 +776,7 @@ function buildVehicleShowcaseHtml(
                         </div>
                         <div class="spec-item">
                             <span class="spec-label">Mileage</span>
-                            <span class="spec-value">${vehicle.mileage ? vehicle.mileage.toLocaleString() + ' km' : 'N/A'}</span>
+                            <span class="spec-value">${vehicle.current_mileage_km ? vehicle.current_mileage_km.toLocaleString() + ' km' : (vehicle.mileage ? vehicle.mileage.toLocaleString() + ' km' : 'N/A')}</span>
                         </div>
                         <div class="spec-item">
                             <span class="spec-label">Transmission</span>
@@ -831,22 +832,40 @@ function buildVehicleShowcaseHtml(
                 <!-- Premium Leasing Benefits -->
                 <div class="full-width-section content-section avoid-break">
                     <h4 class="card-title">Premium Leasing Benefits</h4>
-                    <div class="equipment-grid">
-                        <div class="equipment-item">Comprehensive Insurance Coverage</div>
-                        <div class="equipment-item">Full Vehicle Registration</div>
-                        <div class="equipment-item">Regular Maintenance & Servicing</div>
-                        <div class="equipment-item">24/7 Roadside Assistance</div>
-                        <div class="equipment-item">Annual Vehicle Inspection</div>
-                        <div class="equipment-item">Replacement Vehicle (if available)</div>
-                        <div class="equipment-item">Flexible Lease Terms</div>
-                        <div class="equipment-item">Quick Approval Process</div>
-                        <div class="equipment-item">Dedicated Account Manager</div>
+                    <div class="benefits-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px 30px;">
+                        <div style="padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 5px;">Comprehensive Insurance Coverage</div>
+                        </div>
+                        <div style="padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 5px;">Full Vehicle Registration</div>
+                        </div>
+                        <div style="padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 5px;">Regular Maintenance & Servicing</div>
+                        </div>
+                        <div style="padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 5px;">24/7 Roadside Assistance</div>
+                        </div>
+                        <div style="padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 5px;">Annual Vehicle Inspection</div>
+                        </div>
+                        <div style="padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 5px;">Replacement Vehicle (if available)</div>
+                        </div>
+                        <div style="padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 5px;">Flexible Lease Terms</div>
+                        </div>
+                        <div style="padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 5px;">Quick Approval Process</div>
+                        </div>
+                        <div style="padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 5px;">Dedicated Account Manager</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Footer -->
-            <div class="footer">
+            <!-- Footer - Fixed at bottom -->
+            <div class="footer" style="position: absolute; bottom: 30px; left: 40px; right: 40px; margin-top: 0;">
                 <p>Experience premium leasing with SilberArrows</p>
                 <div class="contact-info">
                     📞 +971 4 380 5515 • ✉️ leasing@silberarrows.com • TRN: 100281137800003

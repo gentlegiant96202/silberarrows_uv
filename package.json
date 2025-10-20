@@ -6,13 +6,12 @@
     "dev": "next dev",
     "dev:local": "next dev -H 127.0.0.1 -p 3000",
     "start:prod-local": "next start -H 127.0.0.1 -p 3000",
-    "build": "npm run prebuild:sharp && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "npm run install-playwright-safe",
     "install-playwright-safe": "if [ \"$VERCEL\" = \"1\" ]; then echo 'Skipping Playwright installation on Vercel'; else playwright install --with-deps; fi",
-    "install-playwright": "playwright install --with-deps",
-    "prebuild:sharp": "if [ \"$VERCEL\" = \"1\" ]; then npm install --no-save --os=linux --cpu=x64 sharp; else echo 'Skipping sharp prebuild'; fi"
+    "install-playwright": "playwright install --with-deps"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",

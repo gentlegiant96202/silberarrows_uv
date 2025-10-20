@@ -118,6 +118,11 @@ function buildVehicleShowcaseHtml(
               justify-content: center;
           }
           
+          /* Explicit spacer for pages after the first */
+          .page-top-spacer {
+              height: 20px;
+          }
+          
           .showcase-container {
               max-width: 1400px;
               margin: 0 auto;
@@ -930,6 +935,7 @@ function buildVehicleShowcaseHtml(
 
         <!-- PAGE 2: DESCRIPTION & KEY EQUIPMENT -->
         <div class="showcase-container page-two" style="page-break-before: always;">
+                <div class="page-top-spacer"></div>
                 <!-- Description Section -->
                 ${vehicle.description ? `
                 <div class="full-width-section content-section avoid-break">
@@ -982,6 +988,7 @@ function buildVehicleShowcaseHtml(
         ${galleryPagesHtml ? `
         <div class="image-gallery page-break-before" style="page-break-before: always;">
             <div class="showcase-container page-two">
+                <div class="page-top-spacer"></div>
                 ${galleryPagesHtml}
             </div>
         </div>
@@ -1077,193 +1084,4 @@ async function generateVehicleShowcasePdf(vehicleData: any): Promise<Buffer> {
       if (fs.existsSync(candidate)) {
         const logoData = fs.readFileSync(candidate);
         const b64 = logoData.toString('base64');
-        logoSrc = `data:image/png;base64,${b64}`;
-        break;
-      }
-    } catch {}
-  }
-
-  // Build HTML using the template
-  console.log('📄 Building HTML content...');
-  const htmlContent = buildVehicleShowcaseHtml(vehicleData, logoSrc, formatDate, formatCurrency, galleryPagesHtml);
-  console.log('📄 HTML content length:', htmlContent.length);
-
-  // Save HTML for debugging
-  if (process.env.NODE_ENV === 'development') {
-    try {
-      const htmlPath = path.join(process.cwd(), 'debug-leasing-pdf.html');
-      fs.writeFileSync(htmlPath, htmlContent);
-      console.log('💾 HTML saved to debug-leasing-pdf.html for inspection');
-    } catch (e) {
-      console.log('⚠️ Could not save debug HTML:', e instanceof Error ? e.message : e);
-    }
-  }
-
-  console.log('📄 Calling renderer service (same as UV inventory)...');
-  
-  const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
-  console.log('🔄 Using renderer service at:', rendererUrl);
-  
-  // Create AbortController for timeout
-  const controller = new AbortController();
-  const timeoutMs = 120000; // 2 minutes timeout
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  console.log(`📄 Renderer timeout set to ${timeoutMs/1000} seconds`);
-  
-  const resp = await fetch(`${rendererUrl}/render-car-pdf`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      html: htmlContent
-    }),
-    signal: controller.signal
-  });
-  
-  clearTimeout(timeoutId);
-  
-  console.log('📄 Renderer service response status:', resp.status);
-  
-  if (!resp.ok) {
-    const error = await resp.text();
-    console.error('📄 Renderer Error Response:', {
-      status: resp.status,
-      statusText: resp.statusText,
-      error: error.slice(0, 500)
-    });
-    throw new Error(`Renderer service error (${resp.status}): ${error}`);
-  }
-
-  const renderResult = await resp.json();
-  
-  if (!renderResult.success || !renderResult.pdf) {
-    throw new Error('Renderer service returned invalid response');
-  }
-
-  // Convert base64 PDF back to buffer
-  const pdfBuffer = Buffer.from(renderResult.pdf, 'base64');
-  const pdfSizeMB = (pdfBuffer.byteLength / (1024 * 1024)).toFixed(2);
-  
-  console.log(`📄 PDF Generated:`);
-  console.log(`   Final PDF size: ${pdfSizeMB}MB`);
-  console.log(`   ✅ PDF generation successful!`);
-  
-  return pdfBuffer;
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    console.log('📝 Vehicle PDF API called');
-    
-    const { vehicleId, vehicleData } = await request.json();
-    
-    console.log('📝 Generating vehicle showcase PDF:', { 
-      vehicleId, 
-      vehicleModel: vehicleData?.vehicle_model,
-      make: vehicleData?.make,
-      hasPhotos: !!vehicleData?.photos,
-      photosCount: vehicleData?.photos?.length || 0
-    });
-    
-    // Validate required data
-    if (!vehicleId || !vehicleData) {
-      console.error('❌ Missing required parameters:', { 
-        vehicleId: !!vehicleId, 
-        vehicleData: !!vehicleData,
-        receivedData: Object.keys({ vehicleId, vehicleData })
-      });
-      return NextResponse.json(
-        { error: 'Missing required parameters: vehicleId and vehicleData are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate PDFShift API key
-    if (!process.env.PDFSHIFT_API_KEY) {
-      console.error('❌ PDFShift API key not configured');
-      return NextResponse.json(
-        { error: 'PDFShift API key not configured' },
-        { status: 500 }
-      );
-    }
-
-    console.log('📄 Generating vehicle showcase PDF...');
-
-    // Generate PDF
-    const pdfBuffer = await generateVehicleShowcasePdf(vehicleData);
-    console.log('✅ Vehicle showcase PDF generated successfully:', { 
-      sizeBytes: pdfBuffer.byteLength, 
-      sizeMB: (pdfBuffer.byteLength / 1024 / 1024).toFixed(2),
-      bufferType: typeof pdfBuffer,
-      isBuffer: Buffer.isBuffer(pdfBuffer)
-    });
-
-    // Upload PDF to Supabase storage (server-side - no 6MB client limit)
-    const fileName = `Vehicle_Showcase_${vehicleId}_${Date.now()}.pdf`;
-    const filePath = `vehicle-showcases/${fileName}`;
-    
-    console.log('☁️ Uploading PDF to Supabase storage (server-side)...');
-    console.log('📁 File path:', filePath);
-    console.log('📦 File size:', (pdfBuffer.byteLength / 1024 / 1024).toFixed(2), 'MB');
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('leasing')
-      .upload(filePath, pdfBuffer, {
-        contentType: 'application/pdf',
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) {
-      console.error('❌ Storage upload error:', uploadError);
-      throw new Error(`Storage upload failed: ${uploadError.message}`);
-    }
-
-    console.log('✅ PDF uploaded successfully:', uploadData);
-    
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('leasing')
-      .getPublicUrl(filePath);
-    
-    const pdfUrl = urlData.publicUrl;
-    console.log('📄 PDF URL:', pdfUrl);
-    
-    // Update database with PDF URL
-    const { error: dbError } = await supabase
-      .from('leasing_inventory')
-      .update({ 
-        vehicle_pdf_url: pdfUrl,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', vehicleId);
-    
-    if (dbError) {
-      console.error('❌ Database update error:', dbError);
-    } else {
-      console.log('✅ PDF URL saved to database');
-    }
-    
-    return NextResponse.json({ 
-      success: true, 
-      pdfUrl: pdfUrl,
-      vehicleId: vehicleId,
-      fileName: fileName,
-      pdfStats: {
-        fileSizeMB: parseFloat((pdfBuffer.byteLength / 1024 / 1024).toFixed(2))
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Error generating vehicle showcase PDF:', error);
-    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
-  }
-}
+        logoSrc = `

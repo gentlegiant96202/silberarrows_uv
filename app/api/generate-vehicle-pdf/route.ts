@@ -43,7 +43,7 @@ function buildVehicleShowcaseHtml(
               background: #000000;
               color: #ffffff;
               min-height: 100vh;
-              padding: 20px 40px;
+              padding: 0 40px 20px 40px;
               margin: 0;
               line-height: 1.4;
           }
@@ -74,7 +74,7 @@ function buildVehicleShowcaseHtml(
           
           .showcase-container {
               page-break-inside: avoid;
-              padding: 0;
+              padding: 0 0 0 0;
               display: flex;
               flex-direction: column;
               justify-content: flex-start;
@@ -82,14 +82,13 @@ function buildVehicleShowcaseHtml(
               min-height: calc(297mm - 120px);
           }
 
-          /* Add top margin to pages after page 1 */
+          /* Add top padding to pages after page 1 */
           .showcase-container[style*="page-break-before"] {
-              margin-top: 20px;
+              padding-top: 20px;
           }
 
-          /* Alternative: add top padding to second page content */
-          .showcase-container.page-two,
-          .showcase-container[style*="page-break-before"] .content-wrapper {
+          /* Page 2 and later get top padding */
+          .showcase-container.page-two {
               padding-top: 20px;
           }
 
@@ -979,7 +978,9 @@ function buildVehicleShowcaseHtml(
         <!-- ADDITIONAL GALLERY PAGES (if more than 5 images) -->
         ${galleryPagesHtml ? `
         <div class="image-gallery" style="page-break-before: always;">
-            ${galleryPagesHtml}
+            <div class="showcase-container page-two">
+                ${galleryPagesHtml}
+            </div>
         </div>
         ` : ''}
     </body>

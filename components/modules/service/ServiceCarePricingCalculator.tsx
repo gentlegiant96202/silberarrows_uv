@@ -671,7 +671,7 @@ export default function ServiceCarePricingCalculator({ isOpen, onClose }: Servic
                 <>
                   {/* Price Display - Main Focus */}
                   <div className="bg-gradient-to-br from-white/10 to-white/5 border-2 border-white/20 rounded-xl p-8 text-center space-y-4">
-                    <div className="text-gray-400 text-sm uppercase tracking-wider">ServiceCare Price</div>
+                    <div className="text-gray-400 text-sm tracking-wider">ServiceCare Price</div>
                     <div className="text-6xl font-bold text-white tracking-tight flex items-center justify-center gap-4">
                       <DirhamIcon className="w-14 h-14" />
                       <span>

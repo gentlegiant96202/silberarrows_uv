@@ -43,13 +43,13 @@ function buildVehicleShowcaseHtml(
               background: #000000;
               color: #ffffff;
               min-height: 100vh;
-              padding: 40px 20px 20px 20px;
+              padding: 0;
               line-height: 1.4;
           }
           
           /* Page break spacing with black background */
           @page {
-              margin: 30px 0 0 0;
+              margin: 0;
               background: #000000;
           }
           
@@ -60,15 +60,21 @@ function buildVehicleShowcaseHtml(
               padding: 0;
           }
           
-          .showcase-container {
-              page-break-inside: avoid;
-              padding: 30px 40px 120px 40px;
+          /* Page wrapper for proper footer positioning */
+          .page-wrapper {
+              min-height: 100vh;
+              position: relative;
               display: flex;
               flex-direction: column;
-              justify-content: center;
-              min-height: calc(100vh - 100px);
-              margin: auto 0;
-              position: relative;
+          }
+          
+          .showcase-container {
+              page-break-inside: avoid;
+              padding: 40px 40px 20px 40px;
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-start;
+              flex: 1;
           }
           
           .showcase-container {
@@ -575,7 +581,7 @@ function buildVehicleShowcaseHtml(
               border-radius: 12px;
               padding: 10px 20px;
               text-align: center;
-              margin-top: 15px;
+              margin: 30px 40px 40px 40px;
               box-shadow: 
                   0 15px 30px rgba(0, 0, 0, 0.2),
                   inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -864,8 +870,8 @@ function buildVehicleShowcaseHtml(
                 </div>
             </div>
 
-            <!-- Footer - Fixed at bottom -->
-            <div class="footer" style="position: absolute; bottom: 30px; left: 40px; right: 40px; margin-top: 0;">
+            <!-- Footer -->
+            <div class="footer">
                 <p>Experience premium leasing with SilberArrows</p>
                 <div class="contact-info">
                     📞 +971 4 380 5515 • ✉️ leasing@silberarrows.com • TRN: 100281137800003
@@ -1006,11 +1012,9 @@ async function generateVehicleShowcasePdf(vehicleData: any): Promise<Buffer> {
     return `${day}/${month}/${year}`;
   };
 
-  // Format currency
+  // Format currency - returns number only (without AED prefix)
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
-      style: 'currency',
-      currency: 'AED',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);

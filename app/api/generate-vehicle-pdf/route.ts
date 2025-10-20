@@ -43,7 +43,7 @@ function buildVehicleShowcaseHtml(
               background: #000000;
               color: #ffffff;
               min-height: 100vh;
-              padding: 20px 40px;
+              padding: 20px 0 0 0;
               margin: 0;
               line-height: 1.4;
           }
@@ -59,7 +59,7 @@ function buildVehicleShowcaseHtml(
           html, body {
               background: #000000;
               margin: 0;
-              padding: 20px 40px;
+              padding: 0;
           }
           
           /* Page wrapper for proper footer positioning */
@@ -68,13 +68,13 @@ function buildVehicleShowcaseHtml(
               position: relative;
               display: flex;
               flex-direction: column;
-              padding: 0;
+              padding: 20px 0 0 0;
               margin: 0;
           }
           
           .showcase-container {
               page-break-inside: avoid;
-              padding: 0;
+              padding: 0 40px;
               display: flex;
               flex-direction: column;
               justify-content: flex-start;

@@ -43,13 +43,13 @@ function buildVehicleShowcaseHtml(
               background: #000000;
               color: #ffffff;
               min-height: 100vh;
-              padding: 20px;
+              padding: 40px 20px 20px 20px;
               line-height: 1.4;
           }
           
           /* Page break spacing with black background */
           @page {
-              margin: 0;
+              margin: 30px 0 0 0;
               background: #000000;
           }
           
@@ -62,11 +62,11 @@ function buildVehicleShowcaseHtml(
           
           .showcase-container {
               page-break-inside: avoid;
-              padding: 20px 40px;
+              padding: 30px 40px;
               display: flex;
               flex-direction: column;
               justify-content: center;
-              min-height: calc(100vh - 60px);
+              min-height: calc(100vh - 100px);
               margin: auto 0;
           }
           
@@ -212,6 +212,7 @@ function buildVehicleShowcaseHtml(
               padding: 20px;
               position: relative;
               overflow: hidden;
+              margin-bottom: 20px;
           }
           
           .full-width-section::before {
@@ -641,6 +642,47 @@ function buildVehicleShowcaseHtml(
               border-radius: 10px;
               box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
           }
+
+          /* Page break improvements */
+          .page-break-before {
+              page-break-before: always;
+          }
+          
+          .page-break-after {
+              page-break-after: always;
+          }
+          
+          .avoid-break {
+              page-break-inside: avoid;
+          }
+          
+          /* Improved section spacing */
+          .section-spacing {
+              margin-bottom: 30px;
+          }
+          
+          /* Better content organization */
+          .content-section {
+              margin-bottom: 25px;
+              break-inside: avoid;
+          }
+          
+          .two-column-layout {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin-bottom: 25px;
+          }
+          
+          @media print {
+              .content-section {
+                  margin-bottom: 20px;
+              }
+              
+              .two-column-layout {
+                  page-break-inside: avoid;
+              }
+          }
         </style>
     </head>
     <body>
@@ -659,11 +701,11 @@ function buildVehicleShowcaseHtml(
             </defs>
         </svg>
         
+        <!-- FIRST PAGE: Header + Vehicle Images Gallery + Vehicle Specifications -->
         <div class="showcase-container">
-            <!-- FIRST PAGE: Header + Vehicle Images Gallery + Vehicle Specifications -->
             
             <!-- Header -->
-            <div class="header">
+            <div class="header section-spacing">
                 <div class="header-top">
                     <div class="company-info">
                         <img src="${logoSrc}" alt="Logo" class="company-logo">
@@ -688,9 +730,9 @@ function buildVehicleShowcaseHtml(
 
             <!-- Content Wrapper for First Page -->
             <div class="content-wrapper">
-                <!-- First Row: Vehicle Images Gallery (Full Width) -->
-                <div class="full-width-section">
-                    <h4 class="card-title">Images</h4>
+                <!-- Vehicle Images Gallery -->
+                <div class="full-width-section content-section avoid-break">
+                    <h4 class="card-title">Vehicle Images</h4>
                     <div class="main-image">
                         ${vehicle.photos && vehicle.photos.length > 0 ? 
                           `<img src="${vehicle.photos[0].url}" alt="Main vehicle photo" />` : 
@@ -711,9 +753,9 @@ function buildVehicleShowcaseHtml(
                     </div>
                 </div>
 
-                <!-- Second Row: Vehicle Specifications (Full Width) -->
-                <div class="full-width-section">
-                    <h4 class="card-title">Specifications</h4>
+                <!-- Vehicle Specifications -->
+                <div class="full-width-section content-section avoid-break">
+                    <h4 class="card-title">Vehicle Specifications</h4>
                     <div class="specs-grid">
                         <!-- Basic Vehicle Info -->
                         <div class="spec-item">
@@ -751,8 +793,8 @@ function buildVehicleShowcaseHtml(
                     </div>
                 </div>
 
-                <!-- Third Row: Leasing Options & Pricing -->
-                <div class="full-width-section">
+                <!-- Leasing Options & Pricing -->
+                <div class="full-width-section content-section avoid-break">
                     <h4 class="card-title">Flexible Leasing Options</h4>
                     <div class="pricing-section">
                         <div class="pricing-header">Your Monthly Investment</div>
@@ -795,8 +837,8 @@ function buildVehicleShowcaseHtml(
                     </div>
                 </div>
 
-                <!-- Fourth Row: What's Included -->
-                <div class="full-width-section">
+                <!-- Premium Leasing Benefits -->
+                <div class="full-width-section content-section avoid-break">
                     <h4 class="card-title">Premium Leasing Benefits</h4>
                     <div class="equipment-grid">
                         <div class="equipment-item">Comprehensive Insurance Coverage</div>
@@ -825,31 +867,60 @@ function buildVehicleShowcaseHtml(
         </div>
 
         <!-- PAGE 2: DESCRIPTION & KEY EQUIPMENT -->
-        <div class="page" style="page-break-before: always;">
-            <!-- Description Section -->
-            ${vehicle.description ? `
-            <div class="full-width-section" style="margin-bottom: 20px;">
-                <h4 class="card-title">Description</h4>
-                <div class="description-content">
-                    <p>${vehicle.description}</p>
+        <div class="page-break-before">
+            <div class="showcase-container">
+                <!-- Description Section -->
+                ${vehicle.description ? `
+                <div class="full-width-section content-section avoid-break">
+                    <h4 class="card-title">Vehicle Description</h4>
+                    <div class="description-content">
+                        <p>${vehicle.description}</p>
+                    </div>
                 </div>
-            </div>
-            ` : ''}
+                ` : ''}
 
-            <!-- Key Equipment Section -->
-            ${vehicle.key_equipment && Array.isArray(vehicle.key_equipment) && vehicle.key_equipment.length > 0 ? `
-            <div class="full-width-section">
-                <h4 class="card-title">Key Equipment & Features</h4>
-                <div class="equipment-grid">
-                    ${vehicle.key_equipment.map((item: string) => `<div class="equipment-item">${item}</div>`).join('')}
+                <!-- Key Equipment Section -->
+                ${vehicle.key_equipment && Array.isArray(vehicle.key_equipment) && vehicle.key_equipment.length > 0 ? `
+                <div class="full-width-section content-section avoid-break">
+                    <h4 class="card-title">Key Equipment & Features</h4>
+                    <div class="equipment-grid">
+                        ${vehicle.key_equipment.map((item: string) => `<div class="equipment-item">${item}</div>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <!-- Additional Information -->
+                <div class="full-width-section content-section">
+                    <h4 class="card-title">Leasing Terms & Conditions</h4>
+                    <div class="description-content">
+                        <p style="font-size: 10px; line-height: 1.5;">
+                            • Minimum lease term: 12 months<br>
+                            • Security deposit required upon signing<br>
+                            • Comprehensive insurance included<br>
+                            • Regular maintenance and servicing included<br>
+                            • 24/7 roadside assistance available<br>
+                            • Excess mileage charges apply beyond annual allowance<br>
+                            • Early termination fees may apply<br>
+                            • Subject to credit approval and documentation<br>
+                            • Prices exclude 5% VAT<br>
+                            • Terms and conditions apply
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Contact Footer for Second Page -->
+                <div class="footer" style="margin-top: 30px;">
+                    <p>Ready to lease this vehicle?</p>
+                    <div class="contact-info">
+                        Contact us today: +971 4 380 5515 | leasing@silberarrows.com
+                    </div>
                 </div>
             </div>
-            ` : ''}
         </div>
 
         <!-- ADDITIONAL GALLERY PAGES (if more than 5 images) -->
         ${galleryPagesHtml ? `
-        <div class="image-gallery">
+        <div class="image-gallery page-break-before">
             ${galleryPagesHtml}
         </div>
         ` : ''}
@@ -1136,4 +1207,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

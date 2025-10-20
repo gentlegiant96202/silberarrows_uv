@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import { Plus, Calendar, User, Clock, Video, FileText, Image as ImageIcon, Eye, PenTool, Archive, CheckCircle, Instagram, Pin } from 'lucide-react';
 import { MarketingTask, MarketingStatus, MarketingColumn } from '@/types/marketing';
 import { supabase } from '@/lib/supabaseClient';
@@ -79,11 +80,18 @@ const isTaskUrgent = (dateString: string) => {
 function getPreviewUrl(mediaFiles: any[] = []): string | null {
   if (!mediaFiles || !mediaFiles.length) return null;
   
-  // Helper function to convert URLs to custom domain
+  // Helper function to convert URLs to custom domain and add transformations
   const convertToCustomDomain = (url: string | null): string | null => {
     if (!url) return null;
     // Convert old Supabase URLs to custom domain
-    return url.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
+    let transformedUrl = url.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
+    
+    // Add Supabase image transformation for thumbnails (300x375px for 4:5 aspect ratio)
+    if (transformedUrl.includes('.supabase.co') || transformedUrl.includes('database.silberarrows.com')) {
+      transformedUrl = `${transformedUrl}?width=300&height=375&resize=cover`;
+    }
+    
+    return transformedUrl;
   };
   
   // Prefer thumbnail if present
@@ -342,24 +350,28 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
         )}
         
         {/* Image Display */}
-        <div className="w-full h-full rounded-lg overflow-hidden">
+        <div className="w-full h-full rounded-lg overflow-hidden relative">
           {task.previewUrl === 'PDF_PREVIEW' ? (
             <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-red-600/10 flex items-center justify-center p-1.5">
               <FileText className="w-8 h-8 text-red-400" />
             </div>
           ) : task.previewUrl ? (
-            <img 
+            <Image 
               src={task.previewUrl} 
               alt={task.title}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-110"
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
-              <img 
+            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5 relative">
+              <Image 
                 src="/MAIN LOGO.png" 
                 alt="SilberArrows Logo" 
-                className="w-full h-full object-contain opacity-60 filter brightness-200" 
+                fill
+                sizes="200px"
+                className="object-contain opacity-60 filter brightness-200" 
               />
             </div>
           )}
@@ -1295,22 +1307,26 @@ export default function MarketingKanbanBoard() {
                               <FileText className="w-6 h-6 text-red-400" />
                             </div>
                           ) : previewUrl ? (
-                            <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg">
-                              <img 
+                            <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg relative">
+                              <Image 
                                 src={previewUrl} 
                                 alt="Preview" 
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                              loading="lazy"
+                                fill
+                                sizes="64px"
+                                className="object-cover transition-transform duration-300 group-hover:scale-110" 
+                                loading="lazy"
                               />
                               {/* Overlay gradient for depth */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </div>
                           ) : (
-                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1">
-                              <img 
+                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1 relative">
+                              <Image 
                                 src="/MAIN LOGO.png" 
                                 alt="SilberArrows Logo" 
-                                className="w-full h-full object-contain opacity-60 filter brightness-200" 
+                                fill
+                                sizes="64px"
+                                className="object-contain opacity-60 filter brightness-200" 
                               />
                             </div>
                           )}

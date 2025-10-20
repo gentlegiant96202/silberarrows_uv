@@ -7,7 +7,7 @@ import path from 'path';
 export const maxDuration = 300; // 5 minutes timeout
 export const dynamic = 'force-dynamic';
 
-// Helper: Build Vehicle Showcase HTML with leasing focus
+// Helper: Build Vehicle Showcase HTML with leasing focus (v2)
 function buildVehicleShowcaseHtml(
   vehicle: any,
   logoSrc: string,

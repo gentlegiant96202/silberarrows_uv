@@ -757,7 +757,7 @@ export async function POST(request: NextRequest) {
               .equipment-grid {
                   display: grid;
                   grid-template-columns: 1fr 1fr;
-                  gap: 10px 40px;
+                  gap: 10px 20px;
               }
               
               .equipment-item {

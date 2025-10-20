@@ -39,6 +39,7 @@ export default function DocUploader({ carId, onUploaded, variant = 'default', bu
         url,
         is_primary: false,
         filename: file.name, // Store original filename
+        file_size: file.size, // Store file size
       });
     }
 

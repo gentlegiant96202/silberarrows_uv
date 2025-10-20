@@ -87,6 +87,7 @@ interface MediaItem {
   signed_at?: string; // When signed
   report_type?: string; // For damage reports
   created_at?: string; // Creation timestamp
+  file_size?: number; // File size in bytes
 }
 
 export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Props) {
@@ -126,6 +127,15 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
   const formatMonthly = (amount: number): string => `AED ${amount.toLocaleString()}/MO`;
 
+  // Helper function to format file sizes
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  };
+
   useEffect(() => {
     const p = localCar.advertised_price_aed || 0;
     if (!isCashOnly && !monthlyZeroOverridden) setMonthlyZero(formatMonthly(computeMonthly(p, 0)));
@@ -155,6 +165,12 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const [downloadingGallery, setDownloadingGallery] = useState(false);
   const [downloadingSocial, setDownloadingSocial] = useState(false);
   const [downloadingCatalog, setDownloadingCatalog] = useState(false);
+  
+  // Image optimization states
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimizationProgress, setOptimizationProgress] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [totalImages, setTotalImages] = useState(0);
   
   // Key equipment processing state
   const [processingKeyEquipment, setProcessingKeyEquipment] = useState(false);
@@ -197,6 +213,59 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       alert('Error processing key equipment. Please try again.');
     } finally {
       setProcessingKeyEquipment(false);
+    }
+  };
+  
+  // Function to optimize all images
+  const handleOptimizeImages = async () => {
+    const allImages = [...gallery, ...socialMedia, ...catalog];
+    const totalCount = allImages.length;
+    
+    if (totalCount === 0) {
+      alert('No images to optimize');
+      return;
+    }
+    
+    if (!confirm(`This will optimize ${totalCount} images and cannot be undone. Continue?`)) {
+      return;
+    }
+    
+    setOptimizing(true);
+    setOptimizationProgress(0);
+    setTotalImages(totalCount);
+    setCurrentImageIndex(0);
+    
+    try {
+      const response = await fetch('/api/optimize-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          carId: car.id,
+          quality: 85,
+          minSizeKB: 500
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        const saved = ((data.summary.totalOriginalSize - data.summary.totalOptimizedSize) / 1024 / 1024).toFixed(2);
+        alert(`✅ Optimization complete!\n\n` +
+              `Optimized: ${data.summary.optimized}\n` +
+              `Skipped: ${data.summary.skipped}\n` +
+              `Saved: ${saved}MB (${data.summary.totalSavingsPercent.toFixed(1)}%)`);
+        refetchMedia(); // Refresh to show new file sizes
+      } else {
+        alert('Optimization failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error: any) {
+      console.error('Optimization error:', error);
+      alert('Failed to optimize images: ' + error.message);
+    } finally {
+      setOptimizing(false);
+      setOptimizationProgress(0);
+      setCurrentImageIndex(0);
+      setTotalImages(0);
     }
   };
   
@@ -2034,6 +2103,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                     kind: 'photo',
                                     url: pub.publicUrl,
                                     is_primary: (!photoCount || photoCount === 0),
+                                    file_size: file.size,
                                   });
                                 }
                                 setMediaLoading(false);
@@ -2095,6 +2165,25 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                       </>
                     )}
                     <button
+                      onClick={handleOptimizeImages}
+                      disabled={optimizing}
+                      className="px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-purple-600/20 hover:from-purple-400/30 hover:to-purple-500/30 border border-purple-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {optimizing ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <span>Optimizing... {optimizationProgress > 0 ? `${optimizationProgress}%` : ''}</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Optimize All Images
+                        </>
+                      )}
+                    </button>
+                    <button
                       onClick={() => downloadAll(gallery, `${localCar.stock_number}_photos.zip`, setDownloadingGallery)}
                       disabled={downloadingGallery}
                       className="px-3 py-1.5 bg-gradient-to-r from-gray-400/20 to-gray-600/20 hover:from-gray-300/30 hover:to-gray-500/30 border border-gray-400/30 text-white text-xs rounded transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -2127,7 +2216,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         onDrop={(e) => !isSelectionMode && handleDrop(e, i)}
                         onDragEnd={!isSelectionMode ? handleDragEnd : undefined}
                     >
-                        <div className="aspect-square bg-white/10 rounded overflow-hidden">
+                        <div className="aspect-square bg-white/10 rounded overflow-hidden relative">
                           <img 
                             src={item.url} 
                             className="w-full h-full object-contain bg-black/40 cursor-pointer hover:opacity-80 transition-opacity" 
@@ -2141,6 +2230,12 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                             }}
                             loading="lazy"
                           />
+                          {/* File size badge */}
+                          {item.file_size && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] px-1.5 py-0.5 text-center z-10">
+                              {formatFileSize(item.file_size)}
+                            </div>
+                          )}
                         </div>
                         
                         {/* Selection checkbox */}
@@ -2229,6 +2324,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                   kind: 'social_media',
                                   url: pub.publicUrl,
                                   is_primary: false,
+                                  file_size: file.size,
                                 });
                               }
                               setMediaLoading(false);
@@ -2258,12 +2354,18 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {socialMedia.map((item) => (
                       <div key={item.id} className="relative group">
-                        <div className="aspect-square bg-white/10 rounded overflow-hidden">
+                        <div className="aspect-square bg-white/10 rounded overflow-hidden relative">
                           <img 
                             src={item.url} 
                             className="w-full h-full object-cover" 
                             loading="lazy"
                           />
+                          {/* File size badge */}
+                          {item.file_size && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] px-1.5 py-0.5 text-center">
+                              {formatFileSize(item.file_size)}
+                            </div>
+                          )}
                         </div>
                         {editing && (
                   <button 
@@ -2276,6 +2378,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                         )}
                 </div>
                     ))}
+
                   </div>
                 {socialMedia.length === 0 && editing && (
                   <div className="text-center py-8 text-white/60">
@@ -2319,6 +2422,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                                   kind: 'catalog',
                                   url: pub.publicUrl,
                                   is_primary: false,
+                                  file_size: file.size,
                                 });
                               }
                               setMediaLoading(false);
@@ -2348,12 +2452,18 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {catalog.map((item) => (
                       <div key={item.id} className="relative group">
-                        <div className="aspect-square bg-white/10 rounded overflow-hidden">
+                        <div className="aspect-square bg-white/10 rounded overflow-hidden relative">
                           <img 
                             src={item.url} 
                             className="w-full h-full object-cover" 
                             loading="lazy"
                           />
+                          {/* File size badge */}
+                          {item.file_size && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] px-1.5 py-0.5 text-center">
+                              {formatFileSize(item.file_size)}
+                            </div>
+                          )}
                         </div>
                         {editing && (
                       <button 

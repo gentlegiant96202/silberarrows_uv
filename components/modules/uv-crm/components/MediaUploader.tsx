@@ -194,6 +194,7 @@ export default function MediaUploader({
         url,
         is_primary: isFirstPhoto && (kind === 'photo'),
         sort_order: currentMaxSortOrder, // Ensure proper ordering
+        file_size: file.size, // Store original file size
       });
       
       if (dbErr) {

@@ -527,9 +527,9 @@ function buildVehicleShowcaseHtml(
           
           /* Equipment Grid */
           .equipment-grid {
-              columns: 2;
-              column-gap: 40px;
-              column-fill: balance;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px 40px;
           }
           
           .equipment-item {
@@ -542,8 +542,6 @@ function buildVehicleShowcaseHtml(
               margin-bottom: 3px;
               font-weight: 400;
               line-height: 1.3;
-              word-wrap: break-word;
-              overflow-wrap: break-word;
           }
           
           .description-content {

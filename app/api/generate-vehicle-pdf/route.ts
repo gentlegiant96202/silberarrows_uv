@@ -79,7 +79,12 @@ function buildVehicleShowcaseHtml(
               flex-direction: column;
               justify-content: flex-start;
               flex: 1;
-              min-height: calc(297mm - 100px);
+              min-height: calc(297mm - 120px);
+          }
+          
+          .showcase-container.page-two {
+              padding: 0 40px 20px 40px;
+              min-height: auto;
           }
           
           .showcase-container {
@@ -586,11 +591,9 @@ function buildVehicleShowcaseHtml(
               border-radius: 12px;
               padding: 10px 20px;
               text-align: center;
-              margin: 0 40px 20px 40px;
-              position: absolute;
-              bottom: 0;
-              left: 0;
-              right: 0;
+              margin: auto 40px 20px 40px;
+              position: relative;
+              margin-top: auto;
               box-shadow: 
                   0 15px 30px rgba(0, 0, 0, 0.2),
                   inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -896,7 +899,7 @@ function buildVehicleShowcaseHtml(
 
         <!-- PAGE 2: DESCRIPTION & KEY EQUIPMENT -->
         <div class="page-break-before">
-            <div class="showcase-container">
+            <div class="showcase-container page-two">
                 <!-- Description Section -->
                 ${vehicle.description ? `
                 <div class="full-width-section content-section avoid-break">

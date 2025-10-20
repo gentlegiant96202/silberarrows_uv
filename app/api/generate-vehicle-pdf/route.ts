@@ -106,6 +106,15 @@ function buildVehicleShowcaseHtml(
               align-items: center;
           }
 
+          /* Guaranteed top spacer for containers starting a new page */
+          .showcase-container.page-two::before,
+          .showcase-container[style*="page-break-before"]::before,
+          .image-gallery.page-break-before::before {
+              content: "";
+              display: block;
+              height: 20px;
+          }
+
           .image-page {
               page-break-inside: avoid;
               display: flex;

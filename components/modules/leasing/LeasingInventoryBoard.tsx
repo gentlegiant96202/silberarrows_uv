@@ -143,7 +143,7 @@ export default function LeasingInventoryBoard() {
   });
   
   // Permissions and role (like UV CRM)
-  const { canEdit } = useModulePermissions('leasing');
+  const { canEdit, canDelete } = useModulePermissions('leasing');
   const { isAdmin } = useUserRole();
   
   // Search functionality (like UV CRM)
@@ -397,7 +397,7 @@ export default function LeasingInventoryBoard() {
     try {
       const { error } = await supabase
         .from('leasing_inventory')
-        .update({ 
+        .update({
           status: 'archived' as VehicleStatus,
           updated_at: new Date().toISOString()
         })
@@ -424,6 +424,48 @@ export default function LeasingInventoryBoard() {
     }
   };
 
+  // Delete a vehicle (requires delete permissions)
+  const deleteVehicle = async (vehicle: LeasingVehicle) => {
+    if (!canDelete) {
+      alert('You do not have permission to delete vehicles.');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete vehicle ${vehicle.stock_number}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('leasing_inventory')
+        .delete()
+        .eq('id', vehicle.id);
+
+      if (error) {
+        console.error('❌ Error deleting vehicle:', error);
+        alert('Failed to delete vehicle. Please try again.');
+        return;
+      }
+
+      console.log(`✅ Vehicle ${vehicle.stock_number} deleted successfully`);
+
+      // Update UI by removing from all columns and main vehicles array
+      setColumnData(prev => {
+        const newData = { ...prev };
+        Object.keys(newData).forEach(columnKey => {
+          newData[columnKey as ColKey] = newData[columnKey as ColKey].filter(v => v.id !== vehicle.id);
+        });
+        return newData;
+      });
+
+      setVehicles(prev => prev.filter(v => v.id !== vehicle.id));
+
+    } catch (err) {
+      console.error('❌ Exception deleting vehicle:', err);
+      alert('Failed to delete vehicle. Please try again.');
+    }
+  };
+
   const formatCurrency = (amount?: number) => {
     if (!amount) return "Not set";
     return `AED ${amount.toLocaleString()}`;
@@ -438,6 +480,14 @@ export default function LeasingInventoryBoard() {
     // Always open the comprehensive AddVehicleModal for viewing/editing
     setEditingVehicle(vehicle);
     setShowAddVehicleModal(true);
+  };
+
+  const handleDeleteFromModal = () => {
+    if (editingVehicle) {
+      deleteVehicle(editingVehicle);
+      setShowAddVehicleModal(false);
+      setEditingVehicle(null);
+    }
   };
 
   const handleVehicleCreated = (newVehicle: any) => {
@@ -611,7 +661,7 @@ export default function LeasingInventoryBoard() {
   );
 
   return (
-    <div className="fixed inset-0 top-[72px] px-4" style={{ height: 'calc(100vh - 72px)' }}>
+    <div className="flex flex-col h-full px-4 w-full">
       {/* Render based on view mode */}
       {viewMode === 'table' ? renderTableView() : (
       <div className="flex gap-3 pb-4 w-full h-full overflow-hidden">
@@ -755,7 +805,7 @@ export default function LeasingInventoryBoard() {
                             archiveVehicle(vehicle);
                           }}
                           className="
-                            p-0.5 rounded-full transition-all duration-200 
+                            p-0.5 rounded-full transition-all duration-200
                             bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-gray-700/70
                             hover:shadow-lg hover:scale-110
                             focus:outline-none focus:ring-2 focus:ring-gray-400/50
@@ -820,6 +870,8 @@ export default function LeasingInventoryBoard() {
           setEditingVehicle(null);
         }}
         onCreated={editingVehicle ? handleVehicleUpdated : handleVehicleCreated}
+        onDelete={editingVehicle ? handleDeleteFromModal : undefined}
+        canDelete={canDelete}
         mode={editingVehicle ? 'edit' : 'create'}
         existingVehicle={editingVehicle}
       />

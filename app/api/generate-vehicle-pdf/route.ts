@@ -3,12 +3,17 @@ import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 import fs from 'fs';
 import path from 'path';
 
+// Increase body size limit for large PDF payloads
+export const maxDuration = 300; // 5 minutes timeout
+export const dynamic = 'force-dynamic';
+
 // Helper: Build Vehicle Showcase HTML with leasing focus
 function buildVehicleShowcaseHtml(
   vehicle: any,
   logoSrc: string,
   formatDate: (dateString: string) => string,
-  formatCurrency: (amount: number) => string
+  formatCurrency: (amount: number) => string,
+  galleryPagesHtml: string
 ): string {
   return `
     <!DOCTYPE html>
@@ -133,11 +138,14 @@ function buildVehicleShowcaseHtml(
           }
           
           .showcase-info h2 {
-              font-size: 18px;
+              font-size: 13px;
               font-weight: 800;
-              color: #f0f0f0;
+              letter-spacing: 1.5px;
               margin-bottom: 6px;
-              letter-spacing: 0.5px;
+              background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 15%, #d4d4d4 30%, #b8b8b8 50%, #d4d4d4 70%, #e8e8e8 85%, #f5f5f5 100%);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
           }
           
           .showcase-info p {
@@ -148,8 +156,9 @@ function buildVehicleShowcaseHtml(
           }
           
           .showcase-info .showcase-date {
+              font-size: 9px;
               font-weight: 600;
-              color: rgba(255, 255, 255, 0.8);
+              color: rgba(255, 255, 255, 0.5);
           }
           
           .showcase-info .stock-number {
@@ -311,6 +320,47 @@ function buildVehicleShowcaseHtml(
               align-items: baseline;
               justify-content: center;
               line-height: 1.2;
+          }
+          
+          .price-note {
+              font-size: 9px;
+              font-weight: 600;
+              color: rgba(255, 255, 255, 0.6);
+              text-align: center;
+              margin-top: 4px;
+              letter-spacing: 0.5px;
+          }
+          
+          .mileage-info {
+              margin-top: 12px;
+              padding: 10px;
+              background: rgba(255, 255, 255, 0.04);
+              border: 1px solid rgba(255, 255, 255, 0.08);
+              border-radius: 8px;
+          }
+          
+          .mileage-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 4px 0;
+              font-size: 10px;
+          }
+          
+          .mileage-item:not(:last-child) {
+              border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+              margin-bottom: 4px;
+              padding-bottom: 4px;
+          }
+          
+          .mileage-label {
+              color: rgba(255, 255, 255, 0.7);
+              font-weight: 500;
+          }
+          
+          .mileage-value {
+              color: rgba(255, 255, 255, 0.9);
+              font-weight: 700;
           }
           
           .payment-option-value {
@@ -493,6 +543,22 @@ function buildVehicleShowcaseHtml(
               font-weight: 400;
           }
           
+          .description-content {
+              padding: 12px 15px;
+              background: rgba(255, 255, 255, 0.03);
+              border: 1px solid rgba(255, 255, 255, 0.08);
+              border-radius: 10px;
+              line-height: 1.6;
+          }
+          
+          .description-content p {
+              font-size: 11px;
+              color: rgba(255, 255, 255, 0.85);
+              margin: 0;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+          }
+          
           .equipment-item:before {
               content: "•";
               background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 50%, #b8b8b8 100%);
@@ -518,10 +584,10 @@ function buildVehicleShowcaseHtml(
           }
           
           .footer p {
-              font-size: 10px;
-              color: rgba(255, 255, 255, 0.6);
+              font-size: 11px;
+              color: rgba(255, 255, 255, 0.8);
               margin-bottom: 6px;
-              font-weight: 400;
+              font-weight: 600;
           }
           
           .contact-info {
@@ -614,8 +680,9 @@ function buildVehicleShowcaseHtml(
                           </div>
                     </div>
                     <div class="showcase-info">
-                      <h2>VEHICLE SHOWCASE</h2>
+                      <h2>VEHICLE LEASING SHOWCASE</h2>
                       <p>Stock: <span class="stock-number">${vehicle.stock_number || 'N/A'}</span></p>
+                      <p class="showcase-date">Date: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                     </div>
                 </div>
                 <div class="vehicle-title">
@@ -690,89 +757,104 @@ function buildVehicleShowcaseHtml(
 
                 <!-- Third Row: Leasing Options & Pricing -->
                 <div class="full-width-section">
-                    <h4 class="card-title">Leasing Options</h4>
+                    <h4 class="card-title">Flexible Leasing Options</h4>
                     <div class="pricing-section">
-                        <div class="pricing-header">Available Lease Terms</div>
+                        <div class="pricing-header">Your Monthly Investment</div>
                         <div class="main-price">
-                            <div class="main-price-label">36 Month Lease</div>
+                            <div class="main-price-label">Monthly Lease Rate</div>
                             <div class="main-price-value">
                                 <svg class="dirham-symbol" viewBox="0 0 24 24">
                                     <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
                                 </svg>
-                                ${formatCurrency(3500)}/month + VAT
+                                ${vehicle.monthly_lease_rate ? formatCurrency(vehicle.monthly_lease_rate) : 'Contact Us'}/month
                             </div>
+                            <div class="price-note">+ VAT</div>
                         </div>
                         <div class="payment-options">
                             <div class="payment-option">
-                                <div class="payment-option-label">24 Months</div>
+                                <div class="payment-option-label">Security Deposit</div>
                                 <div class="payment-option-value">
                                     <svg class="dirham-symbol" viewBox="0 0 24 24">
                                         <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
                                     </svg>
-                                    ${formatCurrency(4200)}/mo
+                                    ${vehicle.security_deposit ? formatCurrency(vehicle.security_deposit) : 'TBD'}
                                 </div>
                             </div>
                             <div class="payment-option">
-                                <div class="payment-option-label">48 Months</div>
+                                <div class="payment-option-label">Buyout Price</div>
                                 <div class="payment-option-value">
                                     <svg class="dirham-symbol" viewBox="0 0 24 24">
                                         <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
                                     </svg>
-                                    ${formatCurrency(3200)}/mo
+                                    ${vehicle.buyout_price ? formatCurrency(vehicle.buyout_price) : 'Available'}
                                 </div>
                             </div>
                         </div>
+                        ${vehicle.excess_mileage_charges || vehicle.max_mileage_per_year ? `
+                        <div class="mileage-info">
+                            ${vehicle.max_mileage_per_year ? `<div class="mileage-item"><span class="mileage-label">Annual Mileage Allowance:</span> <span class="mileage-value">${vehicle.max_mileage_per_year.toLocaleString()} km/year</span></div>` : ''}
+                            ${vehicle.excess_mileage_charges ? `<div class="mileage-item"><span class="mileage-label">Excess Mileage Charge:</span> <span class="mileage-value">${formatCurrency(vehicle.excess_mileage_charges)}/km</span></div>` : ''}
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
 
                 <!-- Fourth Row: What's Included -->
                 <div class="full-width-section">
-                    <h4 class="card-title">What's Included in Your Lease</h4>
+                    <h4 class="card-title">Premium Leasing Benefits</h4>
                     <div class="equipment-grid">
-                        <div class="equipment-item">Comprehensive Insurance</div>
-                        <div class="equipment-item">Vehicle Registration</div>
-                        <div class="equipment-item">Regular Maintenance & Service</div>
+                        <div class="equipment-item">Comprehensive Insurance Coverage</div>
+                        <div class="equipment-item">Full Vehicle Registration</div>
+                        <div class="equipment-item">Regular Maintenance & Servicing</div>
                         <div class="equipment-item">24/7 Roadside Assistance</div>
                         <div class="equipment-item">Annual Vehicle Inspection</div>
-                        <div class="equipment-item">Replacement Vehicle (if needed)</div>
-                        <div class="equipment-item">Zero Down Payment</div>
+                        <div class="equipment-item">Replacement Vehicle (if available)</div>
+                        <div class="equipment-item">Flexible Lease Terms</div>
                         <div class="equipment-item">Quick Approval Process</div>
+                        <div class="equipment-item">Dedicated Account Manager</div>
                     </div>
                 </div>
             </div>
 
             <!-- Footer -->
             <div class="footer">
-                <p>Contact our leasing team for more information</p>
+                <p>Experience premium leasing with SilberArrows</p>
                 <div class="contact-info">
-                    +971 4 380 5515 • leasing@silberarrows.com
+                    📞 +971 4 380 5515 • ✉️ leasing@silberarrows.com
                 </div>
+                <p style="font-size: 9px; margin-top: 8px; color: rgba(255, 255, 255, 0.5);">
+                    All prices exclude VAT. Terms and conditions apply. Subject to credit approval.
+                </p>
             </div>
         </div>
 
+        <!-- PAGE 2: DESCRIPTION & KEY EQUIPMENT -->
+        <div class="page" style="page-break-before: always;">
+            <!-- Description Section -->
+            ${vehicle.description ? `
+            <div class="full-width-section" style="margin-bottom: 20px;">
+                <h4 class="card-title">Vehicle Description</h4>
+                <div class="description-content">
+                    <p>${vehicle.description}</p>
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Key Equipment Section -->
+            ${vehicle.key_equipment && Array.isArray(vehicle.key_equipment) && vehicle.key_equipment.length > 0 ? `
+            <div class="full-width-section">
+                <h4 class="card-title">Key Equipment & Features</h4>
+                <div class="equipment-grid">
+                    ${vehicle.key_equipment.map((item: string) => `<div class="equipment-item">${item}</div>`).join('')}
+                </div>
+            </div>
+            ` : ''}
+        </div>
+
         <!-- ADDITIONAL GALLERY PAGES (if more than 5 images) -->
-        ${vehicle.photos && vehicle.photos.length > 5 ? `
+        ${galleryPagesHtml ? `
         <div class="image-gallery">
-            ${(() => {
-                const galleryPhotos = vehicle.photos.slice(5);
-                const imagePages = [];
-                
-                for (let i = 0; i < galleryPhotos.length; i += 2) {
-                    const pageImages = galleryPhotos.slice(i, i + 2);
-                    if (pageImages.length > 0) {
-                        const pageHTML = `
-                        <div class="image-page">
-                            ${pageImages.map((photo: any, index: number) => `
-                            <div class="gallery-image">
-                                <img src="${photo.url}" alt="Vehicle image ${i + index + 6}" />
-                            </div>
-                            `).join('')}
-                        </div>`;
-                        imagePages.push(pageHTML);
-                    }
-                }
-                return imagePages.join('');
-            })()}
+            ${galleryPagesHtml}
         </div>
         ` : ''}
     </body>
@@ -783,6 +865,60 @@ function buildVehicleShowcaseHtml(
 
 // Helper: Generate Vehicle Showcase PDF and return as Buffer
 async function generateVehicleShowcasePdf(vehicleData: any): Promise<Buffer> {
+  // Preprocess key_equipment: convert string to array
+  if (vehicleData.key_equipment && typeof vehicleData.key_equipment === 'string') {
+    vehicleData.key_equipment = vehicleData.key_equipment
+      .split('\n')
+      .map((item: string) => item.trim())
+      .filter((item: string) => item.length > 0);
+  }
+  
+  // Limit photos to maximum 20 to prevent payload size issues (same as UV inventory)
+  if (vehicleData.photos && vehicleData.photos.length > 20) {
+    console.log(`⚠️ Limiting photos from ${vehicleData.photos.length} to 20 for PDF generation`);
+    vehicleData.photos = vehicleData.photos.slice(0, 20);
+  }
+  
+  // Compress image URLs to reduce PDF size
+  const getCompressedImageUrl = (originalUrl: string): string => {
+    try {
+      if (originalUrl.includes('.supabase.co')) {
+        return originalUrl.split('?')[0]; // Remove query params
+      }
+      return originalUrl;
+    } catch {
+      return originalUrl;
+    }
+  };
+  
+  // Apply compression to all photos
+  if (vehicleData.photos && vehicleData.photos.length > 0) {
+    vehicleData.photos = vehicleData.photos.map((photo: any) => ({
+      ...photo,
+      url: getCompressedImageUrl(photo.url)
+    }));
+    console.log(`✅ Compressed ${vehicleData.photos.length} image URLs for PDF`);
+  }
+  
+  // Preprocess gallery photos: create pages with 2 images each
+  let galleryPagesHtml = '';
+  if (vehicleData.photos && vehicleData.photos.length > 5) {
+    const galleryPhotos = vehicleData.photos.slice(5);
+    for (let i = 0; i < galleryPhotos.length; i += 2) {
+      const pageImages = galleryPhotos.slice(i, i + 2);
+      if (pageImages.length > 0) {
+        galleryPagesHtml += `
+        <div class="image-page">
+            ${pageImages.map((photo: any, index: number) => `
+            <div class="gallery-image">
+                <img src="${photo.url}" alt="Vehicle image ${i + index + 6}" />
+            </div>
+            `).join('')}
+        </div>`;
+      }
+    }
+  }
+  
   // Format dates to DD/MM/YYYY
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -822,44 +958,71 @@ async function generateVehicleShowcasePdf(vehicleData: any): Promise<Buffer> {
 
   // Build HTML using the template
   console.log('📄 Building HTML content...');
-  const htmlContent = buildVehicleShowcaseHtml(vehicleData, logoSrc, formatDate, formatCurrency);
+  const htmlContent = buildVehicleShowcaseHtml(vehicleData, logoSrc, formatDate, formatCurrency, galleryPagesHtml);
   console.log('📄 HTML content length:', htmlContent.length);
 
-  console.log('📄 Calling PDFShift API...');
+  // Save HTML for debugging
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      const htmlPath = path.join(process.cwd(), 'debug-leasing-pdf.html');
+      fs.writeFileSync(htmlPath, htmlContent);
+      console.log('💾 HTML saved to debug-leasing-pdf.html for inspection');
+    } catch (e) {
+      console.log('⚠️ Could not save debug HTML:', e instanceof Error ? e.message : e);
+    }
+  }
+
+  console.log('📄 Calling renderer service (same as UV inventory)...');
+  
+  const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
+  console.log('🔄 Using renderer service at:', rendererUrl);
   
   // Create AbortController for timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  const timeoutMs = 120000; // 2 minutes timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  console.log(`📄 Renderer timeout set to ${timeoutMs/1000} seconds`);
   
-  const resp = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
+  const resp = await fetch(`${rendererUrl}/render-car-pdf`, {
     method: 'POST',
     headers: {
-      'X-API-Key': process.env.PDFSHIFT_API_KEY || '',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      source: htmlContent,
-      format: 'A4',
-      margin: '0',
-      landscape: false,
-      use_print: true,
-      delay: 500
+      html: htmlContent
     }),
     signal: controller.signal
   });
   
   clearTimeout(timeoutId);
   
-  console.log('📄 PDFShift API response status:', resp.status);
+  console.log('📄 Renderer service response status:', resp.status);
   
   if (!resp.ok) {
-    const errText = await resp.text();
-    console.error('❌ PDFShift API error:', resp.status, errText);
-    throw new Error(`PDFShift API error: ${resp.status} - ${errText}`);
+    const error = await resp.text();
+    console.error('📄 Renderer Error Response:', {
+      status: resp.status,
+      statusText: resp.statusText,
+      error: error.slice(0, 500)
+    });
+    throw new Error(`Renderer service error (${resp.status}): ${error}`);
   }
+
+  const renderResult = await resp.json();
   
-  const pdfBuffer = await resp.arrayBuffer();
-  return Buffer.from(pdfBuffer);
+  if (!renderResult.success || !renderResult.pdf) {
+    throw new Error('Renderer service returned invalid response');
+  }
+
+  // Convert base64 PDF back to buffer
+  const pdfBuffer = Buffer.from(renderResult.pdf, 'base64');
+  const pdfSizeMB = (pdfBuffer.byteLength / (1024 * 1024)).toFixed(2);
+  
+  console.log(`📄 PDF Generated:`);
+  console.log(`   Final PDF size: ${pdfSizeMB}MB`);
+  console.log(`   ✅ PDF generation successful!`);
+  
+  return pdfBuffer;
 }
 
 export async function POST(request: NextRequest) {
@@ -898,7 +1061,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📄 Generating vehicle showcase PDF using PDFShift...');
+    console.log('📄 Generating vehicle showcase PDF...');
 
     // Generate PDF
     const pdfBuffer = await generateVehicleShowcasePdf(vehicleData);
@@ -909,155 +1072,61 @@ export async function POST(request: NextRequest) {
       isBuffer: Buffer.isBuffer(pdfBuffer)
     });
 
-    // Get existing PDF URL to delete old one
-    let existingPdfUrl = null;
-    try {
-      const { data: existingVehicle } = await supabase
-        .from('leasing_inventory')
-        .select('vehicle_pdf_url')
-        .eq('id', vehicleId)
-        .single();
-      
-      existingPdfUrl = existingVehicle?.vehicle_pdf_url;
-      console.log('📄 Existing PDF URL:', existingPdfUrl);
-    } catch (error) {
-      console.warn('⚠️ Could not fetch existing PDF URL:', error);
+    // Upload PDF to Supabase storage (server-side - no 6MB client limit)
+    const fileName = `Vehicle_Showcase_${vehicleId}_${Date.now()}.pdf`;
+    const filePath = `vehicle-showcases/${fileName}`;
+    
+    console.log('☁️ Uploading PDF to Supabase storage (server-side)...');
+    console.log('📁 File path:', filePath);
+    console.log('📦 File size:', (pdfBuffer.byteLength / 1024 / 1024).toFixed(2), 'MB');
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('leasing')
+      .upload(filePath, pdfBuffer, {
+        contentType: 'application/pdf',
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('❌ Storage upload error:', uploadError);
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
 
-    // Delete old PDF if it exists
-    if (existingPdfUrl) {
-      try {
-        console.log('🗑️ Deleting old PDF...');
-        const url = new URL(existingPdfUrl);
-        const pathParts = url.pathname.split('/');
-        const bucketIndex = pathParts.findIndex(part => part === 'leasing');
-        
-        if (bucketIndex !== -1 && pathParts[bucketIndex + 1]) {
-          const oldPath = pathParts.slice(bucketIndex + 1).join('/');
-          console.log('🗑️ Deleting old PDF path:', oldPath);
-          
-          const { error: deleteError } = await supabase.storage
-            .from('leasing')
-            .remove([oldPath]);
-          
-          if (deleteError) {
-            console.warn('⚠️ Failed to delete old PDF:', deleteError);
-          } else {
-            console.log('✅ Old PDF deleted successfully');
-          }
-        }
-      } catch (deleteError) {
-        console.warn('⚠️ Error deleting old PDF:', deleteError);
-      }
+    console.log('✅ PDF uploaded successfully:', uploadData);
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('leasing')
+      .getPublicUrl(filePath);
+    
+    const pdfUrl = urlData.publicUrl;
+    console.log('📄 PDF URL:', pdfUrl);
+    
+    // Update database with PDF URL
+    const { error: dbError } = await supabase
+      .from('leasing_inventory')
+      .update({ 
+        vehicle_pdf_url: pdfUrl,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', vehicleId);
+    
+    if (dbError) {
+      console.error('❌ Database update error:', dbError);
+    } else {
+      console.log('✅ PDF URL saved to database');
     }
-
-    // Upload PDF to Supabase storage
-    let pdfUrl = null;
-    try {
-      const fileName = `Vehicle_Showcase_${vehicleId}_${Date.now()}.pdf`;
-      const filePath = `vehicle-showcases/${fileName}`;
-
-      console.log('☁️ Uploading PDF to storage bucket: leasing');
-      console.log('📁 File path:', filePath);
-
-      // Test storage bucket access
-      console.log('🔍 Testing storage bucket access...');
-      const { data: bucketList, error: bucketError } = await supabase.storage.listBuckets();
-      if (bucketError) {
-        console.error('❌ Cannot access storage buckets:', bucketError);
-      } else {
-        console.log('✅ Available storage buckets:', bucketList?.map(b => b.name));
-        const leasingBucket = bucketList?.find(b => b.name === 'leasing');
-        console.log('🔍 Leasing bucket exists:', !!leasingBucket);
-        if (leasingBucket) {
-          console.log('🔍 Leasing bucket details:', leasingBucket);
-          
-          // Test listing files in the bucket
-          const { data: files, error: listError } = await supabase.storage
-            .from('leasing')
-            .list('', { limit: 5 });
-          
-          if (listError) {
-            console.error('❌ Cannot list files in leasing bucket:', listError);
-          } else {
-            console.log('✅ Files in leasing bucket:', files?.length || 0, 'items');
-            if (files && files.length > 0) {
-              console.log('📁 Sample files:', files.slice(0, 3).map(f => f.name));
-            }
-          }
-        }
-      }
-
-      console.log('📦 PDF Buffer size:', pdfBuffer.byteLength, 'bytes');
-      console.log('📦 PDF Buffer type:', typeof pdfBuffer);
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('leasing')
-        .upload(filePath, pdfBuffer, {
-          contentType: 'application/pdf',
-          upsert: false
-        });
-
-      console.log('📦 Upload result - data:', uploadData);
-      console.log('📦 Upload result - error:', uploadError);
-
-      if (uploadError) {
-        console.error('❌ Storage upload error:', uploadError);
-        console.error('❌ Upload error details:', JSON.stringify(uploadError, null, 2));
-        console.log('⚠️ PDF will be downloaded locally but not stored in cloud');
-      } else {
-        console.log('✅ PDF uploaded successfully:', uploadData);
-        
-        // Get public URL for the uploaded file
-        const { data: urlData } = supabase.storage
-          .from('leasing')
-          .getPublicUrl(filePath);
-        
-        pdfUrl = urlData.publicUrl;
-        console.log('📄 PDF generated and uploaded:', pdfUrl);
-        
-        // Save PDF URL to database
-        try {
-          console.log('💾 Saving PDF URL to database for vehicle:', vehicleId);
-          const { error: updateError } = await supabase
-            .from('leasing_inventory')
-            .update({ 
-              vehicle_pdf_url: pdfUrl,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', vehicleId);
-
-          if (updateError) {
-            console.error('❌ Database update error:', updateError);
-            // Don't throw error here, just log it - PDF was generated successfully
-          } else {
-            console.log('✅ PDF URL saved to database for vehicle:', vehicleId);
-          }
-        } catch (dbError) {
-          console.error('❌ Database error:', dbError);
-          // Don't throw error here, just log it - PDF was generated successfully
-        }
-      }
-    } catch (storageError) {
-      console.error('❌ Failed to upload PDF to storage:', storageError);
-      console.log('⚠️ PDF will be downloaded locally but not stored in cloud');
-    }
-
-    console.log('🎉 VEHICLE SHOWCASE PROCESS COMPLETED');
-    console.log('📊 Final status: PDF URL =', pdfUrl ? 'SAVED TO CLOUD & DATABASE' : 'LOCAL DOWNLOAD ONLY');
-
-    // Return JSON response with PDF URL
-    const response = {
-      success: true,
+    
+    return NextResponse.json({ 
+      success: true, 
       pdfUrl: pdfUrl,
-      fileName: `Vehicle_Showcase_${vehicleId}_${Date.now()}.pdf`,
-      message: 'Vehicle showcase PDF generated successfully',
-      timestamp: new Date().toISOString()
-    };
-
-    console.log('📤 Returning response with PDF URL:', pdfUrl);
-    console.log('📤 Full response object:', JSON.stringify(response, null, 2));
-    return NextResponse.json(response);
+      vehicleId: vehicleId,
+      fileName: fileName,
+      pdfStats: {
+        fileSizeMB: parseFloat((pdfBuffer.byteLength / 1024 / 1024).toFixed(2))
+      }
+    });
 
   } catch (error) {
     console.error('❌ Error generating vehicle showcase PDF:', error);
@@ -1071,3 +1140,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

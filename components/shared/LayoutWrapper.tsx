@@ -27,6 +27,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const shouldShowSidebar = shouldShowHeader; // Sidebar appears with header
   const isAccountsPage = pathname.startsWith('/accounts');
   const isMarketingPage = pathname.startsWith('/marketing');
+  const isLeasingPage = pathname.startsWith('/leasing');
   
   const content = (
     <div className="flex h-screen overflow-hidden bg-black">
@@ -38,7 +39,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       )}
       
       {/* Main content area with header and page content */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0 w-full relative z-30">
         {/* Persistent Header - stays at top */}
         {shouldShowHeader && (
           <div className="flex-shrink-0">
@@ -46,8 +47,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           </div>
         )}
         
-        {/* Page Content - scrollable area (overflow-hidden for marketing page to remove scrollbar) */}
-        <main className={`flex-1 ${isMarketingPage ? 'overflow-hidden' : 'overflow-auto'}`}>
+        {/* Page Content - scrollable area (overflow-hidden for marketing and leasing pages to remove scrollbar) */}
+        <main className={`flex-1 ${isMarketingPage || isLeasingPage ? 'overflow-hidden' : 'overflow-auto'}`}>
           {children}
         </main>
       </div>

@@ -8,6 +8,8 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (vehicle: any) => void;
+  onDelete?: () => void;
+  canDelete?: boolean;
   mode?: 'create' | 'edit';
   existingVehicle?: any;
 }
@@ -33,7 +35,7 @@ function firstDesc(obj: any) {
 }
 
 
-export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'create', existingVehicle }: Props) {
+export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, canDelete = false, mode = 'create', existingVehicle }: Props) {
   // Standardized field styling classes
   const fieldClass = "w-full px-4 py-4 rounded-lg bg-black/20 border border-white/10 text-white text-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]";
   const labelClass = "block text-white/80 text-lg font-semibold mb-3";
@@ -151,9 +153,16 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
   const [docs, setDocs] = useState<MediaItem[]>([]);
   
   // PDF generation state
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(existingVehicle?.vehicle_pdf_url || null);
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
+
+  // Update pdfUrl when existingVehicle changes
+  useEffect(() => {
+    if (existingVehicle?.vehicle_pdf_url) {
+      setPdfUrl(existingVehicle.vehicle_pdf_url);
+    }
+  }, [existingVehicle?.vehicle_pdf_url]);
 
   // Determine if we're in view mode (edit mode but not editing)
   const isViewMode = mode === 'edit' && existingVehicle && !editing;
@@ -685,12 +694,20 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
       const result = await response.json();
       console.log('✅ PDF generated successfully:', result);
       
-      // Update local state immediately
-      setPdfUrl(result.pdfUrl);
-      setStatusMsg('PDF generated successfully!');
+      if (result.pdfUrl) {
+        // Server-side upload complete - just update local state
+        setPdfUrl(result.pdfUrl);
+        const sizeInfo = result.pdfStats 
+          ? ` (${result.pdfStats.fileSizeMB}MB)`
+          : '';
+        setStatusMsg(`PDF generated successfully!${sizeInfo}`);
+      } else {
+        setStatusMsg('PDF generated but no URL returned. Check server logs.');
+        console.warn('⚠️ PDF generated but no pdfUrl returned.');
+      }
       
-      // Clear status message after 3 seconds
-      setTimeout(() => setStatusMsg(''), 3000);
+      // Clear status message after 5 seconds
+      setTimeout(() => setStatusMsg(''), 5000);
     } catch (error) {
       console.error('❌ Error generating PDF:', error);
       setStatusMsg(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1560,14 +1577,24 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, mode = 'cr
                       Cancel
                     </button>
                   </>
-                ) : (
+              ) : (
+                <div className="flex gap-2">
+                  {onDelete && canDelete && (
+                    <button
+                      onClick={onDelete}
+                      className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 transition-colors text-sm rounded"
+                    >
+                      Delete
+                    </button>
+                  )}
                   <button
                     onClick={() => setEditing(true)}
                     className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors text-sm rounded"
                   >
                     Edit
                   </button>
-                )}
+                </div>
+              )}
               </div>
             )}
         </div>

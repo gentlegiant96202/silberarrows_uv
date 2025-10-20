@@ -671,7 +671,7 @@ export default function LeasingKanbanBoard() {
   };
 
   return (
-    <div className="fixed inset-0 top-[72px] px-4" style={{ height: 'calc(100vh - 72px)' }}>
+    <div className="flex flex-col h-full px-4 w-full">
       <div className="flex gap-3 pb-4 w-full h-full overflow-hidden">
         {columns
           .filter(col => {

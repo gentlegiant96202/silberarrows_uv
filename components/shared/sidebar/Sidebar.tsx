@@ -265,7 +265,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="flex-shrink-0 h-screen relative z-40"
+      className="flex-shrink-0 h-screen relative z-40 w-[64px]"
       style={{ width: '64px' }}
     >
       <div

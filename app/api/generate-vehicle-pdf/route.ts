@@ -74,17 +74,12 @@ function buildVehicleShowcaseHtml(
           
           .showcase-container {
               page-break-inside: avoid;
-              padding: 20px 40px 0 40px;
+              padding: 20px 40px;
               display: flex;
               flex-direction: column;
               justify-content: flex-start;
               flex: 1;
               min-height: calc(297mm - 120px);
-          }
-          
-          .showcase-container.page-two {
-              padding: 0 40px 20px 40px;
-              min-height: auto;
           }
           
           .showcase-container {
@@ -898,8 +893,7 @@ function buildVehicleShowcaseHtml(
         </div>
 
         <!-- PAGE 2: DESCRIPTION & KEY EQUIPMENT -->
-        <div class="page-break-before">
-            <div class="showcase-container page-two">
+        <div class="showcase-container" style="page-break-before: always;">
                 <!-- Description Section -->
                 ${vehicle.description ? `
                 <div class="full-width-section content-section avoid-break">
@@ -946,7 +940,6 @@ function buildVehicleShowcaseHtml(
                         Contact us today: +971 4 380 5515 | leasing@silberarrows.com
                     </div>
                 </div>
-            </div>
         </div>
 
         <!-- ADDITIONAL GALLERY PAGES (if more than 5 images) -->

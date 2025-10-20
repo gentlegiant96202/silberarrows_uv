@@ -43,7 +43,7 @@ function buildVehicleShowcaseHtml(
               background: #000000;
               color: #ffffff;
               min-height: 100vh;
-              padding: 20px 0 0 0;
+              padding: 20px 40px;
               margin: 0;
               line-height: 1.4;
           }
@@ -59,7 +59,7 @@ function buildVehicleShowcaseHtml(
           html, body {
               background: #000000;
               margin: 0;
-              padding: 0;
+              padding: 20px 40px;
           }
           
           /* Page wrapper for proper footer positioning */
@@ -68,18 +68,52 @@ function buildVehicleShowcaseHtml(
               position: relative;
               display: flex;
               flex-direction: column;
-              padding: 20px 0 0 0;
+              padding: 0;
               margin: 0;
           }
           
           .showcase-container {
               page-break-inside: avoid;
-              padding: 0 40px;
+              padding: 0;
               display: flex;
               flex-direction: column;
               justify-content: flex-start;
               flex: 1;
               min-height: calc(297mm - 120px);
+          }
+
+          /* Add top margin to pages after page 1 */
+          .showcase-container[style*="page-break-before"] {
+              margin-top: 20px;
+          }
+
+          /* Alternative: add top padding to second page content */
+          .showcase-container.page-two,
+          .showcase-container[style*="page-break-before"] .content-wrapper {
+              padding-top: 20px;
+          }
+
+          /* Image gallery pages styling */
+          .image-gallery {
+              margin-top: 0;
+          }
+
+          .image-gallery .showcase-container {
+              padding: 0;
+              justify-content: center;
+              align-items: center;
+          }
+
+          .image-page {
+              page-break-inside: avoid;
+              display: flex;
+              flex-direction: column;
+              height: 100vh;
+              padding: 20px;
+              margin: 0;
+              gap: 20px;
+              align-items: center;
+              justify-content: center;
           }
           
           .showcase-container {
@@ -893,7 +927,7 @@ function buildVehicleShowcaseHtml(
         </div>
 
         <!-- PAGE 2: DESCRIPTION & KEY EQUIPMENT -->
-        <div class="showcase-container" style="page-break-before: always;">
+        <div class="showcase-container page-two" style="page-break-before: always;">
                 <!-- Description Section -->
                 ${vehicle.description ? `
                 <div class="full-width-section content-section avoid-break">
@@ -944,7 +978,7 @@ function buildVehicleShowcaseHtml(
 
         <!-- ADDITIONAL GALLERY PAGES (if more than 5 images) -->
         ${galleryPagesHtml ? `
-        <div class="image-gallery page-break-before">
+        <div class="image-gallery" style="page-break-before: always;">
             ${galleryPagesHtml}
         </div>
         ` : ''}

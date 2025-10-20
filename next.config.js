@@ -13,6 +13,17 @@ const nextConfig = {
   // Enable modern image optimization with Sharp
   images: {
     formats: ['image/webp', 'image/avif'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'database.silberarrows.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+    ],
+    domains: ['localhost'],
     // Remove unoptimized: true to use Sharp optimization
   },
   // Configure for better build performance

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabaseClient';
 import AddCarModal from '@/components/modules/uv-crm/modals/AddCarModal';
 import CarDetailsModal, { type CarInfo } from '@/components/modules/uv-crm/modals/CarDetailsModal';
@@ -164,6 +165,12 @@ export default function CarKanbanBoard() {
     stockAge: [] as string[], // ['fresh', 'aging', 'old']
     model: '' as string
   });
+  
+  // Pagination state for inventory column
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const ITEMS_PER_PAGE = 30;
+  const [loadingMoreInventory, setLoadingMoreInventory] = useState(false);
+  const inventoryScrollRef = useRef<HTMLDivElement>(null);
 
   // Price Drop modal state
   const [showPriceDropModal, setShowPriceDropModal] = useState(false);
@@ -530,10 +537,12 @@ export default function CarKanbanBoard() {
                 if (mediaRows) {
                   const newThumbs: Record<string, string> = {};
                   mediaRows.forEach((m: any) => {
-                    // Use storage proxy for images
+                    // Use storage proxy for images with thumbnail transformation
                     let imageUrl = m.url;
                     if (imageUrl && imageUrl.includes('.supabase.co/storage/')) {
-                      imageUrl = `/api/storage-proxy?url=${encodeURIComponent(m.url)}`;
+                      // Add Supabase image transformation for thumbnails (200x150px)
+                      const transformedUrl = `${imageUrl}?width=200&height=150&resize=cover`;
+                      imageUrl = `/api/storage-proxy?url=${encodeURIComponent(transformedUrl)}`;
                     }
                     newThumbs[m.car_id] = imageUrl;
                   });
@@ -751,6 +760,31 @@ export default function CarKanbanBoard() {
       stockAge: [],
       model: ''
     });
+    setInventoryPage(1); // Reset pagination when filters change
+  };
+  
+  // Infinite scroll handler for inventory
+  const handleInventoryScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const scrollPercentage = (target.scrollTop + target.clientHeight) / target.scrollHeight;
+    
+    // Load more when scrolled 80% down
+    if (scrollPercentage > 0.8 && !loadingMoreInventory) {
+      const columnCars = columnData['inventory'] || [];
+      const filteredCars = columnCars.filter(c => 
+        match(c.stock_number) || match(c.vehicle_model)
+      );
+      const list = applyInventoryFilters(filteredCars);
+      
+      // Only load more if there are more items
+      if (list.length > inventoryPage * ITEMS_PER_PAGE) {
+        setLoadingMoreInventory(true);
+        setTimeout(() => {
+          setInventoryPage(prev => prev + 1);
+          setLoadingMoreInventory(false);
+        }, 300); // Small delay for smooth UX
+      }
+    }
   };
 
   // RouteProtector handles skeleton loading, so we don't need internal skeleton
@@ -772,6 +806,8 @@ export default function CarKanbanBoard() {
           let list = filteredCars;
           if (col.key === 'inventory') {
             list = applyInventoryFilters(filteredCars);
+            // Apply pagination to inventory column
+            list = list.slice(0, inventoryPage * ITEMS_PER_PAGE);
           }
 
           // Hide non-inventory columns when expanded
@@ -954,7 +990,11 @@ export default function CarKanbanBoard() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
+              <div 
+                className="flex-1 overflow-y-auto space-y-2 custom-scrollbar"
+                onScroll={col.key === 'inventory' ? handleInventoryScroll : undefined}
+                ref={col.key === 'inventory' ? inventoryScrollRef : undefined}
+              >
                 {columnLoading[col.key] ? (
                   // Show skeleton while column is loading
                   <div className="space-y-2">
@@ -992,9 +1032,16 @@ export default function CarKanbanBoard() {
                         className={`animate-fadeIn bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-3 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
                       >
                         {/* thumbnail */}
-                        <div className="w-full h-36 bg-white/10 rounded overflow-hidden mb-3">
+                        <div className="w-full h-36 bg-white/10 rounded overflow-hidden mb-3 relative">
                           {thumbs[c.id] ? (
-                            <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy" />
+                            <Image 
+                              src={thumbs[c.id]} 
+                              alt={`${c.stock_number} - ${c.vehicle_model}`}
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                              className="object-cover"
+                              loading="lazy"
+                            />
                           ) : null}
                         </div>
                         <div className="space-y-2">
@@ -1064,9 +1111,16 @@ export default function CarKanbanBoard() {
                       
                       <div className="flex items-center gap-2 min-w-0">
                         {/* thumbnail */}
-                        <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded overflow-hidden">
+                        <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded overflow-hidden relative">
                           {thumbs[c.id]? (
-                            <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy" />
+                            <Image 
+                              src={thumbs[c.id]} 
+                              alt={`${c.stock_number} - ${c.vehicle_model}`}
+                              fill
+                              sizes="64px"
+                              className="object-cover"
+                              loading="lazy"
+                            />
                           ): null}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -1120,6 +1174,12 @@ export default function CarKanbanBoard() {
                 )}
                 {!columnLoading[col.key] && list.length === 0 && (
                   <p className="text-center text-white/40 text-[10px] mt-4">No cars</p>
+                )}
+                {/* Loading more indicator for inventory */}
+                {col.key === 'inventory' && loadingMoreInventory && (
+                  <div className="flex justify-center py-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  </div>
                 )}
               </div>
             </div>

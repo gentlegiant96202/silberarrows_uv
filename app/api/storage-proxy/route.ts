@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(imageBuffer, {
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600', // 1 hour cache
+        'Cache-Control': 'public, max-age=31536000, immutable', // 1 year cache for images
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Accept',

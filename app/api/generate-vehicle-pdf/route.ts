@@ -541,6 +541,9 @@ function buildVehicleShowcaseHtml(
               border-bottom: 1px solid rgba(255, 255, 255, 0.04);
               margin-bottom: 3px;
               font-weight: 400;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
           }
           
           .description-content {
@@ -559,14 +562,9 @@ function buildVehicleShowcaseHtml(
               word-wrap: break-word;
           }
           
+          /* Bullet points removed - dashes already present in content */
           .equipment-item:before {
-              content: "•";
-              background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 50%, #b8b8b8 100%);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-              font-weight: bold;
-              margin-right: 8px;
+              content: "";
           }
           
           /* Footer */
@@ -694,7 +692,7 @@ function buildVehicleShowcaseHtml(
             <div class="content-wrapper">
                 <!-- First Row: Vehicle Images Gallery (Full Width) -->
                 <div class="full-width-section">
-                    <h4 class="card-title">Vehicle Images</h4>
+                    <h4 class="card-title">Images</h4>
                     <div class="main-image">
                         ${vehicle.photos && vehicle.photos.length > 0 ? 
                           `<img src="${vehicle.photos[0].url}" alt="Main vehicle photo" />` : 
@@ -717,7 +715,7 @@ function buildVehicleShowcaseHtml(
 
                 <!-- Second Row: Vehicle Specifications (Full Width) -->
                 <div class="full-width-section">
-                    <h4 class="card-title">Vehicle Specifications</h4>
+                    <h4 class="card-title">Specifications</h4>
                     <div class="specs-grid">
                         <!-- Basic Vehicle Info -->
                         <div class="spec-item">
@@ -823,7 +821,7 @@ function buildVehicleShowcaseHtml(
                     📞 +971 4 380 5515 • ✉️ leasing@silberarrows.com
                 </div>
                 <p style="font-size: 9px; margin-top: 8px; color: rgba(255, 255, 255, 0.5);">
-                    All prices exclude VAT. Terms and conditions apply. Subject to credit approval.
+                    TRN: 100281137800003 • All prices exclude VAT. Terms and conditions apply. Subject to credit approval.
                 </p>
             </div>
         </div>
@@ -833,7 +831,7 @@ function buildVehicleShowcaseHtml(
             <!-- Description Section -->
             ${vehicle.description ? `
             <div class="full-width-section" style="margin-bottom: 20px;">
-                <h4 class="card-title">Vehicle Description</h4>
+                <h4 class="card-title">Description</h4>
                 <div class="description-content">
                     <p>${vehicle.description}</p>
                 </div>

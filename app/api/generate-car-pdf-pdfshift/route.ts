@@ -769,16 +769,14 @@ export async function POST(request: NextRequest) {
                   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
                   margin-bottom: 3px;
                   font-weight: 400;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
               }
               
+              /* Bullet points removed - dashes already present in content */
               .equipment-item:before {
-                  content: "•";
-                  background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 50%, #b8b8b8 100%);
-                  -webkit-background-clip: text;
-                  -webkit-text-fill-color: transparent;
-                  background-clip: text;
-                  font-weight: bold;
-                  margin-right: 8px;
+                  content: "";
               }
               
               /* Footer */
@@ -907,7 +905,7 @@ export async function POST(request: NextRequest) {
               <div class="content-wrapper">
                   <!-- First Row: Vehicle Images Gallery (Full Width) -->
                   <div class="full-width-section">
-                      <h4 class="card-title">Vehicle Images</h4>
+                      <h4 class="card-title">Images</h4>
                       <div class="main-image">
                           ${firstPhotoUrl ? `<img src="${firstPhotoUrl}" alt="Main vehicle photo" />` : 
                             '<div class="image-placeholder">Main Vehicle Image<br><small>Primary photo will appear here</small></div>'}
@@ -928,7 +926,7 @@ export async function POST(request: NextRequest) {
 
                   <!-- Second Row: Vehicle Specifications (Full Width) -->
                   <div class="full-width-section">
-                      <h4 class="card-title">Vehicle Specifications</h4>
+                      <h4 class="card-title">Specifications</h4>
                       <div class="specs-grid">
                           <!-- Basic Vehicle Info -->
                           <div class="spec-item">
@@ -969,11 +967,23 @@ export async function POST(request: NextRequest) {
                           <!-- Service & Warranty -->
                           <div class="spec-item">
                               <span class="spec-label">Warranty</span>
-                              <span class="spec-value">${car.current_warranty ? car.current_warranty.replace(/\b\w+/g,(w: string)=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).replace(/Silberarrows/gi,'SilberArrows') : '—'}</span>
+                              <span class="spec-value">${car.current_warranty ? (() => {
+                                const warranty = car.current_warranty.toLowerCase();
+                                if (warranty.includes('silberarrows') || warranty.includes('silber arrows')) {
+                                  return 'SILBERARROWS EXTENDED WARRANTY AVAILABLE';
+                                }
+                                return car.current_warranty.toUpperCase();
+                              })() : '—'}</span>
                           </div>
                           <div class="spec-item">
                               <span class="spec-label">Service Package</span>
-                              <span class="spec-value">${car.current_service ? car.current_service.replace(/\b\w+/g,(w: string)=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).replace(/Silberarrows/gi,'SilberArrows') : '—'}</span>
+                              <span class="spec-value">${car.current_service ? (() => {
+                                const service = car.current_service.toLowerCase();
+                                if (service.includes('silberarrows') || service.includes('silber arrows')) {
+                                  return 'SILBERARROWS SERVICE-CARE AVAILABLE';
+                                }
+                                return car.current_service.toUpperCase();
+                              })() : '—'}</span>
                           </div>
                       </div>
                   </div>
@@ -1003,7 +1013,7 @@ export async function POST(request: NextRequest) {
                   
                   <!-- Vehicle Description Section (Second) -->
                   <div class="full-width-section">
-                      <h4 class="card-title">Vehicle Description</h4>
+                      <h4 class="card-title">Description</h4>
                       <p class="description-text">${car.description}</p>
                   </div>
               </div>
@@ -1045,7 +1055,7 @@ export async function POST(request: NextRequest) {
                       <p>This quotation is valid for 30 days from the date of issue</p>
                       <!-- VAT disclaimer removed as per requirement -->
                       <div class="contact-info">
-                          Approved Used Vehicles • +971 4 380 5515 • sales@silberarrows.com
+                          TRN: 100281137800003 • +971 4 380 5515 • sales@silberarrows.com
                       </div>
                   </div>
               </div>

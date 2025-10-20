@@ -764,14 +764,12 @@ export async function POST(request: NextRequest) {
                   display: block;
                   break-inside: avoid;
                   padding: 4px 0;
-                  font-size: 10px;
+                  font-size: 9px;
                   color: rgba(255, 255, 255, 0.8);
                   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
                   margin-bottom: 3px;
                   font-weight: 400;
-                  white-space: nowrap;
-                  overflow: hidden;
-                  text-overflow: ellipsis;
+                  line-height: 1.3;
               }
               
               /* Bullet points removed - dashes already present in content */

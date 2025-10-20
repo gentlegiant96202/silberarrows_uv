@@ -9,9 +9,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npm run install-playwright-safe",
+    "postinstall": "npm run install-playwright-safe && npm run install-sharp-vercel",
     "install-playwright-safe": "if [ \"$VERCEL\" = \"1\" ]; then echo 'Skipping Playwright installation on Vercel'; else playwright install --with-deps; fi",
-    "install-playwright": "playwright install --with-deps"
+    "install-playwright": "playwright install --with-deps",
+    "install-sharp-vercel": "if [ \"$VERCEL\" = \"1\" ]; then npm install --include=optional sharp; else echo 'Skipping Sharp postinstall'; fi"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",

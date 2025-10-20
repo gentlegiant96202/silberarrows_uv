@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Wrench, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import ServiceContractModal, { ServiceContractData } from './ServiceContractModal';
+import DirhamIcon from '@/components/ui/DirhamIcon';
 
 interface PricingData {
   model: string;
@@ -529,27 +530,34 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
                   onClick={() => handleTierSelect('standard')}
                   className="p-6 bg-white/5 hover:bg-white/10 border-2 border-white/10 hover:border-white/30 rounded-lg text-left transition-all duration-200 group"
                 >
-                  <div className="space-y-4 pt-6">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-bold text-white">Standard</h4>
-                      <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20">
-                        <ChevronRight className="w-4 h-4 text-gray-300" />
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-400">2 Years / 30,000 km</div>
-                    <div className="text-2xl font-bold text-white">
-                      AED {pricing.standard > 0 ? pricing.standard.toLocaleString() : 'N/A'}
-                    </div>
-                    <div className="pt-3 border-t border-white/10 space-y-2">
-                      <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Includes:</p>
-                      <div className="space-y-1.5">
-                        <div className="flex items-start space-x-2">
-                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
-                          <p className="text-xs text-white/80">Service A (Minor)</p>
+                  <div className="mt-12">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-lg font-bold text-white">Standard</h4>
+                        <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20">
+                          <ChevronRight className="w-4 h-4 text-gray-300" />
                         </div>
-                        <div className="flex items-start space-x-2">
-                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
-                          <p className="text-xs text-white/80">Service B (Major) + Brake Fluid</p>
+                      </div>
+                      <div className="text-sm text-gray-400">2 Years / 30,000 km</div>
+                      <div className="text-2xl font-bold text-white flex items-center gap-2">
+                        <DirhamIcon className="w-6 h-6" />
+                        <span>{pricing.standard > 0 ? pricing.standard.toLocaleString() : 'N/A'}</span>
+                      </div>
+                      <div className="pt-3 border-t border-white/10 space-y-2">
+                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Includes:</p>
+                        <div className="space-y-1.5">
+                          <div className="flex items-start space-x-2">
+                            <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                            <p className="text-xs text-white/80">Service A (Minor)</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                            <p className="text-xs text-white/80">Service B (Major)</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                            <p className="text-xs text-white/80">Brake Fluid</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -564,35 +572,46 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
                   <div className="absolute top-3 right-3">
                     <span className="px-2 py-1 bg-white/20 border border-white/30 text-white text-[10px] font-bold rounded uppercase tracking-wide">RECOMMENDED</span>
                   </div>
-                  <div className="space-y-4 pt-6">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-bold text-white">Premium</h4>
-                      <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20">
-                        <ChevronRight className="w-4 h-4 text-gray-300" />
+                  <div className="mt-12">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-lg font-bold text-white">Premium</h4>
+                        <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20">
+                          <ChevronRight className="w-4 h-4 text-gray-300" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-sm text-gray-400">4 Years / 60,000 km</div>
-                    <div className="text-2xl font-bold text-white">
-                      AED {pricing.premium.toLocaleString()}
-                    </div>
-                    <div className="pt-3 border-t border-white/10 space-y-2">
-                      <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Includes:</p>
-                      <div className="space-y-1.5">
-                        <div className="flex items-start space-x-2">
-                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
-                          <p className="text-xs text-white/80">Service A (Minor)</p>
-                        </div>
-                        <div className="flex items-start space-x-2">
-                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
-                          <p className="text-xs text-white/80">Service B (Major) + Brake Fluid</p>
-                        </div>
-                        <div className="flex items-start space-x-2">
-                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
-                          <p className="text-xs text-white/80">Service A (Minor)</p>
-                        </div>
-                        <div className="flex items-start space-x-2">
-                          <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
-                          <p className="text-xs text-white/80">Service B + Brake Fluid + Coolant + Spark Plug + Transmission Oil & Filter</p>
+                      <div className="text-sm text-gray-400">4 Years / 60,000 km</div>
+                      <div className="text-2xl font-bold text-white flex items-center gap-2">
+                        <DirhamIcon className="w-6 h-6" />
+                        <span>{pricing.premium.toLocaleString()}</span>
+                      </div>
+                      <div className="pt-3 border-t border-white/10 space-y-2">
+                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Includes:</p>
+                        <div className="space-y-1.5">
+                          <div className="flex items-start space-x-2">
+                            <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                            <p className="text-xs text-white/80">Service A (Minor) x2</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                            <p className="text-xs text-white/80">Service B (Major) x2</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                            <p className="text-xs text-white/80">Brake Fluid x2</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                            <p className="text-xs text-white/80">Coolant</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                            <p className="text-xs text-white/80">Spark Plug</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-1 h-1 bg-white/60 rounded-full mt-1.5 flex-shrink-0"></div>
+                            <p className="text-xs text-white/80">Transmission Oil & Filter</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -615,11 +634,14 @@ export default function CombinedServiceCareModal({ isOpen, onClose, onContractCr
               {/* Price Display - Main Focus */}
               <div className="bg-gradient-to-br from-white/10 to-white/5 border-2 border-white/20 rounded-xl p-8 text-center space-y-4">
                 <div className="text-gray-400 text-sm uppercase tracking-wider">ServiceCare Price</div>
-                <div className="text-6xl font-bold text-white tracking-tight">
-                  AED {selectedTier === 'standard' 
-                    ? (pricing.standard > 0 ? pricing.standard.toLocaleString() : 'N/A')
-                    : pricing.premium.toLocaleString()
-                  }
+                <div className="text-6xl font-bold text-white tracking-tight flex items-center justify-center gap-4">
+                  <DirhamIcon className="w-14 h-14" />
+                  <span>
+                    {selectedTier === 'standard' 
+                      ? (pricing.standard > 0 ? pricing.standard.toLocaleString() : 'N/A')
+                      : pricing.premium.toLocaleString()
+                    }
+                  </span>
                 </div>
                 <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white/10 rounded-full border border-white/20">
                   <span className="text-gray-300 font-semibold capitalize">{selectedTier} Package</span>

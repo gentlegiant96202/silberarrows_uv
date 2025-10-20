@@ -1084,4 +1084,132 @@ async function generateVehicleShowcasePdf(vehicleData: any): Promise<Buffer> {
       if (fs.existsSync(candidate)) {
         const logoData = fs.readFileSync(candidate);
         const b64 = logoData.toString('base64');
-        logoSrc = `
+        logoSrc = `data:image/png;base64,${b64}`;
+        break;
+      }
+    } catch {}
+  }
+
+  // Build HTML using the template
+  console.log('📄 Building HTML content...');
+  const htmlContent = buildVehicleShowcaseHtml(
+    vehicleData,
+    logoSrc,
+    formatDate,
+    formatCurrency,
+    galleryPagesHtml
+  );
+  console.log('📄 HTML content length:', htmlContent.length);
+
+  // Call renderer service
+  console.log('📄 Calling renderer service (same as UV inventory)...');
+  const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
+  console.log('🔄 Using renderer service at:', rendererUrl);
+
+  const controller = new AbortController();
+  const timeoutMs = 120000; // 2 minutes timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const resp = await fetch(`${rendererUrl}/render-car-pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ html: htmlContent }),
+    signal: controller.signal
+  });
+
+  clearTimeout(timeoutId);
+
+  console.log('📄 Renderer service response status:', resp.status);
+  if (!resp.ok) {
+    const error = await resp.text();
+    console.error('📄 Renderer Error Response:', {
+      status: resp.status,
+      statusText: resp.statusText,
+      error: error.slice(0, 500)
+    });
+    throw new Error(`Renderer service error (${resp.status}): ${error}`);
+  }
+
+  const renderResult = await resp.json();
+  if (!renderResult.success || !renderResult.pdf) {
+    throw new Error('Renderer service returned invalid response');
+  }
+
+  // Convert base64 PDF back to buffer
+  const pdfBuffer = Buffer.from(renderResult.pdf, 'base64');
+  return pdfBuffer;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    console.log('📝 Vehicle PDF API called');
+    const { vehicleId, vehicleData } = await request.json();
+
+    if (!vehicleId || !vehicleData) {
+      return NextResponse.json(
+        { error: 'Missing required parameters: vehicleId and vehicleData are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate PDFShift/renderer availability (soft check)
+    if (!process.env.PDFSHIFT_API_KEY) {
+      console.warn('⚠️ PDFShift API key not configured - renderer service will be used');
+    }
+
+    // Generate PDF
+    const pdfBuffer = await generateVehicleShowcasePdf(vehicleData);
+
+    // Upload PDF to Supabase storage (server-side)
+    const fileName = `Vehicle_Showcase_${vehicleId}_${Date.now()}.pdf`;
+    const filePath = `vehicle-showcases/${fileName}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('leasing')
+      .upload(filePath, pdfBuffer, {
+        contentType: 'application/pdf',
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('❌ Storage upload error:', uploadError);
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('leasing')
+      .getPublicUrl(filePath);
+
+    const pdfUrl = urlData.publicUrl;
+
+    // Update database with PDF URL
+    const { error: dbError } = await supabase
+      .from('leasing_inventory')
+      .update({ 
+        vehicle_pdf_url: pdfUrl,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', vehicleId);
+
+    if (dbError) {
+      console.error('❌ Database update error:', dbError);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      pdfUrl,
+      vehicleId,
+      fileName
+    });
+  } catch (error) {
+    console.error('❌ Error generating vehicle showcase PDF:', error);
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}

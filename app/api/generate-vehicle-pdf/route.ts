@@ -718,9 +718,8 @@ function buildVehicleShowcaseHtml(
                           </div>
                     </div>
                     <div class="showcase-info">
-                      <h2>VEHICLE LEASING SHOWCASE</h2>
-                      <p>Stock: <span class="stock-number">${vehicle.stock_number || 'N/A'}</span></p>
-                      <p class="showcase-date">Date: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                      <h2>LEASE QUOTATION</h2>
+                      <p>Chassis: <span class="stock-number">${vehicle.chassis_number || 'N/A'}</span></p>
                     </div>
                 </div>
                 <div class="vehicle-title">
@@ -763,12 +762,8 @@ function buildVehicleShowcaseHtml(
                             <span class="spec-value">${vehicle.model_year || 'N/A'}</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Make</span>
-                            <span class="spec-value">${vehicle.make || 'N/A'}</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Model</span>
-                            <span class="spec-value">${vehicle.vehicle_model || 'N/A'}</span>
+                            <span class="spec-label">Make & Model</span>
+                            <span class="spec-value">${vehicle.make || 'N/A'} ${vehicle.vehicle_model || ''}</span>
                         </div>
                         <div class="spec-item">
                             <span class="spec-label">Exterior Color</span>
@@ -781,10 +776,6 @@ function buildVehicleShowcaseHtml(
                         <div class="spec-item">
                             <span class="spec-label">Mileage</span>
                             <span class="spec-value">${vehicle.mileage ? vehicle.mileage.toLocaleString() + ' km' : 'N/A'}</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Fuel Type</span>
-                            <span class="spec-value">${vehicle.fuel_type || 'Petrol'}</span>
                         </div>
                         <div class="spec-item">
                             <span class="spec-label">Transmission</span>

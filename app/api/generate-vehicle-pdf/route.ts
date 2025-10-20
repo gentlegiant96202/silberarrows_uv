@@ -816,10 +816,10 @@ function buildVehicleShowcaseHtml(
             <div class="footer">
                 <p>Experience premium leasing with SilberArrows</p>
                 <div class="contact-info">
-                    📞 +971 4 380 5515 • ✉️ leasing@silberarrows.com
+                    📞 +971 4 380 5515 • ✉️ leasing@silberarrows.com • TRN: 100281137800003
                 </div>
                 <p style="font-size: 9px; margin-top: 8px; color: rgba(255, 255, 255, 0.5);">
-                    TRN: 100281137800003 • All prices exclude VAT. Terms and conditions apply. Subject to credit approval.
+                    All prices exclude VAT. Terms and conditions apply. Subject to credit approval.
                 </p>
             </div>
         </div>

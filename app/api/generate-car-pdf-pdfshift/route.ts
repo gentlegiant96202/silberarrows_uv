@@ -1053,7 +1053,7 @@ export async function POST(request: NextRequest) {
                       <p>This quotation is valid for 30 days from the date of issue</p>
                       <!-- VAT disclaimer removed as per requirement -->
                       <div class="contact-info">
-                          TRN: 100281137800003 • +971 4 380 5515 • sales@silberarrows.com
+                          +971 4 380 5515 • sales@silberarrows.com • TRN: 100281137800003
                       </div>
                   </div>
               </div>

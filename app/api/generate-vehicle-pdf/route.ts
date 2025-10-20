@@ -43,7 +43,7 @@ function buildVehicleShowcaseHtml(
               background: #000000;
               color: #ffffff;
               min-height: 100vh;
-              padding: 0 40px 20px 40px;
+              padding: 30px 60px;
               margin: 0;
               line-height: 1.4;
           }
@@ -74,22 +74,17 @@ function buildVehicleShowcaseHtml(
           
           .showcase-container {
               page-break-inside: avoid;
-              padding: 0 0 0 0;
+              padding: 20px 40px;
               display: flex;
               flex-direction: column;
               justify-content: flex-start;
               flex: 1;
-              min-height: calc(297mm - 120px);
+              min-height: auto;
           }
 
           /* Page 2 and later get top padding */
-          .showcase-container.page-two {
-              padding-top: 20px !important;
-          }
-
-          .showcase-container[style*="page-break-before"] {
-              padding-top: 20px !important;
-          }
+          .showcase-container.page-two {}
+          .showcase-container[style*="page-break-before"] {}
 
           /* Image gallery pages styling */
           .image-gallery {
@@ -106,7 +101,7 @@ function buildVehicleShowcaseHtml(
               align-items: center;
           }
 
-          /* Guaranteed top spacer for containers starting a new page */
+          /* Match UV PDF spacing pattern */
           .showcase-container.page-two::before,
           .showcase-container[style*="page-break-before"]::before,
           .image-gallery.page-break-before::before {
@@ -127,10 +122,7 @@ function buildVehicleShowcaseHtml(
               justify-content: center;
           }
           
-          /* Explicit spacer for pages after the first */
-          .page-top-spacer {
-              height: 20px;
-          }
+          /* No explicit spacer needed; body + container padding handle spacing */
           
           .showcase-container {
               max-width: 1400px;
@@ -944,7 +936,6 @@ function buildVehicleShowcaseHtml(
 
         <!-- PAGE 2: DESCRIPTION & KEY EQUIPMENT -->
         <div class="showcase-container page-two" style="page-break-before: always;">
-                <div class="page-top-spacer"></div>
                 <!-- Description Section -->
                 ${vehicle.description ? `
                 <div class="full-width-section content-section avoid-break">
@@ -997,7 +988,6 @@ function buildVehicleShowcaseHtml(
         ${galleryPagesHtml ? `
         <div class="image-gallery page-break-before" style="page-break-before: always;">
             <div class="showcase-container page-two">
-                <div class="page-top-spacer"></div>
                 ${galleryPagesHtml}
             </div>
         </div>

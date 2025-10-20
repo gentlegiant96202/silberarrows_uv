@@ -82,19 +82,22 @@ function buildVehicleShowcaseHtml(
               min-height: calc(297mm - 120px);
           }
 
-          /* Add top padding to pages after page 1 */
-          .showcase-container[style*="page-break-before"] {
-              padding-top: 20px;
-          }
-
           /* Page 2 and later get top padding */
           .showcase-container.page-two {
-              padding-top: 20px;
+              padding-top: 20px !important;
+          }
+
+          .showcase-container[style*="page-break-before"] {
+              padding-top: 20px !important;
           }
 
           /* Image gallery pages styling */
           .image-gallery {
               margin-top: 0;
+          }
+
+          .image-gallery.page-break-before {
+              padding-top: 20px;
           }
 
           .image-gallery .showcase-container {
@@ -977,7 +980,7 @@ function buildVehicleShowcaseHtml(
 
         <!-- ADDITIONAL GALLERY PAGES (if more than 5 images) -->
         ${galleryPagesHtml ? `
-        <div class="image-gallery" style="page-break-before: always;">
+        <div class="image-gallery page-break-before" style="page-break-before: always;">
             <div class="showcase-container page-two">
                 ${galleryPagesHtml}
             </div>

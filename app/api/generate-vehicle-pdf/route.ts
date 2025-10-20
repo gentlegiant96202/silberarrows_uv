@@ -44,11 +44,13 @@ function buildVehicleShowcaseHtml(
               color: #ffffff;
               min-height: 100vh;
               padding: 0;
+              margin: 0;
               line-height: 1.4;
           }
           
           /* Page break spacing with black background */
           @page {
+              size: A4;
               margin: 0;
               background: #000000;
           }
@@ -62,19 +64,22 @@ function buildVehicleShowcaseHtml(
           
           /* Page wrapper for proper footer positioning */
           .page-wrapper {
-              min-height: 100vh;
+              min-height: 297mm;
               position: relative;
               display: flex;
               flex-direction: column;
+              padding: 0;
+              margin: 0;
           }
           
           .showcase-container {
               page-break-inside: avoid;
-              padding: 40px 40px 20px 40px;
+              padding: 20px 40px 0 40px;
               display: flex;
               flex-direction: column;
               justify-content: flex-start;
               flex: 1;
+              min-height: calc(297mm - 100px);
           }
           
           .showcase-container {
@@ -581,7 +586,11 @@ function buildVehicleShowcaseHtml(
               border-radius: 12px;
               padding: 10px 20px;
               text-align: center;
-              margin: 30px 40px 40px 40px;
+              margin: 0 40px 20px 40px;
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
               box-shadow: 
                   0 15px 30px rgba(0, 0, 0, 0.2),
                   inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -708,8 +717,10 @@ function buildVehicleShowcaseHtml(
             </defs>
         </svg>
         
-        <!-- FIRST PAGE: Header + Vehicle Images Gallery + Vehicle Specifications -->
-        <div class="showcase-container">
+        <!-- Page wrapper for footer positioning -->
+        <div class="page-wrapper">
+            <!-- FIRST PAGE: Header + Vehicle Images Gallery + Vehicle Specifications -->
+            <div class="showcase-container">
             
             <!-- Header -->
             <div class="header section-spacing">
@@ -799,8 +810,8 @@ function buildVehicleShowcaseHtml(
                         <div class="main-price">
                             <div class="main-price-label">Monthly Lease Rate</div>
                             <div class="main-price-value">
-                                <svg class="dirham-symbol" viewBox="0 0 24 24">
-                                    <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
+                                <svg class="dirham-symbol" viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
                                 </svg>
                                 ${vehicle.monthly_lease_rate ? formatCurrency(vehicle.monthly_lease_rate) : 'Contact Us'}/month
                             </div>
@@ -810,8 +821,8 @@ function buildVehicleShowcaseHtml(
                             <div class="payment-option">
                                 <div class="payment-option-label">Security Deposit</div>
                                 <div class="payment-option-value">
-                                    <svg class="dirham-symbol" viewBox="0 0 24 24">
-                                        <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
+                                    <svg class="dirham-symbol" viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
                                     </svg>
                                     ${vehicle.security_deposit ? formatCurrency(vehicle.security_deposit) : 'TBD'}
                                 </div>
@@ -819,8 +830,8 @@ function buildVehicleShowcaseHtml(
                             <div class="payment-option">
                                 <div class="payment-option-label">Buyout Price</div>
                                 <div class="payment-option-value">
-                                    <svg class="dirham-symbol" viewBox="0 0 24 24">
-                                        <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
+                                    <svg class="dirham-symbol" viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
                                     </svg>
                                     ${vehicle.buyout_price ? formatCurrency(vehicle.buyout_price) : 'Available'}
                                 </div>
@@ -880,6 +891,7 @@ function buildVehicleShowcaseHtml(
                     All prices exclude VAT. Terms and conditions apply. Subject to credit approval.
                 </p>
             </div>
+        </div>
         </div>
 
         <!-- PAGE 2: DESCRIPTION & KEY EQUIPMENT -->

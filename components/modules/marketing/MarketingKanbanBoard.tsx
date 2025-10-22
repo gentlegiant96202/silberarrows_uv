@@ -290,9 +290,6 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
   const { tasks, columnCount, onDragStart, onDragEnd, handleCardClick, draggedTask, canEdit, handlePin, pinningTask } = data;
   const taskIndex = rowIndex * columnCount + columnIndex;
   const task = tasks[taskIndex];
-  
-  // First 6 images (2 rows) should have priority loading for better LCP
-  const isAboveFold = taskIndex < 6;
 
   if (!task) {
     return <div style={style} />;
@@ -365,8 +362,7 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover transition-transform duration-300 group-hover:scale-110"
-              priority={isAboveFold}
-              loading={isAboveFold ? undefined : "lazy"}
+              loading="lazy"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5 relative">
@@ -512,9 +508,7 @@ export default function MarketingKanbanBoard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'design_tasks' },
         (payload: any) => {
-          // Use setTimeout to defer state updates for better INP
-          setTimeout(() => {
-            setTasks(prev => {
+          setTasks(prev => {
             if (payload.eventType === 'INSERT') {
               const rawTask = payload.new;
               
@@ -631,7 +625,6 @@ export default function MarketingKanbanBoard() {
             
             return prev;
           });
-          }, 0); // Use setTimeout for browser compatibility
         }
       )
       .subscribe();
@@ -832,7 +825,7 @@ export default function MarketingKanbanBoard() {
     setHovered(null);
   }, []);
 
-  const handleCardClick = useCallback((task: MarketingTask) => {
+  const handleCardClick = (task: MarketingTask) => {
     setSelectedTask(task);
     
     // Show workspace for in_progress and in_review tasks, modal for others
@@ -841,14 +834,14 @@ export default function MarketingKanbanBoard() {
     } else {
       setShowModal(true);
     }
-  }, []);
+  };
 
-  const handleCreateTask = useCallback(() => {
+  const handleCreateTask = () => {
     setSelectedTask(null);
     setShowModal(true);
-  }, []);
+  };
 
-  const handlePin = useCallback(async (taskId: string, currentPinned: boolean) => {
+  const handlePin = async (taskId: string, currentPinned: boolean) => {
     try {
       setPinningTask(taskId);
       const newPinned = !currentPinned;
@@ -881,7 +874,7 @@ export default function MarketingKanbanBoard() {
     } finally {
       setPinningTask(null);
     }
-  }, [getAuthHeaders]);
+  };
 
   const handleSaveTask = async (taskData: Partial<MarketingTask>): Promise<MarketingTask | null> => {
     try {
@@ -1238,12 +1231,9 @@ export default function MarketingKanbanBoard() {
                 </div>
               ) : (
                 // Glassmorphism card layout for other columns
-                grouped[col.key].map((task, taskIndex) => {
+                grouped[col.key].map(task => {
                   // Use pre-computed preview URL to avoid expensive regex operations during render
                   const previewUrl = task.previewUrl;
-                  
-                  // First 3 tasks in each column should have priority loading for better LCP
-                  const isAboveFold = taskIndex < 3;
 
                   return (
                     <div
@@ -1324,8 +1314,7 @@ export default function MarketingKanbanBoard() {
                                 fill
                                 sizes="64px"
                                 className="object-cover transition-transform duration-300 group-hover:scale-110" 
-                                priority={isAboveFold}
-                                loading={isAboveFold ? undefined : "lazy"}
+                                loading="lazy"
                               />
                               {/* Overlay gradient for depth */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

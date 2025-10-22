@@ -542,108 +542,92 @@ export default function MarketingKanbanBoard() {
       const headers = await getAuthHeaders();
       const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true', { headers });
       
-      if (response.ok) {
-        const rawData = await response.json();
-        
-        // Transform raw database data (without computing preview URLs yet)
-        const transformedTasks: MarketingTask[] = rawData.map((rawTask: any) => {
-          const baseTask: MarketingTask = {
-            id: rawTask.id,
-            title: rawTask.title,
-            description: rawTask.description,
-            status: rawTask.status,
-            assignee: rawTask.requested_by || rawTask.assignee,
-            due_date: rawTask.due_date,
-            created_at: rawTask.created_at,
-            updated_at: rawTask.updated_at,
-            media_files: rawTask.media_files || [],
-            annotations: rawTask.annotations || [],
-            pinned: rawTask.pinned || false,
-            task_type: rawTask.task_type || 'design',
-            priority: rawTask.priority || 'medium',
-            content_type: rawTask.content_type || 'post',
-            tags: rawTask.tags || [],
-            created_by: rawTask.created_by,
-            acknowledged_at: rawTask.acknowledged_at,
-            previewUrl: null
-          };
-          
-          // Don't compute previewUrl yet - leave as null for lazy population
-          return baseTask;
-        });
-        
-        console.log(`✅ Loaded ${transformedTasks.length} tasks`);
-        
-        // Group by status and update both columnData and tasks
-        const groupedByStatus = groupTasksByStatus(transformedTasks);
-        
-        // Update column data with grouped tasks IMMEDIATELY so cards render
-        setColumnData(groupedByStatus);
-        
-        // Mark all columns as loaded IMMEDIATELY
-        setColumnLoading({
-          intake: false,
-          planned: false,
-          in_progress: false,
-          in_review: false,
-          approved: false,
-          instagram_feed_preview: false,
-          archived: false
-        });
-        
-        setTasks(transformedTasks);
-        setLoading(false); // Stop loading immediately so cards appear
-        
-        // Compute preview URLs in the background after cards are rendered
-        setTimeout(() => {
-          console.log('🖼️ Computing preview URLs in background...');
-          const chunkSize = 20;
-          let index = 0;
-
-          const processChunk = () => {
-            const updatedBatch = transformedTasks.slice(index, index + chunkSize).map((task: MarketingTask) => ({
-              ...task,
-              previewUrl: getPreviewUrl(task.media_files || [])
-            }));
-
-            setTasks(prev => {
-              const taskMap = new Map(prev.map(t => [t.id, t]));
-              updatedBatch.forEach(task => taskMap.set(task.id, task));
-              return Array.from(taskMap.values());
-            });
-
-            setColumnData(prev => {
-              const updated = { ...prev };
-              updatedBatch.forEach(task => {
-                const list = updated[task.status as ColKey];
-                if (list) {
-                  const existingIndex = list.findIndex(t => t.id === task.id);
-                  if (existingIndex !== -1) {
-                    list[existingIndex] = task;
-                  } else {
-                    list.push(task);
-                  }
-                }
-              });
-              return updated;
-            });
-
-            index += chunkSize;
-
-            if (index < transformedTasks.length) {
-              setTimeout(processChunk, 0);
-            } else {
-              console.log('✅ Preview URLs computed');
-            }
-          };
-
-          processChunk();
-        }, 0);
-        
-      } else {
+      if (!response.ok) {
         console.error('❌ Failed to load tasks:', response.statusText);
         setLoading(false);
+        return;
       }
+
+      const rawData = await response.json();
+      
+      const baseTasks: MarketingTask[] = rawData.map((rawTask: any) => ({
+        id: rawTask.id,
+        title: rawTask.title,
+        description: rawTask.description,
+        status: rawTask.status,
+        assignee: rawTask.requested_by || rawTask.assignee,
+        due_date: rawTask.due_date,
+        created_at: rawTask.created_at,
+        updated_at: rawTask.updated_at,
+        media_files: rawTask.media_files || [],
+        annotations: rawTask.annotations || [],
+        pinned: rawTask.pinned || false,
+        task_type: rawTask.task_type || 'design',
+        priority: rawTask.priority || 'medium',
+        content_type: rawTask.content_type || 'post',
+        tags: rawTask.tags || [],
+        created_by: rawTask.created_by,
+        acknowledged_at: rawTask.acknowledged_at,
+        previewUrl: null
+      }));
+      
+      console.log(`✅ Loaded ${baseTasks.length} tasks`);
+      setTasks(baseTasks);
+      setColumnData(groupTasksByStatus(baseTasks));
+      setColumnLoading({
+        intake: false,
+        planned: false,
+        in_progress: false,
+        in_review: false,
+        approved: false,
+        instagram_feed_preview: false,
+        archived: false
+      });
+      setLoading(false);
+
+      const chunkSize = 20;
+      let index = 0;
+
+      const processChunk = () => {
+        const chunk = baseTasks.slice(index, index + chunkSize);
+        if (chunk.length === 0) return;
+
+        const updatedChunk = chunk.map(task => ({
+          ...task,
+          previewUrl: getPreviewUrl(task.media_files || [])
+        }));
+
+        setTasks(prev => {
+          const map = new Map(prev.map(task => [task.id, task]));
+          updatedChunk.forEach(task => map.set(task.id, task));
+          return Array.from(map.values());
+        });
+
+        setColumnData(prev => {
+          const updated = { ...prev };
+          updatedChunk.forEach(task => {
+            const list = updated[task.status];
+            if (!list) return;
+            const idx = list.findIndex(t => t.id === task.id);
+            if (idx !== -1) {
+              list[idx] = task;
+            } else {
+              list.push(task);
+            }
+          });
+          return updated;
+        });
+
+        index += chunkSize;
+        if (index < baseTasks.length) {
+          setTimeout(processChunk, 0);
+        } else {
+          console.log('✅ Preview URLs computed');
+        }
+      };
+
+      processChunk();
+
     } catch (error) {
       console.error('❌ Error loading tasks:', error);
       setLoading(false);
@@ -1226,24 +1210,6 @@ export default function MarketingKanbanBoard() {
     }
   };
 
-
-  if (loading) {
-    return (
-      <div className="h-full px-4 overflow-hidden">
-        <div className="flex gap-3 pb-4 w-full h-full">
-          {columns
-            .filter(col => showArchived || col.key !== 'archived')
-            .map(col => (
-            <SkeletonColumn 
-              key={col.key} 
-              title={col.title} 
-              icon={col.icon}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-full px-4 overflow-hidden">

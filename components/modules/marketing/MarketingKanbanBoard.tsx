@@ -295,6 +295,9 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
     return <div style={style} />;
   }
 
+  // Compute preview URL on-demand when rendering
+  const previewUrl = task.previewUrl || getPreviewUrl(task.media_files || []);
+
   return (
     <div style={{ ...style, padding: '2px' }}>
       <div
@@ -351,13 +354,13 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
         
         {/* Image Display */}
         <div className="w-full h-full rounded-lg overflow-hidden relative">
-          {task.previewUrl === 'PDF_PREVIEW' ? (
+          {previewUrl === 'PDF_PREVIEW' ? (
             <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-red-600/10 flex items-center justify-center p-1.5">
               <FileText className="w-8 h-8 text-red-400" />
             </div>
-          ) : task.previewUrl ? (
+          ) : previewUrl ? (
             <Image 
-              src={task.previewUrl} 
+              src={previewUrl} 
               alt={task.title}
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -521,7 +524,7 @@ export default function MarketingKanbanBoard() {
       if (response.ok) {
         const rawData = await response.json();
         
-        // Transform raw database data
+        // Transform raw database data (without computing preview URLs yet)
         const transformedTasks = rawData.map((rawTask: any) => {
           const baseTask = {
             id: rawTask.id,
@@ -543,9 +546,10 @@ export default function MarketingKanbanBoard() {
             acknowledged_at: rawTask.acknowledged_at
           };
           
+          // Don't compute previewUrl yet - let it compute on-demand during render
           return {
             ...baseTask,
-            previewUrl: getPreviewUrl(baseTask.media_files)
+            previewUrl: null // Will be computed lazily when card renders
           };
         });
         
@@ -1343,8 +1347,8 @@ export default function MarketingKanbanBoard() {
               ) : (
                 // Glassmorphism card layout for other columns
                 grouped[col.key].map(task => {
-                  // Use pre-computed preview URL to avoid expensive regex operations during render
-                  const previewUrl = task.previewUrl;
+                  // Compute preview URL on-demand when rendering (not during data transformation)
+                  const previewUrl = task.previewUrl || getPreviewUrl(task.media_files || []);
 
                   return (
                     <div

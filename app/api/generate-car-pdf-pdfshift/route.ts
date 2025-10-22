@@ -115,6 +115,30 @@ export async function POST(request: NextRequest) {
   console.log('📍 Referer:', request.headers.get('referer'));
   
   try {
+    // Load logo from file system
+    const fs = await import('fs');
+    const path = await import('path');
+    const logoFileCandidates = [
+      path.join(process.cwd(), 'public', 'MAIN LOGO.png'),
+      path.join(process.cwd(), 'public', 'main-logo.png')
+    ];
+    
+    let logoSrc = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1735721054/MAIN_LOGO_krrykw.png';
+    
+    for (const candidate of logoFileCandidates) {
+      try {
+        if (fs.existsSync(candidate)) {
+          const logoData = fs.readFileSync(candidate);
+          const b64 = logoData.toString('base64');
+          logoSrc = `data:image/png;base64,${b64}`;
+          console.log('✅ Loaded logo from file system:', candidate);
+          break;
+        }
+      } catch (err) {
+        console.log('⚠️ Failed to load logo from:', candidate);
+      }
+    }
+    
     console.log('📦 Parsing request body...');
     const { car, media } = await request.json();
     
@@ -331,7 +355,7 @@ export async function POST(request: NextRequest) {
                   backdrop-filter: blur(25px);
                   border: 1px solid rgba(255, 255, 255, 0.12);
                   border-radius: 20px;
-                  padding: 20px 30px;
+                  padding: 16px 30px;
                   margin-bottom: 20px;
                   box-shadow: 
                       0 25px 50px rgba(0, 0, 0, 0.5),
@@ -347,13 +371,13 @@ export async function POST(request: NextRequest) {
               
               .company-info {
                   display: flex;
-                  align-items: center;
-                  gap: 12px;
+                  flex-direction: column;
+                  gap: 3px;
               }
               
               .company-logo {
-                  width: 50px;
-                  height: 50px;
+                  width: 70px;
+                  height: 70px;
                   object-fit: contain;
                   filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.3));
               }
@@ -367,49 +391,29 @@ export async function POST(request: NextRequest) {
                   background-clip: text;
                   letter-spacing: -0.8px;
                   filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
-                  margin-bottom: 4px;
+                  margin-bottom: 3px;
               }
               
-              .company-contact {
-                  font-size: 10px;
-                  color: rgba(255, 255, 255, 0.8);
-                  font-weight: 500;
-                  line-height: 1.3;
+              .quotation-details {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 2px;
               }
               
-              .company-contact a {
+              .quotation-details h2 {
+                  font-size: 16px;
+                  font-weight: 700;
                   color: rgba(255, 255, 255, 0.9);
-                  text-decoration: none;
+                  margin-bottom: 2px;
               }
               
-              .quotation-info {
-                  text-align: right;
-              }
-              
-              .quotation-info h2 {
-                  font-size: 18px;
-                  font-weight: 800;
-                  background: linear-gradient(135deg, #f0f0f0 0%, #d4d4d4 25%, #b8b8b8 50%, #d4d4d4 75%, #f0f0f0 100%);
-                  -webkit-background-clip: text;
-                  -webkit-text-fill-color: transparent;
-                  background-clip: text;
-                  margin-bottom: 6px;
-                  letter-spacing: 0.5px;
-              }
-              
-              .quotation-info p {
+              .quotation-details p {
                   font-size: 11px;
                   color: rgba(255, 255, 255, 0.7);
-                  margin-bottom: 2px;
                   font-weight: 500;
               }
               
-              .quotation-info .quotation-date {
-                  font-weight: 600;
-                  color: rgba(255, 255, 255, 0.8);
-              }
-              
-              .quotation-info .chassis-number {
+              .quotation-details .chassis-number {
                   font-weight: 700;
                   color: rgba(255, 255, 255, 0.9);
                   font-size: 12px;
@@ -417,8 +421,12 @@ export async function POST(request: NextRequest) {
               
               .vehicle-title {
                   text-align: center;
-                  padding: 12px 0;
+                  padding: 25px 0 16px 0;
                   border-top: 1px solid rgba(255, 255, 255, 0.08);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  min-height: 50px;
               }
               
               .vehicle-title h3 {
@@ -880,19 +888,15 @@ export async function POST(request: NextRequest) {
               <div class="header">
                   <div class="header-top">
                       <div class="company-info">
-                          <img src="https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png" alt="Logo" class="company-logo">
                           <div class="company-text">
-                                <h1 style="font-size: 20px;">Approved Used Mercedes-Benz</h1>
-                                <p class="company-contact">
-                                    +971 4 380 5515<br />
-                                    <a href="mailto:sales@silberarrows.com">sales@silberarrows.com</a>
-                                </p>
-                            </div>
+                                <h1>Approved Used Mercedes-Benz</h1>
+                          </div>
+                          <div class="quotation-details">
+                            <h2>VEHICLE QUOTATION</h2>
+                            <p>Chassis: <span class="chassis-number">${car.chassis_number}</span></p>
+                          </div>
                       </div>
-                      <div class="quotation-info">
-                        <h2>VEHICLE QUOTATION</h2>
-                        <p>Chassis: <span class="chassis-number">${car.chassis_number}</span></p>
-                      </div>
+                      <img src="${logoSrc}" alt="Logo" class="company-logo">
                   </div>
                   <div class="vehicle-title">
                       <h3>${car.vehicle_model || car.model || 'Vehicle Model'}</h3>

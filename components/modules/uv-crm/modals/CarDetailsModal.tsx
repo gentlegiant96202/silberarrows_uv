@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import MediaUploader from '@/components/modules/uv-crm/components/MediaUploader';
 import DocUploader from '@/components/modules/uv-crm/components/DocUploader';
@@ -72,6 +72,7 @@ interface Props {
   onClose: () => void;
   onDeleted: (id:string)=>void;
   onSaved?: (updated: CarInfo) => void;
+  isLoadingDetails?: boolean; // Flag to show skeleton loaders while data loads
 }
 
 interface MediaItem {
@@ -90,7 +91,7 @@ interface MediaItem {
   file_size?: number; // File size in bytes
 }
 
-export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Props) {
+export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLoadingDetails = false }: Props) {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [localCar, setLocalCar] = useState<CarInfo>(car);
   const [consignmentDocs, setConsignmentDocs] = useState<MediaItem[]>([]);
@@ -1164,11 +1165,12 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
   const locations = ['SHOWROOM','YARD','STONE','CAR PARK','SHOWROOM 2','NOT ON SITE','GARGASH','IN SERVICE'];
   const fuelOptions = [0,25,50,75,100];
 
-  const handleFieldChange = (field:keyof CarInfo,value:any)=>{
-    setLocalCar(prev=>({...prev,[field]:value}));
-  };
+  // Memoized field change handler for better performance
+  const handleFieldChange = useCallback((field: keyof CarInfo, value: any) => {
+    setLocalCar(prev => ({ ...prev, [field]: value }));
+  }, []);
 
-  const handleCashOnlyToggle = (cashOnly: boolean) => {
+  const handleCashOnlyToggle = useCallback((cashOnly: boolean) => {
     setIsCashOnly(cashOnly);
     if (cashOnly) {
       // Clear monthly payments when switching to cash only
@@ -1184,7 +1186,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
       setMonthlyZeroOverridden(true);  // Set to true so calculated values get saved
       setMonthlyTwentyOverridden(true); // Set to true so calculated values get saved
     }
-  };
+  }, [localCar.advertised_price_aed]);
 
   const handleSaveEdit = async ()=>{
     // Check character limits before saving
@@ -1499,38 +1501,46 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved }: Pr
 
           {/* Location & Fuel selectors when in inventory */}
           {(car.status==='inventory') && (
-            <div className="flex gap-2 items-center text-[11px] text-white/80 flex-wrap">
-              <label>
-                Location:
-                <select
-                  value={localCar.car_location||''}
-                  onChange={async e=>{
-                    const loc = e.target.value;
-                    setLocalCar(prev=>({...prev,car_location:loc}));
-                    const { data:updated } = await supabase.from('cars').update({ car_location: loc }).eq('id', car.id).select().single();
-                    if(updated && onSaved) onSaved(updated as CarInfo);
-                  }}
-                  className="bg-black/50 border border-white/20 ml-1 px-1 py-0.5 rounded text-white text-[11px]"
-                >
-                  <option value="" disabled>Select</option>
-                  {locations.map(l=>(<option key={l} value={l}>{l}</option>))}
-                </select>
+            <div className="flex gap-2 items-center text-[11px] text-white/80 flex-wrap w-full">
+              <label className="flex items-center">
+                <span>Location:</span>
+                {isLoadingDetails ? (
+                  <div className="inline-block ml-1 bg-white/10 animate-pulse rounded h-6 w-32"></div>
+                ) : (
+                  <select
+                    value={localCar.car_location||''}
+                    onChange={async e=>{
+                      const loc = e.target.value;
+                      setLocalCar(prev=>({...prev,car_location:loc}));
+                      const { data:updated } = await supabase.from('cars').update({ car_location: loc }).eq('id', car.id).select().single();
+                      if(updated && onSaved) onSaved(updated as CarInfo);
+                    }}
+                    className="bg-black/50 border border-white/20 ml-1 px-1 py-0.5 rounded text-white text-[11px]"
+                  >
+                    <option value="" disabled>Select</option>
+                    {locations.map(l=>(<option key={l} value={l}>{l}</option>))}
+                  </select>
+                )}
               </label>
-              <label>
-                Fuel:
-                <select
-                  value={localCar.fuel_level??''}
-                  onChange={async e=>{
-                    const lvl = Number(e.target.value);
-                    setLocalCar(prev=>({...prev,fuel_level:lvl}));
-                    const { data:updatedFuel } = await supabase.from('cars').update({ fuel_level: lvl }).eq('id', car.id).select().single();
-                    if(updatedFuel && onSaved) onSaved(updatedFuel as CarInfo);
-                  }}
-                  className="bg-black/50 border border-white/20 ml-1 px-1 py-0.5 rounded text-white text-[11px]"
-                >
-                  <option value="" disabled>Select</option>
-                  {fuelOptions.map(f=>(<option key={f} value={f}>{f}%</option>))}
-                </select>
+              <label className="flex items-center">
+                <span>Fuel:</span>
+                {isLoadingDetails ? (
+                  <div className="inline-block ml-1 bg-white/10 animate-pulse rounded h-6 w-20"></div>
+                ) : (
+                  <select
+                    value={localCar.fuel_level??''}
+                    onChange={async e=>{
+                      const lvl = Number(e.target.value);
+                      setLocalCar(prev=>({...prev,fuel_level:lvl}));
+                      const { data:updatedFuel } = await supabase.from('cars').update({ fuel_level: lvl }).eq('id', car.id).select().single();
+                      if(updatedFuel && onSaved) onSaved(updatedFuel as CarInfo);
+                    }}
+                    className="bg-black/50 border border-white/20 ml-1 px-1 py-0.5 rounded text-white text-[11px]"
+                  >
+                    <option value="" disabled>Select</option>
+                    {fuelOptions.map(f=>(<option key={f} value={f}>{f}%</option>))}
+                  </select>
+                )}
               </label>
             </div>
           )}

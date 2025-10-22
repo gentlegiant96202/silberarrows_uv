@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabaseClient';
 import AddCarModal from '@/components/modules/uv-crm/modals/AddCarModal';
@@ -134,6 +134,7 @@ export default function CarKanbanBoard() {
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<Car | null>(null);
   const [selectedCarFull, setSelectedCarFull] = useState<CarInfo | null>(null);
+  const [loadingCarDetails, setLoadingCarDetails] = useState(false);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const hasFetchedCars = useRef(false);
   
@@ -165,6 +166,10 @@ export default function CarKanbanBoard() {
     stockAge: [] as string[], // ['fresh', 'aging', 'old']
     model: '' as string
   });
+  
+  // Debounced filter state for model search
+  const [modelSearchInput, setModelSearchInput] = useState('');
+  const modelSearchTimeout = useRef<NodeJS.Timeout | null>(null);
   
   // Pagination state for inventory column
   const [inventoryPage, setInventoryPage] = useState(1);
@@ -376,8 +381,8 @@ export default function CarKanbanBoard() {
     load();
   };
 
-  // Archive car function
-  const handleArchiveCar = async (carId: string) => {
+  // Archive car function - MEMOIZED
+  const handleArchiveCar = useCallback(async (carId: string) => {
     try {
       const { error } = await supabase.from('cars').update({
         sale_status: 'archived',
@@ -396,7 +401,19 @@ export default function CarKanbanBoard() {
     } catch (error) {
       console.error("❌ Error archiving car:", error);
     }
-  };
+  }, []);
+
+  // Price drop handlers - MEMOIZED
+  const handlePriceDropClick = useCallback((e: React.MouseEvent, car: Car) => {
+    e.stopPropagation();
+    setSelectedCarForPriceDrop(car);
+    setShowPriceDropModal(true);
+  }, []);
+
+  const handleArchiveClick = useCallback((e: React.MouseEvent, carId: string) => {
+    e.stopPropagation();
+    handleArchiveCar(carId);
+  }, [handleArchiveCar]);
 
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
 
@@ -573,65 +590,69 @@ export default function CarKanbanBoard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'cars' },
         (payload: any) => {
-          const updateColumnData = (car: Car, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => {
-            // Determine which column this car belongs to
-            let targetColumn: ColKey | null = null;
-            
-            if (car.status === 'marketing') targetColumn = 'marketing';
-            else if (car.status === 'qc_ceo') targetColumn = 'qc_ceo';
-            else if (car.status === 'inventory') {
-              if (car.sale_status === 'available') targetColumn = 'inventory';
-              else if (car.sale_status === 'reserved') targetColumn = 'reserved';
-              else if (car.sale_status === 'sold') targetColumn = 'sold';
-              else if (car.sale_status === 'returned') targetColumn = 'returned';
-              else if (car.sale_status === 'archived') targetColumn = 'archived';
-            }
-
-            setColumnData(prev => {
-              const newColumnData = { ...prev };
+          // Use batched state updates with React 18's automatic batching
+          // Schedule update for next frame to avoid blocking current interaction
+          setTimeout(() => {
+            const updateColumnData = (car: Car, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => {
+              // Determine which column this car belongs to
+              let targetColumn: ColKey | null = null;
               
-              if (eventType === 'INSERT' && targetColumn) {
-                if (!newColumnData[targetColumn].some(c => c.id === car.id)) {
-                  newColumnData[targetColumn] = [car, ...newColumnData[targetColumn]];
-                }
-              } else if (eventType === 'UPDATE') {
-                // Remove from all columns first
-                Object.keys(newColumnData).forEach(key => {
-                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(c => c.id !== car.id);
-                });
-                // Add to correct column
-                if (targetColumn) {
-                  newColumnData[targetColumn] = [car, ...newColumnData[targetColumn]];
-                }
-              } else if (eventType === 'DELETE') {
-                Object.keys(newColumnData).forEach(key => {
-                  newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(c => c.id !== car.id);
-                });
+              if (car.status === 'marketing') targetColumn = 'marketing';
+              else if (car.status === 'qc_ceo') targetColumn = 'qc_ceo';
+              else if (car.status === 'inventory') {
+                if (car.sale_status === 'available') targetColumn = 'inventory';
+                else if (car.sale_status === 'reserved') targetColumn = 'reserved';
+                else if (car.sale_status === 'sold') targetColumn = 'sold';
+                else if (car.sale_status === 'returned') targetColumn = 'returned';
+                else if (car.sale_status === 'archived') targetColumn = 'archived';
               }
-              
-              return newColumnData;
-            });
-          };
 
-          setCars(prev => {
-            if (payload.eventType === 'INSERT') {
-              const newCar = payload.new as Car;
-              updateColumnData(newCar, 'INSERT');
-              const exists = prev.some(c => c.id === newCar.id);
-              return exists ? prev : [newCar, ...prev];
-            }
-            if (payload.eventType === 'UPDATE') {
-              const updatedCar = payload.new as Car;
-              updateColumnData(updatedCar, 'UPDATE');
-              return prev.map(c => c.id === updatedCar.id ? updatedCar : c);
-            }
-            if (payload.eventType === 'DELETE') {
-              const deletedCar = payload.old as Car;
-              updateColumnData(deletedCar, 'DELETE');
-              return prev.filter(c => c.id !== deletedCar.id);
-            }
-            return prev;
-          });
+              setColumnData(prev => {
+                const newColumnData = { ...prev };
+                
+                if (eventType === 'INSERT' && targetColumn) {
+                  if (!newColumnData[targetColumn].some(c => c.id === car.id)) {
+                    newColumnData[targetColumn] = [car, ...newColumnData[targetColumn]];
+                  }
+                } else if (eventType === 'UPDATE') {
+                  // Remove from all columns first
+                  Object.keys(newColumnData).forEach(key => {
+                    newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(c => c.id !== car.id);
+                  });
+                  // Add to correct column
+                  if (targetColumn) {
+                    newColumnData[targetColumn] = [car, ...newColumnData[targetColumn]];
+                  }
+                } else if (eventType === 'DELETE') {
+                  Object.keys(newColumnData).forEach(key => {
+                    newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(c => c.id !== car.id);
+                  });
+                }
+                
+                return newColumnData;
+              });
+            };
+
+            setCars(prev => {
+              if (payload.eventType === 'INSERT') {
+                const newCar = payload.new as Car;
+                updateColumnData(newCar, 'INSERT');
+                const exists = prev.some(c => c.id === newCar.id);
+                return exists ? prev : [newCar, ...prev];
+              }
+              if (payload.eventType === 'UPDATE') {
+                const updatedCar = payload.new as Car;
+                updateColumnData(updatedCar, 'UPDATE');
+                return prev.map(c => c.id === updatedCar.id ? updatedCar : c);
+              }
+              if (payload.eventType === 'DELETE') {
+                const deletedCar = payload.old as Car;
+                updateColumnData(deletedCar, 'DELETE');
+                return prev.filter(c => c.id !== deletedCar.id);
+              }
+              return prev;
+            });
+          }, 0); // Use setTimeout for better browser compatibility
         }
       )
       .subscribe();
@@ -681,7 +702,7 @@ export default function CarKanbanBoard() {
     return '';
   };
 
-  const loadFullCarData = async (carId: string) => {
+  const loadFullCarData = useCallback(async (carId: string) => {
     try {
       const { data, error } = await supabase
         .from('cars')
@@ -700,26 +721,86 @@ export default function CarKanbanBoard() {
       console.error('❌ Exception loading full car data:', error);
       return null;
     }
-  };
+  }, []);
 
-  // Filter helper functions
-  const getStockAgeCategory = (stockAgeDays: number | null) => {
+  // Optimized card click handler - open modal immediately with loading state for best INP
+  const handleCarClick = useCallback(async (car: Car) => {
+    // IMMEDIATELY open modal with basic data and loading flag for instant INP feedback
+    setSelected(car);
+    setLoadingCarDetails(true);
+    setSelectedCarFull({
+      ...car,
+      model_family: null,
+      interior_colour: null,
+      chassis_number: '',
+      cost_price_aed: null,
+      current_mileage_km: null,
+      current_warranty: null,
+      current_service: null,
+      regional_specification: null,
+      engine: null,
+      transmission: null,
+      horsepower_hp: null,
+      torque_nm: null,
+      cubic_capacity_cc: null,
+      number_of_keys: null,
+      body_style: null,
+      description: null,
+      key_equipment: null,
+      fuel_level_nm: null,
+      car_location: null,
+      fuel_level: null,
+      registration_expiry_date: null,
+      insurance_expiry_date: null,
+      service_records_acquired: null,
+      owners_manual_acquired: null,
+      spare_tyre_tools_acquired: null,
+      fire_extinguisher_acquired: null,
+      other_accessories_acquired: null,
+      other_accessories_details: null,
+      damage_annotations: null,
+      visual_inspection_notes: null,
+      website_url: null,
+    } as CarInfo);
+    
+    // Load full data in background with minimum delay to show skeleton
+    const startTime = Date.now();
+    const fullData = await loadFullCarData(car.id);
+    const elapsed = Date.now() - startTime;
+    
+    // Ensure minimum 300ms delay so skeleton is visible (prevents jarring instant swap)
+    const minDelay = 300;
+    const remainingDelay = Math.max(0, minDelay - elapsed);
+    
+    setTimeout(() => {
+      if (fullData) {
+        setSelectedCarFull(fullData);
+      } else {
+        console.error('❌ CarKanbanBoard: Failed to load full car details');
+      }
+      
+      setLoadingCarDetails(false);
+    }, remainingDelay);
+  }, [loadFullCarData]);
+
+  // Filter helper functions - MEMOIZED for performance
+  const getStockAgeCategory = useCallback((stockAgeDays: number | null) => {
     if (stockAgeDays === null) return 'unknown';
     if (stockAgeDays >= 90) return 'old';
     if (stockAgeDays >= 60) return 'aging';
     return 'fresh';
-  };
+  }, []);
 
-  const getUniqueModels = (cars: Car[]) => {
+  const getUniqueModels = useMemo(() => {
     const models = cars
       .filter(c => c.status === 'inventory' && c.sale_status === 'available')
       .map(c => c.vehicle_model)
       .filter(Boolean);
     return Array.from(new Set(models)).sort();
-  };
+  }, [cars]);
 
-  const applyInventoryFilters = (cars: Car[]) => {
-    return cars.filter(car => {
+  const applyInventoryFilters = useCallback((carsList: Car[]) => {
+    return carsList.filter(car => {
       // Ownership filter
       if (inventoryFilters.ownership.length > 0) {
         if (!inventoryFilters.ownership.includes(car.ownership_type)) {
@@ -744,24 +825,41 @@ export default function CarKanbanBoard() {
 
       return true;
     });
-  };
+  }, [inventoryFilters, getStockAgeCategory]);
 
-  const getActiveFilterCount = () => {
+  const getActiveFilterCount = useCallback(() => {
     let count = 0;
     if (inventoryFilters.ownership.length > 0) count++;
     if (inventoryFilters.stockAge.length > 0) count++;
     if (inventoryFilters.model && inventoryFilters.model !== '') count++;
     return count;
-  };
+  }, [inventoryFilters]);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setInventoryFilters({
       ownership: [],
       stockAge: [],
       model: ''
     });
+    setModelSearchInput(''); // Clear the input field
     setInventoryPage(1); // Reset pagination when filters change
-  };
+  }, []);
+  
+  // Debounced model search handler - only update filter after 300ms of no typing
+  const handleModelSearchChange = useCallback((value: string) => {
+    setModelSearchInput(value); // Update input immediately for responsive UI
+    
+    // Clear existing timeout
+    if (modelSearchTimeout.current) {
+      clearTimeout(modelSearchTimeout.current);
+    }
+    
+    // Set new timeout to update actual filter
+    modelSearchTimeout.current = setTimeout(() => {
+      setInventoryFilters(prev => ({ ...prev, model: value }));
+      setInventoryPage(1); // Reset pagination
+    }, 300); // 300ms debounce
+  }, []);
   
   // Infinite scroll handler for inventory
   const handleInventoryScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -966,12 +1064,12 @@ export default function CarKanbanBoard() {
                     <div>
                       <h4 className="text-[10px] font-medium text-white/80 mb-1">Model</h4>
                       <select
-                        value={inventoryFilters.model}
-                        onChange={(e) => setInventoryFilters(prev => ({ ...prev, model: e.target.value }))}
+                        value={modelSearchInput}
+                        onChange={(e) => handleModelSearchChange(e.target.value)}
                         className="w-full bg-black/50 border border-white/20 rounded px-2 py-1 text-[9px] text-white"
                       >
                         <option value="">All Models</option>
-                        {getUniqueModels(cars).map(model => (
+                        {getUniqueModels.map(model => (
                           <option key={model} value={model}>{model}</option>
                         ))}
                       </select>
@@ -1019,16 +1117,7 @@ export default function CarKanbanBoard() {
                         key={c.id}
                         draggable={canEditCars}
                         onDragStart={onDragStart(c)}
-                        onClick={async () => {
-                          setSelected(c);
-                          const fullData = await loadFullCarData(c.id);
-                          if (fullData) {
-                            setSelectedCarFull(fullData);
-                          } else {
-                            console.error('❌ CarKanbanBoard: Failed to load car details, modal will not open');
-                            setSelected(null);
-                          }
-                        }}
+                        onClick={() => handleCarClick(c)}
                         className={`animate-fadeIn bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-3 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)}`}
                       >
                         {/* thumbnail */}
@@ -1053,11 +1142,7 @@ export default function CarKanbanBoard() {
                           {/* Price Drop Button - Expanded View */}
                           {col.key === 'inventory' && canCreateCars && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedCarForPriceDrop(c);
-                                setShowPriceDropModal(true);
-                              }}
+                              onClick={(e) => handlePriceDropClick(e, c)}
                               className="w-full mt-2 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-xs px-2 py-1 rounded transition-all duration-200 flex items-center justify-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
                               title="Create price drop marketing task"
                             >
@@ -1068,10 +1153,7 @@ export default function CarKanbanBoard() {
                           {/* Archive Button - Expanded View */}
                           {(c.sale_status === 'sold' || c.sale_status === 'returned') && canEditCars && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleArchiveCar(c.id);
-                              }}
+                              onClick={(e) => handleArchiveClick(e, c.id)}
                               className="w-full mt-2 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-xs px-2 py-1 rounded transition-all duration-200 flex items-center justify-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
                               title="Archive car"
                             >
@@ -1090,16 +1172,7 @@ export default function CarKanbanBoard() {
                       key={c.id}
                       draggable={canEditCars}
                       onDragStart={onDragStart(c)}
-                      onClick={async () => {
-                        setSelected(c);
-                        const fullData = await loadFullCarData(c.id);
-                        if (fullData) {
-                          setSelectedCarFull(fullData);
-                        } else {
-                          console.error('❌ CarKanbanBoard: Failed to load car details, modal will not open');
-                          setSelected(null);
-                        }
-                      }}
+                      onClick={() => handleCarClick(c)}
                       className={`animate-fadeIn w-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-200 rounded-lg shadow-sm p-1.5 text-xs select-none cursor-pointer group ${canEditCars ? 'cursor-move' : ''} ${getStockAgeColor(c.stock_age_days)} relative`}
                     >
                       {/* PDF Generated Checkmark - Top Right */}
@@ -1132,11 +1205,7 @@ export default function CarKanbanBoard() {
                           {/* Price Drop Button - List View */}
                           {col.key === 'inventory' && canCreateCars && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedCarForPriceDrop(c);
-                                setShowPriceDropModal(true);
-                              }}
+                              onClick={(e) => handlePriceDropClick(e, c)}
                               className="mt-1 bg-gradient-to-r from-gray-800/80 to-black/60 hover:from-gray-700/90 hover:to-black/70 border border-white/20 text-white text-[7px] px-1 py-0.5 rounded transition-all duration-200 flex items-center gap-1 backdrop-blur-sm hover:backdrop-blur-md"
                               title="Create price drop marketing task"
                             >
@@ -1149,10 +1218,7 @@ export default function CarKanbanBoard() {
                           {/* Archive Button - For sold and returned cars */}
                           {(c.sale_status === 'sold' || c.sale_status === 'returned') && canEditCars && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent card click
-                                handleArchiveCar(c.id);
-                              }}
+                              onClick={(e) => handleArchiveClick(e, c.id)}
                               className="
                                 p-0.5 rounded-full transition-all duration-200 
                                 bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-gray-700/70
@@ -1200,13 +1266,16 @@ export default function CarKanbanBoard() {
       {selected && selectedCarFull && (
         <CarDetailsModal
           car={selectedCarFull}
+          isLoadingDetails={loadingCarDetails}
           onClose={() => {
             setSelected(null);
             setSelectedCarFull(null);
+            setLoadingCarDetails(false);
           }}
           onDeleted={(id)=>{
             setSelected(null);
             setSelectedCarFull(null);
+            setLoadingCarDetails(false);
             setCars(prev=>prev.filter(c=>c.id!==id));
           }}
           onSaved={(updated)=>{

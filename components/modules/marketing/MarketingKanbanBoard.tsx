@@ -290,6 +290,9 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
   const { tasks, columnCount, onDragStart, onDragEnd, handleCardClick, draggedTask, canEdit, handlePin, pinningTask } = data;
   const taskIndex = rowIndex * columnCount + columnIndex;
   const task = tasks[taskIndex];
+  
+  // First 6 images (2 rows) should have priority loading for better LCP
+  const isAboveFold = taskIndex < 6;
 
   if (!task) {
     return <div style={style} />;
@@ -362,7 +365,8 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover transition-transform duration-300 group-hover:scale-110"
-              loading="lazy"
+              priority={isAboveFold}
+              loading={isAboveFold ? undefined : "lazy"}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5 relative">
@@ -1234,9 +1238,12 @@ export default function MarketingKanbanBoard() {
                 </div>
               ) : (
                 // Glassmorphism card layout for other columns
-                grouped[col.key].map(task => {
+                grouped[col.key].map((task, taskIndex) => {
                   // Use pre-computed preview URL to avoid expensive regex operations during render
                   const previewUrl = task.previewUrl;
+                  
+                  // First 3 tasks in each column should have priority loading for better LCP
+                  const isAboveFold = taskIndex < 3;
 
                   return (
                     <div
@@ -1317,7 +1324,8 @@ export default function MarketingKanbanBoard() {
                                 fill
                                 sizes="64px"
                                 className="object-cover transition-transform duration-300 group-hover:scale-110" 
-                                loading="lazy"
+                                priority={isAboveFold}
+                                loading={isAboveFold ? undefined : "lazy"}
                               />
                               {/* Overlay gradient for depth */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

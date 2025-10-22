@@ -16,7 +16,7 @@ interface PricingData {
 const PRICING_DATA: PricingData[] = [
   // AMG GT
   { model: 'AMG GT', variant: 'AMG GT/GT63', year: 'N/A', standard: 6100, premium: 16900 },
-  { model: 'AMG GT', variant: 'AMG GT 53 4-DR', year: 'N/A', standard: 3800, premium: 11700 },
+  { model: 'AMG GT', variant: 'GT43/53 4-DR', year: 'N/A', standard: 3800, premium: 11700 },
   { model: 'AMG GT', variant: 'AMG GT 63 4-DR', year: 'N/A', standard: 6100, premium: 16900 },
   
   // A
@@ -83,6 +83,7 @@ const PRICING_DATA: PricingData[] = [
   { model: 'G', variant: 'G 400(d)', year: '2019+', standard: 4300, premium: 13000 },
   { model: 'G', variant: 'G 500 / 550', year: 'Up to 2018', standard: 4000, premium: 11000 },
   { model: 'G', variant: 'G 500 / 550', year: '2019+', standard: 4300, premium: 13000 },
+  { model: 'G', variant: 'G 55 AMG', year: 'N/A', standard: 4800, premium: 12500 },
   { model: 'G', variant: 'G 63 AMG', year: 'Up to 2018', standard: 4800, premium: 12500 },
   { model: 'G', variant: 'G 63 AMG', year: '2019+', standard: 5400, premium: 15400 },
   
@@ -156,7 +157,7 @@ const PRICING_DATA: PricingData[] = [
   { model: 'SLS', variant: 'SLS', year: 'N/A', standard: 6100, premium: 17300 },
   
   // V
-  { model: 'V', variant: 'V 200 / 300', year: 'N/A', standard: 4100, premium: 10300 },
+  { model: 'V', variant: 'V 250 / 300', year: 'N/A', standard: 4100, premium: 10300 },
   
   // EQ / ELECTRIC
   { model: 'EQ / ELECTRIC', variant: 'EQA', year: 'N/A', standard: 2900, premium: 5800 },

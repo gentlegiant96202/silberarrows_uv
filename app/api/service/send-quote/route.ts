@@ -448,11 +448,18 @@ function buildServiceCareQuoteHtml(quoteData: QuoteData): string {
                 </div>
                 
                 <ul class="services-list">
-                    <li>Service A (Minor Service)</li>
-                    <li>Service B (Major Service) + Brake Fluid</li>
+                    ${isStandard ? `
+                    <li>Service A (Minor)</li>
+                    <li>Service B (Major)</li>
+                    <li>Brake Fluid</li>
+                    ` : ''}
                     ${isPremium ? `
-                    <li>Service A (Minor Service) - Second</li>
-                    <li>Service B + Brake Fluid + Coolant + Spark Plug + Transmission Oil & Filter</li>
+                    <li>Service A (Minor) x2</li>
+                    <li>Service B (Major) x2</li>
+                    <li>Brake Fluid x2</li>
+                    <li>Coolant</li>
+                    <li>Spark Plug</li>
+                    <li>Transmission Oil & Filter</li>
                     ` : ''}
                 </ul>
             </div>

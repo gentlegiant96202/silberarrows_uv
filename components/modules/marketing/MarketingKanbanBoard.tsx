@@ -546,8 +546,8 @@ export default function MarketingKanbanBoard() {
         const rawData = await response.json();
         
         // Transform raw database data (without computing preview URLs yet)
-        const transformedTasks = rawData.map((rawTask: any) => {
-          const baseTask = {
+        const transformedTasks: MarketingTask[] = rawData.map((rawTask: any) => {
+          const baseTask: MarketingTask = {
             id: rawTask.id,
             title: rawTask.title,
             description: rawTask.description,
@@ -564,14 +564,12 @@ export default function MarketingKanbanBoard() {
             content_type: rawTask.content_type || 'post',
             tags: rawTask.tags || [],
             created_by: rawTask.created_by,
-            acknowledged_at: rawTask.acknowledged_at
+            acknowledged_at: rawTask.acknowledged_at,
+            previewUrl: null
           };
           
-          // Don't compute previewUrl yet - let it compute on-demand during render
-          return {
-            ...baseTask,
-            previewUrl: null // Will be computed lazily when card renders
-          };
+          // Don't compute previewUrl yet - leave as null for lazy population
+          return baseTask;
         });
         
         console.log(`✅ Loaded ${transformedTasks.length} tasks`);
@@ -603,7 +601,7 @@ export default function MarketingKanbanBoard() {
           let index = 0;
 
           const processChunk = () => {
-            const updatedBatch = transformedTasks.slice(index, index + chunkSize).map(task => ({
+            const updatedBatch = transformedTasks.slice(index, index + chunkSize).map((task: MarketingTask) => ({
               ...task,
               previewUrl: getPreviewUrl(task.media_files || [])
             }));

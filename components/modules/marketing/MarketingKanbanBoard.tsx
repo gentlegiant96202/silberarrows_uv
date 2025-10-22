@@ -508,7 +508,9 @@ export default function MarketingKanbanBoard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'design_tasks' },
         (payload: any) => {
-          setTasks(prev => {
+          // Use setTimeout to defer state updates for better INP
+          setTimeout(() => {
+            setTasks(prev => {
             if (payload.eventType === 'INSERT') {
               const rawTask = payload.new;
               
@@ -625,6 +627,7 @@ export default function MarketingKanbanBoard() {
             
             return prev;
           });
+          }, 0); // Use setTimeout for browser compatibility
         }
       )
       .subscribe();
@@ -825,7 +828,7 @@ export default function MarketingKanbanBoard() {
     setHovered(null);
   }, []);
 
-  const handleCardClick = (task: MarketingTask) => {
+  const handleCardClick = useCallback((task: MarketingTask) => {
     setSelectedTask(task);
     
     // Show workspace for in_progress and in_review tasks, modal for others
@@ -834,14 +837,14 @@ export default function MarketingKanbanBoard() {
     } else {
       setShowModal(true);
     }
-  };
+  }, []);
 
-  const handleCreateTask = () => {
+  const handleCreateTask = useCallback(() => {
     setSelectedTask(null);
     setShowModal(true);
-  };
+  }, []);
 
-  const handlePin = async (taskId: string, currentPinned: boolean) => {
+  const handlePin = useCallback(async (taskId: string, currentPinned: boolean) => {
     try {
       setPinningTask(taskId);
       const newPinned = !currentPinned;
@@ -874,7 +877,7 @@ export default function MarketingKanbanBoard() {
     } finally {
       setPinningTask(null);
     }
-  };
+  }, [getAuthHeaders]);
 
   const handleSaveTask = async (taskData: Partial<MarketingTask>): Promise<MarketingTask | null> => {
     try {

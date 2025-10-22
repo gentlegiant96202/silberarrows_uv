@@ -295,8 +295,8 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
     return <div style={style} />;
   }
 
-  // Compute preview URL on-demand when rendering
-  const previewUrl = task.previewUrl || getPreviewUrl(task.media_files || []);
+  // Use preview URL if it has been computed (images populate after cards render)
+  const previewUrl = task.previewUrl;
 
   return (
     <div style={{ ...style, padding: '2px' }}>
@@ -407,6 +407,27 @@ export default function MarketingKanbanBoard() {
   // Progressive loading state for fade-in animation (like inventory kanban)
   const [columnsVisible, setColumnsVisible] = useState(false);
   
+  // Helper to group tasks by status (avoids repeated reduce logic)
+  const groupTasksByStatus = useCallback((tasksList: MarketingTask[]): Record<ColKey, MarketingTask[]> => {
+    const base: Record<ColKey, MarketingTask[]> = {
+      intake: [],
+      planned: [],
+      in_progress: [],
+      in_review: [],
+      approved: [],
+      instagram_feed_preview: [],
+      archived: []
+    };
+
+    for (const task of tasksList) {
+      if (base[task.status as ColKey]) {
+        base[task.status as ColKey].push(task);
+      }
+    }
+
+    return base;
+  }, []);
+
   // Column-by-column optimistic loading states
   const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
     intake: true,
@@ -556,22 +577,10 @@ export default function MarketingKanbanBoard() {
         console.log(`✅ Loaded ${transformedTasks.length} tasks`);
         
         // Group by status and update both columnData and tasks
-        const groupedByStatus = transformedTasks.reduce((acc: Record<ColKey, MarketingTask[]>, task: MarketingTask) => {
-          if (!acc[task.status]) acc[task.status] = [];
-          acc[task.status].push(task);
-          return acc;
-        }, {} as Record<ColKey, MarketingTask[]>);
+        const groupedByStatus = groupTasksByStatus(transformedTasks);
         
         // Update column data with grouped tasks IMMEDIATELY so cards render
-        setColumnData({
-          intake: groupedByStatus.intake || [],
-          planned: groupedByStatus.planned || [],
-          in_progress: groupedByStatus.in_progress || [],
-          in_review: groupedByStatus.in_review || [],
-          approved: groupedByStatus.approved || [],
-          instagram_feed_preview: groupedByStatus.instagram_feed_preview || [],
-          archived: []
-        });
+        setColumnData(groupedByStatus);
         
         // Mark all columns as loaded IMMEDIATELY
         setColumnLoading({
@@ -590,32 +599,47 @@ export default function MarketingKanbanBoard() {
         // Compute preview URLs in the background after cards are rendered
         setTimeout(() => {
           console.log('🖼️ Computing preview URLs in background...');
-          const tasksWithPreviews = transformedTasks.map((task: MarketingTask) => ({
-            ...task,
-            previewUrl: getPreviewUrl(task.media_files || [])
-          }));
-          
-          // Update tasks with preview URLs
-          setTasks(tasksWithPreviews);
-          
-          // Re-group with preview URLs
-          const regrouped = tasksWithPreviews.reduce((acc: Record<ColKey, MarketingTask[]>, task: MarketingTask) => {
-            if (!acc[task.status]) acc[task.status] = [];
-            acc[task.status].push(task);
-            return acc;
-          }, {} as Record<ColKey, MarketingTask[]>);
-          
-          setColumnData({
-            intake: regrouped.intake || [],
-            planned: regrouped.planned || [],
-            in_progress: regrouped.in_progress || [],
-            in_review: regrouped.in_review || [],
-            approved: regrouped.approved || [],
-            instagram_feed_preview: regrouped.instagram_feed_preview || [],
-            archived: []
-          });
-          
-          console.log('✅ Preview URLs computed');
+          const chunkSize = 20;
+          let index = 0;
+
+          const processChunk = () => {
+            const updatedBatch = transformedTasks.slice(index, index + chunkSize).map(task => ({
+              ...task,
+              previewUrl: getPreviewUrl(task.media_files || [])
+            }));
+
+            setTasks(prev => {
+              const taskMap = new Map(prev.map(t => [t.id, t]));
+              updatedBatch.forEach(task => taskMap.set(task.id, task));
+              return Array.from(taskMap.values());
+            });
+
+            setColumnData(prev => {
+              const updated = { ...prev };
+              updatedBatch.forEach(task => {
+                const list = updated[task.status as ColKey];
+                if (list) {
+                  const existingIndex = list.findIndex(t => t.id === task.id);
+                  if (existingIndex !== -1) {
+                    list[existingIndex] = task;
+                  } else {
+                    list.push(task);
+                  }
+                }
+              });
+              return updated;
+            });
+
+            index += chunkSize;
+
+            if (index < transformedTasks.length) {
+              setTimeout(processChunk, 0);
+            } else {
+              console.log('✅ Preview URLs computed');
+            }
+          };
+
+          processChunk();
         }, 0);
         
       } else {
@@ -1036,10 +1060,10 @@ export default function MarketingKanbanBoard() {
           const updatedTask: any = await response.json(); // API returns database format
           
           // Map database fields back to frontend format and recalculate preview URL
-          const taskWithPreview: MarketingTask = {
+        const taskWithPreview: MarketingTask = {
             ...updatedTask,
             assignee: updatedTask.requested_by, // Map database field back to frontend
-            previewUrl: getPreviewUrl(updatedTask.media_files || [])
+          previewUrl: getPreviewUrl(updatedTask.media_files || [])
           };
           
           // Update local state with the updated task including preview
@@ -1065,10 +1089,10 @@ export default function MarketingKanbanBoard() {
           const newTask: any = await response.json(); // API returns database format
           
           // Map database fields back to frontend format and calculate preview URL
-          const taskWithPreview: MarketingTask = {
+        const taskWithPreview: MarketingTask = {
             ...newTask,
             assignee: newTask.requested_by, // Map database field back to frontend
-            previewUrl: getPreviewUrl(newTask.media_files || [])
+          previewUrl: getPreviewUrl(newTask.media_files || [])
           };
           
           // Add new task to local state with preview
@@ -1380,8 +1404,8 @@ export default function MarketingKanbanBoard() {
               ) : (
                 // Glassmorphism card layout for other columns
                 grouped[col.key].map(task => {
-                  // Compute preview URL on-demand when rendering (not during data transformation)
-                  const previewUrl = task.previewUrl || getPreviewUrl(task.media_files || []);
+                  // Use preview URL if already computed, otherwise show fallback
+                  const previewUrl = task.previewUrl;
 
                   return (
                     <div

@@ -512,88 +512,89 @@ export default function MarketingKanbanBoard() {
     return () => window.removeEventListener('resize', updateColumnWidth);
   }, []);
 
+  // Fetch all tasks at once
+  const fetchAllTasks = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true', { headers });
+      
+      if (response.ok) {
+        const rawData = await response.json();
+        
+        // Transform raw database data
+        const transformedTasks = rawData.map((rawTask: any) => {
+          const baseTask = {
+            id: rawTask.id,
+            title: rawTask.title,
+            description: rawTask.description,
+            status: rawTask.status,
+            assignee: rawTask.requested_by || rawTask.assignee,
+            due_date: rawTask.due_date,
+            created_at: rawTask.created_at,
+            updated_at: rawTask.updated_at,
+            media_files: rawTask.media_files || [],
+            annotations: rawTask.annotations || [],
+            pinned: rawTask.pinned || false,
+            task_type: rawTask.task_type || 'design',
+            priority: rawTask.priority || 'medium',
+            content_type: rawTask.content_type || 'post',
+            tags: rawTask.tags || [],
+            created_by: rawTask.created_by,
+            acknowledged_at: rawTask.acknowledged_at
+          };
+          
+          return {
+            ...baseTask,
+            previewUrl: getPreviewUrl(baseTask.media_files)
+          };
+        });
+        
+        console.log(`✅ Loaded ${transformedTasks.length} tasks`);
+        
+        // Group by status and update both columnData and tasks
+        const groupedByStatus = transformedTasks.reduce((acc: Record<ColKey, MarketingTask[]>, task: MarketingTask) => {
+          if (!acc[task.status]) acc[task.status] = [];
+          acc[task.status].push(task);
+          return acc;
+        }, {} as Record<ColKey, MarketingTask[]>);
+        
+        // Update column data with grouped tasks
+        setColumnData({
+          intake: groupedByStatus.intake || [],
+          planned: groupedByStatus.planned || [],
+          in_progress: groupedByStatus.in_progress || [],
+          in_review: groupedByStatus.in_review || [],
+          approved: groupedByStatus.approved || [],
+          instagram_feed_preview: groupedByStatus.instagram_feed_preview || [],
+          archived: []
+        });
+        
+        // Mark all columns as loaded
+        setColumnLoading({
+          intake: false,
+          planned: false,
+          in_progress: false,
+          in_review: false,
+          approved: false,
+          instagram_feed_preview: false,
+          archived: false
+        });
+        
+        setTasks(transformedTasks);
+      } else {
+        console.error('❌ Failed to load tasks:', response.statusText);
+      }
+    } catch (error) {
+      console.error('❌ Error loading tasks:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!hasFetchedTasks.current) {
-      console.log('🎨 Marketing: Starting progressive column loading...');
-      
-      // Define loading priority (left to right column order)
-      const columnPriorities: { key: ColKey; delay: number; }[] = [
-        { key: 'intake', delay: 0 },           // INTAKE (leftmost)
-        { key: 'planned', delay: 60 },         // PLANNED
-        { key: 'in_progress', delay: 120 },    // IN PROGRESS
-        { key: 'in_review', delay: 180 },      // IN REVIEW
-        { key: 'approved', delay: 240 },       // APPROVED
-        { key: 'instagram_feed_preview', delay: 300 }, // INSTAGRAM
-        { key: 'archived', delay: 360 }        // ARCHIVED (rightmost)
-      ];
-
-      // Load each column progressively
-      columnPriorities.forEach(({ key, delay }) => {
-        setTimeout(async () => {
-          try {
-            console.log(`🎨 Loading ${key} column...`);
-            
-            const headers = await getAuthHeaders();
-            const excludeArchived = key !== 'archived' ? '&exclude_archived=true' : '';
-            const statusFilter = `&status=${key}`;
-            
-            const response = await fetch(`/api/design-tasks?limit=200${statusFilter}${excludeArchived}`, { headers });
-            
-            if (response.ok) {
-              const rawData = await response.json();
-              
-              // Transform raw database data
-              const transformedTasks = rawData.map((rawTask: any) => {
-                const baseTask = {
-                  id: rawTask.id,
-                  title: rawTask.title,
-                  description: rawTask.description,
-                  status: rawTask.status,
-                  assignee: rawTask.requested_by || rawTask.assignee,
-                  due_date: rawTask.due_date,
-                  created_at: rawTask.created_at,
-                  updated_at: rawTask.updated_at,
-                  media_files: rawTask.media_files || [],
-                  annotations: rawTask.annotations || [],
-                  pinned: rawTask.pinned || false,
-                  task_type: rawTask.task_type || 'design',
-                  priority: rawTask.priority || 'medium',
-                  content_type: rawTask.content_type || 'post',
-                  tags: rawTask.tags || [],
-                  created_by: rawTask.created_by,
-                  acknowledged_at: rawTask.acknowledged_at
-                };
-                
-                return {
-                  ...baseTask,
-                  previewUrl: getPreviewUrl(baseTask.media_files)
-                };
-              });
-              
-              console.log(`✅ ${key} column loaded with ${transformedTasks.length} tasks`);
-              
-              // Update column data
-              setColumnData(prev => ({ ...prev, [key]: transformedTasks }));
-              
-              // Also update main tasks array for compatibility
-              setTasks(prev => {
-                const filteredPrev = prev.filter(task => task.status !== key);
-                return [...filteredPrev, ...transformedTasks];
-              });
-            } else {
-              console.error(`❌ Failed to load ${key} column:`, response.statusText);
-            }
-          } catch (error) {
-            console.error(`❌ Failed to load ${key} column:`, error);
-          } finally {
-            // Mark column as loaded
-            setColumnLoading(prev => ({ ...prev, [key]: false }));
-          }
-        }, delay);
-      });
-
+      fetchAllTasks();
       hasFetchedTasks.current = true;
-      setLoading(false);
     }
     
     // Progressive fade-in animation (like inventory kanban)

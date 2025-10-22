@@ -562,7 +562,7 @@ export default function MarketingKanbanBoard() {
           return acc;
         }, {} as Record<ColKey, MarketingTask[]>);
         
-        // Update column data with grouped tasks
+        // Update column data with grouped tasks IMMEDIATELY so cards render
         setColumnData({
           intake: groupedByStatus.intake || [],
           planned: groupedByStatus.planned || [],
@@ -573,7 +573,7 @@ export default function MarketingKanbanBoard() {
           archived: []
         });
         
-        // Mark all columns as loaded
+        // Mark all columns as loaded IMMEDIATELY
         setColumnLoading({
           intake: false,
           planned: false,
@@ -585,12 +585,45 @@ export default function MarketingKanbanBoard() {
         });
         
         setTasks(transformedTasks);
+        setLoading(false); // Stop loading immediately so cards appear
+        
+        // Compute preview URLs in the background after cards are rendered
+        setTimeout(() => {
+          console.log('🖼️ Computing preview URLs in background...');
+          const tasksWithPreviews = transformedTasks.map((task: MarketingTask) => ({
+            ...task,
+            previewUrl: getPreviewUrl(task.media_files || [])
+          }));
+          
+          // Update tasks with preview URLs
+          setTasks(tasksWithPreviews);
+          
+          // Re-group with preview URLs
+          const regrouped = tasksWithPreviews.reduce((acc: Record<ColKey, MarketingTask[]>, task: MarketingTask) => {
+            if (!acc[task.status]) acc[task.status] = [];
+            acc[task.status].push(task);
+            return acc;
+          }, {} as Record<ColKey, MarketingTask[]>);
+          
+          setColumnData({
+            intake: regrouped.intake || [],
+            planned: regrouped.planned || [],
+            in_progress: regrouped.in_progress || [],
+            in_review: regrouped.in_review || [],
+            approved: regrouped.approved || [],
+            instagram_feed_preview: regrouped.instagram_feed_preview || [],
+            archived: []
+          });
+          
+          console.log('✅ Preview URLs computed');
+        }, 0);
+        
       } else {
         console.error('❌ Failed to load tasks:', response.statusText);
+        setLoading(false);
       }
     } catch (error) {
       console.error('❌ Error loading tasks:', error);
-    } finally {
       setLoading(false);
     }
   };

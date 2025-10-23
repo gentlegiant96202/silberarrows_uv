@@ -197,11 +197,36 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
 
   const [loading, setLoading] = useState(false);
 
-  // Regenerate reference number when contractType changes
+  // Regenerate reference number and recalculate dates when contractType changes
   useEffect(() => {
+    const today = new Date();
+    const startDate = today.toISOString().split('T')[0];
+    
+    // Calculate end date based on contract type
+    let endDate: string;
+    const currentMileage = parseInt(formData.currentOdometer || '0') || 0;
+    let cutOffKm: string;
+    
+    if (contractType === 'warranty') {
+      // Warranty is ALWAYS 1 year (12 months) for both standard and premium
+      const warrantyEndDate = new Date(today);
+      warrantyEndDate.setFullYear(warrantyEndDate.getFullYear() + 1);
+      endDate = warrantyEndDate.toISOString().split('T')[0];
+      cutOffKm = (currentMileage + 20000).toString();
+    } else {
+      // Service: 2 years for standard, 4 years for premium
+      const serviceEndDate = new Date(today);
+      serviceEndDate.setFullYear(serviceEndDate.getFullYear() + (formData.serviceType === 'premium' ? 4 : 2));
+      endDate = serviceEndDate.toISOString().split('T')[0];
+      cutOffKm = (currentMileage + (formData.serviceType === 'premium' ? 60000 : 30000)).toString();
+    }
+    
     setFormData(prev => ({
       ...prev,
-      referenceNo: generateReferenceNo()
+      referenceNo: generateReferenceNo(),
+      startDate: startDate,
+      endDate: endDate,
+      cutOffKm: cutOffKm
     }));
   }, [contractType]);
 

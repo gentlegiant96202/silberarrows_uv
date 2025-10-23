@@ -14,7 +14,7 @@ interface ExtendMaterialConfig {
   header: string;
   vertexHeader?: string;
   fragmentHeader?: string;
-  material?: THREE.MeshPhysicalMaterialParameters & { fog?: boolean };
+  material?: { fog?: boolean } & THREE.MaterialParameters;
   uniforms?: Record<string, UniformValue>;
   vertex?: Record<string, string>;
   fragment?: Record<string, string>;

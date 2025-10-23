@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Search vehicle reservations by customer name, mobile number, email, document number, or vehicle info
-    const { data: reservations, error } = await supabase
+    const { data: reservations, error } = await supabaseAdmin
       .from('vehicle_reservations')
       .select(`
         id,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch detailed reservation data for auto-population
-    const { data: reservation, error } = await supabase
+    const { data: reservation, error } = await supabaseAdmin
       .from('vehicle_reservations')
       .select('*')
       .eq('id', reservationId)

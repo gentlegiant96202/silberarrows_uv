@@ -580,9 +580,9 @@ export default function VehicleDocumentModal({
     }));
   };
 
-  // Don't lock invoice generation for sales users - they need to create invoices
-  // Only lock when editing an existing invoice that's already been generated
-  const isLocked = mode === 'invoice' && hasInvoice && pdfGenerated && !isAdmin;
+  // Allow all users to generate and edit invoices
+  // No locks needed - permissions are handled at database level via RLS
+  const isLocked = false;
 
   const handleInputChange = (field: keyof FormData, value: any) => {
     if (isLocked) return;

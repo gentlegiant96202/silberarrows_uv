@@ -6,7 +6,9 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import { degToRad } from 'three/src/math/MathUtils.js';
 
-type UniformValue = THREE.Uniform | unknown;
+type UniformObject = { value: unknown } | { shared?: boolean; mixed?: boolean; linked?: boolean; value: unknown }
+
+type UniformValue = UniformObject | unknown;
 
 interface ExtendMaterialConfig {
   header: string;
@@ -30,7 +32,7 @@ function extendMaterial<T extends THREE.Material = THREE.Material>(
   const { vertexShader: baseVert, fragmentShader: baseFrag, uniforms: baseUniforms } = physical;
   const baseDefines = physical.defines ?? {};
 
-  const uniforms: Record<string, THREE.Uniform> = THREE.UniformsUtils.clone(baseUniforms) as Record<string, THREE.Uniform>;
+  const uniforms: Record<string, UniformObject> = THREE.UniformsUtils.clone(baseUniforms) as Record<string, UniformObject>;
 
   const defaults = new BaseMaterial(cfg.material || {}) as T & {
     color?: THREE.Color;
@@ -49,8 +51,8 @@ function extendMaterial<T extends THREE.Material = THREE.Material>(
   Object.entries(cfg.uniforms ?? {}).forEach(([key, u]) => {
     uniforms[key] =
       u !== null && typeof u === 'object' && 'value' in u
-        ? (u as THREE.Uniform)
-        : new THREE.Uniform(u as unknown);
+        ? (u as UniformObject)
+        : { value: u as unknown };
   });
 
   let vert = `${cfg.header}\n${cfg.vertexHeader ?? ''}\n${baseVert}`;

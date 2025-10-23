@@ -949,7 +949,6 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-2">
                     Start Date *
-                    <span className="ml-2 text-xs text-green-400">(Locked)</span>
                   </label>
                   <div className="relative">
                     <input
@@ -967,8 +966,7 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                           endDate
                         }));
                       }}
-                      disabled
-                      className="w-full h-[42px] px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white cursor-not-allowed opacity-60 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70"
+                      className="w-full h-[42px] px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                       required
                     />
                     {formData.startDate && (

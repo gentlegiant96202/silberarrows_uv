@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { X, User, MapPin, FileText, Car, Upload, Calendar, DollarSign } from "lucide-react";
 
@@ -41,6 +41,14 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
 
   // Tab state
   const [activeTab, setActiveTab] = useState<string>('personal');
+  const hasInitializedRef = useRef(false);
+  
+  // Reset initialization when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      hasInitializedRef.current = false;
+    }
+  }, [isOpen]);
   
   // Form state - organized by tabs
   const [personalInfo, setPersonalInfo] = useState({
@@ -144,8 +152,8 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
 
   // Update form when existingCustomer changes
   useEffect(() => {
-    if (existingCustomer) {
-      console.log('🔍 Contract Modal received existingCustomer:', existingCustomer);
+    if (existingCustomer && !hasInitializedRef.current) {
+      console.log('🔍 Contract Modal received existingCustomer (initial load):', existingCustomer);
       
       setPersonalInfo({
         customer_name: existingCustomer.customer_name || "",
@@ -196,6 +204,68 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       if (existingCustomer.lease_agreement_pdf_url) {
         setExistingPdfUrl(existingCustomer.lease_agreement_pdf_url);
         // Set generated contract state to show the existing document
+        setGeneratedContract({
+          filename: `lease-agreement-${existingCustomer.customer_name?.replace(/\s+/g, '-') || 'customer'}.pdf`,
+          url: existingCustomer.lease_agreement_pdf_url,
+          generatedAt: 'Previously generated'
+        });
+      }
+      
+      hasInitializedRef.current = true;
+    } else if (existingCustomer && hasInitializedRef.current) {
+      // Update only the form data without resetting tab
+      console.log('🔄 Contract Modal updating existingCustomer (after save):', existingCustomer);
+      
+      setPersonalInfo({
+        customer_name: existingCustomer.customer_name || "",
+        customer_email: existingCustomer.customer_email || "",
+        customer_phone: existingCustomer.customer_phone || "",
+        emirates_id_number: existingCustomer.emirates_id_number || ""
+      });
+
+      setAddressInfo({
+        address_line_1: existingCustomer.address_line_1 || "",
+        address_line_2: existingCustomer.address_line_2 || "",
+        city: existingCustomer.city || "",
+        emirate: existingCustomer.emirate || ""
+      });
+
+      setContractInfo({
+        selected_vehicle_id: existingCustomer.selected_vehicle_id || "",
+        monthly_payment: existingCustomer.monthly_payment?.toString() || "",
+        security_deposit: existingCustomer.security_deposit?.toString() || "",
+        lease_term_months: existingCustomer.lease_term_months?.toString() || "",
+        lease_start_date: existingCustomer.lease_start_date || "",
+        lease_end_date: existingCustomer.lease_end_date || "",
+        lease_to_own_option: existingCustomer.lease_to_own_option || false,
+        buyout_price: existingCustomer.buyout_price?.toString() || "",
+        excess_mileage_charges: existingCustomer.excess_mileage_charges?.toString() || ""
+      });
+
+      setDocumentUrls({
+        emirates_id_front_url: existingCustomer.emirates_id_front_url || "",
+        emirates_id_back_url: existingCustomer.emirates_id_back_url || "",
+        passport_front_url: existingCustomer.passport_front_url || "",
+        passport_back_url: existingCustomer.passport_back_url || "",
+        visa_copy_url: existingCustomer.visa_copy_url || "",
+        address_proof_url: existingCustomer.address_proof_url || "",
+        driving_license_front_url: existingCustomer.driving_license_front_url || "",
+        driving_license_back_url: existingCustomer.driving_license_back_url || ""
+      });
+
+      setNotes(existingCustomer.notes || "");
+
+      // Load selected vehicle if ID exists
+      if (existingCustomer.selected_vehicle_id) {
+        fetchSelectedVehicle(existingCustomer.selected_vehicle_id);
+      } else {
+        // Don't clear selectedVehicle if the ID is missing - might be temporary
+        console.log('⚠️ No selected_vehicle_id in updated customer, keeping current selectedVehicle');
+      }
+
+      // Load existing PDF URL if available
+      if (existingCustomer.lease_agreement_pdf_url) {
+        setExistingPdfUrl(existingCustomer.lease_agreement_pdf_url);
         setGeneratedContract({
           filename: `lease-agreement-${existingCustomer.customer_name?.replace(/\s+/g, '-') || 'customer'}.pdf`,
           url: existingCustomer.lease_agreement_pdf_url,
@@ -570,13 +640,14 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       }
 
       console.log('✅ Contract saved successfully:', result.data);
+      setLoading(false);
       onCreated(result.data);
-      onClose();
+      // Don't close the modal automatically - let user close it manually
+      // This allows them to see the updated data and make more edits if needed
 
     } catch (error) {
       console.error('❌ Error in handleSubmit:', error);
       alert('Error saving contract. Please try again.');
-    } finally {
       setLoading(false);
     }
   };

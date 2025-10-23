@@ -579,6 +579,8 @@ export default function LeasingKanbanBoard() {
 
   const handleContractCreated = (updatedCustomer: any) => {
     console.log('📋 Contract created/updated:', updatedCustomer);
+    console.log('🔍 Current columnData.contracts_drafted length:', columnData.contracts_drafted.length);
+    console.log('🔍 Current leases length:', leases.length);
     
     // Normalize the customer data to ensure status consistency
     const normalizedCustomer = {
@@ -587,22 +589,27 @@ export default function LeasingKanbanBoard() {
     };
 
     console.log('📊 Normalized customer status:', normalizedCustomer.status);
+    console.log('📊 Normalized customer ID:', normalizedCustomer.id);
 
     if (normalizedCustomer.status === 'contracts_drafted') {
       // Update or add to contracts_drafted column
       setColumnData(prev => {
+        console.log('🔄 Updating columnData, previous contracts_drafted:', prev.contracts_drafted.length);
         const existingIndex = prev.contracts_drafted.findIndex(lease => lease.id === normalizedCustomer.id);
+        console.log('🔍 Existing index:', existingIndex);
         
         if (existingIndex >= 0) {
           // Update existing customer in contracts_drafted
           const updatedContracts = [...prev.contracts_drafted];
           updatedContracts[existingIndex] = normalizedCustomer;
+          console.log('✅ Updated existing customer in contracts_drafted');
           return {
       ...prev,
             contracts_drafted: updatedContracts
           };
         } else {
           // Add new customer to contracts_drafted (remove from other columns if exists)
+          console.log('✅ Adding new customer to contracts_drafted');
           return {
             ...prev,
             prospects: prev.prospects.filter(lease => lease.id !== normalizedCustomer.id),
@@ -619,11 +626,26 @@ export default function LeasingKanbanBoard() {
       console.log('⚠️ Unexpected status for contract creation:', normalizedCustomer.status);
     }
 
-    // Update the main leases array
-    setLeases(prev => prev.map(lease => 
-      lease.id === normalizedCustomer.id ? normalizedCustomer : lease
-    ));
-    setContractsCustomer(null);
+    // Update the main leases array - either update or add
+    setLeases(prev => {
+      const existingLeaseIndex = prev.findIndex(lease => lease.id === normalizedCustomer.id);
+      console.log('🔍 Existing lease index:', existingLeaseIndex);
+      if (existingLeaseIndex >= 0) {
+        // Update existing lease
+        const updatedLeases = [...prev];
+        updatedLeases[existingLeaseIndex] = normalizedCustomer;
+        console.log('✅ Updated existing lease in main array');
+        return updatedLeases;
+      } else {
+        // Add new lease
+        console.log('✅ Added new lease to main array');
+        return [...prev, normalizedCustomer];
+      }
+    });
+    
+    // Update contractsCustomer with the new data so the modal shows updated content
+    setContractsCustomer(normalizedCustomer);
+    console.log('✅ Updated contractsCustomer to show saved data in modal');
   };
 
   // Filter helper functions (like UV CRM)

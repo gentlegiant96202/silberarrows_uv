@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
                   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #000000 100%);
               color: #ffffff;
               min-height: 100vh;
-              padding: 30px 60px;
+              padding: 0;
               line-height: 1.4;
           }
           
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
           
               .quotation-container {
               page-break-inside: avoid;
-              padding: 20px 40px;
+              padding: 30px;
               display: flex;
               flex-direction: column;
               justify-content: center;
@@ -353,6 +353,55 @@ export async function POST(request: NextRequest) {
               object-fit: contain;
               border-radius: 7px;
               }
+          
+          /* Image Gallery Section - natural page flow */
+          .image-gallery {
+              margin-top: 40px;
+          }
+          
+          .image-page {
+              page-break-inside: avoid;
+              display: flex;
+              flex-direction: column;
+              height: 100vh;
+              padding: 20px;
+              margin: 0;
+              gap: 20px;
+              align-items: center;
+              justify-content: center;
+          }
+          
+          /* Only add page break after if it's not the last image page */
+          .image-page:not(:last-child) {
+              page-break-after: always;
+          }
+          
+          .gallery-image {
+              flex: 1;
+              width: 90%;
+              max-height: 45%;
+              min-height: 300px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden;
+          }
+          
+          /* When only one image on a page, make it larger and center it */
+          .image-page .gallery-image:only-child {
+              max-height: 80%;
+              min-height: 500px;
+              margin: auto 0;
+          }
+          
+          .gallery-image img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              display: block;
+              border-radius: 10px;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+          }
 
           .specs-grid {
               display: grid;
@@ -386,7 +435,8 @@ export async function POST(request: NextRequest) {
               backdrop-filter: blur(25px);
               border: 1px solid rgba(255, 255, 255, 0.15);
               border-radius: 16px;
-              padding: 15px;
+              padding: 25px;
+              margin-bottom: 25px;
               box-shadow: 
                   0 8px 20px rgba(0, 0, 0, 0.1),
                   inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -496,10 +546,24 @@ export async function POST(request: NextRequest) {
 
               .mileage-item {
                   display: flex;
-                  justify-content: space-between;
+                  justify-content: center;
                   align-items: center;
-              padding: 4px 0;
+                  gap: 8px;
+              padding: 6px 0;
                   font-size: 10px;
+              }
+
+              .mileage-label {
+                  color: rgba(255, 255, 255, 0.7);
+                  font-weight: 500;
+              }
+
+              .mileage-value {
+                  color: #ffffff;
+                  font-weight: 700;
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
               }
 
           .footer {
@@ -548,12 +612,40 @@ export async function POST(request: NextRequest) {
                   margin-bottom: 6px;
           }
 
+          .description-content {
+              padding: 0;
+              background: transparent;
+              border: none;
+              border-radius: 0;
+              line-height: 1.5;
+          }
+
+          .description-text {
+              font-size: 11px;
+              color: rgba(255, 255, 255, 0.85);
+              white-space: pre-wrap;
+              word-wrap: break-word;
+          }
+
+          .terms-content {
+              padding: 14px 16px;
+              background: rgba(255, 255, 255, 0.03);
+              border: 1px solid rgba(255, 255, 255, 0.08);
+              border-radius: 8px;
+          }
+
+          .terms-text {
+              font-size: 10px;
+              line-height: 1.4;
+              color: rgba(255, 255, 255, 0.85);
+          }
+
           /* Marketing Page Styles */
           .benefits-hero {
               text-align: center;
-              padding: 20px 0 25px 0;
+              padding: 0 0 20px 0;
               border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-              margin-bottom: 25px;
+              margin-bottom: 20px;
           }
 
           .benefits-hero h2 {
@@ -589,7 +681,7 @@ export async function POST(request: NextRequest) {
               backdrop-filter: blur(20px);
               border: 1px solid rgba(255, 255, 255, 0.12);
               border-radius: 14px;
-              padding: 18px;
+              padding: 25px;
               box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
           }
 
@@ -626,7 +718,7 @@ export async function POST(request: NextRequest) {
               backdrop-filter: blur(25px);
               border: 1px solid rgba(255, 255, 255, 0.15);
               border-radius: 16px;
-              padding: 20px;
+              padding: 25px;
               margin-bottom: 25px;
           }
 
@@ -745,10 +837,10 @@ export async function POST(request: NextRequest) {
                 <div class="header-top">
                     <div class="company-info">
                         <div class="company-text">
-                              <h1>Approved Used Mercedes-Benz</h1>
+                              <h1>Mercedes-Benz Leasing</h1>
                           </div>
                           <div class="quotation-details">
-                            <h2>VEHICLE QUOTATION</h2>
+                            <h2>LEASE QUOTATION</h2>
                             <p>Chassis: <span class="chassis-number">${vehicle.chassis_number || 'N/A'}</span></p>
                           </div>
                     </div>
@@ -786,6 +878,7 @@ export async function POST(request: NextRequest) {
 
           <div class="quotation-container" style="page-break-before: always;">
               <div class="content-wrapper">
+                <div class="full-width-section">
                     <div class="pricing-section">
                       <h4 class="pricing-header">Vehicle Price & Lease Options</h4>
                         <div class="main-price">
@@ -802,7 +895,7 @@ export async function POST(request: NextRequest) {
                         ${vehicle.excess_mileage_charges || vehicle.max_mileage_per_year ? `
                         <div class="mileage-info">
                             ${vehicle.max_mileage_per_year ? `<div class="mileage-item"><span class="mileage-label">Annual Mileage Allowance:</span> <span class="mileage-value">${vehicle.max_mileage_per_year.toLocaleString()} km/year</span></div>` : ''}
-                          ${vehicle.excess_mileage_charges ? `<div class="mileage-item"><span class="mileage-label">Excess Mileage Charge:</span> <span class="mileage-value">${vehicle.excess_mileage_charges.toLocaleString()} AED/km</span></div>` : ''}
+                          ${vehicle.excess_mileage_charges ? `<div class="mileage-item"><span class="mileage-label">Excess Mileage Charge:</span> <span class="mileage-value"><svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg" style="width:10px;height:10px;flex:0 0 auto;"><path fill="#ffffff" d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" /></svg> ${vehicle.excess_mileage_charges.toLocaleString()}/km</span></div>` : ''}
                         </div>
                         ` : ''}
                     </div>
@@ -831,30 +924,32 @@ export async function POST(request: NextRequest) {
                         </div>
                     <div class="benefit-card">
                         <div class="benefit-icon">🔄</div>
-                        <div class="benefit-title">Ultimate Flexibility</div>
-                        <div class="benefit-description">Upgrade to the latest model at the end of your term or simply return the vehicle. The choice is yours.</div>
+                        <div class="benefit-title">Zero Downpayment</div>
+                        <div class="benefit-description">Start driving immediately with no upfront downpayment required. We make leasing accessible and hassle-free for everyone.</div>
                         </div>
                     <div class="benefit-card">
-                        <div class="benefit-icon">📊</div>
-                        <div class="benefit-title">Tax Benefits</div>
-                        <div class="benefit-description">Business customers can benefit from potential tax advantages with lease payments as operational expenses.</div>
+                        <div class="benefit-icon">🏆</div>
+                        <div class="benefit-title">Lease to Own Option</div>
+                        <div class="benefit-description">Purchase the vehicle at the end of your lease term with our competitive buyout price. Own your dream car on your terms.</div>
                         </div>
                     <div class="benefit-card">
                         <div class="benefit-icon">🚗</div>
                         <div class="benefit-title">Always Drive New</div>
-                        <div class="benefit-description">Stay current with the latest technology, safety features, and models without long-term ownership concerns.</div>
+                        <div class="benefit-description">Don't want to own it? Simply return the vehicle at lease end and upgrade to the latest model with cutting-edge technology and features.</div>
                 </div>
             </div>
+                </div>
+            </div>
+        </div>
 
                 ${vehicle.description ? `
-                  <div class="full-width-section" style="page-break-before: always;">
+                <div class="quotation-container" style="page-break-before: always;">
+                    <div class="content-wrapper">
+                  <div class="full-width-section">
                     <h4 class="card-title">Vehicle Description</h4>
-                    <div class="description-content">
-                          <p class="description-text">${vehicle.description}</p>
-                    </div>
+                    <p class="description-text">${vehicle.description}</p>
                 </div>
-                ` : ''}
-
+                
                 ${vehicle.key_equipment && Array.isArray(vehicle.key_equipment) && vehicle.key_equipment.length > 0 ? `
                   <div class="full-width-section">
                     <h4 class="card-title">Key Equipment & Features</h4>
@@ -864,24 +959,60 @@ export async function POST(request: NextRequest) {
                 </div>
                 ` : ''}
 
+                </div>
+        </div>
+        ` : `
+                ${vehicle.key_equipment && Array.isArray(vehicle.key_equipment) && vehicle.key_equipment.length > 0 ? `
+                <div class="quotation-container" style="page-break-before: always;">
+                    <div class="content-wrapper">
                   <div class="full-width-section">
-                    <h4 class="card-title">Leasing Terms & Conditions</h4>
-                      <div class="terms-content">
-                          <p class="terms-text">
-                            • Minimum lease term: 12 months<br>
-                            • Security deposit required upon signing<br>
-                            • Comprehensive insurance included<br>
-                            • Regular maintenance and servicing included<br>
-                            • 24/7 roadside assistance available<br>
-                            • Excess mileage charges apply beyond annual allowance<br>
-                            • Early termination fees may apply<br>
-                            • Subject to credit approval and documentation<br>
-                            • Prices exclude 5% VAT<br>
-                            • Terms and conditions apply
-                        </p>
+                    <h4 class="card-title">Key Equipment & Features</h4>
+                    <div class="equipment-grid">
+                        ${vehicle.key_equipment.map((item: string) => `<div class="equipment-item">${item}</div>`).join('')}
                     </div>
                 </div>
 
+                </div>
+        </div>
+        ` : ''}
+        `}
+
+          <!-- REST OF PAGES: Image Gallery Section (2 images per page, no empty pages) -->
+          ${galleryPhotos.length > 0 ? `
+          <div class="image-gallery">
+              ${(() => {
+                  const imagePages = [];
+                  console.log(`📄 Processing ${galleryPhotos.length} gallery photos for pagination...`);
+                  
+                  // Group images in pairs (2 per page) for vertical stacking
+                  for (let i = 0; i < galleryPhotos.length; i += 2) {
+                      const pageImages = galleryPhotos.slice(i, i + 2);
+                      console.log(`📄 Page ${Math.floor(i/2) + 1}: ${pageImages.length} images (indices ${i} to ${i + pageImages.length - 1})`);
+                      
+                      // Only create a page if we have at least one image
+                      if (pageImages.length > 0) {
+                          const pageHTML = `
+                          <div class="image-page">
+                              ${pageImages.map((photo: any, index: number) => `
+                              <div class="gallery-image">
+                                  <img src="${photo.url}" alt="Vehicle image ${i + index + 6}" />
+                              </div>
+                              `).join('')}
+                          </div>`;
+                          imagePages.push(pageHTML);
+                      }
+                  }
+                  
+                  console.log(`📄 Total image pages created: ${imagePages.length}`);
+                  return imagePages.join('');
+              })()}
+          </div>
+          ` : ''}
+          
+          <!-- Final Footer -->
+          <div class="quotation-container" style="page-break-before: always;">
+              <div class="content-wrapper">
+                <div class="full-width-section" style="display:flex;align-items:center;justify-content:center;min-height:300px;">
                   <div class="footer">
                     <p>Ready to lease this vehicle?</p>
                     <div class="contact-info">
@@ -889,18 +1020,8 @@ export async function POST(request: NextRequest) {
                       </div>
                     </div>
                 </div>
-        </div>
-
-          ${galleryPhotos.length > 0 ? `
-          <div class="quotation-container" style="page-break-before: always;">
-              <div class="content-wrapper">
-                  <h4 class="card-title">Additional Images</h4>
-                  <div class="thumbnail-grid">
-                      ${galleryPhotos.map((photo: any, index: number) => `<div class="thumbnail"><img src="${photo.url}" alt="Additional vehicle image ${index + 1}" /></div>`).join('')}
-                  </div>
-            </div>
-        </div>
-        ` : ''}
+              </div>
+          </div>
     </body>
     </html>
   `;

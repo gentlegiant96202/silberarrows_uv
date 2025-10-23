@@ -266,10 +266,11 @@ async function generateLeaseAgreementPdf(data: any): Promise<Buffer> {
 
   // Resolve logo
   const logoFileCandidates = [
+    path.join(process.cwd(), 'public', 'MAIN LOGO.png'),
     path.join(process.cwd(), 'public', 'main-logo.png'),
     path.join(process.cwd(), 'renderer', 'public', 'main-logo.png')
   ];
-  let logoSrc = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
+  let logoSrc = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1735721054/MAIN_LOGO_krrykw.png';
   for (const candidate of logoFileCandidates) {
     try {
       if (fs.existsSync(candidate)) {

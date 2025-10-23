@@ -91,3 +91,5 @@ npx ts-node scripts/backfill-media-file-sizes.ts
 
 Once completed, all existing media will display file size badges in the car details modal, just like newly uploaded media.
 
+
+

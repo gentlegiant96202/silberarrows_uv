@@ -13,3 +13,5 @@ CREATE INDEX IF NOT EXISTS idx_car_media_file_size
 ON car_media(file_size) 
 WHERE file_size IS NOT NULL;
 
+
+

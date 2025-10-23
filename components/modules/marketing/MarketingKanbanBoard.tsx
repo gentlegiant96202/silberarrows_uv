@@ -877,13 +877,25 @@ export default function MarketingKanbanBoard() {
     setHovered(null);
     
     // Optimistic update for immediate UI feedback - preserve all existing data
+    const updatedTaskOptimistic = { ...taskToUpdate, status, updated_at: new Date().toISOString() };
+    
     setTasks(prevTasks => 
       prevTasks.map(task =>
         task.id === taskToUpdate.id
-          ? { ...task, status, updated_at: new Date().toISOString() }
+          ? updatedTaskOptimistic
           : task
       )
     );
+    
+    // Also update columnData for immediate visual feedback
+    setColumnData(prev => {
+      const updated = { ...prev };
+      // Remove from old column
+      updated[taskToUpdate.status] = updated[taskToUpdate.status].filter(t => t.id !== taskToUpdate.id);
+      // Add to new column
+      updated[status] = [updatedTaskOptimistic, ...updated[status]];
+      return updated;
+    });
     
     // Fetch fresh task data from database to ensure we have the latest media_files
     try {
@@ -960,6 +972,17 @@ export default function MarketingKanbanBoard() {
             : task
         )
       );
+      
+      // Also revert columnData
+      setColumnData(prev => {
+        const updated = { ...prev };
+        // Remove from the new column
+        updated[status] = updated[status].filter(t => t.id !== taskToUpdate.id);
+        // Add back to the old column
+        updated[taskToUpdate.status] = [taskToUpdate, ...updated[taskToUpdate.status]];
+        return updated;
+      });
+      
       console.error('Error updating task status:', error);
       
       // Show user-friendly error message

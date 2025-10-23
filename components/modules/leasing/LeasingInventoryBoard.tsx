@@ -517,7 +517,9 @@ export default function LeasingInventoryBoard() {
     setVehicles(prev => prev.map(vehicle => 
       vehicle.id === updatedVehicle.id ? updatedVehicle : vehicle
     ));
-    setEditingVehicle(null);
+    
+    // Update the editing vehicle state to keep the modal in edit mode with updated data
+    setEditingVehicle(updatedVehicle);
   };
 
   // Apply search filter

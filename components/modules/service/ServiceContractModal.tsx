@@ -956,9 +956,21 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
                       value={formData.startDate}
                       onChange={(e) => {
                         const startDate = e.target.value;
-                        const endDate = startDate ? new Date(new Date(startDate).setFullYear(
-                          new Date(startDate).getFullYear() + (formData.serviceType === 'premium' ? 4 : 2)
-                        )).toISOString().split('T')[0] : '';
+                        let endDate = '';
+                        
+                        if (startDate) {
+                          const startDateObj = new Date(startDate);
+                          
+                          if (contractType === 'warranty') {
+                            // Warranty: ALWAYS 1 year (12 months) for both standard and premium
+                            startDateObj.setFullYear(startDateObj.getFullYear() + 1);
+                          } else {
+                            // Service: 2 years (standard) or 4 years (premium)
+                            startDateObj.setFullYear(startDateObj.getFullYear() + (formData.serviceType === 'premium' ? 4 : 2));
+                          }
+                          
+                          endDate = startDateObj.toISOString().split('T')[0];
+                        }
                         
                         setFormData(prev => ({
                           ...prev,

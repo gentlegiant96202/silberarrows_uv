@@ -110,12 +110,50 @@ export async function POST(request: NextRequest) {
 
     const vehicle = vehicleData;
 
-    if (vehicle.key_equipment && typeof vehicle.key_equipment === 'string') {
-      vehicle.key_equipment = vehicle.key_equipment
-        .split(/\n|,/)
-        .map((item: string) => item.trim())
-        .filter((item: string) => item.length > 0);
-    }
+    const normalizeKeyEquipmentItems = (value: string | string[] | null | undefined) => {
+      if (!value) return [] as string[];
+
+      const rawItems = Array.isArray(value) ? value : value.split(/\n|,/);
+      const normalized: string[] = [];
+
+      for (const raw of rawItems) {
+        if (typeof raw !== 'string') continue;
+
+        const trimmed = raw.replace(/\s+/g, ' ').trim();
+        if (!trimmed) continue;
+
+        const hasBulletPrefix = /^[-•–]/.test(trimmed);
+        const content = trimmed.replace(/^[-•–]\s*/, '').trim();
+
+        if (hasBulletPrefix || normalized.length === 0) {
+          normalized.push(content);
+        } else {
+          normalized[normalized.length - 1] = `${normalized[normalized.length - 1]} ${content}`;
+        }
+      }
+
+      return normalized;
+    };
+
+    const keyEquipmentItems = normalizeKeyEquipmentItems(vehicle.key_equipment as string | string[] | null | undefined);
+
+    const buildColumns = (items: string[], columnCount: number) => {
+      if (columnCount <= 1) return [items];
+
+      const columns: string[][] = Array.from({ length: columnCount }, () => []);
+      const perColumn = Math.ceil(items.length / columnCount) || 1;
+
+      items.forEach((item, index) => {
+        const columnIndex = Math.min(Math.floor(index / perColumn), columnCount - 1);
+        columns[columnIndex].push(item);
+      });
+
+      return columns.filter(column => column.length > 0);
+    };
+
+    const keyEquipmentColumns = buildColumns(keyEquipmentItems, 2);
+
+    vehicle.key_equipment = keyEquipmentItems;
 
     if (vehicle.photos && Array.isArray(vehicle.photos)) {
       vehicle.photos = vehicle.photos.map((photo: any) => ({
@@ -224,7 +262,7 @@ export async function POST(request: NextRequest) {
           }
           
           .company-text h1 {
-              font-size: 24px;
+              font-size: 32px;
               font-weight: 800;
                   background: linear-gradient(135deg, #ffffff 0%, #e8e8e8 25%, #d0d0d0 50%, #e8e8e8 75%, #ffffff 100%);
                   -webkit-background-clip: text;
@@ -583,6 +621,7 @@ export async function POST(request: NextRequest) {
                   font-size: 10px;
                   color: rgba(255, 255, 255, 0.6);
               margin-bottom: 6px;
+              font-weight: 400;
           }
           
           .contact-info {
@@ -594,22 +633,54 @@ export async function POST(request: NextRequest) {
               background-clip: text;
           }
           
+          /* Equipment Page Layout */
+          .equipment-page-container {
+              page-break-inside: avoid;
+              padding: 40px 40px 20px 40px;
+              display: flex;
+              flex-direction: column;
+              min-height: 100vh;
+              margin: 0;
+              position: relative;
+          }
+          
+          .equipment-content {
+              flex: 1;
+              padding-top: 0;
+          }
+          
+          .equipment-footer {
+              margin-top: auto;
+              padding-top: 30px;
+          }
+          
               .page-break {
               page-break-before: always;
           }
           
               .equipment-grid {
               display: grid;
-                  grid-template-columns: repeat(2, 1fr);
-                  gap: 10px 20px;
+                  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+                  gap: 0 24px;
               }
 
-              .equipment-item {
-                  font-size: 11px;
+              .equipment-column {
+                  list-style: none;
+                  padding: 0;
+                  margin: 0;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 6px;
+              }
+
+              .equipment-column li {
+                  font-size: 9px;
                   color: rgba(255, 255, 255, 0.85);
                   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
                   padding-bottom: 6px;
-                  margin-bottom: 6px;
+                  line-height: 1.4;
+                  word-wrap: break-word;
+                  overflow-wrap: break-word;
           }
 
           .description-content {
@@ -837,7 +908,7 @@ export async function POST(request: NextRequest) {
                 <div class="header-top">
                     <div class="company-info">
                         <div class="company-text">
-                              <h1>Mercedes-Benz Leasing</h1>
+                              <h1>SilberArrows</h1>
                           </div>
                           <div class="quotation-details">
                             <h2>LEASE QUOTATION</h2>
@@ -847,7 +918,7 @@ export async function POST(request: NextRequest) {
                       <img src="${logoSrc}" alt="Logo" class="company-logo" />
                 </div>
                 <div class="vehicle-title">
-                    <h3>${vehicle.vehicle_model || vehicle.make || 'Vehicle Model'}</h3>
+                    <h3>${vehicle.make && vehicle.vehicle_model ? `${vehicle.make} ${vehicle.vehicle_model}` : vehicle.vehicle_model || vehicle.make || 'Vehicle Model'}</h3>
                 </div>
             </div>
 
@@ -900,9 +971,9 @@ export async function POST(request: NextRequest) {
                         ` : ''}
                     </div>
 
-                <!-- Marketing Benefits Section -->
+                <!-- Marketing Benefits Section (NO page break - stays under pricing) -->
                 <div class="benefits-hero">
-                    <h2>Why Lease with Silber Arrows?</h2>
+                    <h2>Why Lease with SilberArrows?</h2>
                     <p>Experience the ultimate flexibility and peace of mind with our premium leasing solutions. Drive the Mercedes-Benz of your dreams without the commitment of ownership.</p>
                 </div>
 
@@ -938,44 +1009,159 @@ export async function POST(request: NextRequest) {
                         <div class="benefit-description">Don't want to own it? Simply return the vehicle at lease end and upgrade to the latest model with cutting-edge technology and features.</div>
                 </div>
             </div>
+
+                <!-- PART 1 & 2: Comparison Section on NEW PAGE with padding -->
+                ${monthlyLease ? `
+                <div style="page-break-before: always; padding-top: 80px;">
+                    <!-- CONSOLIDATED: Lease vs. Buy Comparison -->
+                    <div class="full-width-section">
+                        <h4 class="card-title" style="margin-bottom: 30px;">Lease vs. Buy Comparison (12-Month Term)</h4>
+                    
+                    <!-- Comparison Cards with Better Spacing -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px;">
+                        
+                        <!-- BUY CARD (LEFT) -->
+                        <div style="background: rgba(255, 255, 255, 0.03); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
+                            <div style="text-align: center; margin-bottom: 15px;">
+                                <div style="font-size: 16px; font-weight: 800; color: rgba(255, 255, 255, 0.9); margin-bottom: 8px;">BUY (Finance 60 months)</div>
                 </div>
+
+                            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">UPFRONT COST</div>
+                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">Down Payment (20%): AED ${vehicle.buyout_price ? (vehicle.buyout_price * 0.2).toLocaleString() : '30,000'}</div>
+                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">+ Registration/Insurance: AED 8,500</div>
+                                <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 8px;">
+                                    <div style="font-size: 14px; font-weight: 800; color: rgba(255, 255, 255, 0.9);">Total: AED ${vehicle.buyout_price ? (vehicle.buyout_price * 0.2 + 8500).toLocaleString() : '38,500'}</div>
+                                    <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">(Non-refundable)</div>
             </div>
         </div>
 
-                ${vehicle.description ? `
-                <div class="quotation-container" style="page-break-before: always;">
-                    <div class="content-wrapper">
-                  <div class="full-width-section">
-                    <h4 class="card-title">Vehicle Description</h4>
-                    <p class="description-text">${vehicle.description}</p>
+                            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">MONTHLY PAYMENT</div>
+                                <div style="font-size: 16px; font-weight: 800; color: rgba(255, 255, 255, 0.9);">AED ${vehicle.buyout_price ? (Math.round((vehicle.buyout_price * 0.8) * 0.00333 / (1 - Math.pow(1 + 0.00333, -60))) + 800).toLocaleString() : '2,982'}</div>
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">+ maintenance & insurance</div>
                 </div>
                 
-                ${vehicle.key_equipment && Array.isArray(vehicle.key_equipment) && vehicle.key_equipment.length > 0 ? `
-                  <div class="full-width-section">
-                    <h4 class="card-title">Key Equipment & Features</h4>
-                    <div class="equipment-grid">
-                        ${vehicle.key_equipment.map((item: string) => `<div class="equipment-item">${item}</div>`).join('')}
+                            <div style="background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 12px;">
+                                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">TOTAL 12-MONTH COST</div>
+                                <div style="font-size: 18px; font-weight: 900; color: rgba(255, 255, 255, 0.9); margin-bottom: 4px;">AED ${vehicle.buyout_price ? ((Math.round((vehicle.buyout_price * 0.8) * 0.00333 / (1 - Math.pow(1 + 0.00333, -60))) + 800) * 12 + (vehicle.buyout_price * 0.2 + 8500)).toLocaleString() : '74,284'}</div>
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.7);">First year total</div>
+                            </div>
+                            
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.8); margin-bottom: 6px;">
+                                    <span style="color: #ff6b6b;">✗</span> Locked in for 60 months
+                                </div>
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.8); margin-bottom: 6px;">
+                                    <span style="color: #ff6b6b;">✗</span> Must sell to upgrade
+                                </div>
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.8);">
+                                    <span style="color: rgba(255, 255, 255, 0.5);">⊙</span> Own after 60 months
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- LEASE CARD (RIGHT) - Vibrant Green -->
+                        <div style="background: rgba(0, 255, 136, 0.08); border: 2px solid rgba(0, 255, 136, 0.35); border-radius: 12px; padding: 20px;">
+                            <div style="text-align: center; margin-bottom: 15px;">
+                                <div style="font-size: 16px; font-weight: 800; color: #00FF88; margin-bottom: 8px;">LEASE (12 months)</div>
+                            </div>
+                            
+                            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">UPFRONT COST</div>
+                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">Security Deposit: AED ${vehicle.security_deposit ? vehicle.security_deposit.toLocaleString() : '3,999'}</div>
+                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">+ First Month: AED ${monthlyLease.toLocaleString()}</div>
+                                <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 8px;">
+                                    <div style="font-size: 14px; font-weight: 800; color: #00FF88;">Total: AED ${vehicle.security_deposit ? (vehicle.security_deposit + monthlyLease).toLocaleString() : (3999 + monthlyLease).toLocaleString()}</div>
+                                    <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">(Deposit refundable at end)</div>
+                                </div>
+                            </div>
+                            
+                            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">MONTHLY PAYMENT</div>
+                                <div style="font-size: 16px; font-weight: 800; color: #00FF88;">AED ${monthlyLease.toLocaleString()}</div>
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">Includes maintenance & insurance</div>
+                            </div>
+                            
+                            <div style="background: rgba(0, 255, 136, 0.15); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 8px; padding: 12px;">
+                                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">TOTAL 12-MONTH COST</div>
+                                <div style="font-size: 18px; font-weight: 900; color: #00FF88; margin-bottom: 4px;">AED ${vehicle.security_deposit ? ((monthlyLease * 12) - vehicle.security_deposit).toLocaleString() : (monthlyLease * 12).toLocaleString()}</div>
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.7);">After deposit return</div>
+                            </div>
+                            
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.8); margin-bottom: 6px;">
+                                    <span style="color: #00FF88;">✓</span> Return anytime
+                                </div>
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.8); margin-bottom: 6px;">
+                                    <span style="color: #00FF88;">✓</span> Upgrade every year
+                                </div>
+                                <div style="font-size: 9px; color: rgba(255, 255, 255, 0.8);">
+                                    <span style="color: #00FF88;">✓</span> Buyout: AED ${vehicle.buyout_price ? vehicle.buyout_price.toLocaleString() : '150,000'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Savings Highlight (Full Width with Better Spacing) -->
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+                        <!-- Savings Summary (Full Width) -->
+                        <div style="background: rgba(0, 255, 136, 0.1); border: 2px solid rgba(0, 255, 136, 0.35); border-radius: 10px; padding: 30px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8); margin-bottom: 12px;">💰 First Year Savings</div>
+                            <div style="font-size: 32px; font-weight: 900; color: #00FF88; margin-bottom: 12px;">AED ${vehicle.buyout_price ? (((Math.round((vehicle.buyout_price * 0.8) * 0.00333 / (1 - Math.pow(1 + 0.00333, -60))) + 800) * 12 + (vehicle.buyout_price * 0.2 + 8500)) - (monthlyLease * 12)).toLocaleString() : '26,296'}</div>
+                            <div style="font-size: 11px; color: rgba(255, 255, 255, 0.7);">Save AED ${vehicle.buyout_price && vehicle.security_deposit ? ((vehicle.buyout_price * 0.2 + 8500) - vehicle.security_deposit).toLocaleString() : '34,501'} upfront</div>
+                            <div style="font-size: 11px; color: rgba(255, 255, 255, 0.7); margin-top: 6px;">Plus deposit back at end!</div>
+                        </div>
+                    </div>
                     </div>
                 </div>
                 ` : ''}
 
                 </div>
         </div>
-        ` : `
-                ${vehicle.key_equipment && Array.isArray(vehicle.key_equipment) && vehicle.key_equipment.length > 0 ? `
-                <div class="quotation-container" style="page-break-before: always;">
-                    <div class="content-wrapper">
+        </div>
+            </div>
+                </div>
+            </div>
+        </div>
+
+                <!-- Combined Description & Key Equipment Page -->
+                ${(vehicle.description || (vehicle.key_equipment && Array.isArray(vehicle.key_equipment) && vehicle.key_equipment.length > 0)) ? `
+                <div class="equipment-page-container" style="page-break-before: always;">
+                    <div class="equipment-content">
+                  
+                  ${vehicle.description ? `
+                  <div class="full-width-section" style="margin-bottom: 30px;">
+                    <h4 class="card-title">Vehicle Description</h4>
+                    <p class="description-text">${vehicle.description}</p>
+                </div>
+                  ` : ''}
+
+                ${keyEquipmentColumns.length > 0 ? `
                   <div class="full-width-section">
                     <h4 class="card-title">Key Equipment & Features</h4>
                     <div class="equipment-grid">
-                        ${vehicle.key_equipment.map((item: string) => `<div class="equipment-item">${item}</div>`).join('')}
+                        ${keyEquipmentColumns.map((column: string[]) => `
+                          <ul class="equipment-column">
+                            ${column.map((item: string) => `<li>${item}</li>`).join('')}
+                          </ul>
+                        `).join('')}
                     </div>
+                  </div>
+                ` : ''}
                 </div>
 
+                <!-- Fixed Footer at Bottom -->
+                <div class="equipment-footer">
+                    <div class="footer">
+                        <p>This quotation is valid for 30 days from the date of issue</p>
+                        <div class="contact-info">
+                            +971 4 380 5515 • leasing@silberarrows.com • TRN: 100281137800003
+                        </div>
+                    </div>
                 </div>
         </div>
         ` : ''}
-        `}
 
           <!-- REST OF PAGES: Image Gallery Section (2 images per page, no empty pages) -->
           ${galleryPhotos.length > 0 ? `
@@ -1008,20 +1194,6 @@ export async function POST(request: NextRequest) {
               })()}
           </div>
           ` : ''}
-          
-          <!-- Final Footer -->
-          <div class="quotation-container" style="page-break-before: always;">
-              <div class="content-wrapper">
-                <div class="full-width-section" style="display:flex;align-items:center;justify-content:center;min-height:300px;">
-                  <div class="footer">
-                    <p>Ready to lease this vehicle?</p>
-                    <div class="contact-info">
-                        Contact us today: +971 4 380 5515 | leasing@silberarrows.com
-                      </div>
-                    </div>
-                </div>
-              </div>
-          </div>
     </body>
     </html>
   `;
@@ -1061,16 +1233,65 @@ export async function POST(request: NextRequest) {
       statusText: resp.statusText,
       error: error.slice(0, 500)
     });
-    throw new Error(`Renderer service error (${resp.status}): ${error}`);
+    throw new Error(`Renderer service error (${resp.status}): ${error.slice(0, 500)}`);
   }
 
-  const renderResult = await resp.json();
+  // Try to parse the response - catch if it's not JSON
+  let renderResult;
+  try {
+    console.log('📄 Reading response body...');
+    const responseText = await resp.text();
+    console.log('📄 Response size:', responseText.length, 'characters');
+    console.log('📄 Response preview:', responseText.slice(0, 200));
+    console.log('📄 Parsing JSON...');
+    renderResult = JSON.parse(responseText);
+    console.log('📄 JSON parsed successfully');
+  } catch (parseError) {
+    console.error('📄 Failed to parse renderer response as JSON:', parseError);
+    throw new Error('Renderer service returned invalid response (not JSON)');
+  }
+  
   if (!renderResult.success || !renderResult.pdf) {
+    console.error('📄 Invalid render result:', { success: renderResult.success, hasPdf: !!renderResult.pdf });
     throw new Error('Renderer service returned invalid response');
   }
 
+  console.log('📄 Converting PDF from base64...');
   // Convert base64 PDF back to buffer
   const pdfBuffer = Buffer.from(renderResult.pdf, 'base64');
+  console.log('📄 PDF buffer size:', pdfBuffer.length, 'bytes');
+
+    // Delete old PDF from Supabase storage if it exists
+    const { data: existingVehicle } = await supabase
+      .from('leasing_inventory')
+      .select('vehicle_pdf_url')
+      .eq('id', vehicleId)
+      .single();
+
+    if (existingVehicle?.vehicle_pdf_url) {
+      try {
+        // Extract file path from URL
+        const urlObj = new URL(existingVehicle.vehicle_pdf_url);
+        const pathMatch = urlObj.pathname.match(/\/leasing\/(.+)$/);
+        
+        if (pathMatch && pathMatch[1]) {
+          const oldFilePath = decodeURIComponent(pathMatch[1]);
+          console.log('🗑️ Deleting old PDF:', oldFilePath);
+          
+          const { error: deleteError } = await supabase.storage
+            .from('leasing')
+            .remove([oldFilePath]);
+          
+          if (deleteError) {
+            console.warn('⚠️ Failed to delete old PDF:', deleteError.message);
+          } else {
+            console.log('✅ Old PDF deleted successfully');
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ Error deleting old PDF:', err);
+      }
+    }
 
     // Upload PDF to Supabase storage (server-side)
     const fileName = `Vehicle_Showcase_${vehicleId}_${Date.now()}.pdf`;

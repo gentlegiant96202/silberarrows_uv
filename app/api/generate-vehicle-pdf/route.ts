@@ -165,6 +165,38 @@ export async function POST(request: NextRequest) {
     const heroPhotos = (vehicle.photos || []).slice(0, 5);
     const galleryPhotos = (vehicle.photos || []).slice(5, 20);
     const monthlyLease = typeof vehicle.monthly_lease_rate === 'number' ? vehicle.monthly_lease_rate : null;
+    const baseBuyPrice = typeof vehicle.buyout_price === 'number' ? vehicle.buyout_price : null;
+    const securityDepositRaw = typeof vehicle.security_deposit === 'number'
+      ? vehicle.security_deposit
+      : (typeof vehicle.security_deposit === 'string' ? Number(vehicle.security_deposit) : null);
+    const securityDepositValue = typeof securityDepositRaw === 'number' && Number.isFinite(securityDepositRaw)
+      ? securityDepositRaw
+      : null;
+    const leasePaymentTotal = monthlyLease !== null ? monthlyLease * 12 : null;
+    const financeVehicleValue = baseBuyPrice !== null
+      ? Math.round(baseBuyPrice * 1.25)
+      : (leasePaymentTotal !== null ? Math.round(leasePaymentTotal) : null);
+    const buyDownPayment = financeVehicleValue !== null ? Math.round(financeVehicleValue * 0.2) : null;
+    const financedPrincipal = financeVehicleValue !== null && buyDownPayment !== null
+      ? financeVehicleValue - buyDownPayment
+      : null;
+    const buyMonthlyFinancePayment = financedPrincipal !== null
+      ? Math.round(financedPrincipal * 0.00333 / (1 - Math.pow(1 + 0.00333, -60))) + 800
+      : null;
+    const buyUpfrontCost = buyDownPayment !== null ? buyDownPayment + 8500 : null;
+    const buyFirstYearCost = buyMonthlyFinancePayment !== null && buyDownPayment !== null
+      ? buyMonthlyFinancePayment * 12 + buyDownPayment + 8500
+      : null;
+    const depositAmount = securityDepositValue ?? 0;
+    const leaseTotalYearCost = leasePaymentTotal;
+    const leaseNetCostAfterDeposit = leaseTotalYearCost !== null ? leaseTotalYearCost - depositAmount : null;
+    const leaseUpfrontCost = monthlyLease !== null ? depositAmount + monthlyLease : null;
+    const savingsFirstYear = buyFirstYearCost !== null && leaseNetCostAfterDeposit !== null
+      ? buyFirstYearCost - leaseNetCostAfterDeposit
+      : null;
+    const upfrontDifference = buyUpfrontCost !== null && leaseUpfrontCost !== null
+      ? buyUpfrontCost - leaseUpfrontCost
+      : null;
 
     const toTitle = (s: string) => s.toLowerCase().replace(/^.|\s.*/g, t => t.toUpperCase()) || s;
 
@@ -924,7 +956,6 @@ export async function POST(request: NextRequest) {
 
             <div class="content-wrapper">
                   <div class="full-width-section">
-                      <h4 class="card-title">Images</h4>
                     <div class="main-image">
                           ${heroPhotos[0] ? `<img src="${heroPhotos[0].url}" alt="Main vehicle photo" />` : '<div class="image-placeholder">Main Vehicle Image<br><small>Primary photo will appear here</small></div>'}
                     </div>
@@ -934,7 +965,7 @@ export async function POST(request: NextRequest) {
                 </div>
 
                   <div class="full-width-section">
-                    <h4 class="card-title">Vehicle Specifications</h4>
+                    <h4 class="card-title">Specifications</h4>
                     <div class="specs-grid">
                           <div class="spec-item"><span class="spec-label">Model Year</span><span class="spec-value">${vehicle.model_year || 'N/A'}</span></div>
                           <div class="spec-item"><span class="spec-label">Make & Model</span><span class="spec-value">${vehicle.make || 'N/A'} ${vehicle.vehicle_model || ''}</span></div>
@@ -1028,23 +1059,23 @@ export async function POST(request: NextRequest) {
 
                             <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
                                 <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">UPFRONT COST</div>
-                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">Down Payment (20%): AED ${vehicle.buyout_price ? (vehicle.buyout_price * 0.2).toLocaleString() : '30,000'}</div>
+                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">Down Payment (20% of AED ${financeVehicleValue !== null ? financeVehicleValue.toLocaleString() : '—'}): AED ${buyDownPayment !== null ? buyDownPayment.toLocaleString() : '—'}</div>
                                 <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">+ Registration/Insurance: AED 8,500</div>
                                 <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 8px;">
-                                    <div style="font-size: 14px; font-weight: 800; color: rgba(255, 255, 255, 0.9);">Total: AED ${vehicle.buyout_price ? (vehicle.buyout_price * 0.2 + 8500).toLocaleString() : '38,500'}</div>
+                                    <div style="font-size: 14px; font-weight: 800; color: rgba(255, 255, 255, 0.9);">Total: AED ${buyUpfrontCost !== null ? buyUpfrontCost.toLocaleString() : '—'}</div>
                                     <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">(Non-refundable)</div>
             </div>
         </div>
 
                             <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
                                 <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">MONTHLY PAYMENT</div>
-                                <div style="font-size: 16px; font-weight: 800; color: rgba(255, 255, 255, 0.9);">AED ${vehicle.buyout_price ? (Math.round((vehicle.buyout_price * 0.8) * 0.00333 / (1 - Math.pow(1 + 0.00333, -60))) + 800).toLocaleString() : '2,982'}</div>
+                                <div style="font-size: 16px; font-weight: 800; color: rgba(255, 255, 255, 0.9);">AED ${buyMonthlyFinancePayment !== null ? buyMonthlyFinancePayment.toLocaleString() : '—'}</div>
                                 <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">+ maintenance & insurance</div>
                 </div>
                 
                             <div style="background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 12px;">
                                 <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">TOTAL 12-MONTH COST</div>
-                                <div style="font-size: 18px; font-weight: 900; color: rgba(255, 255, 255, 0.9); margin-bottom: 4px;">AED ${vehicle.buyout_price ? ((Math.round((vehicle.buyout_price * 0.8) * 0.00333 / (1 - Math.pow(1 + 0.00333, -60))) + 800) * 12 + (vehicle.buyout_price * 0.2 + 8500)).toLocaleString() : '74,284'}</div>
+                                <div style="font-size: 18px; font-weight: 900; color: rgba(255, 255, 255, 0.9); margin-bottom: 4px;">AED ${buyFirstYearCost !== null ? buyFirstYearCost.toLocaleString() : '—'}</div>
                                 <div style="font-size: 9px; color: rgba(255, 255, 255, 0.7);">First year total</div>
                             </div>
                             
@@ -1069,10 +1100,10 @@ export async function POST(request: NextRequest) {
                             
                             <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
                                 <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">UPFRONT COST</div>
-                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">Security Deposit: AED ${vehicle.security_deposit ? vehicle.security_deposit.toLocaleString() : '3,999'}</div>
+                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">Security Deposit: AED ${securityDepositValue !== null ? securityDepositValue.toLocaleString() : '3,999'}</div>
                                 <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">+ First Month: AED ${monthlyLease.toLocaleString()}</div>
                                 <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 8px;">
-                                    <div style="font-size: 14px; font-weight: 800; color: #00FF88;">Total: AED ${vehicle.security_deposit ? (vehicle.security_deposit + monthlyLease).toLocaleString() : (3999 + monthlyLease).toLocaleString()}</div>
+                                    <div style="font-size: 14px; font-weight: 800; color: #00FF88;">Total: AED ${leaseUpfrontCost !== null ? leaseUpfrontCost.toLocaleString() : '—'}</div>
                                     <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">(Deposit refundable at end)</div>
                                 </div>
                             </div>
@@ -1085,7 +1116,7 @@ export async function POST(request: NextRequest) {
                             
                             <div style="background: rgba(0, 255, 136, 0.15); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 8px; padding: 12px;">
                                 <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">TOTAL 12-MONTH COST</div>
-                                <div style="font-size: 18px; font-weight: 900; color: #00FF88; margin-bottom: 4px;">AED ${vehicle.security_deposit ? ((monthlyLease * 12) - vehicle.security_deposit).toLocaleString() : (monthlyLease * 12).toLocaleString()}</div>
+                                <div style="font-size: 18px; font-weight: 900; color: #00FF88; margin-bottom: 4px;">AED ${leaseNetCostAfterDeposit !== null ? leaseNetCostAfterDeposit.toLocaleString() : '—'}</div>
                                 <div style="font-size: 9px; color: rgba(255, 255, 255, 0.7);">After deposit return</div>
                             </div>
                             
@@ -1108,8 +1139,8 @@ export async function POST(request: NextRequest) {
                         <!-- Savings Summary (Full Width) -->
                         <div style="background: rgba(0, 255, 136, 0.1); border: 2px solid rgba(0, 255, 136, 0.35); border-radius: 10px; padding: 30px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
                             <div style="font-size: 12px; color: rgba(255, 255, 255, 0.8); margin-bottom: 12px;">💰 First Year Savings</div>
-                            <div style="font-size: 32px; font-weight: 900; color: #00FF88; margin-bottom: 12px;">AED ${vehicle.buyout_price ? (((Math.round((vehicle.buyout_price * 0.8) * 0.00333 / (1 - Math.pow(1 + 0.00333, -60))) + 800) * 12 + (vehicle.buyout_price * 0.2 + 8500)) - (monthlyLease * 12)).toLocaleString() : '26,296'}</div>
-                            <div style="font-size: 11px; color: rgba(255, 255, 255, 0.7);">Save AED ${vehicle.buyout_price && vehicle.security_deposit ? ((vehicle.buyout_price * 0.2 + 8500) - vehicle.security_deposit).toLocaleString() : '34,501'} upfront</div>
+                            <div style="font-size: 32px; font-weight: 900; color: #00FF88; margin-bottom: 12px;">AED ${savingsFirstYear !== null ? savingsFirstYear.toLocaleString() : '—'}</div>
+                            <div style="font-size: 11px; color: rgba(255, 255, 255, 0.7);">Save AED ${upfrontDifference !== null ? upfrontDifference.toLocaleString() : '—'} upfront</div>
                             <div style="font-size: 11px; color: rgba(255, 255, 255, 0.7); margin-top: 6px;">Plus deposit back at end!</div>
                         </div>
                     </div>
@@ -1132,7 +1163,7 @@ export async function POST(request: NextRequest) {
                   
                   ${vehicle.description ? `
                   <div class="full-width-section" style="margin-bottom: 30px;">
-                    <h4 class="card-title">Vehicle Description</h4>
+                    <h4 class="card-title">Description</h4>
                     <p class="description-text">${vehicle.description}</p>
                 </div>
                   ` : ''}

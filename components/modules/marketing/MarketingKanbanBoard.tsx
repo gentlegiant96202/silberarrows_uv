@@ -634,6 +634,29 @@ export default function MarketingKanbanBoard() {
     }
   };
 
+  // Helper function to transform raw database task to frontend format
+  const transformRawTask = useCallback((rawTask: any): MarketingTask => {
+    const baseTask: MarketingTask = {
+      id: rawTask.id,
+      title: rawTask.title,
+      description: rawTask.description,
+      status: rawTask.status,
+      assignee: rawTask.requested_by, // Map database field to frontend field
+      due_date: rawTask.due_date,
+      created_at: rawTask.created_at,
+      updated_at: rawTask.updated_at,
+      media_files: rawTask.media_files || [],
+      annotations: rawTask.annotations || [],
+      pinned: rawTask.pinned || false,
+      task_type: rawTask.task_type || 'design',
+      priority: 'medium',
+      content_type: 'post',
+      tags: [],
+      previewUrl: getPreviewUrl(rawTask.media_files || [])
+    };
+    return baseTask;
+  }, []);
+
   useEffect(() => {
     if (!hasFetchedTasks.current) {
       fetchAllTasks();
@@ -652,65 +675,25 @@ export default function MarketingKanbanBoard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'design_tasks' },
         (payload: any) => {
+          console.log('🔄 Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
+          
+          // ===== UPDATE TASKS STATE =====
           setTasks(prev => {
             if (payload.eventType === 'INSERT') {
-              const rawTask = payload.new;
+              const newTask = transformRawTask(payload.new);
               
-              // Transform raw database data to match frontend expectations
-              const baseTask: MarketingTask = {
-                id: rawTask.id,
-                title: rawTask.title,
-                description: rawTask.description,
-                status: rawTask.status,
-                assignee: rawTask.requested_by, // Map database field to frontend field
-                due_date: rawTask.due_date,
-                created_at: rawTask.created_at,
-                updated_at: rawTask.updated_at,
-                media_files: rawTask.media_files || [],
-                annotations: rawTask.annotations || [],
-                pinned: rawTask.pinned || false,
-                task_type: rawTask.task_type || 'design', // Include task_type field
-                priority: 'medium',
-                content_type: 'post',
-                tags: []
-              };
-              
-              const newTask = {
-                ...baseTask,
-                previewUrl: getPreviewUrl(baseTask.media_files)
-              };
               // Check if task already exists to prevent duplicates
               const taskExists = prev.some(task => task.id === newTask.id);
               if (taskExists) {
+                console.log('⚠️ Task already exists, skipping INSERT:', newTask.id);
                 return prev;
               }
               
+              console.log('✅ Adding new task to state:', newTask.id);
               return [...prev, newTask];
             } 
             else if (payload.eventType === 'UPDATE') {
-              const rawTask = payload.new;
-              const baseTask: MarketingTask = {
-                id: rawTask.id,
-                title: rawTask.title,
-                description: rawTask.description,
-                status: rawTask.status,
-                assignee: rawTask.requested_by, // Map database field to frontend field
-                due_date: rawTask.due_date,
-                created_at: rawTask.created_at,
-                updated_at: rawTask.updated_at,
-                media_files: rawTask.media_files || [],
-                annotations: rawTask.annotations || [],
-                pinned: rawTask.pinned || false,
-                task_type: rawTask.task_type || 'design', // Include task_type field
-                priority: 'medium',
-                content_type: 'post',
-                tags: []
-              };
-              
-              const updatedTask = {
-                ...baseTask,
-                previewUrl: getPreviewUrl(baseTask.media_files)
-              };
+              const updatedTask = transformRawTask(payload.new);
               
               return prev.map(task => {
                 if (task.id === updatedTask.id) {
@@ -723,7 +706,7 @@ export default function MarketingKanbanBoard() {
                   if ((task as any)._localUpdate) {
                     const timeSinceLocalUpdate = Date.now() - localUpdateTime;
                     if (timeSinceLocalUpdate < 2000) { // 2 second grace period
-                      console.log('Ignoring real-time update - recent local update detected:', task.id);
+                      console.log('⏸️ Ignoring real-time update - recent local update detected:', task.id);
                       return task;
                     }
                     // Remove the local update flag after grace period
@@ -733,7 +716,7 @@ export default function MarketingKanbanBoard() {
                   
                   // If local task is newer, preserve local media_files and other critical fields
                   if (localUpdateTime > incomingUpdateTime) {
-                    console.log('Preserving local task state (newer than incoming update):', task.id);
+                    console.log('🔒 Preserving local task state (newer than incoming update):', task.id);
                     return {
                       ...updatedTask,
                       media_files: task.media_files, // Preserve local media files
@@ -746,39 +729,108 @@ export default function MarketingKanbanBoard() {
                   const incomingMediaCount = updatedTask.media_files?.length || 0;
                   const localMediaCount = task.media_files?.length || 0;
                   if (incomingMediaCount > localMediaCount) {
-                    console.log('Merging media files (incoming has more):', task.id);
-                    return {
-                      ...updatedTask,
-                      media_files: updatedTask.media_files || [], // Use incoming media (likely from successful upload)
-                      previewUrl: getPreviewUrl(updatedTask.media_files || [])
-                    };
+                    console.log('🔄 Merging media files (incoming has more):', task.id);
+                    return updatedTask;
                   }
                   
-                  // Default: use incoming update and recalculate preview URL
-                  return {
-                    ...updatedTask,
-                    previewUrl: getPreviewUrl(updatedTask.media_files || []) || task.previewUrl
-                  };
+                  // Default: use incoming update
+                  console.log('✅ Updating task in state:', task.id);
+                  return updatedTask;
                 }
                 return task;
               });
             } 
             else if (payload.eventType === 'DELETE') {
+              console.log('🗑️ Removing task from state:', payload.old.id);
               return prev.filter(task => task.id !== payload.old.id);
             }
             
             return prev;
           });
+          
+          // ===== SYNC COLUMNDATA WITH THE SAME CHANGES =====
+          setColumnData(prev => {
+            const updated = { ...prev };
+            
+            if (payload.eventType === 'INSERT') {
+              const newTask = transformRawTask(payload.new);
+              
+              // Check if task already exists in column to prevent duplicates
+              const taskExists = updated[newTask.status]?.some(task => task.id === newTask.id);
+              if (taskExists) {
+                console.log('⚠️ Task already exists in columnData, skipping INSERT:', newTask.id);
+                return prev;
+              }
+              
+              // Add to appropriate column
+              if (updated[newTask.status]) {
+                updated[newTask.status] = [newTask, ...updated[newTask.status]];
+                console.log('✅ Added task to columnData:', newTask.id, 'in column:', newTask.status);
+              }
+            }
+            else if (payload.eventType === 'UPDATE') {
+              const updatedTask = transformRawTask(payload.new);
+              const oldStatus = payload.old?.status;
+              
+              // Remove from old column (could be any column if status changed)
+              Object.keys(updated).forEach(key => {
+                const colKey = key as ColKey;
+                updated[colKey] = updated[colKey].filter(t => t.id !== updatedTask.id);
+              });
+              
+              // Add to correct column with smart merging
+              if (updated[updatedTask.status]) {
+                // Check if we should preserve local state (same logic as tasks state)
+                const existingTask = Object.values(updated)
+                  .flat()
+                  .find(t => t.id === updatedTask.id);
+                
+                if (existingTask && (existingTask as any)._localUpdate) {
+                  const localUpdateTime = new Date(existingTask.updated_at).getTime();
+                  const timeSinceLocalUpdate = Date.now() - localUpdateTime;
+                  
+                  if (timeSinceLocalUpdate < 2000) {
+                    console.log('⏸️ Ignoring columnData update - recent local update detected:', updatedTask.id);
+                    // Re-add the existing task to its original column
+                    updated[existingTask.status] = [existingTask, ...updated[existingTask.status]];
+                    return updated;
+                  }
+                }
+                
+                updated[updatedTask.status] = [updatedTask, ...updated[updatedTask.status]];
+                console.log('✅ Updated task in columnData:', updatedTask.id, 
+                  oldStatus !== updatedTask.status ? `moved from ${oldStatus} to ${updatedTask.status}` : `in ${updatedTask.status}`);
+              }
+            }
+            else if (payload.eventType === 'DELETE') {
+              // Remove from all columns
+              Object.keys(updated).forEach(key => {
+                const colKey = key as ColKey;
+                updated[colKey] = updated[colKey].filter(t => t.id !== payload.old.id);
+              });
+              console.log('✅ Removed task from columnData:', payload.old.id);
+            }
+            
+            return updated;
+          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time subscription active for marketing tasks');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Real-time subscription error');
+        } else if (status === 'CLOSED') {
+          console.warn('⚠️ Real-time subscription closed');
+        }
+      });
 
     // Cleanup both timer and subscription on unmount
     return () => {
       clearTimeout(timer);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [transformRawTask]);
 
   // Group tasks by status with search filtering and optimized sorting logic (memoized for performance)
   const grouped = useMemo(() => {

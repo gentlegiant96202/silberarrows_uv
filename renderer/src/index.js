@@ -1136,6 +1136,75 @@ app.post('/render-damage-report', async (req, res) => {
   }
 });
 
+app.post('/render-pdf-to-images', async (req, res) => {
+  try {
+    const { pdfUrl, scale = 2.0 } = req.body || {};
+
+    if (!pdfUrl) {
+      return res.status(400).json({ success: false, error: 'pdfUrl is required' });
+    }
+
+    console.log('🖼️ PDF-to-image conversion requested:', { pdfUrl, scale });
+
+    const browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+
+    try {
+      const page = await browser.newPage();
+      await page.goto('about:blank');
+
+      const pdfJsCdnVersion = '3.11.174';
+      const pdfJsScript = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfJsCdnVersion}/pdf.min.js`;
+      const pdfJsWorker = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfJsCdnVersion}/pdf.worker.min.js`;
+
+      await page.addScriptTag({ url: pdfJsScript });
+
+      const pages = await page.evaluate(async ({ pdfUrl, scale, pdfJsWorker }) => {
+        const pdfjsLib = window.pdfjsLib;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfJsWorker;
+
+        const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise;
+        const images = [];
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale });
+
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          await page.render({ canvasContext: context, viewport }).promise;
+
+          const dataUrl = canvas.toDataURL('image/png');
+          images.push({
+            pageIndex: i,
+            width: canvas.width,
+            height: canvas.height,
+            dataUrl
+          });
+        }
+
+        return images;
+      }, { pdfUrl, scale, pdfJsWorker });
+
+      console.log('🖼️ PDF-to-image conversion complete:', { pageCount: pages.length });
+      res.json({ success: true, pages });
+    } finally {
+      await browser.close();
+    }
+  } catch (error) {
+    console.error('❌ PDF-to-image conversion failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 

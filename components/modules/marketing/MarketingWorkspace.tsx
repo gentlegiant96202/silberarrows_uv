@@ -7,6 +7,12 @@ import { supabase } from '@/lib/supabaseClient';
 import AnnotationOverlay from './AnnotationOverlay';
 import Head from 'next/head';
 
+type UploadCandidate = {
+  file: File;
+  originalType?: string;
+  pageIndex?: number;
+};
+
 // Helper to get preview image (thumbnail or first image)
 function getPreviewUrl(mediaFiles: any[] = []): string | null {
   if (!mediaFiles || !mediaFiles.length) return null;
@@ -562,54 +568,7 @@ function scaleSvgPath(d: string, scaleX: number, scaleY: number): string {
   });
 }
 
-// Client-side PDF to images conversion using pdf.js
-const convertPdfToImages = async (file: File): Promise<Array<{blob: Blob, name: string}>> => {
-  try {
-    // Dynamically import pdf.js
-    const pdfjsLib = await import('pdfjs-dist');
-    
-    // Set worker source
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-    
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    
-    const pages: Array<{blob: Blob, name: string}> = [];
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 2.0 }); // 2x scale for better quality
-      
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      if (!context) continue;
-      
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      
-      await page.render({ canvas, viewport }).promise;
-      
-      // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((b) => {
-          if (b) resolve(b);
-          else reject(new Error('Failed to create blob'));
-        }, 'image/png');
-      });
-      
-      pages.push({
-        blob,
-        name: `${file.name.replace('.pdf', '')}_page_${i}.png`
-      });
-    }
-    
-    return pages;
-  } catch (error) {
-    console.error('PDF conversion error:', error);
-    return [];
-  }
-};
-
+// Marketing workspace with annotation and server-side PDF conversion
 export default function MarketingWorkspace({ task, onClose, onSave, onUploadStart, onUploadComplete, canEdit = true, isAdmin = false }: MarketingWorkspaceProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [title, setTitle] = useState(task.title || '');
@@ -633,6 +592,134 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
   const [loadingThumbnails, setLoadingThumbnails] = useState<Set<number>>(new Set());
   const [isMounted, setIsMounted] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+  const convertToCustomDomain = (url: string | null | undefined) => {
+    if (!url) return url ?? null;
+    return url.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
+  };
+
+  const convertPdfToImagesLocally = async (file: File): Promise<File[]> => {
+    try {
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const baseName = file.name.replace(/\.pdf$/i, '') || 'pdf_page';
+      const pageFiles: File[] = [];
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 2.0 });
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) continue;
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await page.render({ canvas, viewport }).promise;
+
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error('Failed to create blob from canvas'));
+          }, 'image/png');
+        });
+
+        const pageFile = new File([blob], `${baseName}_page_${i}.png`, { type: 'image/png' });
+        pageFiles.push(pageFile);
+      }
+
+      return pageFiles;
+    } catch (error) {
+      console.error('Local PDF conversion failed:', error);
+      return [];
+    }
+  };
+
+  const convertPdfOnServer = async (file: File) => {
+    console.log('📄 PDF detected, converting on server:', file.name);
+    setUploadFileName(file.name);
+    setUploadProgress(0);
+
+    try {
+      const ext = file.name.split('.').pop() || 'pdf';
+      const pdfFileName = `${crypto.randomUUID()}.${ext}`;
+      const pdfPath = `${task.id}/pdf/${pdfFileName}`;
+
+      const { error: pdfUploadError } = await supabase.storage
+        .from('media-files')
+        .upload(pdfPath, file, {
+          contentType: 'application/pdf',
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (pdfUploadError) {
+        throw new Error(pdfUploadError.message);
+      }
+
+      setUploadProgress(25);
+
+      const { data: { publicUrl: rawPdfUrl } } = supabase.storage
+        .from('media-files')
+        .getPublicUrl(pdfPath);
+
+      if (!rawPdfUrl) {
+        throw new Error('Unable to generate PDF public URL');
+      }
+
+      const response = await fetch('/api/convert-pdf-to-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdfUrl: rawPdfUrl, taskId: task.id })
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const message = errorBody?.error || `Conversion failed (${response.status})`;
+        throw new Error(message);
+      }
+
+      setUploadProgress(75);
+
+      const payload = await response.json();
+      const pages = Array.isArray(payload.pages) ? payload.pages : [];
+
+      if (!pages.length) {
+        throw new Error('Conversion returned no pages');
+      }
+
+      const { error: removeError } = await supabase.storage
+        .from('media-files')
+        .remove([pdfPath]);
+
+      if (removeError) {
+        console.warn('Unable to remove temporary PDF after conversion:', removeError);
+      }
+
+      setUploadProgress(100);
+
+      return pages.map((page: any) => {
+        const convertedUrl = typeof page.url === 'string' ? convertToCustomDomain(page.url) : page.url;
+        const convertedThumbnail = typeof page.thumbnail === 'string' ? convertToCustomDomain(page.thumbnail) : undefined;
+
+        return {
+          url: convertedUrl,
+          name: page.name || `${file.name.replace(/\.pdf$/i, '')}_page_${page.pageIndex}.png`,
+          type: page.type || 'image/png',
+          originalType: 'application/pdf',
+          thumbnail: convertedThumbnail,
+          pageIndex: page.pageIndex
+        };
+      });
+    } finally {
+      setUploadFileName(null);
+      setUploadProgress(null);
+    }
+  };
 
   // Local state for media files that can be modified
   const [mediaFiles, setMediaFiles] = useState(() => {
@@ -1109,30 +1196,51 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
     }
     
     try {
-      const filesToUpload: File[] = [];
-      
-      // Convert PDFs to images first
+      const filesToUpload: UploadCandidate[] = [];
+      const uploadedFiles = [] as any[];
+
       for (const file of Array.from(files)) {
         if (file.type === 'application/pdf') {
-          console.log('📄 PDF detected, converting to images on client-side:', file.name);
-          const pages = await convertPdfToImages(file);
-          
-          if (pages.length > 0) {
-            console.log(`✅ Converted PDF to ${pages.length} images`);
-            for (const page of pages) {
-              const pageFile = new File([page.blob], page.name, { type: 'image/png' });
-              filesToUpload.push(pageFile);
+          console.log('📄 PDF detected, converting via server API:', file.name);
+          try {
+            const convertedPages = await convertPdfOnServer(file);
+
+            if (convertedPages.length > 0) {
+              console.log(`✅ Server conversion produced ${convertedPages.length} page images`);
+              uploadedFiles.push(...convertedPages);
+              continue;
             }
-            continue;
-          } else {
-            console.warn('⚠️ PDF conversion returned no pages, uploading as-is');
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.warn('⚠️ Server conversion failed, attempting client fallback:', message);
+
+            if (message.includes('libvips') || message.includes('Conversion returned no pages')) {
+              const fallbackFiles = await convertPdfToImagesLocally(file);
+
+              if (fallbackFiles.length) {
+                console.log(`✅ Client fallback produced ${fallbackFiles.length} page images`);
+                filesToUpload.push(
+                  ...fallbackFiles.map((fallbackFile, index) => ({
+                    file: fallbackFile,
+                    originalType: 'application/pdf',
+                    pageIndex: index + 1
+                  }))
+                );
+                continue;
+              }
+            }
+
+            setDeleteMessage(`Failed to convert "${file.name}": ${message}`);
           }
+
+          console.warn('⚠️ PDF conversion failed, uploading original PDF');
         }
-        filesToUpload.push(file);
+
+        filesToUpload.push({ file });
       }
       
-      const uploadedFiles = [] as any[];
-      for (const file of filesToUpload) {
+      for (const candidate of filesToUpload) {
+        const { file, originalType, pageIndex } = candidate;
         // Check file size limit (50MB)
         const maxFileSize = 50 * 1024 * 1024; // 50MB
         if (file.size > maxFileSize) {
@@ -1210,12 +1318,13 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           continue;
         }
 
-        // No longer need server-side PDF conversion - handled client-side before upload
+        // Non-PDF files upload directly; converted PDF pages already handled above
         const fileObject: any = {
           url: publicUrl,
           name: file.name,
           type: file.type,
-          originalType: file.type
+          originalType: originalType || file.type,
+          ...(pageIndex ? { pageIndex } : {})
         };
 
         // Generate and upload a poster thumbnail for MP4 videos

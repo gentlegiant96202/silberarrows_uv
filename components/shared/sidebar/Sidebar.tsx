@@ -73,8 +73,8 @@ export default function Sidebar() {
           'Content-Type': 'application/json'
         };
 
-        const serviceResponse = await fetch('/api/service-contracts?type=service&status=created', { headers });
-        const warrantyResponse = await fetch('/api/service-contracts?type=warranty&status=created', { headers });
+        const serviceResponse = await fetch('/api/service-contracts?type=service&status=created', { headers, credentials: 'include' });
+        const warrantyResponse = await fetch('/api/service-contracts?type=warranty&status=created', { headers, credentials: 'include' });
 
         let count = 0;
         

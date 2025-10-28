@@ -1673,6 +1673,15 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
               (typeof file === 'string' ? file.includes('_page_') : 
                file.originalType === 'application/pdf')
             );
+            
+            console.log('📋 PDF Detection:', {
+              fileName,
+              isPdf,
+              isNativePdf,
+              allPdfPagesLength: allPdfPages.length,
+              allViewableFilesLength: allViewableFiles.length,
+              willUseMultiPageView: allPdfPages.length > 1
+            });
 
             if (isVideo) {
               // Video - Optimized rendering without zoom/pan for better performance

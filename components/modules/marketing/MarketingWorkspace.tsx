@@ -205,78 +205,62 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
     return currentPageNumber; // Use the passed page number from selectedImageIndex + 1
   };
 
-  // Helper function to detect which PDF page an annotation is drawn on
-  // by finding which page element the annotation's Y-coordinate intersects
-  const detectPageFromAnnotationPath = (svgPath: string, svgHeight: number): number => {
-    // For multi-page PDFs, detect which page the annotation is on
-    if (mediaType === 'pdf' && pdfPages && pdfPages.length > 1) {
-      try {
-        // Extract Y coordinates from the SVG path
-        const yCoords: number[] = [];
-        const matches = svgPath.matchAll(/[ML]\s*[\d.]+\s+([\d.]+)/g);
-        for (const match of matches) {
-          yCoords.push(parseFloat(match[1]));
-        }
-        
-        if (yCoords.length === 0) return getCurrentPageNumber();
-        
-        // Calculate the average Y position of the annotation
-        const avgY = yCoords.reduce((sum, y) => sum + y, 0) / yCoords.length;
-        
-        // Get the container and page elements
-        const container = document.getElementById('pdf-pages-container');
-        if (!container) return getCurrentPageNumber();
-        
-        const pageElements = container.querySelectorAll('[data-page-element="true"]');
-        if (pageElements.length === 0) return getCurrentPageNumber();
-        
-        // Convert SVG Y coordinate to viewport coordinate
-        // The annotation overlay has the same transform as the PDF container
-        const containerRect = container.getBoundingClientRect();
-        const overlayHeight = window.innerHeight;
-        
-        // Calculate actual Y position in the scrollable container
-        // avgY is a percentage of svgHeight, so convert to actual pixels
-        const actualY = (avgY / svgHeight) * overlayHeight;
-        
-        // Find which page element this Y coordinate falls within
-        let detectedPage = 1;
-        let minDistance = Infinity;
-        
-        pageElements.forEach((pageEl) => {
-          const pageRect = pageEl.getBoundingClientRect();
-          const pageNumber = parseInt(pageEl.getAttribute('data-page-number') || '1');
-          
-          // Check if the annotation Y falls within this page's bounds
-          const pageTop = pageRect.top;
-          const pageBottom = pageRect.bottom;
-          
-          if (actualY >= pageTop && actualY <= pageBottom) {
-            detectedPage = pageNumber;
-          } else {
-            // Calculate distance to this page
-            const distanceToTop = Math.abs(actualY - pageTop);
-            const distanceToBottom = Math.abs(actualY - pageBottom);
-            const distance = Math.min(distanceToTop, distanceToBottom);
-            
-            if (distance < minDistance) {
-              minDistance = distance;
-              detectedPage = pageNumber;
-            }
-          }
-        });
-        
-        console.log('📍 Detected page from annotation:', detectedPage, 'avgY:', avgY, 'actualY:', actualY);
-        return detectedPage;
-        
-      } catch (error) {
-        console.error('Error detecting page from annotation:', error);
-        return getCurrentPageNumber();
-      }
+  // Helper function to detect which PDF page a pointer event is over
+  const detectPageFromPointerEvent = (pointerEvent: React.PointerEvent | null): number => {
+    if (!pointerEvent || mediaType !== 'pdf' || !pdfPages || pdfPages.length <= 1) {
+      return getCurrentPageNumber();
     }
-    
-    // For single page or non-PDF media, use the current page number
-    return getCurrentPageNumber();
+
+    try {
+      const pageElements = document.querySelectorAll('[data-page-element="true"]');
+      if (pageElements.length === 0) return getCurrentPageNumber();
+
+      // Get the actual click position in viewport coordinates
+      const clickX = pointerEvent.clientX;
+      const clickY = pointerEvent.clientY;
+
+      console.log('🖱️ Click position:', { clickX, clickY });
+
+      // Find which page element contains this click position
+      for (let i = 0; i < pageElements.length; i++) {
+        const pageEl = pageElements[i];
+        const rect = pageEl.getBoundingClientRect();
+        const pageNum = parseInt(pageEl.getAttribute('data-page-number') || '1');
+
+        console.log(`📄 Page ${pageNum} rect:`, { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right });
+
+        // Check if click is within this page's bounds
+        if (clickY >= rect.top && clickY <= rect.bottom && clickX >= rect.left && clickX <= rect.right) {
+          console.log('✅ Detected page:', pageNum);
+          return pageNum;
+        }
+      }
+
+      // If not directly on a page, find the closest page
+      let closestPage = 1;
+      let minDistance = Infinity;
+
+      pageElements.forEach((pageEl) => {
+        const rect = pageEl.getBoundingClientRect();
+        const pageNum = parseInt(pageEl.getAttribute('data-page-number') || '1');
+
+        // Calculate distance from click to page center
+        const pageCenterY = (rect.top + rect.bottom) / 2;
+        const distance = Math.abs(clickY - pageCenterY);
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestPage = pageNum;
+        }
+      });
+
+      console.log('📍 Closest page:', closestPage);
+      return closestPage;
+
+    } catch (error) {
+      console.error('Error detecting page from pointer:', error);
+      return getCurrentPageNumber();
+    }
   };
 
 
@@ -365,9 +349,9 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               width="100%"
               height="100%"
               isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
-              onSave={({ path, comment, svgWidth, svgHeight }) => {
+              onSave={({ path, comment, svgWidth, svgHeight, lastPointerEvent }) => {
                 // Detect which page the annotation was actually drawn on
-                const detectedPage = detectPageFromAnnotationPath(path, svgHeight);
+                const detectedPage = detectPageFromPointerEvent(lastPointerEvent || null);
                 console.log('💾 Saving annotation to page:', detectedPage);
                 
                 const newAnnotation = {

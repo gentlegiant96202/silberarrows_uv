@@ -4,7 +4,7 @@ interface AnnotationOverlayProps {
   width: number | string;
   height: number | string;
   isActive: boolean;
-  onSave: (data: { path: string; comment: string; svgWidth: number; svgHeight: number }) => void;
+  onSave: (data: { path: string; comment: string; svgWidth: number; svgHeight: number; lastPointerEvent?: React.PointerEvent }) => void;
   onCancel?: () => void;
   existingPaths?: Array<{ d: string; color?: string; svgWidth?: number; svgHeight?: number }>;
   viewBoxWidth?: number;
@@ -25,6 +25,7 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
   const [currentPath, setCurrentPath] = useState('');
   const [showComment, setShowComment] = useState(false);
   const [comment, setComment] = useState('');
+  const [lastPointer, setLastPointer] = useState<React.PointerEvent | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [svgSize, setSvgSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
@@ -67,6 +68,7 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!isActive || !isDrawing) return;
     setIsDrawing(false);
+    setLastPointer(e); // Store the last pointer event
     setShowComment(true);
     e.preventDefault();
   };
@@ -97,6 +99,7 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
         comment: comment.trim(),
         svgWidth: (viewBoxWidth ?? rect?.width ?? 0),
         svgHeight: (viewBoxHeight ?? rect?.height ?? 0),
+        lastPointerEvent: lastPointer,
       };
       onSave(payload);
       // Clear everything immediately to prevent glitches
@@ -104,6 +107,7 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
       setComment('');
       setShowComment(false);
       setIsDrawing(false);
+      setLastPointer(null);
     }
   };
 

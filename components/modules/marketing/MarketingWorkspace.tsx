@@ -505,7 +505,17 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
           isActive={isAnnotationMode}
           onSave={({ path, comment, svgWidth, svgHeight, pointerCoords }) => {
             console.log('🎨 [Single Image/Video] Received pointer coords:', pointerCoords);
-            console.log('🔍 [Single Image/Video] Context:', { mediaType, hasPointerCoords: !!pointerCoords });
+            console.log('🔍 [Single Image/Video] Context:', { 
+              mediaType, 
+              hasPointerCoords: !!pointerCoords,
+              currentPageNumber: getCurrentPageNumber()
+            });
+            
+            // For single-page PDF views, use the selected thumbnail index
+            const detectedPage = getCurrentPageNumber();
+            
+            console.log('💾 [Single Image/Video] Saving annotation to page:', detectedPage);
+            console.log('⚠️ NOTE: In single-page view, click the correct page thumbnail BEFORE annotating!');
             
             const newAnnotation = {
               id: Date.now().toString(),
@@ -513,13 +523,12 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               comment,
               svgWidth,
               svgHeight,
-              pageIndex: getCurrentPageNumber(),
+              pageIndex: detectedPage,
               timestamp: new Date().toISOString(),
               mediaType,
               zoom,
               pan
             };
-            console.log('💾 [Single Image/Video] Saving annotation to page:', getCurrentPageNumber());
             
             const updatedAnnotations = [...currentAnnotations, newAnnotation];
             onAnnotationsChange?.(updatedAnnotations);

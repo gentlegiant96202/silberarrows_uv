@@ -18,8 +18,8 @@ const execFileAsync = promisify(execFile);
  * and uploads them to Supabase Storage.
  * 
  * POST /api/convert-pdf-to-images
- * Body: FormData with:
- *   - file: The PDF file
+ * Body: JSON with:
+ *   - pdfUrl: URL of the PDF file already uploaded to Supabase
  *   - taskId: The design task ID
  * 
  * Returns: Array of image URLs with page indices
@@ -28,29 +28,26 @@ export async function POST(req: NextRequest) {
   try {
     console.log('=== PDF TO IMAGES CONVERSION API ===');
 
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-    const taskId = formData.get('taskId') as string;
+    const body = await req.json();
+    const { pdfUrl, taskId } = body;
 
-    if (!file || !taskId) {
+    if (!pdfUrl || !taskId) {
       return NextResponse.json(
-        { error: 'File and taskId are required' },
+        { error: 'pdfUrl and taskId are required' },
         { status: 400 }
       );
     }
 
-    if (file.type !== 'application/pdf') {
-      return NextResponse.json(
-        { error: 'File must be a PDF' },
-        { status: 400 }
-      );
+    console.log(`Converting PDF from URL: ${pdfUrl} for task: ${taskId}`);
+
+    // Download PDF from URL
+    const response = await fetch(pdfUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download PDF: ${response.statusText}`);
     }
-
-    console.log(`Converting PDF: ${file.name} (${file.size} bytes) for task: ${taskId}`);
-
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    
+    const buffer = Buffer.from(await response.arrayBuffer());
+    console.log(`Downloaded PDF: ${buffer.length} bytes`);
 
     // Create temp directory
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pdf-convert-'));

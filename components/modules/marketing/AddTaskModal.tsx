@@ -754,14 +754,16 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 95 } : f));
           
           try {
-            // Call PDF conversion API
-            const pdfFormData = new FormData();
-            pdfFormData.append('file', file);
-            pdfFormData.append('taskId', taskId);
-            
+            // Call PDF conversion API with URL (not file)
             const convertResponse = await fetch('/api/convert-pdf-to-images', {
               method: 'POST',
-              body: pdfFormData
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                pdfUrl: publicUrl,
+                taskId: taskId
+              })
             });
             
             if (!convertResponse.ok) {

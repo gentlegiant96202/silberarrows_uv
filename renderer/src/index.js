@@ -1137,70 +1137,85 @@ app.post('/render-damage-report', async (req, res) => {
 });
 
 app.post('/render-pdf-to-images', async (req, res) => {
+  let browser;
   try {
-    const { pdfUrl, scale = 2.0 } = req.body || {};
+    const { pdfUrl, taskId, scale = 2.0 } = req.body || {};
 
     if (!pdfUrl) {
       return res.status(400).json({ success: false, error: 'pdfUrl is required' });
     }
 
-    console.log('🖼️ PDF-to-image conversion requested:', { pdfUrl, scale });
+    console.log('🚀 PDF to Images render request received');
+    console.log(`📄 Starting PDF to Images conversion for: ${pdfUrl}`);
 
-    const browser = await chromium.launch({
+    browser = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security']
+    });
+    
+    const page = await browser.newPage();
+    console.log('✅ Browser launched for PDF to Images conversion');
+
+    // Inject pdf.js from CDN
+    await page.goto('about:blank');
+    await page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs', type: 'module' });
+
+    const pagesData = await page.evaluate(async (pdfUrl) => {
+      // @ts-ignore
+      const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+
+      const loadingTask = pdfjsLib.getDocument(pdfUrl);
+      const pdf = await loadingTask.promise;
+      const numPages = pdf.numPages;
+      const convertedPages = [];
+
+      for (let i = 1; i <= numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 2.0 }); // 2x scale for better quality
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) continue;
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await page.render({ canvasContext: context, viewport }).promise;
+
+        const dataURL = canvas.toDataURL('image/png');
+        convertedPages.push({
+          dataURL: dataURL,
+          dataUrl: dataURL, // Add both for compatibility
+          pageIndex: i,
+          name: `pdf_page_${i}.png`,
+          type: 'image/png',
+          originalType: 'application/pdf',
+          width: canvas.width,
+          height: canvas.height
+        });
+      }
+      return convertedPages;
+    }, pdfUrl);
+
+    await browser.close();
+    console.log('🔒 Browser closed for PDF to Images conversion');
+    console.log(`✅ Converted PDF to ${pagesData.length} images`);
+
+    res.json({
+      success: true,
+      pages: pagesData,
+      totalPages: pagesData.length
     });
 
-    try {
-      const page = await browser.newPage();
-      await page.goto('about:blank');
-
-      const pdfJsCdnVersion = '3.11.174';
-      const pdfJsScript = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfJsCdnVersion}/pdf.min.js`;
-      const pdfJsWorker = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfJsCdnVersion}/pdf.worker.min.js`;
-
-      await page.addScriptTag({ url: pdfJsScript });
-
-      const pages = await page.evaluate(async ({ pdfUrl, scale, pdfJsWorker }) => {
-        const pdfjsLib = window.pdfjsLib;
-        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfJsWorker;
-
-        const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise;
-        const images = [];
-
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale });
-
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-
-          await page.render({ canvasContext: context, viewport }).promise;
-
-          const dataUrl = canvas.toDataURL('image/png');
-          images.push({
-            pageIndex: i,
-            width: canvas.width,
-            height: canvas.height,
-            dataUrl
-          });
-        }
-
-        return images;
-      }, { pdfUrl, scale, pdfJsWorker });
-
-      console.log('🖼️ PDF-to-image conversion complete:', { pageCount: pages.length });
-      res.json({ success: true, pages });
-    } finally {
-      await browser.close();
-    }
-  } catch (error) {
-    console.error('❌ PDF-to-image conversion failed:', error);
+  } catch (err) {
+    console.error('❌ PDF to Images render error:', err);
+    console.error('❌ Error stack:', err.stack);
+    if (browser) await browser.close();
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: err instanceof Error ? err.message : 'Unknown error',
+      details: err.stack
     });
   }
 });

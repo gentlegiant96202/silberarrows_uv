@@ -1139,39 +1139,96 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           continue;
         }
 
-        const fileObject: any = {
-          url: publicUrl,
-          name: file.name,
-          type: file.type,
-          originalType: file.type
-        };
-
-        // Generate and upload a poster thumbnail for MP4 videos
-        if (file.type === 'video/mp4') {
+        // If PDF, convert to individual page images
+        if (file.type === 'application/pdf') {
+          console.log('📄 PDF detected, converting to images...');
+          setUploadProgress(95);
+          
           try {
-            const thumbFile = await generateVideoThumbnail(file);
-            const thumbExt = 'jpg';
-            const thumbName = `${crypto.randomUUID()}.${thumbExt}`;
-            const thumbPath = `${task.id}/thumbnails/${thumbName}`;
-            const { error: thumbErr } = await supabase.storage
-              .from('media-files')
-              .upload(thumbPath, thumbFile, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
-            if (!thumbErr) {
-              const { data: { publicUrl: rawThumbUrl } } = supabase.storage
-                .from('media-files')
-                .getPublicUrl(thumbPath);
-              
-              // Convert to custom domain to avoid ISP blocking
-              fileObject.thumbnail = rawThumbUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
-            } else {
-              console.warn('Thumbnail upload error:', thumbErr);
+            // Call PDF conversion API
+            const pdfFormData = new FormData();
+            pdfFormData.append('file', file);
+            pdfFormData.append('taskId', task.id);
+            
+            const convertResponse = await fetch('/api/convert-pdf-to-images', {
+              method: 'POST',
+              body: pdfFormData
+            });
+            
+            if (!convertResponse.ok) {
+              const errorData = await convertResponse.json();
+              throw new Error(errorData.error || 'PDF conversion failed');
             }
-          } catch (thumbGenErr) {
-            console.warn('Thumbnail generation failed:', thumbGenErr);
+            
+            const { pages } = await convertResponse.json();
+            console.log(`✅ PDF converted to ${pages.length} images`);
+            
+            // Add all page images to uploadedFiles instead of the PDF
+            for (const page of pages) {
+              uploadedFiles.push({
+                url: page.url,
+                name: page.name,
+                type: page.type,
+                thumbnail: page.thumbnail,
+                pageIndex: page.pageIndex,
+                originalType: page.originalType
+              });
+            }
+            
+            // Delete the original PDF from storage (we have the images now)
+            await supabase.storage.from('media-files').remove([storagePath]);
+            console.log('🗑️ Original PDF removed from storage');
+            
+            setUploadProgress(100);
+            
+          } catch (error) {
+            console.error('❌ PDF conversion error:', error);
+            setDeleteMessage(`PDF conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            // Fallback: keep the PDF as-is
+            const fileObject: any = {
+              url: publicUrl,
+              name: file.name,
+              type: file.type,
+              originalType: file.type
+            };
+            uploadedFiles.push(fileObject);
           }
-        }
+        } else {
+          // Non-PDF files
+          const fileObject: any = {
+            url: publicUrl,
+            name: file.name,
+            type: file.type,
+            originalType: file.type
+          };
 
-        uploadedFiles.push(fileObject);
+          // Generate and upload a poster thumbnail for MP4 videos
+          if (file.type === 'video/mp4') {
+            try {
+              const thumbFile = await generateVideoThumbnail(file);
+              const thumbExt = 'jpg';
+              const thumbName = `${crypto.randomUUID()}.${thumbExt}`;
+              const thumbPath = `${task.id}/thumbnails/${thumbName}`;
+              const { error: thumbErr } = await supabase.storage
+                .from('media-files')
+                .upload(thumbPath, thumbFile, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+              if (!thumbErr) {
+                const { data: { publicUrl: rawThumbUrl } } = supabase.storage
+                  .from('media-files')
+                  .getPublicUrl(thumbPath);
+                
+                // Convert to custom domain to avoid ISP blocking
+                fileObject.thumbnail = rawThumbUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
+              } else {
+                console.warn('Thumbnail upload error:', thumbErr);
+              }
+            } catch (thumbGenErr) {
+              console.warn('Thumbnail generation failed:', thumbGenErr);
+            }
+          }
+
+          uploadedFiles.push(fileObject);
+        }
       }
       setUploadFileName(null);
       setUploadProgress(null);

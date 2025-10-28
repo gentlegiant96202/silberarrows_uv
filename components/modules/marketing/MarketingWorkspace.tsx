@@ -207,12 +207,35 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
 
   // Helper function to detect which PDF page a pointer coordinate is over
   const detectPageFromPointerCoords = (coords: { x: number; y: number } | undefined): number => {
-    if (!coords || mediaType !== 'pdf' || !pdfPages || pdfPages.length <= 1) {
+    console.log('🔎 detectPageFromPointerCoords called with:', coords);
+    console.log('🔎 Context check:', { 
+      hasCoords: !!coords, 
+      mediaType, 
+      hasPdfPages: !!pdfPages, 
+      pdfPagesLength: pdfPages?.length 
+    });
+    
+    if (!coords) {
+      console.log('❌ No coords, returning getCurrentPageNumber');
+      return getCurrentPageNumber();
+    }
+    
+    if (mediaType !== 'pdf') {
+      console.log('❌ Not a PDF (mediaType=' + mediaType + '), returning getCurrentPageNumber');
+      return getCurrentPageNumber();
+    }
+    
+    if (!pdfPages || pdfPages.length <= 1) {
+      console.log('❌ Not multi-page PDF (length=' + (pdfPages?.length || 0) + '), returning getCurrentPageNumber');
       return getCurrentPageNumber();
     }
 
+    console.log('✅ All checks passed, proceeding with page detection');
+
     try {
       const pageElements = document.querySelectorAll('[data-page-element="true"]');
+      console.log('📄 Found page elements:', pageElements.length);
+      
       if (pageElements.length === 0) {
         console.log('⚠️ No page elements found');
         return getCurrentPageNumber();
@@ -357,6 +380,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               onSave={({ path, comment, svgWidth, svgHeight, pointerCoords }) => {
                 // Detect which page the annotation was actually drawn on
                 console.log('🎨 Received pointer coords in MarketingWorkspace:', pointerCoords);
+                console.log('🔍 Detection context:', { mediaType, pdfPagesLength: pdfPages?.length, hasPointerCoords: !!pointerCoords });
                 const detectedPage = detectPageFromPointerCoords(pointerCoords);
                 console.log('💾 Saving annotation to page:', detectedPage);
                 

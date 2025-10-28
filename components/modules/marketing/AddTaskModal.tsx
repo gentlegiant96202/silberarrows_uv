@@ -44,9 +44,56 @@ function getPreviewUrl(mediaFiles: any[] = []): string | null {
   return null;
 }
 
-// PDF conversion is currently disabled (dependency issues). Return empty list.
-const convertPdfToImages = async (_file: File): Promise<Array<{blob: Blob, name: string, pageIndex: number, dataURL: string}>> => {
-  return [];
+// Client-side PDF to images conversion using pdf.js
+const convertPdfToImages = async (file: File): Promise<Array<{blob: Blob, name: string, pageIndex: number, dataURL: string}>> => {
+  try {
+    // Dynamically import pdf.js
+    const pdfjsLib = await import('pdfjs-dist');
+    
+    // Set worker source
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    
+    const pages: Array<{blob: Blob, name: string, pageIndex: number, dataURL: string}> = [];
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2.0 }); // 2x scale for better quality
+      
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) continue;
+      
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      
+      await page.render({ canvasContext: context, viewport }).promise;
+      
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => {
+          if (b) resolve(b);
+          else reject(new Error('Failed to create blob'));
+        }, 'image/png');
+      });
+      
+      const dataURL = canvas.toDataURL('image/png');
+      
+      pages.push({
+        blob,
+        name: `${file.name.replace('.pdf', '')}_page_${i}.png`,
+        pageIndex: i,
+        dataURL
+      });
+    }
+    
+    return pages;
+  } catch (error) {
+    console.error('PDF conversion error:', error);
+    return [];
+  }
 };
 
 interface AddTaskModalProps {
@@ -591,6 +638,31 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
 
       for (const file of files) {
         try {
+          // If PDF, convert to individual page images first
+          if (file.type === 'application/pdf') {
+            console.log('📄 PDF detected, converting to images on client-side:', file.name);
+            const pages = await convertPdfToImages(file);
+            
+            if (pages.length > 0) {
+              console.log(`✅ Converted PDF to ${pages.length} images`);
+              // Add each page as a separate file
+              for (const page of pages) {
+                const pageFile = new File([page.blob], page.name, { type: 'image/png' });
+                filesWithThumbnails.push({
+                  file: pageFile,
+                  thumbnail: page.dataURL,
+                  uploadProgress: 0,
+                  uploading: false,
+                  uploaded: false
+                });
+              }
+              continue; // Skip normal thumbnail generation
+            } else {
+              console.warn('⚠️ PDF conversion returned no pages, uploading as-is');
+            }
+          }
+          
+          // Normal file thumbnail generation
           console.log('🎬 Starting thumbnail generation for:', file.name, 'type:', file.type);
           const thumbnail = await generateThumbnail(file);
           console.log('✅ Thumbnail generated for:', file.name, 'length:', thumbnail.length);
@@ -748,75 +820,17 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           throw error;
         }
 
-        // If PDF, convert to individual page images
-        if (file.type === 'application/pdf') {
-          console.log('📄 PDF detected, converting to images...');
-          setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 95 } : f));
-          
-          try {
-            // Call PDF conversion API with URL (not file)
-            const convertResponse = await fetch('/api/convert-pdf-to-images', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                pdfUrl: publicUrl,
-                taskId: taskId
-              })
-            });
-            
-            if (!convertResponse.ok) {
-              throw new Error('PDF conversion failed');
-            }
-            
-            const { pages } = await convertResponse.json();
-            console.log(`✅ PDF converted to ${pages.length} images`);
-            
-            // Add all page images to newMedia instead of the PDF
-            for (const page of pages) {
-              newMedia.push({
-                url: page.url,
-                name: page.name,
-                type: page.type,
-                size: file.size / pages.length, // Approximate size per page
-                uploadedAt: new Date().toISOString(),
-                thumbnail: page.thumbnail,
-                pageIndex: page.pageIndex,
-                originalType: page.originalType
-              });
-            }
-            
-            // Delete the original PDF from storage (we have the images now)
-            await supabase.storage.from('media-files').remove([storagePath]);
-            console.log('🗑️ Original PDF removed from storage');
-            
-          } catch (error) {
-            console.error('❌ PDF conversion error:', error);
-            // Fallback: keep the PDF as-is
-            const newMediaItem = {
-              url: publicUrl,
-              name: file.name,
-              type: file.type,
-              size: file.size,
-              uploadedAt: new Date().toISOString(),
-              ...(fileWithThumbnail.thumbnail ? { thumbnail: fileWithThumbnail.thumbnail } : {})
-            };
-            newMedia.push(newMediaItem);
-          }
-        } else {
-          // Non-PDF files: add as-is
-          const newMediaItem = {
-            url: publicUrl,
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            uploadedAt: new Date().toISOString(),
-            // Include client-generated thumbnail for videos
-            ...(fileWithThumbnail.thumbnail ? { thumbnail: fileWithThumbnail.thumbnail } : {})
-          };
-          newMedia.push(newMediaItem);
-        }
+        // No longer need server-side PDF conversion - handled client-side before upload
+        const newMediaItem = {
+          url: publicUrl,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          uploadedAt: new Date().toISOString(),
+          // Include client-generated thumbnail for videos
+          ...(fileWithThumbnail.thumbnail ? { thumbnail: fileWithThumbnail.thumbnail } : {})
+        };
+        newMedia.push(newMediaItem);
         
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 100, uploading: false, uploaded: true } : f));
         

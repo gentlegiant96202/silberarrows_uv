@@ -205,6 +205,80 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
     return currentPageNumber; // Use the passed page number from selectedImageIndex + 1
   };
 
+  // Helper function to detect which PDF page an annotation is drawn on
+  // by finding which page element the annotation's Y-coordinate intersects
+  const detectPageFromAnnotationPath = (svgPath: string, svgHeight: number): number => {
+    // For multi-page PDFs, detect which page the annotation is on
+    if (mediaType === 'pdf' && pdfPages && pdfPages.length > 1) {
+      try {
+        // Extract Y coordinates from the SVG path
+        const yCoords: number[] = [];
+        const matches = svgPath.matchAll(/[ML]\s*[\d.]+\s+([\d.]+)/g);
+        for (const match of matches) {
+          yCoords.push(parseFloat(match[1]));
+        }
+        
+        if (yCoords.length === 0) return getCurrentPageNumber();
+        
+        // Calculate the average Y position of the annotation
+        const avgY = yCoords.reduce((sum, y) => sum + y, 0) / yCoords.length;
+        
+        // Get the container and page elements
+        const container = document.getElementById('pdf-pages-container');
+        if (!container) return getCurrentPageNumber();
+        
+        const pageElements = container.querySelectorAll('[data-page-element="true"]');
+        if (pageElements.length === 0) return getCurrentPageNumber();
+        
+        // Convert SVG Y coordinate to viewport coordinate
+        // The annotation overlay has the same transform as the PDF container
+        const containerRect = container.getBoundingClientRect();
+        const overlayHeight = window.innerHeight;
+        
+        // Calculate actual Y position in the scrollable container
+        // avgY is a percentage of svgHeight, so convert to actual pixels
+        const actualY = (avgY / svgHeight) * overlayHeight;
+        
+        // Find which page element this Y coordinate falls within
+        let detectedPage = 1;
+        let minDistance = Infinity;
+        
+        pageElements.forEach((pageEl) => {
+          const pageRect = pageEl.getBoundingClientRect();
+          const pageNumber = parseInt(pageEl.getAttribute('data-page-number') || '1');
+          
+          // Check if the annotation Y falls within this page's bounds
+          const pageTop = pageRect.top;
+          const pageBottom = pageRect.bottom;
+          
+          if (actualY >= pageTop && actualY <= pageBottom) {
+            detectedPage = pageNumber;
+          } else {
+            // Calculate distance to this page
+            const distanceToTop = Math.abs(actualY - pageTop);
+            const distanceToBottom = Math.abs(actualY - pageBottom);
+            const distance = Math.min(distanceToTop, distanceToBottom);
+            
+            if (distance < minDistance) {
+              minDistance = distance;
+              detectedPage = pageNumber;
+            }
+          }
+        });
+        
+        console.log('📍 Detected page from annotation:', detectedPage, 'avgY:', avgY, 'actualY:', actualY);
+        return detectedPage;
+        
+      } catch (error) {
+        console.error('Error detecting page from annotation:', error);
+        return getCurrentPageNumber();
+      }
+    }
+    
+    // For single page or non-PDF media, use the current page number
+    return getCurrentPageNumber();
+  };
+
 
   
   // Annotations are now managed by parent workspace - no need to load here
@@ -250,11 +324,16 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
             transition: isDragging ? 'none' : 'transform 0.1s ease'
           }}
         >
-          <div className="flex flex-col gap-6 p-4">
+          <div className="flex flex-col gap-6 p-4" id="pdf-pages-container">
             {pdfPages
               .sort((a, b) => (a.pageIndex || 0) - (b.pageIndex || 0))
               .map((page, index) => (
-                <div key={index} className="relative flex-shrink-0">
+                <div 
+                  key={index} 
+                  className="relative flex-shrink-0"
+                  data-page-number={index + 1}
+                  data-page-element="true"
+                >
                   <img
                     src={typeof page === 'string' ? page : page.url}
                     alt={`${fileName} - Page ${index + 1}`}
@@ -287,13 +366,17 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               height="100%"
               isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
               onSave={({ path, comment, svgWidth, svgHeight }) => {
+                // Detect which page the annotation was actually drawn on
+                const detectedPage = detectPageFromAnnotationPath(path, svgHeight);
+                console.log('💾 Saving annotation to page:', detectedPage);
+                
                 const newAnnotation = {
                   id: Date.now().toString(),
                   path,
                   comment,
                   svgWidth,
                   svgHeight,
-                  pageIndex: getCurrentPageNumber(),
+                  pageIndex: detectedPage,
                   timestamp: new Date().toISOString(),
                   mediaType,
                   zoom,

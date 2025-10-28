@@ -748,17 +748,74 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           throw error;
         }
 
-        const newMediaItem = {
-          url: publicUrl,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          uploadedAt: new Date().toISOString(),
-          // Include client-generated thumbnail for videos
-          ...(fileWithThumbnail.thumbnail ? { thumbnail: fileWithThumbnail.thumbnail } : {})
-        };
+        // If PDF, convert to individual page images
+        if (file.type === 'application/pdf') {
+          console.log('📄 PDF detected, converting to images...');
+          setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 95 } : f));
+          
+          try {
+            // Call PDF conversion API
+            const pdfFormData = new FormData();
+            pdfFormData.append('file', file);
+            pdfFormData.append('taskId', taskId);
+            
+            const convertResponse = await fetch('/api/convert-pdf-to-images', {
+              method: 'POST',
+              body: pdfFormData
+            });
+            
+            if (!convertResponse.ok) {
+              throw new Error('PDF conversion failed');
+            }
+            
+            const { pages } = await convertResponse.json();
+            console.log(`✅ PDF converted to ${pages.length} images`);
+            
+            // Add all page images to newMedia instead of the PDF
+            for (const page of pages) {
+              newMedia.push({
+                url: page.url,
+                name: page.name,
+                type: page.type,
+                size: file.size / pages.length, // Approximate size per page
+                uploadedAt: new Date().toISOString(),
+                thumbnail: page.thumbnail,
+                pageIndex: page.pageIndex,
+                originalType: page.originalType
+              });
+            }
+            
+            // Delete the original PDF from storage (we have the images now)
+            await supabase.storage.from('media-files').remove([storagePath]);
+            console.log('🗑️ Original PDF removed from storage');
+            
+          } catch (error) {
+            console.error('❌ PDF conversion error:', error);
+            // Fallback: keep the PDF as-is
+            const newMediaItem = {
+              url: publicUrl,
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              uploadedAt: new Date().toISOString(),
+              ...(fileWithThumbnail.thumbnail ? { thumbnail: fileWithThumbnail.thumbnail } : {})
+            };
+            newMedia.push(newMediaItem);
+          }
+        } else {
+          // Non-PDF files: add as-is
+          const newMediaItem = {
+            url: publicUrl,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            uploadedAt: new Date().toISOString(),
+            // Include client-generated thumbnail for videos
+            ...(fileWithThumbnail.thumbnail ? { thumbnail: fileWithThumbnail.thumbnail } : {})
+          };
+          newMedia.push(newMediaItem);
+        }
         
-        newMedia.push(newMediaItem);
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 100, uploading: false, uploaded: true } : f));
         
         console.log('✅ File upload completed:', file.name);

@@ -1005,7 +1005,7 @@ export async function POST(request: NextRequest) {
                 <!-- Marketing Benefits Section (NO page break - stays under pricing) -->
                 <div class="benefits-hero">
                     <h2>Why Lease with SilberArrows?</h2>
-                    <p>Experience the ultimate flexibility and peace of mind with our premium leasing solutions. Drive the Mercedes-Benz of your dreams without the commitment of ownership.</p>
+                    <p>Experience the ultimate flexibility and peace of mind with our premium lease-to-own solutions. Drive the Mercedes-Benz of your dreams without the commitment of ownership.</p>
                 </div>
 
                 <div class="benefits-grid">
@@ -1049,37 +1049,39 @@ export async function POST(request: NextRequest) {
                         <h4 class="card-title" style="margin-bottom: 30px;">Lease vs. Buy Comparison (12-Month Term)</h4>
                     
                     <!-- Comparison Cards with Better Spacing -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px;">
+                    <div style="display: grid; grid-template-columns: 1fr 50px 1fr; gap: 5px; margin-bottom: 40px; align-items: center;">
                         
                         <!-- BUY CARD (LEFT) -->
                         <div style="background: rgba(255, 255, 255, 0.03); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
-                            <div style="text-align: center; margin-bottom: 15px;">
-                                <div style="font-size: 16px; font-weight: 800; color: rgba(255, 255, 255, 0.9); margin-bottom: 8px;">BUY (Finance 60 months)</div>
+                            <div style="text-align: center; margin-bottom: 15px; height: 25px;">
+                                <div style="font-size: 16px; font-weight: 800; color: rgba(255, 255, 255, 0.9); margin-bottom: 8px;">BUY (60 months)</div>
                 </div>
 
-                            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">UPFRONT COST</div>
-                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">Down Payment (20% of AED ${financeVehicleValue !== null ? financeVehicleValue.toLocaleString() : '—'}): AED ${buyDownPayment !== null ? buyDownPayment.toLocaleString() : '—'}</div>
-                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">+ Registration/Insurance: AED 8,500</div>
+                            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 12px; margin-bottom: 12px; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">UPFRONT COST</div>
+                                    <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">DP (20% of AED ${financeVehicleValue !== null ? financeVehicleValue.toLocaleString() : '—'}): AED ${buyDownPayment !== null ? buyDownPayment.toLocaleString() : '—'}</div>
+                                    <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">+ Registration/Insurance: AED 8,500</div>
+                                </div>
                                 <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 8px;">
                                     <div style="font-size: 14px; font-weight: 800; color: rgba(255, 255, 255, 0.9);">Total: AED ${buyUpfrontCost !== null ? buyUpfrontCost.toLocaleString() : '—'}</div>
                                     <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">(Non-refundable)</div>
-            </div>
-        </div>
+                                </div>
+                            </div>
 
-                            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 12px; margin-bottom: 12px; min-height: 65px; display: flex; flex-direction: column; justify-content: center;">
                                 <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">MONTHLY PAYMENT</div>
                                 <div style="font-size: 16px; font-weight: 800; color: rgba(255, 255, 255, 0.9);">AED ${buyMonthlyFinancePayment !== null ? buyMonthlyFinancePayment.toLocaleString() : '—'}</div>
                                 <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">+ maintenance & insurance</div>
-                </div>
+                            </div>
                 
-                            <div style="background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 12px;">
+                            <div style="background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 12px; min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
                                 <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">TOTAL 12-MONTH COST</div>
                                 <div style="font-size: 18px; font-weight: 900; color: rgba(255, 255, 255, 0.9); margin-bottom: 4px;">AED ${buyFirstYearCost !== null ? buyFirstYearCost.toLocaleString() : '—'}</div>
                                 <div style="font-size: 9px; color: rgba(255, 255, 255, 0.7);">First year total</div>
                             </div>
                             
-                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); min-height: 60px;">
                                 <div style="font-size: 9px; color: rgba(255, 255, 255, 0.8); margin-bottom: 6px;">
                                     <span style="color: #ff6b6b;">✗</span> Locked in for 60 months
                                 </div>
@@ -1092,35 +1094,49 @@ export async function POST(request: NextRequest) {
                             </div>
                         </div>
                         
+                        <!-- VS DIVIDER -->
+                        <div style="display: flex; align-items: center; justify-content: center; position: relative; z-index: 10;">
+                            <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 841.89 595.28" style="width: 100%; height: 100%;">
+                                    <path fill="#ffffff" d="M385.32,330.65l62.78-144.02v-1.85h-57.24l-55.39,132.94s-1.85,1.85-1.85,0v-1.85l-1.85-132.94c.11-.91-.54-1.74-1.45-1.85-.13-.02-.26-.02-.39,0h-53.55c-.91-.11-1.74.54-1.85,1.45-.02.13-.02.26,0,.39h0l3.69,197.57c-.11.91.54,1.74,1.45,1.85.13.02.26.02.39,0h66.47c.91-.11,1.74.54,1.85,1.45.02.13.02.26,0,.39h0l-59.09,177.26,96.01-230.81Z"/>
+                                    <polygon fill="#ffffff" points="298.54 472.82 329.93 398.97 320.7 398.97 298.54 472.82"/>
+                                    <polygon fill="#ffffff" points="527.5 99.84 492.42 199.55 501.65 197.7 527.5 99.84"/>
+                                    <path fill="#ffffff" d="M520.11,206.94c-14.36-.38-28.69,1.49-42.47,5.54q-1.85,0-3.69-1.85v-1.85l55.39-175.41s-83.09,199.42-88.63,206.8h0q0,1.85-1.85,3.69l-9.23,22.16c-3.11,6.6-2.41,14.38,1.85,20.31,3.69,5.54,14.77,18.46,31.39,36.93,9.23,9.23,12.93,18.46,9.23,25.85l-9.23,24c-1.85,5.54-5.54,7.39-12.93,7.39s-11.08-1.85-9.23-7.39l16.62-44.31q0-1.85-1.85-3.69h-48.01q-1.85,0-1.85,1.85l-18.46,46.16c-11.08,25.85,7.39,38.78,51.7,38.78s75.7-14.77,84.94-42.47l9.23-25.85c3.1-7.86,2.42-16.71-1.85-24-9.58-13.58-20.74-25.98-33.24-36.93-9.23-9.23-12.93-18.46-9.23-25.85h0l3.69-12.93h0c1.46-6.87,7.77-11.6,14.77-11.08,5.54,0,7.39,1.85,5.54,5.54l-12.93,31.39q0,1.85,1.85,3.69h48.01q1.85,0,1.85-1.85l11.08-31.39c11.08-22.16-3.69-33.24-42.47-33.24Z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
                         <!-- LEASE CARD (RIGHT) - Vibrant Green -->
                         <div style="background: rgba(0, 255, 136, 0.08); border: 2px solid rgba(0, 255, 136, 0.35); border-radius: 12px; padding: 20px;">
-                            <div style="text-align: center; margin-bottom: 15px;">
+                            <div style="text-align: center; margin-bottom: 15px; height: 25px;">
                                 <div style="font-size: 16px; font-weight: 800; color: #00FF88; margin-bottom: 8px;">LEASE (12 months)</div>
                             </div>
                             
-                            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">UPFRONT COST</div>
-                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">Security Deposit: AED ${securityDepositValue !== null ? securityDepositValue.toLocaleString() : '3,999'}</div>
-                                <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">+ First Month: AED ${monthlyLease.toLocaleString()}</div>
+                            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 12px; min-height: 115px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">UPFRONT COST</div>
+                                    <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 4px;">Security Deposit: AED ${securityDepositValue !== null ? securityDepositValue.toLocaleString() : '3,999'}</div>
+                                    <div style="font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">+ First Month: AED ${monthlyLease.toLocaleString()}</div>
+                                </div>
                                 <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 8px;">
                                     <div style="font-size: 14px; font-weight: 800; color: #00FF88;">Total: AED ${leaseUpfrontCost !== null ? leaseUpfrontCost.toLocaleString() : '—'}</div>
                                     <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">(Deposit refundable at end)</div>
                                 </div>
                             </div>
                             
-                            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 12px; min-height: 65px; display: flex; flex-direction: column; justify-content: center;">
                                 <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">MONTHLY PAYMENT</div>
                                 <div style="font-size: 16px; font-weight: 800; color: #00FF88;">AED ${monthlyLease.toLocaleString()}</div>
                                 <div style="font-size: 9px; color: rgba(255, 255, 255, 0.6);">Includes maintenance & insurance</div>
                             </div>
                             
-                            <div style="background: rgba(0, 255, 136, 0.15); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 8px; padding: 12px;">
+                            <div style="background: rgba(0, 255, 136, 0.15); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 8px; padding: 12px; min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
                                 <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">TOTAL 12-MONTH COST</div>
                                 <div style="font-size: 18px; font-weight: 900; color: #00FF88; margin-bottom: 4px;">AED ${leaseNetCostAfterDeposit !== null ? leaseNetCostAfterDeposit.toLocaleString() : '—'}</div>
                                 <div style="font-size: 9px; color: rgba(255, 255, 255, 0.7);">After deposit return</div>
                             </div>
                             
-                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); min-height: 60px;">
                                 <div style="font-size: 9px; color: rgba(255, 255, 255, 0.8); margin-bottom: 6px;">
                                     <span style="color: #00FF88;">✓</span> Return anytime
                                 </div>

@@ -25,7 +25,7 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
   const [currentPath, setCurrentPath] = useState('');
   const [showComment, setShowComment] = useState(false);
   const [comment, setComment] = useState('');
-  const [lastPointer, setLastPointer] = useState<React.PointerEvent | null>(null);
+  const [lastPointer, setLastPointer] = useState<React.PointerEvent | undefined>(undefined);
   const svgRef = useRef<SVGSVGElement>(null);
   const [svgSize, setSvgSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
@@ -107,7 +107,7 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
       setComment('');
       setShowComment(false);
       setIsDrawing(false);
-      setLastPointer(null);
+      setLastPointer(undefined);
     }
   };
 

@@ -206,7 +206,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
   };
 
   // Helper function to detect which PDF page a pointer event is over
-  const detectPageFromPointerEvent = (pointerEvent: React.PointerEvent | null): number => {
+  const detectPageFromPointerEvent = (pointerEvent: React.PointerEvent | undefined): number => {
     if (!pointerEvent || mediaType !== 'pdf' || !pdfPages || pdfPages.length <= 1) {
       return getCurrentPageNumber();
     }
@@ -351,7 +351,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
               onSave={({ path, comment, svgWidth, svgHeight, lastPointerEvent }) => {
                 // Detect which page the annotation was actually drawn on
-                const detectedPage = detectPageFromPointerEvent(lastPointerEvent || null);
+                const detectedPage = detectPageFromPointerEvent(lastPointerEvent);
                 console.log('💾 Saving annotation to page:', detectedPage);
                 
                 const newAnnotation = {

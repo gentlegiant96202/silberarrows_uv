@@ -31,6 +31,9 @@ export async function middleware(request: NextRequest) {
   // Skip auth check for public routes
   const publicRoutes = [
     '/login',
+    '/signup',
+    '/reset-password',
+    '/update-password',
     '/deprecated',
     '/auth/callback',
     '/dubizzle',        // Public dubizzle pages (e.g., /dubizzle/servicecare)

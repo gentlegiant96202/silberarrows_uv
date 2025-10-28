@@ -29,7 +29,13 @@ export async function middleware(request: NextRequest) {
 
   // === AUTHENTICATION CHECK ===
   // Skip auth check for public routes
-  const publicRoutes = ['/login', '/deprecated', '/auth/callback'];
+  const publicRoutes = [
+    '/login',
+    '/deprecated',
+    '/auth/callback',
+    '/dubizzle',        // Public dubizzle pages (e.g., /dubizzle/servicecare)
+    '/business-card'    // Public business card pages
+  ];
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   
   // Skip auth check for static assets and Next.js internals

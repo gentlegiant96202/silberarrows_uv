@@ -205,20 +205,20 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
     return currentPageNumber; // Use the passed page number from selectedImageIndex + 1
   };
 
-  // Helper function to detect which PDF page a pointer event is over
-  const detectPageFromPointerEvent = (pointerEvent: React.PointerEvent | undefined): number => {
-    if (!pointerEvent || mediaType !== 'pdf' || !pdfPages || pdfPages.length <= 1) {
+  // Helper function to detect which PDF page a pointer coordinate is over
+  const detectPageFromPointerCoords = (coords: { x: number; y: number } | undefined): number => {
+    if (!coords || mediaType !== 'pdf' || !pdfPages || pdfPages.length <= 1) {
       return getCurrentPageNumber();
     }
 
     try {
       const pageElements = document.querySelectorAll('[data-page-element="true"]');
-      if (pageElements.length === 0) return getCurrentPageNumber();
+      if (pageElements.length === 0) {
+        console.log('⚠️ No page elements found');
+        return getCurrentPageNumber();
+      }
 
-      // Get the actual click position in viewport coordinates
-      const clickX = pointerEvent.clientX;
-      const clickY = pointerEvent.clientY;
-
+      const { x: clickX, y: clickY } = coords;
       console.log('🖱️ Click position:', { clickX, clickY });
 
       // Find which page element contains this click position
@@ -227,7 +227,12 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
         const rect = pageEl.getBoundingClientRect();
         const pageNum = parseInt(pageEl.getAttribute('data-page-number') || '1');
 
-        console.log(`📄 Page ${pageNum} rect:`, { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right });
+        console.log(`📄 Page ${pageNum} rect:`, { 
+          top: rect.top, 
+          bottom: rect.bottom, 
+          left: rect.left, 
+          right: rect.right 
+        });
 
         // Check if click is within this page's bounds
         if (clickY >= rect.top && clickY <= rect.bottom && clickX >= rect.left && clickX <= rect.right) {
@@ -349,9 +354,10 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               width="100%"
               height="100%"
               isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
-              onSave={({ path, comment, svgWidth, svgHeight, lastPointerEvent }) => {
+              onSave={({ path, comment, svgWidth, svgHeight, pointerCoords }) => {
                 // Detect which page the annotation was actually drawn on
-                const detectedPage = detectPageFromPointerEvent(lastPointerEvent);
+                console.log('🎨 Received pointer coords in MarketingWorkspace:', pointerCoords);
+                const detectedPage = detectPageFromPointerCoords(pointerCoords);
                 console.log('💾 Saving annotation to page:', detectedPage);
                 
                 const newAnnotation = {

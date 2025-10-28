@@ -587,7 +587,7 @@ const convertPdfToImages = async (file: File): Promise<Array<{blob: Blob, name: 
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       
-      await page.render({ canvasContext: context, viewport }).promise;
+      await page.render({ canvas, viewport }).promise;
       
       // Convert canvas to blob
       const blob = await new Promise<Blob>((resolve, reject) => {

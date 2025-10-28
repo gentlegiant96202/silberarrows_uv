@@ -79,9 +79,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    return { error: error?.message ?? null };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        setLoading(false);
+        return { error: error.message };
+      }
+      
+      // Manually update state to ensure immediate auth
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      }
+      
+      // Give a tiny bit of time for cookie to be set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      setLoading(false);
+      return { error: null };
+    } catch (err) {
+      setLoading(false);
+      return { error: 'An unexpected error occurred' };
+    }
   };
 
   const signOut = async () => {

@@ -621,11 +621,11 @@ export default function ServiceWarrantyContent() {
                 <div className="flex items-center justify-center gap-2">
                   <button 
                     onClick={() => {
-                      console.log('🔍 Edit permission debug:', { isAdmin, isAccounts, role, canEditCheck: isAdmin || isAccounts });
+                      console.log('🔍 Edit permission debug:', { canEdit, role, userEmail: user?.email });
                       handleViewContract(contract);
                     }}
                     className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"
-                    title={(isAdmin || isAccounts) ? "View Details & Edit Contract" : "View Contract Details"}
+                    title={canEdit ? "View Details & Edit Contract" : "View Contract Details"}
                   >
                     <Eye className="w-4 h-4 text-blue-300" />
                   </button>
@@ -868,7 +868,7 @@ export default function ServiceWarrantyContent() {
         }}
         contract={selectedContract}
         onUpdated={handleContractUpdated}
-        canEdit={isAdmin || isAccounts}
+        canEdit={canEdit}
       />
 
       {/* ServiceCare Pricing Calculator Modal */}

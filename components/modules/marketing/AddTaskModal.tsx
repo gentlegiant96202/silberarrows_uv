@@ -764,7 +764,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 15 } : f));
 
           const convertedPages = await convertPdfOnServer(file, taskId);
-          const firstThumbnail = convertedPages.find(page => page.thumbnail)?.thumbnail || fileWithThumbnail.thumbnail || '';
+          const firstThumbnail = convertedPages.find((page: any) => page.thumbnail)?.thumbnail || fileWithThumbnail.thumbnail || '';
 
           newMedia.push(...convertedPages);
 

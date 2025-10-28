@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import sharp from 'sharp';
+import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export const maxDuration = 300;
  */
 export async function POST(req: NextRequest) {
   try {
-    console.log('=== PDF TO IMAGES CONVERSION API ===');
+    console.log('=== PDF TO IMAGES CONVERSION API (Playwright renderer) ===');
 
     const body = await req.json();
     const { pdfUrl, taskId } = body;
@@ -31,19 +32,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`Converting PDF from URL: ${pdfUrl} for task: ${taskId}`);
-
-    // Download PDF from URL
-    const response = await fetch(pdfUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download PDF: ${response.statusText}`);
+    const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || process.env.RENDERER_URL;
+    if (!rendererUrl) {
+      console.error('Renderer URL not configured');
+      return NextResponse.json(
+        { error: 'Renderer service URL not configured' },
+        { status: 500 }
+      );
     }
-    
-    const pdfBuffer = Buffer.from(await response.arrayBuffer());
-    console.log(`Downloaded PDF: ${pdfBuffer.length} bytes`);
 
-    // Use sharp to convert PDF pages to images
-    // Sharp can handle PDF files directly using libvips
+    console.log(`🔄 Calling renderer service at ${rendererUrl}/render-pdf-to-images`);
+
+    const rendererResponse = await fetch(`${rendererUrl}/render-pdf-to-images`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pdfUrl, scale: 2.0 })
+    });
+
+    if (!rendererResponse.ok) {
+      const errorText = await rendererResponse.text();
+      console.error('Renderer service failed:', rendererResponse.status, errorText);
+      return NextResponse.json(
+        { error: 'Renderer service failed', details: errorText },
+        { status: 502 }
+      );
+    }
+
+    const rendererPayload = await rendererResponse.json();
+    const rendererPages = Array.isArray(rendererPayload.pages) ? rendererPayload.pages : [];
+
+    if (!rendererPages.length) {
+      console.error('Renderer returned no pages');
+      return NextResponse.json(
+        { error: 'Renderer returned no pages' },
+        { status: 500 }
+      );
+    }
+
+    console.log(`🖼️ Renderer produced ${rendererPages.length} page images`);
+
     const uploadedPages: Array<{
       url: string;
       pageIndex: number;
@@ -53,28 +80,21 @@ export async function POST(req: NextRequest) {
       originalType: string;
     }> = [];
 
-    try {
-      // Get PDF metadata to determine number of pages
-      const metadata = await sharp(pdfBuffer, { pages: -1 }).metadata();
-      const pageCount = metadata.pages || 1;
-      
-      console.log(`PDF has ${pageCount} page(s)`);
+    for (const page of rendererPages) {
+      try {
+        // Handle both dataURL and dataUrl (renderer returns both)
+        const dataUrlField = page.dataURL || page.dataUrl;
+        const base64Data = typeof dataUrlField === 'string' && dataUrlField.includes(',')
+          ? dataUrlField.split(',')[1]
+          : dataUrlField;
 
-      // Convert each page
-      for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-        const pageNumber = pageIndex + 1;
-        console.log(`Processing page ${pageNumber}/${pageCount}...`);
+        if (!base64Data) {
+          console.warn('⚠️ Renderer page missing dataUrl, skipping page', page.pageIndex);
+          continue;
+        }
 
-        // Extract specific page and convert to PNG with white background
-        const pageBuffer = await sharp(pdfBuffer, { 
-          page: pageIndex,
-          density: 150 // 150 DPI for good quality
-        })
-          .flatten({ background: { r: 255, g: 255, b: 255 } })
-          .png()
-          .toBuffer();
+        const pageBuffer = Buffer.from(base64Data, 'base64');
 
-        // Create thumbnail (300px max width/height)
         const thumbnailBuffer = await sharp(pageBuffer)
           .resize(300, 300, {
             fit: 'inside',
@@ -83,11 +103,10 @@ export async function POST(req: NextRequest) {
           .png()
           .toBuffer();
 
-        // Upload full-size page image
-        const fileName = `${crypto.randomUUID()}.png`;
+        const fileName = `${randomUUID()}.png`;
         const filePath = `${taskId}/${fileName}`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
+
+        const { error: uploadError } = await supabase.storage
           .from('media-files')
           .upload(filePath, pageBuffer, {
             contentType: 'image/png',
@@ -96,20 +115,18 @@ export async function POST(req: NextRequest) {
           });
 
         if (uploadError) {
-          console.error(`Error uploading page ${pageNumber}:`, uploadError);
+          console.error(`Error uploading page ${page.pageIndex}:`, uploadError);
           continue;
         }
 
-        // Get public URL for page image
         const { data: { publicUrl } } = supabase.storage
           .from('media-files')
           .getPublicUrl(filePath);
 
-        // Upload thumbnail
-        const thumbnailFileName = `${crypto.randomUUID()}.png`;
+        const thumbnailFileName = `${randomUUID()}.png`;
         const thumbnailPath = `${taskId}/thumbnails/${thumbnailFileName}`;
-        
-        const { data: thumbUpload, error: thumbError } = await supabase.storage
+
+        const { error: thumbError } = await supabase.storage
           .from('media-files')
           .upload(thumbnailPath, thumbnailBuffer, {
             contentType: 'image/png',
@@ -117,7 +134,7 @@ export async function POST(req: NextRequest) {
             upsert: false
           });
 
-        let thumbnailUrl = publicUrl; // Fallback to page image if thumbnail upload fails
+        let thumbnailUrl = publicUrl;
         if (!thumbError) {
           const { data: { publicUrl: thumbUrl } } = supabase.storage
             .from('media-files')
@@ -127,36 +144,26 @@ export async function POST(req: NextRequest) {
 
         uploadedPages.push({
           url: publicUrl,
-          pageIndex: pageNumber,
+          pageIndex: page.pageIndex,
           thumbnail: thumbnailUrl,
           type: 'image/png',
-          name: `pdf_page_${pageNumber}.png`,
-          originalType: 'application/pdf' // Mark as converted from PDF
+          name: `pdf_page_${page.pageIndex}.png`,
+          originalType: 'application/pdf'
         });
 
-        console.log(`Page ${pageNumber} uploaded: ${publicUrl}`);
+        console.log(`✅ Page ${page.pageIndex} uploaded: ${publicUrl}`);
+      } catch (pageError) {
+        console.error('Page upload failed:', page.pageIndex, pageError);
       }
-
-      console.log(`=== PDF CONVERSION COMPLETE: ${uploadedPages.length} pages ===`);
-
-      return NextResponse.json({
-        success: true,
-        pages: uploadedPages,
-        totalPages: uploadedPages.length
-      });
-
-    } catch (sharpError) {
-      console.error('Sharp PDF processing error:', sharpError);
-      
-      // If sharp doesn't support PDF on this platform, return helpful error
-      return NextResponse.json(
-        { 
-          error: 'PDF conversion failed. This feature requires libvips with PDF support.',
-          details: sharpError instanceof Error ? sharpError.message : 'Unknown error'
-        },
-        { status: 500 }
-      );
     }
+
+    console.log(`=== PDF CONVERSION COMPLETE: ${uploadedPages.length} pages ===`);
+
+    return NextResponse.json({
+      success: true,
+      pages: uploadedPages,
+      totalPages: uploadedPages.length
+    });
 
   } catch (error) {
     console.error('PDF conversion API error:', error);

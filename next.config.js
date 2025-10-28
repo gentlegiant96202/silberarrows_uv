@@ -3,8 +3,6 @@
 const nextConfig = {
   experimental: {
     esmExternals: true,
-    // Increase body size limit for file uploads (50MB)
-    bodySizeLimit: '50mb',
   },
   // Turbopack configuration (stable in Next.js 15)
   turbopack: {

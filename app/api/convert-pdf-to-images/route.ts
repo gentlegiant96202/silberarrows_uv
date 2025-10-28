@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
         pageIndex: pageIndex,
         thumbnail: thumbnailUrl,
         type: 'image/png',
-        name: `${file.name.replace('.pdf', '')}_page_${pageIndex}.png`,
+        name: `pdf_page_${pageIndex}.png`,
         originalType: 'application/pdf' // Mark as converted from PDF
       });
 

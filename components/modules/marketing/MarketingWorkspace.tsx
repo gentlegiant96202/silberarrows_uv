@@ -503,7 +503,10 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
           width="100%"
           height="100%"
           isActive={isAnnotationMode}
-          onSave={({ path, comment, svgWidth, svgHeight }) => {
+          onSave={({ path, comment, svgWidth, svgHeight, pointerCoords }) => {
+            console.log('🎨 [Single Image/Video] Received pointer coords:', pointerCoords);
+            console.log('🔍 [Single Image/Video] Context:', { mediaType, hasPointerCoords: !!pointerCoords });
+            
             const newAnnotation = {
               id: Date.now().toString(),
               path,
@@ -516,6 +519,8 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               zoom,
               pan
             };
+            console.log('💾 [Single Image/Video] Saving annotation to page:', getCurrentPageNumber());
+            
             const updatedAnnotations = [...currentAnnotations, newAnnotation];
             onAnnotationsChange?.(updatedAnnotations);
             // Save to DB
@@ -1699,7 +1704,10 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                         width="100%"
                         height="100%"
                         isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
-                        onSave={({ path, comment, svgWidth, svgHeight }) => {
+                        onSave={({ path, comment, svgWidth, svgHeight, pointerCoords }) => {
+                          console.log('🎨 [Video Overlay] Received pointer coords:', pointerCoords);
+                          console.log('💾 [Video Overlay] Saving annotation to page:', selectedImageIndex + 1);
+                          
                           const newAnnotation = {
                             id: Date.now().toString(),
                             path,

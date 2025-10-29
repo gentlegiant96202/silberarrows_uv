@@ -345,12 +345,12 @@ export default function ModuleSelectionPage() {
                   loop={true}
                   autoplay={true}
                   style={{ 
-                    width: '55px',
-                    height: '55px',
-                    minWidth: '55px',
-                    minHeight: '55px',
-                    maxWidth: '55px',
-                    maxHeight: '55px'
+                    width: '40px',
+                    height: '40px',
+                    minWidth: '40px',
+                    minHeight: '40px',
+                    maxWidth: '40px',
+                    maxHeight: '40px'
                   }}
                 />
               </div>

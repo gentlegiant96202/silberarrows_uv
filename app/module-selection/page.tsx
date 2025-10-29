@@ -10,6 +10,10 @@ import Image from 'next/image';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
 import AnimatedLogoGlow from '@/components/shared/AnimatedLogoGlow';
 import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import Lottie to avoid SSR issues
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 interface ModuleCard {
   id: string;
@@ -90,6 +94,15 @@ export default function ModuleSelectionPage() {
   const [debugMode, setDebugMode] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+  const [lottieData, setLottieData] = useState<any>(null);
+
+  // Load Lottie animation
+  useEffect(() => {
+    fetch('/animations/loader.json')
+      .then(res => res.json())
+      .then(data => setLottieData(data))
+      .catch(err => console.warn('Failed to load Lottie animation:', err));
+  }, []);
 
   // Pre-calculate display name to prevent layout shifts
   const displayName = React.useMemo(() => {
@@ -320,16 +333,25 @@ export default function ModuleSelectionPage() {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* Fixed Logo in Sidebar Position */}
+      {/* Fixed Logo in Sidebar Position - Lottie Animation */}
       <div className="fixed top-3 left-3 z-30 pointer-events-none">
         <div className="w-10 h-10 relative">
           {/* Logo container */}
           <div className="relative w-full h-full rounded-lg bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center overflow-hidden shadow-lg">
-            <img 
-              src="/MAIN LOGO.png" 
-              alt="SilberArrows" 
-              className="w-8 h-8 object-contain brightness-150"
-            />
+            {lottieData ? (
+              <Lottie 
+                animationData={lottieData}
+                loop={true}
+                autoplay={true}
+                style={{ width: 32, height: 32 }}
+              />
+            ) : (
+              <img 
+                src="/MAIN LOGO.png" 
+                alt="SilberArrows" 
+                className="w-8 h-8 object-contain brightness-150"
+              />
+            )}
           </div>
           {/* Point glow following rectangular border path */}
           <div className="absolute inset-0 z-10 rounded-lg overflow-visible">

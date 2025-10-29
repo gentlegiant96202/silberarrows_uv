@@ -372,7 +372,13 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
-              <div className="text-white/30 text-xs">No media</div>
+              <Image 
+                src="/MAIN LOGO.png" 
+                alt="SilberArrows Logo" 
+                width={32} 
+                height={32} 
+                className="object-contain opacity-30"
+              />
             </div>
           )}
         </div>
@@ -1535,7 +1541,13 @@ export default function MarketingKanbanBoard() {
                             </div>
                           ) : (
                             <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1">
-                              <div className="text-white/30 text-[8px] text-center px-1">No media</div>
+                              <Image 
+                                src="/MAIN LOGO.png" 
+                                alt="SilberArrows Logo" 
+                                width={24} 
+                                height={24} 
+                                className="object-contain opacity-30"
+                              />
                             </div>
                           )}
                           

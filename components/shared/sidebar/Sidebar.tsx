@@ -3,6 +3,10 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
+import dynamic from 'next/dynamic';
+
+// Dynamically import Lottie to avoid SSR issues
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 import {
   LayoutDashboard,
   Users,
@@ -45,6 +49,15 @@ export default function Sidebar() {
   const [isHovered, setIsHovered] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [pendingContractsCount, setPendingContractsCount] = useState(0);
+  const [lottieData, setLottieData] = useState<any>(null);
+
+  // Load Lottie animation
+  useEffect(() => {
+    fetch('/animations/loader.json')
+      .then(res => res.json())
+      .then(data => setLottieData(data))
+      .catch(err => console.warn('Failed to load Lottie animation:', err));
+  }, []);
 
   // Determine current module
   const getCurrentModule = () => {
@@ -282,15 +295,24 @@ export default function Sidebar() {
             onClick={() => router.push('/module-selection')}
             className={`flex items-center h-10 w-full hover:opacity-80 transition-opacity duration-200 ${isHovered ? 'justify-start' : 'justify-center'}`}
           >
-            {/* Logo Image with animated border glow */}
+            {/* Logo - Lottie Animation with animated border glow */}
             <div className="flex-shrink-0 w-10 h-10 relative group">
               {/* Logo container */}
               <div className="relative w-full h-full rounded-lg bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center overflow-hidden shadow-lg">
-                <img 
-                  src="/MAIN LOGO.png" 
-                  alt="SilberArrows" 
-                  className="w-8 h-8 object-contain brightness-150"
-                />
+                {lottieData ? (
+                  <Lottie 
+                    animationData={lottieData}
+                    loop={true}
+                    autoplay={true}
+                    style={{ width: 32, height: 32 }}
+                  />
+                ) : (
+                  <img 
+                    src="/MAIN LOGO.png" 
+                    alt="SilberArrows" 
+                    className="w-8 h-8 object-contain brightness-150"
+                  />
+                )}
               </div>
               {/* Point glow following rectangular border path */}
               <div className="absolute inset-0 z-10 rounded-lg overflow-visible">

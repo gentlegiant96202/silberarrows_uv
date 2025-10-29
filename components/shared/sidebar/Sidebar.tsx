@@ -304,7 +304,7 @@ export default function Sidebar() {
                     animationData={lottieData}
                     loop={true}
                     autoplay={true}
-                    style={{ width: 40, height: 40 }}
+                    style={{ width: 48, height: 48 }}
                   />
                 ) : (
                   <img 

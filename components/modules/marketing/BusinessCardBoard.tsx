@@ -5,6 +5,7 @@ import { CreditCard, Plus, Edit, Eye, Globe, ExternalLink, Copy, Trash2, User, P
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 import BusinessCardModal from './BusinessCardModal';
+import { useMarketingLoading } from '@/lib/MarketingLoadingContext';
 
 interface BusinessCard {
   id: number; // Simple integer ID
@@ -26,11 +27,17 @@ interface BusinessCard {
 }
 
 export default function BusinessCardBoard() {
+  const { setLoading: setGlobalLoading } = useMarketingLoading();
   const [businessCards, setBusinessCards] = useState<BusinessCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCard, setEditingCard] = useState<BusinessCard | null>(null);
   const { user } = useAuth();
+  
+  // Sync local loading state with global loading context
+  useEffect(() => {
+    setGlobalLoading(loading);
+  }, [loading, setGlobalLoading]);
 
   // Load business cards
   const loadBusinessCards = async () => {
@@ -170,7 +177,7 @@ export default function BusinessCardBoard() {
   if (loading) {
     return (
       <div className="h-full bg-black flex items-center justify-center">
-        <div className="text-white">Loading business cards...</div>
+        <div className="text-white/50 text-sm">Loading...</div>
       </div>
     );
   }

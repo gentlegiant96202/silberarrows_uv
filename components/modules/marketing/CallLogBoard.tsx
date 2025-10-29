@@ -41,6 +41,8 @@ import {
   AlertCircle,
   Calculator
 } from 'lucide-react';
+import PulsatingLogo from '@/components/shared/PulsatingLogo';
+import { useMarketingLoading } from '@/lib/MarketingLoadingContext';
 
 // Interface matching the exact data structure from the spreadsheet
 interface CallLogEntry {
@@ -386,12 +388,18 @@ export default function CallLogBoard() {
       document.head.removeChild(styleSheet);
     };
   }, []);
+  const { setLoading: setGlobalLoading } = useMarketingLoading();
   const [callLogs, setCallLogs] = useState<CallLogEntry[]>(mockCallLogEntries);
   const [loading, setLoading] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('dashboard'); // Internal tab state
   const [searchTerm, setSearchTerm] = useState('');
 
   const [filterPerson, setFilterPerson] = useState<string>('all');
+  
+  // Sync local loading state with global loading context
+  useEffect(() => {
+    setGlobalLoading(loading);
+  }, [loading, setGlobalLoading]);
 
   // Screenshot functionality - Prompts user to take screenshot
   const handlePrintReport = async () => {
@@ -2805,16 +2813,6 @@ export default function CallLogBoard() {
 
   return (
     <div className="h-full overflow-hidden relative">
-      {/* Loading Overlay - Similar to Creative Hub */}
-      {loading && (
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-gray-600 border-t-silver-400 rounded-full animate-spin mx-auto mb-6"></div>
-            <h2 className="text-xl font-medium text-gray-200 mb-2">Loading Call Data</h2>
-            <p className="text-gray-400">Processing call logs and analytics...</p>
-          </div>
-        </div>
-      )}
 
       {/* Content based on active sub-tab */}
       <div className="h-full">

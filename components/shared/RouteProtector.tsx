@@ -164,7 +164,7 @@ const CRMSkeleton = () => {
 // Generic skeleton for modules without specific skeletons
 const GenericModuleSkeleton = ({ moduleName }: { moduleName: string }) => (
   <div className="min-h-screen bg-black text-white flex items-center justify-center">
-    <PulsatingLogo size={48} text={`Loading ${moduleName.replace('_', ' ')} module...`} />
+    <PulsatingLogo size={120} showText={false} />
   </div>
 );
 
@@ -193,10 +193,18 @@ export default function RouteProtector({
       // Don't redirect - just show access denied screen
       // This prevents the constant reloading issue
       
-      // If user has permission, show content immediately
+      // If user has permission, start showing content with longer delay
       if (canView) {
-        setSkeletonVisible(false);
-        setShowContent(true);
+        // Delay showing content to allow child loaders to mount and take over seamlessly
+        // This prevents the flash where RouteProtector hides its loader before child shows theirs
+        setTimeout(() => {
+          setShowContent(true);
+        }, 50);
+        
+        // Keep skeleton visible longer to bridge the gap until child loader appears
+        setTimeout(() => {
+          setSkeletonVisible(false);
+        }, 150);
       }
     }
   }, [canView, isLoading, user]);
@@ -211,6 +219,9 @@ export default function RouteProtector({
       case 'uv_crm':
         // CRM handles its own progressive loading, show minimal loading
         return <GenericModuleSkeleton moduleName={moduleName} />;
+      case 'marketing':
+        // Marketing uses unified loading context, skip RouteProtector loader
+        return <div className="h-full bg-black"></div>;
       default:
         return <GenericModuleSkeleton moduleName={moduleName} />;
     }
@@ -261,6 +272,11 @@ export default function RouteProtector({
   }
 
   // User has permission - render with smooth cross-fade transition
+  // Marketing module uses unified loading context, so skip RouteProtector transitions
+  if (moduleName === 'marketing') {
+    return <>{children}</>;
+  }
+
   const getSkeleton = () => {
     switch (moduleName) {
       case 'inventory':

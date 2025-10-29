@@ -11,6 +11,7 @@ import BusinessCardBoard from '@/components/modules/marketing/BusinessCardBoard'
 import EmailSignatureBoard from '@/components/modules/marketing/EmailSignatureBoard';
 import BuyerJourneyCanvas from '@/components/modules/marketing/BuyerJourneyCanvas';
 import RouteProtector from '@/components/shared/RouteProtector';
+import { MarketingLoadingProvider } from '@/lib/MarketingLoadingContext';
 
 function MarketingDashboardContent() {
   const searchParams = useSearchParams();
@@ -78,13 +79,15 @@ function MarketingDashboardContent() {
 export default function MarketingDashboard() {
   return (
     <RouteProtector moduleName="marketing">
-      <Suspense fallback={
-        <div className="h-full bg-black flex items-center justify-center">
-          <div className="text-white">Loading...</div>
-        </div>
-      }>
-        <MarketingDashboardContent />
-      </Suspense>
+      <MarketingLoadingProvider>
+        <Suspense fallback={
+          <div className="h-full bg-black flex items-center justify-center">
+            <div className="text-white">Loading...</div>
+          </div>
+        }>
+          <MarketingDashboardContent />
+        </Suspense>
+      </MarketingLoadingProvider>
     </RouteProtector>
   );
 } 

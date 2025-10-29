@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Car, Download, Eye, Edit, FileText, Image as ImageIcon, RefreshCw, Plus, Zap, Globe, ExternalLink, Copy, X } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
+import { useMarketingLoading } from '@/lib/MarketingLoadingContext';
 
 interface CatalogEntry {
   id: string;
@@ -28,12 +29,18 @@ interface CatalogEntry {
 }
 
 export default function UVCatalogBoard() {
+  const { setLoading: setGlobalLoading } = useMarketingLoading();
   const [entries, setEntries] = useState<CatalogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generatingCarId, setGeneratingCarId] = useState<string | null>(null);
   const [xmlUrl, setXmlUrl] = useState<string | null>(null);
   const { user } = useAuth();
+  
+  // Sync local loading state with global loading context
+  useEffect(() => {
+    setGlobalLoading(loading);
+  }, [loading, setGlobalLoading]);
 
   // Get the live XML feed URL
   const getFacebookXmlUrl = () => {
@@ -357,10 +364,7 @@ export default function UVCatalogBoard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-white/50 animate-spin mx-auto mb-4" />
-          <p className="text-white/70">Loading UV Catalog...</p>
-        </div>
+        <div className="text-white/50 text-sm">Loading...</div>
       </div>
     );
   }

@@ -6,6 +6,7 @@ import ContentPillarModal from './ContentPillarModalRefactored';
 import ContentExamplesModal from './ContentExamplesModal';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
+import { useMarketingLoading } from '@/lib/MarketingLoadingContext';
 
 // Define the content pillar item type
 interface ContentPillarItem {
@@ -151,6 +152,7 @@ const SkeletonColumn = ({ title, icon }: { title: string; icon: React.ReactNode 
 
 export default function ContentPillarsBoard() {
   const { user } = useAuth();
+  const { setLoading: setGlobalLoading } = useMarketingLoading();
   const [contentItems, setContentItems] = useState<ContentPillarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
@@ -158,6 +160,12 @@ export default function ContentPillarsBoard() {
   const [selectedDay, setSelectedDay] = useState<string>('');
   const [selectedDayTitle, setSelectedDayTitle] = useState<string>('');
   const [aiGenerating, setAiGenerating] = useState(false);
+  
+  // Sync local loading state with global loading context
+  useEffect(() => {
+    setGlobalLoading(loading);
+  }, [loading, setGlobalLoading]);
+  
   const [aiGeneratedContent, setAiGeneratedContent] = useState<{
     title: string;
     description: string;
@@ -1057,7 +1065,7 @@ export default function ContentPillarsBoard() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 top-[72px] px-4 overflow-hidden">
+      <div className="fixed inset-0 top-[72px] px-4 overflow-hidden relative">
         <div className="flex gap-3 pb-4 w-full h-full">
           {dayColumns.map(col => (
             <SkeletonColumn 

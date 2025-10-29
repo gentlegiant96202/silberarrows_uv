@@ -13,6 +13,7 @@ import { FixedSizeGrid as Grid } from 'react-window';
 import dayjs from 'dayjs';
 import AddTaskModal from './AddTaskModal';
 import MarketingWorkspace from './MarketingWorkspace';
+import { useMarketingLoading } from '@/lib/MarketingLoadingContext';
 
 // Helper function to format dates to dd/mm/yyyy
 const formatDate = (dateString: string) => {
@@ -370,14 +371,8 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
               blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCIgZmlsbD0iIzFhMWExYSIvPjwvc3ZnPg=="
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5 relative">
-              <Image 
-                src="/MAIN LOGO.png" 
-                alt="SilberArrows Logo" 
-                fill
-                sizes="200px"
-                className="object-contain opacity-60 filter brightness-200" 
-              />
+            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
+              <div className="text-white/30 text-xs">No media</div>
             </div>
           )}
         </div>
@@ -387,6 +382,7 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
 };
 
 export default function MarketingKanbanBoard() {
+  const { setLoading: setGlobalLoading } = useMarketingLoading();
   const [tasks, setTasks] = useState<MarketingTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -405,7 +401,12 @@ export default function MarketingKanbanBoard() {
   const [columnWidth, setColumnWidth] = useState(360);
   
   // Progressive loading state for fade-in animation (like inventory kanban)
-  const [columnsVisible, setColumnsVisible] = useState(false);
+  const [columnsVisible, setColumnsVisible] = useState(true);
+  
+  // Sync local loading state with global loading context
+  useEffect(() => {
+    setGlobalLoading(loading);
+  }, [loading, setGlobalLoading]);
   
   // Helper to group tasks by status (avoids repeated reduce logic)
   const groupTasksByStatus = useCallback((tasksList: MarketingTask[]): Record<ColKey, MarketingTask[]> => {
@@ -1287,7 +1288,7 @@ export default function MarketingKanbanBoard() {
 
 
   return (
-    <div className="h-full px-4 overflow-hidden">
+    <div className="h-full px-4 overflow-hidden relative">
       <div className={`flex gap-3 pb-4 w-full h-full overflow-hidden transition-all duration-700 ease-out transform ${
         columnsVisible 
           ? 'opacity-100 translate-y-0' 
@@ -1533,14 +1534,8 @@ export default function MarketingKanbanBoard() {
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </div>
                           ) : (
-                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1 relative">
-                              <Image 
-                                src="/MAIN LOGO.png" 
-                                alt="SilberArrows Logo" 
-                                fill
-                                sizes="64px"
-                                className="object-contain opacity-60 filter brightness-200" 
-                              />
+                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1">
+                              <div className="text-white/30 text-[8px] text-center px-1">No media</div>
                             </div>
                           )}
                           

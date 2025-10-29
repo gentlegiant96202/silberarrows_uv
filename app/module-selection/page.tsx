@@ -15,6 +15,10 @@ import dynamic from 'next/dynamic';
 // Dynamically import Lottie to avoid SSR issues
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
+// Global cache for Lottie animation to prevent reloading and static logo flash
+let globalModuleSelectionLottieCache: any = null;
+let globalModuleSelectionLottieFetchPromise: Promise<any> | null = null;
+
 interface ModuleCard {
   id: string;
   name: string;
@@ -94,14 +98,33 @@ export default function ModuleSelectionPage() {
   const [debugMode, setDebugMode] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
-  const [lottieData, setLottieData] = useState<any>(null);
+  const [lottieData, setLottieData] = useState<any>(globalModuleSelectionLottieCache);
 
-  // Load Lottie animation
+  // Load Lottie animation with global cache
   useEffect(() => {
-    fetch('/animations/loader.json')
-      .then(res => res.json())
+    // If already cached, use it immediately
+    if (globalModuleSelectionLottieCache) {
+      setLottieData(globalModuleSelectionLottieCache);
+      return;
+    }
+
+    // If fetch is in progress, reuse it
+    if (!globalModuleSelectionLottieFetchPromise) {
+      globalModuleSelectionLottieFetchPromise = fetch('/animations/loader.json')
+        .then(res => res.json())
+        .then(data => {
+          globalModuleSelectionLottieCache = data;
+          return data;
+        })
+        .catch(err => {
+          console.warn('Failed to load Lottie animation:', err);
+          throw err;
+        });
+    }
+
+    globalModuleSelectionLottieFetchPromise
       .then(data => setLottieData(data))
-      .catch(err => console.warn('Failed to load Lottie animation:', err));
+      .catch(() => {});
   }, []);
 
   // Pre-calculate display name to prevent layout shifts
@@ -345,12 +368,12 @@ export default function ModuleSelectionPage() {
                   loop={true}
                   autoplay={true}
                   style={{ 
-                    width: '40px',
-                    height: '40px',
-                    minWidth: '40px',
-                    minHeight: '40px',
-                    maxWidth: '40px',
-                    maxHeight: '40px'
+                    width: '55px',
+                    height: '55px',
+                    minWidth: '55px',
+                    minHeight: '55px',
+                    maxWidth: '55px',
+                    maxHeight: '55px'
                   }}
                 />
               </div>

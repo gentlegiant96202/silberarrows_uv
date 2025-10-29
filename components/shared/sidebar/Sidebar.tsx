@@ -7,6 +7,11 @@ import dynamic from 'next/dynamic';
 
 // Dynamically import Lottie to avoid SSR issues
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+
+// Global cache for Lottie animation to prevent reloading and static logo flash
+let globalSidebarLottieCache: any = null;
+let globalSidebarLottieFetchPromise: Promise<any> | null = null;
+
 import {
   LayoutDashboard,
   Users,
@@ -49,14 +54,33 @@ export default function Sidebar() {
   const [isHovered, setIsHovered] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [pendingContractsCount, setPendingContractsCount] = useState(0);
-  const [lottieData, setLottieData] = useState<any>(null);
+  const [lottieData, setLottieData] = useState<any>(globalSidebarLottieCache);
 
-  // Load Lottie animation
+  // Load Lottie animation with global cache
   useEffect(() => {
-    fetch('/animations/loader.json')
-      .then(res => res.json())
+    // If already cached, use it immediately
+    if (globalSidebarLottieCache) {
+      setLottieData(globalSidebarLottieCache);
+      return;
+    }
+
+    // If fetch is in progress, reuse it
+    if (!globalSidebarLottieFetchPromise) {
+      globalSidebarLottieFetchPromise = fetch('/animations/loader.json')
+        .then(res => res.json())
+        .then(data => {
+          globalSidebarLottieCache = data;
+          return data;
+        })
+        .catch(err => {
+          console.warn('Failed to load Lottie animation:', err);
+          throw err;
+        });
+    }
+
+    globalSidebarLottieFetchPromise
       .then(data => setLottieData(data))
-      .catch(err => console.warn('Failed to load Lottie animation:', err));
+      .catch(() => {});
   }, []);
 
   // Determine current module
@@ -306,12 +330,12 @@ export default function Sidebar() {
                       loop={true}
                       autoplay={true}
                       style={{ 
-                        width: '40px',
-                        height: '40px',
-                        minWidth: '40px',
-                        minHeight: '40px',
-                        maxWidth: '40px',
-                        maxHeight: '40px'
+                        width: '55px',
+                        height: '55px',
+                        minWidth: '55px',
+                        minHeight: '55px',
+                        maxWidth: '55px',
+                        maxHeight: '55px'
                       }}
                     />
                   </div>

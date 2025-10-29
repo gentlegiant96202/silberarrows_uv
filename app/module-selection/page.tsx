@@ -343,7 +343,7 @@ export default function ModuleSelectionPage() {
                 animationData={lottieData}
                 loop={true}
                 autoplay={true}
-                style={{ width: 32, height: 32 }}
+                style={{ width: 40, height: 40 }}
               />
             ) : (
               <img 

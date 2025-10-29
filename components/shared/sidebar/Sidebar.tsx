@@ -300,12 +300,17 @@ export default function Sidebar() {
               {/* Logo container */}
               <div className="relative w-full h-full rounded-lg bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center overflow-hidden shadow-lg">
                 {lottieData ? (
-                  <Lottie 
-                    animationData={lottieData}
-                    loop={true}
-                    autoplay={true}
-                    style={{ width: 48, height: 48 }}
-                  />
+                  <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Lottie 
+                      animationData={lottieData}
+                      loop={true}
+                      autoplay={true}
+                      style={{ width: '100%', height: '100%' }}
+                      rendererSettings={{
+                        preserveAspectRatio: 'xMidYMid meet'
+                      }}
+                    />
+                  </div>
                 ) : (
                   <img 
                     src="/MAIN LOGO.png" 

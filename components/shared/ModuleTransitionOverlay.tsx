@@ -109,47 +109,32 @@ export default function ModuleTransitionOverlay() {
 
   const { cardRect, lottieData } = transition;
 
-  // Calculate lottie position and size (120px matches module loader)
-  const getLottieStyle = () => {
-    if (!cardRect) return {};
+  // Calculate lottie position to match module loader exactly
+  const getLottiePosition = () => {
+    if (!cardRect) return { left: '50%', top: '50%' };
 
     if (animationPhase === 'card') {
-      // Start at card center, fixed 120px size
+      // Start at card center
       return {
-        position: 'fixed' as const,
         left: `${cardRect.left + cardRect.width / 2}px`,
         top: `${cardRect.top + cardRect.height / 2}px`,
-        width: '120px',
-        height: '120px',
-        transform: 'translate(-50%, -50%)',
-        transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        zIndex: 10001,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
       };
     } else {
-      // Center position - same 120px size and position as module's PulsatingLogo
-      // Calculate center of viewport below header (72px)
+      // Center position - calculate to match flexbox centering
+      // MarketingLoadingContext uses: fixed inset-0 top-[72px] + flex center
+      // This centers in the viewport area from 72px down
       const viewportHeight = window.innerHeight;
-      const contentHeight = viewportHeight - 72; // Below header
+      const contentHeight = viewportHeight - 72;
       const centerY = 72 + (contentHeight / 2);
       
       return {
-        position: 'fixed' as const,
         left: '50%',
         top: `${centerY}px`,
-        width: '120px',
-        height: '120px',
-        transform: 'translate(-50%, -50%)',
-        transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        zIndex: 10001,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
       };
     }
   };
+
+  const position = getLottiePosition();
 
   return (
     <>
@@ -178,9 +163,20 @@ export default function ModuleTransitionOverlay() {
         />
       )}
 
-      {/* Lottie Animation - consistent 120px size */}
+      {/* Lottie Animation - 120px matching PulsatingLogo exactly */}
       {lottieData && (
-        <div style={getLottieStyle()}>
+        <div
+          style={{
+            position: 'fixed',
+            left: position.left,
+            top: position.top,
+            transform: 'translate(-50%, -50%)',
+            width: '120px',
+            height: '120px',
+            transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            zIndex: 10001,
+          }}
+        >
           <Lottie
             animationData={lottieData}
             loop={true}

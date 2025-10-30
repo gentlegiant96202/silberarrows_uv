@@ -217,6 +217,43 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   const vehicleThroughputTarget = 12;
   const vehicleThroughputPercentage = (vehicleThroughput / vehicleThroughputTarget) * 100;
 
+  // Calculate monthly averages for the current year (for line chart)
+  const calculateMonthlyAverages = () => {
+    const currentYear = selectedYear;
+    const monthlyData: { month: number; average: number }[] = [];
+    
+    for (let month = 1; month <= 12; month++) {
+      const monthMetrics = metrics.filter(m => {
+        const date = new Date(m.metric_date);
+        return date.getFullYear() === currentYear && (date.getMonth() + 1) === month;
+      });
+      
+      if (monthMetrics.length > 0) {
+        const totalInvoices = monthMetrics.reduce((sum, m) => sum + (m.number_of_invoices || 0), 0);
+        const totalWorkingDays = monthMetrics.reduce((sum, m) => sum + (m.working_days_elapsed || 0), 0);
+        
+        // Get the last day's working_days_elapsed for the month (cumulative)
+        const lastMetric = monthMetrics.sort((a, b) => 
+          new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime()
+        )[0];
+        
+        const workingDays = lastMetric.working_days_elapsed || 0;
+        const average = workingDays > 0 ? totalInvoices / workingDays : 0;
+        
+        monthlyData.push({ month, average });
+      }
+    }
+    
+    return monthlyData;
+  };
+
+  const monthlyAverages = calculateMonthlyAverages();
+  
+  // Calculate YTD average
+  const ytdAverage = monthlyAverages.length > 0
+    ? monthlyAverages.reduce((sum, m) => sum + m.average, 0) / monthlyAverages.length
+    : 0;
+
   // Calculate team contributions (from existing logic)
   const totalSales = dashboardData 
     ? (dashboardData.daniel_total_sales || 0) + (dashboardData.essrar_total_sales || 0) + (dashboardData.lucy_total_sales || 0)
@@ -756,9 +793,9 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <CardTitle>Vehicle Throughput</CardTitle>
                 <CardIcon><Gauge size={20} /></CardIcon>
               </CardHeader>
-              <div className="flex flex-col items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center py-4">
+                {/* Speedometer */}
                 <div className="relative w-[200px] h-[120px]">
-                  {/* Speedometer Arc Background */}
                   <svg viewBox="0 0 200 120" className="w-full h-full">
                     {/* Background arc */}
                     <path
@@ -769,7 +806,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                       strokeLinecap="round"
                     />
                     {/* Colored segments - Red (1-5), Orange (5-8), Green (8-12) */}
-                    {/* Red zone: 0-41.67% of arc (5/12) */}
                     <path
                       d="M 20 100 A 80 80 0 0 1 73 35"
                       fill="none"
@@ -777,7 +813,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                       strokeWidth="20"
                       strokeLinecap="round"
                     />
-                    {/* Orange zone: 41.67-66.67% of arc (5-8/12) */}
                     <path
                       d="M 73 35 A 80 80 0 0 1 127 35"
                       fill="none"
@@ -785,7 +820,6 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                       strokeWidth="20"
                       strokeLinecap="round"
                     />
-                    {/* Green zone: 66.67-100% of arc (8-12/12) */}
                     <path
                       d="M 127 35 A 80 80 0 0 1 180 100"
                       fill="none"
@@ -793,7 +827,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                       strokeWidth="20"
                       strokeLinecap="round"
                     />
-                    {/* Needle - rotates based on value (1-12 mapped to 180 degrees) */}
+                    {/* Needle */}
                     <g transform={`rotate(${-90 + ((vehicleThroughput / vehicleThroughputTarget) * 180)} 100 100)`}>
                       <line
                         x1="100"
@@ -808,14 +842,159 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                     </g>
                   </svg>
                 </div>
-                {/* Value below speedometer */}
-                <div className="flex flex-col items-center mt-4">
+                
+                {/* Current Value */}
+                <div className="flex flex-col items-center mt-2 mb-4">
                   <div className="text-3xl font-bold text-[#3A3A3A]">
                     {vehicleThroughput.toFixed(1)}
-                </div>
+                  </div>
                   <div className="text-xs text-[#3A3A3A]/60">Vehicles per day</div>
+                </div>
+
+                {/* Monthly Average Line Chart with Axes */}
+                {monthlyAverages.length > 0 && (
+                  <div className="w-full px-6">
+                    <svg viewBox="0 0 280 80" className="w-full h-[80px]">
+                      {/* Chart area dimensions */}
+                      {(() => {
+                        const chartLeft = 20;
+                        const chartRight = 275;
+                        const chartTop = 5;
+                        const chartBottom = 60;
+                        const chartWidth = chartRight - chartLeft;
+                        const chartHeight = chartBottom - chartTop;
+
+                        return (
+                          <>
+                            {/* Vertical axis */}
+                            <line
+                              x1={chartLeft}
+                              y1={chartTop}
+                              x2={chartLeft}
+                              y2={chartBottom}
+                              stroke="rgba(0,0,0,0.2)"
+                              strokeWidth="1"
+                            />
+                            
+                            {/* Horizontal axis */}
+                            <line
+                              x1={chartLeft}
+                              y1={chartBottom}
+                              x2={chartRight}
+                              y2={chartBottom}
+                              stroke="rgba(0,0,0,0.2)"
+                              strokeWidth="1"
+                            />
+
+                            {/* Target line at 12 */}
+                            <line
+                              x1={chartLeft}
+                              y1={chartTop}
+                              x2={chartRight}
+                              y2={chartTop}
+                              stroke="rgba(0,0,0,0.15)"
+                              strokeWidth="1"
+                              strokeDasharray="4,4"
+                            />
+
+                            {/* Y-axis label (12 target) */}
+                            <text
+                              x={chartLeft - 3}
+                              y={chartTop + 3}
+                              textAnchor="end"
+                              fill="rgba(0,0,0,0.5)"
+                              fontSize="9"
+                              fontFamily="system-ui, -apple-system, sans-serif"
+                            >
+                              12
+                            </text>
+                            
+                            {/* Y-axis label (0) */}
+                            <text
+                              x={chartLeft - 3}
+                              y={chartBottom + 3}
+                              textAnchor="end"
+                              fill="rgba(0,0,0,0.5)"
+                              fontSize="9"
+                              fontFamily="system-ui, -apple-system, sans-serif"
+                            >
+                              0
+                            </text>
+
+                            {/* Month labels on X-axis */}
+                            {['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].map((month, index) => {
+                              const xPos = chartLeft + (index / 11) * chartWidth;
+                              return (
+                                <text
+                                  key={`month-${index}`}
+                                  x={xPos}
+                                  y={chartBottom + 12}
+                                  textAnchor="middle"
+                                  fill="rgba(0,0,0,0.5)"
+                                  fontSize="9"
+                                  fontFamily="system-ui, -apple-system, sans-serif"
+                                >
+                                  {month}
+                                </text>
+                              );
+                            })}
+
+                            {/* Data line */}
+                            <polyline
+                              points={monthlyAverages.map((data) => {
+                                const xPos = chartLeft + ((data.month - 1) / 11) * chartWidth;
+                                const yPos = chartBottom - ((data.average / vehicleThroughputTarget) * chartHeight);
+                                return `${xPos},${yPos}`;
+                              }).join(' ')}
+                              fill="none"
+                              stroke="rgba(0,0,0,0.7)"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+
+                            {/* Data points */}
+                            {monthlyAverages.map((data) => {
+                              const xPos = chartLeft + ((data.month - 1) / 11) * chartWidth;
+                              const yPos = chartBottom - ((data.average / vehicleThroughputTarget) * chartHeight);
+                              return (
+                                <circle
+                                  key={`point-${data.month}`}
+                                  cx={xPos}
+                                  cy={yPos}
+                                  r="3"
+                                  fill="rgba(0,0,0,0.8)"
+                                />
+                              );
+                            })}
+
+                            {/* YTD Average text next to last point */}
+                            {ytdAverage > 0 && monthlyAverages.length > 0 && (() => {
+                              const lastPoint = monthlyAverages[monthlyAverages.length - 1];
+                              const lastXPos = chartLeft + ((lastPoint.month - 1) / 11) * chartWidth;
+                              const lastYPos = chartBottom - ((lastPoint.average / vehicleThroughputTarget) * chartHeight);
+                              
+                              return (
+                                <text
+                                  x={lastXPos + 8}
+                                  y={lastYPos + 3}
+                                  textAnchor="start"
+                                  fill="rgba(0,0,0,0.6)"
+                                  fontSize="10"
+                                  fontWeight="600"
+                                  fontFamily="system-ui, -apple-system, sans-serif"
+                                >
+                                  YTD: {ytdAverage.toFixed(1)}
+                                </text>
+                              );
+                            })()}
+                          </>
+                        );
+                      })()}
+                    </svg>
+                  </div>
+                )}
               </div>
-            </div>
             </Card>
 
                 {/* Revenue Mix */}

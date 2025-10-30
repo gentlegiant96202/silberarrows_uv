@@ -99,6 +99,7 @@ export default function ModuleSelectionPage() {
   const [showFallback, setShowFallback] = useState(false);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   const [lottieData, setLottieData] = useState<any>(globalModuleSelectionLottieCache);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Load Lottie animation with global cache
   useEffect(() => {
@@ -191,12 +192,42 @@ export default function ModuleSelectionPage() {
   }, [authLoading, user, hasInitiallyLoaded]);
 
   // Handle module navigation
-  const handleModuleClick = (module: ModuleCard) => {
+  const handleModuleClick = (module: ModuleCard, event: React.MouseEvent<HTMLDivElement>) => {
+    // Prevent double-clicks
+    if (isNavigating) {
+      console.log('⏸️ Navigation already in progress');
+      return;
+    }
+    
+    setIsNavigating(true);
+    
+    // Get the card's position for the transition animation
+    const cardElement = event.currentTarget;
+    const cardRect = cardElement.getBoundingClientRect();
+    
     // Clear the stay on module selection flag since user is navigating away
     sessionStorage.removeItem('stayOnModuleSelection');
     // Store the selected module path in localStorage
     localStorage.setItem('lastVisitedModule', module.basePath);
+    
+    // Trigger transition overlay with card position and lottie data
+    const transitionEvent = new CustomEvent('module-transition-start', {
+      detail: {
+        cardRect,
+        gradient: module.gradient,
+        lottieData: lottieData // Pass the cached lottie animation
+      }
+    });
+    window.dispatchEvent(transitionEvent);
+    
+    // Navigate immediately - let the overlay handle the animation
+    console.log('🚀 Navigating to:', module.basePath);
     router.push(module.basePath);
+    
+    // Reset navigating state after a delay (in case navigation is interrupted)
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 2000);
   };
 
   // Determine if we should show the loading screen
@@ -482,8 +513,10 @@ export default function ModuleSelectionPage() {
                   return (
                     <div
                       key={module.id}
-                      onClick={() => handleModuleClick(module)}
-                      className="group cursor-pointer relative w-52"
+                      onClick={(e) => handleModuleClick(module, e)}
+                      className={`group relative w-52 ${
+                        isNavigating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                      }`}
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       {/* Glass Morphism Card */}

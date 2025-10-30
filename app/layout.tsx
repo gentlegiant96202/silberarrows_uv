@@ -3,6 +3,7 @@ import './globals.css'
 import Providers from '@/components/shared/Providers'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import LayoutWrapper from '@/components/shared/LayoutWrapper'
+import ModuleTransitionOverlay from '@/components/shared/ModuleTransitionOverlay'
 import { Inter } from 'next/font/google'
 
 const inter = Inter({ 
@@ -67,6 +68,7 @@ export default function RootLayout({
             </LayoutWrapper>
           </Providers>
         </div>
+        <ModuleTransitionOverlay />
         <SpeedInsights />
       </body>
     </html>

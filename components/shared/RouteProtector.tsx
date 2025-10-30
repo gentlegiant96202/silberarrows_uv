@@ -193,21 +193,29 @@ export default function RouteProtector({
       // Don't redirect - just show access denied screen
       // This prevents the constant reloading issue
       
-      // If user has permission, start showing content with longer delay
+      // If user has permission, start showing content
       if (canView) {
-        // Delay showing content to allow child loaders to mount and take over seamlessly
-        // This prevents the flash where RouteProtector hides its loader before child shows theirs
-        setTimeout(() => {
-          setShowContent(true);
-        }, 50);
+        console.log('✅ Module access granted:', moduleName);
         
-        // Keep skeleton visible longer to bridge the gap until child loader appears
+        // Show content immediately
+        setShowContent(true);
+        
+        // Marketing module handles its own loading completion event via MarketingLoadingContext
+        // Other modules signal completion immediately since they don't have internal loading
+        if (moduleName !== 'marketing') {
+          console.log('📤 Dispatching module-transition-complete for', moduleName);
+          window.dispatchEvent(new Event('module-transition-complete'));
+        } else {
+          console.log('⏳ Marketing module will signal completion when content loads');
+        }
+        
+        // Hide skeleton after brief delay
         setTimeout(() => {
           setSkeletonVisible(false);
         }, 150);
       }
     }
-  }, [canView, isLoading, user]);
+  }, [canView, isLoading, user, moduleName]);
 
   // Show skeleton loading while checking authentication and permissions
   if (!hasInitialized || isLoading || !user) {

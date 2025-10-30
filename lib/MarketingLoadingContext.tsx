@@ -31,6 +31,11 @@ export function MarketingLoadingProvider({ children }: MarketingLoadingProviderP
   const setLoading = (loading: boolean) => {
     setIsLoading(loading);
     if (!loading) {
+      console.log('✅ Marketing module content loaded - signaling transition complete');
+      
+      // Signal that module content is ACTUALLY loaded
+      window.dispatchEvent(new Event('module-transition-complete'));
+      
       // Ensure minimum display time of 500ms to prevent flashing
       const elapsed = Date.now() - loadingStartTime.current;
       const minDisplayTime = 500;

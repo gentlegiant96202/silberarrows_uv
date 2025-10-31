@@ -6,18 +6,8 @@ import { useAllModulePermissions } from '@/lib/useModulePermissions';
 import { useUserRole } from '@/lib/useUserRole';
 import Header from '@/components/shared/header/Header';
 import LightRays from '@/components/shared/LightRays';
-import Image from 'next/image';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
-import AnimatedLogoGlow from '@/components/shared/AnimatedLogoGlow';
-import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
-import dynamic from 'next/dynamic';
-
-// Dynamically import Lottie to avoid SSR issues
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
-
-// Global cache for Lottie animation to prevent reloading and static logo flash
-let globalModuleSelectionLottieCache: any = null;
-let globalModuleSelectionLottieFetchPromise: Promise<any> | null = null;
+import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle } from 'lucide-react';
 
 interface ModuleCard {
   id: string;
@@ -98,35 +88,6 @@ export default function ModuleSelectionPage() {
   const [debugMode, setDebugMode] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
-  const [lottieData, setLottieData] = useState<any>(globalModuleSelectionLottieCache);
-  const [isNavigating, setIsNavigating] = useState(false);
-
-  // Load Lottie animation with global cache
-  useEffect(() => {
-    // If already cached, use it immediately
-    if (globalModuleSelectionLottieCache) {
-      setLottieData(globalModuleSelectionLottieCache);
-      return;
-    }
-
-    // If fetch is in progress, reuse it
-    if (!globalModuleSelectionLottieFetchPromise) {
-      globalModuleSelectionLottieFetchPromise = fetch('/animations/loader.json')
-        .then(res => res.json())
-        .then(data => {
-          globalModuleSelectionLottieCache = data;
-          return data;
-        })
-        .catch(err => {
-          console.warn('Failed to load Lottie animation:', err);
-          throw err;
-        });
-    }
-
-    globalModuleSelectionLottieFetchPromise
-      .then(data => setLottieData(data))
-      .catch(() => {});
-  }, []);
 
   // Pre-calculate display name to prevent layout shifts
   const displayName = React.useMemo(() => {
@@ -192,42 +153,14 @@ export default function ModuleSelectionPage() {
   }, [authLoading, user, hasInitiallyLoaded]);
 
   // Handle module navigation
-  const handleModuleClick = (module: ModuleCard, event: React.MouseEvent<HTMLDivElement>) => {
-    // Prevent double-clicks
-    if (isNavigating) {
-      console.log('⏸️ Navigation already in progress');
-      return;
-    }
-    
-    setIsNavigating(true);
-    
-    // Get the card's position for the transition animation
-    const cardElement = event.currentTarget;
-    const cardRect = cardElement.getBoundingClientRect();
-    
+  const handleModuleClick = (module: ModuleCard) => {
     // Clear the stay on module selection flag since user is navigating away
     sessionStorage.removeItem('stayOnModuleSelection');
     // Store the selected module path in localStorage
     localStorage.setItem('lastVisitedModule', module.basePath);
     
-    // Trigger transition overlay with card position and lottie data
-    const transitionEvent = new CustomEvent('module-transition-start', {
-      detail: {
-        cardRect,
-        gradient: module.gradient,
-        lottieData: lottieData // Pass the cached lottie animation
-      }
-    });
-    window.dispatchEvent(transitionEvent);
-    
-    // Navigate immediately - let the overlay handle the animation
-    console.log('🚀 Navigating to:', module.basePath);
+    // Navigate directly to the module
     router.push(module.basePath);
-    
-    // Reset navigating state after a delay (in case navigation is interrupted)
-    setTimeout(() => {
-      setIsNavigating(false);
-    }, 2000);
   };
 
   // Determine if we should show the loading screen
@@ -387,34 +320,16 @@ export default function ModuleSelectionPage() {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* Fixed Logo in Sidebar Position - Lottie Animation */}
+      {/* Fixed Logo in Sidebar Position */}
       <div className="fixed top-3 left-3 z-30 pointer-events-none">
         <div className="w-10 h-10 relative">
           {/* Logo container */}
           <div className="relative w-full h-full rounded-lg bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center overflow-hidden shadow-lg">
-            {lottieData ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <Lottie 
-                  animationData={lottieData}
-                  loop={true}
-                  autoplay={true}
-                  style={{ 
-                    width: '55px',
-                    height: '55px',
-                    minWidth: '55px',
-                    minHeight: '55px',
-                    maxWidth: '55px',
-                    maxHeight: '55px'
-                  }}
-                />
-              </div>
-            ) : (
-              <img 
-                src="/MAIN LOGO.png" 
-                alt="SilberArrows" 
-                className="w-8 h-8 object-contain brightness-150"
-              />
-            )}
+            <img 
+              src="/MAIN LOGO.png" 
+              alt="SilberArrows" 
+              className="w-8 h-8 object-contain brightness-150"
+            />
           </div>
           {/* Point glow following rectangular border path */}
           <div className="absolute inset-0 z-10 rounded-lg overflow-visible">
@@ -513,14 +428,12 @@ export default function ModuleSelectionPage() {
                   return (
                     <div
                       key={module.id}
-                      onClick={(e) => handleModuleClick(module, e)}
-                      className={`group relative w-52 ${
-                        isNavigating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-                      }`}
+                      onClick={() => handleModuleClick(module)}
+                      className="group relative w-52 cursor-pointer"
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       {/* Glass Morphism Card */}
-                      <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl hover:shadow-white/5 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:bg-white/8 hover:border-white/20 overflow-hidden aspect-square">
+                      <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl hover:shadow-white/5 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:bg-white/8 hover:border-white/20 active:scale-95 active:opacity-80 overflow-hidden aspect-square">
                         
                         {/* Background Gradient Overlay */}
                         <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3xl`} />

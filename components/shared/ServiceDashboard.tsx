@@ -267,29 +267,29 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] p-5">
         <div className="w-full flex flex-col gap-5">
-          {/* Header Skeleton - Matches actual header structure with silver gradient */}
-          <div className="bg-gradient-to-r from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] rounded-2xl pl-8 pr-6 py-4 shadow-[0_4px_20px_rgba(192,192,192,0.3)] flex items-center justify-between">
-            <div className="text-3xl font-extrabold text-[#3A3A3A] tracking-tight">Dashboard</div>
+          {/* Header Skeleton - Dark background to match other skeleton cards */}
+          <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl pl-5 pr-6 py-5 flex items-center justify-between animate-pulse">
+            <div className="h-10 w-48 bg-[rgba(255,255,255,0.1)] rounded-xl"></div>
             <div className="flex items-center gap-5">
               {/* Days Remaining Skeleton */}
-              <div className="flex items-center gap-2 border-r border-[#3A3A3A]/20 pr-5">
-                <div className="w-4 h-4 bg-[#3A3A3A]/20 rounded animate-pulse"></div>
+              <div className="flex items-center gap-2 border-r border-[rgba(255,255,255,0.1)] pr-5">
+                <div className="w-4 h-4 bg-[rgba(255,255,255,0.1)] rounded"></div>
                 <div className="flex flex-col gap-1">
-                  <div className="h-3 w-24 bg-[#3A3A3A]/10 rounded animate-pulse"></div>
-                  <div className="h-4 w-16 bg-[#3A3A3A]/20 rounded animate-pulse"></div>
+                  <div className="h-3 w-24 bg-[rgba(255,255,255,0.1)] rounded"></div>
+                  <div className="h-4 w-16 bg-[rgba(255,255,255,0.1)] rounded"></div>
                 </div>
               </div>
               {/* Date Filter Skeleton */}
-              <div className="h-9 w-24 bg-white/20 border border-[#3A3A3A]/20 rounded-xl animate-pulse"></div>
+              <div className="h-10 w-24 bg-[rgba(255,255,255,0.1)] border border-[rgba(255,255,255,0.1)] rounded-xl"></div>
               {/* Month Filter Skeleton */}
-              <div className="h-9 w-32 bg-white/20 border border-[#3A3A3A]/20 rounded-xl animate-pulse"></div>
+              <div className="h-10 w-32 bg-[rgba(255,255,255,0.1)] border border-[rgba(255,255,255,0.1)] rounded-xl"></div>
               {/* Year Filter Skeleton */}
-              <div className="h-9 w-32 bg-white/20 border border-[#3A3A3A]/20 rounded-xl animate-pulse"></div>
+              <div className="h-10 w-32 bg-[rgba(255,255,255,0.1)] border border-[rgba(255,255,255,0.1)] rounded-xl"></div>
             </div>
           </div>
 
           {/* Main Grid Skeleton */}
-          <div className="grid grid-cols-6 auto-rows-auto gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 auto-rows-auto gap-5">
           {/* Row 1: Net Sales Cards */}
           <div className="col-span-1 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 space-y-4 animate-pulse">
             <div className="h-6 w-32 bg-[rgba(255,255,255,0.1)] rounded"></div>
@@ -420,12 +420,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] p-5">
       <div className="w-full flex flex-col gap-5">
-        {/* Header with Title and Date Filters - Silver Gradient Container */}
-        <div className="bg-gradient-to-r from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] rounded-2xl pl-8 pr-6 py-4 shadow-[0_4px_20px_rgba(192,192,192,0.3)] flex items-center justify-between">
+          {/* Header with Title and Date Filters - Silver Gradient Container */}
+        <div className="bg-gradient-to-r from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] rounded-2xl pl-5 pr-6 py-5 shadow-[0_8px_32px_rgba(192,192,192,0.4)] border-2 border-[rgba(255,255,255,0.25)] flex items-center justify-between text-[#0A0A0A]">
           {/* Left-aligned Heading */}
-            <div className="text-3xl font-extrabold text-[#3A3A3A] tracking-tight">
+            <h1 className="text-4xl font-extrabold text-[#0A0A0A] tracking-tight">
               Dashboard
-        </div>
+        </h1>
         
           {/* Date Filters Container */}
           <div className="flex items-center gap-5">
@@ -436,11 +436,11 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               const daysRemaining = Math.max(0, totalWorkingDays - workingDaysElapsed);
               
               return (
-                <div className="flex items-center gap-2 border-r border-[#3A3A3A]/20 pr-5">
-                  <CalendarDays size={16} className="text-[#3A3A3A]" />
+                <div className="flex items-center gap-2 border-r border-[#1A1A1A]/20 pr-5">
+                  <CalendarDays size={16} className="text-[#0A0A0A]" />
                   <div className="flex flex-col">
-                    <span className="text-xs text-[#3A3A3A]/70">Days Remaining</span>
-                    <span className="text-sm font-bold text-[#3A3A3A]">{daysRemaining} of {totalWorkingDays}</span>
+                    <span className="text-xs text-[#0A0A0A]/70">Days Remaining</span>
+                    <span className="text-sm font-bold text-[#0A0A0A]">{daysRemaining} of {totalWorkingDays}</span>
         </div>
                 </div>
               );
@@ -451,14 +451,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-                className="appearance-none bg-white/20 border border-[#3A3A3A]/20 rounded-xl pl-4 pr-10 py-2 text-[#3A3A3A] text-sm font-medium focus:outline-none cursor-pointer hover:bg-white/30 transition-all disabled:opacity-50"
+                className="appearance-none bg-white/30 border-2 border-[#1A1A1A]/30 rounded-xl pl-4 pr-10 py-2.5 text-[#0A0A0A] text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#1A1A1A]/40 focus:border-[#1A1A1A]/50 cursor-pointer hover:bg-white/40 transition-all disabled:opacity-50"
               disabled={availableDates.length === 0}
             >
               {availableDates.length === 0 ? (
-                <option className="text-[#3A3A3A]">No data available</option>
+                <option className="text-[#0A0A0A]">No data available</option>
               ) : (
                 availableDates.map(date => (
-                    <option key={date} value={date} className="bg-white text-[#3A3A3A]">
+                    <option key={date} value={date} className="bg-white text-[#0A0A0A]">
                       {new Date(date).toLocaleDateString('en-GB', { 
                         day: 'numeric', 
                         month: 'short',
@@ -468,7 +468,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 ))
               )}
             </select>
-              <Calendar className="w-4 h-4 text-[#3A3A3A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+              <Calendar className="w-4 h-4 text-[#0A0A0A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* Month Selector */}
@@ -479,7 +479,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 setSelectedMonth(Number(e.target.value));
                   setSelectedDate('');
                 }}
-                className="appearance-none bg-white/20 border border-[#3A3A3A]/20 rounded-xl pl-4 pr-10 py-2 text-[#3A3A3A] text-sm font-medium focus:outline-none cursor-pointer hover:bg-white/30 transition-all"
+                className="appearance-none bg-white/20 border border-[#1A1A1A]/20 rounded-xl pl-4 pr-10 py-2 text-[#0A0A0A] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#1A1A1A]/30 focus:border-[#1A1A1A]/40 cursor-pointer hover:bg-white/30 transition-all"
               >
                 {[
                   { value: 1, label: 'January' }, { value: 2, label: 'February' },
@@ -489,12 +489,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   { value: 9, label: 'September' }, { value: 10, label: 'October' },
                   { value: 11, label: 'November' }, { value: 12, label: 'December' }
               ].map(month => (
-                  <option key={month.value} value={month.value} className="bg-white text-[#3A3A3A]">
+                  <option key={month.value} value={month.value} className="bg-white text-[#0A0A0A]">
                   {month.label}
                 </option>
               ))}
             </select>
-              <ChevronDown className="w-4 h-4 text-[#3A3A3A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-[#0A0A0A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* Year Selector */}
@@ -505,13 +505,13 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 setSelectedYear(Number(e.target.value));
                   setSelectedDate('');
               }}
-                className="appearance-none bg-white/20 border border-[#3A3A3A]/20 rounded-xl pl-4 pr-10 py-2 text-[#3A3A3A] text-sm font-medium focus:outline-none cursor-pointer hover:bg-white/30 transition-all"
+                className="appearance-none bg-white/20 border border-[#1A1A1A]/20 rounded-xl pl-4 pr-10 py-2 text-[#0A0A0A] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#1A1A1A]/30 focus:border-[#1A1A1A]/40 cursor-pointer hover:bg-white/30 transition-all"
             >
               {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                  <option key={year} value={year} className="bg-white text-[#3A3A3A]">{year}</option>
+                  <option key={year} value={year} className="bg-white text-[#0A0A0A]">{year}</option>
               ))}
             </select>
-              <ChevronDown className="w-4 h-4 text-[#3A3A3A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-[#0A0A0A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
           </div>
         </div>
@@ -523,7 +523,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <p className="text-[rgba(255,255,255,0.5)] text-lg">Please select a different period or add data in the Data Grid tab</p>
         </div>
       ) : (
-          <main className="grid grid-cols-6 auto-rows-auto gap-5">
+          <main className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 auto-rows-auto gap-5">
             {/* Net Sales Row - 4 cards */}
             <Card className="col-span-1">
               <CardHeader>
@@ -535,7 +535,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   {formatCurrency(dashboardData.current_net_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+                <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
                 {dashboardData.current_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_net_sales_percentage)} vs target
               </div>
                 {previousMonthData && (() => {
@@ -543,7 +543,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   const prevDateStr = prevDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                   const changePercent = ((dashboardData.current_net_sales - previousMonthData.current_net_sales) / previousMonthData.current_net_sales) * 100;
                   return (
-                    <div className="text-xs text-[#3A3A3A]/70">
+                    <div className="text-xs text-[#0A0A0A]/70">
                       {changePercent >= 0 ? '↑' : '↓'}{' '}
                       {formatPercentage(Math.abs(changePercent))} vs {prevDateStr}
                     </div>
@@ -561,7 +561,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                   {formatCurrency(dashboardData.estimated_net_sales || 0)}
               </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+              <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
                 {dashboardData.estimated_net_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.estimated_net_sales_percentage)} vs target
               </div>
             </Card>
@@ -587,7 +587,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   return formatCurrency(amount);
                 };
                 return daysRemaining > 0 ? (
-                  <div className="flex items-center gap-1 text-xs text-[#3A3A3A]">
+                  <div className="flex items-center gap-1 text-xs text-[#0A0A0A]">
                     <span>Need</span>
                     <DirhamIcon className="w-3 h-3" />
                     <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
@@ -618,7 +618,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </Card>
 
             {/* Divider between Net Sales and Labour Sales */}
-            <div className="col-span-6 border-t border-[rgba(255,255,255,0.1)] my-2"></div>
+            <div className="col-span-6 border-t-2 border-[rgba(255,255,255,0.25)] my-6"></div>
 
             {/* Labour Sales Row - 4 cards */}
             <Card className="col-span-1">
@@ -631,7 +631,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   {formatCurrency(dashboardData.current_net_labor_sales || 0)}
               </CardValue>
               <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+                <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
                 {dashboardData.current_labour_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.current_labour_sales_percentage)} vs target
               </div>
                 {previousMonthData && (() => {
@@ -639,7 +639,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   const prevDateStr = prevDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                   const changePercent = ((dashboardData.current_net_labor_sales - previousMonthData.current_net_labor_sales) / previousMonthData.current_net_labor_sales) * 100;
                   return (
-                    <div className="text-xs text-[#3A3A3A]">
+                    <div className="text-xs text-[#0A0A0A]">
                       {changePercent >= 0 ? '↑' : '↓'}{' '}
                       {formatPercentage(Math.abs(changePercent))} vs {prevDateStr}
                     </div>
@@ -657,7 +657,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                   {formatCurrency(dashboardData.estimated_labor_sales || 0)}
               </CardValue>
-              <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+              <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
                 {dashboardData.estimated_labor_sales_percentage >= 100 ? '↑' : '↓'} {formatPercentage(dashboardData.estimated_labor_sales_percentage)} vs target
               </div>
             </Card>
@@ -683,7 +683,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   return formatCurrency(amount);
                 };
                 return daysRemaining > 0 ? (
-                  <div className="flex items-center gap-1 text-xs text-[#3A3A3A]">
+                  <div className="flex items-center gap-1 text-xs text-[#0A0A0A]">
                     <span>Need</span>
                     <DirhamIcon className="w-3 h-3" />
                     <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
@@ -735,7 +735,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   <CardValue>
                     {marketingSpendPercentage.toFixed(1)}%
                   </CardValue>
-                  <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+                  <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
                     Budget allocation
           </div>
                 </Card>
@@ -750,7 +750,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                     <DirhamIcon className="w-4 h-4 flex-shrink-0 mr-1.5" />
                     {formatCurrency(dashboardData.current_marketing_spend || 0)}
                   </CardValue>
-                  <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+                  <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
                     Total spend
               </div>
             </Card>
@@ -765,7 +765,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                     <FileText className="w-5 h-5 mr-2" />
                 {formatCurrency(averageInvoiceValue)}
               </CardValue>
-                  <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+                  <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
                     Per transaction
                   </div>
             </Card>
@@ -779,7 +779,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               <CardValue>
                 {monthlyInvoiceSum}
               </CardValue>
-                  <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+                  <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
                     Total count
                   </div>
             </Card>
@@ -845,10 +845,10 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 
                 {/* Current Value */}
                 <div className="flex flex-col items-center mt-2 mb-4">
-                  <div className="text-3xl font-bold text-[#3A3A3A]">
+                  <div className="text-3xl font-bold text-[#0A0A0A]">
                     {vehicleThroughput.toFixed(1)}
                   </div>
-                  <div className="text-xs text-[#3A3A3A]/60">Vehicles per day</div>
+                  <div className="text-xs text-[#0A0A0A]/60">Vehicles per day</div>
                 </div>
 
                 {/* Monthly Average Line Chart with Axes */}
@@ -1003,35 +1003,37 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             </div>
 
             {/* Team Performance */}
-            <div className="col-span-6 bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
+            <div className="col-span-6">
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <div className="text-xl font-bold text-white mb-1">Team Performance</div>
-                  <div className="text-sm text-white/60">Individual contributions</div>
+                  <div className="text-sm text-white/70">Individual contributions and rankings</div>
                 </div>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(255,255,255,0.1)] text-white">
                   <Users size={20} />
                 </div>
               </div>
-            <div className="grid grid-cols-3 gap-4">
-                <TeamMember
-                  name="Daniel"
-                  role="Service Advisor"
-                  sales={dashboardData.daniel_total_sales || 0}
-                  contribution={danielContribution}
-                />
-                <TeamMember
-                  name="Lucy"
-                  role="Service Advisor"
-                  sales={dashboardData.lucy_total_sales || 0}
-                  contribution={lucyContribution}
-                />
-                <TeamMember
-                  name="Essrar"
-                  role="Service Advisor"
-                  sales={dashboardData.essrar_total_sales || 0}
-                  contribution={essrarContribution}
-              />
+            <div className="grid grid-cols-3 gap-5">
+                {(() => {
+                  // Calculate rankings
+                  const members = [
+                    { name: 'Daniel', sales: dashboardData.daniel_total_sales || 0, contribution: danielContribution },
+                    { name: 'Lucy', sales: dashboardData.lucy_total_sales || 0, contribution: lucyContribution },
+                    { name: 'Essrar', sales: dashboardData.essrar_total_sales || 0, contribution: essrarContribution }
+                  ].sort((a, b) => b.contribution - a.contribution)
+                  .map((member, index) => ({ ...member, rank: index + 1 }));
+
+                  return members.map(member => (
+                    <TeamMember
+                      key={member.name}
+                      name={member.name}
+                      role="Service Advisor"
+                      sales={member.sales}
+                      contribution={member.contribution}
+                      rank={member.rank}
+                    />
+                  ));
+                })()}
             </div>
           </div>
 
@@ -1050,7 +1052,7 @@ function Card({ children, className = "", style }: { children: React.ReactNode; 
   // If backgroundColor is provided in style (like black for charts), use solid background, otherwise use silver gradient
   const bgClass = style?.backgroundColor ? '' : 'bg-gradient-to-br from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0]';
   return (
-    <div className={`rounded-lg ${bgClass} p-3 border border-white/10 shadow-[0_4px_20px_rgba(192,192,192,0.3)] ${className}`} style={style}>
+    <div className={`rounded-xl ${bgClass} p-5 border-2 border-[rgba(255,255,255,0.25)] shadow-[0_8px_32px_rgba(192,192,192,0.4)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(192,192,192,0.5)] hover:border-[rgba(255,255,255,0.35)] hover:scale-[1.02] ${className}`} style={style}>
       {children}
     </div>
   );
@@ -1061,7 +1063,7 @@ function CardHeader({ children }: { children: React.ReactNode }) {
 }
 
 function CardTitle({ children }: { children: React.ReactNode }) {
-  return <div className="text-sm font-medium text-[#3A3A3A]/80">{children}</div>;
+  return <div className="text-sm font-semibold text-[#0A0A0A] tracking-wide">{children}</div>;
 }
 
 function CardIcon({ children, progress }: { children: React.ReactNode; progress?: number }) {
@@ -1079,9 +1081,9 @@ function CardIcon({ children, progress }: { children: React.ReactNode; progress?
   };
 
   return (
-    <div className="relative w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(0,0,0,0.1)] text-[#3A3A3A]">
+    <div className="relative w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(0,0,0,0.1)] text-[#0A0A0A]">
       {progress !== undefined && (
-        <svg className="absolute inset-0 w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+        <svg className="absolute inset-0 w-10 h-10 -rotate-90" viewBox="0 0 40 40" style={{ willChange: 'transform' }}>
           <circle
             cx="20"
             cy="20"
@@ -1100,7 +1102,8 @@ function CardIcon({ children, progress }: { children: React.ReactNode; progress?
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className="transition-all duration-500"
+            className="transition-all duration-500 ease-out"
+            style={{ willChange: 'stroke-dashoffset' }}
           />
         </svg>
       )}
@@ -1110,7 +1113,7 @@ function CardIcon({ children, progress }: { children: React.ReactNode; progress?
 }
 
 function CardValue({ children }: { children: React.ReactNode }) {
-  return <div className="text-xl font-semibold mb-2 text-[#3A3A3A] flex items-center tabular-nums">{children}</div>;
+  return <div className="text-2xl font-bold mb-2 text-[#0A0A0A] flex items-center tabular-nums">{children}</div>;
 }
 
 function CardGrowth({ children, positive = true, percentage }: { children: React.ReactNode; positive?: boolean; percentage?: number }) {
@@ -1149,43 +1152,44 @@ function TargetItem({ label, value, progress, current, daysRemaining, showDailyR
   const dailyRateNeeded = daysRemaining && daysRemaining > 0 ? remaining / daysRemaining : 0;
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <div className="flex justify-between items-center">
-        <span className="text-sm text-[#3A3A3A]/80">{label}</span>
+        <span className="text-sm font-semibold text-[#0A0A0A]">{label}</span>
         <div className="flex items-center gap-1">
-          <DirhamIcon className="w-4 h-4 text-[#3A3A3A]" />
-          <span className="text-base font-bold text-[#3A3A3A] tabular-nums">{formatCurrency(value)}</span>
+          <DirhamIcon className="w-4 h-4 text-[#0A0A0A]" />
+          <span className="text-base font-bold text-[#0A0A0A] tabular-nums">{formatCurrency(value)}</span>
             </div>
             </div>
-      <div className="h-1.5 bg-[rgba(0,0,0,0.1)] rounded-full overflow-hidden">
+      <div className="h-2 bg-[rgba(0,0,0,0.15)] rounded-full overflow-hidden">
         <div 
-          className="h-full rounded-full transition-all duration-300" 
+          className="h-full rounded-full transition-all duration-300 ease-out" 
           style={{ 
             width: `${Math.min(progress, 100)}%`,
             background: isAchieved 
               ? 'linear-gradient(90deg, #4CD964 0%, #34C759 100%)'
-              : 'linear-gradient(90deg, #3A3A3A 0%, #5A5A5A 100%)'
+              : 'linear-gradient(90deg, #2A2A2A 0%, #4A4A4A 100%)',
+            willChange: 'width'
           }}
         ></div>
       </div>
       <div className="flex justify-between items-center">
-        <span className="text-xs text-[#3A3A3A]/60">
+        <span className="text-xs text-[#0A0A0A]/80 font-semibold">
           {isAchieved ? 'Target Achieved! 🎉' : 'Remaining'}
         </span>
         {!isAchieved && (
           <div className="flex items-center gap-1">
-            <DirhamIcon className="w-3 h-3 text-[#3A3A3A]/60" />
-            <span className="text-sm font-semibold text-[#3A3A3A]/80 tabular-nums">
+            <DirhamIcon className="w-3 h-3 text-[#0A0A0A]/70" />
+            <span className="text-sm font-bold text-[#0A0A0A] tabular-nums">
               {formatCurrency(remaining)}
             </span>
           </div>
         )}
       </div>
       {!isAchieved && showDailyRate && daysRemaining && daysRemaining > 0 && (
-        <div className="flex items-center gap-1 text-xs text-[#FFC107] bg-[rgba(255,193,7,0.1)] px-2 py-1 rounded">
+        <div className="flex items-center gap-1 text-xs text-[#FFC107] bg-[rgba(255,193,7,0.15)] px-2 py-1 rounded font-semibold">
           <span>Need</span>
           <DirhamIcon className="w-3 h-3" />
-          <span className="font-semibold">{formatCompact(dailyRateNeeded)}/day</span>
+          <span className="font-bold">{formatCompact(dailyRateNeeded)}/day</span>
           <span>to hit target</span>
         </div>
       )}
@@ -1193,7 +1197,7 @@ function TargetItem({ label, value, progress, current, daysRemaining, showDailyR
   );
 }
 
-function TeamMember({ name, role, sales, contribution }: { name: string; role: string; sales: number; contribution: number }) {
+function TeamMember({ name, role, sales, contribution, rank }: { name: string; role: string; sales: number; contribution: number; rank: number }) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
@@ -1201,43 +1205,81 @@ function TeamMember({ name, role, sales, contribution }: { name: string; role: s
     }).format(amount);
   };
 
-  // Subtle ranking indicator
-  const isTopPerformer = contribution >= 40;
+  // Ranking badge colors and icons
+  const getRankBadge = () => {
+    switch (rank) {
+      case 1:
+        return {
+          bg: 'bg-gradient-to-br from-[#FFD700] to-[#FFA500]',
+          text: 'text-[#0A0A0A]',
+          icon: <Trophy size={16} className="text-[#0A0A0A]" />,
+          label: '1st'
+        };
+      case 2:
+        return {
+          bg: 'bg-gradient-to-br from-[#C0C0C0] to-[#A0A0A0]',
+          text: 'text-[#0A0A0A]',
+          icon: <Award size={16} className="text-[#0A0A0A]" />,
+          label: '2nd'
+        };
+      case 3:
+        return {
+          bg: 'bg-gradient-to-br from-[#CD7F32] to-[#B87333]',
+          text: 'text-white',
+          icon: <Award size={16} className="text-white" />,
+          label: '3rd'
+        };
+      default:
+        return null;
+    }
+  };
+
+  // Progress bar color based on contribution
+  const getProgressColor = () => {
+    if (contribution >= 40) return 'bg-gradient-to-r from-[#4CD964] to-[#34C759]'; // Green
+    if (contribution >= 30) return 'bg-gradient-to-r from-[#FFC107] to-[#FFB300]'; // Yellow/Amber
+    return 'bg-gradient-to-r from-[#FF3B30] to-[#FF2D20]'; // Red
+  };
+
+  const rankBadge = getRankBadge();
 
   return (
-    <div className="relative flex flex-col items-center gap-4 p-6 bg-[rgba(255,255,255,0.05)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-xl transition-all duration-300 hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]">
-      {/* Subtle top performer indicator */}
-      {isTopPerformer && (
-        <div className="absolute top-3 right-3 w-2 h-2 bg-white/30 rounded-full"></div>
+    <div className="relative flex flex-col items-center gap-3 p-5 bg-gradient-to-br from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] border-2 border-[rgba(255,255,255,0.25)] rounded-xl shadow-[0_4px_20px_rgba(192,192,192,0.3)] transition-all duration-300 hover:shadow-[0_6px_24px_rgba(192,192,192,0.4)] hover:border-[rgba(255,255,255,0.35)] hover:scale-[1.02]">
+      {/* Ranking Badge */}
+      {rankBadge && (
+        <div className={`absolute top-2 right-2 flex items-center gap-1 ${rankBadge.bg} ${rankBadge.text} px-2 py-1 rounded-lg text-xs font-bold shadow-md`}>
+          {rankBadge.icon}
+          <span>{rankBadge.label}</span>
+        </div>
       )}
       
       {/* Name and Role */}
-      <div className="text-center">
-        <div className="text-2xl font-bold text-white mb-1">{name}</div>
-        <div className="text-sm text-white/50">{role}</div>
-          </div>
+      <div className="text-center mt-1">
+        <div className="text-xl font-bold text-[#0A0A0A] mb-0.5">{name}</div>
+        <div className="text-xs text-[#0A0A0A]/70 font-medium">{role}</div>
+      </div>
       
-      {/* Sales Amount */}
-      <div className="flex items-center gap-2">
-        <DirhamIcon className="w-5 h-5 text-white/60" />
-        <div className="text-2xl font-bold text-white tabular-nums">{formatCurrency(sales)}</div>
-        </div>
+      {/* Sales Amount - More Prominent */}
+      <div className="flex items-center gap-2 mt-1">
+        <DirhamIcon className="w-5 h-5 text-[#0A0A0A]" />
+        <div className="text-2xl font-bold text-[#0A0A0A] tabular-nums">{formatCurrency(sales)}</div>
+      </div>
       
-      {/* Contribution Percentage */}
-      <div className="w-full">
+      {/* Contribution Percentage - Improved Progress Bar */}
+      <div className="w-full mt-2">
         {/* Progress bar */}
-        <div className="h-1.5 bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden mb-2">
+        <div className="h-3 bg-[rgba(0,0,0,0.1)] rounded-full overflow-hidden mb-2 shadow-inner">
           <div 
-            className="h-full bg-gradient-to-r from-white/40 to-white/60 rounded-full transition-all duration-500"
-            style={{ width: `${contribution}%` }}
+            className={`h-full ${getProgressColor()} rounded-full transition-all duration-500 ease-out`}
+            style={{ width: `${Math.min(contribution, 100)}%`, willChange: 'width' }}
           ></div>
         </div>
         {/* Percentage text */}
-        <div className="text-center text-sm text-white/70 font-medium">
-          {contribution.toFixed(1)}% of total
+        <div className="text-center text-xs text-[#0A0A0A]/80 font-semibold">
+          {contribution.toFixed(1)}% contribution
         </div>
       </div>
-          </div>
+    </div>
   );
 }
 
@@ -1369,7 +1411,7 @@ function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDat
           {totalCalls}
         </CardValue>
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+          <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
             {avgCallsPerDay.toFixed(1)} avg/day
           </div>
         </div>
@@ -1384,7 +1426,7 @@ function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDat
         <CardValue>
           {answeredCalls}
         </CardValue>
-        <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+        <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
           {answerRate.toFixed(1)}% answer rate
         </div>
       </Card>
@@ -1398,7 +1440,7 @@ function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDat
         <CardValue>
           {missedCalls}
         </CardValue>
-        <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+        <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
           {((100 - answerRate)).toFixed(1)}% missed
         </div>
       </Card>
@@ -1412,7 +1454,7 @@ function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDat
         <CardValue>
           {topPerformer[0] || 'N/A'}
         </CardValue>
-        <div className="flex items-center gap-1 text-sm font-medium text-[#3A3A3A]">
+        <div className="flex items-center gap-1 text-sm font-medium text-[#0A0A0A]">
           {topPerformer[1]} calls handled
         </div>
       </Card>
@@ -1490,23 +1532,50 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, selectedD
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-    return (
-        <div style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: '12px',
-          padding: '10px'
-        }}>
-          <p style={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}>{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} style={{ color: '#E0E0E0', fontSize: '12px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>{entry.name} : </span>
-              <DirhamIcon className="w-3 h-3" />
-              <span>{entry.value ? formatCurrencyFull(Number(entry.value)) : 'N/A'}</span>
+      const dayData = chartData.find((d: any) => d.day === label);
+      const currentSales = payload.find((p: any) => p.dataKey === 'currentNetSales')?.value || 0;
+      const target100 = payload.find((p: any) => p.dataKey === 'cumulativeTarget')?.value || 0;
+      const target112 = payload.find((p: any) => p.dataKey === 'target112')?.value || 0;
+      const vsTarget100 = target100 > 0 ? ((currentSales / target100) * 100).toFixed(1) : '0.0';
+      const vsTarget112 = target112 > 0 ? ((currentSales / target112) * 100).toFixed(1) : '0.0';
+      
+      return (
+        <div className="bg-[rgba(0,0,0,0.95)] border-2 border-[rgba(255,255,255,0.3)] rounded-xl p-4 shadow-xl backdrop-blur-sm">
+          <p className="text-white font-bold text-sm mb-3 pb-2 border-b border-white/20">Working Day {label}</p>
+          <div className="space-y-2">
+            {payload.map((entry: any, index: number) => {
+              return (
+                <div key={index} className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded" 
+                      style={{ backgroundColor: entry.color || '#ffffff' }}
+                    ></div>
+                    <span className="text-xs text-white/80 font-medium">{entry.name}:</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <DirhamIcon className="w-3 h-3 text-white/60" />
+                    <span className="text-sm font-bold text-white tabular-nums">
+                      {entry.value ? formatCurrencyFull(Number(entry.value)) : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+            {currentSales > 0 && (
+              <div className="mt-3 pt-2 border-t border-white/20 space-y-1">
+                <div className="text-xs text-white/70">Performance:</div>
+                <div className="text-xs text-white/90">
+                  <span className="font-semibold">{vsTarget100}%</span> vs 100% target
+                </div>
+                <div className="text-xs text-white/90">
+                  <span className="font-semibold">{vsTarget112}%</span> vs 112% target
+                </div>
+              </div>
+            )}
           </div>
-          ))}
-      </div>
-    );
+        </div>
+      );
     }
     return null;
   };
@@ -1518,47 +1587,44 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, selectedD
   
   const statusText = currentPercentage >= 100 ? 'Target Achieved' : currentPercentage >= 85 ? 'On Pace' : 'Needs Improvement';
   const statusColor = currentPercentage >= 100 ? '#4CD964' : currentPercentage >= 85 ? '#4CD964' : '#FFC107';
-  const statusBgColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.2)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.2)' : 'rgba(255, 193, 7, 0.2)';
+  const statusBgColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.15)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.15)' : 'rgba(255, 193, 7, 0.15)';
   const statusIcon = currentPercentage >= 100 ? '🎉' : currentPercentage >= 85 ? '✓' : '⚠';
+  const statusBorderColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.4)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.4)' : 'rgba(255, 193, 7, 0.4)';
 
   return (
     <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-5">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-xl font-bold text-white">Net Sales Progress</h3>
-            <span style={{ 
+          <div className="flex items-center gap-4 mb-3">
+            <h3 className="text-2xl font-bold text-white">Net Sales Progress</h3>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg border-2" style={{ 
               backgroundColor: statusBgColor, 
-              color: statusColor, 
-              padding: '4px 12px', 
-              borderRadius: '6px', 
-              fontSize: '12px', 
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
+              borderColor: statusBorderColor,
+              color: statusColor
             }}>
-              <span>{statusIcon}</span> {statusText}
-            </span>
+              <span className="text-lg">{statusIcon}</span>
+              <span className="text-sm font-bold">{statusText}</span>
+              <span className="text-xs font-semibold opacity-80 ml-1">({currentPercentage.toFixed(1)}%)</span>
+            </div>
           </div>
-          <p className="text-sm text-white/60">Cumulative sales progress vs targets</p>
+          <p className="text-sm text-white/70">Cumulative sales progress vs targets</p>
         </div>
       </div>
       
       <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-6 mb-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-white opacity-60"></div>
-            <span className="text-xs text-white/60">100% Target</span>
+        {/* Enhanced Legend */}
+        <div className="flex items-center justify-center gap-6 mb-4 px-4 py-2 bg-[rgba(255,255,255,0.05)] rounded-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 bg-white opacity-70"></div>
+            <span className="text-xs text-white/90 font-medium">100% Target</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 border-t-2 border-dashed border-white opacity-40"></div>
-            <span className="text-xs text-white/60">112% Target</span>
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 border-t-2 border-dashed border-white opacity-50"></div>
+            <span className="text-xs text-white/90 font-medium">112% Target</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
-            <span className="text-xs text-white/60">Current Sales</span>
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/90 font-medium">Current Sales</span>
           </div>
         </div>
 
@@ -1566,28 +1632,31 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, selectedD
           <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
             <defs>
               <linearGradient id="targetGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.48}/>
-                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.06}/>
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.6}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.1}/>
+              </linearGradient>
+              <linearGradient id="currentSalesGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4CD964" stopOpacity={0.7}/>
+                <stop offset="95%" stopColor="#4CD964" stopOpacity={0.1}/>
               </linearGradient>
             </defs>
-            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#ffffff60' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrencyCompact} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(0,0,0,0.9)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '8px',
-                color: '#ffffff'
-              }}
-              formatter={(value: any, name: string) => {
-                if (name === 'cumulativeTarget') return [formatCurrencyFull(value), '100% Target'];
-                if (name === 'currentNetSales') return [formatCurrencyFull(value), 'Current Sales'];
-                if (name === 'target112') return [formatCurrencyFull(value), '112% Target'];
-                return [value, name];
-              }}
+            <XAxis 
+              dataKey="day" 
+              tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
+              axisLine={{ stroke: '#ffffff20' }}
+              tickLine={{ stroke: '#ffffff20' }}
             />
+            <YAxis 
+              tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
+              width={70} 
+              tickFormatter={formatCurrencyCompact}
+              axisLine={{ stroke: '#ffffff20' }}
+              tickLine={{ stroke: '#ffffff20' }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
             <Line type="monotone" dataKey="target112" stroke="#ffffff" strokeWidth={1.5} strokeDasharray="3 3" strokeOpacity={0.4} name="target112" dot={false} />
-            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#targetGradient)" stroke="#ffffff60" strokeWidth={1.5} name="cumulativeTarget" connectNulls={true} />
+            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#targetGradient)" stroke="#ffffff80" strokeWidth={2} name="cumulativeTarget" connectNulls={true} />
             <Line 
             type="monotone"
             dataKey="currentNetSales" 
@@ -1595,7 +1664,7 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, selectedD
               strokeWidth={3} 
               name="currentNetSales" 
               dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
-              activeDot={{ r: 6 }} 
+              activeDot={{ r: 6, fill: '#4CD964', stroke: '#ffffff', strokeWidth: 2 }} 
               connectNulls={false} 
           />
         </ComposedChart>
@@ -1674,23 +1743,49 @@ function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, select
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-    return (
-        <div style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: '12px',
-          padding: '10px'
-        }}>
-          <p style={{ color: '#ffffff', fontWeight: 700, marginBottom: '8px' }}>{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} style={{ color: '#E0E0E0', fontSize: '12px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>{entry.name} : </span>
-              <DirhamIcon className="w-3 h-3" />
-              <span>{entry.value ? formatCurrencyFull(Number(entry.value)) : 'N/A'}</span>
+      const currentSales = payload.find((p: any) => p.dataKey === 'currentLabourSales')?.value || 0;
+      const target100 = payload.find((p: any) => p.dataKey === 'cumulativeTarget')?.value || 0;
+      const target112 = payload.find((p: any) => p.dataKey === 'target112')?.value || 0;
+      const vsTarget100 = target100 > 0 ? ((currentSales / target100) * 100).toFixed(1) : '0.0';
+      const vsTarget112 = target112 > 0 ? ((currentSales / target112) * 100).toFixed(1) : '0.0';
+      
+      return (
+        <div className="bg-[rgba(0,0,0,0.95)] border-2 border-[rgba(255,255,255,0.3)] rounded-xl p-4 shadow-xl backdrop-blur-sm">
+          <p className="text-white font-bold text-sm mb-3 pb-2 border-b border-white/20">Working Day {label}</p>
+          <div className="space-y-2">
+            {payload.map((entry: any, index: number) => {
+              return (
+                <div key={index} className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded" 
+                      style={{ backgroundColor: entry.color || '#ffffff' }}
+                    ></div>
+                    <span className="text-xs text-white/80 font-medium">{entry.name}:</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <DirhamIcon className="w-3 h-3 text-white/60" />
+                    <span className="text-sm font-bold text-white tabular-nums">
+                      {entry.value ? formatCurrencyFull(Number(entry.value)) : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+            {currentSales > 0 && (
+              <div className="mt-3 pt-2 border-t border-white/20 space-y-1">
+                <div className="text-xs text-white/70">Performance:</div>
+                <div className="text-xs text-white/90">
+                  <span className="font-semibold">{vsTarget100}%</span> vs 100% target
+                </div>
+                <div className="text-xs text-white/90">
+                  <span className="font-semibold">{vsTarget112}%</span> vs 112% target
+                </div>
+              </div>
+            )}
           </div>
-          ))}
-      </div>
-    );
+        </div>
+      );
     }
     return null;
   };
@@ -1702,47 +1797,44 @@ function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, select
   
   const statusText = currentPercentage >= 100 ? 'Target Achieved' : currentPercentage >= 85 ? 'On Pace' : 'Needs Improvement';
   const statusColor = currentPercentage >= 100 ? '#4CD964' : currentPercentage >= 85 ? '#4CD964' : '#FFC107';
-  const statusBgColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.2)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.2)' : 'rgba(255, 193, 7, 0.2)';
+  const statusBgColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.15)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.15)' : 'rgba(255, 193, 7, 0.15)';
   const statusIcon = currentPercentage >= 100 ? '🎉' : currentPercentage >= 85 ? '✓' : '⚠';
+  const statusBorderColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.4)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.4)' : 'rgba(255, 193, 7, 0.4)';
 
   return (
     <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-5">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-xl font-bold text-white">Labour Sales Progress</h3>
-            <span style={{ 
+          <div className="flex items-center gap-4 mb-3">
+            <h3 className="text-2xl font-bold text-white">Labour Sales Progress</h3>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg border-2" style={{ 
               backgroundColor: statusBgColor, 
-              color: statusColor, 
-              padding: '4px 12px', 
-              borderRadius: '6px', 
-              fontSize: '12px', 
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
+              borderColor: statusBorderColor,
+              color: statusColor
             }}>
-              <span>{statusIcon}</span> {statusText}
-            </span>
+              <span className="text-lg">{statusIcon}</span>
+              <span className="text-sm font-bold">{statusText}</span>
+              <span className="text-xs font-semibold opacity-80 ml-1">({currentPercentage.toFixed(1)}%)</span>
+            </div>
           </div>
-          <p className="text-sm text-white/60">Cumulative labour sales progress vs targets</p>
+          <p className="text-sm text-white/70">Cumulative labour sales progress vs targets</p>
         </div>
       </div>
       
       <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-6 mb-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-white opacity-60"></div>
-            <span className="text-xs text-white/60">100% Target</span>
+        {/* Enhanced Legend */}
+        <div className="flex items-center justify-center gap-6 mb-4 px-4 py-2 bg-[rgba(255,255,255,0.05)] rounded-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 bg-white opacity-70"></div>
+            <span className="text-xs text-white/90 font-medium">100% Target</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 border-t-2 border-dashed border-white opacity-40"></div>
-            <span className="text-xs text-white/60">112% Target</span>
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 border-t-2 border-dashed border-white opacity-50"></div>
+            <span className="text-xs text-white/90 font-medium">112% Target</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
-            <span className="text-xs text-white/60">Current Labour Sales</span>
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/90 font-medium">Current Labour Sales</span>
           </div>
         </div>
 
@@ -1750,36 +1842,39 @@ function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, select
           <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
             <defs>
               <linearGradient id="labourTargetGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.48}/>
-                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.06}/>
+                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.6}/>
+                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.1}/>
+              </linearGradient>
+              <linearGradient id="currentLabourGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4CD964" stopOpacity={0.7}/>
+                <stop offset="95%" stopColor="#4CD964" stopOpacity={0.1}/>
               </linearGradient>
             </defs>
-            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#ffffff60' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrencyCompact} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(0,0,0,0.9)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '8px',
-                color: '#ffffff'
-              }}
-              formatter={(value: any, name: string) => {
-                if (name === 'cumulativeTarget') return [formatCurrencyFull(value), '100% Target'];
-                if (name === 'currentLabourSales') return [formatCurrencyFull(value), 'Current Labour Sales'];
-                if (name === 'target112') return [formatCurrencyFull(value), '112% Target'];
-                return [value, name];
-              }}
+            <XAxis 
+              dataKey="day" 
+              tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
+              axisLine={{ stroke: '#ffffff20' }}
+              tickLine={{ stroke: '#ffffff20' }}
             />
+            <YAxis 
+              tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
+              width={70} 
+              tickFormatter={formatCurrencyCompact}
+              axisLine={{ stroke: '#ffffff20' }}
+              tickLine={{ stroke: '#ffffff20' }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
             <Line type="monotone" dataKey="target112" stroke="#ffffff" strokeWidth={1.5} strokeDasharray="3 3" strokeOpacity={0.4} name="target112" dot={false} />
-            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#labourTargetGradient)" stroke="#ffffff60" strokeWidth={1.5} name="cumulativeTarget" connectNulls={true} />
-          <Line 
+            <Area type="monotone" dataKey="cumulativeTarget" fill="url(#labourTargetGradient)" stroke="#ffffff80" strokeWidth={2} name="cumulativeTarget" connectNulls={true} />
+            <Line 
             type="monotone"
             dataKey="currentLabourSales" 
               stroke="#4CD964" 
               strokeWidth={3} 
               name="currentLabourSales" 
               dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
-              activeDot={{ r: 6 }} 
+              activeDot={{ r: 6, fill: '#4CD964', stroke: '#ffffff', strokeWidth: 2 }} 
               connectNulls={false} 
           />
         </ComposedChart>
@@ -1897,32 +1992,37 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
       if (dayData && dayData.currentAvg !== null) {
         const requiredColor = dayData.requiredDailyAverage && dayData.requiredDailyAverage > dayData.currentAvg ? '#FF3B30' : '#4CD964';
         const performanceColor = dayData.performance && dayData.performance >= 100 ? '#4CD964' : dayData.performance && dayData.performance >= 85 ? '#FFC107' : '#FF3B30';
-    return (
-          <div style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '12px',
-            padding: '12px 16px',
-            minWidth: '200px'
-          }}>
-            <p style={{ color: '#ffffff', fontWeight: 700, marginBottom: '10px', fontSize: '14px' }}>Day {label}</p>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: requiredColor, fontSize: '12px' }}>Required Avg:</span>
-              <span style={{ color: requiredColor, fontSize: '12px', fontWeight: 600 }}>{dayData.requiredDailyAverage !== null ? Math.round(dayData.requiredDailyAverage).toLocaleString() : 'N/A'}</span>
+        return (
+          <div className="bg-[rgba(0,0,0,0.95)] border-2 border-[rgba(255,255,255,0.3)] rounded-xl p-4 shadow-xl backdrop-blur-sm min-w-[220px]">
+            <p className="text-white font-bold text-sm mb-3 pb-2 border-b border-white/20">Working Day {label}</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs text-white/80 font-medium" style={{ color: requiredColor }}>Required Avg:</span>
+                <div className="flex items-center gap-1">
+                  <DirhamIcon className="w-3 h-3 text-white/60" />
+                  <span className="text-sm font-bold text-white tabular-nums" style={{ color: requiredColor }}>
+                    {dayData.requiredDailyAverage !== null ? formatCurrencyFull(Math.round(dayData.requiredDailyAverage)) : 'N/A'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs text-white/80 font-medium">Current Avg:</span>
+                <div className="flex items-center gap-1">
+                  <DirhamIcon className="w-3 h-3 text-white/60" />
+                  <span className="text-sm font-bold text-white tabular-nums">{formatCurrencyFull(Math.round(dayData.currentAvg))}</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-2 border-t border-white/20">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs text-white/70">Performance:</span>
+                  <span className="text-sm font-bold" style={{ color: performanceColor }}>
+                    {dayData.performance !== null ? dayData.performance.toFixed(1) : '0.0'}%
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: '#4CD964', fontSize: '12px' }}>Current Avg:</span>
-              <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 600 }}>{Math.round(dayData.currentAvg).toLocaleString()}</span>
-          </div>
-          
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>Performance:</span>
-              <span style={{ color: performanceColor, fontSize: '12px', fontWeight: 600 }}>{dayData.performance !== null ? dayData.performance.toFixed(1) : '0.0'}%</span>
-        </div>
-      </div>
-    );
+        );
       }
     }
     return null;
@@ -1930,82 +2030,93 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
 
   const statusColor = performance >= 100 ? '#4CD964' : performance >= 85 ? '#FFC107' : '#FF3B30';
   const statusText = performance >= 100 ? 'On Track' : 'Needs Improvement';
+  const statusBgColor = performance >= 100 ? 'rgba(76, 217, 100, 0.15)' : performance >= 85 ? 'rgba(255, 193, 7, 0.15)' : 'rgba(255, 59, 48, 0.15)';
+  const statusBorderColor = performance >= 100 ? 'rgba(76, 217, 100, 0.4)' : performance >= 85 ? 'rgba(255, 193, 7, 0.4)' : 'rgba(255, 59, 48, 0.4)';
+  const statusIcon = performance >= 100 ? '✓' : '⚠';
 
   return (
     <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-5">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-xl font-bold text-white">Net Sales Daily Average</h3>
-            <span style={{ 
-              backgroundColor: 'rgba(255, 193, 7, 0.2)', 
-              color: '#FFC107', 
-              padding: '4px 12px', 
-              borderRadius: '6px', 
-              fontSize: '12px', 
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
+          <div className="flex items-center gap-4 mb-3">
+            <h3 className="text-2xl font-bold text-white">Net Sales Daily Average</h3>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg border-2" style={{ 
+              backgroundColor: statusBgColor, 
+              borderColor: statusBorderColor,
+              color: statusColor
             }}>
-              <span>⚠</span> {statusText}
-              </span>
+              <span className="text-lg">{statusIcon}</span>
+              <span className="text-sm font-bold">{statusText}</span>
+              <span className="text-xs font-semibold opacity-80 ml-1">({performance.toFixed(1)}%)</span>
+            </div>
           </div>
-          <p className="text-sm text-white/60 mb-3">Daily average performance and required daily average</p>
+          <p className="text-sm text-white/70 mb-3">Daily average performance and required daily average</p>
         </div>
-        <span style={{ 
-          backgroundColor: 'rgba(255, 193, 7, 0.2)', 
-          color: '#FFC107', 
-          padding: '4px 12px', 
-          borderRadius: '6px', 
-          fontSize: '12px', 
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
-          {formatCurrencyCompact(requiredFor112)} required/day
-          </span>
       </div>
       
       <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-6 mb-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-white opacity-60"></div>
-            <span className="text-xs text-white/60">Required Daily Avg (112%)</span>
+        {/* Enhanced Legend */}
+        <div className="flex items-center justify-center gap-6 mb-4 px-4 py-2 bg-[rgba(255,255,255,0.05)] rounded-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 bg-[#FF3B30]"></div>
+            <span className="text-xs text-white/90 font-medium">Required Daily Avg (112%)</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
-            <span className="text-xs text-white/60">Current Daily Avg</span>
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/90 font-medium">Current Daily Avg</span>
           </div>
-      </div>
-      
+        </div>
+
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
             <defs>
-              <linearGradient id="requiredGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ffffff" stopOpacity={0.36}/>
-                <stop offset="95%" stopColor="#ffffff" stopOpacity={0.03}/>
+              <linearGradient id="currentAvgGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4CD964" stopOpacity={0.7}/>
+                <stop offset="95%" stopColor="#4CD964" stopOpacity={0.1}/>
+              </linearGradient>
+              <linearGradient id="requiredAvgGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#FF3B30" stopOpacity={0.7}/>
+                <stop offset="95%" stopColor="#FF3B30" stopOpacity={0.1}/>
               </linearGradient>
             </defs>
-            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#ffffff60' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrencyCompact} />
-          <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="requiredDailyAverage" fill="url(#requiredGradient)" stroke="#ffffff60" strokeWidth={1.5} name="Required Daily Average" />
+            <XAxis 
+              dataKey="day" 
+              tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
+              axisLine={{ stroke: '#ffffff20' }}
+              tickLine={{ stroke: '#ffffff20' }}
+            />
+            <YAxis 
+              tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
+              width={70} 
+              tickFormatter={formatCurrencyCompact}
+              axisLine={{ stroke: '#ffffff20' }}
+              tickLine={{ stroke: '#ffffff20' }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
             <Line 
-            type="monotone"
-            dataKey="currentAvg" 
+              type="monotone" 
+              dataKey="requiredDailyAverage" 
+              stroke="#FF3B30" 
+              strokeWidth={2.5} 
+              name="requiredDailyAverage" 
+              dot={{ fill: '#FF3B30', r: 3, strokeWidth: 0 }} 
+              activeDot={{ r: 5, fill: '#FF3B30', stroke: '#ffffff', strokeWidth: 2 }} 
+              connectNulls={false} 
+            />
+            <Line 
+              type="monotone" 
+              dataKey="currentAvg" 
               stroke="#4CD964" 
               strokeWidth={3} 
               name="currentAvg" 
               dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }} 
-              activeDot={{ r: 6 }}
-              connectNulls={false}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+              activeDot={{ r: 6, fill: '#4CD964', stroke: '#ffffff', strokeWidth: 2 }} 
+              connectNulls={false} 
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
     </Card>
   );
 }
@@ -2013,6 +2124,13 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
 function TargetForecastChart({ metrics, selectedYear, selectedMonth, selectedDate, monthTarget }: any) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', { notation: 'compact' }).format(amount);
+  };
+
+  const formatCurrencyFull = (amount: number) => {
+    return new Intl.NumberFormat('en-AE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   };
 
   const monthMetrics = metrics
@@ -2101,55 +2219,84 @@ function TargetForecastChart({ metrics, selectedYear, selectedMonth, selectedDat
   
   const statusText = currentPercentage >= 100 ? 'Target Achieved' : currentPercentage >= 85 ? 'On Pace' : 'Needs Improvement';
   const statusColor = currentPercentage >= 100 ? '#4CD964' : currentPercentage >= 85 ? '#4CD964' : '#FFC107';
-  const statusBgColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.2)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.2)' : 'rgba(255, 193, 7, 0.2)';
+  const statusBgColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.15)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.15)' : 'rgba(255, 193, 7, 0.15)';
   const statusIcon = currentPercentage >= 100 ? '🎉' : currentPercentage >= 85 ? '✓' : '⚠';
+  const statusBorderColor = currentPercentage >= 100 ? 'rgba(76, 217, 100, 0.4)' : currentPercentage >= 85 ? 'rgba(76, 217, 100, 0.4)' : 'rgba(255, 193, 7, 0.4)';
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[rgba(0,0,0,0.95)] border-2 border-[rgba(255,255,255,0.3)] rounded-xl p-4 shadow-xl backdrop-blur-sm">
+          <p className="text-white font-bold text-sm mb-3 pb-2 border-b border-white/20">Working Day {label}</p>
+          <div className="space-y-2">
+            {payload.map((entry: any, index: number) => {
+              return (
+                <div key={index} className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded" 
+                      style={{ backgroundColor: entry.color || '#ffffff' }}
+                    ></div>
+                    <span className="text-xs text-white/80 font-medium">{entry.name}:</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <DirhamIcon className="w-3 h-3 text-white/60" />
+                    <span className="text-sm font-bold text-white tabular-nums">
+                      {entry.value ? formatCurrencyFull(Number(entry.value)) : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-5">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-xl font-bold text-white">Target Achievement Forecast</h3>
-            <span style={{ 
+          <div className="flex items-center gap-4 mb-3">
+            <h3 className="text-2xl font-bold text-white">Target Achievement Forecast</h3>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg border-2" style={{ 
               backgroundColor: statusBgColor, 
-              color: statusColor, 
-              padding: '4px 12px', 
-              borderRadius: '6px', 
-              fontSize: '12px', 
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
+              borderColor: statusBorderColor,
+              color: statusColor
             }}>
-              <span>{statusIcon}</span> {statusText}
-            </span>
+              <span className="text-lg">{statusIcon}</span>
+              <span className="text-sm font-bold">{statusText}</span>
+              <span className="text-xs font-semibold opacity-80 ml-1">({currentPercentage.toFixed(1)}%)</span>
+            </div>
           </div>
-          <p className="text-sm text-white/60">Weekly progress and month-end forecast</p>
+          <p className="text-sm text-white/70">Weekly progress and month-end forecast</p>
         </div>
       </div>
       
       <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-6 mb-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-white opacity-40"></div>
-            <span className="text-xs text-white/60">100% Target</span>
+        {/* Enhanced Legend */}
+        <div className="flex items-center justify-center gap-4 mb-4 px-4 py-2 bg-[rgba(255,255,255,0.05)] rounded-lg backdrop-blur-sm flex-wrap">
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 bg-white opacity-50"></div>
+            <span className="text-xs text-white/90 font-medium">100% Target</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-white opacity-60"></div>
-            <span className="text-xs text-white/60">112% Target</span>
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 bg-white opacity-70"></div>
+            <span className="text-xs text-white/90 font-medium">112% Target</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-[#4CD964]"></div>
-            <span className="text-xs text-white/60">Actual</span>
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
+            <div className="w-10 h-1 bg-[#4CD964]"></div>
+            <span className="text-xs text-white/90 font-medium">Actual</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
             <div className="w-2 h-2 rounded-full bg-white"></div>
-            <span className="text-xs text-white/60">Projected</span>
+            <span className="text-xs text-white/90 font-medium">Projected</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
             <div className="w-2 h-2 bg-white" style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }}></div>
-            <span className="text-xs text-white/60">Marketing Forecast</span>
+            <span className="text-xs text-white/90 font-medium">Marketing Forecast</span>
           </div>
         </div>
 
@@ -2157,35 +2304,25 @@ function TargetForecastChart({ metrics, selectedYear, selectedMonth, selectedDat
           <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
             <defs>
               <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#4CD964" stopOpacity={0.5}/>
-                <stop offset="50%" stopColor="#4CD964" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#4CD964" stopOpacity={0.05}/>
+                <stop offset="5%" stopColor="#4CD964" stopOpacity={0.6}/>
+                <stop offset="95%" stopColor="#4CD964" stopOpacity={0.1}/>
               </linearGradient>
             </defs>
-            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#ffffff60' }} />
-            <YAxis tick={{ fontSize: 10, fill: '#ffffff60' }} width={60} tickFormatter={formatCurrency} />
-          <Tooltip 
-            contentStyle={{ 
-                backgroundColor: 'rgba(0, 0, 0, 0.9)', 
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
-                color: '#ffffff'
-            }}
-            formatter={(value: any) => {
-              if (!value) return 'N/A';
-              const formatted = new Intl.NumberFormat('en-AE', { 
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0 
-              }).format(Number(value));
-              return (
-                <>
-                  <DirhamIcon className="inline w-3 h-3 mr-1" />
-                  {formatted}
-                </>
-              );
-            }}
+            <XAxis 
+              dataKey="day" 
+              tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
+              axisLine={{ stroke: '#ffffff20' }}
+              tickLine={{ stroke: '#ffffff20' }}
             />
-            
+            <YAxis 
+              tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
+              width={70} 
+              tickFormatter={formatCurrency}
+              axisLine={{ stroke: '#ffffff20' }}
+              tickLine={{ stroke: '#ffffff20' }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
             <Line 
               type="monotone"
               dataKey="target100" 
@@ -2213,7 +2350,7 @@ function TargetForecastChart({ metrics, selectedYear, selectedMonth, selectedDat
               stroke="#4CD964" 
               strokeWidth={3}
               dot={{ fill: '#4CD964', r: 4, strokeWidth: 0 }}
-              activeDot={{ r: 6 }}
+              activeDot={{ r: 6, fill: '#4CD964', stroke: '#ffffff', strokeWidth: 2 }}
               name="Actual"
             />
             <Line 
@@ -2221,26 +2358,25 @@ function TargetForecastChart({ metrics, selectedYear, selectedMonth, selectedDat
               dataKey="projected" 
               stroke="#ffffff" 
               strokeWidth={2}
-              strokeDasharray="3 3"
+              strokeDasharray="5 5"
               strokeOpacity={0.5}
-              dot={{ fill: '#ffffff', r: 3, strokeWidth: 0, fillOpacity: 0.5 }}
-              activeDot={{ r: 5 }}
+              dot={{ fill: '#ffffff', r: 3, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: '#ffffff', stroke: '#4CD964', strokeWidth: 2 }}
               name="Projected"
-          />
-          <Line 
-            type="monotone"
+            />
+            <Line 
+              type="monotone"
               dataKey="marketingMagic" 
-              stroke="#ffffff" 
-              strokeWidth={2}
-              strokeDasharray="5 3"
-              strokeOpacity={0.5}
-              dot={{ fill: '#ffffff', r: 3, strokeWidth: 1, stroke: '#000000', fillOpacity: 0.5 }}
-              activeDot={{ r: 5, strokeWidth: 1 }}
+              stroke="#FFC107" 
+              strokeWidth={2.5}
+              strokeDasharray="2 2"
+              dot={{ fill: '#FFC107', r: 3, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: '#FFC107', stroke: '#ffffff', strokeWidth: 2 }}
               name="Marketing Forecast"
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-          </div>
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
     </Card>
   );
 }
@@ -2296,14 +2432,14 @@ function RevenueMixChart({ dashboardData }: any) {
             />
             <Legend 
               wrapperStyle={{ paddingTop: '10px' }}
-              formatter={(value: string) => <span className="text-xs text-[#3A3A3A]">{value}</span>}
+              formatter={(value: string) => <span className="text-xs text-[#0A0A0A]">{value}</span>}
             />
           </PieChart>
         </ResponsiveContainer>
         {/* Center text showing labour sales percentage */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center" style={{ marginTop: '-20px' }}>
-          <div className="text-3xl font-bold text-[#3A3A3A] tabular-nums">{labourPercent.toFixed(1)}%</div>
-          <div className="text-xs text-[#3A3A3A]/60">Labour</div>
+          <div className="text-3xl font-bold text-[#0A0A0A] tabular-nums">{labourPercent.toFixed(1)}%</div>
+          <div className="text-xs text-[#0A0A0A]/60">Labour</div>
         </div>
       </div>
     </Card>

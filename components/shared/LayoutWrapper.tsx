@@ -39,7 +39,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       )}
       
       {/* Main content area with header and page content */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0 w-full relative z-30">
+      <div className="flex-1 flex flex-col min-w-0 w-full relative z-30">
         {/* Persistent Header - stays at top */}
         {shouldShowHeader && (
           <div className="flex-shrink-0">

@@ -175,10 +175,8 @@ function AccountsDashboardContent() {
 
   return (
     <RouteProtector moduleName="accounts">
-      <div className="min-h-screen bg-black">
-
-        <div className="w-full">
-          <div className="w-full px-4 py-4">
+      <div className="w-full bg-black min-h-full">
+        <div className="w-full px-4 py-4">
             
 
             {/* Service Sub-Navigation */}
@@ -360,7 +358,6 @@ function AccountsDashboardContent() {
             </div>
 
 
-          </div>
         </div>
       </div>
     </RouteProtector>

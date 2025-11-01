@@ -297,16 +297,16 @@ export default function RouteProtector({
   };
 
   return (
-    <div className="relative h-full">
+    <div className="relative w-full">
       {/* Skeleton - fades out */}
-      <div className={`absolute inset-0 transition-opacity duration-500 ease-out ${
+      <div className={`absolute top-0 left-0 right-0 bottom-0 transition-opacity duration-500 ease-out ${
         skeletonVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}>
         {getSkeleton()}
       </div>
       
       {/* Real content - fades in */}
-      <div className={`h-full transition-opacity duration-500 ease-out ${
+      <div className={`relative w-full transition-opacity duration-500 ease-out ${
         showContent ? 'opacity-100' : 'opacity-0'
       }`}>
         {children}

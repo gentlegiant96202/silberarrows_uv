@@ -75,3 +75,4 @@ GROUP BY la.invoice_number, la.invoice_id, la.billing_period
 ORDER BY la.billing_period DESC;
 
 
+

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Calendar, TrendingUp, Target, FileText, AlertCircle, ChevronDown, Zap, Users, Search, Bell, BarChart3, Activity, Wrench, Trophy, DollarSign, CalendarDays, Percent, Receipt, ChartLine, ChartBar, PieChart as PieIcon, ChartPie, CalendarRange, BarChart4, LayoutGrid, Gauge, Phone, CheckCircle, XCircle, Award } from 'lucide-react';
 import DirhamIcon from '@/components/ui/DirhamIcon';
@@ -39,6 +39,84 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   const [previousMonthData, setPreviousMonthData] = useState<DailyServiceMetrics | null>(null);
   const [callLogs, setCallLogs] = useState<CallLogEntry[]>([]);
   const [callLogsLoading, setCallLogsLoading] = useState(false);
+  const [appHeaderHeight, setAppHeaderHeight] = useState(0);
+
+  // Add animation styles for current sales lines
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes drawLine {
+        from {
+          stroke-dashoffset: 2000;
+        }
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes shimmer {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+      @keyframes pulse-slow {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.8;
+        }
+      }
+      .chart-container-current-sales svg path[stroke="#4CD964"]:not([stroke-dasharray]) {
+        stroke-dasharray: 2000;
+        stroke-dashoffset: 2000;
+        animation: drawLine 2.5s ease-out forwards;
+      }
+      .chart-container-labour-sales svg path[stroke="#4CD964"]:not([stroke-dasharray]) {
+        stroke-dasharray: 2000;
+        stroke-dashoffset: 2000;
+        animation: drawLine 2.5s ease-out forwards;
+      }
+      .chart-container-daily-avg svg path[stroke="#4CD964"]:not([stroke-dasharray]) {
+        stroke-dasharray: 2000;
+        stroke-dashoffset: 2000;
+        animation: drawLine 2.5s ease-out forwards;
+      }
+      .chart-container-forecast svg path[stroke="#4CD964"]:not([stroke-dasharray]) {
+        stroke-dasharray: 2000;
+        stroke-dashoffset: 2000;
+        animation: drawLine 2.5s ease-out forwards;
+      }
+      .animate-shimmer {
+        animation: shimmer 2s infinite;
+      }
+      .animate-pulse-slow {
+        animation: pulse-slow 2s ease-in-out infinite;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const updateAppHeaderHeight = () => {
+      const globalHeader = document.querySelector('header');
+      if (globalHeader) {
+        setAppHeaderHeight(globalHeader.getBoundingClientRect().height);
+      }
+    };
+
+    updateAppHeaderHeight();
+    window.addEventListener('resize', updateAppHeaderHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateAppHeaderHeight);
+    };
+  }, []);
 
   // Reset isInitialLoad when loading starts
   useEffect(() => {
@@ -265,7 +343,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
 
   if (loading || isInitialLoad) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] p-5">
+      <div className="w-full bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] p-5 pb-10">
         <div className="w-full flex flex-col gap-5">
           {/* Header Skeleton - Dark background to match other skeleton cards */}
           <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl pl-5 pr-6 py-5 flex items-center justify-between animate-pulse">
@@ -418,17 +496,26 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] p-5">
-      <div className="w-full flex flex-col gap-5">
-          {/* Header with Title and Date Filters - Silver Gradient Container */}
-        <div className="bg-gradient-to-r from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] rounded-2xl pl-5 pr-6 py-5 shadow-[0_8px_32px_rgba(192,192,192,0.4)] border-2 border-[rgba(255,255,255,0.25)] flex items-center justify-between text-[#0A0A0A]">
-          {/* Left-aligned Heading */}
-            <h1 className="text-4xl font-extrabold text-[#0A0A0A] tracking-tight">
-              Dashboard
+    <div className="w-full bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] pb-10">
+      {/* Fixed Floating Header */}
+      <div
+        className="fixed left-[64px] right-0 z-40 flex items-center justify-between text-[#0A0A0A] px-5 py-5 rounded-2xl mx-5 mb-6"
+        style={{ 
+          top: appHeaderHeight ? appHeaderHeight + 20 : 85,
+          background: 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)'
+        }}
+      >
+        {/* Left-aligned Heading */}
+        <h1 className="text-4xl font-extrabold text-white tracking-tight">
+          Dashboard
         </h1>
         
-          {/* Date Filters Container */}
-          <div className="flex items-center gap-5">
+        {/* Date Filters Container */}
+        <div className="flex items-center gap-5">
             {/* Days Remaining */}
             {monthTarget && dashboardData && (() => {
               const workingDaysElapsed = dashboardData.working_days_elapsed || 0;
@@ -436,11 +523,11 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               const daysRemaining = Math.max(0, totalWorkingDays - workingDaysElapsed);
               
               return (
-                <div className="flex items-center gap-2 border-r border-[#1A1A1A]/20 pr-5">
-                  <CalendarDays size={16} className="text-[#0A0A0A]" />
+                <div className="flex items-center gap-2 border-r border-white/20 pr-5">
+                  <CalendarDays size={16} className="text-white" />
                   <div className="flex flex-col">
-                    <span className="text-xs text-[#0A0A0A]/70">Days Remaining</span>
-                    <span className="text-sm font-bold text-[#0A0A0A]">{daysRemaining} of {totalWorkingDays}</span>
+                    <span className="text-xs text-white/70">Days Remaining</span>
+                    <span className="text-sm font-bold text-white">{daysRemaining} of {totalWorkingDays}</span>
         </div>
                 </div>
               );
@@ -451,14 +538,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-                className="appearance-none bg-white/30 border-2 border-[#1A1A1A]/30 rounded-xl pl-4 pr-10 py-2.5 text-[#0A0A0A] text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#1A1A1A]/40 focus:border-[#1A1A1A]/50 cursor-pointer hover:bg-white/40 transition-all disabled:opacity-50"
+                className="appearance-none bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-2.5 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/50 cursor-pointer hover:bg-white/20 transition-all disabled:opacity-50"
               disabled={availableDates.length === 0}
             >
               {availableDates.length === 0 ? (
-                <option className="text-[#0A0A0A]">No data available</option>
+                <option className="text-black">No data available</option>
               ) : (
                 availableDates.map(date => (
-                    <option key={date} value={date} className="bg-white text-[#0A0A0A]">
+                    <option key={date} value={date} className="bg-black text-white">
                       {new Date(date).toLocaleDateString('en-GB', { 
                         day: 'numeric', 
                         month: 'short',
@@ -468,7 +555,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 ))
               )}
             </select>
-              <Calendar className="w-4 h-4 text-[#0A0A0A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+              <Calendar className="w-4 h-4 text-white/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* Month Selector */}
@@ -479,7 +566,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 setSelectedMonth(Number(e.target.value));
                   setSelectedDate('');
                 }}
-                className="appearance-none bg-white/20 border border-[#1A1A1A]/20 rounded-xl pl-4 pr-10 py-2 text-[#0A0A0A] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#1A1A1A]/30 focus:border-[#1A1A1A]/40 cursor-pointer hover:bg-white/30 transition-all"
+                className="appearance-none bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-2 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 cursor-pointer hover:bg-white/20 transition-all"
               >
                 {[
                   { value: 1, label: 'January' }, { value: 2, label: 'February' },
@@ -489,12 +576,12 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                   { value: 9, label: 'September' }, { value: 10, label: 'October' },
                   { value: 11, label: 'November' }, { value: 12, label: 'December' }
               ].map(month => (
-                  <option key={month.value} value={month.value} className="bg-white text-[#0A0A0A]">
+                  <option key={month.value} value={month.value} className="bg-black text-white">
                   {month.label}
                 </option>
               ))}
             </select>
-              <ChevronDown className="w-4 h-4 text-[#0A0A0A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-white/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* Year Selector */}
@@ -505,17 +592,23 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
                 setSelectedYear(Number(e.target.value));
                   setSelectedDate('');
               }}
-                className="appearance-none bg-white/20 border border-[#1A1A1A]/20 rounded-xl pl-4 pr-10 py-2 text-[#0A0A0A] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#1A1A1A]/30 focus:border-[#1A1A1A]/40 cursor-pointer hover:bg-white/30 transition-all"
+                className="appearance-none bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-2 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 cursor-pointer hover:bg-white/20 transition-all"
             >
               {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                  <option key={year} value={year} className="bg-white text-[#0A0A0A]">{year}</option>
+                  <option key={year} value={year} className="bg-black text-white">{year}</option>
               ))}
             </select>
-              <ChevronDown className="w-4 h-4 text-[#0A0A0A]/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-          </div>
+              <ChevronDown className="w-4 h-4 text-white/60 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
+      </div>
 
+      {/* Spacer for fixed header */}
+      <div className="h-32"></div>
+
+      {/* Main Content Area */}
+      <div className="px-5 pb-5 w-full">
+        <div className="w-full flex flex-col gap-5">
       {!dashboardData ? (
           <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
             <AlertCircle className="w-20 h-20 text-[rgba(255,255,255,0.4)] mb-6" />
@@ -1041,7 +1134,8 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
             <AnnualNetSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} />
             <AnnualLabourSalesChart metrics={metrics} targets={targets} selectedYear={selectedYear} selectedMonth={selectedMonth} selectedDate={selectedDate} />
           </main>
-      )}
+        )}
+        </div>
       </div>
     </div>
   );
@@ -1198,11 +1292,30 @@ function TargetItem({ label, value, progress, current, daysRemaining, showDailyR
 }
 
 function TeamMember({ name, role, sales, contribution, rank }: { name: string; role: string; sales: number; contribution: number; rank: number }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
+  };
+
+  // TODO: Replace with actual data from props/database
+  const receivables = [
+    { customer: 'Ahmed Al Maktoum', amount: 45000, days: 15, invoiceNo: 'INV-2024-1234' },
+    { customer: 'Sarah Johnson', amount: 32000, days: 8, invoiceNo: 'INV-2024-1235' },
+    { customer: 'Mohammed Ali', amount: 28000, days: 22, invoiceNo: 'INV-2024-1236' },
+    { customer: 'Lisa Chen', amount: 20000, days: 5, invoiceNo: 'INV-2024-1237' }
+  ];
+  
+  const totalPendingReceivables = receivables.reduce((sum, item) => sum + item.amount, 0);
+
+  // Aging badge color based on days
+  const getAgingColor = (days: number) => {
+    if (days <= 15) return 'bg-green-500/20 text-[#0A0A0A] border-green-500/30';
+    if (days <= 30) return 'bg-yellow-500/20 text-[#0A0A0A] border-yellow-500/30';
+    return 'bg-red-500/20 text-[#0A0A0A] border-red-500/30';
   };
 
   // Ranking badge colors and icons
@@ -1213,21 +1326,27 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
           bg: 'bg-gradient-to-br from-[#FFD700] to-[#FFA500]',
           text: 'text-[#0A0A0A]',
           icon: <Trophy size={16} className="text-[#0A0A0A]" />,
-          label: '1st'
+          label: '1st',
+          borderColor: 'rgba(255, 215, 0, 0.6)',
+          glowColor: '0 0 30px rgba(255, 215, 0, 0.5)'
         };
       case 2:
         return {
           bg: 'bg-gradient-to-br from-[#C0C0C0] to-[#A0A0A0]',
           text: 'text-[#0A0A0A]',
           icon: <Award size={16} className="text-[#0A0A0A]" />,
-          label: '2nd'
+          label: '2nd',
+          borderColor: 'rgba(192, 192, 192, 0.5)',
+          glowColor: '0 0 20px rgba(192, 192, 192, 0.4)'
         };
       case 3:
         return {
           bg: 'bg-gradient-to-br from-[#CD7F32] to-[#B87333]',
           text: 'text-white',
           icon: <Award size={16} className="text-white" />,
-          label: '3rd'
+          label: '3rd',
+          borderColor: 'rgba(205, 127, 50, 0.5)',
+          glowColor: '0 0 20px rgba(205, 127, 50, 0.4)'
         };
       default:
         return null;
@@ -1236,47 +1355,129 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
 
   // Progress bar color based on contribution
   const getProgressColor = () => {
-    if (contribution >= 40) return 'bg-gradient-to-r from-[#4CD964] to-[#34C759]'; // Green
-    if (contribution >= 30) return 'bg-gradient-to-r from-[#FFC107] to-[#FFB300]'; // Yellow/Amber
-    return 'bg-gradient-to-r from-[#FF3B30] to-[#FF2D20]'; // Red
+    if (contribution >= 40) return 'from-[#4CD964] to-[#34C759]';
+    if (contribution >= 30) return 'from-[#FFC107] to-[#FFB300]';
+    return 'from-[#FF3B30] to-[#FF2D20]';
   };
 
   const rankBadge = getRankBadge();
+  const isLeader = rank === 1;
 
   return (
-    <div className="relative flex flex-col items-center gap-3 p-5 bg-gradient-to-br from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] border-2 border-[rgba(255,255,255,0.25)] rounded-xl shadow-[0_4px_20px_rgba(192,192,192,0.3)] transition-all duration-300 hover:shadow-[0_6px_24px_rgba(192,192,192,0.4)] hover:border-[rgba(255,255,255,0.35)] hover:scale-[1.02]">
+    <div 
+      className="relative flex flex-col items-center gap-3 p-5 bg-gradient-to-br from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] border-2 border-[rgba(255,255,255,0.25)] rounded-xl shadow-[0_4px_20px_rgba(192,192,192,0.3)] transition-all duration-500 hover:shadow-[0_6px_24px_rgba(192,192,192,0.4)] hover:border-[rgba(255,255,255,0.35)] hover:scale-[1.02] group"
+    >
       {/* Ranking Badge */}
       {rankBadge && (
-        <div className={`absolute top-2 right-2 flex items-center gap-1 ${rankBadge.bg} ${rankBadge.text} px-2 py-1 rounded-lg text-xs font-bold shadow-md`}>
+        <div className={`absolute top-3 right-3 flex items-center gap-1.5 ${rankBadge.bg} ${rankBadge.text} px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg ${isLeader ? 'animate-pulse' : ''}`}>
           {rankBadge.icon}
           <span>{rankBadge.label}</span>
         </div>
       )}
       
       {/* Name and Role */}
-      <div className="text-center mt-1">
-        <div className="text-xl font-bold text-[#0A0A0A] mb-0.5">{name}</div>
-        <div className="text-xs text-[#0A0A0A]/70 font-medium">{role}</div>
+      <div className="text-center mt-2">
+        <div className={`text-2xl font-bold text-[#0A0A0A] mb-1`}>{name}</div>
+        <div className="text-xs text-[#0A0A0A]/70 font-medium uppercase tracking-wider">{role}</div>
       </div>
       
       {/* Sales Amount - More Prominent */}
-      <div className="flex items-center gap-2 mt-1">
-        <DirhamIcon className="w-5 h-5 text-[#0A0A0A]" />
-        <div className="text-2xl font-bold text-[#0A0A0A] tabular-nums">{formatCurrency(sales)}</div>
+      <div className="flex items-center gap-2 mt-2">
+        <DirhamIcon className="w-6 h-6 text-[#0A0A0A]" />
+        <div className="text-3xl font-bold text-[#0A0A0A] tabular-nums">{formatCurrency(sales)}</div>
       </div>
       
-      {/* Contribution Percentage - Improved Progress Bar */}
-      <div className="w-full mt-2">
+      {/* Contribution Percentage - Animated Progress Bar */}
+      <div className="w-full mt-3">
         {/* Progress bar */}
-        <div className="h-3 bg-[rgba(0,0,0,0.1)] rounded-full overflow-hidden mb-2 shadow-inner">
+        <div className="relative h-4 bg-black/30 rounded-full overflow-hidden mb-2 shadow-inner">
           <div 
-            className={`h-full ${getProgressColor()} rounded-full transition-all duration-500 ease-out`}
-            style={{ width: `${Math.min(contribution, 100)}%`, willChange: 'width' }}
-          ></div>
+            className={`h-full bg-gradient-to-r ${getProgressColor()} transition-all duration-1000 ease-out relative overflow-hidden ${isLeader ? 'animate-pulse-slow' : ''}`}
+            style={{ width: `${Math.min(contribution, 100)}%` }}
+          >
+            {/* Animated shimmer effect for leader */}
+            {isLeader && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+            )}
+          </div>
+          {/* Percentage label inside bar */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-xs font-bold text-white drop-shadow-md">{contribution.toFixed(1)}%</span>
+          </div>
         </div>
-        {/* Percentage text */}
-        <div className="text-center text-xs text-[#0A0A0A]/80 font-semibold">
-          {contribution.toFixed(1)}% contribution
+        {/* Contribution label */}
+        <div className="text-center text-xs text-[#0A0A0A]/60 font-semibold uppercase tracking-wide">
+          Contribution
+        </div>
+      </div>
+
+      {/* Pending Receivables Summary - Always Visible */}
+      <div 
+        className="w-full mt-2 pt-3 border-t border-[#0A0A0A]/10 cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsExpanded(!isExpanded);
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[#0A0A0A] uppercase tracking-wide">Pending Receivables</span>
+            <span className="text-[10px] font-medium text-[#0A0A0A]/40 uppercase tracking-wider">(Sample)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <DirhamIcon className="w-4 h-4 text-[#0A0A0A]" />
+              <span className="text-lg font-bold text-[#0A0A0A]">{formatCurrency(totalPendingReceivables)}</span>
+            </div>
+            <ChevronDown 
+              size={16} 
+              className={`text-[#0A0A0A]/60 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded Receivables Details */}
+      <div 
+        className={`w-full overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[500px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}
+      >
+        <div className="space-y-2">
+          <div className="text-xs font-bold text-[#0A0A0A] uppercase tracking-wider mb-2 flex items-center gap-2">
+            <div className="h-px flex-1 bg-[#0A0A0A]/10"></div>
+            <span>Sample Receivables</span>
+            <div className="h-px flex-1 bg-[#0A0A0A]/10"></div>
+          </div>
+          
+          {receivables.map((item, index) => (
+            <div 
+              key={index}
+              className="bg-black/5 rounded-lg p-3 border border-[#0A0A0A]/10 hover:bg-black/10 transition-all"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-[#0A0A0A] truncate">{item.customer}</div>
+                  <div className="text-xs text-[#0A0A0A]/60 font-mono">{item.invoiceNo}</div>
+                </div>
+                <div className={`text-xs px-2 py-1 rounded-md border font-semibold whitespace-nowrap ml-2 ${getAgingColor(item.days)}`}>
+                  {item.days}d
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#0A0A0A]/60">Amount Due</span>
+                <div className="flex items-center gap-1">
+                  <DirhamIcon className="w-3 h-3 text-[#0A0A0A]" />
+                  <span className="text-sm font-bold text-[#0A0A0A]">{formatCurrency(item.amount)}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {receivables.length === 0 && (
+            <div className="text-center py-6 text-[#0A0A0A]/40">
+              <CheckCircle size={32} className="mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-medium text-[#0A0A0A]">No Pending Receivables</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1611,7 +1812,7 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, selectedD
         </div>
       </div>
       
-      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+      <div className="h-[400px] rounded-xl relative bg-black -ml-5 pl-5 chart-container-current-sales" style={{ backgroundColor: '#000000' }}>
         {/* Enhanced Legend */}
         <div className="flex items-center justify-center gap-6 mb-4 px-4 py-2 bg-[rgba(255,255,255,0.05)] rounded-lg backdrop-blur-sm">
           <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
@@ -1629,7 +1830,7 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, selectedD
         </div>
 
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -20, bottom: 40 }}>
             <defs>
               <linearGradient id="targetGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ffffff" stopOpacity={0.6}/>
@@ -1645,6 +1846,7 @@ function NetSalesProgressChart({ metrics, selectedYear, selectedMonth, selectedD
               tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
               axisLine={{ stroke: '#ffffff20' }}
               tickLine={{ stroke: '#ffffff20' }}
+              tickMargin={8}
             />
             <YAxis 
               tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
@@ -1821,7 +2023,7 @@ function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, select
         </div>
       </div>
       
-      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+      <div className="h-[400px] rounded-xl relative bg-black -ml-5 pl-5 chart-container-labour-sales" style={{ backgroundColor: '#000000' }}>
         {/* Enhanced Legend */}
         <div className="flex items-center justify-center gap-6 mb-4 px-4 py-2 bg-[rgba(255,255,255,0.05)] rounded-lg backdrop-blur-sm">
           <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
@@ -1839,7 +2041,7 @@ function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, select
         </div>
 
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -20, bottom: 40 }}>
             <defs>
               <linearGradient id="labourTargetGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ffffff" stopOpacity={0.6}/>
@@ -1855,6 +2057,7 @@ function LabourSalesProgressChart({ metrics, selectedYear, selectedMonth, select
               tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
               axisLine={{ stroke: '#ffffff20' }}
               tickLine={{ stroke: '#ffffff20' }}
+              tickMargin={8}
             />
             <YAxis 
               tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
@@ -1921,7 +2124,34 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
   const requiredFor112 = remainingDays > 0 ? Math.round(remainingTarget / remainingDays) : 0;
 
   const gap = requiredFor112 - currentDailyAverage;
-  const performance = requiredFor112 > 0 ? (currentDailyAverage / requiredFor112) * 100 : 0;
+  
+  // Fix status calculation: if it's the last day and target is achieved, show success
+  // Otherwise calculate performance based on daily average
+  let performance = 0;
+  let statusText = 'Needs Improvement';
+  let statusColor = '#FF3B30';
+  
+  if (remainingDays <= 0 || requiredFor112 <= 0) {
+    // Last day or no remaining days - check if target achieved
+    if (currentSales >= target112) {
+      performance = 100;
+      statusText = 'Target Achieved';
+      statusColor = '#4CD964';
+    } else if (currentSales >= monthTarget?.net_sales_target) {
+      performance = 95;
+      statusText = 'On Track';
+      statusColor = '#4CD964';
+    }
+  } else {
+    // Calculate performance based on daily average vs required
+    performance = requiredFor112 > 0 ? (currentDailyAverage / requiredFor112) * 100 : 0;
+    statusText = performance >= 100 ? 'On Track' : 'Needs Improvement';
+    statusColor = performance >= 100 ? '#4CD964' : performance >= 85 ? '#FFC107' : '#FF3B30';
+  }
+
+  const statusBgColor = statusColor === '#4CD964' ? 'rgba(76, 217, 100, 0.15)' : statusColor === '#FFC107' ? 'rgba(255, 193, 7, 0.15)' : 'rgba(255, 59, 48, 0.15)';
+  const statusBorderColor = statusColor === '#4CD964' ? 'rgba(76, 217, 100, 0.4)' : statusColor === '#FFC107' ? 'rgba(255, 193, 7, 0.4)' : 'rgba(255, 59, 48, 0.4)';
+  const statusIcon = performance >= 100 ? '✓' : '⚠';
 
   // Find the last calendar day with actual data
   const lastDayWithData = monthMetrics.length > 0 
@@ -2028,12 +2258,6 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
     return null;
   };
 
-  const statusColor = performance >= 100 ? '#4CD964' : performance >= 85 ? '#FFC107' : '#FF3B30';
-  const statusText = performance >= 100 ? 'On Track' : 'Needs Improvement';
-  const statusBgColor = performance >= 100 ? 'rgba(76, 217, 100, 0.15)' : performance >= 85 ? 'rgba(255, 193, 7, 0.15)' : 'rgba(255, 59, 48, 0.15)';
-  const statusBorderColor = performance >= 100 ? 'rgba(76, 217, 100, 0.4)' : performance >= 85 ? 'rgba(255, 193, 7, 0.4)' : 'rgba(255, 59, 48, 0.4)';
-  const statusIcon = performance >= 100 ? '✓' : '⚠';
-
   return (
     <Card className="col-span-3 row-span-2" style={{ backgroundColor: '#000000' }}>
       <div className="flex items-start justify-between mb-5">
@@ -2054,7 +2278,7 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
         </div>
       </div>
       
-      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+      <div className="h-[400px] rounded-xl relative bg-black -ml-5 pl-5 chart-container-daily-avg" style={{ backgroundColor: '#000000' }}>
         {/* Enhanced Legend */}
         <div className="flex items-center justify-center gap-6 mb-4 px-4 py-2 bg-[rgba(255,255,255,0.05)] rounded-lg backdrop-blur-sm">
           <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
@@ -2068,7 +2292,7 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
         </div>
 
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -20, bottom: 40 }}>
             <defs>
               <linearGradient id="currentAvgGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#4CD964" stopOpacity={0.7}/>
@@ -2084,6 +2308,7 @@ function DailyAverageChart({ dashboardData, monthTarget, metrics, selectedYear, 
               tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
               axisLine={{ stroke: '#ffffff20' }}
               tickLine={{ stroke: '#ffffff20' }}
+              tickMargin={8}
             />
             <YAxis 
               tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
@@ -2275,7 +2500,7 @@ function TargetForecastChart({ metrics, selectedYear, selectedMonth, selectedDat
         </div>
       </div>
       
-      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+      <div className="h-[400px] rounded-xl relative bg-black -ml-5 pl-5 chart-container-forecast" style={{ backgroundColor: '#000000' }}>
         {/* Enhanced Legend */}
         <div className="flex items-center justify-center gap-4 mb-4 px-4 py-2 bg-[rgba(255,255,255,0.05)] rounded-lg backdrop-blur-sm flex-wrap">
           <div className="flex items-center gap-2 hover:bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded transition-colors">
@@ -2301,7 +2526,7 @@ function TargetForecastChart({ metrics, selectedYear, selectedMonth, selectedDat
         </div>
 
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: -20, bottom: 40 }}>
             <defs>
               <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#4CD964" stopOpacity={0.6}/>
@@ -2313,6 +2538,7 @@ function TargetForecastChart({ metrics, selectedYear, selectedMonth, selectedDat
               tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
               axisLine={{ stroke: '#ffffff20' }}
               tickLine={{ stroke: '#ffffff20' }}
+              tickMargin={8}
             />
             <YAxis 
               tick={{ fontSize: 11, fill: '#ffffff80', fontWeight: 500 }} 
@@ -2559,7 +2785,7 @@ function AnnualNetSalesChart({ metrics, targets, selectedYear, selectedMonth, se
         </div>
       </div>
       
-      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+      <div className="h-[400px] rounded-xl relative bg-black -ml-5 pl-5" style={{ backgroundColor: '#000000' }}>
         {/* Legend */}
         <div className="flex items-center justify-center gap-6 mb-2">
           <div className="flex items-center gap-2">
@@ -2577,7 +2803,7 @@ function AnnualNetSalesChart({ metrics, targets, selectedYear, selectedMonth, se
         </div>
 
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={monthlyData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+          <ComposedChart data={monthlyData} margin={{ top: 20, right: 30, left: -20, bottom: 40 }}>
             <defs>
               <linearGradient id="annualNetTargetGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ffffff" stopOpacity={0.48}/>
@@ -2731,7 +2957,7 @@ function AnnualLabourSalesChart({ metrics, targets, selectedYear, selectedMonth,
         </div>
       </div>
       
-      <div className="h-[400px] rounded-xl relative bg-black" style={{ backgroundColor: '#000000' }}>
+      <div className="h-[400px] rounded-xl relative bg-black -ml-5 pl-5" style={{ backgroundColor: '#000000' }}>
         {/* Legend */}
         <div className="flex items-center justify-center gap-6 mb-2">
           <div className="flex items-center gap-2">
@@ -2749,7 +2975,7 @@ function AnnualLabourSalesChart({ metrics, targets, selectedYear, selectedMonth,
         </div>
 
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={monthlyData} margin={{ top: 20, right: 30, left: -25, bottom: 20 }}>
+          <ComposedChart data={monthlyData} margin={{ top: 20, right: 30, left: -20, bottom: 40 }}>
             <defs>
               <linearGradient id="annualLabourTargetGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ffffff" stopOpacity={0.48}/>

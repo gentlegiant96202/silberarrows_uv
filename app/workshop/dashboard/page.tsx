@@ -1,19 +1,11 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-
-import { useModulePermissions } from '@/lib/useModulePermissions';
-import PulsatingLogo from '@/components/shared/PulsatingLogo';
-import { Shield, Wrench, LayoutDashboard } from 'lucide-react';
 import RouteProtector from '@/components/shared/RouteProtector';
 import ServiceDashboard from '@/components/shared/ServiceDashboard';
 import { useServiceData } from '@/lib/useServiceData';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function WorkshopDashboard() {
-  const router = useRouter();
-  const { canView, isLoading: permissionLoading, error } = useModulePermissions('workshop');
-
   // Service data hooks
   const { 
     loading: serviceLoading, 
@@ -50,7 +42,7 @@ export default function WorkshopDashboard() {
 
   // Load service data
   useEffect(() => {
-    if (!permissionLoading && canView && !hasFetchedInitialData.current) {
+    if (!hasFetchedInitialData.current) {
       async function loadServiceData() {
         try {
           setLoading(true);
@@ -77,43 +69,7 @@ export default function WorkshopDashboard() {
 
       loadServiceData();
     }
-  }, [permissionLoading, canView, fetchAllMetrics]);
-
-  // Redirect if no permission
-  useEffect(() => {
-    if (!permissionLoading && !canView) {
-      router.push('/');
-    }
-  }, [canView, permissionLoading, router]);
-
-  // Redirect if no permission (but don't block rendering)
-  useEffect(() => {
-    if (!permissionLoading && !canView) {
-      // Show access denied inline
-      return;
-    }
-  }, [canView, permissionLoading]);
-
-  // Show access denied if no permission
-  if (!permissionLoading && !canView) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <Shield className="w-16 h-16 mx-auto mb-4 text-red-400" />
-          <h1 className="text-2xl font-bold mb-2 text-white">Access Denied</h1>
-          <p className="text-white/70 mb-6">
-            You don't have permission to access the workshop module.
-          </p>
-          <button
-            onClick={() => router.push('/')}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors"
-          >
-            Return to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
+  }, [fetchAllMetrics]);
 
   return (
     <RouteProtector moduleName="workshop">
@@ -124,7 +80,7 @@ export default function WorkshopDashboard() {
             <ServiceDashboard 
               metrics={allMetrics} 
               targets={allTargets}
-              loading={permissionLoading || loading}
+              loading={loading}
             />
           </div>
         </div>

@@ -230,6 +230,12 @@ export default function RouteProtector({
       case 'marketing':
         // Marketing uses unified loading context, skip RouteProtector loader
         return <div className="h-full bg-black"></div>;
+      case 'accounts':
+        // Accounts modules handle their own loading states (ServiceDashboard, SalesDataGrid have skeleton loaders)
+        return <div className="h-full bg-black"></div>;
+      case 'workshop':
+        // Workshop uses ServiceDashboard which has its own skeleton loader
+        return <div className="h-full bg-black"></div>;
       default:
         return <GenericModuleSkeleton moduleName={moduleName} />;
     }
@@ -280,8 +286,8 @@ export default function RouteProtector({
   }
 
   // User has permission - render with smooth cross-fade transition
-  // Marketing module uses unified loading context, so skip RouteProtector transitions
-  if (moduleName === 'marketing') {
+  // Marketing, Accounts, and Workshop modules use their own loading contexts, so skip RouteProtector transitions
+  if (moduleName === 'marketing' || moduleName === 'accounts' || moduleName === 'workshop') {
     return <>{children}</>;
   }
 
@@ -291,10 +297,18 @@ export default function RouteProtector({
         return <InventorySkeleton />;
       case 'uv_crm':
         return <CRMSkeleton />;
+      case 'accounts':
+        // Accounts has its own skeleton in ServiceDashboard, don't show RouteProtector skeleton
+        return null;
       default:
         return <GenericModuleSkeleton moduleName={moduleName} />;
     }
   };
+
+  // For accounts module, don't show the skeleton overlay at all
+  if (moduleName === 'accounts') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="relative w-full">

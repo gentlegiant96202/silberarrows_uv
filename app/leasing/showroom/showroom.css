@@ -1905,7 +1905,7 @@
 
 .accordion-header h3 {
     font-family: var(--impact-font);
-    color: #ff4757;
+    color: var(--gold);
     font-size: 16px;
     font-weight: 400;
     text-transform: uppercase;
@@ -1915,7 +1915,7 @@
 
 .accordion-icon {
     font-size: 20px;
-    color: #ff4757;
+    color: var(--gold);
     font-weight: 300;
     line-height: 1;
 }
@@ -2048,10 +2048,12 @@
 
 /* RIGHT SIDE - Info Panel */
 .vehicle-info-side {
-    background: #1a1a1a;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(20px);
     padding: 30px;
     overflow-y: auto;
     max-height: calc(100vh - 80px);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .back-button {
@@ -2073,7 +2075,7 @@
 
 .vehicle-detail-title {
     font-family: var(--impact-font);
-    color: #ff4757;
+    color: var(--gold);
     font-size: 28px;
     font-weight: 400;
     text-transform: uppercase;

@@ -131,16 +131,32 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
   useLayoutEffect(() => {
     const updateAppHeaderHeight = () => {
       const globalHeader = document.querySelector('header');
+      // Also check for tabs navigation in accounts module
+      const tabsNav = document.querySelector('.bg-gray-900\\/50');
+      
+      let totalHeight = 0;
+      
       if (globalHeader) {
-        setAppHeaderHeight(globalHeader.getBoundingClientRect().height);
+        totalHeight += globalHeader.getBoundingClientRect().height;
       }
+      
+      if (tabsNav) {
+        totalHeight += tabsNav.getBoundingClientRect().height + 24; // Add margin
+      }
+      
+      setAppHeaderHeight(totalHeight);
     };
 
     updateAppHeaderHeight();
     window.addEventListener('resize', updateAppHeaderHeight);
+    
+    // Update when tabs might render
+    const observer = new MutationObserver(updateAppHeaderHeight);
+    observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       window.removeEventListener('resize', updateAppHeaderHeight);
+      observer.disconnect();
     };
   }, []);
 
@@ -539,7 +555,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
         }}
       >
           {/* Left-aligned Heading */}
-        <h1 className="text-4xl font-semibold text-white tracking-tight">
+        <h1 className="text-3xl font-semibold text-white tracking-tight">
           {(() => {
             const hour = new Date().getHours();
             const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';

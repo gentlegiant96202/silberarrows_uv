@@ -68,6 +68,14 @@ interface LeasingVehicle {
   assigned_to?: string;
   description?: string;
   remarks?: string;
+  photos?: Array<{
+    id: string;
+    url: string;
+    filename: string;
+    is_primary: boolean;
+    sort_order: number;
+    uploaded_at: string;
+  }>;
   created_at: string;
   updated_at: string;
 }

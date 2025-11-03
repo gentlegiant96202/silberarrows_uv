@@ -41,7 +41,7 @@
     justify-content: space-between;
     align-items: center;
     height: 100%;
-    padding: 0 60px;
+    padding: 0;
 }
 
 .header-logo img {
@@ -122,7 +122,7 @@
 @media (max-width: 768px) {
     .header-inner {
         width: 96%;
-        padding: 0 20px;
+        padding: 0;
     }
     
     .header-nav {

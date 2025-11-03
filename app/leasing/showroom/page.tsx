@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Icon from '@/components/modules/leasing/Icon';
-import VehicleModal from '@/components/modules/leasing/VehicleModal';
 import './showroom.css';
 
 interface Vehicle {
@@ -52,21 +52,11 @@ interface Vehicle {
   mileage?: number;
 }
 
-interface InquiryFormData {
-  name: string;
-  email: string;
-  countryCode: string;
-  phone: string;
-  interested_vehicle_id?: string;
-  notes?: string;
-}
 
 export default function ShowroomPage() {
+  const router = useRouter();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [showInquiryForm, setShowInquiryForm] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false);
 
   // Fetch vehicles
   useEffect(() => {
@@ -97,35 +87,6 @@ export default function ShowroomPage() {
     }
   };
 
-  const handleInquiry = async (formData: InquiryFormData) => {
-    try {
-      const { error } = await supabase
-        .from('leasing_customers')
-        .insert([{
-          customer_name: formData.name,
-          customer_email: formData.email,
-          customer_phone: formData.phone,
-          selected_vehicle_id: formData.interested_vehicle_id,
-          lease_term_months: 12,
-          notes: formData.notes || `Inquiry from public showroom${selectedVehicle ? ` - Interested in ${selectedVehicle.model_year} ${selectedVehicle.make} ${selectedVehicle.model_family || selectedVehicle.vehicle_model || ''}` : ''}`,
-          lease_status: 'prospects',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }]);
-
-      if (error) throw error;
-
-      setFormSubmitted(true);
-      setTimeout(() => {
-        setShowInquiryForm(false);
-        setSelectedVehicle(null);
-        setFormSubmitted(false);
-      }, 3000);
-    } catch (error) {
-      console.error('Error submitting inquiry:', error);
-      alert('Failed to submit inquiry. Please try again or contact us directly.');
-    }
-  };
 
   return (
     <>
@@ -141,7 +102,7 @@ export default function ShowroomPage() {
         <VehiclesSection 
           vehicles={vehicles}
           loading={loading}
-          onVehicleClick={setSelectedVehicle}
+          onVehicleClick={(vehicle: Vehicle) => router.push(`/leasing/showroom/${vehicle.id}`)}
         />
 
         {/* Why Lease With Us */}
@@ -154,29 +115,7 @@ export default function ShowroomPage() {
       {/* Footer */}
       <Footer />
 
-      {/* Vehicle Detail Modal */}
-      {selectedVehicle && (
-        <VehicleModal
-          vehicle={selectedVehicle}
-          onClose={() => setSelectedVehicle(null)}
-          onInquire={() => {
-            setShowInquiryForm(true);
-          }}
-        />
-      )}
 
-      {/* Inquiry Form Modal */}
-      {showInquiryForm && (
-        <InquiryFormModal
-          vehicle={selectedVehicle}
-          onClose={() => {
-            setShowInquiryForm(false);
-            setSelectedVehicle(null);
-          }}
-          onSubmit={handleInquiry}
-          submitted={formSubmitted}
-        />
-      )}
     </>
   );
 }
@@ -530,136 +469,5 @@ function Footer() {
       </div>
     </div>
     </footer>
-  );
-}
-
-// Inquiry Form Modal
-function InquiryFormModal({ vehicle, onClose, onSubmit, submitted }: { vehicle: Vehicle | null; onClose: () => void; onSubmit: (data: InquiryFormData) => void; submitted: boolean }) {
-  const [formData, setFormData] = useState<InquiryFormData>({
-    name: '',
-    email: '',
-    countryCode: '+971',
-    phone: '',
-    interested_vehicle_id: vehicle?.id,
-    notes: ''
-  });
-  
-  const vehicleName = vehicle ? `${vehicle.model_year} ${vehicle.make} ${vehicle.vehicle_model || vehicle.model_family || ''}`.trim() : '';
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Combine country code and phone number
-    const fullPhoneNumber = `${formData.countryCode}${formData.phone}`;
-    onSubmit({
-      ...formData,
-      phone: fullPhoneNumber
-    });
-  };
-
-  if (submitted) {
-    return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content success-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="success-content">
-            <div className="success-icon">
-              <Icon name="check" size={40} variant="dark" />
-          </div>
-            <h2>THANK YOU!</h2>
-            <p>We&apos;ve received your inquiry and will contact you within 24 hours.</p>
-            <button onClick={onClose} className="modal-cta">
-            Close
-          </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content form-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>GET A QUOTE</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
-        </div>
-        <div className="modal-body">
-        {vehicle && (
-            <div className="selected-vehicle">
-              <div className="vehicle-label">Interested in:</div>
-              <div className="vehicle-name">{vehicleName}</div>
-          </div>
-        )}
-
-          <form onSubmit={handleSubmit} className="inquiry-form">
-            <div className="form-group">
-              <label>Full Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter your full name"
-            />
-          </div>
-
-            <div className="form-group">
-              <label>Email Address *</label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="your@email.com"
-            />
-          </div>
-
-            <div className="form-group">
-              <label>Phone Number *</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <select
-                  value={formData.countryCode}
-                  onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
-                  style={{ width: '120px' }}
-                >
-                  <option value="+971">+971 (UAE)</option>
-                  <option value="+1">+1 (USA)</option>
-                  <option value="+44">+44 (UK)</option>
-                  <option value="+91">+91 (India)</option>
-                  <option value="+92">+92 (Pakistan)</option>
-                  <option value="+20">+20 (Egypt)</option>
-                  <option value="+966">+966 (KSA)</option>
-                  <option value="+974">+974 (Qatar)</option>
-                  <option value="+973">+973 (Bahrain)</option>
-                  <option value="+968">+968 (Oman)</option>
-                  <option value="+965">+965 (Kuwait)</option>
-                </select>
-            <input
-              type="tel"
-              required
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="XX XXX XXXX"
-                  style={{ flex: 1 }}
-            />
-          </div>
-          </div>
-
-            <div className="form-group">
-              <label>Additional Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={4}
-                placeholder="Tell us about your specific requirements..."
-            />
-          </div>
-
-            <button type="submit" className="modal-cta">
-            SUBMIT ENQUIRY
-          </button>
-        </form>
-        </div>
-      </div>
-    </div>
   );
 }

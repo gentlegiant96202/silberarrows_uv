@@ -231,9 +231,8 @@ export default function VehicleDetailPage() {
 
           {/* Accordion Sections */}
           <div>
-
-        {/* Specifications Section */}
-        <div className="accordion-section">
+            {/* Specifications Section */}
+            <div className="accordion-section">
           <button 
             className={`accordion-header ${expandedSection === 'specs' ? 'expanded' : ''}`}
             onClick={() => toggleSection('specs')}
@@ -322,11 +321,11 @@ export default function VehicleDetailPage() {
                 </div>
               </div>
             </div>
-          )}
-        </div>
+            )}
+            </div>
 
-        {/* Pricing Section */}
-        <div className="accordion-section">
+            {/* Pricing Section */}
+            <div className="accordion-section">
           <button 
             className={`accordion-header ${expandedSection === 'pricing' ? 'expanded' : ''}`}
             onClick={() => toggleSection('pricing')}
@@ -378,11 +377,11 @@ export default function VehicleDetailPage() {
                 )}
               </div>
             </div>
-          )}
-        </div>
+            )}
+            </div>
 
-        {/* What's Included Section */}
-        <div className="accordion-section">
+            {/* What's Included Section */}
+            <div className="accordion-section">
           <button 
             className={`accordion-header ${expandedSection === 'included' ? 'expanded' : ''}`}
             onClick={() => toggleSection('included')}
@@ -455,11 +454,11 @@ export default function VehicleDetailPage() {
                 </div>
               </div>
             </div>
-          )}
-        </div>
+            )}
+            </div>
 
-        {/* Contact/Enquire Section */}
-        <div className="accordion-section">
+            {/* Contact/Enquire Section */}
+            <div className="accordion-section">
           <button 
             className={`accordion-header ${expandedSection === 'contact' ? 'expanded' : ''}`}
             onClick={() => toggleSection('contact')}
@@ -499,7 +498,8 @@ export default function VehicleDetailPage() {
                 </div>
               </div>
             </div>
-          )}
+            )}
+            </div>
           </div>
         </div>
       </section>

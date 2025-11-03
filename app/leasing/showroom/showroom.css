@@ -1955,7 +1955,7 @@
 
 .vehicle-detail-container {
     display: grid;
-    grid-template-columns: 1fr 480px;
+    grid-template-columns: 1fr 1fr;
     gap: 0;
     min-height: calc(100vh - 80px);
     background: #000;
@@ -2020,7 +2020,6 @@
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     gap: 4px;
-    max-width: 60%;
 }
 
 .thumbnail-gallery-item {

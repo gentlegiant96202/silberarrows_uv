@@ -199,22 +199,6 @@ export default function VehicleDetailPage() {
               </div>
             )}
           </div>
-
-          {/* All Gallery Images - if more than 5 */}
-          {images.length > 5 && (
-            <div className="gallery-grid" style={{ marginTop: '20px' }}>
-              {images.map((image, idx) => (
-                <div 
-                  key={idx} 
-                  className="gallery-item"
-                  onClick={() => setCurrentImage(idx)}
-                >
-                  <img src={image} alt={`${vehicleName} - Image ${idx + 1}`} />
-                  <div className="gallery-number">{idx + 1}</div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* RIGHT COLUMN: Vehicle Title + Accordion Tabs */}

@@ -1875,6 +1875,17 @@
     line-height: 1.6;
 }
 
+/* Two Column Layout */
+@media (max-width: 1024px) {
+    section[style*="gridTemplateColumns"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .hero-title {
+        text-align: center !important;
+    }
+}
+
 /* Accordion Sections */
 .accordion-section {
     background: rgba(255, 255, 255, 0.03);

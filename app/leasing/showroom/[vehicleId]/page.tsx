@@ -141,91 +141,96 @@ export default function VehicleDetailPage() {
         </header>
       </div>
 
-      {/* Image Gallery at Top - Always Visible */}
-      <section style={{ width: '92%', margin: '20px auto' }}>
-        <div className="pdf-full-section">
-          <div className="modal-image-section">
-            <img 
-              src={images[currentImage]} 
-              alt={vehicleName}
-              className="modal-image"
-            />
+      {/* Two Column Layout */}
+      <section style={{ width: '92%', margin: '20px auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', alignItems: 'start' }}>
+        
+        {/* LEFT COLUMN: Image Gallery */}
+        <div className="gallery-column">
+          <div className="pdf-full-section">
+            <div className="modal-image-section">
+              <img 
+                src={images[currentImage]} 
+                alt={vehicleName}
+                className="modal-image"
+              />
+              {images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentImage(currentImage === 0 ? images.length - 1 : currentImage - 1)}
+                    className="image-nav-arrow left"
+                  >
+                    <Icon name="directions" size={24} flip />
+                  </button>
+                  <button
+                    onClick={() => setCurrentImage(currentImage === images.length - 1 ? 0 : currentImage + 1)}
+                    className="image-nav-arrow right"
+                  >
+                    <Icon name="directions" size={24} />
+                  </button>
+                  <div className="image-dots">
+                    {images.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImage(idx)}
+                        className={`image-dot ${idx === currentImage ? 'active' : ''}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="image-counter">
+                    {currentImage + 1} / {images.length}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Thumbnail Grid */}
             {images.length > 1 && (
-              <>
-                <button
-                  onClick={() => setCurrentImage(currentImage === 0 ? images.length - 1 : currentImage - 1)}
-                  className="image-nav-arrow left"
-                >
-                  <Icon name="directions" size={24} flip />
-                </button>
-                <button
-                  onClick={() => setCurrentImage(currentImage === images.length - 1 ? 0 : currentImage + 1)}
-                  className="image-nav-arrow right"
-                >
-                  <Icon name="directions" size={24} />
-                </button>
-                <div className="image-dots">
-                  {images.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentImage(idx)}
-                      className={`image-dot ${idx === currentImage ? 'active' : ''}`}
-                    />
-                  ))}
-                </div>
-                <div className="image-counter">
-                  {currentImage + 1} / {images.length}
-                </div>
-              </>
+              <div className="pdf-thumbnail-grid">
+                {images.slice(1, 5).map((img, idx) => (
+                  <div key={idx} className="pdf-thumbnail" onClick={() => setCurrentImage(idx + 1)}>
+                    <img src={img} alt={`Thumbnail ${idx + 2}`} />
+                  </div>
+                ))}
+                {Array.from({ length: Math.max(0, 4 - images.slice(1).length) }).map((_, i) => (
+                  <div key={`empty-${i}`} className="pdf-thumbnail empty">
+                    <div className="thumbnail-placeholder">Image {images.slice(1).length + i + 2}</div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Thumbnail Grid */}
-          {images.length > 1 && (
-            <div className="pdf-thumbnail-grid">
-              {images.slice(1, 5).map((img, idx) => (
-                <div key={idx} className="pdf-thumbnail" onClick={() => setCurrentImage(idx + 1)}>
-                  <img src={img} alt={`Thumbnail ${idx + 2}`} />
-                </div>
-              ))}
-              {Array.from({ length: Math.max(0, 4 - images.slice(1).length) }).map((_, i) => (
-                <div key={`empty-${i}`} className="pdf-thumbnail empty">
-                  <div className="thumbnail-placeholder">Image {images.slice(1).length + i + 2}</div>
+          {/* All Gallery Images - if more than 5 */}
+          {images.length > 5 && (
+            <div className="gallery-grid" style={{ marginTop: '20px' }}>
+              {images.map((image, idx) => (
+                <div 
+                  key={idx} 
+                  className="gallery-item"
+                  onClick={() => setCurrentImage(idx)}
+                >
+                  <img src={image} alt={`${vehicleName} - Image ${idx + 1}`} />
+                  <div className="gallery-number">{idx + 1}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* All Gallery Images - if more than 5 */}
-        {images.length > 5 && (
-          <div className="gallery-grid" style={{ marginTop: '20px' }}>
-            {images.map((image, idx) => (
-              <div 
-                key={idx} 
-                className="gallery-item"
-                onClick={() => setCurrentImage(idx)}
-              >
-                <img src={image} alt={`${vehicleName} - Image ${idx + 1}`} />
-                <div className="gallery-number">{idx + 1}</div>
-              </div>
-            ))}
+        {/* RIGHT COLUMN: Vehicle Title + Accordion Tabs */}
+        <div className="info-column">
+          {/* Vehicle Title */}
+          <div style={{ marginBottom: '30px' }}>
+            <h1 className="hero-title" style={{ fontSize: '38px', marginBottom: '10px', textAlign: 'left' }}>
+              {vehicle.model_year} {vehicleName}
+            </h1>
+            <p style={{ color: 'var(--silver)', fontSize: '13px', textAlign: 'left' }}>
+              Stock: {vehicle.stock_number} {vehicle.chassis_number && `• Chassis: ${vehicle.chassis_number}`}
+            </p>
           </div>
-        )}
-      </section>
 
-      {/* Vehicle Title Section */}
-      <section style={{ width: '92%', margin: '30px auto', textAlign: 'center' }}>
-        <h1 className="hero-title" style={{ fontSize: '42px', marginBottom: '10px' }}>
-          {vehicle.model_year} {vehicleName}
-        </h1>
-        <p style={{ color: 'var(--silver)', fontSize: '14px' }}>
-          Stock: {vehicle.stock_number} {vehicle.chassis_number && `• Chassis: ${vehicle.chassis_number}`}
-        </p>
-      </section>
-
-      {/* Accordion Sections Container */}
-      <div style={{ width: '92%', margin: '40px auto', maxWidth: '1200px' }}>
+          {/* Accordion Sections */}
+          <div>
 
         {/* Specifications Section */}
         <div className="accordion-section">
@@ -495,11 +500,12 @@ export default function VehicleDetailPage() {
               </div>
             </div>
           )}
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Footer */}
-      <footer className="footer">
+      <footer className="footer" style={{ marginTop: '60px' }}>
         <div className="footer-content">
           <div className="footer-bottom">
             <p>&copy; {new Date().getFullYear()} SilberArrows Leasing. All rights reserved.</p>

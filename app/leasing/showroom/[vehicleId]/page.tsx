@@ -203,8 +203,8 @@ export default function VehicleDetailPage() {
 
         {/* RIGHT COLUMN: Vehicle Title + Accordion Tabs */}
         <div className="info-column">
-          {/* Vehicle Title */}
-          <div style={{ marginBottom: '30px' }}>
+          {/* Vehicle Title - Aligned with Image Top */}
+          <div style={{ marginBottom: '30px', paddingTop: '25px' }}>
             <h1 className="hero-title" style={{ fontSize: '38px', marginBottom: '10px', textAlign: 'left' }}>
               {vehicle.model_year} {vehicleName}
             </h1>

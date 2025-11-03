@@ -1973,10 +1973,11 @@
 .main-vehicle-image {
     position: relative;
     width: 100%;
-    aspect-ratio: 16/10;
+    aspect-ratio: 3/2;
     background: #fff;
     border-radius: 0;
     overflow: hidden;
+    max-height: 240px;
 }
 
 .main-vehicle-image img {
@@ -2017,17 +2018,18 @@
 
 .thumbnail-gallery-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    max-width: 60%;
 }
 
 .thumbnail-gallery-item {
     aspect-ratio: 1;
     background: #fff;
-    border-radius: 4px;
+    border-radius: 3px;
     overflow: hidden;
     cursor: pointer;
-    border: 2px solid transparent;
+    border: 1px solid transparent;
     transition: all 0.3s ease;
 }
 
@@ -2037,7 +2039,7 @@
 
 .thumbnail-gallery-item.active {
     border-color: var(--gold);
-    border-width: 3px;
+    border-width: 2px;
 }
 
 .thumbnail-gallery-item img {

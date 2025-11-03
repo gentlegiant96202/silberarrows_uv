@@ -351,9 +351,9 @@ function VehiclesSection({ vehicles, loading, onVehicleClick }: any) {
   return (
     <section className="vehicles-section" id="vehicles">
       <div className="section-header">
-        <h2>AVAILABLE VEHICLES</h2>
+        <h2>AVAILABLE VEHICLES - LEASE-TO-OWN</h2>
         <p>Discover our curated collection of premium vehicles available for lease</p>
-            </div>
+      </div>
 
       {loading ? (
         <div className="vehicles-grid">

@@ -37,7 +37,8 @@ export async function middleware(request: NextRequest) {
     '/deprecated',
     '/auth/callback',
     '/dubizzle',        // Public dubizzle pages (e.g., /dubizzle/servicecare)
-    '/business-card'    // Public business card pages
+    '/business-card',   // Public business card pages
+    '/leasing/showroom' // Public leasing showroom
   ];
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   

@@ -487,15 +487,6 @@ export default function VehicleDetailPage() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="footer" style={{ marginTop: '60px' }}>
-        <div className="footer-content">
-          <div className="footer-bottom">
-            <p>&copy; {new Date().getFullYear()} SilberArrows Leasing. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

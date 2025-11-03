@@ -94,7 +94,7 @@ export default function ShowroomPage() {
       <ShowroomHeader />
 
       {/* Main Content */}
-      <main style={{ paddingTop: '80px' }}>
+      <main className="showroom-main">
       {/* Hero Section */}
         <HeroSection />
 
@@ -122,6 +122,8 @@ export default function ShowroomPage() {
 
 // Header Component
 function ShowroomHeader() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="showroom-header">
       <header>
@@ -140,16 +142,52 @@ function ShowroomHeader() {
                 <Icon name="location-dot" size={12} variant="gold" />
                 <span>Al Manara St, Al Quoz, Dubai</span>
               </div>
-            <div className="phone-line">
-              <Icon name="phone" size={12} variant="gold" />
-              <a href="tel:+971561742746" style={{ color: 'inherit', textDecoration: 'none' }}>
-                +971 56 174 2746
-              </a>
-      </div>
-        </div>
+              <div className="phone-line">
+                <Icon name="phone" size={12} variant="gold" />
+                <a href="tel:+971561742746" style={{ color: 'inherit', textDecoration: 'none' }}>
+                  +971 56 174 2746
+                </a>
+              </div>
+            </div>
           </div>
+          
+          {/* Mobile Hamburger Menu */}
+          <button 
+            className="mobile-menu-toggle"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            <span className={`hamburger ${mobileMenuOpen ? 'open' : ''}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
         </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+            <nav className="mobile-nav">
+              <a href="/" onClick={() => setMobileMenuOpen(false)}>HOME</a>
+              <a href="#vehicles" onClick={() => setMobileMenuOpen(false)}>VEHICLES</a>
+              <a href="#contact" onClick={() => setMobileMenuOpen(false)}>CONTACT</a>
+            </nav>
+            <div className="mobile-menu-contact">
+              <div className="mobile-contact-item">
+                <Icon name="location-dot" size={16} variant="gold" />
+                <span>Al Manara St, Al Quoz, Dubai</span>
+              </div>
+              <div className="mobile-contact-item">
+                <Icon name="phone" size={16} variant="gold" />
+                <a href="tel:+971561742746">+971 56 174 2746</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -179,10 +217,10 @@ function HeroSection() {
             height={90} 
           />
         </div>
-        <div className="hero-tagline">Exclusive Automotive Excellence</div>
+        <div className="hero-tagline">Drive Now, Own Later</div>
         <h1 className="hero-title">
-          PREMIUM<br />
-          <span>VEHICLE LEASING</span><br />
+          MERCEDES-BENZ<br />
+          <span>LEASE-TO-OWN</span><br />
           IN DUBAI
         </h1>
         <p className="hero-subtitle">
@@ -190,6 +228,21 @@ function HeroSection() {
           Experience the freedom of driving your dream car<br />
           with transparent pricing and exceptional service.
         </p>
+
+        <div className="hero-highlights">
+          <div className="highlight-item">
+            <Icon name="dirham" size={16} variant="gold" />
+            <span>Zero Down Payment</span>
+          </div>
+          <div className="highlight-item">
+            <Icon name="file-alt" size={16} variant="gold" />
+            <span>No Credit Checks</span>
+          </div>
+          <div className="highlight-item">
+            <Icon name="id-card" size={16} variant="gold" />
+            <span>Passport & Emirates ID Only</span>
+          </div>
+        </div>
 
         <div className="hero-cta-container">
           <button
@@ -290,7 +343,10 @@ function VehiclesSection({ vehicles, loading, onVehicleClick }: any) {
   return (
     <section className="vehicles-section" id="vehicles">
       <div className="section-header">
-        <h2>AVAILABLE VEHICLES - LEASE-TO-OWN</h2>
+        <h2>
+          AVAILABLE VEHICLES<span className="mobile-break"><br /></span>
+          <span className="desktop-dash"> - </span>LEASE-TO-OWN
+        </h2>
         <p>Discover our curated collection of premium vehicles available for lease</p>
       </div>
 
@@ -424,50 +480,20 @@ function ContactSection() {
   );
 }
 
-// Footer Component
+// Fixed Footer Component (UK Style)
 function Footer() {
   return (
-    <footer className="footer">
-      <div className="footer-content">
-        <div className="footer-grid">
-          {/* Logo & Description */}
-          <div className="footer-section">
-            <div className="footer-logo">
-              <img src="/assets/icons/logo.svg" alt="SilberArrows" />
-            </div>
-            <h3>SILBERARROWS LEASING</h3>
-            <p>Premium car leasing solutions tailored to your lifestyle</p>
-          </div>
-
-          {/* Quick Links */}
-          <div className="footer-section">
-            <h4>QUICK LINKS</h4>
-            <div className="footer-links">
-              <a href="#vehicles">Available Vehicles</a>
-              <a href="#contact">Contact Us</a>
-            </div>
-          </div>
-
-          {/* Contact */}
-          <div className="footer-section">
-            <h4>CONTACT</h4>
-            <div className="footer-contact">
-              <a href="tel:+971561742746">
-                <Icon name="phone" size={14} variant="gold" />
-                +971 56 174 2746
-              </a>
-              <a href="mailto:lease@silberarrows.com">
-                <Icon name="mail" size={14} variant="gold" />
-                lease@silberarrows.com
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} SilberArrows Leasing. All rights reserved.</p>
+    <footer className="fixed-footer">
+      <div className="fixed-footer-content">
+        <a href="tel:+971561742746" className="footer-action-btn">
+          <Icon name="phone" size={20} variant="gold" />
+          <span>Call Us</span>
+        </a>
+        <a href="https://wa.me/97143805515" className="footer-action-btn" target="_blank" rel="noopener noreferrer">
+          <Icon name="whatsapp" size={20} variant="gold" />
+          <span>WhatsApp</span>
+        </a>
       </div>
-    </div>
     </footer>
   );
 }

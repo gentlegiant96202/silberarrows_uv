@@ -1035,9 +1035,10 @@
 
 .modal-image {
     width: 100%;
-    aspect-ratio: 16/9;
+    aspect-ratio: 4/3;
     object-fit: cover;
     border-radius: 8px;
+    min-height: 500px;
 }
 
 .image-dots {

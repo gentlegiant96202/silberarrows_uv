@@ -794,65 +794,65 @@ export default function LeasingInventoryBoard() {
                     return base + 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20';
                   })()}`}
                 >
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="text-xs font-medium text-white group-hover:text-white/90 transition-colors">
-                      {highlight(vehicle.stock_number)} - {highlight(`${vehicle.model_year} ${vehicle.make} ${vehicle.model_family || ''}`)}
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {/* Archive Button - For returned vehicles */}
-                      {vehicle.status === 'returned' && canEdit && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            archiveVehicle(vehicle);
-                          }}
-                          className="
-                            p-0.5 rounded-full transition-all duration-200
-                            bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-gray-700/70
-                            hover:shadow-lg hover:scale-110
-                            focus:outline-none focus:ring-2 focus:ring-gray-400/50
-                          "
-                          title="Archive vehicle"
-                        >
-                          <Archive className="w-2.5 h-2.5" />
-                        </button>
+                  <div className="flex gap-2">
+                    {/* Left: Vehicle Image Thumbnail */}
+                    <div className="flex-shrink-0 w-20 h-20 bg-black/30 rounded overflow-hidden border border-white/10">
+                      {vehicle.photos && vehicle.photos.length > 0 && vehicle.photos[0]?.url ? (
+                        <img 
+                          src={vehicle.photos[0].url} 
+                          alt={`${vehicle.make} ${vehicle.model_family}`}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white/20">
+                          <Car className="w-6 h-6" />
+                        </div>
                       )}
-                      <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-white/70 flex items-center gap-1">
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2" />
-                      </svg>
-                      {highlight(vehicle.colour || 'Color not set')}
-                      <span className="text-white/50">·</span>
-                    </div>
-                    
-                    <div className="text-xs text-white/70 flex items-center gap-1">
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                      </svg>
-                      {formatCurrency(vehicle.monthly_lease_rate)}/mo
-                    </div>
-                    
-                    <div className="text-xs text-white/70 flex items-center gap-1">
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      </svg>
-                      {highlight(vehicle.current_parking_location || 'Location not set')}
-                    </div>
-                    
-                    {vehicle.current_mileage_km && (
-                      <div className="text-xs text-white/60">
-                        {vehicle.current_mileage_km.toLocaleString()} km
+
+                    {/* Right: Vehicle Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="text-xs font-medium text-white group-hover:text-white/90 transition-colors">
+                          {highlight(`${vehicle.model_year} ${vehicle.make} ${vehicle.model_family || ''}`)}
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Archive Button - For returned vehicles */}
+                          {vehicle.status === 'returned' && canEdit && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                archiveVehicle(vehicle);
+                              }}
+                              className="
+                                p-0.5 rounded-full transition-all duration-200
+                                bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-gray-700/70
+                                hover:shadow-lg hover:scale-110
+                                focus:outline-none focus:ring-2 focus:ring-gray-400/50
+                              "
+                              title="Archive vehicle"
+                            >
+                              <Archive className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                          <svg className="w-2.5 h-2.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
-                    )}
-                    
-                    {/* description removed from card preview */}
+                      
+                      <div className="space-y-1">
+                        {/* Exterior Color */}
+                        <div className="text-[8px] text-white/50">
+                          {highlight(vehicle.colour || 'Color not set')}
+                        </div>
+                        
+                        {/* Monthly Price */}
+                        <div className="text-xs text-white font-bold">
+                          {formatCurrency(vehicle.monthly_lease_rate)}/mo
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 ))

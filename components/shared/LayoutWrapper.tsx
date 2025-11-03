@@ -23,7 +23,10 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   // Check if this is a dubizzle public page
   const isDubizzlePage = pathname.startsWith('/dubizzle/');
   
-  const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage && !isDubizzlePage;
+  // Check if this is the public leasing showroom
+  const isShowroomPage = pathname.startsWith('/leasing/showroom');
+  
+  const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage && !isDubizzlePage && !isShowroomPage;
   const shouldShowSidebar = shouldShowHeader; // Sidebar appears with header
   const isAccountsPage = pathname.startsWith('/accounts');
   const isMarketingPage = pathname.startsWith('/marketing');
@@ -48,7 +51,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         )}
         
         {/* Page Content - scrollable area (overflow-hidden for marketing and leasing pages to remove scrollbar) */}
-        <main className={`flex-1 ${isMarketingPage || isLeasingPage ? 'overflow-hidden' : 'overflow-auto'}`}>
+        <main className={`flex-1 ${(isMarketingPage || isLeasingPage) && !isShowroomPage ? 'overflow-hidden' : 'overflow-auto'}`}>
           {children}
         </main>
       </div>

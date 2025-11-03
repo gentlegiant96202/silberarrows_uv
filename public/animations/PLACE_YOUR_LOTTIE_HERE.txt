@@ -7,3 +7,4 @@ Expected path: /public/animations/loader.json
 Once you add the file, the marketing module and other loading screens will automatically use your Lottie animation instead of the pulsing logo.
 
 
+

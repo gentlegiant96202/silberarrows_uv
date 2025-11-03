@@ -693,7 +693,7 @@ export default function LeasingKanbanBoard() {
   };
 
   return (
-    <div className="flex flex-col h-full px-4 w-full">
+    <div className="h-full px-4 overflow-hidden relative">
       <div className="flex gap-3 pb-4 w-full h-full overflow-hidden">
         {columns
           .filter(col => {

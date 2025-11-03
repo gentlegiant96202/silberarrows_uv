@@ -286,8 +286,8 @@ export default function RouteProtector({
   }
 
   // User has permission - render with smooth cross-fade transition
-  // Marketing, Accounts, and Workshop modules use their own loading contexts, so skip RouteProtector transitions
-  if (moduleName === 'marketing' || moduleName === 'accounts' || moduleName === 'workshop') {
+  // Marketing, Accounts, Workshop, and Leasing modules use their own loading contexts, so skip RouteProtector transitions
+  if (moduleName === 'marketing' || moduleName === 'accounts' || moduleName === 'workshop' || moduleName === 'leasing') {
     return <>{children}</>;
   }
 

@@ -38,10 +38,8 @@ function LeasingPageContent() {
   };
 
   return (
-    <div className="flex h-full">
-      <div className="flex-1 overflow-hidden">
-        {renderContent()}
-      </div>
+    <div className="h-full bg-black overflow-hidden flex flex-col">
+      {renderContent()}
     </div>
   );
 }

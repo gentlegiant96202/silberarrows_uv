@@ -127,7 +127,7 @@ export default function VehicleDetailPage() {
               />
             </div>
             <nav className="header-nav">
-              <a onClick={() => router.push('/leasing/showroom')}>← Back to Showroom</a>
+              <a onClick={() => router.push('/leasing/showroom')} style={{ cursor: 'pointer' }}>← Back to Showroom</a>
             </nav>
             <div className="header-contact-info">
               <div className="phone-line">

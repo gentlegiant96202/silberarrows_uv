@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Icon from '@/components/modules/leasing/Icon';
+import ShowroomHeader from './components/ShowroomHeader';
 import './showroom.css';
 
 interface Vehicle {
@@ -120,86 +121,7 @@ export default function ShowroomPage() {
   );
 }
 
-// Header Component
-function ShowroomHeader() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  return (
-    <div className="showroom-header">
-      <header>
-        <div className="header-inner">
-          <div className="header-logo">
-            <img src="/assets/icons/logo.svg" alt="SilberArrows" width={160} height={54} />
-          </div>
-          <div className="header-right">
-            <nav className="header-nav">
-              <a href="/leasing/showroom">HOME</a>
-              <a href="#vehicles">VEHICLES</a>
-              <a href="#contact">CONTACT</a>
-            </nav>
-            <div className="header-contact-info">
-              <div className="address-line">
-                <Icon name="location-dot" size={12} variant="gold" />
-                <span>Al Manara St, Al Quoz, Dubai</span>
-              </div>
-              <div className="phone-line">
-                <Icon name="phone" size={12} variant="gold" />
-                <a href="tel:+971561742746" style={{ color: 'inherit', textDecoration: 'none' }}>
-                  +971 56 174 2746
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          {/* Mobile Hamburger Menu */}
-          <button
-            className="mobile-menu-toggle"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <span className={`hamburger ${mobileMenuOpen ? 'open' : ''}`}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
-          <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
-            {/* Close Button */}
-            <button 
-              className="mobile-menu-close"
-              onClick={() => setMobileMenuOpen(false)}
-              aria-label="Close menu"
-            >
-              <Icon name="times" size={24} variant="gold" />
-            </button>
-            
-            <nav className="mobile-nav">
-              <a href="/leasing/showroom" onClick={() => setMobileMenuOpen(false)}>HOME</a>
-              <a href="#vehicles" onClick={() => setMobileMenuOpen(false)}>VEHICLES</a>
-              <a href="#contact" onClick={() => setMobileMenuOpen(false)}>CONTACT</a>
-            </nav>
-            <div className="mobile-menu-contact">
-              <div className="mobile-contact-item">
-                <Icon name="location-dot" size={16} variant="gold" />
-                <span>Al Manara St, Al Quoz, Dubai</span>
-              </div>
-              <div className="mobile-contact-item">
-                <Icon name="phone" size={16} variant="gold" />
-                <a href="tel:+971561742746">+971 56 174 2746</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+// Header Component is now imported from components/ShowroomHeader.tsx
 
 // Hero Section Component
 function HeroSection() {

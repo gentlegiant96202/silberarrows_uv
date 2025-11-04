@@ -2442,3 +2442,115 @@
         padding: 8px 16px;
     }
 }
+
+/* ===============================================
+   VEHICLE DETAIL PAGE
+   =============================================== */
+
+.vehicle-detail-page {
+    background: #000;
+    min-height: 100vh;
+}
+
+.vehicle-detail-content {
+    width: 92%;
+    margin: 20px auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: start;
+    padding-top: 80px;
+}
+
+.gallery-column {
+    width: 100%;
+}
+
+.info-column {
+    width: 100%;
+}
+
+/* Mobile Responsive - Single Column Layout */
+@media (max-width: 768px) {
+    .vehicle-detail-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding-top: 60px;
+        width: 100%;
+        margin: 0;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .gallery-column {
+        order: 1;
+    }
+
+    .info-column {
+        order: 2;
+    }
+
+    .info-column > div:first-child {
+        padding-top: 0 !important;
+        margin-bottom: 20px !important;
+    }
+
+    .info-column h1.hero-title {
+        font-size: 28px !important;
+    }
+
+    .info-column p {
+        font-size: 12px !important;
+    }
+
+    /* Adjust thumbnail grid on mobile */
+    .pdf-thumbnail-grid {
+        display: none !important;
+    }
+
+    /* Make accordion sections more mobile-friendly */
+    .accordion-header h3 {
+        font-size: 16px !important;
+    }
+
+    .accordion-content {
+        padding: 15px !important;
+    }
+
+    .pdf-specs-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    .spec-item {
+        padding: 8px 0 !important;
+    }
+
+    .spec-label {
+        font-size: 11px !important;
+    }
+
+    .spec-value {
+        font-size: 13px !important;
+    }
+
+    /* Adjust modal image on mobile */
+    .modal-image-section {
+        height: 300px !important;
+    }
+
+    .modal-image {
+        object-fit: contain !important;
+    }
+
+    /* Image navigation arrows */
+    .image-nav-arrow {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    .image-counter {
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+    }
+}

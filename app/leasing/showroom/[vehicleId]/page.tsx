@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Icon from '@/components/modules/leasing/Icon';
+import ShowroomHeader from '../components/ShowroomHeader';
 import '../showroom.css';
 
 interface Vehicle {
@@ -111,38 +112,12 @@ export default function VehicleDetailPage() {
   const mileage = vehicle.current_mileage_km;
 
   return (
-    <div style={{ background: '#000', minHeight: '100vh', paddingTop: '80px' }}>
-      {/* Fixed Header */}
-      <div className="showroom-header">
-        <header>
-          <div className="header-inner">
-            <div className="header-logo">
-              <img 
-                src="/assets/icons/logo.svg" 
-                alt="SilberArrows" 
-                width={160} 
-                height={54}
-                style={{ cursor: 'pointer' }}
-                onClick={() => router.push('/leasing/showroom')}
-              />
-            </div>
-            <nav className="header-nav">
-              <a onClick={() => router.push('/leasing/showroom')} style={{ cursor: 'pointer' }}>← Back to Showroom</a>
-            </nav>
-            <div className="header-contact-info">
-              <div className="phone-line">
-                <Icon name="phone" size={12} variant="gold" />
-                <a href="tel:+971561742746" style={{ color: 'inherit', textDecoration: 'none' }}>
-                  +971 56 174 2746
-                </a>
-              </div>
-            </div>
-          </div>
-        </header>
-      </div>
+    <div className="vehicle-detail-page">
+      {/* Fixed Header with Hamburger Menu */}
+      <ShowroomHeader showBackButton={true} />
 
-      {/* Two Column Layout */}
-      <section style={{ width: '92%', margin: '20px auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', alignItems: 'start' }}>
+      {/* Two Column Layout (Responsive) */}
+      <section className="vehicle-detail-content">
         
         {/* LEFT COLUMN: Image Gallery */}
         <div className="gallery-column">

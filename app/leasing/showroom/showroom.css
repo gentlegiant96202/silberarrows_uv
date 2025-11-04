@@ -2151,25 +2151,30 @@
 
 .mobile-menu-close {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    background: none;
-    border: none;
+    top: 15px;
+    right: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
     cursor: pointer;
-    padding: 8px;
+    padding: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s ease;
+    transition: all 0.2s ease;
     z-index: 1002;
     pointer-events: auto;
+    width: 44px;
+    height: 44px;
 }
 
 .mobile-menu-close:hover {
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.05);
 }
 
 .mobile-menu-close:active {
+    background: rgba(255, 255, 255, 0.2);
     transform: scale(0.95);
 }
 

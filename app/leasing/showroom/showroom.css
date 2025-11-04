@@ -2679,6 +2679,44 @@
     .desktop-only {
         display: none !important;
     }
+}
+
+/* Desktop Thumbnail Grid - Horizontal Layout */
+@media (min-width: 769px) {
+    .pdf-thumbnail-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 15px !important;
+        margin-top: 15px !important;
+    }
+
+    .pdf-thumbnail {
+        width: 100% !important;
+        aspect-ratio: 16 / 9 !important;
+        overflow: hidden !important;
+        border-radius: 4px !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        border: 2px solid transparent !important;
+    }
+
+    .pdf-thumbnail:hover {
+        border-color: var(--gold) !important;
+        transform: scale(1.02) !important;
+    }
+
+    .pdf-thumbnail img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+
+    .pdf-thumbnail.empty {
+        background: rgba(255, 255, 255, 0.05) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
 
     /* Show mobile thumbnail strip */
     .mobile-thumbnail-strip {

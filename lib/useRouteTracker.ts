@@ -18,6 +18,17 @@ export function useRouteTracker() {
       return;
     }
 
+    // Don't track public routes (showroom, business cards, etc.)
+    const isPublicRoute = (
+      pathname.startsWith('/leasing/showroom') ||
+      pathname.startsWith('/business-card') ||
+      pathname.startsWith('/dubizzle')
+    );
+    
+    if (isPublicRoute) {
+      return;
+    }
+
     // Determine if this is a valid module path to store
     const isModulePath = (
       pathname.startsWith('/workshop') ||

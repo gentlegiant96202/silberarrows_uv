@@ -19,7 +19,11 @@ import {
   Car,
   Users,
   Zap,
-  X
+  X,
+  Key,
+  Undo,
+  CheckCircle,
+  CreditCard
 } from 'lucide-react';
 
 interface IconProps {
@@ -55,7 +59,11 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, variant = 
     'dirham': '/dirham-symbol.svg',
     'times': X,
     'close': X,
-    'x': X
+    'x': X,
+    'key': Key,
+    'undo': Undo,
+    'check-circle': CheckCircle,
+    'card': CreditCard
   };
 
   const iconSource = iconMap[name];

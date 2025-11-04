@@ -166,11 +166,11 @@ function HeroSection() {
             <span>Zero Down Payment</span>
           </div>
           <div className="highlight-item">
-            <Icon name="file-alt" size={16} variant="gold" />
+            <Icon name="check-circle" size={16} variant="gold" />
             <span>No Credit Checks</span>
         </div>
           <div className="highlight-item">
-            <Icon name="id-card" size={16} variant="gold" />
+            <Icon name="card" size={16} variant="gold" />
             <span>Passport & Emirates ID Only</span>
           </div>
         </div>

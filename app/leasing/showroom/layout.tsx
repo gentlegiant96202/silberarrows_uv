@@ -1,4 +1,5 @@
 import Script from 'next/script';
+import LeasingTrackingInit from '@/components/leasing/LeasingTrackingInit';
 
 export const viewport = {
   width: 'device-width',
@@ -14,9 +15,9 @@ export default function ShowroomLayout({
 }) {
   return (
     <>
-      {/* Google Tag Manager Script */}
+      {/* Google Tag Manager Script - Scoped to Leasing */}
       <Script
-        id="google-tag-manager"
+        id="google-tag-manager-leasing"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
@@ -25,6 +26,13 @@ export default function ShowroomLayout({
             j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
             })(window,document,'script','dataLayer','GTM-NMCTNTPB');
+            
+            // Push leasing section identifier to dataLayer
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+              'section': 'leasing_showroom',
+              'event': 'leasing_page_load'
+            });
           `,
         }}
       />
@@ -38,6 +46,9 @@ export default function ShowroomLayout({
           style={{ display: 'none', visibility: 'hidden' }}
         />
       </noscript>
+
+      {/* Initialize Leasing-Specific Tracking (GCLID capture) */}
+      <LeasingTrackingInit />
 
       {children}
     </>

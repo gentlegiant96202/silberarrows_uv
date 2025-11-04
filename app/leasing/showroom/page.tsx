@@ -6,10 +6,6 @@ import { supabase } from '@/lib/supabaseClient';
 import Icon from '@/components/modules/leasing/Icon';
 import './showroom.css';
 
-// Disable caching for this page to prevent redirect issues
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 interface Vehicle {
   id: string;
   stock_number: string;

@@ -2754,6 +2754,7 @@
         min-height: 250px !important;
         border-radius: 0 !important;
         margin: 0 !important;
+        padding: 0 !important;
         position: relative;
         width: 100% !important;
         max-width: 100% !important;
@@ -2762,6 +2763,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+    
+    .modal-image-section::before,
+    .modal-image-section::after {
+        display: none !important;
     }
 
     .modal-image {
@@ -2775,12 +2781,15 @@
 
     /* Image navigation arrows */
     .image-nav-arrow {
-        width: 36px !important;
-        height: 36px !important;
+        width: 40px !important;
+        height: 40px !important;
         position: absolute !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
         z-index: 10 !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        border-radius: 50% !important;
+        flex-shrink: 0 !important;
     }
 
     .image-nav-arrow.left {
@@ -2789,6 +2798,11 @@
 
     .image-nav-arrow.right {
         right: 10px !important;
+    }
+
+    .image-nav-arrow:hover {
+        background: rgba(0, 0, 0, 0.7) !important;
+        transform: translateY(-50%) !important;
     }
 
     .image-counter {

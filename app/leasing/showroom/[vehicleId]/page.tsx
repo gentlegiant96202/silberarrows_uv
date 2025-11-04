@@ -259,7 +259,7 @@ export default function VehicleDetailPage() {
 
             {/* Quick Approval Note */}
             <div className="quick-approval-note">
-              <Icon name="zap" size={16} variant="silver" />
+              <Icon name="zap" size={16} variant="white" />
               <span>30-Minute Approval • No Credit Check Required</span>
             </div>
 
@@ -386,7 +386,7 @@ export default function VehicleDetailPage() {
                       <div className="options-grid">
                         <div className="option-box purchase">
                           <div className="option-header">
-                            <Icon name="key" size={20} variant="silver" />
+                            <Icon name="key" size={20} variant="white" />
                             <span className="option-title">Option A: Own It</span>
                           </div>
                           <div className="option-price">AED {vehicle.buyout_price?.toLocaleString() || 'N/A'}</div>
@@ -394,7 +394,7 @@ export default function VehicleDetailPage() {
                         </div>
                         <div className="option-box return">
                           <div className="option-header">
-                            <Icon name="undo" size={20} variant="silver" />
+                            <Icon name="undo" size={20} variant="white" />
                             <span className="option-title">Option B: Return</span>
                           </div>
                           <div className="option-price">Commitment-Free</div>

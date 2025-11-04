@@ -2145,8 +2145,31 @@
     background: rgba(18, 18, 18, 0.98);
     backdrop-filter: blur(20px);
     border-left: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 100px 30px 30px;
+    padding: 80px 30px 30px;
     animation: slideInRight 0.3s ease;
+}
+
+.mobile-menu-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    z-index: 10;
+}
+
+.mobile-menu-close:hover {
+    transform: scale(1.1);
+}
+
+.mobile-menu-close:active {
+    transform: scale(0.95);
 }
 
 @keyframes fadeIn {

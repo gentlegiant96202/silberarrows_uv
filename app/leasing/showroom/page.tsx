@@ -170,6 +170,15 @@ function ShowroomHeader() {
       {mobileMenuOpen && (
         <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
           <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+            {/* Close Button */}
+            <button 
+              className="mobile-menu-close"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close menu"
+            >
+              <Icon name="times" size={24} variant="gold" />
+            </button>
+            
             <nav className="mobile-nav">
               <a href="/leasing/showroom" onClick={() => setMobileMenuOpen(false)}>HOME</a>
               <a href="#vehicles" onClick={() => setMobileMenuOpen(false)}>VEHICLES</a>

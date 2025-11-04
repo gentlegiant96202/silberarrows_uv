@@ -116,6 +116,13 @@ export default function VehicleDetailPage() {
       {/* Fixed Header with Hamburger Menu */}
       <ShowroomHeader showBackButton={true} />
 
+      {/* Back to Showroom Breadcrumb (Mobile) */}
+      <div className="mobile-breadcrumb">
+        <button onClick={() => router.push('/leasing/showroom')} className="breadcrumb-link">
+          ← AVAILABLE VEHICLES
+        </button>
+      </div>
+
       {/* Two Column Layout (Responsive) */}
       <section className="vehicle-detail-content">
         
@@ -184,14 +191,33 @@ export default function VehicleDetailPage() {
 
         {/* RIGHT COLUMN: Vehicle Title + Accordion Tabs */}
         <div className="info-column">
-          {/* Vehicle Title - Aligned with Image Top */}
-          <div style={{ marginBottom: '30px', paddingTop: '25px' }}>
-            <h1 className="hero-title" style={{ fontSize: '38px', marginBottom: '10px', textAlign: 'left' }}>
-              {vehicle.model_year} {vehicleName}
+          {/* Vehicle Title & Key Info - Mobile First Layout */}
+          <div className="vehicle-header-section">
+            <h1 className="vehicle-title">
+              {vehicleName.toUpperCase()} {vehicle.model_year}
             </h1>
-            <p style={{ color: 'var(--silver)', fontSize: '13px', textAlign: 'left' }}>
-              Stock: {vehicle.stock_number} {vehicle.chassis_number && `• Chassis: ${vehicle.chassis_number}`}
-            </p>
+            
+            <div className="vehicle-price-section">
+              <div className="price-main">AED {vehicle.monthly_lease_rate?.toLocaleString() || 'N/A'}</div>
+              <div className="price-label">Or AED {Math.round((vehicle.monthly_lease_rate || 0) / 30).toLocaleString()} p/m</div>
+            </div>
+
+            <div className="vehicle-key-specs">
+              <div className="key-spec-item">
+                <Icon name="calendar" size={20} variant="gold" />
+                <div>
+                  <div className="spec-label-small">Year:</div>
+                  <div className="spec-value-large">{vehicle.model_year}</div>
+                </div>
+              </div>
+              <div className="key-spec-item">
+                <Icon name="zap" size={20} variant="gold" />
+                <div>
+                  <div className="spec-label-small">Mileage:</div>
+                  <div className="spec-value-large">{vehicle.current_mileage_km?.toLocaleString() || 'N/A'} km</div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Accordion Sections */}

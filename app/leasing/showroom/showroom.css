@@ -2490,8 +2490,108 @@
     display: none;
 }
 
+/* Mobile Breadcrumb */
+.mobile-breadcrumb {
+    display: none;
+}
+
+/* Vehicle Header Section */
+.vehicle-header-section {
+    margin-bottom: 30px;
+    padding-top: 25px;
+}
+
+.vehicle-title {
+    font-family: var(--impact-font);
+    font-size: 38px;
+    font-weight: 700;
+    color: #cd5c5c;
+    margin-bottom: 20px;
+    line-height: 1.1;
+    text-align: left;
+}
+
+.vehicle-price-section {
+    margin-bottom: 25px;
+    padding-bottom: 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.price-main {
+    font-family: var(--impact-font);
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--light);
+    margin-bottom: 5px;
+}
+
+.price-label {
+    font-size: 16px;
+    color: var(--silver);
+}
+
+.vehicle-key-specs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding-bottom: 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 25px;
+}
+
+.key-spec-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.spec-label-small {
+    font-size: 11px;
+    color: var(--silver);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.spec-value-large {
+    font-family: var(--impact-font);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--light);
+}
+
 /* Mobile Responsive - Single Column Layout */
 @media (max-width: 768px) {
+    /* Mobile Breadcrumb */
+    .mobile-breadcrumb {
+        display: block;
+        background: #000;
+        padding: 12px 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: sticky;
+        top: 60px;
+        z-index: 100;
+    }
+
+    .breadcrumb-link {
+        background: none;
+        border: none;
+        color: var(--light);
+        font-family: var(--impact-font);
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .breadcrumb-link:active {
+        opacity: 0.7;
+    }
+
     .vehicle-detail-content {
         grid-template-columns: 1fr;
         gap: 0;
@@ -2522,17 +2622,38 @@
         margin-top: 20px;
     }
 
-    .info-column > div:first-child {
+    /* Mobile Vehicle Header */
+    .vehicle-header-section {
         padding-top: 0 !important;
+        margin-bottom: 25px !important;
+    }
+
+    .vehicle-title {
+        font-size: 24px !important;
+        color: #cd5c5c !important;
+        margin-bottom: 15px !important;
+    }
+
+    .price-main {
+        font-size: 32px !important;
+    }
+
+    .price-label {
+        font-size: 14px !important;
+    }
+
+    .vehicle-key-specs {
+        gap: 15px !important;
+        padding-bottom: 20px !important;
         margin-bottom: 20px !important;
     }
 
-    .info-column h1.hero-title {
-        font-size: 28px !important;
+    .spec-label-small {
+        font-size: 10px !important;
     }
 
-    .info-column p {
-        font-size: 12px !important;
+    .spec-value-large {
+        font-size: 16px !important;
     }
 
     /* Hide desktop thumbnail grid on mobile */

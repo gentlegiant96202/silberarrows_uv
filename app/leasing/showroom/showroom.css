@@ -1076,6 +1076,10 @@
 .modal-image-section {
     position: relative;
     margin-bottom: 30px;
+    width: 100%;
+    overflow: hidden;
+    background: #000;
+    border-radius: 8px;
 }
 
 .modal-image {
@@ -2625,14 +2629,15 @@
     }
 
     .gallery-column .pdf-full-section {
-        margin: 0;
-        padding: 0;
-        border-radius: 0;
-        box-shadow: none;
-        background: transparent;
-        width: 100%;
-        max-width: 100%;
-        overflow: hidden;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        border: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
     }
 
     .info-column {
@@ -2683,6 +2688,22 @@
 
 /* Desktop Thumbnail Grid - Horizontal Layout */
 @media (min-width: 769px) {
+    /* Hide mobile thumbnail strip on desktop */
+    .mobile-thumbnail-strip {
+        display: none !important;
+    }
+
+    /* Fix desktop image section */
+    .modal-image-section {
+        margin-bottom: 30px !important;
+        border-radius: 8px !important;
+    }
+
+    .modal-image {
+        aspect-ratio: 4/3 !important;
+        object-fit: cover !important;
+    }
+
     .pdf-thumbnail-grid {
         display: grid !important;
         grid-template-columns: repeat(4, 1fr) !important;
@@ -2720,13 +2741,15 @@
 
     /* Show mobile thumbnail strip */
     .mobile-thumbnail-strip {
-        display: flex;
-        gap: 8px;
-        padding: 12px 15px;
-        overflow-x: auto;
-        background: #000;
+        display: flex !important;
+        gap: 8px !important;
+        padding: 12px 15px !important;
+        overflow-x: auto !important;
+        background: #000 !important;
         scrollbar-width: thin;
         scrollbar-color: rgba(229, 229, 229, 0.3) transparent;
+        -webkit-overflow-scrolling: touch;
+        margin-top: 0 !important;
     }
 
     .mobile-thumbnail-strip::-webkit-scrollbar {
@@ -2743,24 +2766,26 @@
     }
 
     .mobile-thumbnail {
-        flex-shrink: 0;
-        width: 70px;
-        height: 50px;
-        border-radius: 4px;
-        overflow: hidden;
-        border: 2px solid transparent;
-        transition: border-color 0.2s ease;
-        cursor: pointer;
+        flex-shrink: 0 !important;
+        width: 70px !important;
+        height: 50px !important;
+        border-radius: 4px !important;
+        overflow: hidden !important;
+        border: 2px solid transparent !important;
+        transition: border-color 0.2s ease !important;
+        cursor: pointer !important;
+        background: rgba(255, 255, 255, 0.05) !important;
     }
 
     .mobile-thumbnail.active {
-        border-color: var(--gold);
+        border-color: var(--gold) !important;
     }
 
     .mobile-thumbnail img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        display: block !important;
     }
 
     /* Make accordion sections more mobile-friendly */
@@ -2796,20 +2821,22 @@
         min-height: 250px !important;
         border-radius: 0 !important;
         margin: 0 !important;
+        margin-bottom: 0 !important;
         padding: 0 !important;
         position: relative;
         width: 100% !important;
         max-width: 100% !important;
-        overflow: hidden;
-        background: #000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        overflow: hidden !important;
+        background: #000 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     
     .modal-image-section::before,
     .modal-image-section::after {
         display: none !important;
+        content: none !important;
     }
 
     .modal-image {

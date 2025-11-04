@@ -53,7 +53,14 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/workbox') ||
     isPublicRoute
   ) {
-    return NextResponse.next();
+    // Add no-cache headers for public routes to prevent caching issues
+    const response = NextResponse.next();
+    if (isPublicRoute && !pathname.startsWith('/api/')) {
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      response.headers.set('Pragma', 'no-cache');
+      response.headers.set('Expires', '0');
+    }
+    return response;
   }
 
   // Check for Supabase authentication from cookies

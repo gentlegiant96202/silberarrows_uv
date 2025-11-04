@@ -6,6 +6,10 @@ import { supabase } from '@/lib/supabaseClient';
 import Icon from '@/components/modules/leasing/Icon';
 import './showroom.css';
 
+// Disable caching for this page to prevent redirect issues
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface Vehicle {
   id: string;
   stock_number: string;
@@ -133,7 +137,7 @@ function ShowroomHeader() {
           </div>
           <div className="header-right">
             <nav className="header-nav">
-              <a href="/">HOME</a>
+              <a href="/leasing/showroom">HOME</a>
               <a href="#vehicles">VEHICLES</a>
               <a href="#contact">CONTACT</a>
             </nav>
@@ -152,7 +156,7 @@ function ShowroomHeader() {
           </div>
           
           {/* Mobile Hamburger Menu */}
-          <button 
+          <button
             className="mobile-menu-toggle"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
@@ -171,7 +175,7 @@ function ShowroomHeader() {
         <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
           <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
             <nav className="mobile-nav">
-              <a href="/" onClick={() => setMobileMenuOpen(false)}>HOME</a>
+              <a href="/leasing/showroom" onClick={() => setMobileMenuOpen(false)}>HOME</a>
               <a href="#vehicles" onClick={() => setMobileMenuOpen(false)}>VEHICLES</a>
               <a href="#contact" onClick={() => setMobileMenuOpen(false)}>CONTACT</a>
             </nav>
@@ -215,8 +219,8 @@ function HeroSection() {
             className="hero-logo-img" 
             width={300} 
             height={90} 
-          />
-        </div>
+        />
+      </div>
         <div className="hero-tagline">Drive Now, Own Later</div>
         <h1 className="hero-title">
           MERCEDES-BENZ<br />
@@ -237,7 +241,7 @@ function HeroSection() {
           <div className="highlight-item">
             <Icon name="file-alt" size={16} variant="gold" />
             <span>No Credit Checks</span>
-          </div>
+        </div>
           <div className="highlight-item">
             <Icon name="id-card" size={16} variant="gold" />
             <span>Passport & Emirates ID Only</span>
@@ -306,7 +310,7 @@ function WhyLeaseSection() {
     features.slice(4, 6)
   ];
 
-  return (
+    return (
     <section className="why-choose-us-section">
       <div className="why-choose-us-content">
         <div className="section-header">
@@ -335,8 +339,8 @@ function WhyLeaseSection() {
         </div>
       </div>
     </section>
-  );
-}
+    );
+  }
 
 // Vehicles Section
 function VehiclesSection({ vehicles, loading, onVehicleClick }: any) {
@@ -346,9 +350,9 @@ function VehiclesSection({ vehicles, loading, onVehicleClick }: any) {
         <h2>
           AVAILABLE VEHICLES<span className="mobile-break"><br /></span>
           <span className="desktop-dash"> - </span>LEASE-TO-OWN
-        </h2>
+          </h2>
         <p>Discover our curated collection of premium vehicles available for lease</p>
-      </div>
+        </div>
 
       {loading ? (
         <div className="vehicles-grid">
@@ -358,16 +362,16 @@ function VehiclesSection({ vehicles, loading, onVehicleClick }: any) {
               <div style={{ padding: '20px' }}>
                 <div style={{ height: '20px', background: 'rgba(255,255,255,0.05)', marginBottom: '10px', borderRadius: '4px' }}></div>
                 <div style={{ height: '16px', background: 'rgba(255,255,255,0.05)', marginBottom: '10px', borderRadius: '4px', width: '60%' }}></div>
-              </div>
-            </div>
+          </div>
+          </div>
           ))}
-        </div>
+          </div>
       ) : vehicles.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>🚗</div>
           <h3 style={{ fontSize: '24px', color: 'var(--silver)', marginBottom: '10px' }}>No Vehicles Available</h3>
           <p style={{ color: 'var(--silver)' }}>Check back soon for new inventory</p>
-        </div>
+          </div>
       ) : (
         <div className="vehicles-grid">
           {vehicles.map((vehicle: Vehicle) => (
@@ -392,14 +396,14 @@ function VehiclesSection({ vehicles, loading, onVehicleClick }: any) {
                       {(vehicle.current_mileage_km || vehicle.mileage)?.toLocaleString()} km
                     </span>
                   )}
-                </div>
+          </div>
                 <div className="vehicle-price">
                   AED {vehicle.monthly_lease_rate?.toLocaleString() || 'N/A'}
-                </div>
+          </div>
                 <div className="vehicle-price-label">per month</div>
                 <button className="vehicle-cta">View Details</button>
-              </div>
-            </div>
+      </div>
+    </div>
           ))}
         </div>
       )}
@@ -414,7 +418,7 @@ function ContactSection() {
       <div className="section-header">
         <h2>CONTACT US</h2>
         <p>Get in touch with Dubai&apos;s trusted leasing specialists</p>
-      </div>
+        </div>
 
       <div className="contact-grid">
         <div className="contact-cards-grid">
@@ -445,7 +449,7 @@ function ContactSection() {
               </a>
             </div>
           </div>
-              </div>
+          </div>
 
         <div className="hours-card">
           <div className="hours-header">

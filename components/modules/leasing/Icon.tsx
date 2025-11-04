@@ -18,7 +18,8 @@ import {
   DollarSign,
   Car,
   Users,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 
 interface IconProps {
@@ -51,7 +52,10 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, variant = 
     'car': Car,
     'users': Users,
     'zap': Zap,
-    'dirham': '/dirham-symbol.svg'
+    'dirham': '/dirham-symbol.svg',
+    'times': X,
+    'close': X,
+    'x': X
   };
 
   const iconSource = iconMap[name];

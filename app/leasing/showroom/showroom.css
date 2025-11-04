@@ -2595,7 +2595,7 @@
     .vehicle-detail-content {
         grid-template-columns: 1fr;
         gap: 0;
-        padding-top: 60px;
+        padding-top: 0;
         width: 100%;
         margin: 0;
         padding-left: 0;
@@ -2614,6 +2614,8 @@
         margin: 0;
         padding: 0;
         border-radius: 0;
+        box-shadow: none;
+        background: transparent;
     }
 
     .info-column {
@@ -2732,16 +2734,21 @@
         font-size: 13px !important;
     }
 
-    /* Adjust modal image on mobile - Full width, flush with header */
+    /* Adjust modal image on mobile - Reasonable height, not full screen */
     .modal-image-section {
-        height: 280px !important;
+        height: 45vh !important;
+        max-height: 400px !important;
+        min-height: 250px !important;
         border-radius: 0 !important;
         margin: 0 !important;
+        position: relative;
     }
 
     .modal-image {
         object-fit: cover !important;
         border-radius: 0 !important;
+        width: 100%;
+        height: 100%;
     }
 
     /* Image navigation arrows */

@@ -35,6 +35,7 @@ interface Vehicle {
   current_market_value?: number;
   warranty_expiry_date?: string;
   registration_date?: string;
+  key_equipment?: string;
   photos?: Array<{
     id: string;
     url: string;
@@ -79,7 +80,18 @@ export default function VehicleDetailPage() {
   };
 
   const toggleSection = (section: string) => {
-    setExpandedSection(expandedSection === section ? null : section);
+    const newSection = expandedSection === section ? null : section;
+    setExpandedSection(newSection);
+    
+    // Scroll accordion into view when opened
+    if (newSection) {
+      setTimeout(() => {
+        const element = document.querySelector(`[data-section="${section}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+    }
   };
 
   if (loading) {
@@ -156,34 +168,36 @@ export default function VehicleDetailPage() {
               )}
             </div>
 
-            {/* Mobile Thumbnail Strip - Below Main Image */}
+            {/* Thumbnail Slider - Single Row (Mobile & Desktop) */}
             {images.length > 1 && (
-              <div className="mobile-thumbnail-strip">
+              <div className="thumbnail-slider-container">
+                <button
+                  onClick={() => document.querySelector('.thumbnail-slider')?.scrollBy({ left: -300, behavior: 'smooth' })}
+                  className="thumbnail-nav-arrow left"
+                  aria-label="Scroll left"
+                >
+                  <Icon name="directions" size={20} flip />
+                </button>
+                
+                <div className="thumbnail-slider">
                 {images.map((img, idx) => (
                   <div 
                     key={idx} 
-                    className={`mobile-thumbnail ${idx === currentImage ? 'active' : ''}`}
+                      className={`thumbnail-item ${idx === currentImage ? 'active' : ''}`}
                     onClick={() => setCurrentImage(idx)}
                   >
                     <img src={img} alt={`Thumbnail ${idx + 1}`} />
                   </div>
                 ))}
               </div>
-            )}
 
-            {/* Desktop Thumbnail Grid */}
-            {images.length > 1 && (
-              <div className="pdf-thumbnail-grid desktop-only">
-                {images.slice(1, 5).map((img, idx) => (
-                  <div key={idx} className="pdf-thumbnail" onClick={() => setCurrentImage(idx + 1)}>
-                    <img src={img} alt={`Thumbnail ${idx + 2}`} />
-                  </div>
-                ))}
-                {Array.from({ length: Math.max(0, 4 - images.slice(1).length) }).map((_, i) => (
-                  <div key={`empty-${i}`} className="pdf-thumbnail empty">
-                    <div className="thumbnail-placeholder">Image {images.slice(1).length + i + 2}</div>
-                  </div>
-                ))}
+                <button
+                  onClick={() => document.querySelector('.thumbnail-slider')?.scrollBy({ left: 300, behavior: 'smooth' })}
+                  className="thumbnail-nav-arrow right"
+                  aria-label="Scroll right"
+                >
+                  <Icon name="directions" size={20} />
+                </button>
               </div>
             )}
           </div>
@@ -194,36 +208,78 @@ export default function VehicleDetailPage() {
           {/* Vehicle Title & Key Info - Mobile First Layout */}
           <div className="vehicle-header-section">
             <h1 className="vehicle-title">
-              {vehicleName.toUpperCase()} {vehicle.model_year}
+              {vehicle.model_year} {vehicleName.toUpperCase()}
             </h1>
             
+            {/* Availability & Trust Badges - Refactored */}
+            <div className="availability-badges">
+              <div className="badge-item primary pulse-badge">
+                <span>Zero Down Payment</span>
+              </div>
+              <div className="badge-item">
+                <Icon name="shield-alt" size={14} variant="gold" />
+                <span>Insurance Included</span>
+              </div>
+              <div className="badge-item">
+                <Icon name="ban" size={14} variant="gold" />
+                <span>No Bank Finance</span>
+              </div>
+            </div>
+            
             <div className="vehicle-price-section">
-              <div className="price-main">AED {vehicle.monthly_lease_rate?.toLocaleString() || 'N/A'}</div>
-              <div className="price-label">Or AED {Math.round((vehicle.monthly_lease_rate || 0) / 30).toLocaleString()} p/m</div>
+              <div className="price-main">
+                <Icon name="dirham" size={24} variant="gold" />
+                {vehicle.monthly_lease_rate?.toLocaleString() || 'N/A'}
+              </div>
+              <div className="price-label">per month</div>
+              <div className="price-breakdown">
+                <div className="breakdown-item">
+                  <span className="breakdown-label">Refundable Security Deposit:</span>
+                  <span className="breakdown-value">
+                    <Icon name="dirham" size={16} variant="gold" />
+                    {vehicle.security_deposit?.toLocaleString() || 'N/A'}
+                  </span>
+                </div>
+                <div className="breakdown-item">
+                  <span className="breakdown-label">First Payment:</span>
+                  <span className="breakdown-value">
+                    <Icon name="dirham" size={16} variant="gold" />
+                    {vehicle.monthly_lease_rate?.toLocaleString() || 'N/A'}
+                  </span>
+                </div>
+                <div className="breakdown-item total">
+                  <span className="breakdown-label">Drive Home Today:</span>
+                  <span className="breakdown-value">
+                    <Icon name="dirham" size={18} variant="gold" />
+                    {((vehicle.security_deposit || 0) + (vehicle.monthly_lease_rate || 0)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="vehicle-key-specs">
-              <div className="key-spec-item">
-                <Icon name="calendar" size={20} variant="gold" />
-                <div>
-                  <div className="spec-label-small">Year:</div>
-                  <div className="spec-value-large">{vehicle.model_year}</div>
-                </div>
-              </div>
-              <div className="key-spec-item">
-                <Icon name="zap" size={20} variant="gold" />
-                <div>
-                  <div className="spec-label-small">Mileage:</div>
-                  <div className="spec-value-large">{vehicle.current_mileage_km?.toLocaleString() || 'N/A'} km</div>
-                </div>
-              </div>
+            {/* Quick Approval Note */}
+            <div className="quick-approval-note">
+              <Icon name="zap" size={16} variant="silver" />
+              <span>30-Minute Approval • No Credit Check Required</span>
+            </div>
+
+            {/* Call & WhatsApp Buttons */}
+            <div className="cta-buttons-grid">
+              <a href="tel:+971561742746" className="cta-button call-button">
+                <Icon name="phone-alt" size={18} variant="dark" />
+                <span>Call Us</span>
+              </a>
+              <a href="https://wa.me/97143805515" className="cta-button whatsapp-button" target="_blank" rel="noopener noreferrer">
+                <Icon name="whatsapp" size={18} variant="dark" />
+                <span>WhatsApp</span>
+              </a>
             </div>
           </div>
 
           {/* Accordion Sections */}
           <div>
             {/* Specifications Section */}
-            <div className="accordion-section">
+            <div className="accordion-section" data-section="specs">
           <button 
             className={`accordion-header ${expandedSection === 'specs' ? 'expanded' : ''}`}
             onClick={() => toggleSection('specs')}
@@ -233,137 +289,127 @@ export default function VehicleDetailPage() {
           </button>
           {expandedSection === 'specs' && (
             <div className="accordion-content">
-              <div className="pdf-full-section">
-                <div className="pdf-specs-grid">
-                  <div className="spec-item">
-                    <span className="spec-label">Model Year</span>
-                    <span className="spec-value">{vehicle.model_year || 'N/A'}</span>
-                  </div>
-                  <div className="spec-item">
-                    <span className="spec-label">Make & Model</span>
-                    <span className="spec-value">{vehicle.make} {vehicle.vehicle_model || vehicle.model_family || ''}</span>
-                  </div>
+              <div className="specs-styled-section">
+                <div className="specs-grid-styled">
                   {exteriorColor && (
-                    <div className="spec-item">
-                      <span className="spec-label">Exterior Color</span>
-                      <span className="spec-value">{exteriorColor}</span>
+                    <div className="spec-item-styled">
+                      <div className="spec-content">
+                        <span className="spec-label-styled">Exterior Color</span>
+                        <span className="spec-value-styled">{exteriorColor}</span>
+                      </div>
                     </div>
                   )}
                   {interiorColor && (
-                    <div className="spec-item">
-                      <span className="spec-label">Interior Color</span>
-                      <span className="spec-value">{interiorColor}</span>
+                    <div className="spec-item-styled">
+                      <div className="spec-content">
+                        <span className="spec-label-styled">Interior Color</span>
+                        <span className="spec-value-styled">{interiorColor}</span>
+                    </div>
                     </div>
                   )}
-                  {(mileage !== null && mileage !== undefined && mileage > 0) && (
-                    <div className="spec-item">
-                      <span className="spec-label">Mileage</span>
-                      <span className="spec-value">{mileage.toLocaleString()} km</span>
+                  {(mileage !== null && mileage !== undefined) && (
+                    <div className="spec-item-styled">
+                      <div className="spec-content">
+                        <span className="spec-label-styled">Mileage</span>
+                        <span className="spec-value-styled">{mileage.toLocaleString()} km</span>
                     </div>
-                  )}
-                  {vehicle.engine_type && (
-                    <div className="spec-item">
-                      <span className="spec-label">Engine</span>
-                      <span className="spec-value">{vehicle.engine_type}</span>
-                    </div>
-                  )}
-                  {vehicle.transmission && (
-                    <div className="spec-item">
-                      <span className="spec-label">Transmission</span>
-                      <span className="spec-value">{vehicle.transmission}</span>
                     </div>
                   )}
                   {vehicle.body_style && (
-                    <div className="spec-item">
-                      <span className="spec-label">Body Style</span>
-                      <span className="spec-value">{vehicle.body_style}</span>
+                    <div className="spec-item-styled">
+                      <div className="spec-content">
+                        <span className="spec-label-styled">Body Style</span>
+                        <span className="spec-value-styled">{vehicle.body_style}</span>
+                    </div>
                     </div>
                   )}
-                  {vehicle.chassis_number && (
-                    <div className="spec-item">
-                      <span className="spec-label">Chassis Number</span>
-                      <span className="spec-value">{vehicle.chassis_number}</span>
+                    </div>
+                
+                {vehicle.key_equipment && (
+                  <div className="key-equipment-section">
+                    <h4 className="key-equipment-title">KEY EQUIPMENT</h4>
+                    <div className="key-equipment-content">
+                      {vehicle.key_equipment}
+                    </div>
                     </div>
                   )}
-                  {vehicle.engine_number && (
-                    <div className="spec-item">
-                      <span className="spec-label">Engine Number</span>
-                      <span className="spec-value">{vehicle.engine_number}</span>
-                    </div>
-                  )}
-                  {vehicle.plate_number && (
-                    <div className="spec-item">
-                      <span className="spec-label">Plate Number</span>
-                      <span className="spec-value">{vehicle.plate_number}</span>
-                    </div>
-                  )}
-                  {vehicle.registration_date && (
-                    <div className="spec-item">
-                      <span className="spec-label">Registration Date</span>
-                      <span className="spec-value">{new Date(vehicle.registration_date).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                  {vehicle.warranty_expiry_date && (
-                    <div className="spec-item">
-                      <span className="spec-label">Warranty Expiry</span>
-                      <span className="spec-value">{new Date(vehicle.warranty_expiry_date).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
             )}
             </div>
 
-            {/* Pricing Section */}
-            <div className="accordion-section">
+            {/* HOW IT WORKS */}
+            <div className="accordion-section" data-section="pricing">
           <button 
             className={`accordion-header ${expandedSection === 'pricing' ? 'expanded' : ''}`}
             onClick={() => toggleSection('pricing')}
           >
-            <h3>PRICING</h3>
+            <h3>HOW IT WORKS</h3>
             <span className="accordion-icon">{expandedSection === 'pricing' ? '−' : '+'}</span>
           </button>
           {expandedSection === 'pricing' && (
             <div className="accordion-content">
-              <div className="pdf-pricing-section">
-                <h4 className="pricing-header">LEASE PRICING</h4>
+              <div className="how-it-works-section">
+                <h4 className="hiw-header">LEASE-TO-OWN YOUR MERCEDES-BENZ</h4>
                 
-                <div className="main-price-box">
-                  <div className="main-price-label">Monthly Lease Payment</div>
-                  <div className="main-price-value">
-                    AED {vehicle.monthly_lease_rate?.toLocaleString() || 'N/A'}
-                  </div>
-                  <div className="price-note">*Plus applicable taxes and fees</div>
-                </div>
-
-                <div className="payment-options">
-                  <div className="payment-option">
-                    <div className="payment-option-label">Security Deposit</div>
-                    <div className="payment-option-value">
-                      AED {vehicle.security_deposit?.toLocaleString() || 'N/A'}
-                    </div>
-                  </div>
-                  <div className="payment-option">
-                    <div className="payment-option-label">Buyout Price</div>
-                    <div className="payment-option-value">
-                      AED {vehicle.buyout_price?.toLocaleString() || 'N/A'}
-                    </div>
-                  </div>
-                </div>
-
-                {vehicle.max_mileage_per_year && (
-                  <div className="mileage-info">
-                    <div className="mileage-item">
-                      <span className="mileage-label">Maximum Mileage per Year:</span>
-                      <span className="mileage-value">{vehicle.max_mileage_per_year.toLocaleString()} km</span>
-                    </div>
-                    {vehicle.lease_term_months && (
-                      <div className="mileage-item">
-                        <span className="mileage-label">Lease Term:</span>
-                        <span className="mileage-value">{vehicle.lease_term_months} months</span>
+                {/* Storyline Timeline */}
+                <div className="storyline-timeline">
+                  <div className="story-step step-1">
+                    <div className="story-number">1</div>
+                    <div className="story-content">
+                      <h5 className="story-title">Start Your Journey Today</h5>
+                      <div className="story-detail">
+                        <span className="detail-label">Refundable Security Deposit:</span>
+                        <span className="detail-value">AED {vehicle.security_deposit?.toLocaleString() || 'N/A'}</span>
                       </div>
-                    )}
+                      <div className="story-detail">
+                        <span className="detail-label">Monthly Payment:</span>
+                        <span className="detail-value">AED {vehicle.monthly_lease_rate?.toLocaleString() || 'N/A'}</span>
+                  </div>
+                      <div className="story-detail">
+                        <span className="detail-label">Lease Duration:</span>
+                        <span className="detail-value">{vehicle.lease_term_months || 12} months</span>
+                </div>
+                      <p className="story-note">Security deposit returned at lease end</p>
+                    </div>
+                  </div>
+
+                  <div className="story-divider">
+                    <div className="divider-line"></div>
+                    <div className="divider-icon">↓</div>
+                  </div>
+
+                  <div className="story-step step-2">
+                    <div className="story-number">2</div>
+                    <div className="story-content">
+                      <h5 className="story-title">After {vehicle.lease_term_months || 12} Months - Your Choice</h5>
+                      <div className="options-grid">
+                        <div className="option-box purchase">
+                          <div className="option-header">
+                            <Icon name="key" size={20} variant="silver" />
+                            <span className="option-title">Option A: Own It</span>
+                          </div>
+                          <div className="option-price">AED {vehicle.buyout_price?.toLocaleString() || 'N/A'}</div>
+                          <p className="option-note">Bank Finance or Cash Payment</p>
+                        </div>
+                        <div className="option-box return">
+                          <div className="option-header">
+                            <Icon name="undo" size={20} variant="silver" />
+                            <span className="option-title">Option B: Return</span>
+                          </div>
+                          <div className="option-price">Commitment-Free</div>
+                          <p className="option-note">Simply return the vehicle - no obligation</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Savings Highlight */}
+                {vehicle.current_market_value && vehicle.buyout_price && vehicle.current_market_value > vehicle.buyout_price && (
+                  <div className="savings-highlight">
+                    <Icon name="check-circle" size={20} variant="gold" />
+                    <span>Save AED {(vehicle.current_market_value - vehicle.buyout_price).toLocaleString()} when you buy after lease term</span>
                   </div>
                 )}
               </div>
@@ -372,7 +418,7 @@ export default function VehicleDetailPage() {
             </div>
 
             {/* What's Included Section */}
-            <div className="accordion-section">
+            <div className="accordion-section" data-section="included">
           <button 
             className={`accordion-header ${expandedSection === 'included' ? 'expanded' : ''}`}
             onClick={() => toggleSection('included')}
@@ -382,65 +428,54 @@ export default function VehicleDetailPage() {
           </button>
           {expandedSection === 'included' && (
             <div className="accordion-content">
-              <div className="pdf-full-section">
-                <div className="benefits-grid">
+              <div className="benefits-container">
+                <div className="benefits-grid-two-col">
                   <div className="benefit-card">
-                    <div className="benefit-icon">💰</div>
+                    <div className="benefit-icon-wrapper-white">
+                      <Icon name="dirham" size={28} />
+                    </div>
                     <h5 className="benefit-title">Zero Down Payment</h5>
                     <p className="benefit-description">No upfront down payment required</p>
                   </div>
                   
                   <div className="benefit-card">
-                    <div className="benefit-icon">🏎️</div>
+                    <div className="benefit-icon-wrapper-white">
+                      <Icon name="car" size={28} />
+                    </div>
                     <h5 className="benefit-title">Quick Start</h5>
                     <p className="benefit-description">Pay security deposit + first month to drive home</p>
                   </div>
                   
                   <div className="benefit-card">
-                    <div className="benefit-icon">🛡️</div>
+                    <div className="benefit-icon-wrapper-white">
+                      <Icon name="shield-alt" size={28} />
+                    </div>
                     <h5 className="benefit-title">Insurance Included</h5>
                     <p className="benefit-description">Comprehensive insurance & registration included</p>
                   </div>
                   
                   <div className="benefit-card">
-                    <div className="benefit-icon">🔧</div>
+                    <div className="benefit-icon-wrapper-white">
+                      <Icon name="cogs" size={28} />
+                    </div>
                     <h5 className="benefit-title">Service Included</h5>
                     <p className="benefit-description">Routine service and maintenance covered</p>
                   </div>
                   
                   <div className="benefit-card">
-                    <div className="benefit-icon">📅</div>
+                    <div className="benefit-icon-wrapper-white">
+                      <Icon name="calendar" size={28} />
+                    </div>
                     <h5 className="benefit-title">12-Month Term</h5>
                     <p className="benefit-description">Standard 12 month lease period</p>
                   </div>
                   
                   <div className="benefit-card">
-                    <div className="benefit-icon">🔑</div>
+                    <div className="benefit-icon-wrapper-white">
+                      <Icon name="key" size={28} />
+                    </div>
                     <h5 className="benefit-title">Lease-to-Own</h5>
                     <p className="benefit-description">Option to purchase at end of lease term</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pdf-full-section" style={{ marginTop: '20px' }}>
-                <h4 className="pdf-card-title">How to Get Started</h4>
-                <div className="process-steps-grid">
-                  <div className="process-step">
-                    <div className="step-number">1</div>
-                    <h5 className="step-title">Choose Your Vehicle</h5>
-                    <p className="step-description">Select from our premium Mercedes-Benz fleet</p>
-                  </div>
-                  
-                  <div className="process-step">
-                    <div className="step-number">2</div>
-                    <h5 className="step-title">Get Approved</h5>
-                    <p className="step-description">Quick approval process within 24 hours</p>
-                  </div>
-                  
-                  <div className="process-step">
-                    <div className="step-number">3</div>
-                    <h5 className="step-title">Pay & Drive</h5>
-                    <p className="step-description">Pay security deposit + 1st month, drive home today</p>
                   </div>
                 </div>
               </div>
@@ -448,43 +483,49 @@ export default function VehicleDetailPage() {
             )}
             </div>
 
-            {/* Contact/Enquire Section */}
-            <div className="accordion-section">
+            {/* How to Get Started Section */}
+            <div className="accordion-section" data-section="getstarted">
           <button 
-            className={`accordion-header ${expandedSection === 'contact' ? 'expanded' : ''}`}
-            onClick={() => toggleSection('contact')}
+              className={`accordion-header ${expandedSection === 'getstarted' ? 'expanded' : ''}`}
+              onClick={() => toggleSection('getstarted')}
           >
-            <h3>ENQUIRE ABOUT THIS VEHICLE</h3>
-            <span className="accordion-icon">{expandedSection === 'contact' ? '−' : '+'}</span>
+              <h3>HOW TO GET STARTED</h3>
+              <span className="accordion-icon">{expandedSection === 'getstarted' ? '−' : '+'}</span>
           </button>
-          {expandedSection === 'contact' && (
+            {expandedSection === 'getstarted' && (
             <div className="accordion-content">
-              <div className="contact-grid">
-                <div className="contact-card phone-card">
-                  <div className="card-icon">
-                    <Icon name="phone-alt" size={24} variant="gold" />
+                <div className="getting-started-timeline">
+                  <div className="gs-step">
+                    <div className="gs-number">1</div>
+                    <div className="gs-content">
+                      <h5 className="gs-title">Choose Your Vehicle</h5>
+                      <p className="gs-description">Select from our premium Mercedes-Benz fleet</p>
+                    </div>
                   </div>
-                  <h3>Call Us Today</h3>
-                  <p>For immediate assistance</p>
-                  <div className="card-action">
-                    <a href="tel:+971561742746" className="action-link">
-                      <Icon name="phone-alt" size={16} variant="gold" />
-                      +971 56 174 2746
-                    </a>
+                  
+                  <div className="gs-connector">
+                    <div className="gs-line"></div>
+                    <div className="gs-arrow">→</div>
+                  </div>
+                  
+                  <div className="gs-step">
+                    <div className="gs-number">2</div>
+                    <div className="gs-content">
+                      <h5 className="gs-title">Get Approved</h5>
+                      <p className="gs-description">30-minute approval process</p>
                   </div>
                 </div>
 
-                <div className="contact-card whatsapp-card">
-                  <div className="card-icon">
-                    <Icon name="whatsapp" size={24} variant="gold" />
+                  <div className="gs-connector">
+                    <div className="gs-line"></div>
+                    <div className="gs-arrow">→</div>
                   </div>
-                  <h3>WhatsApp</h3>
-                  <p>Quick leasing enquiries</p>
-                  <div className="card-action">
-                    <a href="https://wa.me/97143805515" className="action-link" target="_blank" rel="noopener noreferrer">
-                      <Icon name="whatsapp" size={16} variant="gold" />
-                      Start Chat
-                    </a>
+                  
+                  <div className="gs-step">
+                    <div className="gs-number">3</div>
+                    <div className="gs-content">
+                      <h5 className="gs-title">Pay & Drive</h5>
+                      <p className="gs-description">Pay security deposit + 1st month, drive home today</p>
                   </div>
                 </div>
               </div>

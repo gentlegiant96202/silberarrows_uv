@@ -2505,7 +2505,7 @@
     font-family: var(--impact-font);
     font-size: 38px;
     font-weight: 700;
-    color: #cd5c5c;
+    color: var(--light);
     margin-bottom: 20px;
     line-height: 1.1;
     text-align: left;
@@ -2644,7 +2644,7 @@
 
     .vehicle-title {
         font-size: 24px !important;
-        color: #cd5c5c !important;
+        color: var(--light) !important;
         margin-bottom: 15px !important;
     }
 

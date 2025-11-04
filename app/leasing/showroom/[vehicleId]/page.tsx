@@ -142,15 +142,6 @@ export default function VehicleDetailPage() {
                   >
                     <Icon name="directions" size={24} />
                   </button>
-                  <div className="image-dots">
-                    {images.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setCurrentImage(idx)}
-                        className={`image-dot ${idx === currentImage ? 'active' : ''}`}
-                      />
-                    ))}
-                  </div>
                   <div className="image-counter">
                     {currentImage + 1} / {images.length}
                   </div>
@@ -158,9 +149,24 @@ export default function VehicleDetailPage() {
               )}
             </div>
 
-            {/* Thumbnail Grid */}
+            {/* Mobile Thumbnail Strip - Below Main Image */}
             {images.length > 1 && (
-              <div className="pdf-thumbnail-grid">
+              <div className="mobile-thumbnail-strip">
+                {images.map((img, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`mobile-thumbnail ${idx === currentImage ? 'active' : ''}`}
+                    onClick={() => setCurrentImage(idx)}
+                  >
+                    <img src={img} alt={`Thumbnail ${idx + 1}`} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Desktop Thumbnail Grid */}
+            {images.length > 1 && (
+              <div className="pdf-thumbnail-grid desktop-only">
                 {images.slice(1, 5).map((img, idx) => (
                   <div key={idx} className="pdf-thumbnail" onClick={() => setCurrentImage(idx + 1)}>
                     <img src={img} alt={`Thumbnail ${idx + 2}`} />
@@ -462,6 +468,20 @@ export default function VehicleDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* Fixed Footer */}
+      <footer className="fixed-footer">
+        <div className="fixed-footer-content">
+          <a href="tel:+971561742746" className="footer-action-btn">
+            <Icon name="phone" size={20} variant="gold" />
+            <span>Call Us</span>
+          </a>
+          <a href="https://wa.me/97143805515" className="footer-action-btn" target="_blank" rel="noopener noreferrer">
+            <Icon name="whatsapp" size={20} variant="gold" />
+            <span>WhatsApp</span>
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }

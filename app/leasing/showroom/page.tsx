@@ -125,19 +125,8 @@ export default function ShowroomPage() {
 
 // Hero Section Component
 function HeroSection() {
-  const [heroLoaded, setHeroLoaded] = useState(false);
-
-  useEffect(() => {
-    // Preload the hero image
-    const img = new Image();
-    img.onload = () => {
-      setHeroLoaded(true);
-    };
-    img.src = '/assets/images/hero-bg-silver-optimized.avif';
-  }, []);
-
   return (
-    <section className={`hero${heroLoaded ? ' hero-loaded' : ''}`}>
+    <section className="hero hero-loaded">
       <div className="hero-content">
         <div className="hero-logo">
           <img 

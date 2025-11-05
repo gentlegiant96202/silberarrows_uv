@@ -143,7 +143,7 @@ function generateFacebookLeasingXML(entries: any[], vehicleMap: Map<string, stri
     const stateOfVehicle = entry.state_of_vehicle || 'USED';
 
     // URL to vehicle showroom page
-    const vehicleUrl = entry.url || `https://silberarrows.com/leasing/showroom/${entry.vehicle_id}`;
+    const vehicleUrl = entry.url || `https://portal.silberarrows.com/leasing/showroom/${entry.vehicle_id}`;
 
     // Address components
     const addr1 = entry.address_line1 || 'Sheikh Zayed Road';

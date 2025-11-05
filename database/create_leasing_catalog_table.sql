@@ -146,7 +146,7 @@
                 WHEN NEW.current_mileage_km < 1000 THEN 'NEW'
                 ELSE 'USED'
             END,
-            CONCAT('https://silberarrows.com/leasing/showroom/', NEW.id)
+            CONCAT('https://portal.silberarrows.com/leasing/showroom/', NEW.id)
         ) ON CONFLICT (vehicle_id) DO UPDATE SET
                 title = EXCLUDED.title,
                 description = EXCLUDED.description,
@@ -199,7 +199,7 @@ SELECT
         WHEN v.current_mileage_km < 1000 THEN 'NEW'
         ELSE 'USED'
     END,
-    CONCAT('https://silberarrows.com/leasing/showroom/', v.id)
+    CONCAT('https://portal.silberarrows.com/leasing/showroom/', v.id)
 FROM leasing_inventory v 
 WHERE v.status = 'inventory'
 ON CONFLICT (vehicle_id) DO NOTHING;

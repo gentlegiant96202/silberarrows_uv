@@ -74,55 +74,95 @@
 Go to **GTM → Variables → User-Defined Variables → New**
 
 #### Variable 1: Content IDs
-- **Name:** `DL - Content IDs`
-- **Type:** Data Layer Variable
-- **Variable Name:** `content_ids`
+Click **"New"** button, then:
+- **Variable Name** (top field): `DL - Content IDs`
+- Click on **"Variable Configuration"** box
+- **Variable Type:** Select **"Data Layer Variable"**
+- **Data Layer Variable Name:** `content_ids`
+- **Data Layer Version:** Leave as default (Version 2)
+- Leave "Set Default Value" and "Format Value" **unchecked**
+- Click **"Save"**
 
 #### Variable 2: Content Type
-- **Name:** `DL - Content Type`
-- **Type:** Data Layer Variable
-- **Variable Name:** `content_type`
+Click **"New"** button, then:
+- **Variable Name** (top field): `DL - Content Type`
+- Click on **"Variable Configuration"** box
+- **Variable Type:** Select **"Data Layer Variable"**
+- **Data Layer Variable Name:** `content_type`
+- Click **"Save"**
 
 #### Variable 3: Content Name
-- **Name:** `DL - Content Name`
-- **Type:** Data Layer Variable
-- **Variable Name:** `content_name`
+Click **"New"** button, then:
+- **Variable Name** (top field): `DL - Content Name`
+- Click on **"Variable Configuration"** box
+- **Variable Type:** Select **"Data Layer Variable"**
+- **Data Layer Variable Name:** `content_name`
+- Click **"Save"**
 
 #### Variable 4: Value
-- **Name:** `DL - Value`
-- **Type:** Data Layer Variable
-- **Variable Name:** `value`
+Click **"New"** button, then:
+- **Variable Name** (top field): `DL - Value`
+- Click on **"Variable Configuration"** box
+- **Variable Type:** Select **"Data Layer Variable"**
+- **Data Layer Variable Name:** `value`
+- Click **"Save"**
 
 #### Variable 5: Currency
-- **Name:** `DL - Currency`
-- **Type:** Data Layer Variable
-- **Variable Name:** `currency`
+Click **"New"** button, then:
+- **Variable Name** (top field): `DL - Currency`
+- Click on **"Variable Configuration"** box
+- **Variable Type:** Select **"Data Layer Variable"**
+- **Data Layer Variable Name:** `currency`
+- Click **"Save"**
+
+#### Variable 6: Content Category
+Click **"New"** button, then:
+- **Variable Name** (top field): `DL - Content Category`
+- Click on **"Variable Configuration"** box
+- **Variable Type:** Select **"Data Layer Variable"**
+- **Data Layer Variable Name:** `content_category`
+- Click **"Save"**
 
 ---
 
 ### **Step 2: Create Triggers**
 
+Go to **GTM → Triggers → New**
+
 #### Trigger 1: ViewContent
-- **Name:** `Event - ViewContent`
-- **Type:** Custom Event
-- **Event Name:** `view_content`
-- **This trigger fires on:** All Custom Events
+Click **"New"** button, then:
+- **Trigger Name** (top field): `Event - ViewContent`
+- Click on **"Trigger Configuration"** box
+- **Trigger Type:** Click **"Custom Event"**
+- **Event name:** Type `view_content` (exactly as shown)
+- **This trigger fires on:** Select **"All Custom Events"** (leave as default)
+- Click **"Save"**
 
 #### Trigger 2: AddToCart
-- **Name:** `Event - AddToCart`
-- **Type:** Custom Event
-- **Event Name:** `add_to_cart`
-- **This trigger fires on:** All Custom Events
+Click **"New"** button, then:
+- **Trigger Name** (top field): `Event - AddToCart`
+- Click on **"Trigger Configuration"** box
+- **Trigger Type:** Click **"Custom Event"**
+- **Event name:** Type `add_to_cart` (exactly as shown)
+- **This trigger fires on:** Select **"All Custom Events"** (leave as default)
+- Click **"Save"**
 
 ---
 
 ### **Step 3: Create Facebook Pixel Tags**
 
+Go to **GTM → Tags → New**
+
 #### Tag 1: FB Pixel - ViewContent
-**GTM → Tags → New**
-- **Tag Type:** Custom HTML
-- **Name:** `FB Pixel - ViewContent`
-- **HTML:**
+
+Click **"New"** button, then:
+
+1. **Tag Name** (top field): Type `FB Pixel - ViewContent`
+
+2. Click on **"Tag Configuration"** box
+   - **Tag Type:** Click **"Custom HTML"**
+   
+3. In the **HTML** text box, paste this EXACTLY:
 ```html
 <script>
 if (typeof fbq !== 'undefined') {
@@ -130,7 +170,7 @@ if (typeof fbq !== 'undefined') {
     content_ids: {{DL - Content IDs}},
     content_type: {{DL - Content Type}},
     content_name: {{DL - Content Name}},
-    content_category: 'vehicles',
+    content_category: {{DL - Content Category}},
     value: {{DL - Value}},
     currency: {{DL - Currency}}
   });
@@ -141,13 +181,26 @@ if (typeof fbq !== 'undefined') {
 }
 </script>
 ```
-- **Triggering:** `Event - ViewContent`
+
+4. Click on **"Triggering"** box (bottom section)
+   - Click the **"+"** button
+   - Select **"Event - ViewContent"** (the trigger you created)
+   - Click **"Add"**
+
+5. Click **"Save"**
+
+---
 
 #### Tag 2: FB Pixel - AddToCart
-**GTM → Tags → New**
-- **Tag Type:** Custom HTML
-- **Name:** `FB Pixel - AddToCart`
-- **HTML:**
+
+Click **"New"** button, then:
+
+1. **Tag Name** (top field): Type `FB Pixel - AddToCart`
+
+2. Click on **"Tag Configuration"** box
+   - **Tag Type:** Click **"Custom HTML"**
+   
+3. In the **HTML** text box, paste this EXACTLY:
 ```html
 <script>
 if (typeof fbq !== 'undefined') {
@@ -155,7 +208,7 @@ if (typeof fbq !== 'undefined') {
     content_ids: {{DL - Content IDs}},
     content_type: {{DL - Content Type}},
     content_name: {{DL - Content Name}},
-    content_category: 'vehicles',
+    content_category: {{DL - Content Category}},
     value: {{DL - Value}},
     currency: {{DL - Currency}}
   });
@@ -166,7 +219,17 @@ if (typeof fbq !== 'undefined') {
 }
 </script>
 ```
-- **Triggering:** `Event - AddToCart`
+
+4. Click on **"Triggering"** box (bottom section)
+   - Click the **"+"** button
+   - Select **"Event - AddToCart"** (the trigger you created)
+   - Click **"Add"**
+
+5. Click **"Save"**
+
+6. **IMPORTANT:** Click **"Submit"** (top right) to publish your changes
+   - Add Version Name: `Facebook Pixel Tracking for Vehicles`
+   - Click **"Publish"**
 
 ---
 

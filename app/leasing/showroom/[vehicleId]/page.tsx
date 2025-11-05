@@ -265,11 +265,37 @@ export default function VehicleDetailPage() {
 
             {/* Call & WhatsApp Buttons */}
             <div className="cta-buttons-grid">
-              <a href="tel:+971561742746" className="cta-button call-button">
+              <a 
+                href="tel:+971561742746" 
+                className="cta-button call-button"
+                onClick={() => {
+                  window.dataLayer = window.dataLayer || [];
+                  window.dataLayer.push({
+                    event: 'leasing_phone_click',
+                    page: 'vehicle_detail',
+                    vehicle_id: vehicle.id,
+                    vehicle_name: vehicleName
+                  });
+                }}
+              >
                 <Icon name="phone-alt" size={18} variant="dark" />
                 <span>Call Us</span>
               </a>
-              <a href="https://wa.me/97143805515" className="cta-button whatsapp-button" target="_blank" rel="noopener noreferrer">
+              <a 
+                href="https://wa.me/97143805515" 
+                className="cta-button whatsapp-button" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={() => {
+                  window.dataLayer = window.dataLayer || [];
+                  window.dataLayer.push({
+                    event: 'leasing_whatsapp_click',
+                    page: 'vehicle_detail',
+                    vehicle_id: vehicle.id,
+                    vehicle_name: vehicleName
+                  });
+                }}
+              >
                 <Icon name="whatsapp" size={18} variant="dark" />
                 <span>WhatsApp</span>
               </a>
@@ -539,11 +565,39 @@ export default function VehicleDetailPage() {
       {/* Fixed Footer */}
       <footer className="fixed-footer">
         <div className="fixed-footer-content">
-          <a href="tel:+971561742746" className="footer-action-btn">
+          <a 
+            href="tel:+971561742746" 
+            className="footer-action-btn"
+            onClick={() => {
+              window.dataLayer = window.dataLayer || [];
+              window.dataLayer.push({
+                event: 'leasing_phone_click',
+                page: 'vehicle_detail',
+                location: 'footer',
+                vehicle_id: vehicle.id,
+                vehicle_name: vehicleName
+              });
+            }}
+          >
             <Icon name="phone" size={20} variant="gold" />
             <span>Call Us</span>
           </a>
-          <a href="https://wa.me/97143805515" className="footer-action-btn" target="_blank" rel="noopener noreferrer">
+          <a 
+            href="https://wa.me/97143805515" 
+            className="footer-action-btn" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            onClick={() => {
+              window.dataLayer = window.dataLayer || [];
+              window.dataLayer.push({
+                event: 'leasing_whatsapp_click',
+                page: 'vehicle_detail',
+                location: 'footer',
+                vehicle_id: vehicle.id,
+                vehicle_name: vehicleName
+              });
+            }}
+          >
             <Icon name="whatsapp" size={20} variant="gold" />
             <span>WhatsApp</span>
           </a>

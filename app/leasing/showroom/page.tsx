@@ -340,6 +340,22 @@ function VehiclesSection({ vehicles, loading, onVehicleClick }: any) {
 
 // Contact Section
 function ContactSection() {
+  const handlePhoneClick = () => {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'leasing_phone_click',
+      page: 'showroom_landing'
+    });
+  };
+
+  const handleWhatsAppClick = () => {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'leasing_whatsapp_click',
+      page: 'showroom_landing'
+    });
+  };
+
   return (
     <section className="contact-section" id="contact">
       <div className="section-header">
@@ -356,7 +372,7 @@ function ContactSection() {
             <h3>Call Us Today</h3>
             <p>For immediate assistance</p>
             <div className="card-action">
-              <a href="tel:+971561742746" className="action-link">
+              <a href="tel:+971561742746" className="action-link" onClick={handlePhoneClick}>
                 <Icon name="phone-alt" size={16} variant="gold" />
                 +971 56 174 2746
               </a>
@@ -370,7 +386,7 @@ function ContactSection() {
             <h3>WhatsApp</h3>
             <p>Quick leasing enquiries</p>
             <div className="card-action">
-              <a href="https://wa.me/97143805515" className="action-link" target="_blank" rel="noopener noreferrer">
+              <a href="https://wa.me/97143805515" className="action-link" target="_blank" rel="noopener noreferrer" onClick={handleWhatsAppClick}>
                 <Icon name="whatsapp" size={16} variant="gold" />
                 Start Chat
               </a>
@@ -413,14 +429,32 @@ function ContactSection() {
 
 // Fixed Footer Component (UK Style)
 function Footer() {
+  const handlePhoneClick = () => {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'leasing_phone_click',
+      page: 'showroom_landing',
+      location: 'footer'
+    });
+  };
+
+  const handleWhatsAppClick = () => {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'leasing_whatsapp_click',
+      page: 'showroom_landing',
+      location: 'footer'
+    });
+  };
+
   return (
     <footer className="fixed-footer">
       <div className="fixed-footer-content">
-        <a href="tel:+971561742746" className="footer-action-btn">
+        <a href="tel:+971561742746" className="footer-action-btn" onClick={handlePhoneClick}>
           <Icon name="phone" size={20} variant="gold" />
           <span>Call Us</span>
         </a>
-        <a href="https://wa.me/97143805515" className="footer-action-btn" target="_blank" rel="noopener noreferrer">
+        <a href="https://wa.me/97143805515" className="footer-action-btn" target="_blank" rel="noopener noreferrer" onClick={handleWhatsAppClick}>
           <Icon name="whatsapp" size={20} variant="gold" />
           <span>WhatsApp</span>
         </a>

@@ -12,6 +12,15 @@ export default function ShowroomHeader({ showBackButton = false }: ShowroomHeade
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
+  const handlePhoneClick = () => {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'leasing_phone_click',
+      page: showBackButton ? 'vehicle_detail' : 'showroom_landing',
+      location: 'header'
+    });
+  };
+
   return (
     <div className="showroom-header">
       <header>
@@ -45,7 +54,11 @@ export default function ShowroomHeader({ showBackButton = false }: ShowroomHeade
               </div>
               <div className="phone-line">
                 <Icon name="phone" size={12} variant="gold" />
-                <a href="tel:+971561742746" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <a 
+                  href="tel:+971561742746" 
+                  style={{ color: 'inherit', textDecoration: 'none' }}
+                  onClick={handlePhoneClick}
+                >
                   +971 56 174 2746
                 </a>
               </div>
@@ -100,7 +113,12 @@ export default function ShowroomHeader({ showBackButton = false }: ShowroomHeade
               </div>
               <div className="mobile-contact-item">
                 <Icon name="phone" size={16} variant="gold" />
-                <a href="tel:+971561742746">+971 56 174 2746</a>
+                <a 
+                  href="tel:+971561742746"
+                  onClick={handlePhoneClick}
+                >
+                  +971 56 174 2746
+                </a>
               </div>
             </div>
           </div>

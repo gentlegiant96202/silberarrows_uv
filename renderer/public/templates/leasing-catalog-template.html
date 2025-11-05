@@ -175,6 +175,14 @@
             font-weight: 900;
             line-height: 1;
             margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .dirham-symbol {
+            font-size: 90px;
+            font-weight: 700;
         }
         
         .price-period {
@@ -232,7 +240,7 @@
     <div class="ad-container">
         <div class="top-banner">
             <div class="banner-title">RENT-TO-OWN</div>
-            <div class="banner-subtitle">{{year}} {{model}}</div>
+            <div class="banner-subtitle">{{year}} {{model}} - BRAND NEW - ZERO MILEAGE</div>
         </div>
         
         <div class="image-section">
@@ -252,7 +260,7 @@
                 <div class="column">
                     <div class="price-section">
                         <div class="price-label">Lease for just</div>
-                        <div class="price-amount">AED {{originalPrice}}<span class="price-period">/mo</span></div>
+                        <div class="price-amount"><span class="dirham-symbol">د.إ</span> {{originalPrice}}<span class="price-period">/mo</span></div>
                         <div class="included">Insurance & Maintenance Included</div>
                     </div>
                 </div>

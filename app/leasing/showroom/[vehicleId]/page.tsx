@@ -72,6 +72,34 @@ export default function VehicleDetailPage() {
 
       if (error) throw error;
       setVehicle(data);
+      
+      // Push ViewContent event to dataLayer for Facebook Pixel (via GTM)
+      if (data) {
+        const vehicleName = `${data.model_year} ${data.make} ${data.vehicle_model || data.model_family || ''}`.trim();
+        
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+          event: 'view_content',
+          ecommerce: {
+            items: [{
+              item_id: data.stock_number || data.id, // Use stock_number (must match FB catalog)
+              item_name: vehicleName,
+              item_brand: data.make,
+              item_category: 'Vehicles',
+              item_category2: data.model_family || data.vehicle_model,
+              price: data.monthly_lease_rate || 0,
+              quantity: 1
+            }]
+          },
+          // Facebook Pixel specific parameters
+          content_ids: [data.stock_number || data.id],
+          content_type: 'product',
+          content_name: vehicleName,
+          content_category: 'vehicles',
+          value: data.monthly_lease_rate || 0,
+          currency: 'AED'
+        });
+      }
     } catch (error) {
       console.error('Error fetching vehicle:', error);
     } finally {
@@ -272,6 +300,32 @@ export default function VehicleDetailPage() {
                   e.stopPropagation();
                   window.dataLayer = window.dataLayer || [];
                   window.dataLayer.push({
+                    event: 'add_to_cart', // Facebook AddToCart event
+                    ecommerce: {
+                      items: [{
+                        item_id: vehicle.stock_number || vehicle.id,
+                        item_name: vehicleName,
+                        item_brand: vehicle.make,
+                        item_category: 'Vehicles',
+                        item_category2: vehicle.model_family || vehicle.vehicle_model,
+                        price: vehicle.monthly_lease_rate || 0,
+                        quantity: 1
+                      }]
+                    },
+                    // Facebook Pixel specific parameters
+                    content_ids: [vehicle.stock_number || vehicle.id],
+                    content_type: 'product',
+                    content_name: vehicleName,
+                    content_category: 'vehicles',
+                    value: vehicle.monthly_lease_rate || 0,
+                    currency: 'AED',
+                    // Custom tracking parameters
+                    interaction_type: 'phone_call',
+                    page: 'vehicle_detail'
+                  });
+                  
+                  // Also push legacy tracking event
+                  window.dataLayer.push({
                     event: 'leasing_phone_click',
                     page: 'vehicle_detail',
                     vehicle_id: vehicle.id,
@@ -290,6 +344,32 @@ export default function VehicleDetailPage() {
                 onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                   e.stopPropagation();
                   window.dataLayer = window.dataLayer || [];
+                  window.dataLayer.push({
+                    event: 'add_to_cart', // Facebook AddToCart event
+                    ecommerce: {
+                      items: [{
+                        item_id: vehicle.stock_number || vehicle.id,
+                        item_name: vehicleName,
+                        item_brand: vehicle.make,
+                        item_category: 'Vehicles',
+                        item_category2: vehicle.model_family || vehicle.vehicle_model,
+                        price: vehicle.monthly_lease_rate || 0,
+                        quantity: 1
+                      }]
+                    },
+                    // Facebook Pixel specific parameters
+                    content_ids: [vehicle.stock_number || vehicle.id],
+                    content_type: 'product',
+                    content_name: vehicleName,
+                    content_category: 'vehicles',
+                    value: vehicle.monthly_lease_rate || 0,
+                    currency: 'AED',
+                    // Custom tracking parameters
+                    interaction_type: 'whatsapp',
+                    page: 'vehicle_detail'
+                  });
+                  
+                  // Also push legacy tracking event
                   window.dataLayer.push({
                     event: 'leasing_whatsapp_click',
                     page: 'vehicle_detail',
@@ -574,6 +654,30 @@ export default function VehicleDetailPage() {
               e.stopPropagation();
               window.dataLayer = window.dataLayer || [];
               window.dataLayer.push({
+                event: 'add_to_cart',
+                ecommerce: {
+                  items: [{
+                    item_id: vehicle.stock_number || vehicle.id,
+                    item_name: vehicleName,
+                    item_brand: vehicle.make,
+                    item_category: 'Vehicles',
+                    item_category2: vehicle.model_family || vehicle.vehicle_model,
+                    price: vehicle.monthly_lease_rate || 0,
+                    quantity: 1
+                  }]
+                },
+                content_ids: [vehicle.stock_number || vehicle.id],
+                content_type: 'product',
+                content_name: vehicleName,
+                content_category: 'vehicles',
+                value: vehicle.monthly_lease_rate || 0,
+                currency: 'AED',
+                interaction_type: 'phone_call',
+                page: 'vehicle_detail',
+                location: 'footer'
+              });
+              
+              window.dataLayer.push({
                 event: 'leasing_phone_click',
                 page: 'vehicle_detail',
                 location: 'footer',
@@ -593,6 +697,30 @@ export default function VehicleDetailPage() {
             onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
               e.stopPropagation();
               window.dataLayer = window.dataLayer || [];
+              window.dataLayer.push({
+                event: 'add_to_cart',
+                ecommerce: {
+                  items: [{
+                    item_id: vehicle.stock_number || vehicle.id,
+                    item_name: vehicleName,
+                    item_brand: vehicle.make,
+                    item_category: 'Vehicles',
+                    item_category2: vehicle.model_family || vehicle.vehicle_model,
+                    price: vehicle.monthly_lease_rate || 0,
+                    quantity: 1
+                  }]
+                },
+                content_ids: [vehicle.stock_number || vehicle.id],
+                content_type: 'product',
+                content_name: vehicleName,
+                content_category: 'vehicles',
+                value: vehicle.monthly_lease_rate || 0,
+                currency: 'AED',
+                interaction_type: 'whatsapp',
+                page: 'vehicle_detail',
+                location: 'footer'
+              });
+              
               window.dataLayer.push({
                 event: 'leasing_whatsapp_click',
                 page: 'vehicle_detail',

@@ -12,7 +12,8 @@ export default function ShowroomHeader({ showBackButton = false }: ShowroomHeade
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
-  const handlePhoneClick = () => {
+  const handlePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.stopPropagation();
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: 'leasing_phone_click',

@@ -268,7 +268,8 @@ export default function VehicleDetailPage() {
               <a 
                 href="tel:+971561742746" 
                 className="cta-button call-button"
-                onClick={() => {
+                onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                  e.stopPropagation();
                   window.dataLayer = window.dataLayer || [];
                   window.dataLayer.push({
                     event: 'leasing_phone_click',
@@ -286,7 +287,8 @@ export default function VehicleDetailPage() {
                 className="cta-button whatsapp-button" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                onClick={() => {
+                onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                  e.stopPropagation();
                   window.dataLayer = window.dataLayer || [];
                   window.dataLayer.push({
                     event: 'leasing_whatsapp_click',
@@ -568,7 +570,8 @@ export default function VehicleDetailPage() {
           <a 
             href="tel:+971561742746" 
             className="footer-action-btn"
-            onClick={() => {
+            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              e.stopPropagation();
               window.dataLayer = window.dataLayer || [];
               window.dataLayer.push({
                 event: 'leasing_phone_click',
@@ -587,7 +590,8 @@ export default function VehicleDetailPage() {
             className="footer-action-btn" 
             target="_blank" 
             rel="noopener noreferrer"
-            onClick={() => {
+            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              e.stopPropagation();
               window.dataLayer = window.dataLayer || [];
               window.dataLayer.push({
                 event: 'leasing_whatsapp_click',

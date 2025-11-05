@@ -340,7 +340,8 @@ function VehiclesSection({ vehicles, loading, onVehicleClick }: any) {
 
 // Contact Section
 function ContactSection() {
-  const handlePhoneClick = () => {
+  const handlePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.stopPropagation();
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: 'leasing_phone_click',
@@ -348,7 +349,8 @@ function ContactSection() {
     });
   };
 
-  const handleWhatsAppClick = () => {
+  const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.stopPropagation();
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: 'leasing_whatsapp_click',
@@ -429,7 +431,8 @@ function ContactSection() {
 
 // Fixed Footer Component (UK Style)
 function Footer() {
-  const handlePhoneClick = () => {
+  const handlePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.stopPropagation();
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: 'leasing_phone_click',
@@ -438,7 +441,8 @@ function Footer() {
     });
   };
 
-  const handleWhatsAppClick = () => {
+  const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.stopPropagation();
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: 'leasing_whatsapp_click',

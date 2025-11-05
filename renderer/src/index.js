@@ -18,6 +18,7 @@ app.use(express.static(path.resolve(__dirname, '../public')));
 const templatePath = path.resolve(__dirname, '../public/templates/price-drop-template.html');
 const template45Path = path.resolve(__dirname, '../public/templates/price-drop-template-45.html');
 const catalogTemplatePath = path.resolve(__dirname, '../public/templates/xml-catalog-template.html');
+const leasingCatalogTemplatePath = path.resolve(__dirname, '../public/templates/leasing-catalog-template.html');
 const consignmentTemplatePath = path.resolve(__dirname, '../public/templates/consignment-agreement-template.html');
 const damageReportTemplatePath = path.resolve(__dirname, '../public/templates/damage-report-template.html');
 
@@ -35,6 +36,7 @@ const contentPillarTemplates = {
 let templateHtml = '';
 let template45Html = '';
 let catalogTemplateHtml = '';
+let leasingCatalogTemplateHtml = '';
 let consignmentTemplateHtml = '';
 let damageReportTemplateHtml = '';
 let mainLogoBase64 = '';
@@ -69,6 +71,14 @@ async function loadTemplate() {
     console.log('✅ Catalog template loaded, length:', catalogTemplateHtml.length);
   } catch (err) {
     console.error('❌ Error loading catalog template:', err);
+    throw err;
+  }
+  
+  try {
+    leasingCatalogTemplateHtml = await fs.readFile(leasingCatalogTemplatePath, 'utf-8');
+    console.log('✅ Leasing Catalog template loaded, length:', leasingCatalogTemplateHtml.length);
+  } catch (err) {
+    console.error('❌ Error loading leasing catalog template:', err);
     throw err;
   }
   
@@ -199,6 +209,25 @@ function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
     '{{twentyDownPayment}}': String(carDetails.twentyDownPayment ?? '—'),
     '{{horsepower}}': String(carDetails.horsepower ?? '—'),
     '{{regionalSpecification}}': String(carDetails.regionalSpecification ?? '—').replace(/\s*SPECIFICATION/i, ''),
+  };
+  for (const [key, value] of Object.entries(replacements)) {
+    html = replaceAll(html, key, value);
+  }
+  return html;
+}
+
+function fillLeasingCatalogTemplate({ carDetails, catalogImageUrl }) {
+  // Leasing-specific template with 4:5 ratio
+  
+  let html = leasingCatalogTemplateHtml;
+  const replacements = {
+    '{{year}}': String(carDetails.year ?? ''),
+    '{{model}}': String(carDetails.model ?? ''),
+    '{{catalogImageUrl}}': String(catalogImageUrl ?? ''),
+    '{{originalPrice}}': String(carDetails.originalPrice ?? '—'),
+    '{{mileage}}': String(carDetails.mileage ?? ''),
+    '{{regionalSpecification}}': String(carDetails.regionalSpecification ?? 'GCC'),
+    '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
   };
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);
@@ -423,6 +452,62 @@ app.post('/render-catalog', async (req, res) => {
     res.json({ success: true, catalogImage });
   } catch (err) {
     console.error('Catalog render error:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+app.post('/render-leasing-catalog', async (req, res) => {
+  try {
+    console.log('🚀 Leasing Catalog render request received');
+    console.log('📊 Request body keys:', Object.keys(req.body || {}));
+    
+    const { carDetails, catalogImageUrl } = req.body || {};
+    
+    console.log('🚗 Car details received:', JSON.stringify(carDetails, null, 2));
+    console.log('🖼️ Catalog image URL:', catalogImageUrl);
+    
+    if (!carDetails || !catalogImageUrl) {
+      console.error('❌ Missing required fields:', { carDetails: !!carDetails, catalogImageUrl: !!catalogImageUrl });
+      return res.status(400).json({ success: false, error: 'Missing required fields: carDetails and catalogImageUrl' });
+    }
+
+    console.log('🎨 Filling leasing catalog template...');
+    const html = fillLeasingCatalogTemplate({ carDetails, catalogImageUrl });
+    console.log('✅ Template filled, length:', html.length);
+
+    // Prefer Playwright; it exists in this image
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+
+    // 4:5 aspect ratio for leasing catalog (2400x3000)
+    await page.setViewportSize({ width: 2400, height: 3000 });
+    
+    // Set shorter timeout and don't wait for network idle for external images
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
+    await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
+    
+    // Enhanced font loading
+    try {
+      console.log('⏳ Waiting for fonts to load...');
+      await page.evaluate(() => document.fonts && document.fonts.ready);
+      await page.waitForTimeout(3000);
+      console.log('✅ Fonts loaded successfully');
+    } catch (e) {
+      console.log('Font loading timeout, proceeding...', e.message);
+    }
+    
+    // Capture the ad container element for exact 2400x3000 output
+    const cardEl = await page.$('.ad-container');
+    const catalogBuffer = await cardEl.screenshot({ type: 'png' });
+
+    await browser.close();
+
+    const catalogImage = catalogBuffer.toString('base64');
+
+    res.json({ success: true, catalogImage });
+  } catch (err) {
+    console.error('Leasing Catalog render error:', err);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });

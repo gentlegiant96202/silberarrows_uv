@@ -157,6 +157,7 @@ export default function Sidebar() {
       { key: 'design', label: 'Creative Hub', icon: Palette, href: '/marketing/dashboard?tab=design' },
       { key: 'call_log', label: 'Call Log', icon: Phone, href: '/marketing/dashboard?tab=call_log' },
       { key: 'uv_catalog', label: 'UV Catalog', icon: ImageIcon, href: '/marketing/dashboard?tab=uv_catalog' },
+      { key: 'leasing_catalog', label: 'Leasing Catalog', icon: ImageIcon, href: '/marketing/dashboard?tab=leasing_catalog' },
       {
         key: 'content_pillars',
         label: 'Content Pillars',

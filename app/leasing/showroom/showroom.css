@@ -212,7 +212,7 @@ body {
     width: 55%;
     height: 120%;
     background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
-                url('/assets/images/hero-bg-silver-optimized.webp') 
+                url('/assets/images/hero-bg-silver-optimized.jpg') 
                 no-repeat center 30%/cover;
     clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%);
     opacity: 0.8;
@@ -235,7 +235,7 @@ body {
         right: 0;
         clip-path: none;
         background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
-                    url('/assets/images/hero-bg-silver-optimized.webp') 
+                    url('/assets/images/hero-bg-silver-optimized.jpg') 
                     no-repeat center 25%/cover;
         height: 100%;
         opacity: 0.7;

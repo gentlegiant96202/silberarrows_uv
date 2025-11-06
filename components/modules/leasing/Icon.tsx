@@ -23,6 +23,7 @@ import {
   Key,
   Undo,
   CheckCircle,
+  XCircle,
   CreditCard
 } from 'lucide-react';
 
@@ -30,7 +31,7 @@ interface IconProps {
   name: string;
   className?: string;
   size?: number | string;
-  variant?: 'white' | 'dark' | 'gold' | 'inherit';
+  variant?: 'white' | 'dark' | 'gold' | 'silver' | 'inherit';
   flip?: boolean;
 }
 
@@ -63,6 +64,7 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, variant = 
     'key': Key,
     'undo': Undo,
     'check-circle': CheckCircle,
+    'x-circle': XCircle,
     'card': CreditCard
   };
 
@@ -84,6 +86,8 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, variant = 
         return '#000000';
       case 'gold':
         return '#E5E5E5'; // Silver/gold tone matching UK site
+      case 'silver':
+        return '#C0C0C0'; // Pure silver
       case 'inherit':
         return 'currentColor';
       default:
@@ -105,7 +109,7 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, variant = 
           verticalAlign: 'middle',
           transform: flip ? 'scaleX(-1)' : 'none',
           flexShrink: 0,
-          filter: variant === 'dark' ? 'brightness(0)' : variant === 'gold' ? 'brightness(0) saturate(100%) invert(85%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%)' : 'none'
+          filter: variant === 'dark' ? 'brightness(0)' : variant === 'gold' ? 'brightness(0) saturate(100%) invert(85%) sepia(10%) saturate(200%) hue-rotate(180deg) brightness(90%)' : variant === 'silver' ? 'brightness(0) saturate(100%) invert(75%) sepia(0%)' : 'none'
         }}
       />
     );

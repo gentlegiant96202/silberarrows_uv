@@ -260,6 +260,7 @@ body {
     
     .hero-logo-img {
         height: 110px;
+        transform: translateX(10px);
     }
 }
 
@@ -315,7 +316,7 @@ body {
 
 @media (max-width: 768px) {
     .hero-title {
-        font-size: 48px;
+        font-size: 95px;
         text-align: center;
         line-height: 0.95;
         font-weight: 900;
@@ -534,11 +535,25 @@ body {
     font-weight: 500;
     backdrop-filter: blur(5px);
     transition: all 0.3s ease;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(192, 192, 192, 0.3);
+    }
+    50% {
+        opacity: 0.98;
+        transform: scale(1.005);
+        box-shadow: 0 0 8px 2px rgba(192, 192, 192, 0.2);
+    }
 }
 
 .highlight-item:hover {
     background: rgba(229, 229, 229, 0.1);
-    border-color: var(--gold);
+    border-color: rgba(192, 192, 192, 0.4);
 }
 
 @media (max-width: 768px) {
@@ -786,12 +801,16 @@ body {
 .vehicle-badge {
     display: inline-block;
     padding: 4px 12px;
-    background: var(--gold-gradient);
-    color: var(--dark);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--light);
     border-radius: 4px;
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .vehicle-price {
@@ -809,10 +828,10 @@ body {
 .vehicle-cta {
     width: 100%;
     padding: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, #C0C0C0 0%, #E8E8E8 50%, #C0C0C0 100%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 4px;
-    color: var(--light);
+    color: var(--dark);
     font-family: var(--impact-font);
     font-size: 14px;
     text-transform: uppercase;
@@ -820,12 +839,14 @@ body {
     transition: all 0.3s ease;
     margin-top: 15px;
     letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(192, 192, 192, 0.3);
 }
 
 .vehicle-cta:hover {
-    background: var(--gold-gradient);
+    background: linear-gradient(135deg, #E8E8E8 0%, #C0C0C0 50%, #E8E8E8 100%);
     color: var(--dark);
-    border-color: var(--gold);
+    border-color: #E8E8E8;
+    box-shadow: 0 4px 12px rgba(192, 192, 192, 0.5);
 }
 
 /* Contact Section */
@@ -846,6 +867,17 @@ body {
 .contact-cards-grid {
     display: grid;
     gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .contact-cards-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    
+    .contact-card {
+        padding: 20px;
+    }
 }
 
 .contact-card {
@@ -3494,7 +3526,7 @@ body {
 }
 
 .badge-item.primary {
-    background: var(--gold-gradient);
+    background: linear-gradient(135deg, #C0C0C0 0%, #E8E8E8 50%, #C0C0C0 100%);
     border: none;
     color: var(--dark);
     font-weight: 700;
@@ -3506,15 +3538,15 @@ body {
 
 /* Pulsing Animation for Zero Down Payment Badge */
 .pulse-badge {
-    animation: pulse 2s ease-in-out infinite;
+    animation: pulse-badge 2s ease-in-out infinite;
 }
 
-@keyframes pulse {
+@keyframes pulse-badge {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7);
+        box-shadow: 0 0 0 0 rgba(192, 192, 192, 0.3);
     }
     50% {
-        box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
+        box-shadow: 0 0 0 8px rgba(192, 192, 192, 0);
     }
 }
 

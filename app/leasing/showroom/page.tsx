@@ -151,15 +151,15 @@ function HeroSection() {
 
         <div className="hero-highlights">
           <div className="highlight-item">
-            <Icon name="dirham" size={16} variant="gold" />
-            <span>Zero Down Payment</span>
+            <Icon name="x-circle" size={16} variant="white" />
+            <span style={{ color: 'white' }}>No Downpayment Required</span>
           </div>
           <div className="highlight-item">
-            <Icon name="check-circle" size={16} variant="gold" />
+            <Icon name="check-circle" size={16} variant="silver" />
             <span>No Credit Checks</span>
         </div>
           <div className="highlight-item">
-            <Icon name="card" size={16} variant="gold" />
+            <Icon name="card" size={16} variant="silver" />
             <span>Passport & Emirates ID Only</span>
           </div>
         </div>

@@ -217,7 +217,7 @@ function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
 }
 
 function fillLeasingCatalogTemplate({ carDetails, catalogImageUrl }) {
-  // Leasing-specific template with 4:5 ratio
+  // Leasing-specific template with 1:1 square ratio
   
   let html = leasingCatalogTemplateHtml;
   const replacements = {
@@ -480,8 +480,8 @@ app.post('/render-leasing-catalog', async (req, res) => {
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
-    // 4:5 aspect ratio for leasing catalog (2400x3000)
-    await page.setViewportSize({ width: 2400, height: 3000 });
+    // 1:1 aspect ratio for leasing catalog (2400x2400)
+    await page.setViewportSize({ width: 2400, height: 2400 });
     
     // Set shorter timeout and don't wait for network idle for external images
     await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
@@ -497,7 +497,7 @@ app.post('/render-leasing-catalog', async (req, res) => {
       console.log('Font loading timeout, proceeding...', e.message);
     }
     
-    // Capture the ad container element for exact 2400x3000 output
+    // Capture the ad container element for exact 2400x2400 output
     const cardEl = await page.$('.ad-container');
     const catalogBuffer = await cardEl.screenshot({ type: 'png' });
 

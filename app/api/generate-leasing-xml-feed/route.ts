@@ -168,6 +168,7 @@ function generateFacebookLeasingXML(entries: any[], vehicleMap: Map<string, stri
     <description>${cleanDescription}</description>
     <url>${vehicleUrl}</url>
     <title>${entry.year} ${entry.make} ${entry.model}</title>
+    <availability>in stock</availability>
     <body_style>${bodyStyle}</body_style>
     <mileage>
       <unit>KM</unit>

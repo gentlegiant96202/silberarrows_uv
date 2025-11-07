@@ -90,17 +90,23 @@
             display: flex;
             flex-direction: column;
             background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+            justify-content: space-between;
         }
         
         .headline-section {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 0;
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 800px;
         }
         
         .headline {
             font-size: 140px;
             font-weight: 800;
-            line-height: 1.1;
+            line-height: 0.9;
             margin-bottom: 0;
             background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
             -webkit-background-clip: text;
@@ -118,7 +124,11 @@
             display: flex;
             gap: 80px;
             margin-bottom: 30px;
-            flex-grow: 0;
+            flex: 0 0 auto;
+        }
+        
+        .bottom-content {
+            flex: 0 0 auto;
         }
         
         .column {
@@ -328,28 +338,30 @@
                 </div>
             </div>
             
-            <div class="two-column-layout">
-                <div class="column">
-                    <div class="benefits">
-                        <div class="benefit-item"><span class="highlight">Zero Downpayment</span></div>
-                        <div class="benefit-item">No Credit Checks</div>
-                        <div class="benefit-item">Fast Approval</div>
+            <div class="bottom-content">
+                <div class="two-column-layout">
+                    <div class="column">
+                        <div class="benefits">
+                            <div class="benefit-item"><span class="highlight">Zero Downpayment</span></div>
+                            <div class="benefit-item">No Credit Checks</div>
+                            <div class="benefit-item">Fast Approval</div>
+                        </div>
+                    </div>
+                    
+                    <div class="column">
+                        <div class="price-section">
+                            <div class="special-offer-badge">SPECIAL OFFER</div>
+                            <div class="price-label">Lease starting<br/>from AED 3,999</div>
+                            <div class="included">Insurance & Maintenance Included</div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="column">
-                    <div class="price-section">
-                        <div class="special-offer-badge">SPECIAL OFFER</div>
-                        <div class="price-label">Lease starting<br/>from AED 3,999</div>
-                        <div class="included">Insurance & Maintenance Included</div>
-                    </div>
+                <div class="cta-section">
+                    <div class="cta-headline">Drive Today • Own Tomorrow</div>
+                    <div class="cta-button">Reserve Your Mercedes-Benz</div>
+                    <div class="disclaimer">Limited Time Offer • Terms & Conditions Apply</div>
                 </div>
-            </div>
-            
-            <div class="cta-section">
-                <div class="cta-headline">Drive Today • Own Tomorrow</div>
-                <div class="cta-button">Reserve Your Mercedes-Benz</div>
-                <div class="disclaimer">Limited Time Offer • Terms & Conditions Apply</div>
             </div>
         </div>
     </div>

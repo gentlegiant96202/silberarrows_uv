@@ -37,11 +37,21 @@ export default function LeasingCatalogBoard() {
   const [generatingVehicleId, setGeneratingVehicleId] = useState<string | null>(null);
   const [xmlUrl, setXmlUrl] = useState<string | null>(null);
   const { user } = useAuth();
+  const [marketingCardUrl, setMarketingCardUrl] = useState<string | null>(null);
+  const [generatingMarketing, setGeneratingMarketing] = useState(false);
   
   // Sync local loading state with global loading context
   useEffect(() => {
     setGlobalLoading(loading);
   }, [loading, setGlobalLoading]);
+
+  // Load marketing card URL from localStorage
+  useEffect(() => {
+    const savedUrl = localStorage.getItem('leasing_marketing_card_url');
+    if (savedUrl) {
+      setMarketingCardUrl(savedUrl);
+    }
+  }, []);
 
   // Get the live XML feed URL
   const getFacebookXmlUrl = () => {
@@ -277,11 +287,11 @@ export default function LeasingCatalogBoard() {
     }
   };
 
-  const handleGenerateCatalogImageAlt = async (entry: CatalogEntry, skipRefresh = false) => {
+  const handleGenerateMarketingCard = async () => {
     try {
-      setGeneratingVehicleId(entry.vehicle_id);
+      setGeneratingMarketing(true);
       
-      const response = await fetch(`/api/generate-leasing-catalog-image-alt/${entry.vehicle_id}`, {
+      const response = await fetch(`/api/generate-marketing-card`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -289,29 +299,25 @@ export default function LeasingCatalogBoard() {
       });
 
       if (!response.ok) {
-        console.error('Response status:', response.status, response.statusText);
-        const responseText = await response.text();
-        console.error('Response text:', responseText);
-        try {
-          const error = JSON.parse(responseText);
-          throw new Error(error.error || error.details || `Failed to generate alt catalog image: ${response.status}`);
-        } catch (e) {
-          throw new Error(`Failed to generate alt catalog image: ${response.status} - ${responseText.substring(0, 200)}`);
-        }
+        const errorText = await response.text();
+        console.error('❌ Marketing card generation error:', errorText);
+        throw new Error(`Failed to generate marketing card: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('✅ Alt catalog image generated:', result.imageUrl);
+      console.log('✅ Marketing card generated:', result.imageUrl);
       
-      if (!skipRefresh) {
-        await refreshData();
-      }
+      // Save to localStorage and state
+      localStorage.setItem('leasing_marketing_card_url', result.imageUrl);
+      setMarketingCardUrl(result.imageUrl);
+      
+      alert('✅ Marketing card generated successfully!');
       
     } catch (error) {
-      console.error('Error generating alt catalog image:', error);
-      throw error; // Re-throw to be caught by caller
+      console.error('Error generating marketing card:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setGeneratingVehicleId(null);
+      setGeneratingMarketing(false);
     }
   };
 
@@ -335,39 +341,6 @@ export default function LeasingCatalogBoard() {
     }
   };
 
-  const handleGenerateAllAltImages = async () => {
-    if (!confirm(`Generate alt catalog images for all ${entries.length} vehicles?\n\nThis will create text-focused designs for social media.`)) {
-      return;
-    }
-
-    try {
-      setGenerating(true);
-      
-      let successCount = 0;
-      let failCount = 0;
-      
-      for (const entry of entries) {
-        try {
-          console.log(`Generating alt image for ${entry.title}...`);
-          await handleGenerateCatalogImageAlt(entry, true); // Skip individual refresh
-          successCount++;
-        } catch (error) {
-          console.error(`Failed to generate alt image for ${entry.title}:`, error);
-          failCount++;
-        }
-      }
-      
-      // Refresh data once at the end
-      await refreshData();
-      
-      alert(`✅ Generated ${successCount} alt catalog images!${failCount > 0 ? `\n⚠️ ${failCount} failed` : ''}`);
-    } catch (error) {
-      console.error('Error generating all alt images:', error);
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   const handleGenerateXMLFeed = async () => {
     try {
@@ -501,16 +474,16 @@ export default function LeasingCatalogBoard() {
           </button>
 
           <button
-            onClick={handleGenerateAllAltImages}
-            disabled={generating}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-700/50 to-gray-600/50 backdrop-blur-md hover:from-gray-600/50 hover:to-gray-500/50 border border-white/10 rounded-lg text-gray-300 transition-all duration-300 disabled:opacity-50"
+            onClick={handleGenerateMarketingCard}
+            disabled={generatingMarketing}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600/50 to-blue-500/50 backdrop-blur-md hover:from-blue-500/50 hover:to-blue-400/50 border border-blue-400/30 rounded-lg text-blue-200 transition-all duration-300 disabled:opacity-50"
           >
-            {generating ? (
+            {generatingMarketing ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <Zap className="w-4 h-4" />
             )}
-            Generate All Alt Images
+            Generate Marketing Card
           </button>
           
           <button
@@ -594,34 +567,89 @@ export default function LeasingCatalogBoard() {
 
       {/* Vehicle Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Marketing Card - Standalone */}
+        {marketingCardUrl && (
+          <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-md border-2 border-blue-400/30 rounded-xl overflow-hidden hover:border-blue-400/50 transition-all duration-300 group">
+            {/* Marketing Card Image */}
+            <div className="relative aspect-square bg-black/20">
+              <img 
+                src={marketingCardUrl} 
+                alt="Marketing Card"
+                className="w-full h-full object-cover"
+              />
+              {/* Marketing Badge */}
+              <div className="absolute top-3 left-3 px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 backdrop-blur-sm rounded-full text-xs font-bold text-white border border-blue-300/50 shadow-xl">
+                📢 MARKETING
+              </div>
+              
+              {/* Hover Actions */}
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
+                <button
+                  onClick={() => window.open(marketingCardUrl, '_blank')}
+                  className="p-3 bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-lg transition-all duration-300 border border-white/10"
+                  title="View Marketing Card"
+                >
+                  <Eye className="w-5 h-5 text-gray-300" />
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('leasing_marketing_card_url');
+                    setMarketingCardUrl(null);
+                  }}
+                  className="p-3 bg-red-500/20 backdrop-blur-md hover:bg-red-500/30 rounded-lg transition-all duration-300 border border-red-400/20"
+                  title="Remove Marketing Card"
+                >
+                  <X className="w-5 h-5 text-red-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Marketing Card Details */}
+            <div className="p-4">
+              <h3 className="font-semibold text-blue-300 text-lg leading-tight mb-2">
+                Rent-to-Own Marketing Card
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                <div>
+                  <span className="text-gray-500">Type:</span>
+                  <span className="text-blue-400 ml-1">Text Design</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Use:</span>
+                  <span className="text-blue-400 ml-1">Social Media</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-gray-500">Purpose:</span>
+                  <span className="text-gray-300 ml-1">Generic Marketing</span>
+                </div>
+              </div>
+
+              {/* Status Indicator */}
+              <div className="flex items-center justify-between pt-3 border-t border-blue-400/20">
+                <div className="flex items-center gap-2 text-xs text-blue-400">
+                  <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                  Not in XML Feed
+                </div>
+                
+                <div className="text-xs text-gray-500">
+                  Marketing Only
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {entries.map((entry) => (
           <div key={entry.id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-all duration-300 group">
-            {/* Vehicle Image - Shows alt image if available */}
+            {/* Vehicle Image */}
             <div className="relative aspect-square bg-black/20">
-              {entry.catalog_image_alt_url ? (
-                <>
-                  <img 
-                    src={entry.catalog_image_alt_url} 
-                    alt={entry.title}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Alt Image Badge */}
-                  <div className="absolute top-3 right-3 px-2 py-1 bg-gradient-to-r from-blue-500/90 to-cyan-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white border border-blue-400/50 shadow-lg">
-                    ALT DESIGN
-                  </div>
-                </>
-              ) : entry.catalog_image_url ? (
-                <>
-                  <img 
-                    src={entry.catalog_image_url} 
-                    alt={entry.title}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* XML Feed Badge */}
-                  <div className="absolute top-3 right-3 px-2 py-1 bg-gradient-to-r from-green-500/90 to-emerald-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white border border-green-400/50 shadow-lg">
-                    XML FEED
-                  </div>
-                </>
+              {entry.catalog_image_url ? (
+                <img 
+                  src={entry.catalog_image_url} 
+                  alt={entry.title}
+                  className="w-full h-full object-cover"
+                />
               ) : entry.primary_image_url ? (
                 <img 
                   src={entry.primary_image_url} 
@@ -675,9 +703,9 @@ export default function LeasingCatalogBoard() {
                 </button>
                 
                 <div className="flex items-center gap-2">
-                  {(entry.catalog_image_alt_url || entry.catalog_image_url || entry.primary_image_url) && (
+                  {(entry.catalog_image_url || entry.primary_image_url) && (
                     <button
-                      onClick={() => window.open(entry.catalog_image_alt_url || entry.catalog_image_url || entry.primary_image_url, '_blank')}
+                      onClick={() => window.open(entry.catalog_image_url || entry.primary_image_url, '_blank')}
                       className="p-3 bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-lg transition-all duration-300 border border-white/10"
                       title="View Image"
                     >

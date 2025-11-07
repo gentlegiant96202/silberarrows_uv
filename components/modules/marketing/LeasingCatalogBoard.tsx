@@ -12,6 +12,7 @@ interface CatalogEntry {
   title: string;
   description: string | null;
   catalog_image_url: string | null;
+  catalog_image_alt_url: string | null;
   status: 'pending' | 'generating' | 'ready' | 'error';
   error_message: string | null;
   last_generated_at: string | null;
@@ -79,6 +80,7 @@ export default function LeasingCatalogBoard() {
           title,
           description,
           catalog_image_url,
+          catalog_image_alt_url,
           status,
           error_message,
           last_generated_at,
@@ -585,9 +587,15 @@ export default function LeasingCatalogBoard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {entries.map((entry) => (
           <div key={entry.id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-all duration-300 group">
-            {/* Vehicle Image */}
+            {/* Vehicle Image - Shows alt image if available */}
             <div className="relative aspect-square bg-black/20">
-              {entry.catalog_image_url ? (
+              {entry.catalog_image_alt_url ? (
+                <img 
+                  src={entry.catalog_image_alt_url} 
+                  alt={entry.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : entry.catalog_image_url ? (
                 <img 
                   src={entry.catalog_image_url} 
                   alt={entry.title}
@@ -646,9 +654,9 @@ export default function LeasingCatalogBoard() {
                 </button>
                 
                 <div className="flex items-center gap-2">
-                  {(entry.catalog_image_url || entry.primary_image_url) && (
+                  {(entry.catalog_image_alt_url || entry.catalog_image_url || entry.primary_image_url) && (
                     <button
-                      onClick={() => window.open(entry.catalog_image_url || entry.primary_image_url, '_blank')}
+                      onClick={() => window.open(entry.catalog_image_alt_url || entry.catalog_image_url || entry.primary_image_url, '_blank')}
                       className="p-3 bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-lg transition-all duration-300 border border-white/10"
                       title="View Image"
                     >

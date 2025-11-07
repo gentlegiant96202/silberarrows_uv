@@ -275,6 +275,43 @@ export default function LeasingCatalogBoard() {
     }
   };
 
+  const handleGenerateCatalogImageAlt = async (entry: CatalogEntry) => {
+    try {
+      setGeneratingVehicleId(entry.vehicle_id);
+      
+      const response = await fetch(`/api/generate-leasing-catalog-image-alt/${entry.vehicle_id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Response status:', response.status, response.statusText);
+        const responseText = await response.text();
+        console.error('Response text:', responseText);
+        try {
+          const error = JSON.parse(responseText);
+          throw new Error(error.error || error.details || `Failed to generate alt catalog image: ${response.status}`);
+        } catch (e) {
+          throw new Error(`Failed to generate alt catalog image: ${response.status} - ${responseText.substring(0, 200)}`);
+        }
+      }
+
+      const result = await response.json();
+      console.log('✅ Alt catalog image generated:', result.imageUrl);
+      
+      await refreshData();
+      alert(`✅ Alt catalog image generated successfully!`);
+      
+    } catch (error) {
+      console.error('Error generating alt catalog image:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setGeneratingVehicleId(null);
+    }
+  };
+
   const handleGenerateAllImages = async () => {
     try {
       setGenerating(true);
@@ -565,6 +602,25 @@ export default function LeasingCatalogBoard() {
                     <>
                       <Plus className="w-5 h-5" />
                       <span>Generate</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => handleGenerateCatalogImageAlt(entry)}
+                  disabled={generatingVehicleId === entry.vehicle_id}
+                  className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600/80 to-blue-500/80 backdrop-blur-md hover:from-blue-500/80 hover:to-blue-400/80 rounded-lg transition-all duration-300 disabled:opacity-50 text-white font-medium border border-white/10"
+                  title="Generate Alt Catalog Image (Text Design)"
+                >
+                  {generatingVehicleId === entry.vehicle_id ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5" />
+                      <span>Gen Alt</span>
                     </>
                   )}
                 </button>

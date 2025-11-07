@@ -100,7 +100,7 @@
         .headline {
             font-size: 180px;
             font-weight: 800;
-            line-height: 1.2;
+            line-height: 1.1;
             margin-bottom: 60px;
             background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
             -webkit-background-clip: text;
@@ -108,6 +108,10 @@
             background-clip: text;
             text-transform: uppercase;
             letter-spacing: 4px;
+        }
+        
+        .headline-line {
+            display: block;
         }
         
         .two-column-layout {
@@ -185,12 +189,13 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            font-size: 48px;
-            font-weight: 600;
+            font-size: 58px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 6px;
+            letter-spacing: 4px;
             margin-bottom: 24px;
             text-align: center;
+            line-height: 1.3;
         }
         
         .price-amount {
@@ -199,10 +204,7 @@
             font-weight: 900;
             line-height: 1;
             margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 24px;
+            display: none;
         }
         
         .dirham-symbol {
@@ -320,7 +322,10 @@
         
         <div class="content-section">
             <div class="headline-section">
-                <div class="headline">Drive a Mercedes-Benz</div>
+                <div class="headline">
+                    <span class="headline-line">DRIVE A</span>
+                    <span class="headline-line">MERCEDES-BENZ</span>
+                </div>
             </div>
             
             <div class="two-column-layout">
@@ -335,21 +340,7 @@
                 <div class="column">
                     <div class="price-section">
                         <div class="special-offer-badge">SPECIAL OFFER</div>
-                        <div class="price-label">Lease for just</div>
-                        <div class="price-amount">
-                            <span class="dirham-symbol">
-                                <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                                    <defs>
-                                        <linearGradient id="dirhamGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#C0C0C0;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#E8E8E8;stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
-                                </svg>
-                            </span> 
-                            <span class="price-highlight">{{originalPrice}}</span><span class="price-period">/mo</span>
-                        </div>
+                        <div class="price-label">Lease starting<br/>from AED 3,999</div>
                         <div class="included">Insurance & Maintenance Included</div>
                     </div>
                 </div>
@@ -358,7 +349,7 @@
             <div class="cta-section">
                 <div class="cta-headline">Drive Today • Own Tomorrow</div>
                 <div class="cta-button">Reserve Your Mercedes-Benz</div>
-                <div class="disclaimer">{{mileage}} KM • {{regionalSpecification}} Specification • Stock #{{stockNumber}}</div>
+                <div class="disclaimer">Limited Time Offer • Terms & Conditions Apply</div>
             </div>
         </div>
     </div>

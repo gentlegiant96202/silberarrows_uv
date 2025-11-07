@@ -277,7 +277,7 @@ export default function LeasingCatalogBoard() {
     }
   };
 
-  const handleGenerateCatalogImageAlt = async (entry: CatalogEntry) => {
+  const handleGenerateCatalogImageAlt = async (entry: CatalogEntry, skipRefresh = false) => {
     try {
       setGeneratingVehicleId(entry.vehicle_id);
       
@@ -303,12 +303,13 @@ export default function LeasingCatalogBoard() {
       const result = await response.json();
       console.log('✅ Alt catalog image generated:', result.imageUrl);
       
-      await refreshData();
-      alert(`✅ Alt catalog image generated successfully!`);
+      if (!skipRefresh) {
+        await refreshData();
+      }
       
     } catch (error) {
       console.error('Error generating alt catalog image:', error);
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error; // Re-throw to be caught by caller
     } finally {
       setGeneratingVehicleId(null);
     }
@@ -335,6 +336,10 @@ export default function LeasingCatalogBoard() {
   };
 
   const handleGenerateAllAltImages = async () => {
+    if (!confirm(`Generate alt catalog images for all ${entries.length} vehicles?\n\nThis will create text-focused designs for social media.`)) {
+      return;
+    }
+
     try {
       setGenerating(true);
       
@@ -343,13 +348,17 @@ export default function LeasingCatalogBoard() {
       
       for (const entry of entries) {
         try {
-          await handleGenerateCatalogImageAlt(entry);
+          console.log(`Generating alt image for ${entry.title}...`);
+          await handleGenerateCatalogImageAlt(entry, true); // Skip individual refresh
           successCount++;
         } catch (error) {
           console.error(`Failed to generate alt image for ${entry.title}:`, error);
           failCount++;
         }
       }
+      
+      // Refresh data once at the end
+      await refreshData();
       
       alert(`✅ Generated ${successCount} alt catalog images!${failCount > 0 ? `\n⚠️ ${failCount} failed` : ''}`);
     } catch (error) {

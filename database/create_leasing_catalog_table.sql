@@ -57,36 +57,36 @@
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
 
-    -- Add constraints if they don't exist
-    DO $$ BEGIN
+-- Add constraints if they don't exist
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leasing_catalog_vehicle_id_key') THEN
         ALTER TABLE leasing_catalog ADD CONSTRAINT leasing_catalog_vehicle_id_key UNIQUE(vehicle_id);
-    EXCEPTION
-        WHEN duplicate_object THEN null;
-    END $$;
+    END IF;
+END $$;
 
-    DO $$ BEGIN
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leasing_valid_year') THEN
         ALTER TABLE leasing_catalog ADD CONSTRAINT leasing_valid_year CHECK (year >= 1900 AND year <= EXTRACT(YEAR FROM NOW()) + 2);
-    EXCEPTION
-        WHEN duplicate_object THEN null;
-    END $$;
+    END IF;
+END $$;
 
-    DO $$ BEGIN
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leasing_valid_mileage') THEN
         ALTER TABLE leasing_catalog ADD CONSTRAINT leasing_valid_mileage CHECK (mileage_km >= 0);
-    EXCEPTION
-        WHEN duplicate_object THEN null;
-    END $$;
+    END IF;
+END $$;
 
-    DO $$ BEGIN
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leasing_valid_price') THEN
         ALTER TABLE leasing_catalog ADD CONSTRAINT leasing_valid_price CHECK (price_aed > 0);
-    EXCEPTION
-        WHEN duplicate_object THEN null;
-    END $$;
+    END IF;
+END $$;
 
-    DO $$ BEGIN
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leasing_valid_attempts') THEN
         ALTER TABLE leasing_catalog ADD CONSTRAINT leasing_valid_attempts CHECK (generation_attempts >= 0 AND generation_attempts <= 10);
-    EXCEPTION
-        WHEN duplicate_object THEN null;
-    END $$;
+    END IF;
+END $$;
 
     -- Create indexes for performance (safe)
     CREATE INDEX IF NOT EXISTS idx_leasing_catalog_vehicle_id ON leasing_catalog(vehicle_id);

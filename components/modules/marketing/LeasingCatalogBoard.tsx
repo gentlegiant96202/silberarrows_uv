@@ -599,17 +599,29 @@ export default function LeasingCatalogBoard() {
             {/* Vehicle Image - Shows alt image if available */}
             <div className="relative aspect-square bg-black/20">
               {entry.catalog_image_alt_url ? (
-                <img 
-                  src={entry.catalog_image_alt_url} 
-                  alt={entry.title}
-                  className="w-full h-full object-cover"
-                />
+                <>
+                  <img 
+                    src={entry.catalog_image_alt_url} 
+                    alt={entry.title}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Alt Image Badge */}
+                  <div className="absolute top-3 right-3 px-2 py-1 bg-gradient-to-r from-blue-500/90 to-cyan-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white border border-blue-400/50 shadow-lg">
+                    ALT DESIGN
+                  </div>
+                </>
               ) : entry.catalog_image_url ? (
-                <img 
-                  src={entry.catalog_image_url} 
-                  alt={entry.title}
-                  className="w-full h-full object-cover"
-                />
+                <>
+                  <img 
+                    src={entry.catalog_image_url} 
+                    alt={entry.title}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* XML Feed Badge */}
+                  <div className="absolute top-3 right-3 px-2 py-1 bg-gradient-to-r from-green-500/90 to-emerald-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white border border-green-400/50 shadow-lg">
+                    XML FEED
+                  </div>
+                </>
               ) : entry.primary_image_url ? (
                 <img 
                   src={entry.primary_image_url} 

@@ -332,6 +332,32 @@ export default function LeasingCatalogBoard() {
     }
   };
 
+  const handleGenerateAllAltImages = async () => {
+    try {
+      setGenerating(true);
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (const entry of entries) {
+        try {
+          await handleGenerateCatalogImageAlt(entry);
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to generate alt image for ${entry.title}:`, error);
+          failCount++;
+        }
+      }
+      
+      alert(`✅ Generated ${successCount} alt catalog images!${failCount > 0 ? `\n⚠️ ${failCount} failed` : ''}`);
+    } catch (error) {
+      console.error('Error generating all alt images:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleGenerateXMLFeed = async () => {
     try {
       setGenerating(true);
@@ -461,6 +487,19 @@ export default function LeasingCatalogBoard() {
               <Zap className="w-4 h-4" />
             )}
             Generate All Images
+          </button>
+
+          <button
+            onClick={handleGenerateAllAltImages}
+            disabled={generating}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-700/50 to-gray-600/50 backdrop-blur-md hover:from-gray-600/50 hover:to-gray-500/50 border border-white/10 rounded-lg text-gray-300 transition-all duration-300 disabled:opacity-50"
+          >
+            {generating ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Zap className="w-4 h-4" />
+            )}
+            Generate All Alt Images
           </button>
           
           <button
@@ -602,25 +641,6 @@ export default function LeasingCatalogBoard() {
                     <>
                       <Plus className="w-5 h-5" />
                       <span>Generate</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleGenerateCatalogImageAlt(entry)}
-                  disabled={generatingVehicleId === entry.vehicle_id}
-                  className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600/80 to-blue-500/80 backdrop-blur-md hover:from-blue-500/80 hover:to-blue-400/80 rounded-lg transition-all duration-300 disabled:opacity-50 text-white font-medium border border-white/10"
-                  title="Generate Alt Catalog Image (Text Design)"
-                >
-                  {generatingVehicleId === entry.vehicle_id ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                      <span>Generating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5" />
-                      <span>Gen Alt</span>
                     </>
                   )}
                 </button>

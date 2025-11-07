@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
       year: '2024',
       model: 'Mercedes-Benz',
       price: '3,999',
+      heroImageUrl: 'https://database.silberarrows.com/storage/v1/object/public/media-files/hero-bg-silver-optimized.jpg',
     };
 
     // Call Railway renderer service to generate marketing card

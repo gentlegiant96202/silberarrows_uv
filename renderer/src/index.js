@@ -256,6 +256,7 @@ function fillLeasingCatalogAltTemplate({ carDetails }) {
     '{{mileage}}': String(carDetails.mileage ?? ''),
     '{{regionalSpecification}}': String(carDetails.regionalSpecification ?? 'GCC'),
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
+    '{{heroImageUrl}}': String(carDetails.heroImageUrl ?? 'https://database.silberarrows.com/storage/v1/object/public/media-files/hero-bg-silver-optimized.jpg'),
   };
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);

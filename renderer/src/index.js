@@ -513,46 +513,57 @@ app.post('/render-leasing-catalog', async (req, res) => {
     await page.setViewportSize({ width: 2400, height: 2400 });
     
     // Wait for network to be idle to ensure all resources load
-    await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
-    await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
-    
-    // Enhanced font and image loading
-    try {
-      console.log('⏳ Waiting for fonts and images to load...');
-      
-      // Wait for fonts
-      await page.evaluate(() => document.fonts && document.fonts.ready);
-      
-      // Wait for images (including logo)
-      await page.evaluate(() => {
-        return Promise.all(
-          Array.from(document.images)
-            .filter(img => !img.complete)
-            .map(img => new Promise(resolve => {
-              img.onload = img.onerror = resolve;
-            }))
-        );
-      });
-      
-      // Force Resonate font rendering
-      await page.evaluate(() => {
-        const test = document.createElement('div');
-        test.style.fontFamily = 'Resonate, sans-serif';
-        test.style.fontWeight = '900';
-        test.style.fontSize = '100px';
-        test.style.position = 'absolute';
-        test.style.left = '-9999px';
-        test.innerHTML = 'RENT-TO-OWN';
-        document.body.appendChild(test);
-        test.offsetHeight; // Force layout
-        document.body.removeChild(test);
-      });
-      
-      await page.waitForTimeout(2000);
-      console.log('✅ Fonts and images loaded successfully');
-    } catch (e) {
-      console.log('⚠️ Font/image loading timeout, proceeding...', e.message);
-    }
+        await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
+        
+        // Wait for resources with increased timeout
+        try {
+            console.log('⏳ Waiting for fonts and images to load...');
+            
+            // Give extra time for fonts to load
+            await page.waitForTimeout(3000);
+            
+            // Wait for fonts with timeout
+            await Promise.race([
+                page.evaluate(() => document.fonts && document.fonts.ready),
+                new Promise(resolve => setTimeout(resolve, 5000))
+            ]);
+            
+            // Wait for images (including logo) with timeout
+            await Promise.race([
+                page.evaluate(() => {
+                    return Promise.all(
+                        Array.from(document.images)
+                            .filter(img => !img.complete)
+                            .map(img => new Promise(resolve => {
+                                img.onload = img.onerror = resolve;
+                                // Fallback timeout for each image
+                                setTimeout(resolve, 3000);
+                            }))
+                    );
+                }),
+                new Promise(resolve => setTimeout(resolve, 5000))
+            ]);
+            
+            // Force Resonate font rendering
+            await page.evaluate(() => {
+                const test = document.createElement('div');
+                test.style.fontFamily = 'Resonate, Impact, sans-serif';
+                test.style.fontWeight = '900';
+                test.style.fontSize = '100px';
+                test.style.position = 'absolute';
+                test.style.left = '-9999px';
+                test.innerHTML = 'RENT-TO-OWN';
+                document.body.appendChild(test);
+                test.offsetHeight; // Force layout
+                document.body.removeChild(test);
+            });
+            
+            await page.waitForTimeout(2000);
+            console.log('✅ Fonts and images loaded successfully');
+        } catch (e) {
+            console.log('⚠️ Font/image loading timeout, proceeding...', e.message);
+        }
     
     // Capture the ad container element for exact 2400x2400 output
     const cardEl = await page.$('.ad-container');
@@ -596,31 +607,42 @@ app.post('/render-leasing-catalog-alt', async (req, res) => {
     await page.setViewportSize({ width: 2400, height: 2400 });
     
     // Wait for network to be idle to ensure all resources load
-    await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     
-    // Enhanced font and image loading
+    // Wait for resources with increased timeout
     try {
       console.log('⏳ Waiting for fonts and images to load...');
       
-      // Wait for fonts
-      await page.evaluate(() => document.fonts && document.fonts.ready);
+      // Give extra time for fonts to load
+      await page.waitForTimeout(3000);
       
-      // Wait for images (including logo and hero image)
-      await page.evaluate(() => {
-        return Promise.all(
-          Array.from(document.images)
-            .filter(img => !img.complete)
-            .map(img => new Promise(resolve => {
-              img.onload = img.onerror = resolve;
-            }))
-        );
-      });
+      // Wait for fonts with timeout
+      await Promise.race([
+        page.evaluate(() => document.fonts && document.fonts.ready),
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]);
+      
+      // Wait for images (including logo and hero image) with timeout
+      await Promise.race([
+        page.evaluate(() => {
+          return Promise.all(
+            Array.from(document.images)
+              .filter(img => !img.complete)
+              .map(img => new Promise(resolve => {
+                img.onload = img.onerror = resolve;
+                // Fallback timeout for each image
+                setTimeout(resolve, 3000);
+              }))
+          );
+        }),
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]);
       
       // Force Resonate font rendering
       await page.evaluate(() => {
         const test = document.createElement('div');
-        test.style.fontFamily = 'Resonate, sans-serif';
+        test.style.fontFamily = 'Resonate, Impact, sans-serif';
         test.style.fontWeight = '900';
         test.style.fontSize = '100px';
         test.style.position = 'absolute';

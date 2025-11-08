@@ -42,6 +42,7 @@ let leasingCatalogAltTemplateHtml = '';
 let consignmentTemplateHtml = '';
 let damageReportTemplateHtml = '';
 let mainLogoBase64 = '';
+let resonateFontsBase64 = {};
 let contentPillarHtmls = {};
 
 async function loadTemplate() {
@@ -121,6 +122,27 @@ async function loadTemplate() {
     // Fallback to original logo
     mainLogoBase64 = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
     console.log('✅ Using fallback logo URL');
+  }
+  
+  // Load Resonate fonts as base64 for leasing catalog templates
+  try {
+    const fontWeights = {
+      'Black': '900',
+      'Bold': '700',
+      'Medium': '500',
+      'Regular': '400',
+      'Light': '300'
+    };
+    
+    for (const [weight, value] of Object.entries(fontWeights)) {
+      const fontPath = path.resolve(__dirname, `../public/Fonts/Resonate-${weight}.woff2`);
+      const fontBuffer = await fs.readFile(fontPath);
+      resonateFontsBase64[weight] = `data:font/woff2;base64,${fontBuffer.toString('base64')}`;
+      console.log(`✅ Resonate-${weight} font loaded as base64`);
+    }
+  } catch (error) {
+    console.error('❌ Error loading Resonate fonts:', error);
+    console.log('⚠️ Fonts will fallback to system fonts');
   }
   
   // Load content pillar templates
@@ -246,6 +268,23 @@ function fillLeasingCatalogTemplate({ carDetails, catalogImageUrl }) {
   // Replace logo reference with base64 data URL
   html = replaceAll(html, '/main-logo.png', mainLogoBase64);
   
+  // Replace font URLs with base64 data URLs
+  if (resonateFontsBase64.Black) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Black.woff2')", `url('${resonateFontsBase64.Black}')`);
+  }
+  if (resonateFontsBase64.Bold) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Bold.woff2')", `url('${resonateFontsBase64.Bold}')`);
+  }
+  if (resonateFontsBase64.Medium) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Medium.woff2')", `url('${resonateFontsBase64.Medium}')`);
+  }
+  if (resonateFontsBase64.Regular) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Regular.woff2')", `url('${resonateFontsBase64.Regular}')`);
+  }
+  if (resonateFontsBase64.Light) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Light.woff2')", `url('${resonateFontsBase64.Light}')`);
+  }
+  
   return html;
 }
 
@@ -268,6 +307,23 @@ function fillLeasingCatalogAltTemplate({ carDetails }) {
   
   // Replace logo reference with base64 data URL
   html = replaceAll(html, '/main-logo.png', mainLogoBase64);
+  
+  // Replace font URLs with base64 data URLs
+  if (resonateFontsBase64.Black) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Black.woff2')", `url('${resonateFontsBase64.Black}')`);
+  }
+  if (resonateFontsBase64.Bold) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Bold.woff2')", `url('${resonateFontsBase64.Bold}')`);
+  }
+  if (resonateFontsBase64.Medium) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Medium.woff2')", `url('${resonateFontsBase64.Medium}')`);
+  }
+  if (resonateFontsBase64.Regular) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Regular.woff2')", `url('${resonateFontsBase64.Regular}')`);
+  }
+  if (resonateFontsBase64.Light) {
+    html = replaceAll(html, "url('/Fonts/Resonate-Light.woff2')", `url('${resonateFontsBase64.Light}')`);
+  }
   
   return html;
 }

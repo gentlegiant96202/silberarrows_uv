@@ -242,6 +242,10 @@ function fillLeasingCatalogTemplate({ carDetails, catalogImageUrl }) {
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);
   }
+  
+  // Replace logo reference with base64 data URL
+  html = replaceAll(html, '/main-logo.png', mainLogoBase64);
+  
   return html;
 }
 
@@ -261,6 +265,10 @@ function fillLeasingCatalogAltTemplate({ carDetails }) {
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);
   }
+  
+  // Replace logo reference with base64 data URL
+  html = replaceAll(html, '/main-logo.png', mainLogoBase64);
+  
   return html;
 }
 

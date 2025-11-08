@@ -512,18 +512,46 @@ app.post('/render-leasing-catalog', async (req, res) => {
     // 1:1 aspect ratio for leasing catalog (2400x2400)
     await page.setViewportSize({ width: 2400, height: 2400 });
     
-    // Set shorter timeout and don't wait for network idle for external images
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
+    // Wait for network to be idle to ensure all resources load
+    await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     
-    // Enhanced font loading
+    // Enhanced font and image loading
     try {
-      console.log('⏳ Waiting for fonts to load...');
+      console.log('⏳ Waiting for fonts and images to load...');
+      
+      // Wait for fonts
       await page.evaluate(() => document.fonts && document.fonts.ready);
-      await page.waitForTimeout(3000);
-      console.log('✅ Fonts loaded successfully');
+      
+      // Wait for images (including logo)
+      await page.evaluate(() => {
+        return Promise.all(
+          Array.from(document.images)
+            .filter(img => !img.complete)
+            .map(img => new Promise(resolve => {
+              img.onload = img.onerror = resolve;
+            }))
+        );
+      });
+      
+      // Force Resonate font rendering
+      await page.evaluate(() => {
+        const test = document.createElement('div');
+        test.style.fontFamily = 'Resonate, sans-serif';
+        test.style.fontWeight = '900';
+        test.style.fontSize = '100px';
+        test.style.position = 'absolute';
+        test.style.left = '-9999px';
+        test.innerHTML = 'RENT-TO-OWN';
+        document.body.appendChild(test);
+        test.offsetHeight; // Force layout
+        document.body.removeChild(test);
+      });
+      
+      await page.waitForTimeout(2000);
+      console.log('✅ Fonts and images loaded successfully');
     } catch (e) {
-      console.log('Font loading timeout, proceeding...', e.message);
+      console.log('⚠️ Font/image loading timeout, proceeding...', e.message);
     }
     
     // Capture the ad container element for exact 2400x2400 output
@@ -567,17 +595,46 @@ app.post('/render-leasing-catalog-alt', async (req, res) => {
     // 1:1 aspect ratio for leasing catalog alt (2400x2400)
     await page.setViewportSize({ width: 2400, height: 2400 });
     
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
+    // Wait for network to be idle to ensure all resources load
+    await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     
-    // Enhanced font loading
+    // Enhanced font and image loading
     try {
-      console.log('⏳ Waiting for fonts to load...');
+      console.log('⏳ Waiting for fonts and images to load...');
+      
+      // Wait for fonts
       await page.evaluate(() => document.fonts && document.fonts.ready);
-      await page.waitForTimeout(3000);
-      console.log('✅ Fonts loaded successfully');
+      
+      // Wait for images (including logo and hero image)
+      await page.evaluate(() => {
+        return Promise.all(
+          Array.from(document.images)
+            .filter(img => !img.complete)
+            .map(img => new Promise(resolve => {
+              img.onload = img.onerror = resolve;
+            }))
+        );
+      });
+      
+      // Force Resonate font rendering
+      await page.evaluate(() => {
+        const test = document.createElement('div');
+        test.style.fontFamily = 'Resonate, sans-serif';
+        test.style.fontWeight = '900';
+        test.style.fontSize = '100px';
+        test.style.position = 'absolute';
+        test.style.left = '-9999px';
+        test.innerHTML = 'RENT-TO-OWN';
+        document.body.appendChild(test);
+        test.offsetHeight; // Force layout
+        document.body.removeChild(test);
+      });
+      
+      await page.waitForTimeout(2000);
+      console.log('✅ Fonts and images loaded successfully');
     } catch (e) {
-      console.log('Font loading timeout, proceeding...', e.message);
+      console.log('⚠️ Font/image loading timeout, proceeding...', e.message);
     }
     
     // Capture the ad container element for exact 2400x2400 output

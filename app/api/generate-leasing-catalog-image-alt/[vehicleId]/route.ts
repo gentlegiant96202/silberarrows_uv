@@ -8,7 +8,7 @@ export async function POST(
   try {
     const { vehicleId } = await params;
 
-    // Fetch vehicle data
+    // Fetch vehicle data with photos
     const { data: vehicle, error: vehicleError } = await supabase
       .from('leasing_inventory')
       .select(`
@@ -18,7 +18,8 @@ export async function POST(
         vehicle_model,
         monthly_lease_rate,
         current_mileage_km,
-        regional_specification
+        regional_specification,
+        photos
       `)
       .eq('id', vehicleId)
       .single();
@@ -34,10 +35,26 @@ export async function POST(
       return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
     }
 
+    // Extract photos from the JSONB photos field
+    const photos = (vehicle.photos || []) as Array<{
+      id: string;
+      url: string;
+      filename: string;
+      is_primary: boolean;
+      sort_order: number;
+      uploaded_at: string;
+    }>;
+
+    // Get primary photo or first photo
+    let primaryPhoto = photos.find(photo => photo.is_primary);
+    if (!primaryPhoto && photos.length > 0) {
+      primaryPhoto = photos[0];
+    }
+
     // Calculate leasing payment
     const monthlyRate = vehicle.monthly_lease_rate || 0;
 
-    // Prepare vehicle details for renderer (no car image needed for alt design)
+    // Prepare vehicle details for renderer with hero image
     const vehicleDetails = {
       year: vehicle.model_year,
       model: (vehicle.vehicle_model || '').replace(/\bMercedes[- ]Benz\b/gi, '').replace(/\bMercedes[- ]AMG\b/gi, '').trim(),
@@ -45,6 +62,7 @@ export async function POST(
       stockNumber: vehicle.stock_number,
       regionalSpecification: (vehicle.regional_specification || 'GCC').replace(/\s*SPECIFICATION/i, ''),
       originalPrice: monthlyRate ? monthlyRate.toLocaleString() : '—',
+      heroImageUrl: primaryPhoto?.url || 'https://database.silberarrows.com/storage/v1/object/public/media-files/hero-bg-silver-optimized.jpg',
     };
 
     // Call Railway renderer service to generate alt catalog image
@@ -148,4 +166,5 @@ export async function POST(
     }, { status: 500 });
   }
 }
+
 

@@ -137,7 +137,9 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
 
     fetchAccountingStatus();
 
-    // Set up real-time subscriptions for accounting data changes
+    // Set up real-time subscription for lease-specific accounting data changes
+    // Note: We only listen to this specific lease's accounting records to avoid
+    // creating N subscriptions to the global payment_applications table
     const accountingChannel = supabase
       .channel(`accounting-${leaseId}`)
       .on('postgres_changes', 
@@ -149,17 +151,6 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         }, 
         () => {
           console.log('Accounting data changed, refreshing status...');
-          fetchAccountingStatus();
-        }
-      )
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'ifrs_payment_applications'
-        }, 
-        () => {
-          console.log('Payment applications changed, refreshing status...');
           fetchAccountingStatus();
         }
       )

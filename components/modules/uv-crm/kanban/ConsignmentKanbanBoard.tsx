@@ -77,12 +77,9 @@ export default function ConsignmentKanbanBoard() {
   useEffect(() => {
     loadConsignments();
 
-    // Try a different approach - use a unique channel name and listen to all events
-    const channelName = `consignments-${Date.now()}`;
-    console.log("🔍 Using unique channel name:", channelName);
-
+    // Set up real-time subscription with static channel name
     const channel = supabase
-      .channel(channelName)
+      .channel('consignments-changes')
       .on(
         "postgres_changes",
         { 
@@ -131,56 +128,14 @@ export default function ConsignmentKanbanBoard() {
         if (process.env.NODE_ENV === 'development') {
           console.warn("⚠️ Real-time subscription closed (normal in React Strict Mode)");
         } else {
-          console.error("❌ Real-time subscription closed");
-          console.error("This can happen due to:");
-          console.error("- Network connectivity issues");
-          console.error("- Supabase service restart");
-          console.error("- Authentication token expiration");
-          console.error("- Browser tab becoming inactive");
-          
-          // Attempt to reconnect after a delay
-          setTimeout(() => {
-            console.log("🔄 Attempting to reconnect real-time subscription...");
-    channel.subscribe();
-          }, 5000);
+          console.warn("⚠️ Real-time subscription closed - component will reconnect on remount");
         }
-      }
-    });
-
-    // Additional debugging - check if we can receive any real-time events
-    console.log("🔍 Setting up real-time listener for consignments table");
-    console.log("🔍 Channel name:", channelName);
-    console.log("🔍 Table: consignments, Schema: public");
-    
-    // Test if we can receive ANY real-time events by listening to a different table
-    const testChannel = supabase
-      .channel(`test-channel-${Date.now()}`)
-      .on(
-        "postgres_changes",
-        { 
-          event: "*", 
-          schema: "public", 
-          table: "leads" // Test with leads table instead
-        },
-        (payload: any) => {
-          console.log("🧪 TEST: Real-time event from leads table:", payload);
-        }
-      );
-    
-    testChannel.subscribe((status, err) => {
-      console.log("🧪 TEST: Leads channel status:", status);
-      if (err) {
-        console.error("🧪 TEST: Leads channel error:", err);
-      }
-      if (status === 'CLOSED') {
-        console.log("🧪 TEST: Leads channel closed - this is normal for test channel");
       }
     });
 
     return () => {
       console.log("Cleaning up real-time subscription");
       supabase.removeChannel(channel);
-      supabase.removeChannel(testChannel);
     };
   }, []);
 

@@ -122,9 +122,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Build query with optional filters - optimize by selecting only needed columns
+    // For kanban board, we use lightweight mode to avoid fetching large JSONB fields
+    const lightweight = searchParams.get('lightweight') === 'true';
+    
     let query = supabase
       .from('design_tasks')
-      .select('id, title, description, status, requested_by, due_date, task_type, media_files, created_at, updated_at, created_by, acknowledged_at');
+      .select(
+        lightweight 
+          ? 'id, title, status, requested_by, due_date, task_type, created_at, updated_at, pinned' // Minimal fields for kanban
+          : 'id, title, description, status, requested_by, due_date, task_type, media_files, annotations, created_at, updated_at, created_by, acknowledged_at, pinned' // Full fields for modals
+      );
 
     // Filter by department if user_tickets=true (for "My Department's Marketing Tickets")
     if (userTickets && authResult.user) {

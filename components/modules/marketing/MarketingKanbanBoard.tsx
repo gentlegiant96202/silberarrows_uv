@@ -359,25 +359,28 @@ const InstagramGridItem: React.FC<InstagramGridItemProps> = ({
             <div className="w-full h-full bg-gradient-to-br from-red-500/20 to-red-600/10 flex items-center justify-center p-1.5">
               <FileText className="w-8 h-8 text-red-400" />
             </div>
-          ) : previewUrl ? (
-            <Image 
-              src={previewUrl} 
-              alt={task.title}
-              fill
-              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-110"
-              loading="lazy"
-              placeholder="blur"
-              blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCIgZmlsbD0iIzFhMWExYSIvPjwvc3ZnPg=="
-            />
+          ) : previewUrl && previewUrl !== null ? (
+            <div className="w-full h-full animate-fadeIn">
+              <Image 
+                src={previewUrl} 
+                alt={task.title}
+                fill
+                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-110"
+                loading="lazy"
+                placeholder="blur"
+                blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCIgZmlsbD0iIzFhMWExYSIvPjwvc3ZnPg=="
+              />
+            </div>
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5">
+            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center p-1.5 border border-white/5">
               <Image 
                 src="/MAIN LOGO.png" 
                 alt="SilberArrows Logo" 
                 width={32} 
                 height={32} 
-                className="object-contain opacity-30"
+                className="object-contain opacity-40"
+                priority={false}
               />
             </div>
           )}
@@ -397,6 +400,7 @@ export default function MarketingKanbanBoard() {
   const [archivedTasks, setArchivedTasks] = useState<MarketingTask[]>([]);
   const [loadingArchived, setLoadingArchived] = useState(false);
   const [archivedFetched, setArchivedFetched] = useState(false);
+  const [showInstagramFeed, setShowInstagramFeed] = useState(false);
   const [selectedTask, setSelectedTask] = useState<MarketingTask | null>(null);
   const [draggedTask, setDraggedTask] = useState<MarketingTask | null>(null);
   const [hovered, setHovered] = useState<ColKey | null>(null);
@@ -478,56 +482,6 @@ export default function MarketingKanbanBoard() {
     };
   };
 
-  // Fetch tasks from API
-  const fetchTasks = async () => {
-    try {
-      const headers = await getAuthHeaders();
-      // Fetch all non-archived tasks (increased from 100 to accommodate all tasks)
-      // Archived tasks will be fetched separately on-demand
-      const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true', { headers });
-      if (response.ok) {
-        const rawData = await response.json();
-        
-        // Transform raw database data to match frontend expectations (same as real-time updates)
-        const transformedTasks = rawData.map((rawTask: any) => {
-          const baseTask = {
-            id: rawTask.id,
-            title: rawTask.title,
-            description: rawTask.description,
-            status: rawTask.status,
-            assignee: rawTask.requested_by || rawTask.assignee, // Always prioritize requested_by (database field)
-            due_date: rawTask.due_date,
-            created_at: rawTask.created_at,
-            updated_at: rawTask.updated_at,
-            media_files: rawTask.media_files || [],
-            annotations: rawTask.annotations || [], // Ensure annotations is always an array
-            pinned: rawTask.pinned || false,
-            task_type: rawTask.task_type || 'design',
-            priority: rawTask.priority || 'medium',
-            content_type: rawTask.content_type || 'post',
-            tags: rawTask.tags || [],
-            created_by: rawTask.created_by,
-            acknowledged_at: rawTask.acknowledged_at
-          };
-          
-          return {
-            ...baseTask,
-            previewUrl: getPreviewUrl(baseTask.media_files)
-          };
-        });
-        
-        console.log(`✅ Successfully fetched ${transformedTasks.length} non-archived tasks`);
-        
-        setTasks(transformedTasks);
-      } else {
-        console.error('Failed to fetch tasks:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Measure column width for responsive Instagram grid
   useEffect(() => {
@@ -543,11 +497,14 @@ export default function MarketingKanbanBoard() {
     return () => window.removeEventListener('resize', updateColumnWidth);
   }, []);
 
-  // Fetch all tasks at once
+  // Fetch all tasks at once with LIGHTWEIGHT mode for faster initial load
   const fetchAllTasks = async () => {
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true', { headers });
+      const startTime = performance.now();
+      
+      // Use lightweight=true to fetch only essential fields (no media_files, annotations, etc.)
+      const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true&lightweight=true', { headers });
       
       if (!response.ok) {
         console.error('❌ Failed to load tasks:', response.statusText);
@@ -556,29 +513,31 @@ export default function MarketingKanbanBoard() {
       }
 
       const rawData = await response.json();
+      const fetchTime = performance.now() - startTime;
+      console.log(`⚡ Fetched ${rawData.length} tasks in ${fetchTime.toFixed(0)}ms (lightweight mode)`);
       
       const baseTasks: MarketingTask[] = rawData.map((rawTask: any) => ({
         id: rawTask.id,
         title: rawTask.title,
-        description: rawTask.description,
+        description: '', // Not fetched in lightweight mode
         status: rawTask.status,
         assignee: rawTask.requested_by || rawTask.assignee,
         due_date: rawTask.due_date,
         created_at: rawTask.created_at,
         updated_at: rawTask.updated_at,
-        media_files: rawTask.media_files || [],
-        annotations: rawTask.annotations || [],
+        media_files: [], // Not fetched in lightweight mode - will lazy load when needed
+        annotations: [], // Not fetched in lightweight mode
         pinned: rawTask.pinned || false,
         task_type: rawTask.task_type || 'design',
-        priority: rawTask.priority || 'medium',
-        content_type: rawTask.content_type || 'post',
-        tags: rawTask.tags || [],
+        priority: 'medium',
+        content_type: 'post',
+        tags: [],
         created_by: rawTask.created_by,
         acknowledged_at: rawTask.acknowledged_at,
-        previewUrl: null
+        previewUrl: null // Will be loaded for critical columns
       }));
       
-      console.log(`✅ Loaded ${baseTasks.length} tasks`);
+      console.log(`✅ Loaded ${baseTasks.length} tasks (lightweight)`);
       setTasks(baseTasks);
       setColumnData(groupTasksByStatus(baseTasks));
       setColumnLoading({
@@ -592,52 +551,109 @@ export default function MarketingKanbanBoard() {
       });
       setLoading(false);
 
-      const chunkSize = 20;
-      let index = 0;
-
-      const processChunk = () => {
-        const chunk = baseTasks.slice(index, index + chunkSize);
-        if (chunk.length === 0) return;
-
-        const updatedChunk = chunk.map(task => ({
-          ...task,
-          previewUrl: getPreviewUrl(task.media_files || [])
-        }));
-
-        setTasks(prev => {
-          const map = new Map(prev.map(task => [task.id, task]));
-          updatedChunk.forEach(task => map.set(task.id, task));
-          return Array.from(map.values());
-        });
-
-        setColumnData(prev => {
-          const updated = { ...prev };
-          updatedChunk.forEach(task => {
-            const list = updated[task.status];
-            if (!list) return;
-            const idx = list.findIndex(t => t.id === task.id);
-            if (idx !== -1) {
-              list[idx] = task;
-            } else {
-              list.push(task);
-            }
-          });
-          return updated;
-        });
-
-        index += chunkSize;
-        if (index < baseTasks.length) {
-          setTimeout(processChunk, 0);
-        } else {
-          console.log('✅ Preview URLs computed');
-        }
-      };
-
-      processChunk();
+      // IMMEDIATELY fetch preview data for visual review columns (in_review, approved, instagram_feed_preview)
+      // These columns need previews for proper review workflow
+      console.log('🖼️ Loading preview images for review columns...');
+      fetchPreviewsForCriticalColumns(baseTasks);
 
     } catch (error) {
       console.error('❌ Error loading tasks:', error);
       setLoading(false);
+    }
+  };
+
+  // Fetch full task details (including media_files) for tasks in visual review columns
+  // Loads sequentially from top to bottom for smooth visual progression
+  const fetchPreviewsForCriticalColumns = async (baseTasks: MarketingTask[]) => {
+    try {
+      // Identify tasks that need preview images (in_progress, in_review, approved, instagram_feed_preview)
+      const criticalStatuses = ['in_progress', 'in_review', 'approved', 'instagram_feed_preview'];
+      
+      // Group tasks by status and sort by updated_at (newest first, which is top of column)
+      const tasksByStatus: Record<string, MarketingTask[]> = {};
+      baseTasks.forEach(task => {
+        if (criticalStatuses.includes(task.status)) {
+          if (!tasksByStatus[task.status]) {
+            tasksByStatus[task.status] = [];
+          }
+          tasksByStatus[task.status].push(task);
+        }
+      });
+
+      // Sort each column's tasks by updated_at DESC (top to bottom order)
+      Object.keys(tasksByStatus).forEach(status => {
+        tasksByStatus[status].sort((a, b) => {
+          // Pinned tasks first, then by updated_at
+          if (a.pinned && !b.pinned) return -1;
+          if (!a.pinned && b.pinned) return 1;
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        });
+      });
+
+      // Flatten back to single array in display order (in_progress -> in_review -> approved -> instagram)
+      const tasksNeedingPreviews: MarketingTask[] = [
+        ...(tasksByStatus['in_progress'] || []),
+        ...(tasksByStatus['in_review'] || []),
+        ...(tasksByStatus['approved'] || []),
+        ...(tasksByStatus['instagram_feed_preview'] || [])
+      ];
+
+      if (tasksNeedingPreviews.length === 0) {
+        console.log('✅ No tasks in review columns need previews');
+        return;
+      }
+
+      console.log(`🔍 Loading ${tasksNeedingPreviews.length} preview images (top to bottom)...`);
+      const headers = await getAuthHeaders();
+      const startTime = performance.now();
+
+      // Load sequentially for smooth top-to-bottom visual effect
+      for (let i = 0; i < tasksNeedingPreviews.length; i++) {
+        const task = tasksNeedingPreviews[i];
+        
+        try {
+          const response = await fetch(`/api/design-tasks?id=${task.id}`, { headers });
+          if (response.ok) {
+            const fullTask = await response.json();
+            const enrichedTask: MarketingTask = {
+              ...task,
+              media_files: fullTask.media_files || [],
+              annotations: fullTask.annotations || [],
+              description: fullTask.description || '',
+              previewUrl: getPreviewUrl(fullTask.media_files || [])
+            };
+
+            // Update state immediately for smooth progressive loading
+            setTasks(prev => prev.map(t => t.id === task.id ? enrichedTask : t));
+            
+            setColumnData(prev => {
+              const updated = { ...prev };
+              const list = updated[task.status];
+              if (list) {
+                const idx = list.findIndex(t => t.id === task.id);
+                if (idx !== -1) {
+                  list[idx] = enrichedTask;
+                }
+              }
+              return updated;
+            });
+
+            // Small delay for smooth visual cascade (remove this if you want instant loading)
+            if (i < tasksNeedingPreviews.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 50)); // 50ms between each
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch preview for task ${task.id}:`, error);
+          // Continue with next task even if one fails
+        }
+      }
+
+      const fetchTime = performance.now() - startTime;
+      console.log(`✅ Loaded ${tasksNeedingPreviews.length} preview images in ${fetchTime.toFixed(0)}ms`);
+
+    } catch (error) {
+      console.error('❌ Error fetching previews for critical columns:', error);
     }
   };
 
@@ -841,47 +857,60 @@ export default function MarketingKanbanBoard() {
 
   // Group tasks by status with search filtering and optimized sorting logic (memoized for performance)
   const grouped = useMemo(() => {
-    return columns.reduce((acc, col) => {
-      // Use columnData for progressive loading instead of tasks array
-      const columnTasks = columnData[col.key] || [];
-      
-      // Combine regular tasks with archived tasks when showing archived
-      const allTasks = col.key === 'archived' && showArchived 
+    const result: Record<ColKey, MarketingTask[]> = {
+      intake: [],
+      planned: [],
+      in_progress: [],
+      in_review: [],
+      approved: [],
+      instagram_feed_preview: [],
+      archived: []
+    };
+    
+    // Pre-compile search query for performance
+    const hasSearch = searchQuery && searchQuery.trim();
+    const searchLower = hasSearch ? searchQuery.toLowerCase() : '';
+    
+    // Process each column
+    for (const col of columns) {
+      const columnTasks = col.key === 'archived' && showArchived 
         ? archivedTasks 
-        : columnTasks;
+        : (columnData[col.key] || []);
       
-      let filteredTasks = allTasks.filter(task => task.status === col.key);
+      // Filter and process in a single pass for better performance
+      const processedTasks: (MarketingTask & { sortKey: number })[] = [];
       
-      // Apply search filter if search query exists
-      if (searchQuery && searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        filteredTasks = filteredTasks.filter(task => 
-          task.title?.toLowerCase().includes(query) ||
-          task.description?.toLowerCase().includes(query) ||
-          task.assignee?.toLowerCase().includes(query) ||
-          task.task_type?.toLowerCase().includes(query) ||
-          (task.tags && task.tags.some(tag => tag.toLowerCase().includes(query)))
-        );
+      for (const task of columnTasks) {
+        // Status check
+        if (task.status !== col.key) continue;
+        
+        // Search filter - skip if doesn't match
+        if (hasSearch) {
+          const matchesSearch = 
+            task.title?.toLowerCase().includes(searchLower) ||
+            task.assignee?.toLowerCase().includes(searchLower) ||
+            task.task_type?.toLowerCase().includes(searchLower);
+          
+          if (!matchesSearch) continue;
+        }
+        
+        // Add with pre-computed sort key for faster sorting
+        // Pinned tasks get negative timestamps so they sort first
+        const timestamp = new Date(task.updated_at).getTime();
+        processedTasks.push({
+          ...task,
+          sortKey: task.pinned ? -timestamp : timestamp
+        });
       }
       
-      // Pre-compute dayjs values to avoid repeated parsing during sort
-      const tasksWithComputedDates = filteredTasks.map(task => ({
-        ...task,
-        updatedAtValue: dayjs(task.updated_at).valueOf()
-      }));
+      // Sort by pre-computed sort key (much faster than multiple comparisons)
+      processedTasks.sort((a, b) => b.sortKey - a.sortKey);
       
-      // Sort tasks with Instagram logic: newest pins go leftmost, then unpinned items
-      acc[col.key] = tasksWithComputedDates.sort((a, b) => {
-        // Pinned tasks always come first
-        if (a.pinned && !b.pinned) return -1;
-        if (!a.pinned && b.pinned) return 1;
-        
-        // If both pinned or both unpinned: sort by pre-computed date value
-        return b.updatedAtValue - a.updatedAtValue;
-      });
-      
-      return acc;
-    }, {} as Record<ColKey, MarketingTask[]>);
+      // Remove sort keys before storing
+      result[col.key] = processedTasks;
+    }
+    
+    return result;
   }, [columnData, archivedTasks, showArchived, columns, searchQuery]);
 
   // Optimized drag and drop handlers (memoized for performance)
@@ -1054,8 +1083,53 @@ export default function MarketingKanbanBoard() {
     setHovered(null);
   }, []);
 
-  const handleCardClick = (task: MarketingTask) => {
-    setSelectedTask(task);
+  const handleCardClick = async (task: MarketingTask) => {
+    // Check if task needs full data (media_files not loaded yet)
+    // Note: Tasks in review columns already have previews loaded via fetchPreviewsForCriticalColumns
+    const needsFullData = !task.media_files || task.media_files.length === 0;
+    
+    if (needsFullData) {
+      try {
+        const headers = await getAuthHeaders();
+        const response = await fetch(`/api/design-tasks?id=${task.id}`, { headers });
+        
+        if (response.ok) {
+          const fullTask = await response.json();
+          const enrichedTask: MarketingTask = {
+            ...task,
+            description: fullTask.description || '',
+            media_files: fullTask.media_files || [],
+            annotations: fullTask.annotations || [],
+            previewUrl: getPreviewUrl(fullTask.media_files || [])
+          };
+          
+          // Update task in state with full data
+          setTasks(prev => prev.map(t => t.id === task.id ? enrichedTask : t));
+          setColumnData(prev => {
+            const updated = { ...prev };
+            const list = updated[task.status];
+            if (list) {
+              const idx = list.findIndex(t => t.id === task.id);
+              if (idx !== -1) {
+                list[idx] = enrichedTask;
+              }
+            }
+            return updated;
+          });
+          
+          setSelectedTask(enrichedTask);
+        } else {
+          // Fallback to lightweight task if fetch fails
+          setSelectedTask(task);
+        }
+      } catch (error) {
+        console.error('Error fetching full task details:', error);
+        // Fallback to lightweight task if fetch fails
+        setSelectedTask(task);
+      }
+    } else {
+      setSelectedTask(task);
+    }
     
     // Show workspace for in_progress and in_review tasks, modal for others
     if (task.status === 'in_progress' || task.status === 'in_review') {
@@ -1173,7 +1247,7 @@ export default function MarketingKanbanBoard() {
     }
   };
 
-  // Fetch archived tasks on-demand
+  // Fetch archived tasks on-demand with lightweight mode
   const fetchArchivedTasks = async () => {
     if (archivedFetched) {
       // If already fetched, just ensure they're visible
@@ -1184,44 +1258,43 @@ export default function MarketingKanbanBoard() {
     try {
       setLoadingArchived(true);
       const headers = await getAuthHeaders();
-      const response = await fetch('/api/design-tasks?limit=100&status=archived', { headers });
+      const startTime = performance.now();
+      
+      // Use lightweight mode for archived tasks too
+      const response = await fetch('/api/design-tasks?limit=100&status=archived&lightweight=true', { headers });
       
       if (response.ok) {
         const rawData = await response.json();
+        const fetchTime = performance.now() - startTime;
+        console.log(`⚡ Fetched ${rawData.length} archived tasks in ${fetchTime.toFixed(0)}ms (lightweight)`);
         
-        // Transform archived tasks the same way as regular tasks
-        const transformedArchivedTasks = rawData.map((rawTask: any) => {
-          const baseTask = {
-            id: rawTask.id,
-            title: rawTask.title,
-            description: rawTask.description,
-            status: rawTask.status,
-            assignee: rawTask.requested_by || rawTask.assignee,
-            due_date: rawTask.due_date,
-            created_at: rawTask.created_at,
-            updated_at: rawTask.updated_at,
-            media_files: rawTask.media_files || [],
-            annotations: rawTask.annotations || [],
-            pinned: rawTask.pinned || false,
-            task_type: rawTask.task_type || 'design',
-            priority: rawTask.priority || 'medium',
-            content_type: rawTask.content_type || 'post',
-            tags: rawTask.tags || [],
-            created_by: rawTask.created_by,
-            acknowledged_at: rawTask.acknowledged_at
-          };
-          
-          return {
-            ...baseTask,
-            previewUrl: getPreviewUrl(baseTask.media_files)
-          };
-        });
+        // Transform archived tasks the same way as regular tasks (lightweight)
+        const transformedArchivedTasks = rawData.map((rawTask: any) => ({
+          id: rawTask.id,
+          title: rawTask.title,
+          description: '', // Not fetched in lightweight mode
+          status: rawTask.status,
+          assignee: rawTask.requested_by || rawTask.assignee,
+          due_date: rawTask.due_date,
+          created_at: rawTask.created_at,
+          updated_at: rawTask.updated_at,
+          media_files: [], // Not fetched in lightweight mode
+          annotations: [], // Not fetched in lightweight mode
+          pinned: rawTask.pinned || false,
+          task_type: rawTask.task_type || 'design',
+          priority: 'medium',
+          content_type: 'post',
+          tags: [],
+          created_by: rawTask.created_by,
+          acknowledged_at: rawTask.acknowledged_at,
+          previewUrl: null // Will be loaded on-demand
+        }));
         
         setArchivedTasks(transformedArchivedTasks);
         setArchivedFetched(true);
         setShowArchived(true);
         
-        console.log(`✅ Successfully fetched ${transformedArchivedTasks.length} archived tasks`);
+        console.log(`✅ Loaded ${transformedArchivedTasks.length} archived tasks (lightweight)`);
       } else {
         console.error('Failed to fetch archived tasks:', response.statusText);
       }
@@ -1301,7 +1374,11 @@ export default function MarketingKanbanBoard() {
           : 'opacity-0 translate-y-4'
       }`}>
         {columns
-          .filter(col => showArchived || col.key !== 'archived')
+          .filter(col => {
+            if (col.key === 'archived' && !showArchived) return false;
+            if (col.key === 'instagram_feed_preview' && !showInstagramFeed) return false;
+            return true;
+          })
           .map(col => (
           <div
             key={col.key}
@@ -1377,7 +1454,26 @@ export default function MarketingKanbanBoard() {
                 </div>
               )}
               
-              {/* Archive Toggle Button - Only show on Instagram Feed Preview column */}
+              {/* Instagram Feed Toggle Button - Show in Approved column */}
+              {col.key === 'approved' && (
+                <button
+                  onClick={() => setShowInstagramFeed(!showInstagramFeed)}
+                  className={`
+                    inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition-all duration-200
+                    ${showInstagramFeed 
+                      ? 'bg-gradient-to-br from-gray-200 via-gray-400 to-gray-200 text-black shadow-lg' 
+                      : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                    }
+                    backdrop-blur-sm border border-white/20 hover:border-white/30
+                  `}
+                  title={showInstagramFeed ? 'Hide Instagram feed preview' : 'Show Instagram feed preview'}
+                >
+                  <Instagram className="w-2.5 h-2.5" />
+                  {showInstagramFeed ? 'Hide' : 'Show'} Feed
+                </button>
+              )}
+              
+              {/* Archive Toggle Button - Show in Instagram Feed Preview column */}
               {col.key === 'instagram_feed_preview' && (
                 <button
                   onClick={() => setShowArchived(!showArchived)}
@@ -1524,8 +1620,8 @@ export default function MarketingKanbanBoard() {
                             <div className="w-full h-full rounded-lg overflow-hidden border border-red-400/40 shadow-lg bg-gradient-to-br from-red-500/20 to-red-600/10 flex items-center justify-center">
                               <FileText className="w-6 h-6 text-red-400" />
                             </div>
-                          ) : previewUrl ? (
-                            <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg relative">
+                          ) : previewUrl && previewUrl !== null ? (
+                            <div className="w-full h-full rounded-lg overflow-hidden border border-white/20 shadow-lg relative animate-fadeIn">
                               <Image 
                                 src={previewUrl} 
                                 alt="Preview" 
@@ -1540,13 +1636,14 @@ export default function MarketingKanbanBoard() {
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             </div>
                           ) : (
-                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1">
+                            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center shadow-inner p-1 border border-white/10">
                               <Image 
                                 src="/MAIN LOGO.png" 
                                 alt="SilberArrows Logo" 
                                 width={24} 
                                 height={24} 
-                                className="object-contain opacity-30"
+                                className="object-contain opacity-40"
+                                priority={false}
                               />
                             </div>
                           )}

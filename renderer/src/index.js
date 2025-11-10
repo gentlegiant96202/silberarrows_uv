@@ -127,11 +127,11 @@ async function loadTemplate() {
   
   // Load leasing catalog background image as base64
   try {
-    const bgPath = path.resolve(__dirname, '../public/assets/images/Artboard 7 copy 3.jpg');
+    const bgPath = path.resolve(__dirname, '../public/assets/images/Artboard 7 copy 3.png');
     console.log('📂 Looking for background image at:', bgPath);
     const bgBuffer = await fs.readFile(bgPath);
-    leasingBgBase64 = `data:image/jpeg;base64,${bgBuffer.toString('base64')}`;
-    console.log('✅ Leasing background image loaded as base64');
+    leasingBgBase64 = `data:image/png;base64,${bgBuffer.toString('base64')}`;
+    console.log('✅ Leasing background image loaded as base64 (PNG)');
     console.log('📏 Base64 length:', leasingBgBase64.length);
     console.log('🎨 First 100 chars:', leasingBgBase64.substring(0, 100));
   } catch (error) {

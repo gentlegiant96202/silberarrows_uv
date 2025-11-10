@@ -128,12 +128,16 @@ async function loadTemplate() {
   // Load leasing catalog background image as base64
   try {
     const bgPath = path.resolve(__dirname, '../public/assets/images/Artboard 7 copy 3.jpg');
+    console.log('📂 Looking for background image at:', bgPath);
     const bgBuffer = await fs.readFile(bgPath);
     leasingBgBase64 = `data:image/jpeg;base64,${bgBuffer.toString('base64')}`;
-    console.log('✅ Leasing background image loaded as base64, length:', leasingBgBase64.length);
+    console.log('✅ Leasing background image loaded as base64');
+    console.log('📏 Base64 length:', leasingBgBase64.length);
+    console.log('🎨 First 100 chars:', leasingBgBase64.substring(0, 100));
   } catch (error) {
     console.error('❌ Error loading leasing background:', error);
     console.log('⚠️ Background will fallback to solid color');
+    leasingBgBase64 = '#ffffff'; // Fallback to white
   }
   
   // Load Resonate fonts as base64 for leasing catalog templates
@@ -281,7 +285,9 @@ function fillLeasingCatalogTemplate({ carDetails, catalogImageUrl }) {
   html = replaceAll(html, '/main-logo.png', mainLogoBase64);
   
   // Replace background image with base64 data URL
+  console.log('🎨 [Regular] Replacing background with base64 image (length:', leasingBgBase64.length, ')');
   html = replaceAll(html, '{{leasingBgBase64}}', leasingBgBase64);
+  console.log('✅ [Regular] Background replacement complete');
   
   // Replace font URLs with base64 data URLs
   if (resonateFontsBase64.Black) {
@@ -324,7 +330,9 @@ function fillLeasingCatalogAltTemplate({ carDetails }) {
   html = replaceAll(html, '/main-logo.png', mainLogoBase64);
   
   // Replace background image with base64 data URL
+  console.log('🎨 [Alt] Replacing background with base64 image (length:', leasingBgBase64.length, ')');
   html = replaceAll(html, '{{leasingBgBase64}}', leasingBgBase64);
+  console.log('✅ [Alt] Background replacement complete');
   
   // Replace font URLs with base64 data URLs
   if (resonateFontsBase64.Black) {

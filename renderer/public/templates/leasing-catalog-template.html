@@ -49,7 +49,7 @@
         }
         
         body {
-            background: #000;
+            background: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -62,12 +62,12 @@
         .ad-container {
             width: 2400px;
             height: 2400px;
-            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            background: url('/assets/images/Artboard 7 copy 3.jpg') center center/cover no-repeat;
             border-radius: 80px;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 40px 120px rgba(0, 0, 0, 0.8);
-            border: 10px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 40px 120px rgba(0, 0, 0, 0.3);
+            border: 10px solid rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
         }
@@ -79,15 +79,17 @@
             left: 0;
             right: 0;
             height: 20px;
-            background: linear-gradient(90deg, #A8A8A8, #E8E8E8, #A8A8A8);
+            background: linear-gradient(90deg, #666, #333, #666);
             z-index: 10;
         }
         
         .top-banner {
-            background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
-            color: #fff;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #000;
             padding: 40px 80px 30px 80px;
-            border-bottom: 6px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 6px solid rgba(0, 0, 0, 0.1);
             position: relative;
             z-index: 2;
             display: flex;
@@ -108,36 +110,34 @@
             letter-spacing: 20px;
             margin-bottom: 0px;
             line-height: 1;
-            background: linear-gradient(90deg, #C0C0C0, #E8E8E8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #000;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .banner-subtitle {
             font-family: 'Resonate', sans-serif;
             font-weight: 700;
             font-size: 90px;
-            background: linear-gradient(90deg, #C0C0C0, #E8E8E8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #000;
             letter-spacing: 3px;
             line-height: 1.3;
             margin-top: 0px;
             text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .banner-logo {
             width: 220px;
             height: auto;
-            filter: brightness(0) invert(1);
+            filter: none;
             flex-shrink: 0;
         }
         
         .image-section {
             height: 75%;
-            background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -152,7 +152,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(to bottom, transparent 60%, rgba(0, 0, 0, 0.9));
+            background: linear-gradient(to bottom, transparent 60%, rgba(255, 255, 255, 0.5));
         }
         
         .car-image {
@@ -167,7 +167,9 @@
             padding: 30px 80px 30px 80px;
             display: flex;
             flex-direction: column;
-            background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
         
         .two-column-layout {
@@ -190,7 +192,7 @@
         }
         
         .benefit-item {
-            color: #ffffff;
+            color: #000;
             font-size: 52px;
             margin-bottom: 18px;
             display: flex;
@@ -201,30 +203,30 @@
         
         .benefit-item::before {
             content: '✓';
-            color: #E8E8E8;
+            color: #000;
             margin-right: 24px;
             font-weight: bold;
             font-size: 52px;
-            text-shadow: 0 0 20px rgba(232, 232, 232, 0.7);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .highlight {
-            color: #E8E8E8;
+            color: #000;
             font-weight: 700;
-            text-shadow: 0 0 16px rgba(232, 232, 232, 0.5);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .price-section {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-radius: 30px;
             padding: 35px 45px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(0, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
             justify-content: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 0 60px rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 0 60px rgba(255, 255, 255, 0.05);
             position: relative;
             overflow: visible;
         }
@@ -236,16 +238,13 @@
             left: 0;
             right: 0;
             height: 16px;
-            background: linear-gradient(90deg, #A8A8A8, #E8E8E8, #A8A8A8);
+            background: linear-gradient(90deg, #666, #333, #666);
             border-radius: 40px 40px 0 0;
         }
         
         .price-label {
             font-family: 'Resonate', sans-serif;
-            background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #fff;
             font-size: 32px;
             font-weight: 600;
             text-transform: uppercase;
@@ -255,7 +254,7 @@
         }
         
         .price-amount {
-            color: #003366;
+            color: #fff;
             font-size: 80px;
             font-weight: 900;
             line-height: 1;
@@ -276,23 +275,17 @@
         .dirham-symbol svg {
             width: 100%;
             height: 100%;
-            fill: url(#dirhamGradient);
+            fill: #fff;
         }
         
         .price-period {
-            background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #fff;
             font-size: 40px;
             font-weight: 600;
         }
         
         .included {
-            background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #fff;
             font-size: 28px;
             margin-top: 12px;
             line-height: 1.3;
@@ -308,18 +301,18 @@
         
         .cta-headline {
             font-family: 'Resonate', sans-serif;
-            color: #ffffff;
+            color: #000;
             font-size: 48px;
             font-weight: 600;
             margin-bottom: 20px;
             text-align: center;
-            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .cta-button {
             font-family: 'Resonate', sans-serif;
-            background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
-            color: #000;
+            background: #000;
+            color: #fff;
             border: none;
             padding: 30px 50px;
             border-radius: 25px;
@@ -327,7 +320,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 3px;
-            box-shadow: 0 30px 60px rgba(192, 192, 192, 0.5);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -344,7 +337,7 @@
         }
         
         .disclaimer {
-            color: #999999;
+            color: #666;
             font-size: 24px;
             text-align: center;
             margin-top: 15px;
@@ -354,22 +347,19 @@
             position: absolute;
             top: -25px;
             right: 50px;
-            background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
-            color: #000;
+            background: #000;
+            color: #fff;
             padding: 12px 32px;
             border-radius: 25px;
             font-size: 30px;
             font-weight: 700;
-            box-shadow: 0 10px 30px rgba(192, 192, 192, 0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             z-index: 2;
             transform: rotate(5deg);
         }
 
         .price-highlight {
-            background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #fff;
         }
 
     </style>
@@ -406,12 +396,6 @@
                         <div class="price-amount">
                             <span class="dirham-symbol">
                                 <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                                    <defs>
-                                        <linearGradient id="dirhamGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#C0C0C0;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#E8E8E8;stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
                                     <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/>
                                 </svg>
                             </span> 

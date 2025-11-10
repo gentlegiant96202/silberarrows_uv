@@ -563,11 +563,12 @@ export default function MarketingKanbanBoard() {
   };
 
   // Fetch full task details (including media_files) for tasks in visual review columns
-  // Loads sequentially from top to bottom for smooth visual progression
+  // Loads simultaneously across columns, each column cascades top to bottom
   const fetchPreviewsForCriticalColumns = async (baseTasks: MarketingTask[]) => {
     try {
-      // Identify tasks that need preview images (in_progress, in_review, approved, instagram_feed_preview)
-      const criticalStatuses = ['in_progress', 'in_review', 'approved', 'instagram_feed_preview'];
+      // Identify tasks that need preview images (in_progress, in_review, approved)
+      // Note: instagram_feed_preview is loaded on-demand when user clicks "Show Feed"
+      const criticalStatuses = ['in_progress', 'in_review', 'approved'];
       
       // Group tasks by status and sort by updated_at (newest first, which is top of column)
       const tasksByStatus: Record<string, MarketingTask[]> = {};
@@ -590,26 +591,102 @@ export default function MarketingKanbanBoard() {
         });
       });
 
-      // Flatten back to single array in display order (in_progress -> in_review -> approved -> instagram)
-      const tasksNeedingPreviews: MarketingTask[] = [
-        ...(tasksByStatus['in_progress'] || []),
-        ...(tasksByStatus['in_review'] || []),
-        ...(tasksByStatus['approved'] || []),
-        ...(tasksByStatus['instagram_feed_preview'] || [])
-      ];
-
-      if (tasksNeedingPreviews.length === 0) {
+      const totalTasks = Object.values(tasksByStatus).reduce((sum, arr) => sum + arr.length, 0);
+      
+      if (totalTasks === 0) {
         console.log('✅ No tasks in review columns need previews');
         return;
       }
 
-      console.log(`🔍 Loading ${tasksNeedingPreviews.length} preview images (top to bottom)...`);
+      console.log(`🔍 Loading ${totalTasks} preview images (parallel cascading)...`);
       const headers = await getAuthHeaders();
       const startTime = performance.now();
 
-      // Load sequentially for smooth top-to-bottom visual effect
-      for (let i = 0; i < tasksNeedingPreviews.length; i++) {
-        const task = tasksNeedingPreviews[i];
+      // Load each column simultaneously, but cascade within each column
+      const columnPromises = criticalStatuses.map(async (status) => {
+        const columnTasks = tasksByStatus[status] || [];
+        
+        for (let i = 0; i < columnTasks.length; i++) {
+          const task = columnTasks[i];
+          
+          try {
+            const response = await fetch(`/api/design-tasks?id=${task.id}`, { headers });
+            if (response.ok) {
+              const fullTask = await response.json();
+              const enrichedTask: MarketingTask = {
+                ...task,
+                media_files: fullTask.media_files || [],
+                annotations: fullTask.annotations || [],
+                description: fullTask.description || '',
+                previewUrl: getPreviewUrl(fullTask.media_files || [])
+              };
+
+              // Update state immediately for smooth progressive loading
+              setTasks(prev => prev.map(t => t.id === task.id ? enrichedTask : t));
+              
+              setColumnData(prev => {
+                const updated = { ...prev };
+                const list = updated[task.status];
+                if (list) {
+                  const idx = list.findIndex(t => t.id === task.id);
+                  if (idx !== -1) {
+                    list[idx] = enrichedTask;
+                  }
+                }
+                return updated;
+              });
+
+              // Faster cascade delay (20ms between cards in same column)
+              if (i < columnTasks.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 20));
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to fetch preview for task ${task.id}:`, error);
+          }
+        }
+      });
+
+      // Wait for all columns to finish loading
+      await Promise.all(columnPromises);
+
+      const fetchTime = performance.now() - startTime;
+      console.log(`✅ Loaded ${totalTasks} preview images in ${fetchTime.toFixed(0)}ms`);
+
+    } catch (error) {
+      console.error('❌ Error fetching previews for critical columns:', error);
+    }
+  };
+
+  // Fetch previews for Instagram feed when user clicks "Show Feed"
+  const fetchInstagramPreviews = async () => {
+    try {
+      const instagramTasks = tasks.filter(task => task.status === 'instagram_feed_preview');
+      
+      // Filter tasks that don't have previews loaded yet
+      const tasksNeedingPreviews = instagramTasks.filter(task => 
+        !task.previewUrl || task.previewUrl === null
+      );
+
+      if (tasksNeedingPreviews.length === 0) {
+        console.log('✅ Instagram feed previews already loaded');
+        return;
+      }
+
+      console.log(`🔍 Loading ${tasksNeedingPreviews.length} Instagram feed previews...`);
+      const headers = await getAuthHeaders();
+      const startTime = performance.now();
+
+      // Sort by pinned + updated_at (top to bottom)
+      const sortedTasks = [...tasksNeedingPreviews].sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
+
+      // Load sequentially with fast cascade
+      for (let i = 0; i < sortedTasks.length; i++) {
+        const task = sortedTasks[i];
         
         try {
           const response = await fetch(`/api/design-tasks?id=${task.id}`, { headers });
@@ -623,12 +700,11 @@ export default function MarketingKanbanBoard() {
               previewUrl: getPreviewUrl(fullTask.media_files || [])
             };
 
-            // Update state immediately for smooth progressive loading
             setTasks(prev => prev.map(t => t.id === task.id ? enrichedTask : t));
             
             setColumnData(prev => {
               const updated = { ...prev };
-              const list = updated[task.status];
+              const list = updated['instagram_feed_preview'];
               if (list) {
                 const idx = list.findIndex(t => t.id === task.id);
                 if (idx !== -1) {
@@ -638,22 +714,21 @@ export default function MarketingKanbanBoard() {
               return updated;
             });
 
-            // Small delay for smooth visual cascade (remove this if you want instant loading)
-            if (i < tasksNeedingPreviews.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 50)); // 50ms between each
+            // Fast cascade for Instagram grid
+            if (i < sortedTasks.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 15));
             }
           }
         } catch (error) {
-          console.error(`Failed to fetch preview for task ${task.id}:`, error);
-          // Continue with next task even if one fails
+          console.error(`Failed to fetch Instagram preview for task ${task.id}:`, error);
         }
       }
 
       const fetchTime = performance.now() - startTime;
-      console.log(`✅ Loaded ${tasksNeedingPreviews.length} preview images in ${fetchTime.toFixed(0)}ms`);
+      console.log(`✅ Loaded ${sortedTasks.length} Instagram previews in ${fetchTime.toFixed(0)}ms`);
 
     } catch (error) {
-      console.error('❌ Error fetching previews for critical columns:', error);
+      console.error('❌ Error fetching Instagram previews:', error);
     }
   };
 
@@ -1457,7 +1532,14 @@ export default function MarketingKanbanBoard() {
               {/* Instagram Feed Toggle Button - Show in Approved column */}
               {col.key === 'approved' && (
                 <button
-                  onClick={() => setShowInstagramFeed(!showInstagramFeed)}
+                  onClick={() => {
+                    const newState = !showInstagramFeed;
+                    setShowInstagramFeed(newState);
+                    // Load Instagram previews when showing the feed
+                    if (newState) {
+                      fetchInstagramPreviews();
+                    }
+                  }}
                   className={`
                     inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition-all duration-200
                     ${showInstagramFeed 

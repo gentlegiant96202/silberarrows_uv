@@ -42,6 +42,7 @@ let leasingCatalogAltTemplateHtml = '';
 let consignmentTemplateHtml = '';
 let damageReportTemplateHtml = '';
 let mainLogoBase64 = '';
+let leasingBgBase64 = '';
 let resonateFontsBase64 = {};
 let contentPillarHtmls = {};
 
@@ -122,6 +123,17 @@ async function loadTemplate() {
     // Fallback to original logo
     mainLogoBase64 = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
     console.log('✅ Using fallback logo URL');
+  }
+  
+  // Load leasing catalog background image as base64
+  try {
+    const bgPath = path.resolve(__dirname, '../public/assets/images/Artboard 7 copy 3.jpg');
+    const bgBuffer = await fs.readFile(bgPath);
+    leasingBgBase64 = `data:image/jpeg;base64,${bgBuffer.toString('base64')}`;
+    console.log('✅ Leasing background image loaded as base64, length:', leasingBgBase64.length);
+  } catch (error) {
+    console.error('❌ Error loading leasing background:', error);
+    console.log('⚠️ Background will fallback to solid color');
   }
   
   // Load Resonate fonts as base64 for leasing catalog templates
@@ -268,6 +280,9 @@ function fillLeasingCatalogTemplate({ carDetails, catalogImageUrl }) {
   // Replace logo reference with base64 data URL
   html = replaceAll(html, '/main-logo.png', mainLogoBase64);
   
+  // Replace background image with base64 data URL
+  html = replaceAll(html, '{{leasingBgBase64}}', leasingBgBase64);
+  
   // Replace font URLs with base64 data URLs
   if (resonateFontsBase64.Black) {
     html = replaceAll(html, "url('/Fonts/Resonate-Black.woff2')", `url('${resonateFontsBase64.Black}')`);
@@ -307,6 +322,9 @@ function fillLeasingCatalogAltTemplate({ carDetails }) {
   
   // Replace logo reference with base64 data URL
   html = replaceAll(html, '/main-logo.png', mainLogoBase64);
+  
+  // Replace background image with base64 data URL
+  html = replaceAll(html, '{{leasingBgBase64}}', leasingBgBase64);
   
   // Replace font URLs with base64 data URLs
   if (resonateFontsBase64.Black) {

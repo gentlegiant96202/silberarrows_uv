@@ -307,7 +307,7 @@ export default function Sidebar() {
       style={{ width: '64px' }}
     >
       <div
-        className={`absolute left-0 top-0 h-full bg-black/95 backdrop-blur-xl border-r border-white/10 transition-all duration-300 ${
+        className={`absolute left-0 top-0 h-full bg-black/95 backdrop-blur-xl border-r border-white/10 transition-all duration-300 z-50 ${
           isHovered ? 'w-[280px]' : 'w-[64px]'
         }`}
         onMouseEnter={() => setIsHovered(true)}

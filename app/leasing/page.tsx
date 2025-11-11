@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import LeasingKanbanBoard from '@/components/modules/leasing/LeasingKanbanBoard';
 import LeasingInventoryBoard from '@/components/modules/leasing/LeasingInventoryBoard';
+import LeasingCalculator from '@/components/modules/leasing/LeasingCalculator';
 import RouteProtector from '@/components/shared/RouteProtector';
 
 function LeasingPageContent() {
@@ -22,6 +23,10 @@ function LeasingPageContent() {
     
     if (activeTab === 'inventory') {
       return <LeasingInventoryBoard />;
+    }
+    
+    if (activeTab === 'calculator') {
+      return <LeasingCalculator />;
     }
     
     return (

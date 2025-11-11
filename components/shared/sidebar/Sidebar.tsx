@@ -34,7 +34,8 @@ import {
   ShoppingBag,
   ChevronDown,
   ChevronRight,
-  Route
+  Route,
+  Calculator
 } from 'lucide-react';
 
 interface NavItem {
@@ -174,7 +175,8 @@ export default function Sidebar() {
     ],
     'leasing': [
       { key: 'crm', label: 'CRM', icon: Users, href: '/leasing?tab=crm' },
-      { key: 'inventory', label: 'Inventory', icon: ShoppingBag, href: '/leasing?tab=inventory' }
+      { key: 'inventory', label: 'Inventory', icon: ShoppingBag, href: '/leasing?tab=inventory' },
+      { key: 'calculator', label: 'Calculator', icon: Calculator, href: '/leasing?tab=calculator' }
     ],
     'accounts': [
       { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/accounts/dashboard' }

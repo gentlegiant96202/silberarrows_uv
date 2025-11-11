@@ -1,6 +1,6 @@
 "use client";
 import { useState } from 'react';
-import { Calculator, DollarSign } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 
 // Fixed policy values (same for all cars)
 const FIXED_POLICY = {
@@ -73,16 +73,13 @@ export default function LeasingCalculator() {
 
       {/* Content */}
       <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Input & Policy */}
-            <div className="lg:col-span-1 space-y-6">
+        <div className="max-w-full mx-auto">
+          <div className="grid grid-cols-1 gap-6">
+            {/* Top Section: Inputs & Policy - Side by Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* User Inputs */}
               <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl">
-                <h2 className="text-lg font-bold bg-gradient-to-r from-gray-100 to-gray-300 bg-clip-text text-transparent mb-5 flex items-center gap-2">
-                  <div className="w-7 h-7 bg-gradient-to-br from-gray-300 to-gray-400 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-4 h-4 text-black" />
-                  </div>
+                <h2 className="text-lg font-bold bg-gradient-to-r from-gray-100 to-gray-300 bg-clip-text text-transparent mb-5">
                   INPUTS
                 </h2>
                 
@@ -149,8 +146,8 @@ export default function LeasingCalculator() {
               </div>
             </div>
 
-            {/* Right Column: Buyout Table */}
-            <div className="lg:col-span-2">
+            {/* Bottom Section: Buyout Table - Full Width */}
+            <div>
               <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
                 {/* Table Header */}
                 <div className="bg-gradient-to-r from-gray-400/10 to-gray-500/10 backdrop-blur-md px-6 py-4 border-b border-white/10">
@@ -207,9 +204,10 @@ export default function LeasingCalculator() {
                   </table>
                 </div>
               </div>
+            </div>
 
-              {/* Summary Stats */}
-              <div className="grid grid-cols-3 gap-4 mt-6">
+            {/* Summary Stats - Full Width */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-xl p-4 shadow-lg">
                   <div className="text-xs text-white/50 mb-1">Lowest Buyout (Month 60)</div>
                   <div className="text-xl font-bold bg-gradient-to-r from-gray-100 to-gray-300 bg-clip-text text-transparent">
@@ -228,7 +226,6 @@ export default function LeasingCalculator() {
                     {((acquisitionCost * 0.7) / 60).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} AED
                   </div>
                 </div>
-              </div>
             </div>
           </div>
         </div>

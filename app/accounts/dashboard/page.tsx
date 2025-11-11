@@ -5,6 +5,7 @@ import RouteProtector from '@/components/shared/RouteProtector';
 import ServiceDashboard from '@/components/shared/ServiceDashboard';
 import ServiceDataGrid from '@/components/service/ServiceDataGrid';
 import ServiceTargetsManager from '@/components/service/ServiceTargetsManager';
+import ReceivablesManager from '@/components/service/ReceivablesManager';
 import SalesDataGrid from '@/components/sales/SalesDataGrid';
 import SalesTargetsManager from '@/components/sales/SalesTargetsManager';
 import SharedSalesDashboard from '@/components/shared/SalesDashboard';
@@ -13,12 +14,13 @@ import { useServiceData } from '@/lib/useServiceData';
 import { useSalesData } from '@/lib/useSalesData';
 import { supabase } from '@/lib/supabaseClient';
 import { Building2, Grid3X3, Target, TrendingUp, Calculator, Package, DollarSign, FileText, BarChart3 } from 'lucide-react';
+import DirhamIcon from '@/components/ui/DirhamIcon';
 import dayjs from 'dayjs';
 import { AccountsTabProvider, useAccountsTab } from '@/lib/AccountsTabContext';
 
 function AccountsDashboardContent() {
   const { activeTab, setActiveTab } = useAccountsTab();
-  const [serviceSubTab, setServiceSubTab] = useState<'dashboard' | 'grid' | 'targets'>('dashboard');
+  const [serviceSubTab, setServiceSubTab] = useState<'dashboard' | 'grid' | 'targets' | 'receivables'>('dashboard');
   const [salesSubTab, setSalesSubTab] = useState<'dashboard' | 'grid' | 'targets' | 'accounting'>('dashboard');
   const [allMetrics, setAllMetrics] = useState<any[]>([]);
   const [allTargets, setAllTargets] = useState<any[]>([]);
@@ -134,7 +136,7 @@ function AccountsDashboardContent() {
     }
   };
 
-  const handleServiceSubTabChange = async (tab: 'dashboard' | 'grid' | 'targets') => {
+  const handleServiceSubTabChange = async (tab: 'dashboard' | 'grid' | 'targets' | 'receivables') => {
     setServiceSubTab(tab);
     if (tab === 'dashboard' || tab === 'grid' || tab === 'targets') {
       await handleGridRefresh();
@@ -216,6 +218,17 @@ function AccountsDashboardContent() {
                   >
                     <Target className="w-4 h-4" />
                     <span>Targets</span>
+                  </button>
+                  <button
+                    onClick={() => handleServiceSubTabChange('receivables')}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                      serviceSubTab === 'receivables'
+                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                    }`}
+                  >
+                    <DirhamIcon className="w-4 h-4" />
+                    <span>Receivables</span>
                   </button>
                 </div>
               </div>
@@ -303,6 +316,11 @@ function AccountsDashboardContent() {
                       targets={allTargets}
                       onRefresh={handleGridRefresh}
                       loading={loading}
+                    />
+                  )}
+                  {serviceSubTab === 'receivables' && (
+                    <ReceivablesManager
+                      onRefresh={handleGridRefresh}
                     />
                   )}
                 </>

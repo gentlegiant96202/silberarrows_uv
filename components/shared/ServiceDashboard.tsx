@@ -1722,9 +1722,9 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
 
       {/* Expanded Receivables Details */}
       <div 
-        className={`w-full overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[500px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}
+        className={`w-full overflow-y-auto transition-all duration-300 ${isExpanded ? 'max-h-[500px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}
       >
-        <div className="space-y-2">
+        <div className="space-y-2 pr-2">
           <div className="text-xs font-bold text-[#0A0A0A] uppercase tracking-wider mb-2 flex items-center gap-2">
             <div className="h-px flex-1 bg-[#0A0A0A]/10"></div>
             <span>Customer Accounts</span>

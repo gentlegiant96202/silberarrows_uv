@@ -1574,7 +1574,7 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
           // Convert to array and filter positive balances only
           const customersArray = Array.from(customerMap.values())
             .filter(c => c.amount > 0)
-            .sort((a, b) => b.amount - a.amount);
+            .sort((a, b) => b.days - a.days); // Sort by days (oldest first)
           
           setReceivables(customersArray);
         }

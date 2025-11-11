@@ -3,7 +3,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
-import { Calendar, TrendingUp, Target, FileText, AlertCircle, ChevronDown, Zap, Users, Search, Bell, BarChart3, Activity, Wrench, Trophy, DollarSign, CalendarDays, Percent, Receipt, ChartLine, ChartBar, PieChart as PieIcon, ChartPie, CalendarRange, BarChart4, LayoutGrid, Gauge, Phone, CheckCircle, XCircle, Award } from 'lucide-react';
+import { Calendar, TrendingUp, Target, FileText, AlertCircle, ChevronDown, Zap, Users, Search, Bell, BarChart3, Activity, Wrench, Trophy, DollarSign, CalendarDays, Percent, Receipt, ChartLine, ChartBar, PieChart as PieIcon, ChartPie, CalendarRange, BarChart4, LayoutGrid, Gauge, Phone, CheckCircle, XCircle, Award, X } from 'lucide-react';
 import DirhamIcon from '@/components/ui/DirhamIcon';
 import { ComposedChart, AreaChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import type { DailyServiceMetrics, ServiceMonthlyTarget } from '@/types/service';
@@ -1517,6 +1517,10 @@ function TargetItem({ label, value, progress, current, daysRemaining, showDailyR
 
 function TeamMember({ name, role, sales, contribution, rank }: { name: string; role: string; sales: number; contribution: number; rank: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [receivables, setReceivables] = useState<any[]>([]);
+  const [loadingReceivables, setLoadingReceivables] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [showStatementModal, setShowStatementModal] = useState(false);
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AE', {
@@ -1525,13 +1529,64 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
     }).format(amount);
   };
 
-  // TODO: Replace with actual data from props/database
-  const receivables = [
-    { customer: 'Ahmed Al Maktoum', amount: 45000, days: 15, invoiceNo: 'INV-2024-1234' },
-    { customer: 'Sarah Johnson', amount: 32000, days: 8, invoiceNo: 'INV-2024-1235' },
-    { customer: 'Mohammed Ali', amount: 28000, days: 22, invoiceNo: 'INV-2024-1236' },
-    { customer: 'Lisa Chen', amount: 20000, days: 5, invoiceNo: 'INV-2024-1237' }
-  ];
+  // Fetch receivables data for this advisor
+  useEffect(() => {
+    const fetchReceivables = async () => {
+      setLoadingReceivables(true);
+      try {
+        // Map display names to database advisor names
+        const advisorNameMap: Record<string, string> = {
+          'Daniel': 'DANIEL',
+          'Lucy': 'LUCY',
+          'Essrar': 'ESSRAR'
+        };
+        
+        const advisorName = advisorNameMap[name] || name.toUpperCase();
+        
+        const response = await fetch(`/api/service/receivables?advisor=${encodeURIComponent(advisorName)}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Group by customer and get final balance for each
+          const customerMap = new Map();
+          data.receivables.forEach((record: any) => {
+            const key = `${record.customer_id}-${record.customer_name}`;
+            if (!customerMap.has(key)) {
+              customerMap.set(key, {
+                customer_id: record.customer_id,
+                customer: record.customer_name,
+                amount: 0,
+                days: 0,
+                invoiceNo: record.reference_number,
+                transactions: []
+              });
+            }
+            const customer = customerMap.get(key);
+            customer.transactions.push(record);
+            // Update with latest transaction details
+            if (new Date(record.transaction_date) > new Date(customer.latestDate || 0)) {
+              customer.amount = record.balance;
+              customer.days = record.age_days;
+              customer.latestDate = record.transaction_date;
+            }
+          });
+          
+          // Convert to array and filter positive balances only
+          const customersArray = Array.from(customerMap.values())
+            .filter(c => c.amount > 0)
+            .sort((a, b) => b.amount - a.amount);
+          
+          setReceivables(customersArray);
+        }
+      } catch (error) {
+        console.error('Error fetching receivables:', error);
+      } finally {
+        setLoadingReceivables(false);
+      }
+    };
+
+    fetchReceivables();
+  }, [name]);
   
   const totalPendingReceivables = receivables.reduce((sum, item) => sum + item.amount, 0);
 
@@ -1589,7 +1644,7 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
 
   return (
     <div 
-      className="relative flex flex-col items-center gap-3 p-5 bg-gradient-to-br from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] border-2 border-[rgba(255,255,255,0.25)] rounded-xl shadow-[0_4px_20px_rgba(192,192,192,0.3)] transition-all duration-500 hover:shadow-[0_6px_24px_rgba(192,192,192,0.4)] hover:border-[rgba(255,255,255,0.35)] hover:scale-[1.02] group"
+      className="relative flex flex-col items-center gap-3 p-5 bg-gradient-to-br from-[#C0C0C0] via-[#E8E8E8] to-[#C0C0C0] border-2 border-[rgba(255,255,255,0.25)] rounded-xl shadow-[0_4px_20px_rgba(192,192,192,0.3)] transition-all duration-500 hover:shadow-[0_6px_24px_rgba(192,192,192,0.4)] hover:border-[rgba(255,255,255,0.35)] hover:scale-[1.02] group overflow-hidden"
     >
       {/* Ranking Badge */}
       {rankBadge && (
@@ -1640,13 +1695,17 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
         className="w-full mt-2 pt-3 border-t border-[#0A0A0A]/10 cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
-          setIsExpanded(!isExpanded);
+          if (!showStatementModal) {
+            setIsExpanded(!isExpanded);
+          }
         }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-[#0A0A0A] uppercase tracking-wide">Pending Receivables</span>
-            <span className="text-[10px] font-medium text-[#0A0A0A]/40 uppercase tracking-wider">(Sample)</span>
+            {loadingReceivables && (
+              <span className="text-[10px] font-medium text-[#0A0A0A]/40 uppercase tracking-wider animate-pulse">Loading...</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
@@ -1668,19 +1727,24 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
         <div className="space-y-2">
           <div className="text-xs font-bold text-[#0A0A0A] uppercase tracking-wider mb-2 flex items-center gap-2">
             <div className="h-px flex-1 bg-[#0A0A0A]/10"></div>
-            <span>Sample Receivables</span>
+            <span>Customer Accounts</span>
             <div className="h-px flex-1 bg-[#0A0A0A]/10"></div>
           </div>
           
           {receivables.map((item, index) => (
             <div 
               key={index}
-              className="bg-black/5 rounded-lg p-3 border border-[#0A0A0A]/10 hover:bg-black/10 transition-all"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedCustomer(item);
+                setShowStatementModal(true);
+              }}
+              className="bg-black/5 rounded-lg p-3 border border-[#0A0A0A]/10 hover:bg-black/10 transition-all cursor-pointer hover:scale-[1.02] hover:shadow-md"
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold text-[#0A0A0A] truncate">{item.customer}</div>
-                  <div className="text-xs text-[#0A0A0A]/60 font-mono">{item.invoiceNo}</div>
+                  <div className="text-xs text-[#0A0A0A]/60 font-mono">ID: {item.customer_id}</div>
                 </div>
                 <div className={`text-xs px-2 py-1 rounded-md border font-semibold whitespace-nowrap ml-2 ${getAgingColor(item.days)}`}>
                   {item.days}d
@@ -1696,7 +1760,7 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
             </div>
           ))}
           
-          {receivables.length === 0 && (
+          {receivables.length === 0 && !loadingReceivables && (
             <div className="text-center py-6 text-[#0A0A0A]/40">
               <CheckCircle size={32} className="mx-auto mb-2 opacity-50" />
               <p className="text-sm font-medium text-[#0A0A0A]">No Pending Receivables</p>
@@ -1704,6 +1768,130 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
           )}
         </div>
       </div>
+
+      {/* Customer Statement Modal */}
+      {showStatementModal && selectedCustomer && (
+        <div 
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-2"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowStatementModal(false);
+            setIsExpanded(false); // Also collapse the list when closing modal
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div 
+            className="bg-gradient-to-br from-gray-900 via-black to-gray-800 rounded-lg border border-gray-500/30 shadow-2xl w-full h-full overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-3 border-b border-gray-500/30">
+              <div className="min-w-0 flex-1 pr-2">
+                <h2 className="text-lg font-bold text-white truncate">{selectedCustomer.customer}</h2>
+                <p className="text-xs text-gray-400 mt-0.5 truncate">ID: {selectedCustomer.customer_id} • {name}</p>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowStatementModal(false);
+                  setIsExpanded(false);
+                }}
+                className="text-gray-400 hover:text-white transition-colors flex-shrink-0"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Balance Summary */}
+            <div className="px-3 py-3 bg-gradient-to-br from-gray-800/90 via-gray-700/80 to-gray-800/90 border-b border-gray-500/30">
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Final Balance</p>
+                  <div className="flex items-center gap-1.5">
+                    <DirhamIcon className="w-5 h-5 text-white" />
+                    <span className="text-2xl font-bold text-white">{formatCurrency(selectedCustomer.amount)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Age:</span>
+                  <div className={`text-[10px] px-2 py-1 rounded-md border font-semibold ${getAgingColor(selectedCustomer.days)}`}>
+                    {selectedCustomer.days} days
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Transactions Table */}
+            <div className="flex-1 overflow-y-auto p-3">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-gray-800 border-b border-gray-600">
+                    <tr>
+                      <th className="px-2 py-2 text-left text-gray-100 font-semibold text-[10px]">Date</th>
+                      <th className="px-2 py-2 text-left text-gray-100 font-semibold text-[10px]">Reference</th>
+                      <th className="px-2 py-2 text-right text-gray-100 font-semibold text-[10px]">Invoice</th>
+                      <th className="px-2 py-2 text-right text-gray-100 font-semibold text-[10px]">Receipt</th>
+                      <th className="px-2 py-2 text-right text-gray-100 font-semibold text-[10px]">Balance</th>
+                      <th className="px-2 py-2 text-center text-gray-100 font-semibold text-[10px]">Age</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedCustomer.transactions
+                      .sort((a: any, b: any) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime())
+                      .map((transaction: any, index: number) => {
+                        const isLastTransaction = index === selectedCustomer.transactions.length - 1;
+                        return (
+                          <tr
+                            key={transaction.id}
+                            className={`border-b border-gray-400/10 hover:bg-gray-300/5 transition-colors ${
+                              isLastTransaction ? 'bg-blue-900/10 border-b-2 border-blue-500/30' : 'bg-black/5'
+                            }`}
+                          >
+                            <td className="px-2 py-1.5 text-gray-300 font-mono text-[10px]">
+                              {new Date(transaction.transaction_date).toLocaleDateString('en-GB')}
+                            </td>
+                            <td className="px-2 py-1.5 text-gray-300 font-mono text-[10px]">{transaction.reference_number}</td>
+                            <td className="px-2 py-1.5 text-right text-gray-300 font-mono text-[10px]">
+                              {transaction.invoice_amount > 0 ? formatCurrency(transaction.invoice_amount) : '-'}
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-gray-300 font-mono text-[10px]">
+                              {transaction.receipt_amount > 0 ? formatCurrency(transaction.receipt_amount) : '-'}
+                            </td>
+                            <td className={`px-2 py-1.5 text-right font-mono text-xs ${
+                              isLastTransaction ? 'text-white font-bold' : 
+                              transaction.balance < 0 ? 'text-green-300' : 'text-gray-300'
+                            }`}>
+                              {formatCurrency(transaction.balance)}
+                            </td>
+                            <td className="px-2 py-1.5 text-center text-gray-400 font-mono text-[10px]">{transaction.age_days}d</td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-3 py-2 border-t border-gray-500/30 flex items-center justify-end">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowStatementModal(false);
+                  setIsExpanded(false);
+                }}
+                className="px-3 py-1.5 text-sm bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 hover:from-gray-600 hover:via-gray-500 hover:to-gray-600 text-white rounded-md shadow-lg border border-gray-500/30 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
           </div>
   );
 }

@@ -337,7 +337,7 @@ export default function VehicleDetailPage() {
                 <span>Call Us</span>
               </a>
               <a 
-                href="https://wa.me/97143805515" 
+                href="https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20interested%20in%20your%20Lease-to-Own%20Offers%21" 
                 className="cta-button whatsapp-button" 
                 target="_blank" 
                 rel="noopener noreferrer"
@@ -690,7 +690,7 @@ export default function VehicleDetailPage() {
             <span>Call Us</span>
           </a>
           <a 
-            href="https://wa.me/97143805515" 
+            href="https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20interested%20in%20your%20Lease-to-Own%20Offers%21" 
             className="footer-action-btn" 
             target="_blank" 
             rel="noopener noreferrer"

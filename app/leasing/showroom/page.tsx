@@ -377,7 +377,7 @@ function ContactSection() {
             <h3>WhatsApp</h3>
             <p>Quick leasing enquiries</p>
             <div className="card-action">
-              <a href="https://wa.me/97143805515" className="action-link" target="_blank" rel="noopener noreferrer" onClick={handleWhatsAppClick}>
+              <a href="https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20interested%20in%20your%20Lease-to-Own%20Offers%21" className="action-link" target="_blank" rel="noopener noreferrer" onClick={handleWhatsAppClick}>
                 <Icon name="whatsapp" size={16} variant="gold" />
                 Start Chat
               </a>
@@ -447,7 +447,7 @@ function Footer() {
           <Icon name="phone" size={20} variant="gold" />
           <span>Call Us</span>
         </a>
-        <a href="https://wa.me/97143805515" className="footer-action-btn" target="_blank" rel="noopener noreferrer" onClick={handleWhatsAppClick}>
+        <a href="https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20interested%20in%20your%20Lease-to-Own%20Offers%21" className="footer-action-btn" target="_blank" rel="noopener noreferrer" onClick={handleWhatsAppClick}>
           <Icon name="whatsapp" size={20} variant="gold" />
           <span>WhatsApp</span>
         </a>

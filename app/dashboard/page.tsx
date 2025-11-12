@@ -26,9 +26,9 @@ function SalesFilterInline({ salesYear, salesMonth, setSalesYear, setSalesMonth 
   setSalesMonth: (month: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-3 px-3 py-2 backdrop-blur-md bg-gradient-to-r from-white/10 to-white/5 border border-white/10 rounded-lg shadow-inner">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 backdrop-blur-md bg-gradient-to-r from-white/10 to-white/5 border border-white/10 rounded-lg shadow-inner">
       <div className="flex items-center gap-1.5">
-        <span className="text-white/60 text-xs font-medium">Year:</span>
+        <span className="text-white/60 text-xs font-medium whitespace-nowrap">Year:</span>
         <select
           value={salesYear}
           onChange={(e) => setSalesYear(Number(e.target.value))}
@@ -41,7 +41,7 @@ function SalesFilterInline({ salesYear, salesMonth, setSalesYear, setSalesMonth 
       </div>
       
       <div className="flex items-center gap-1.5">
-        <span className="text-white/60 text-xs font-medium">Month:</span>
+        <span className="text-white/60 text-xs font-medium whitespace-nowrap">Month:</span>
         <select
           value={salesMonth}
           onChange={(e) => setSalesMonth(Number(e.target.value))}
@@ -1521,37 +1521,37 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
 
   return (
     <>
-      <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-        <h3 className="text-white text-sm font-semibold mb-4">📍 Vehicle Locations</h3>
+      <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur border border-white/10 rounded-lg p-2 md:p-4">
+        <h3 className="text-white text-sm font-semibold mb-2 md:mb-4">📍 Vehicle Locations</h3>
         
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white/50"></div>
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-1.5 md:gap-2">
             {locationData.map((locationCard) => (
               <div 
                 key={locationCard.location}
                 onClick={(event) => handleLocationClick(locationCard, event)}
-                className={`cursor-pointer transition-all duration-200 rounded-lg p-2 border flex-1 ${
+                className={`cursor-pointer transition-all duration-200 rounded-lg p-2 border flex-1 min-w-[80px] md:min-w-0 ${
                   locationCard.type === 'unaccounted' 
                     ? 'bg-red-500/10 border-red-400/30 hover:bg-red-500/20 hover:border-red-400/50' 
                     : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                 }`}
               >
                 <div className="text-center">
-                  <div className={`text-lg font-bold ${
+                  <div className={`text-base md:text-lg font-bold ${
                     locationCard.type === 'unaccounted' ? 'text-red-400' : 'text-white'
                   }`}>
                     {locationCard.count}
                   </div>
-                  <div className={`text-[10px] font-medium ${
+                  <div className={`text-[9px] md:text-[10px] font-medium ${
                     locationCard.type === 'unaccounted' ? 'text-red-300' : 'text-white/70'
                   }`}>
                     {locationCard.location}
                   </div>
-                  <div className="text-[9px] text-white/40">
+                  <div className="text-[8px] md:text-[9px] text-white/40">
                     {locationCard.count === 1 ? 'vehicle' : 'vehicles'}
                   </div>
                 </div>

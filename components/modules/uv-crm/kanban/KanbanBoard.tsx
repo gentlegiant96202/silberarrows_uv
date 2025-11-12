@@ -476,66 +476,6 @@ export default function KanbanBoard() {
       return; // Don't update database yet, wait for lost reason modal
     }
     
-    // Special case: moving to reserved (won) - check if reservation exists
-    if (targetCol === 'won') {
-      // Check if reservation already exists
-      const { data: existingReservation } = await supabase
-        .from('vehicle_reservations')
-        .select('id')
-        .eq('lead_id', leadToMove.id)
-        .eq('document_type', 'reservation')
-        .maybeSingle();
-      
-      if (existingReservation) {
-        // Reservation exists - just move the card
-        const { error } = await supabase.from("leads").update({ 
-          status: 'won',
-          updated_at: new Date().toISOString()
-        }).eq("id", leadToMove.id);
-        
-        if (error) {
-        }
-        return;
-      }
-      
-      // No reservation - show modal to generate it
-      setLeadForDocument(leadToMove);
-      setLeadOriginalStatus(leadToMove.status);
-      setVehicleDocumentMode('reservation');
-      setShowVehicleDocumentModal(true);
-      return;
-    }
-    
-    // Special case: moving to delivered - check if invoice exists
-    if (targetCol === 'delivered') {
-      // Check if invoice already exists
-      const { data: existingInvoice } = await supabase
-        .from('vehicle_reservations')
-        .select('id')
-        .eq('lead_id', leadToMove.id)
-        .eq('document_type', 'invoice')
-        .maybeSingle();
-      
-      if (existingInvoice) {
-        // Invoice exists - just move the card
-        const { error } = await supabase.from("leads").update({ 
-          status: 'delivered',
-          updated_at: new Date().toISOString()
-        }).eq("id", leadToMove.id);
-        
-        if (error) {
-        }
-        return;
-      }
-      
-      // No invoice - show modal to generate it
-      setLeadForDocument(leadToMove);
-      setLeadOriginalStatus(leadToMove.status);
-      setVehicleDocumentMode('invoice');
-      setShowVehicleDocumentModal(true);
-      return;
-    }
-    
     // Special case: moving to archived - add archived timestamp
     if (targetCol === 'archived') {
       const { error } = await supabase.from("leads").update({ 

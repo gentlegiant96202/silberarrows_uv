@@ -532,7 +532,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
     <div className="w-full bg-gradient-to-br from-[#050505] to-[#0A0A0A] text-[#E0E0E0] pb-10">
       {/* Fixed Floating Header */}
       <div
-        className="fixed left-[64px] right-0 z-40 flex items-center justify-between text-[#0A0A0A] px-5 py-5 rounded-2xl mx-5 mb-6"
+        className="fixed left-0 md:left-[64px] right-0 z-40 flex flex-col md:flex-row items-start md:items-center justify-between text-[#0A0A0A] px-3 md:px-5 py-3 md:py-5 rounded-none md:rounded-2xl mx-0 md:mx-5 mb-6 gap-3 md:gap-0"
         style={{ 
           top: appHeaderHeight ? appHeaderHeight + 20 : 85,
           background: 'rgba(255, 255, 255, 0.05)',
@@ -543,7 +543,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
         }}
       >
           {/* Left-aligned Heading */}
-        <h1 className="text-3xl font-semibold text-white tracking-tight">
+        <h1 className="text-xl md:text-3xl font-semibold text-white tracking-tight">
           {(() => {
             const hour = new Date().getHours();
             const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
@@ -556,7 +556,7 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
         </h1>
         
           {/* Date Filters Container */}
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center gap-2 md:gap-5 w-full md:w-auto">
             {/* Days Remaining */}
             {monthTarget && dashboardData && (() => {
               const workingDaysElapsed = dashboardData.working_days_elapsed || 0;
@@ -564,22 +564,22 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
               const daysRemaining = Math.max(0, totalWorkingDays - workingDaysElapsed);
               
               return (
-                <div className="flex items-center gap-2 border-r border-white/20 pr-5">
-                  <CalendarDays size={16} className="text-white" />
+                <div className="flex items-center gap-2 border-r border-white/20 pr-3 md:pr-5">
+                  <CalendarDays size={14} className="text-white md:w-4 md:h-4" />
                   <div className="flex flex-col">
-                    <span className="text-xs text-white/70">Days Remaining</span>
-                    <span className="text-sm font-bold text-white">{daysRemaining} of {totalWorkingDays}</span>
+                    <span className="text-[10px] md:text-xs text-white/70">Days Remaining</span>
+                    <span className="text-xs md:text-sm font-bold text-white">{daysRemaining} of {totalWorkingDays}</span>
         </div>
                 </div>
               );
             })()}
         
             {/* Date Selector */}
-            <div className="relative">
+            <div className="relative flex-1 md:flex-initial min-w-[120px]">
             <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-                className="appearance-none bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-2.5 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/50 cursor-pointer hover:bg-white/20 transition-all disabled:opacity-50"
+                className="appearance-none bg-white/10 border border-white/20 rounded-xl pl-3 md:pl-4 pr-8 md:pr-10 py-2 md:py-2.5 text-white text-xs md:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/50 cursor-pointer hover:bg-white/20 transition-all disabled:opacity-50 w-full"
               disabled={availableDates.length === 0}
             >
               {availableDates.length === 0 ? (
@@ -600,14 +600,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           </div>
 
           {/* Month Selector */}
-            <div className="relative">
+            <div className="relative flex-1 md:flex-initial min-w-[100px]">
             <select
               value={selectedMonth}
               onChange={(e) => {
                 setSelectedMonth(Number(e.target.value));
                   setSelectedDate('');
                 }}
-                className="appearance-none bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-2 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 cursor-pointer hover:bg-white/20 transition-all"
+                className="appearance-none bg-white/10 border border-white/20 rounded-xl pl-3 md:pl-4 pr-8 md:pr-10 py-2 text-white text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 cursor-pointer hover:bg-white/20 transition-all w-full"
               >
                 {[
                   { value: 1, label: 'January' }, { value: 2, label: 'February' },
@@ -626,14 +626,14 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           </div>
 
           {/* Year Selector */}
-            <div className="relative">
+            <div className="relative flex-1 md:flex-initial min-w-[80px]">
             <select
               value={selectedYear}
               onChange={(e) => {
                 setSelectedYear(Number(e.target.value));
                   setSelectedDate('');
               }}
-                className="appearance-none bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-2 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 cursor-pointer hover:bg-white/20 transition-all"
+                className="appearance-none bg-white/10 border border-white/20 rounded-xl pl-3 md:pl-4 pr-8 md:pr-10 py-2 text-white text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 cursor-pointer hover:bg-white/20 transition-all w-full"
             >
               {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
                   <option key={year} value={year} className="bg-black text-white">{year}</option>
@@ -645,10 +645,10 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
         </div>
 
       {/* Spacer for fixed header */}
-      <div className="h-32"></div>
+      <div className="h-40 md:h-32"></div>
 
       {/* Main Content Area */}
-      <div className="px-5 pb-5 w-full">
+      <div className="px-3 md:px-5 pb-5 w-full">
         <div className="w-full flex flex-col gap-5">
       {!dashboardData ? (
           <div className="bg-[rgba(255,255,255,0.08)] backdrop-blur-[10px] border border-[rgba(255,255,255,0.1)] rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[400px]">

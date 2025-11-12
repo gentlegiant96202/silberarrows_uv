@@ -29,7 +29,6 @@ export async function GET(request: NextRequest) {
       });
 
     if (funnelError) {
-      console.error('Funnel error:', funnelError);
       return NextResponse.json({ error: funnelError.message }, { status: 500 });
     }
 
@@ -42,7 +41,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error: any) {
-    console.error('API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

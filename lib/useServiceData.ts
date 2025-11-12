@@ -46,8 +46,7 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
       .eq('month', month)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // Not found is ok
-      console.error('Error fetching targets:', error);
+    if (error && error.code !== 'PGRST116') { 
       return null;
     }
 
@@ -62,8 +61,7 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
       .eq('metric_date', date)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // Not found is ok
-      console.error('Error fetching metrics:', error);
+    if (error && error.code !== 'PGRST116') { 
       return null;
     }
 
@@ -128,7 +126,6 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
 
     } catch (err: any) {
       setError(err.message || 'Failed to fetch service data');
-      console.error('Error in fetchServiceData:', err);
     } finally {
       setLoading(false);
     }
@@ -139,9 +136,6 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
     try {
       setSubmitting(true);
       setError(null);
-
-      console.log('Submitting service data:', formData);
-
       const response = await fetch('/api/service-metrics', {
         method: 'POST',
         headers: {
@@ -156,8 +150,6 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
       }
 
       const result = await response.json();
-      console.log('Save result:', result);
-
       // Refresh data after successful save
       await fetchServiceData(formData.date);
       
@@ -165,7 +157,6 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
 
     } catch (err: any) {
       setError(err.message || 'Failed to save data');
-      console.error('Error in submitInputData:', err);
       return false;
     } finally {
       setSubmitting(false);
@@ -191,8 +182,6 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
       }
 
       const result = await response.json();
-      console.log('Delete result:', result);
-
       // Refresh data after deletion
       await fetchServiceData(currentDate);
       
@@ -200,7 +189,6 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
 
     } catch (err: any) {
       setError(err.message || 'Failed to delete metrics');
-      console.error('Error in deleteMetricsForDate:', err);
       return false;
     } finally {
       setSubmitting(false);
@@ -216,13 +204,11 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
         .order('metric_date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching all metrics:', error);
         throw new Error(error.message);
       }
 
       return metrics || [];
     } catch (err: any) {
-      console.error('Error in fetchAllMetrics:', err);
       throw err;
     }
   }, []);
@@ -238,13 +224,11 @@ export function useServiceData(initialDate?: string): UseServiceDataReturn {
         .order('metric_date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching metrics range:', error);
         throw new Error(error.message);
       }
 
       return metrics || [];
     } catch (err: any) {
-      console.error('Error in fetchMetricsRange:', err);
       throw err;
     }
   }, []);

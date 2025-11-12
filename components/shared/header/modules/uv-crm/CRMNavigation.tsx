@@ -61,7 +61,6 @@ export default function CRMNavigation() {
 
         setPendingContractsCount(count);
       } catch (error) {
-        console.error('Error fetching pending contracts:', error);
       }
     };
 

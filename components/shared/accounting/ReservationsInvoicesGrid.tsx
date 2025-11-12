@@ -71,8 +71,6 @@ export default function ReservationsInvoicesGrid() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Fetching reservations and invoices with filters:', filters);
-
       let query = supabase
         .from('vehicle_reservations')
         .select(`
@@ -127,7 +125,6 @@ export default function ReservationsInvoicesGrid() {
       const { data: reservationsData, error } = await query;
 
       if (error) {
-        console.error('Error fetching data:', error);
         return;
       }
 
@@ -152,11 +149,8 @@ export default function ReservationsInvoicesGrid() {
           (item.document_number && item.document_number.toLowerCase().includes(searchTerm))
         );
       }
-
-      console.log('📊 Fetched data:', { total: filteredData.length, filters });
       setData(filteredData);
     } catch (error) {
-      console.error('Error fetching reservations/invoices:', error);
     } finally {
       setLoading(false);
     }
@@ -168,8 +162,6 @@ export default function ReservationsInvoicesGrid() {
 
   // Real-time subscription for document updates (including DocuSign status changes)
   useEffect(() => {
-    console.log('🔄 Setting up real-time subscription for vehicle_reservations...');
-    
     const subscription = supabase
       .channel('vehicle_reservations_updates')
       .on('postgres_changes', {
@@ -177,8 +169,6 @@ export default function ReservationsInvoicesGrid() {
         schema: 'public',
         table: 'vehicle_reservations'
       }, (payload) => {
-        console.log('📡 Real-time update received:', payload);
-        
         // Check if the updated record matches current filters
         const updatedRecord = payload.new;
         const currentMonth = parseInt(filters.month);
@@ -188,15 +178,12 @@ export default function ReservationsInvoicesGrid() {
         if (recordDate.getMonth() + 1 === currentMonth && 
             recordDate.getFullYear() === currentYear &&
             (filters.type === 'all' || updatedRecord.document_type === filters.type)) {
-          
-          console.log('📊 Updated record matches filters, refreshing data...');
           fetchData();
         }
       })
       .subscribe();
 
     return () => {
-      console.log('🔄 Cleaning up real-time subscription...');
       supabase.removeChannel(subscription);
     };
   }, [filters]);
@@ -220,26 +207,19 @@ export default function ReservationsInvoicesGrid() {
 
   const handleViewPDF = async (pdfUrl: string) => {
     try {
-      console.log('🔍 Attempting to view PDF:', pdfUrl);
-      
       // Extract domain to determine PDF service
       const urlMatch = pdfUrl.match(/https?:\/\/([^\/]+)/);
       const domain = urlMatch ? urlMatch[1] : '';
-      console.log('🌐 PDF domain:', domain);
-      
       // Check if this is a Supabase storage URL
       const isSupabaseStorage = /\/storage\/v1\/object\//.test(pdfUrl);
        
       if (isSupabaseStorage) {
-        console.log('📁 Supabase storage detected - opening directly');
         window.open(pdfUrl, '_blank');
         return;
       } else {
-        console.log('🌐 External URL detected - opening directly');
         try {
           window.open(pdfUrl, '_blank');
         } catch (openErr) {
-          console.log('🔄 Fallback to fetch→blob');
           const response = await fetch(pdfUrl);
           if (!response.ok) {
             throw new Error(`External PDF access failed: ${response.status} - ${response.statusText}`);
@@ -252,11 +232,7 @@ export default function ReservationsInvoicesGrid() {
       }
       
     } catch (error) {
-      console.error('❌ Error viewing PDF:', error);
-      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Full error details:', error);
-      
       alert(`Unable to view PDF: ${errorMessage}\n\nThe PDF download should still work. If this continues, please contact support.`);
     }
   };
@@ -279,7 +255,6 @@ export default function ReservationsInvoicesGrid() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error downloading PDF:', error);
     }
   };
 
@@ -294,7 +269,6 @@ export default function ReservationsInvoicesGrid() {
         .single();
 
       if (fetchError || !reservations) {
-        console.error('Failed to fetch reservation for tax invoice:', fetchError);
         setTaxLoadingId(null);
         return;
       }
@@ -350,7 +324,6 @@ export default function ReservationsInvoicesGrid() {
 
       if (!res.ok) {
         const err = await res.text();
-        console.error('Tax invoice generation failed:', err);
         setTaxLoadingId(null);
         return;
       }
@@ -375,7 +348,6 @@ export default function ReservationsInvoicesGrid() {
           document.body.removeChild(link);
           window.URL.revokeObjectURL(url);
         } catch (e) {
-          console.error('Failed to download generated tax invoice:', e);
           // Fallback: open in a tab if download fails
           window.open(result.pdfUrl, '_blank');
         }
@@ -383,7 +355,6 @@ export default function ReservationsInvoicesGrid() {
       // Optionally refresh data to reflect any updates
       fetchData();
     } catch (e) {
-      console.error('Error generating tax invoice:', e);
     } finally {
       setTaxLoadingId(null);
     }

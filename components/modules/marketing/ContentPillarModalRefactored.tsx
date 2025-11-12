@@ -68,7 +68,6 @@ export default function ContentPillarModalRefactored({
     try {
       return getDefaultBadgeText(day as DayKey);
     } catch (error) {
-      console.warn(`Invalid dayKey: ${day}, falling back to default badge`);
       return day.toUpperCase();
     }
   };
@@ -77,7 +76,6 @@ export default function ContentPillarModalRefactored({
     try {
       return getSupportedTemplateTypes(day as DayKey);
     } catch (error) {
-      console.warn(`Invalid dayKey: ${day}, falling back to template A`);
       return ['A'];
     }
   };
@@ -86,7 +84,6 @@ export default function ContentPillarModalRefactored({
     try {
       return generateTemplate(day as DayKey, formData, renderImageUrl, absoluteLogoUrl, fontFaceCSS, templateType);
     } catch (error) {
-      console.error(`Error generating template for ${day}:`, error);
       return `<html><body><div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Arial;color:red;">Template Error for ${day}</div></body></html>`;
     }
   };
@@ -132,24 +129,17 @@ export default function ContentPillarModalRefactored({
         
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ Fetched inventory cars response:', data);
-          
           // Extract cars array from response
           const cars = data.success ? data.cars : data;
-          console.log('✅ Extracted cars array:', cars?.length || 0, cars);
-          console.log('✅ Setting inventory cars state...');
           setInventoryCars(cars || []);
           
           // Debug: Check if state was set
           setTimeout(() => {
-            console.log('✅ State check - inventoryCars length after setState:', inventoryCars.length);
           }, 100);
         } else {
-          console.error('Failed to fetch inventory cars');
           setInventoryCars([]);
         }
       } catch (error) {
-        console.error('Error fetching inventory cars:', error);
         setInventoryCars([]);
       } finally {
         setLoadingCars(false);
@@ -177,29 +167,10 @@ export default function ContentPillarModalRefactored({
     // Use appropriate media files for each template
     const selectedFiles = templateType === 'A' ? selectedFilesA : selectedFilesB;
     const existingMedia = templateType === 'A' ? existingMediaA : existingMediaB;
-    
-    console.log(`🎨 Template ${templateType} Media:`, {
-      selectedFiles: selectedFiles.length,
-      existingMedia: existingMedia.length,
-      selectedFileNames: selectedFiles.map(f => f.file.name),
-      existingMediaNames: existingMedia.map(m => m.name)
-    });
-    
     const imageUrl = getImageUrl(selectedFiles, existingMedia);
     const renderImageUrl = getCacheBustedImageUrl(imageUrl);
     const absoluteLogoUrl = getAbsoluteLogoUrl();
     const fontFaceCSS = getFontFaceCSS();
-    
-    console.log(`🖼️ Template ${templateType} using image:`, imageUrl);
-    console.log(`🏢 Template ${templateType} using logo:`, absoluteLogoUrl);
-    console.log(`🔍 Template ${templateType} existingMedia details:`, existingMedia.map(m => ({ 
-      name: m.name, 
-      type: m.type, 
-      url: m.url?.substring(0, 50) + '...', 
-      isImage: m.type?.startsWith('image/') || m.name?.match(/\.(jpe?g|png|webp|gif)$/i) || m.url?.match(/\.(jpe?g|png|webp|gif)$/i)
-    })));
-    console.log(`🔍 Template ${templateType} selectedFiles:`, selectedFiles.map(f => ({ name: f.file.name, type: f.file.type })));
-    
     return getSafeTemplate(
       dayKey,
       formData,
@@ -212,7 +183,6 @@ export default function ContentPillarModalRefactored({
 
   // File upload handler - upload directly to Supabase
   const handleFileUpload = async (files: FileList, templateType: TemplateType = 'A') => {
-    console.log(`📤 handleFileUpload called with templateType: ${templateType}`);
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       
@@ -251,9 +221,6 @@ export default function ContentPillarModalRefactored({
         const ext = file.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${ext}`;
         const storagePath = `content-pillars/${tempPillarId}/${fileName}`;
-        
-        console.log(`📤 Uploading ${file.name} to Supabase...`);
-        
         const { error: uploadError } = await supabase.storage
           .from('media-files')
           .upload(storagePath, file, { 
@@ -263,7 +230,6 @@ export default function ContentPillarModalRefactored({
           });
         
         if (uploadError) {
-          console.error('📤 Supabase upload error:', uploadError);
           throw new Error(uploadError.message);
         }
         
@@ -289,14 +255,7 @@ export default function ContentPillarModalRefactored({
         const setExistingMediaForTemplate = templateType === 'A' ? setExistingMediaA : setExistingMediaB;
         setExistingMediaForTemplate(prev => [...prev, mediaItem]);
         setSelectedFilesForTemplate(prev => prev.filter((_, i) => i !== currentIndex));
-        
-        console.log(`✅ Added media to Template ${templateType}:`, mediaItem.name);
-        
-        console.log(`✅ ${file.name} uploaded successfully to Supabase`);
-        
       } catch (error) {
-        console.error(`❌ Error uploading ${file.name}:`, error);
-        
         // Update file entry to show error state
         setSelectedFilesForTemplate(prev => prev.map((item, i) => 
           i === currentIndex 
@@ -312,45 +271,27 @@ export default function ContentPillarModalRefactored({
 
   // Remove existing media file
   const removeExistingMedia = async (indexToRemove: number, templateType: TemplateType = 'A') => {
-    console.log(`🔴 removeExistingMedia called - Template ${templateType}, index:`, indexToRemove);
-    
     const currentMedia = templateType === 'A' ? existingMediaA : existingMediaB;
-    console.log(`🔴 Current media array length:`, currentMedia.length);
-    console.log(`🔴 Current media array:`, currentMedia);
-    
     const mediaToRemove = currentMedia[indexToRemove];
-    console.log(`🔴 Media to remove:`, mediaToRemove);
-    
     if (!mediaToRemove) {
-      console.log(`🔴 No media found at index ${indexToRemove}, returning`);
       return;
     }
 
     // Show confirmation dialog
     const confirmDelete = confirm(`Are you sure you want to delete "${mediaToRemove.name || 'this file'}"? This action cannot be undone.`);
     if (!confirmDelete) {
-      console.log(`🔴 User cancelled deletion`);
       return;
     }
-
-    console.log(`🗑️ Proceeding with removal - Template ${templateType}:`, mediaToRemove.name);
-
     try {
       // Remove from local state immediately for better UX
-      console.log(`🔴 Updating local state - removing index ${indexToRemove} from Template ${templateType}`);
-      
       if (templateType === 'A') {
-        console.log(`🔴 Before filter - existingMediaA length:`, existingMediaA.length);
         setExistingMediaA(prev => {
           const filtered = prev.filter((_, index) => index !== indexToRemove);
-          console.log(`🔴 After filter - new length:`, filtered.length);
           return filtered;
         });
       } else {
-        console.log(`🔴 Before filter - existingMediaB length:`, existingMediaB.length);
         setExistingMediaB(prev => {
           const filtered = prev.filter((_, index) => index !== indexToRemove);
-          console.log(`🔴 After filter - new length:`, filtered.length);
           return filtered;
         });
       }
@@ -378,19 +319,11 @@ export default function ContentPillarModalRefactored({
           );
           updateData.media_files = generalMediaFiles;
         }
-        
-        console.log(`📝 Updating content pillar to remove media from Template ${templateType}`);
-        
         // Update the content pillar in the database
         await onSave(updateData);
-        
-        console.log(`✅ Media file removed from Template ${templateType} and updated in database`);
       } else {
-        console.log(`✅ Media file removed from Template ${templateType} (local state only)`);
       }
     } catch (error) {
-      console.error(`❌ Error removing media from Template ${templateType}:`, error);
-      
       // Restore the media file if database update failed
       if (templateType === 'A') {
         setExistingMediaA(prev => [...prev.slice(0, indexToRemove), mediaToRemove, ...prev.slice(indexToRemove)]);
@@ -407,9 +340,6 @@ export default function ContentPillarModalRefactored({
     const currentFiles = templateType === 'A' ? selectedFilesA : selectedFilesB;
     const fileToRemove = currentFiles[indexToRemove];
     if (!fileToRemove) return;
-
-    console.log(`🗑️ Removing selected file from Template ${templateType}:`, fileToRemove.file.name);
-
     // Clean up blob URL to prevent memory leaks
     if (fileToRemove.thumbnail && fileToRemove.thumbnail.startsWith('blob:')) {
       URL.revokeObjectURL(fileToRemove.thumbnail);
@@ -421,14 +351,11 @@ export default function ContentPillarModalRefactored({
     } else {
       setSelectedFilesB(prev => prev.filter((_, index) => index !== indexToRemove));
     }
-
-    console.log(`✅ Selected file removed from Template ${templateType}`);
   };
 
   // Handle car selection for Wednesday
   const handleCarSelection = (carId: string) => {
     if (!inventoryCars || inventoryCars.length === 0) {
-      console.warn('No inventory cars available');
       return;
     }
     
@@ -466,9 +393,6 @@ export default function ContentPillarModalRefactored({
       if (socialMediaImages.length >= 2) {
         // Use the second social_media image
         const secondSocialImage = socialMediaImages[1];
-        
-        console.log('🚗 Adding car social media image to Template A (preserving existing media)');
-        
         // For Wednesday, add social media image to Template A (don't replace existing media)
         setExistingMediaA(prev => {
           // Check if this car image is already added to avoid duplicates
@@ -477,11 +401,8 @@ export default function ContentPillarModalRefactored({
           );
           
           if (existingCarImage) {
-            console.log('🚗 Car image already exists, not adding duplicate');
             return prev;
           }
-          
-          console.log('🚗 Adding new car image to existing media');
           return [...prev, { 
             url: secondSocialImage.url, 
             name: 'Car Social Media Image', 
@@ -491,7 +412,6 @@ export default function ContentPillarModalRefactored({
         });
         
         // Don't clear Template B - preserve any existing media
-        console.log('🚗 Preserving existing Template B media');
       }
     }
     }
@@ -519,8 +439,6 @@ export default function ContentPillarModalRefactored({
       
       // Generate all templates first
       for (const template of supportedTypes) {
-        console.log(`📄 Generating Template ${template}...`);
-        
         // For image generation, use direct URLs (not proxy URLs) that Puppeteer can access
         const selectedFiles = template === 'A' ? selectedFilesA : selectedFilesB;
         const existingMedia = template === 'A' ? existingMediaA : existingMediaB;
@@ -555,9 +473,6 @@ export default function ContentPillarModalRefactored({
         const renderImageUrl = getCacheBustedImageUrl(directImageUrl);
         const absoluteLogoUrl = getAbsoluteLogoUrl();
         const fontFaceCSS = getFontFaceCSS();
-        
-        console.log(`📄 Template ${template} using direct image URL:`, directImageUrl);
-        
         const htmlContent = getSafeTemplate(
           dayKey,
           formData,
@@ -566,9 +481,6 @@ export default function ContentPillarModalRefactored({
           fontFaceCSS,
           template
         );
-        console.log(`📄 Generated HTML for Template ${template}, length:`, htmlContent.length);
-        console.log(`📄 HTML preview:`, htmlContent.substring(0, 500) + '...');
-        
         const response = await fetch('/api/generate-content-pillar-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -586,17 +498,12 @@ export default function ContentPillarModalRefactored({
         
         if (result.success && result.imageBase64) {
           generatedImages.push({ template, imageBase64: result.imageBase64 });
-          console.log(`✅ Template ${template} generated successfully`);
         }
       }
       
       // Now download and save all images
-      console.log(`🎨 Processing ${generatedImages.length} generated images for saving to modal...`);
-      
       for (let i = 0; i < generatedImages.length; i++) {
         const { template, imageBase64 } = generatedImages[i];
-        console.log(`🎨 Processing image ${i + 1}/${generatedImages.length} - Template ${template}`);
-        
         // Force download with delay between downloads
         if (i === 0) {
           downloadImage(imageBase64, template);
@@ -607,10 +514,7 @@ export default function ContentPillarModalRefactored({
         }
         
         // Save to modal
-        console.log(`🎨 Saving Template ${template} to modal...`);
         await saveGeneratedImageAsFile(imageBase64, template);
-        console.log(`🎨 Template ${template} saved to modal successfully`);
-        
         // Update state for first image (backward compatibility)
         if (i === 0 && onGeneratedImageChange) {
           onGeneratedImageChange(imageBase64);
@@ -621,7 +525,6 @@ export default function ContentPillarModalRefactored({
       alert(`Templates generated successfully! Downloaded ${downloadedCount} image(s).`);
       
     } catch (error) {
-      console.error('Error generating template:', error);
       alert('Failed to generate template. Please try again.');
     } finally {
       setGeneratingTemplate(false);
@@ -648,8 +551,6 @@ export default function ContentPillarModalRefactored({
 
     setGeneratingVideo(true);
     try {
-      console.log('🎬 Starting video generation...');
-      
       // Generate the exact same HTML used for image templates A & B
       const htmlA = generateLivePreviewHTML('A');
       const supportsB = getSafeSupportedTypes(dayKey).includes('B');
@@ -674,7 +575,6 @@ export default function ContentPillarModalRefactored({
           
           // Return direct URL for video service
           if (imageUrl) {
-            console.log(`✅ Using template-specific image:`, imageUrl);
             return imageUrl;
           }
         }
@@ -683,22 +583,17 @@ export default function ContentPillarModalRefactored({
         if (fallbackToAnyImage) {
           // Try the other template's existing media (skip selectedFiles to avoid blob URLs)
           const allExistingMedia = [...existingMediaA, ...existingMediaB];
-          console.log(`🔄 Fallback - checking all media:`, allExistingMedia.length);
-          
           if (allExistingMedia.length > 0) {
             const firstMedia = allExistingMedia[0];
             if (typeof firstMedia === 'string') {
-              console.log(`✅ Using fallback string image:`, firstMedia);
               return firstMedia;
             } else if (firstMedia?.url) {
-              console.log(`✅ Using fallback object image:`, firstMedia.url);
               return firstMedia.url;
             }
           }
         }
         
         // Final fallback to logo
-        console.log(`⚠️ No images found, using logo fallback`);
         return getAbsoluteLogoUrl();
       };
       
@@ -706,28 +601,9 @@ export default function ContentPillarModalRefactored({
       const directImageUrlB = getDirectImageUrl(selectedFilesB, existingMediaB);
       const imageUrlA = getCacheBustedImageUrl(directImageUrlA);
       const imageUrlB = getCacheBustedImageUrl(directImageUrlB);
-      
-      console.log('🎬 Direct URLs for video service:');
-      console.log('📸 Template A direct URL:', directImageUrlA);
-      console.log('📸 Template B direct URL:', directImageUrlB);
-      console.log('🕐 Template A with cache-bust:', imageUrlA);
-      console.log('🕐 Template B with cache-bust:', imageUrlB);
-      
-      console.log('🎬 Video generation - selectedFilesA:', selectedFilesA.length, selectedFilesA.map(f => f.file.name));
-      console.log('🎬 Video generation - existingMediaA:', existingMediaA.length, existingMediaA.map(m => m.name));
-      console.log('🎬 Video generation - selectedFilesB:', selectedFilesB.length, selectedFilesB.map(f => f.file.name));
-      console.log('🎬 Video generation - existingMediaB:', existingMediaB.length, existingMediaB.map(m => m.name));
-      console.log('🎬 Video generation - Image URL A:', imageUrlA);
-      console.log('🎬 Video generation - Image URL B:', imageUrlB);
-
       // Use direct URLs (without cache-busting) for video generation so Railway can access them
       const formDataA = { ...formData, imageUrl: directImageUrlA } as typeof formData & { imageUrl?: string };
       const formDataB = { ...formData, imageUrl: directImageUrlB } as typeof formData & { imageUrl?: string };
-      
-      console.log('🎬 Final form data URLs:');
-      console.log('📋 FormData A imageUrl:', formDataA.imageUrl);
-      console.log('📋 FormData B imageUrl:', formDataB.imageUrl);
-
       // Prepare video generation request using HTML for A & B
       const videoRequest = {
         dayOfWeek: dayKey,
@@ -737,9 +613,6 @@ export default function ContentPillarModalRefactored({
         formDataA,
         formDataB,
       } as const;
-
-      console.log('📤 Sending video generation request:', videoRequest);
-
       // Call our video generation API
       const response = await fetch('/api/generate-content-pillar-video', {
         method: 'POST',
@@ -748,28 +621,16 @@ export default function ContentPillarModalRefactored({
       });
 
       const result = await response.json();
-      console.log('📥 Video generation response:', result);
-      console.log('📊 Videos object:', result?.videos);
-      console.log('📊 Video A exists:', !!result?.videos?.A);
-      console.log('📊 Video B exists:', !!result?.videos?.B);
-      console.log('📊 Video A length:', result?.videos?.A?.length);
-      console.log('📊 Video B length:', result?.videos?.B?.length);
-
       if (result?.success && result?.videos) {
         // New flow: both Template A and B provided
         const a = result.videos.A as string | undefined;
         const b = result.videos.B as string | undefined;
-
-        console.log('🎬 About to download videos - A:', !!a, 'B:', !!b);
-
         if (a) {
-          console.log('⬇️ Downloading Template A video...');
           downloadVideo(a, `content_pillar_${dayKey}_A_${Date.now()}.mp4`);
           // Upload to Supabase and save to modal
           try {
             const videoUrl = await uploadVideoToSupabase(a, 'A');
             if (videoUrl) {
-              console.log('✅ Template A video uploaded, adding to modal:', videoUrl);
               setExistingMediaA((prev: any[]) => [
                 ...prev,
                 { 
@@ -781,24 +642,19 @@ export default function ContentPillarModalRefactored({
                 }
               ]);
             } else {
-              console.error('❌ Template A video upload failed - no URL returned');
             }
           } catch (error) {
-            console.error('❌ Template A video upload failed:', error);
           }
         } else {
-          console.warn('⚠️ Template A video not found in response');
         }
         
         // Process Template B video (no setTimeout needed since we're awaiting)
         if (b) {
-          console.log('⬇️ Downloading Template B video...');
           downloadVideo(b, `content_pillar_${dayKey}_B_${Date.now()}.mp4`);
           // Upload to Supabase and save to modal
           try {
             const videoUrl = await uploadVideoToSupabase(b, 'B');
             if (videoUrl) {
-              console.log('✅ Template B video uploaded, adding to modal:', videoUrl);
               setExistingMediaB((prev: any[]) => [
                 ...prev,
                 { 
@@ -810,28 +666,22 @@ export default function ContentPillarModalRefactored({
                 }
               ]);
             } else {
-              console.error('❌ Template B video upload failed - no URL returned');
             }
           } catch (error) {
-            console.error('❌ Template B video upload failed:', error);
           }
         } else {
-          console.warn('⚠️ Template B video not found in response');
         }
 
         const downloadedCount = (a ? 1 : 0) + (b ? 1 : 0);
         alert(`Videos generated successfully! Downloaded and saved ${downloadedCount} video(s) to modal.`);
       } else if (result?.success && result?.videoData) {
         // Legacy single video path
-        console.log('✅ Video generated successfully!');
         downloadVideo(result.videoData, `content_pillar_${dayKey}_video_${Date.now()}.mp4`);
         alert('Video generated successfully!');
       } else {
-        console.error('❌ Video generation failed:', result.error);
         alert(`Failed to generate video: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('❌ Error generating video:', error);
       alert('Failed to generate video. Please try again.');
     } finally {
       setGeneratingVideo(false);
@@ -841,8 +691,6 @@ export default function ContentPillarModalRefactored({
   // Upload video to Supabase storage
   const uploadVideoToSupabase = async (videoBase64: string, templateType: 'A' | 'B'): Promise<string | null> => {
     try {
-      console.log(`📤 Uploading Template ${templateType} video to Supabase...`);
-      
       // Convert base64 to blob
       const byteCharacters = atob(videoBase64);
       const byteNumbers = new Array(byteCharacters.length);
@@ -868,7 +716,6 @@ export default function ContentPillarModalRefactored({
         });
       
       if (uploadError) {
-        console.error('📤 Supabase video upload error:', uploadError);
         return null;
       }
       
@@ -879,12 +726,9 @@ export default function ContentPillarModalRefactored({
       
       // Convert to custom domain
       const publicUrl = rawUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
-      
-      console.log(`✅ Template ${templateType} video uploaded successfully:`, publicUrl);
       return publicUrl;
       
     } catch (error) {
-      console.error(`❌ Error uploading Template ${templateType} video:`, error);
       return null;
     }
   };
@@ -899,10 +743,6 @@ export default function ContentPillarModalRefactored({
         .toLowerCase();
       
       const filename = `template_${templateType.toLowerCase()}_${cleanTitle}_${Date.now()}.png`;
-      
-      console.log(`🖼️ Starting download for: ${filename}`);
-      console.log(`📊 Image data length: ${imageBase64.length} characters`);
-      
       const byteCharacters = atob(imageBase64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -910,37 +750,25 @@ export default function ContentPillarModalRefactored({
       }
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'image/png' });
-      
-      console.log(`📦 Created blob of size: ${blob.size} bytes`);
-      
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = filename;
       link.style.display = 'none';
       document.body.appendChild(link);
-      
-      console.log(`🔗 Created download link for: ${filename}`);
       link.click();
-      console.log(`✅ Clicked download link for: ${filename}`);
-      
       // Clean up after a short delay
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
-        console.log(`🧹 Cleaned up download link for: ${filename}`);
       }, 1000);
       
     } catch (error) {
-      console.error(`❌ Error downloading ${templateType} image:`, error);
     }
   };
 
   // Download video helper
   const downloadVideo = (videoBase64: string, filename: string) => {
     try {
-      console.log(`🎬 Starting download for: ${filename}`);
-      console.log(`📊 Video data length: ${videoBase64.length} characters`);
-      
       const byteCharacters = atob(videoBase64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -948,28 +776,19 @@ export default function ContentPillarModalRefactored({
       }
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'video/mp4' });
-      
-      console.log(`📦 Created blob of size: ${blob.size} bytes`);
-      
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = filename;
       link.style.display = 'none';
       document.body.appendChild(link);
-      
-      console.log(`🔗 Created download link for: ${filename}`);
       link.click();
-      console.log(`✅ Clicked download link for: ${filename}`);
-      
       // Clean up after a short delay
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
-        console.log(`🧹 Cleaned up download link for: ${filename}`);
       }, 1000);
       
     } catch (error) {
-      console.error(`❌ Error downloading ${filename}:`, error);
     }
   };
 
@@ -995,9 +814,6 @@ export default function ContentPillarModalRefactored({
       
       // Create file object
       const file = new File([blob], filename, { type: 'image/png' });
-      
-      console.log(`🎨 Uploading generated Template ${template} image to Supabase...`);
-      
       // Upload to Supabase directly (same pattern as video upload)
       const tempPillarId = editingItem?.id || crypto.randomUUID();
       const timestamp = Date.now();
@@ -1013,7 +829,6 @@ export default function ContentPillarModalRefactored({
         });
       
       if (uploadError) {
-        console.error('🎨 Supabase image upload error:', uploadError);
         throw new Error(`Failed to upload generated image to Supabase: ${uploadError.message}`);
       }
       
@@ -1024,9 +839,6 @@ export default function ContentPillarModalRefactored({
       
       // Clean up the URL (same as video upload)
       const uploadedUrl = rawUrl.split('?')[0];
-      
-      console.log(`✅ Template ${template} uploaded to Supabase:`, uploadedUrl);
-
       // Create media object for existingMedia (permanent storage)
       const mediaObject = {
         url: uploadedUrl,
@@ -1042,7 +854,6 @@ export default function ContentPillarModalRefactored({
           // Remove any existing generated template files
           const filtered = prev.filter(m => !m.name?.includes('Generated Template A'));
           const newArray = [...filtered, mediaObject];
-          console.log(`🎨 Template A - Adding to existingMedia. Previous count: ${prev.length}, New count: ${newArray.length}`);
           return newArray;
         });
       } else if (template === 'B') {
@@ -1050,15 +861,10 @@ export default function ContentPillarModalRefactored({
           // Remove any existing generated template files
           const filtered = prev.filter(m => !m.name?.includes('Generated Template B'));
           const newArray = [...filtered, mediaObject];
-          console.log(`🎨 Template B - Adding to existingMedia. Previous count: ${prev.length}, New count: ${newArray.length}`);
           return newArray;
         });
       }
-      
-      console.log(`✅ Template ${template} saved permanently: ${filename}`);
     } catch (error) {
-      console.error(`❌ Error saving Template ${template} as file:`, error);
-      
       // Fallback: Add to selectedFiles if upload fails
       const file = new File([new Blob([new Uint8Array(atob(imageBase64).split('').map(c => c.charCodeAt(0)))], { type: 'image/png' })], 
         `template_${template.toLowerCase()}_fallback_${Date.now()}.png`, { type: 'image/png' });
@@ -1076,8 +882,6 @@ export default function ContentPillarModalRefactored({
       } else {
         setSelectedFilesB(prev => [...prev, fileWithThumbnail]);
       }
-      
-      console.log(`⚠️ Template ${template} added to selectedFiles as fallback`);
     }
   };
 
@@ -1109,13 +913,6 @@ export default function ContentPillarModalRefactored({
 
       // Back-compat merged list (but keep templateType distinction)
       const merged = [...mediaA, ...mediaB];
-      
-      console.log('💾 Saving media - Template A:', mediaA.length, 'files', mediaA.map(m => m.name));
-      console.log('💾 Saving media - Template B:', mediaB.length, 'files', mediaB.map(m => m.name));
-      console.log('💾 Merged media total:', merged.length, 'files');
-      console.log('💾 existingMediaA state:', existingMediaA.length, existingMediaA.map(m => ({name: m.name, templateType: m.templateType})));
-      console.log('💾 existingMediaB state:', existingMediaB.length, existingMediaB.map(m => ({name: m.name, templateType: m.templateType})));
-
       const pillarData = {
         title: formData.title,
         description: formData.description,
@@ -1139,22 +936,9 @@ export default function ContentPillarModalRefactored({
         media_files_a: mediaA,
         media_files_b: mediaB,
       };
-
-      console.log('📤 Saving content pillar data:', pillarData);
-      console.log('📤 Media files being sent:', pillarData.media_files);
-      console.log('📤 Media files A being sent:', pillarData.media_files_a);
-      console.log('📤 Media files B being sent:', pillarData.media_files_b);
-      console.log('📤 Form fields being sent:', {
-        titleFontSize: pillarData.titleFontSize,
-        imageFit: pillarData.imageFit,
-        imageAlignment: pillarData.imageAlignment,
-        imageZoom: pillarData.imageZoom,
-        imageVerticalPosition: pillarData.imageVerticalPosition
-      });
       await onSave(pillarData);
       onClose();
     } catch (error) {
-      console.error('Error saving content pillar:', error);
       alert('Failed to save content pillar. Please try again.');
     } finally {
       setSaving(false);
@@ -1172,7 +956,6 @@ export default function ContentPillarModalRefactored({
       await onDelete();
       onClose();
     } catch (error) {
-      console.error('Error deleting content pillar:', error);
       alert('Failed to delete content pillar. Please try again.');
     } finally {
       setDeleting(false);
@@ -1205,11 +988,6 @@ export default function ContentPillarModalRefactored({
       // Only load existing media when modal first opens for a specific item
       // Don't reload when editingItem changes due to saves (prevents overwriting deletions)
       if (editingItem && mediaLoadedForItem !== editingItem.id) {
-        console.log('🔄 Loading existing media from editingItem (FIRST TIME ONLY)');
-        console.log('📁 editingItem.media_files:', editingItem.media_files);
-        console.log('📁 editingItem.media_files_a:', editingItem.media_files_a);
-        console.log('📁 editingItem.media_files_b:', editingItem.media_files_b);
-        
         const mediaFiles = editingItem.media_files || [];
         const mediaFilesA = editingItem.media_files_a || [];
         const mediaFilesB = editingItem.media_files_b || [];
@@ -1222,21 +1000,6 @@ export default function ContentPillarModalRefactored({
         const mediaB: any[] = (Array.isArray(mediaFilesB) && mediaFilesB.length > 0)
           ? mediaFilesB
           : mediaFiles.filter(m => m?.template_type === 'B');
-        
-        console.log('🔍 Media distribution debug:', {
-          mediaFilesA_length: mediaFilesA?.length || 0,
-          mediaFilesB_length: mediaFilesB?.length || 0,
-          mediaFiles_length: mediaFiles?.length || 0,
-          mediaFiles_templateTypes: mediaFiles.map(m => ({ name: m?.name, template_type: m?.template_type })),
-          finalMediaA_length: mediaA.length,
-          finalMediaB_length: mediaB.length,
-          finalMediaA_items: mediaA.map(m => ({ name: m?.name, template_type: m?.template_type })),
-          finalMediaB_items: mediaB.map(m => ({ name: m?.name, template_type: m?.template_type }))
-        });
-          
-        console.log('🔄 Loading media - mediaFiles total:', mediaFiles.length);
-        console.log('🔄 Loading media - split A:', mediaA.length, 'B:', mediaB.length);
-        
         // Dedupe by URL inside each bucket
         const dedupeByUrl = (arr: any[]) => {
           const seen = new Set();
@@ -1252,16 +1015,12 @@ export default function ContentPillarModalRefactored({
         setExistingMediaA(dedupeByUrl(mediaA));
         setExistingMediaB(dedupeByUrl(mediaB));
         setMediaLoadedForItem(editingItem.id);
-        
-        console.log('✅ Media loaded for item:', editingItem.id, '- A:', mediaA.length, 'B:', mediaB.length);
       } else if (!editingItem) {
         // Clear existing media when creating new item
         setExistingMediaA([]);
         setExistingMediaB([]);
         setMediaLoadedForItem(null);
-        console.log('🧹 Cleared media for new item creation');
       } else if (editingItem && mediaLoadedForItem === editingItem.id) {
-        console.log('⏭️ Skipping media reload for item:', editingItem.id, '(already loaded)');
       }
     }
   }, [isOpen, dayKey, editingItem, mediaLoadedForItem]);
@@ -1269,7 +1028,6 @@ export default function ContentPillarModalRefactored({
   // Clear media arrays when modal closes to prevent stale state
   useEffect(() => {
     if (!isOpen) {
-      console.log('🧹 Modal closed - clearing media arrays and resetting tracker');
       setExistingMediaA([]);
       setExistingMediaB([]);
       setSelectedFilesA([]);
@@ -1280,16 +1038,6 @@ export default function ContentPillarModalRefactored({
 
   useEffect(() => {
     if (editingItem) {
-      console.log('🔄 Loading editingItem data:', {
-        id: editingItem.id,
-        title: editingItem.title,
-        titleFontSize: editingItem.titleFontSize,
-        imageFit: editingItem.imageFit,
-        imageAlignment: editingItem.imageAlignment,
-        imageZoom: editingItem.imageZoom,
-        imageVerticalPosition: editingItem.imageVerticalPosition
-      });
-      
       setFormData(prev => ({
         ...prev,
         title: editingItem.title,
@@ -1739,11 +1487,9 @@ export default function ContentPillarModalRefactored({
                       </div>
                       <button
                         onClick={() => {
-                          console.log('🗑️ SIMPLE DELETE - Template A, index:', index);
                           // Simple direct deletion - no complex logic
                           setExistingMediaA(prev => {
                             const newArray = prev.filter((_, i) => i !== index);
-                            console.log('✅ Deleted from Template A. Old length:', prev.length, 'New length:', newArray.length);
                             return newArray;
                           });
                         }}
@@ -1847,11 +1593,9 @@ export default function ContentPillarModalRefactored({
                         </div>
                         <button
                           onClick={() => {
-                            console.log('🗑️ SIMPLE DELETE - Template B, index:', index);
                             // Simple direct deletion - no complex logic
                             setExistingMediaB(prev => {
                               const newArray = prev.filter((_, i) => i !== index);
-                              console.log('✅ Deleted from Template B. Old length:', prev.length, 'New length:', newArray.length);
                               return newArray;
                             });
                           }}

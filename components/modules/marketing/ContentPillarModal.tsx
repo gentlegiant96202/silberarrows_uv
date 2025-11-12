@@ -245,10 +245,8 @@ export default function ContentPillarModal({
       if (data.success) {
         setInventoryCars(data.cars);
       } else {
-        console.error('Failed to fetch inventory cars:', data.error);
       }
     } catch (error) {
-      console.error('Error fetching inventory cars:', error);
     } finally {
       setLoadingCars(false);
     }
@@ -302,7 +300,6 @@ export default function ContentPillarModal({
             setSelectedFiles([fileWithThumbnail]);
           })
           .catch(error => {
-            console.error('Error loading social media image:', error);
           });
       }
     }
@@ -384,9 +381,7 @@ export default function ContentPillarModal({
 
       for (const file of files) {
         try {
-          console.log('🎬 Generating thumbnail for:', file.name, 'type:', file.type);
           const thumbnail = await generateThumbnail(file);
-          console.log('✅ Thumbnail generated for:', file.name, 'thumbnail length:', thumbnail.length);
           filesWithThumbnails.push({
             file,
             thumbnail,
@@ -395,7 +390,6 @@ export default function ContentPillarModal({
             uploaded: false
           });
         } catch (error) {
-          console.error('❌ Error generating thumbnail for:', file.name, error);
           filesWithThumbnails.push({
             file,
             thumbnail: '',
@@ -443,7 +437,6 @@ export default function ContentPillarModal({
         await onSave(updatedItem);
       }
     } catch (error) {
-      console.error('Error removing media:', error);
       // Restore the media item if there was an error
       setExistingMedia(prev => [...prev.slice(0, indexToRemove), mediaToRemove, ...prev.slice(indexToRemove)]);
     }
@@ -478,29 +471,18 @@ export default function ContentPillarModal({
     setGeneratingTemplate(true);
     
     try {
-      console.log('🎨 Generating images for both templates...');
-      
       // Generate both Template A and Template B
       const templates = ['A', 'B'] as const;
       const generatedImages: { template: string; imageBase64: string }[] = [];
       
       for (const template of templates) {
-        console.log(`📄 Generating Template ${template}...`);
-        
         // Generate HTML for this template
         const htmlContent = generateLivePreviewHTML(template);
-        console.log(`📄 Generated HTML for Template ${template}, length:`, htmlContent.length);
-        
         // Debug: Check if fonts are properly included
         if (htmlContent.includes('/Fonts/Resonate') && htmlContent.includes('.woff2')) {
-          console.log('✅ Using WOFF2 Resonate fonts');
         } else if (htmlContent.includes('/Fonts/Resonate')) {
-          console.log('⚠️ Using OTF Resonate fonts (may not work)');
         } else {
-          console.log('❌ No Resonate fonts found in HTML!');
         }
-        console.log('🔍 Font URL sample:', htmlContent.substring(htmlContent.indexOf('@font-face'), htmlContent.indexOf('@font-face') + 200));
-
       const response = await fetch('/api/generate-content-pillar-image', {
         method: 'POST',
         headers: {
@@ -511,21 +493,11 @@ export default function ContentPillarModal({
           dayOfWeek: dayKey
         })
       });
-      
-      console.log('📡 Sent HTML-based request to API with dayOfWeek:', dayKey);
-
       if (!response.ok) {
           throw new Error(`Failed to generate Template ${template} image`);
       }
 
       const result = await response.json();
-      console.log('📨 API Response:', { 
-        success: result.success, 
-        method: result.method || 'unknown',
-        hasImageBase64: !!result.imageBase64,
-        hasImage: !!result.image
-      });
-      
       if (!result.success) {
           throw new Error(result.error || `Failed to generate Template ${template}`);
         }
@@ -534,22 +506,14 @@ export default function ContentPillarModal({
           template,
           imageBase64: result.imageBase64 || result.image // Handle both PDFShift (image) and local renderer (imageBase64)
         });
-        
-        console.log(`✅ Template ${template} image generated successfully`);
       }
       
       // Save and download both images
       for (const { template, imageBase64 } of generatedImages) {
-        console.log(`💾 Saving and downloading Template ${template}...`);
         await saveGeneratedImageAsFile(imageBase64, template);
         downloadGeneratedImage(imageBase64, template);
-        console.log(`✅ Template ${template} saved and downloaded successfully`);
       }
-      
-      console.log('✅ Both template images generated, saved to files, and downloaded successfully');
-      
     } catch (error) {
-      console.error('❌ Error generating template:', error);
       alert('Failed to generate template images. Please try again.');
     } finally {
       setGeneratingTemplate(false);
@@ -559,7 +523,6 @@ export default function ContentPillarModal({
   // Save generated image as a file in the task
   const saveGeneratedImageAsFile = async (imageBase64: string, template?: string) => {
     try {
-      console.log(`💾 Starting save process for Template ${template}...`);
       // Convert base64 to blob
       const response = await fetch(`data:image/png;base64,${imageBase64}`);
       const blob = await response.blob();
@@ -584,10 +547,7 @@ export default function ContentPillarModal({
       
       // Add the generated image to existing files (don't replace)
       setSelectedFiles(prev => [...prev, fileWithThumbnail]);
-      
-      console.log(`✅ Template ${template} added to task files: ${fileName}`);
     } catch (error) {
-      console.error(`❌ Error saving Template ${template} as file:`, error);
     }
   };
 
@@ -603,25 +563,11 @@ export default function ContentPillarModal({
       }
       return media.type?.startsWith('image/') || media.name?.match(/\.(jpe?g|png|webp|gif)$/i) || media.url?.match(/\.(jpe?g|png|webp|gif)$/i);
     });
-    
-    console.log('🖼️ Preview image selection:', {
-      uploadedFilesCount: uploadedFiles.length,
-      uploadedFilesThumbnails: uploadedFiles.map(f => ({ name: f.file.name, hasThumbnail: !!f.thumbnail, thumbnailType: f.thumbnail?.substring(0, 20) })),
-      existingMediaCount: existingMedia.length,
-      existingImageFilesCount: existingImageFiles.length,
-      existingMediaUrls: existingMedia.map(m => typeof m === 'string' ? m : m.url),
-      existingImageUrls: existingImageFiles.map(m => typeof m === 'string' ? m : m.url)
-    });
-    
     // Priority: 1) New uploaded file thumbnail, 2) Existing image file URL, 3) Default logo
     const imageUrl = uploadedFiles[0]?.thumbnail || 
                     existingImageFiles[0]?.url || 
                     (typeof existingImageFiles[0] === 'string' ? existingImageFiles[0] : null) ||
                     '/MAIN LOGO.png';
-                    
-    console.log('🎯 Selected imageUrl for preview:', imageUrl);
-    console.log('🎯 ImageUrl type:', typeof imageUrl, 'starts with blob:', imageUrl?.startsWith?.('blob:'));
-
     // Force refresh timestamp
     const timestamp = Date.now();
 
@@ -686,7 +632,6 @@ export default function ContentPillarModal({
     const renderImageUrl = isHttpUrl(imageUrl) ? `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}t=${timestamp}` : imageUrl;
 
     // Get the template based on day and template type
-    console.log(`🎨 Generating ${templateType} template for ${dayKey}`);
     const templatesA = {
       monday: `
         <!DOCTYPE html>
@@ -1959,11 +1904,6 @@ ${fontFaceCSS}
               <ul class="features-list">
                 ${(() => {
                   let equipmentText = formData.key_equipment || 'Premium Interior Package, Advanced Driver Assistance, Panoramic Sunroof, AMG Styling Package, Leather Seats, Navigation System, Bluetooth Connectivity, Cruise Control, Parking Sensors, Automatic Climate Control, Keyless Entry, Power Windows, Electric Mirrors, Heated Seats, Premium Sound System, AMG Performance Package, Burmester Sound System, Ambient Lighting, Memory Seats, Wireless Charging, Head-Up Display, 360° Camera, Lane Keeping Assist, Blind Spot Monitoring, Adaptive Cruise Control';
-                  
-                  console.log('Key Equipment Text:', equipmentText);
-                  console.log('Contains newline?', equipmentText.includes('\n'));
-                  console.log('Contains arrow?', equipmentText.includes('↵'));
-                  
                   // Handle different formats of equipment data
                   let allEquipment = [];
                   
@@ -1991,15 +1931,9 @@ ${fontFaceCSS}
                     .filter(item => item !== '') // Remove empty strings
                     .filter(item => item.match(/[A-Za-z]/)) // Must contain at least one letter
                     .filter(item => !item.match(/^[A-Z]{1,2}$/)); // Remove single/double letter abbreviations only
-                  
-                  console.log('Processed Equipment:', allEquipment);
-                  
                   // Shuffle and pick 10 random items (reduced from 13)
                   const shuffled = [...allEquipment].sort(() => 0.5 - Math.random());
                   const selectedEquipment = shuffled.slice(0, 10);
-                  
-                  console.log('Selected Equipment:', selectedEquipment);
-                  
                   return selectedEquipment.map(item => `<li>${item}</li>`).join('');
                 })()}
               </ul>
@@ -2603,11 +2537,8 @@ ${fontFaceCSS}
   const downloadGeneratedImage = (imageBase64?: string, template?: string) => {
     const imageToDownload = imageBase64 || generatedImageBase64;
     if (!imageToDownload) {
-      console.error(`❌ No image data to download for Template ${template}`);
       return;
     }
-    
-    console.log(`⬇️ Starting download for Template ${template}...`);
     const link = document.createElement('a');
     link.href = `data:image/png;base64,${imageToDownload}`;
     const templateSuffix = template ? `_template_${template}` : '';
@@ -2617,7 +2548,6 @@ ${fontFaceCSS}
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    console.log(`✅ Template ${template} download initiated: ${downloadFileName}`);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -2641,17 +2571,6 @@ ${fontFaceCSS}
         size: f.file.size,
         file: f.file // Pass the actual file for upload
       }));
-
-      console.log('🔍 Frontend formData before save:', {
-        title: formData.title,
-        subtitle: formData.subtitle,
-        myth: formData.myth,
-        fact: formData.fact,
-        badgeText: formData.badgeText
-      });
-
-      console.log('🔍 Raw formData object:', formData);
-
       const contentPillarData: Partial<ContentPillarItem> = {
         title: formData.title,
         description: formData.description,
@@ -2671,15 +2590,6 @@ ${fontFaceCSS}
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-
-      console.log('📤 Sending to API:', contentPillarData);
-      console.log('📤 Sending to API - specific fields:', {
-        badge_text: contentPillarData.badge_text,
-        subtitle: contentPillarData.subtitle,
-        myth: contentPillarData.myth,
-        fact: contentPillarData.fact
-      });
-
       await onSave(contentPillarData);
       onClose();
       
@@ -2726,7 +2636,6 @@ ${fontFaceCSS}
         key_equipment: '',
       });
     } catch (error) {
-      console.error('Error saving content pillar:', error);
     } finally {
       setLoading(false);
     }
@@ -2741,7 +2650,6 @@ ${fontFaceCSS}
         await onDelete();
         onClose();
       } catch (error) {
-        console.error('Error deleting content pillar:', error);
       } finally {
         setDeleting(false);
       }

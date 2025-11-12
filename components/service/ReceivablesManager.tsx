@@ -63,7 +63,6 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
       setReceivables(data.receivables || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
-      console.error('Error fetching receivables:', err);
     } finally {
       setLoading(false);
     }
@@ -75,7 +74,6 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
       const data = await response.json();
       setStats(data);
     } catch (err) {
-      console.error('Error fetching stats:', err);
     }
   };
 
@@ -97,7 +95,6 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
       }
     } catch (err) {
       setError('Failed to parse Excel file');
-      console.error(err);
     }
   };
 
@@ -140,7 +137,6 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
-      console.error('Upload error:', err);
     } finally {
       setUploading(false);
     }

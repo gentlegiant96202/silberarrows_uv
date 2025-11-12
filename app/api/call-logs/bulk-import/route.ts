@@ -32,7 +32,6 @@ function cleanTimeFormat(timeStr: string): string | null {
   }
   
   // If still invalid, return null
-  console.warn(`Invalid time format: "${timeStr}" -> "${cleanTime}", setting to null`);
   return null;
 }
 
@@ -48,9 +47,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log(`Starting bulk import of ${entries.length} entries`);
-
     // Transform entries to match database schema
     const insertData = entries.map(entry => ({
       record_type: 'call_entry',
@@ -84,7 +80,6 @@ export async function POST(request: NextRequest) {
           .select('id');
 
         if (error) {
-          console.error(`Batch ${i / batchSize + 1} error:`, error);
           errors.push({
             batch: i / batchSize + 1,
             error: error.message,
@@ -92,10 +87,8 @@ export async function POST(request: NextRequest) {
           });
         } else {
           totalInserted += data?.length || batch.length;
-          console.log(`Batch ${i / batchSize + 1}: Inserted ${data?.length || batch.length} entries`);
         }
       } catch (batchError) {
-        console.error(`Batch ${i / batchSize + 1} exception:`, batchError);
         errors.push({
           batch: i / batchSize + 1,
           error: `Exception: ${batchError}`,
@@ -112,9 +105,6 @@ export async function POST(request: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
       message: `Bulk import completed: ${totalInserted}/${entries.length} entries inserted successfully`
     };
-
-    console.log('Bulk import completed:', response);
-
     if (errors.length > 0) {
       return NextResponse.json(response, { status: 207 }); // Multi-status
     }
@@ -122,7 +112,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('Bulk import error:', error);
     return NextResponse.json(
       { 
         error: 'Bulk import failed', 

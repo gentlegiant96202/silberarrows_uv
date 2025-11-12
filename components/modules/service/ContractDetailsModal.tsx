@@ -16,8 +16,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   const { user } = useAuth();
   
   // Debug logging for edit permissions
-  console.log('🔍 ContractDetailsModal canEdit:', { canEdit, userEmail: user?.email });
-  
   const [isEditing, setIsEditing] = useState(false);
   const [isTransferMode, setIsTransferMode] = useState(false);
   const [localContract, setLocalContract] = useState(contract);
@@ -106,18 +104,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         interior_colour: contractToUse.interior_colour || '',
         start_date: (() => {
           const converted = contractToUse.start_date ? new Date(contractToUse.start_date).toISOString().split('T')[0] : '';
-          console.log('🔍 DATE DEBUG - start_date conversion:', {
-            raw: contractToUse.start_date,
-            converted: converted
-          });
           return converted;
         })(),
         end_date: (() => {
           const converted = contractToUse.end_date ? new Date(contractToUse.end_date).toISOString().split('T')[0] : '';
-          console.log('🔍 DATE DEBUG - end_date conversion:', {
-            raw: contractToUse.end_date,
-            converted: converted
-          });
           return converted;
         })(),
         cut_off_km: contractToUse.cut_off_km || '',
@@ -166,8 +156,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         signedPdfUrl: contract.signed_pdf_url || null,
         initialized: true
       }));
-      console.log('🔄 Initialized DocuSign state from contract:', contract.signing_status || 'pending');
-
       // Start polling if document is sent but not completed
       if (contract.docusign_envelope_id && 
           contract.signing_status && 
@@ -186,7 +174,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
   // Cleanup polling on modal close
   useEffect(() => {
     if (!isOpen && docusignState.pollingInterval) {
-      console.log('🛑 Stopping DocuSign polling - modal closing');
       clearInterval(docusignState.pollingInterval);
       setDocusignState(prev => ({ ...prev, pollingInterval: null }));
     }
@@ -306,8 +293,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       
       if (isTransferMode) {
         // Transfer contract creation
-        console.log('🔄 Creating transfer contract...');
-        
         // Generate new reference number with suffix
         const originalRef = displayContract.reference_no;
         const transferCount = 1; // TODO: Could query existing transfers to get actual count
@@ -353,9 +338,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           original_contract_ref: originalRef,
           transfer_fee: parseFloat(formData.transfer_fee) || 0
         };
-        
-        console.log('🔄 Transfer data being sent:', transferData);
-        
         const response = await fetch('/api/service-contracts', {
           method: 'POST',
           headers,
@@ -367,8 +349,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         
         if (response.ok) {
           const result = await response.json();
-          console.log('✅ Transfer contract created:', result.contract);
-          
           // Format the new contract for display (same as parent component does)
           const formattedContract = {
             ...result.contract,
@@ -384,19 +364,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           onClose(); // Close modal after successful transfer
         } else {
           const error = await response.json();
-          console.error('❌ Transfer API error:', error);
           throw new Error(error.error || 'Failed to create transfer contract');
         }
       } else {
         // Regular contract update
-        console.log('🔍 SAVE DEBUG - Form data being sent:', {
-          customer_id_number: formData.customer_id_number,
-          exterior_colour: formData.exterior_colour,
-          interior_colour: formData.interior_colour,
-          notes: formData.notes,
-          contractType: (displayContract as any)?.contract_type || 'service'
-        });
-        
         const response = await fetch(`/api/service-contracts/${displayContract.id}`, {
           method: 'PUT',
           headers,
@@ -427,20 +398,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           formatted_end_date: fresh.end_date ? new Date(fresh.end_date).toLocaleDateString('en-GB') : '',
           vehicle_info: `${fresh.make} ${fresh.model} (${fresh.model_year})`
         } : result.contract;
-
-        console.log('🔍 SAVE DEBUG - Updated contract from DB:', {
-          customer_id_number: updated?.customer_id_number,
-          exterior_colour: updated?.exterior_colour,
-          interior_colour: updated?.interior_colour,
-          notes: updated?.notes,
-          start_date_raw: updated?.start_date,
-          end_date_raw: updated?.end_date,
-          start_date_type: typeof updated?.start_date,
-          end_date_type: typeof updated?.end_date,
-          freshFromDB: !!fresh,
-          fallbackToResult: !fresh
-        });
-
         // Update local contract state immediately with DB truth
         setLocalContract(updated);
         
@@ -449,14 +406,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         
         // Log form state after React state update (async)
         setTimeout(() => {
-          console.log('🔍 FORM STATE DEBUG - After reinitialize (delayed):', {
-            formData_customer_id_number: formData.customer_id_number,
-            formData_exterior_colour: formData.exterior_colour,
-            formData_interior_colour: formData.interior_colour,
-            formData_start_date: formData.start_date,
-            formData_end_date: formData.end_date,
-            formData_notes: formData.notes
-          });
         }, 100);
         
         if (onUpdated) {
@@ -473,7 +422,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         }
       }
     } catch (error) {
-      console.error(isTransferMode ? 'Error creating transfer contract:' : 'Error updating contract:', error);
       alert(isTransferMode ? 'Failed to create transfer contract' : 'Failed to update contract');
     } finally {
       setLoading(false);
@@ -493,9 +441,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       const apiEndpoint = isWarranty 
         ? `/api/warranty-contracts/${displayContract.id}/generate-pdf`
         : `/api/service-contracts/${displayContract.id}/generate-pdf`;
-      
-      console.log(`🔄 Generating ${contractType} PDF using endpoint:`, apiEndpoint);
-      
       const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers,
@@ -524,9 +469,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
-        console.log(`✅ ${contractType} PDF generated and downloaded successfully`);
-        
         // Reset DocuSign state immediately (before any async operations)
         const resetDocusignState = {
           envelopeId: null,
@@ -541,15 +483,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         if (docusignState.pollingInterval) {
           clearInterval(docusignState.pollingInterval);
           resetDocusignState.pollingInterval = null;
-          console.log('🛑 Stopped DocuSign polling - new PDF generated');
         }
         
         // Update DocuSign state first (most important)
         setDocusignState(resetDocusignState);
-        console.log('✅ DocuSign state reset to pending - locked from useEffect override');
-        
         // Fetch updated contract from database to get the real PDF URL
-        console.log('🔄 Fetching updated contract from database...');
         const tableName = displayContract.contract_type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
         const { data: updatedContractData, error: fetchError } = await supabase
           .from(tableName)
@@ -558,7 +496,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           .single();
 
         if (fetchError) {
-          console.error('❌ Failed to fetch updated contract:', fetchError);
           // Fallback to placeholder
           const updatedContract = { 
             ...displayContract, 
@@ -571,12 +508,8 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           };
           setLocalContract(updatedContract);
         } else {
-          console.log('✅ Contract updated with real PDF URL:', updatedContractData.pdf_url);
           setLocalContract(updatedContractData);
         }
-        
-        console.log('📝 Updated local contract state after PDF generation');
-        
         // Notify parent with updated contract
         if (onUpdated) {
           onUpdated(updatedContractData || displayContract);
@@ -590,7 +523,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         throw new Error(errorData.error || 'Failed to generate PDF');
       }
     } catch (error) {
-      console.error('Error generating PDF:', error);
     } finally {
       setGeneratingPdf(false);
     }
@@ -614,7 +546,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Error downloading PDF:', error);
       window.open(displayContract.pdf_url, '_blank');
     }
   };
@@ -629,13 +560,9 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     if (docusignState.pollingInterval) {
       clearInterval(docusignState.pollingInterval);
     }
-
-    console.log('🔄 Starting DocuSign status polling...');
-    
     const interval = setInterval(async () => {
       try {
         if (!docusignState.envelopeId) {
-          console.log('🛑 No envelope ID, stopping polling');
           clearInterval(interval);
           setDocusignState(prev => ({ ...prev, pollingInterval: null }));
           return;
@@ -650,7 +577,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
           .single();
 
         if (error) {
-          console.error('Error polling signing status:', error);
           return;
         }
 
@@ -663,13 +589,11 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
 
           // Stop polling if completed
           if (contractData.signing_status === 'completed') {
-            console.log('✅ Contract signing completed!');
             clearInterval(interval);
             setDocusignState(prev => ({ ...prev, pollingInterval: null }));
           }
         }
       } catch (error) {
-        console.error('Error during status polling:', error);
       }
     }, 10000); // Poll every 10 seconds
 
@@ -705,17 +629,10 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
     setShowCompanyEmailModal(false);
     
     try {
-      console.log('🔄 Sending contract for DocuSign signing...');
-      console.log('👤 Company signer:', companyEmail);
-      console.log('👤 Customer:', displayContract.owner_name, displayContract.email);
-
       // Use warranty-specific API for warranty contracts
       const apiEndpoint = displayContract.contract_type === 'warranty' 
         ? '/api/docusign/send-for-signing-warranty'
         : '/api/docusign/send-for-signing-service';
-      
-      console.log(`🔄 Using DocuSign API endpoint: ${apiEndpoint}`);
-      
       const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -744,15 +661,9 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         signingStatus: 'sent',
         sendingForSigning: false
       }));
-      console.log('✅ DocuSign state updated to sent - marked as manually updated');
-      
       // Start polling for status updates
       startStatusPolling();
-      
-      console.log('✅ Contract sent for signing:', result.envelopeId);
-      
     } catch (error) {
-      console.error('❌ Error sending for signing:', error);
       alert('Failed to send contract for signing. Please try again.');
     } finally {
       setDocusignState(prev => ({ ...prev, sendingForSigning: false }));
@@ -784,7 +695,6 @@ export default function ContractDetailsModal({ isOpen, onClose, contract, onUpda
         alert('PDF uploaded successfully!');
       }
     } catch (error) {
-      console.error('Error uploading PDF:', error);
       alert('Failed to upload PDF.');
     } finally {
       setUploadingPdf(false);

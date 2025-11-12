@@ -24,15 +24,11 @@ export async function POST(req: NextRequest) {
       .map(item => `- ${item.toUpperCase()}`)
       .sort()
       .join('\n');
-
-    console.log(`Key equipment processing: Raw input ${JSON.stringify(rawEquipment).length} chars, Output ${processedEquipment.length} chars`);
-    
     return NextResponse.json({ 
       success: true, 
       equipment: processedEquipment 
     });
   } catch (e: any) {
-    console.error('process-key-equipment error', e);
     return NextResponse.json({ 
       success: false, 
       error: e.message 

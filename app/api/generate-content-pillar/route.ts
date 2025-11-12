@@ -117,12 +117,7 @@ export async function POST(req: NextRequest) {
     const { dayOfWeek, contentType, businessContext, existingPillars } = await req.json();
     
     // Debug logging
-    console.log(`🎯 Generating content for ${dayOfWeek}, type: ${contentType}`);
-    console.log(`📊 Existing pillars count: ${existingPillars?.length || 0}`);
-    
     if (existingPillars && existingPillars.length > 0) {
-      console.log('🚨 ANTI-REPETITION MODE: Existing pillar titles:', existingPillars.map((p: any) => p.title));
-      
       // Analyze existing content for variety tracking
       const allContent = existingPillars.map((p: any) => `${p.title} ${p.description}`).join(' ').toLowerCase();
       const models = ['s-class', 'e-class', 'c-class', 'amg', 'eqs', 'gle', 'gls', 'cla'];
@@ -132,12 +127,7 @@ export async function POST(req: NextRequest) {
       const usedModels = models.filter(model => allContent.includes(model));
       const usedSystems = systems.filter(system => allContent.includes(system));
       const usedServices = services.filter(service => allContent.includes(service));
-      
-      console.log('📈 Content analysis - Used models:', usedModels);
-      console.log('🔧 Content analysis - Used systems:', usedSystems);
-      console.log('⚙️ Content analysis - Used services:', usedServices);
     } else {
-      console.log('✨ FRESH START: No existing pillars, generating original content');
     }
     
     // Define content types and their characteristics
@@ -170,9 +160,7 @@ export async function POST(req: NextRequest) {
       if (!examplesError && examplesData) {
         contentExamples = examplesData;
       }
-      console.log(`Content examples for ${dayOfWeek}:`, contentExamples.length);
     } catch (e) {
-      console.log('Skipping examples fetch due to error:', e instanceof Error ? e.message : e);
     }
 
     // Analyze existing pillars to determine business focus
@@ -245,7 +233,6 @@ export async function POST(req: NextRequest) {
 
     const selectedThemeTitle = selectTheme();
     if (selectedThemeTitle) {
-      console.log('Selected theme:', selectedThemeTitle);
       // Remember last selected to avoid immediate repetition
       lastSelectedThemeByDay[dayOfWeek] = selectedThemeTitle;
     }
@@ -353,8 +340,6 @@ Respond with exactly the format above - QUESTION: [statement], ANSWER: [TRUE/FAL
         problem: question,
         solution: `The answer is ${answer}. ${explanation}`
       };
-
-      console.log('✅ Successfully generated Friday quiz:', { question, answer });
       return NextResponse.json({ 
         success: true, 
         data: finalContent 
@@ -465,9 +450,6 @@ FACT: {3–5 sentences with factory tools/standards, 1–3 concrete figures if r
         fact: fact,
         ai_response: { title, subtitle, myth, fact, raw_response: responseText }
       };
-
-      console.log('✅ Successfully generated Myth-Buster Monday content:', finalContent.title);
-
       return NextResponse.json({
         success: true,
         data: finalContent
@@ -609,9 +591,6 @@ WARNING: {optional safety/warranty warning if needed, otherwise omit this line}`
         warning: warning || null,
         ai_response: { title, subtitle, problem, solution, difficulty, tools_needed, warning, raw_response: responseText }
       };
-
-      console.log('✅ Successfully generated Tech Tips Tuesday content:', finalContent.title);
-
       return NextResponse.json({
         success: true,
         data: finalContent
@@ -702,8 +681,6 @@ ${(() => {
         generatedContent = JSON.parse(cleanedResponse);
       } catch (parseError) {
         // If JSON parsing fails, try to extract content manually
-        console.error('Failed to parse OpenAI response as JSON:', responseText);
-        
         // Fallback: create a basic structure
         generatedContent = {
           title: `${dayOfWeek} ${contentType} Content`,
@@ -735,9 +712,6 @@ ${(() => {
         // Include the full AI response for debugging/future use
         ai_response: generatedContent
       };
-
-      console.log('✅ Successfully generated content pillar:', finalContent.title);
-
       return NextResponse.json({
         success: true,
         data: finalContent
@@ -745,8 +719,6 @@ ${(() => {
     }
 
   } catch (error) {
-    console.error('Error generating content pillar:', error);
-    
     return NextResponse.json({
       success: false,
       error: 'Failed to generate content pillar',

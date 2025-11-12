@@ -9,8 +9,6 @@ export async function POST(request: NextRequest) {
     const { type, record, old_record } = body;
     
     if (type === 'INSERT' && record?.status === 'inventory' && record?.sale_status === 'available') {
-      console.log(`🔄 Auto-generating catalog image for new inventory car: ${record.stock_number}`);
-      
       // Wait a few seconds to ensure any primary image uploads are complete
       setTimeout(async () => {
         try {
@@ -33,23 +31,17 @@ export async function POST(request: NextRequest) {
             });
 
             if (response.ok) {
-              console.log(`✅ Auto-generated catalog image for ${record.stock_number}`);
             } else {
-              console.error(`❌ Failed to auto-generate catalog image for ${record.stock_number}`);
             }
           } else {
-            console.log(`⏳ No primary photo yet for ${record.stock_number}, will try again later`);
           }
         } catch (error) {
-          console.error(`Error auto-generating catalog image for ${record.stock_number}:`, error);
         }
       }, 5000); // Wait 5 seconds for image uploads to complete
     }
 
     // Also handle media uploads - generate catalog image when first photo is uploaded
     if (type === 'INSERT' && record?.kind === 'photo' && record?.is_primary === true) {
-      console.log(`🖼️ Primary photo uploaded for car, generating catalog image...`);
-      
       // Get car details
       const { data: car } = await supabase
         .from('cars')
@@ -69,12 +61,9 @@ export async function POST(request: NextRequest) {
             });
 
             if (response.ok) {
-              console.log(`✅ Auto-generated catalog image for ${car.stock_number} after photo upload`);
             } else {
-              console.error(`❌ Failed to auto-generate catalog image for ${car.stock_number} after photo upload`);
             }
           } catch (error) {
-            console.error(`Error auto-generating catalog image for ${car.stock_number}:`, error);
           }
         }, 2000); // Wait 2 seconds
       }
@@ -82,7 +71,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Webhook processed' });
   } catch (error) {
-    console.error('Auto-generate catalog webhook error:', error);
     return NextResponse.json({ 
       success: false, 
       error: 'Webhook processing failed' 

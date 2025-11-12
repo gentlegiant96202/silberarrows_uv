@@ -11,9 +11,6 @@ export async function GET(
     if (!model) {
       return NextResponse.json({ error: 'Model parameter is required' }, { status: 400 });
     }
-
-    console.log('🔍 API: Fetching matching cars for model family:', model);
-
     // Get cars matching the model family using admin client (bypasses RLS)
     const { data: cars, error: carsError } = await supabaseAdmin
       .from('cars')
@@ -25,12 +22,8 @@ export async function GET(
       .limit(6);
 
     if (carsError) {
-      console.error('❌ API: Error fetching matching cars:', carsError);
       return NextResponse.json({ error: carsError.message }, { status: 500 });
     }
-
-    console.log('✅ API: Found', cars?.length || 0, 'matching cars for model:', model);
-
     // Get thumbnails for these cars
     const carIds = cars?.map(c => c.id) || [];
     let thumbnails: Record<string, string> = {};
@@ -44,7 +37,6 @@ export async function GET(
         .in('car_id', carIds);
 
       if (mediaError) {
-        console.warn('⚠️ API: Error loading thumbnails for matching cars:', mediaError);
       } else {
         mediaRows?.forEach((m: any) => {
           let imageUrl = m.url;
@@ -56,7 +48,6 @@ export async function GET(
           
           thumbnails[m.car_id] = imageUrl;
         });
-        console.log('🖼️ API: Loaded', mediaRows?.length || 0, 'thumbnails for matching cars');
       }
     }
 
@@ -67,7 +58,6 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('❌ API: Unexpected error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch matching cars' },
       { status: 500 }

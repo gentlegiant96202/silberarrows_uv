@@ -40,7 +40,6 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to fetch staff directory', details: error.message },
         { status: 500 }
@@ -65,7 +64,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching staff directory:', error);
     return NextResponse.json(
       { error: 'Failed to fetch staff directory' },
       { status: 500 }
@@ -96,7 +94,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to create staff member', details: error.message },
         { status: 500 }
@@ -110,7 +107,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating staff member:', error);
     return NextResponse.json(
       { error: 'Failed to create staff member' },
       { status: 500 }
@@ -153,7 +149,6 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to update staff member', details: error.message },
         { status: 500 }
@@ -174,7 +169,6 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error updating staff member:', error);
     return NextResponse.json(
       { error: 'Failed to update staff member' },
       { status: 500 }

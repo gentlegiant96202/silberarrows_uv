@@ -42,7 +42,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -71,7 +70,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Internal server error', status: 500 };
   }
 }
@@ -98,7 +96,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       if (fetchError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Business card not found' }, { status: 404 });
       }
-      console.error('Database error:', fetchError);
       return NextResponse.json({ error: 'Failed to fetch business card' }, { status: 500 });
     }
 
@@ -127,7 +124,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       .eq('id', params.id);
 
     if (updateError) {
-      console.error('Error updating QR status:', updateError);
       // Continue anyway - QR generation succeeded
     }
 
@@ -141,7 +137,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     });
 
   } catch (error) {
-    console.error('POST /api/business-cards/[id]/qr-code error:', error);
     return NextResponse.json({ error: 'Failed to generate QR code' }, { status: 500 });
   }
 }
@@ -168,7 +163,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       if (error.code === 'PGRST116') {
         return NextResponse.json({ error: 'Business card not found' }, { status: 404 });
       }
-      console.error('Database error:', error);
       return NextResponse.json({ error: 'Failed to fetch business card' }, { status: 500 });
     }
 
@@ -182,7 +176,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     });
 
   } catch (error) {
-    console.error('GET /api/business-cards/[id]/qr-code error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

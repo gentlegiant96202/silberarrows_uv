@@ -52,7 +52,6 @@ export function useIsAdminSimple(): { isAdmin: boolean; isLoading: boolean } {
         setIsLoading(false);
 
       } catch (error) {
-        console.error('Error checking admin status:', error);
         setIsAdmin(false);
         setIsLoading(false);
       }

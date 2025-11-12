@@ -18,9 +18,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing required environment variables:');
-  console.error('   - NEXT_PUBLIC_SUPABASE_URL');
-  console.error('   - SUPABASE_SERVICE_ROLE_KEY');
   process.exit(1);
 }
 
@@ -82,7 +79,6 @@ async function getFileSize(path: string): Promise<number | null> {
     
     return null;
   } catch (error) {
-    console.error(`Error fetching file size for ${path}:`, error);
     return null;
   }
 }
@@ -91,8 +87,6 @@ async function getFileSize(path: string): Promise<number | null> {
  * Main backfill function
  */
 async function backfillFileSizes() {
-  console.log('🚀 Starting file size backfill process...\n');
-  
   // Fetch all media records without file_size
   const { data: mediaRecords, error: fetchError } = await supabase
     .from('car_media')
@@ -100,18 +94,12 @@ async function backfillFileSizes() {
     .is('file_size', null);
   
   if (fetchError) {
-    console.error('❌ Error fetching media records:', fetchError);
     process.exit(1);
   }
   
   if (!mediaRecords || mediaRecords.length === 0) {
-    console.log('✅ No records to update. All media already has file_size information!');
     return;
   }
-  
-  console.log(`📊 Found ${mediaRecords.length} media records without file_size`);
-  console.log('⏳ Fetching file sizes from storage...\n');
-  
   let updated = 0;
   let failed = 0;
   let skipped = 0;
@@ -124,7 +112,6 @@ async function backfillFileSizes() {
     const storagePath = extractStoragePath(record.url);
     
     if (!storagePath) {
-      console.log(`${progress} ⚠️  Skipped: Could not extract path from URL (ID: ${record.id.substring(0, 8)})`);
       skipped++;
       continue;
     }
@@ -133,7 +120,6 @@ async function backfillFileSizes() {
     const fileSize = await getFileSize(storagePath);
     
     if (fileSize === null) {
-      console.log(`${progress} ❌ Failed: Could not fetch file size (ID: ${record.id.substring(0, 8)}, ${record.kind})`);
       failed++;
       continue;
     }
@@ -145,7 +131,6 @@ async function backfillFileSizes() {
       .eq('id', record.id);
     
     if (updateError) {
-      console.log(`${progress} ❌ Failed to update: ${updateError.message} (ID: ${record.id.substring(0, 8)})`);
       failed++;
       continue;
     }
@@ -155,8 +140,6 @@ async function backfillFileSizes() {
                        fileSize < 1024 * 1024 ? `${(fileSize / 1024).toFixed(1)} KB` :
                        fileSize < 1024 * 1024 * 1024 ? `${(fileSize / (1024 * 1024)).toFixed(1)} MB` :
                        `${(fileSize / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-    
-    console.log(`${progress} ✅ Updated: ${record.kind} - ${sizeDisplay} (ID: ${record.id.substring(0, 8)})`);
     updated++;
     
     // Add a small delay to avoid rate limiting
@@ -164,19 +147,8 @@ async function backfillFileSizes() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
-  
-  console.log('\n' + '='.repeat(60));
-  console.log('📈 Backfill Summary:');
-  console.log(`   ✅ Successfully updated: ${updated}`);
-  console.log(`   ❌ Failed: ${failed}`);
-  console.log(`   ⚠️  Skipped: ${skipped}`);
-  console.log(`   📊 Total processed: ${mediaRecords.length}`);
-  console.log('='.repeat(60));
-  
   if (updated > 0) {
-    console.log('\n✅ File size backfill completed successfully!');
   } else if (failed > 0 || skipped > 0) {
-    console.log('\n⚠️  File size backfill completed with some issues.');
   }
 }
 
@@ -184,7 +156,6 @@ async function backfillFileSizes() {
 backfillFileSizes()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error('❌ Fatal error:', error);
     process.exit(1);
   });
 

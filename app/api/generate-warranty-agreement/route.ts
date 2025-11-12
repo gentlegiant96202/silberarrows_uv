@@ -7,8 +7,6 @@ import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 // Helper: Merge Warranty Agreement with Warranty Booklet
 async function mergeWithWarrantyBooklet(agreementPdfBuffer: Buffer): Promise<Buffer> {
   try {
-    console.log('🔄 Starting warranty PDF merge process...');
-    
     // Dynamic import for pdf-lib
     const { PDFDocument } = await import('pdf-lib');
     
@@ -19,14 +17,10 @@ async function mergeWithWarrantyBooklet(agreementPdfBuffer: Buffer): Promise<Buf
     // Copy warranty agreement pages (portrait) - should be 1 page
     const agreementPages = await mergedPdf.copyPages(agreementPdf, agreementPdf.getPageIndices());
     agreementPages.forEach(page => mergedPdf.addPage(page));
-    console.log(`✅ Added ${agreementPages.length} warranty agreement page(s)`);
-    
     // Load Warranty booklet from public folder
     const bookletPath = path.join(process.cwd(), 'public', 'extendedwarrantyinformationbooklet_23_9_25 compressed by Phil.pdf');
     
     if (!fs.existsSync(bookletPath)) {
-      console.warn('⚠️ Warranty booklet not found at:', bookletPath);
-      console.log('📄 Returning warranty agreement without booklet merge');
       // Return just the agreement if booklet doesn't exist yet
       return agreementPdfBuffer;
     }
@@ -37,24 +31,17 @@ async function mergeWithWarrantyBooklet(agreementPdfBuffer: Buffer): Promise<Buf
     // Copy all booklet pages
     const bookletPages = await mergedPdf.copyPages(bookletPdf, bookletPdf.getPageIndices());
     bookletPages.forEach(page => mergedPdf.addPage(page));
-    console.log(`✅ Added ${bookletPages.length} warranty booklet page(s)`);
-    
     // Generate final merged PDF
     const finalPdfBuffer = await mergedPdf.save();
-    console.log(`✅ Warranty PDF merge completed - Total pages: ${agreementPages.length + bookletPages.length}`);
-    
     return Buffer.from(finalPdfBuffer);
     
   } catch (error) {
-    console.error('❌ Error merging warranty PDFs:', error);
     throw error;
   }
 }
 
 // Export the PDF generation function for use by the API endpoint
 export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
-  console.log('🚀 Starting warranty agreement PDF generation...');
-  
   // Format dates to DD/MM/YYYY (same as service contract)
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -525,9 +512,6 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
     </body>
     </html>
     `;
-
-  console.log('📄 Generating warranty agreement PDF using PDFShift...');
-
   // Call PDFShift API with LANDSCAPE format (same as service contracts)
   const pdfResponse = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
     method: 'POST',
@@ -544,23 +528,14 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
       delay: 1000
     }),
   });
-
-  console.log('📊 PDFShift API response status:', pdfResponse.status);
-
   if (!pdfResponse.ok) {
     const errorText = await pdfResponse.text();
-    console.error('❌ PDFShift API error:', errorText);
     throw new Error(`PDFShift API error: ${pdfResponse.status} - ${errorText}`);
   }
 
   const agreementPdfBuffer = await pdfResponse.arrayBuffer();
-  console.log('✅ Warranty Agreement PDF generated successfully:', { sizeBytes: agreementPdfBuffer.byteLength, sizeMB: (agreementPdfBuffer.byteLength / 1024 / 1024).toFixed(2) });
-
   // Merge with Warranty booklet
-  console.log('🔄 Merging with warranty booklet...');
   const pdfBuffer = await mergeWithWarrantyBooklet(Buffer.from(agreementPdfBuffer));
-  console.log('✅ Merged warranty PDF created successfully:', { sizeBytes: pdfBuffer.byteLength, sizeMB: (pdfBuffer.byteLength / 1024 / 1024).toFixed(2) });
-
   return pdfBuffer;
 }
 
@@ -568,8 +543,6 @@ export async function generateWarrantyAgreementPdf(data: any): Promise<Buffer> {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    console.log('🚀 Warranty Agreement PDF generation API called');
-    
     const pdfBuffer = await generateWarrantyAgreementPdf(data);
     
     // Return the PDF
@@ -581,7 +554,6 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error in warranty PDF generation:', error);
     return NextResponse.json(
       { 
         error: 'Failed to generate warranty PDF',

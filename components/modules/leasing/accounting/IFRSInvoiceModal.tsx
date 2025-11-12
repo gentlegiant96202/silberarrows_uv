@@ -72,7 +72,6 @@ export default function InvoiceModal({
       if (error) throw error;
       setNextInvoiceNumber(data || 'INV-LE-XXXX');
     } catch (error) {
-      console.error('Error fetching next invoice number:', error);
       setNextInvoiceNumber('INV-LE-XXXX');
     }
   };
@@ -113,7 +112,6 @@ export default function InvoiceModal({
   const generateInvoice = async () => {
     setGenerating(true);
     try {
-      console.log('🧾 Generating  invoice for period:', billingPeriod);
       const uniqueCharges = charges.filter(
         (charge, index, self) =>
           index === self.findIndex((c) => c.id === charge.id)
@@ -125,9 +123,6 @@ export default function InvoiceModal({
         setGenerating(false);
         return;
       }
-
-      console.log('📋 Pending charges to invoice:', pendingCharges.map(c => ({ id: c.id, type: c.charge_type, amount: c.total_amount })));
-      
       // Use  transaction-safe function
       const { data, error } = await supabase.rpc('ifrs_generate_invoice', {
         p_lease_id: leaseId,
@@ -138,12 +133,8 @@ export default function InvoiceModal({
       });
 
       if (error) {
-        console.error('❌ Error generating  invoice:', error);
         throw error;
       }
-
-      console.log('✅  Invoice generated successfully:', data);
-      
       // Parse the JSON response
       const invoiceResult = typeof data === 'string' ? JSON.parse(data) : data;
       
@@ -154,8 +145,6 @@ export default function InvoiceModal({
       alert(`Invoice generated successfully!\nInvoice Number: ${invoiceResult.invoice_number}\nInvoice ID: ${invoiceResult.invoice_id}\nCharges Updated: ${invoiceResult.charges_updated}\nVAT: ${formatCurrency(invoiceResult.vat_amount || 0)}`);
       
     } catch (error) {
-      console.error('❌ Detailed error generating  invoice:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Error generating invoice. Please try again.');
     } finally {
       setGenerating(false);

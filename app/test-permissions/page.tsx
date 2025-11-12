@@ -12,18 +12,13 @@ export default function TestPermissionsPage() {
     if (!user) return;
     
     setLoading(true);
-    console.log('🧪 Testing permission function with user:', user.id);
-    
     try {
       const { data, error } = await supabase.rpc('get_user_module_permissions', {
         check_user_id: user.id,
         module_name: 'uv_crm'
       });
-      
-      console.log('🔐 RPC Result:', { data, error });
       setResults({ data, error, success: !error });
     } catch (err) {
-      console.error('❌ Test failed:', err);
       setResults({ error: err, success: false });
     } finally {
       setLoading(false);

@@ -47,68 +47,46 @@ let resonateFontsBase64 = {};
 let contentPillarHtmls = {};
 
 async function loadTemplate() {
-  console.log('📁 Loading templates...');
-  console.log('📄 Story template path:', templatePath);
-  console.log('📄 4:5 template path:', template45Path);
-  console.log('📄 Catalog template path:', catalogTemplatePath);
-  console.log('📄 Consignment template path:', consignmentTemplatePath);
-  console.log('📄 Damage Report template path:', damageReportTemplatePath);
-  
   try {
     templateHtml = await fs.readFile(templatePath, 'utf-8');
-    console.log('✅ Story template loaded, length:', templateHtml.length);
   } catch (err) {
-    console.error('❌ Error loading story template:', err);
     throw err;
   }
   
   try {
     template45Html = await fs.readFile(template45Path, 'utf-8');
-    console.log('✅ 4:5 template loaded, length:', template45Html.length);
   } catch (err) {
-    console.error('❌ Error loading 4:5 template:', err);
     throw err;
   }
   
   try {
     catalogTemplateHtml = await fs.readFile(catalogTemplatePath, 'utf-8');
-    console.log('✅ Catalog template loaded, length:', catalogTemplateHtml.length);
   } catch (err) {
-    console.error('❌ Error loading catalog template:', err);
     throw err;
   }
   
   try {
     leasingCatalogTemplateHtml = await fs.readFile(leasingCatalogTemplatePath, 'utf-8');
-    console.log('✅ Leasing Catalog template loaded, length:', leasingCatalogTemplateHtml.length);
   } catch (err) {
-    console.error('❌ Error loading leasing catalog template:', err);
     throw err;
   }
   
   try {
     leasingCatalogAltTemplateHtml = await fs.readFile(leasingCatalogAltTemplatePath, 'utf-8');
-    console.log('✅ Leasing Catalog Alt template loaded, length:', leasingCatalogAltTemplateHtml.length);
   } catch (err) {
-    console.error('❌ Error loading leasing catalog alt template:', err);
     throw err;
   }
   
   try {
     consignmentTemplateHtml = await fs.readFile(consignmentTemplatePath, 'utf-8');
-    console.log('✅ Consignment template loaded, length:', consignmentTemplateHtml.length);
   } catch (err) {
-    console.error('❌ Error loading consignment template:', err);
     throw err;
   }
   
   
   try {
     damageReportTemplateHtml = await fs.readFile(damageReportTemplatePath, 'utf-8');
-    console.log('✅ Damage Report template loaded, length:', damageReportTemplateHtml.length);
   } catch (err) {
-    console.error('❌ Error loading damage report template:', err);
-    console.error('❌ This is non-critical, service will continue without damage report functionality');
     damageReportTemplateHtml = ''; // Don't fail startup
   }
   
@@ -117,26 +95,17 @@ async function loadTemplate() {
     const logoPath = path.resolve(__dirname, '../public/main-logo.png');
     const logoBuffer = await fs.readFile(logoPath);
     mainLogoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-    console.log('✅ Main logo loaded as base64, length:', mainLogoBase64.length);
   } catch (error) {
-    console.error('❌ Error loading main logo:', error);
     // Fallback to original logo
     mainLogoBase64 = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
-    console.log('✅ Using fallback logo URL');
   }
   
   // Load leasing catalog background image as base64
   try {
     const bgPath = path.resolve(__dirname, '../public/assets/images/Artboard 7 copy 3.png');
-    console.log('📂 Looking for background image at:', bgPath);
     const bgBuffer = await fs.readFile(bgPath);
     leasingBgBase64 = `data:image/png;base64,${bgBuffer.toString('base64')}`;
-    console.log('✅ Leasing background image loaded as base64 (PNG)');
-    console.log('📏 Base64 length:', leasingBgBase64.length);
-    console.log('🎨 First 100 chars:', leasingBgBase64.substring(0, 100));
   } catch (error) {
-    console.error('❌ Error loading leasing background:', error);
-    console.log('⚠️ Background will fallback to solid color');
     leasingBgBase64 = '#ffffff'; // Fallback to white
   }
   
@@ -154,20 +123,15 @@ async function loadTemplate() {
       const fontPath = path.resolve(__dirname, `../public/Fonts/Resonate-${weight}.woff2`);
       const fontBuffer = await fs.readFile(fontPath);
       resonateFontsBase64[weight] = `data:font/woff2;base64,${fontBuffer.toString('base64')}`;
-      console.log(`✅ Resonate-${weight} font loaded as base64`);
     }
   } catch (error) {
-    console.error('❌ Error loading Resonate fonts:', error);
-    console.log('⚠️ Fonts will fallback to system fonts');
   }
   
   // Load content pillar templates
   for (const [day, templatePath] of Object.entries(contentPillarTemplates)) {
     try {
       contentPillarHtmls[day] = await fs.readFile(templatePath, 'utf-8');
-      console.log(`✅ Content pillar template loaded for ${day}, length:`, contentPillarHtmls[day].length);
     } catch (err) {
-      console.error(`❌ Error loading ${day} content pillar template:`, err);
       throw err;
     }
   }
@@ -189,9 +153,6 @@ function fillTemplate({ carDetails, pricing, firstImageUrl }) {
   const horsepowerDisplay = carDetails.horsepower && carDetails.horsepower !== null && carDetails.horsepower !== '' 
     ? String(carDetails.horsepower)
     : 'N/A';
-  
-  console.log('🔧 Template values - Mileage:', mileageDisplay, 'Horsepower:', horsepowerDisplay);
-  
   const replacements = {
     '{{year}}': String(carDetails.year ?? ''),
     '{{model}}': String(carDetails.model ?? ''),
@@ -285,10 +246,7 @@ function fillLeasingCatalogTemplate({ carDetails, catalogImageUrl }) {
   html = replaceAll(html, '/main-logo.png', mainLogoBase64);
   
   // Replace background image with base64 data URL
-  console.log('🎨 [Regular] Replacing background with base64 image (length:', leasingBgBase64.length, ')');
   html = replaceAll(html, '{{leasingBgBase64}}', leasingBgBase64);
-  console.log('✅ [Regular] Background replacement complete');
-  
   // Replace font URLs with base64 data URLs
   if (resonateFontsBase64.Black) {
     html = replaceAll(html, "url('/Fonts/Resonate-Black.woff2')", `url('${resonateFontsBase64.Black}')`);
@@ -330,10 +288,7 @@ function fillLeasingCatalogAltTemplate({ carDetails }) {
   html = replaceAll(html, '/main-logo.png', mainLogoBase64);
   
   // Replace background image with base64 data URL
-  console.log('🎨 [Alt] Replacing background with base64 image (length:', leasingBgBase64.length, ')');
   html = replaceAll(html, '{{leasingBgBase64}}', leasingBgBase64);
-  console.log('✅ [Alt] Background replacement complete');
-  
   // Replace font URLs with base64 data URLs
   if (resonateFontsBase64.Black) {
     html = replaceAll(html, "url('/Fonts/Resonate-Black.woff2')", `url('${resonateFontsBase64.Black}')`);
@@ -437,94 +392,47 @@ app.get('/health', (_req, res) => {
 
 app.post('/render', async (req, res) => {
   try {
-    console.log('🚀 Render request received');
-    console.log('📊 Request body keys:', Object.keys(req.body || {}));
-    
     const { carDetails, pricing, firstImageUrl, secondImageUrl } = req.body || {};
-    
-    console.log('🚗 Car details:', carDetails);
-    console.log('🔍 Mileage value:', carDetails.mileage, typeof carDetails.mileage);
-    console.log('🔍 Horsepower value:', carDetails.horsepower, typeof carDetails.horsepower);
-    console.log('💰 Pricing:', pricing);
-    console.log('🖼️ Image URL:', firstImageUrl ? 'Present' : 'Missing');
-    
     if (!carDetails || !pricing || !firstImageUrl) {
-      console.error('❌ Missing required fields:', { carDetails: !!carDetails, pricing: !!pricing, firstImageUrl: !!firstImageUrl });
       return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
-
-    console.log('🎨 Filling templates...');
     const storyHtml = fillTemplate({ carDetails, pricing, firstImageUrl, secondImageUrl });
     const postHtml = fillTemplate45({ carDetails, pricing, firstImageUrl, secondImageUrl });
-    console.log('✅ Templates filled - Story:', storyHtml.length, 'Post:', postHtml.length);
-
     // Prefer Playwright; it exists in this image
-    console.log('🎭 Launching Playwright...');
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
-    console.log('✅ Browser launched');
-
     // Story 9:16
-    console.log('📱 Setting up Story format (9:16)...');
     await page.setViewportSize({ width: 1080, height: 1920 });
     await page.setContent(storyHtml, { waitUntil: 'networkidle' });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     await page.evaluate(() => document.fonts && document.fonts.ready);
     await page.waitForTimeout(800);
-    console.log('📸 Taking story screenshot...');
     const storyBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1920 } });
-    console.log('✅ Story screenshot taken');
-
     // 4:5
-    console.log('📐 Setting up Post format (4:5)...');
     await page.setViewportSize({ width: 1080, height: 1350 });
     await page.setContent(postHtml, { waitUntil: 'networkidle' });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     await page.evaluate(() => document.fonts && document.fonts.ready);
     await page.waitForTimeout(400);
-    console.log('📸 Taking post screenshot...');
     const postBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1350 } });
-    console.log('✅ Post screenshot taken');
-
     await browser.close();
-    console.log('🔒 Browser closed');
-
     const image45 = postBuffer.toString('base64');
     const imageStory = storyBuffer.toString('base64');
 
     res.json({ success: true, image45, imageStory });
   } catch (err) {
-    console.error('❌ Render error:', err);
-    console.error('❌ Error stack:', err.stack);
-    console.error('❌ Error details:', {
-      message: err.message,
-      name: err.name,
-      code: err.code
-    });
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 
 app.post('/render-catalog', async (req, res) => {
   try {
-    console.log('🚀 Catalog render request received');
-    console.log('📊 Request body keys:', Object.keys(req.body || {}));
-    
     const { carDetails, catalogImageUrl } = req.body || {};
-    
-    console.log('🚗 Car details received:', JSON.stringify(carDetails, null, 2));
-    console.log('🖼️ Catalog image URL:', catalogImageUrl);
-    
     if (!carDetails || !catalogImageUrl) {
-      console.error('❌ Missing required fields:', { carDetails: !!carDetails, catalogImageUrl: !!catalogImageUrl });
       return res.status(400).json({ success: false, error: 'Missing required fields: carDetails and catalogImageUrl' });
     }
-
-    console.log('🎨 Filling catalog template...');
     const html = fillCatalogTemplate({ carDetails, catalogImageUrl });
-    console.log('✅ Template filled, length:', html.length);
-
     // Prefer Playwright; it exists in this image
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -539,7 +447,6 @@ app.post('/render-catalog', async (req, res) => {
     
     // Enhanced font loading like content pillars
     try {
-      console.log('⏳ Waiting for fonts to load...');
       await page.evaluate(() => document.fonts && document.fonts.ready);
       // Force load Resonate fonts specifically
       await page.evaluate(() => {
@@ -555,9 +462,7 @@ app.post('/render-catalog', async (req, res) => {
         document.body.removeChild(resonateTest);
       });
       await page.waitForTimeout(3000);
-      console.log('✅ Fonts loaded successfully');
     } catch (e) {
-      console.log('Font loading timeout, proceeding...', e.message);
     }
     
     // Capture the card element itself to guarantee exact 3000x3000 output
@@ -570,30 +475,17 @@ app.post('/render-catalog', async (req, res) => {
 
     res.json({ success: true, catalogImage });
   } catch (err) {
-    console.error('Catalog render error:', err);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 
 app.post('/render-leasing-catalog', async (req, res) => {
   try {
-    console.log('🚀 Leasing Catalog render request received');
-    console.log('📊 Request body keys:', Object.keys(req.body || {}));
-    
     const { carDetails, catalogImageUrl } = req.body || {};
-    
-    console.log('🚗 Car details received:', JSON.stringify(carDetails, null, 2));
-    console.log('🖼️ Catalog image URL:', catalogImageUrl);
-    
     if (!carDetails || !catalogImageUrl) {
-      console.error('❌ Missing required fields:', { carDetails: !!carDetails, catalogImageUrl: !!catalogImageUrl });
       return res.status(400).json({ success: false, error: 'Missing required fields: carDetails and catalogImageUrl' });
     }
-
-    console.log('🎨 Filling leasing catalog template...');
     const html = fillLeasingCatalogTemplate({ carDetails, catalogImageUrl });
-    console.log('✅ Template filled, length:', html.length);
-
     // Prefer Playwright; it exists in this image
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -608,8 +500,6 @@ app.post('/render-leasing-catalog', async (req, res) => {
         
         // Wait for resources with increased timeout
         try {
-            console.log('⏳ Waiting for fonts and images to load...');
-            
             // Give extra time for fonts to load
             await page.waitForTimeout(3000);
             
@@ -650,9 +540,7 @@ app.post('/render-leasing-catalog', async (req, res) => {
             });
             
             await page.waitForTimeout(2000);
-            console.log('✅ Fonts and images loaded successfully');
         } catch (e) {
-            console.log('⚠️ Font/image loading timeout, proceeding...', e.message);
         }
     
     // Capture the ad container element for exact 2400x2400 output
@@ -665,29 +553,17 @@ app.post('/render-leasing-catalog', async (req, res) => {
 
     res.json({ success: true, catalogImage });
   } catch (err) {
-    console.error('Leasing Catalog render error:', err);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 
 app.post('/render-leasing-catalog-alt', async (req, res) => {
   try {
-    console.log('🚀 Leasing Catalog Alt render request received');
-    console.log('📊 Request body keys:', Object.keys(req.body || {}));
-    
     const { carDetails } = req.body || {};
-    
-    console.log('🚗 Car details received:', JSON.stringify(carDetails, null, 2));
-    
     if (!carDetails) {
-      console.error('❌ Missing required fields: carDetails');
       return res.status(400).json({ success: false, error: 'Missing required field: carDetails' });
     }
-
-    console.log('🎨 Filling leasing catalog alt template...');
     const html = fillLeasingCatalogAltTemplate({ carDetails });
-    console.log('✅ Template filled, length:', html.length);
-
     // Prefer Playwright
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -702,8 +578,6 @@ app.post('/render-leasing-catalog-alt', async (req, res) => {
     
     // Wait for resources with increased timeout
     try {
-      console.log('⏳ Waiting for fonts and images to load...');
-      
       // Give extra time for fonts to load
       await page.waitForTimeout(3000);
       
@@ -744,9 +618,7 @@ app.post('/render-leasing-catalog-alt', async (req, res) => {
       });
       
       await page.waitForTimeout(2000);
-      console.log('✅ Fonts and images loaded successfully');
     } catch (e) {
-      console.log('⚠️ Font/image loading timeout, proceeding...', e.message);
     }
     
     // Capture the ad container element for exact 2400x2400 output
@@ -759,64 +631,38 @@ app.post('/render-leasing-catalog-alt', async (req, res) => {
 
     res.json({ success: true, catalogImage });
   } catch (err) {
-    console.error('Leasing Catalog Alt render error:', err);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 
 app.post('/render-content-pillar', async (req, res) => {
   try {
-    console.log('🚀 Content pillar render request received');
-    console.log('📊 Request body keys:', Object.keys(req.body || {}));
-    
     const { 
       title, description, imageUrl, dayOfWeek, badgeText, subtitle,
       myth, fact, problem, solution, difficulty, tools_needed, warning 
     } = req.body || {};
-    
-    console.log('📝 Content pillar details:', { 
-      title, description, imageUrl: imageUrl ? 'Present' : 'Missing', dayOfWeek, badgeText, subtitle,
-      hasExtendedFields: !!(myth || fact || problem || solution || difficulty || tools_needed || warning)
-    });
-    
     if (!title || !description || !imageUrl || !dayOfWeek) {
-      console.error('❌ Missing required fields:', { title: !!title, description: !!description, imageUrl: !!imageUrl, dayOfWeek: !!dayOfWeek });
       return res.status(400).json({ success: false, error: 'Missing required fields: title, description, imageUrl, dayOfWeek' });
     }
-
-    console.log('🎨 Filling content pillar template...');
     const html = fillContentPillarTemplate({ 
       title, description, imageUrl, dayOfWeek, badgeText, subtitle,
       myth, fact, problem, solution, difficulty, tools_needed, warning 
     });
-    console.log('✅ Template filled, length:', html.length);
-
-            console.log('🎭 Launching Playwright...');
         const { chromium } = await import('playwright');
         const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
         const page = await browser.newPage();
-        console.log('✅ Browser launched');
-
         // Instagram story format (1080x1920)
-        console.log('📐 Setting up Instagram story format (1080x1920)...');
         await page.setViewportSize({ width: 1080, height: 1920 });
         await page.setContent(html, { waitUntil: 'networkidle' });
         await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
         await page.evaluate(() => document.fonts && document.fonts.ready);
         await page.waitForTimeout(1000);
-        console.log('📸 Taking screenshot...');
         const imageBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1920 } });
-        console.log('✅ Screenshot taken');
-
     await browser.close();
-    console.log('🔒 Browser closed');
-
     const contentPillarImage = imageBuffer.toString('base64');
 
     res.json({ success: true, contentPillarImage });
   } catch (err) {
-    console.error('❌ Content pillar render error:', err);
-    console.error('❌ Error stack:', err.stack);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
@@ -825,21 +671,13 @@ app.post('/render-content-pillar', async (req, res) => {
 app.post('/render-html', async (req, res) => {
   try {
     const { html, dayOfWeek } = req.body;
-    
-    console.log('🎨 Rendering from provided HTML:', { dayOfWeek, htmlLength: html?.length });
-    
     if (!html || !dayOfWeek) {
       return res.status(400).json({ success: false, error: 'Missing html or dayOfWeek' });
     }
-
-    console.log('🚀 Launching browser...');
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
-    console.log('✅ Browser launched');
-
     // Instagram story format (1080x1920)
-    console.log('📐 Setting up Instagram story format (1080x1920)...');
     await page.setViewportSize({ width: 1080, height: 1920 });
     await page.setContent(html, { waitUntil: 'networkidle' });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
@@ -847,7 +685,6 @@ app.post('/render-html', async (req, res) => {
     // Use Google Fonts which load reliably in headless browsers
     
     // Wait for fonts and images to load
-    console.log('⏳ Waiting for fonts and images to load...');
     await page.evaluate(() => document.fonts && document.fonts.ready);
     
     // Check if images (including SVGs) are loading
@@ -861,8 +698,6 @@ app.post('/render-html', async (req, res) => {
         naturalHeight: img.naturalHeight
       }));
     });
-    console.log('🖼️ Image loading status:', imageInfo);
-    
     // Check if fonts are loaded
     const fontInfo = await page.evaluate(() => {
       const fonts = [];
@@ -883,8 +718,6 @@ app.post('/render-html', async (req, res) => {
         allFonts: fonts
       };
     });
-    console.log('🔤 Font loading status:', fontInfo);
-    
     // Force font loading by applying styles
     await page.evaluate(() => {
       // Create a hidden element to force font loading
@@ -935,20 +768,12 @@ app.post('/render-html', async (req, res) => {
     });
     
     await page.waitForTimeout(7000); // Give extra time for custom fonts to load
-    
-    console.log('📸 Taking screenshot...');
     const imageBuffer = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1080, height: 1920 } });
-    console.log('✅ Screenshot taken');
-
     await browser.close();
-    console.log('🔒 Browser closed');
-
     const contentPillarImage = imageBuffer.toString('base64');
 
     res.json({ success: true, contentPillarImage });
   } catch (err) {
-    console.error('❌ HTML render error:', err);
-    console.error('❌ Error stack:', err.stack);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
@@ -956,37 +781,25 @@ app.post('/render-html', async (req, res) => {
 // NEW: PDF generation endpoint (separate from existing functions)
 app.post('/render-car-pdf', async (req, res) => {
   try {
-    console.log('🚀 PDF render request received');
     const { html } = req.body;
     
     if (!html) {
       return res.status(400).json({ success: false, error: 'Missing HTML content' });
     }
-
-    console.log('📄 Starting PDF generation...');
-    console.log('📊 HTML length:', html.length);
-
     // Launch Playwright for PDF generation
-    console.log('🎭 Launching Playwright for PDF...');
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ 
       headless: true, 
       args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     });
     const page = await browser.newPage();
-    console.log('✅ Browser launched for PDF generation');
-
     // Set content and wait for everything to load
-    console.log('📝 Loading HTML content...');
     await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     
     // Wait for fonts and images to load
-    console.log('⏳ Waiting for fonts and images to load...');
     await page.evaluate(() => document.fonts && document.fonts.ready);
     await page.waitForTimeout(3000); // Give extra time for images
-    console.log('✅ Content loaded, generating PDF...');
-
     // Generate PDF with proper settings
     const pdf = await page.pdf({
       format: 'A4',
@@ -1001,9 +814,6 @@ app.post('/render-car-pdf', async (req, res) => {
     });
 
     await browser.close();
-    console.log('🔒 Browser closed');
-    console.log('✅ PDF generated successfully, size:', Math.round(pdf.length / 1024), 'KB');
-
     // Return PDF as base64 for upload to Supabase
     const pdfBase64 = pdf.toString('base64');
     res.json({ 
@@ -1016,8 +826,6 @@ app.post('/render-car-pdf', async (req, res) => {
     });
     
   } catch (err) {
-    console.error('❌ PDF render error:', err);
-    console.error('❌ Error stack:', err.stack);
     res.status(500).json({ 
       success: false, 
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -1029,7 +837,6 @@ app.post('/render-car-pdf', async (req, res) => {
 // Consignment Agreement PDF generation endpoint
 app.post('/render-consignment-agreement', async (req, res) => {
   try {
-    console.log('🚀 Consignment Agreement PDF render request received');
     const { carData, agreementType } = req.body;
     
     if (!carData) {
@@ -1037,8 +844,6 @@ app.post('/render-consignment-agreement', async (req, res) => {
     }
 
     const isDriveWhilstSell = agreementType === 'drive-whilst-sell';
-    console.log(`📄 Generating ${isDriveWhilstSell ? 'Drive Whilst Sell' : 'Consignment'} Agreement PDF for car:`, carData.stock_number);
-
     // Get today's date in dd/mm/yyyy format
     const today = new Date();
     const todayStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth()+1).padStart(2, '0')}/${today.getFullYear()}`;
@@ -1062,7 +867,6 @@ app.post('/render-consignment-agreement', async (req, res) => {
 
     // Use pre-loaded logo (loaded at startup)
     if (!mainLogoBase64) {
-      console.error('❌ Main logo not loaded at startup, using fallback');
       mainLogoBase64 = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
     }
 
@@ -1128,8 +932,6 @@ app.post('/render-consignment-agreement', async (req, res) => {
                                  !carData.damage_diagram_image_url.includes('Pre uvc-2.jpg');
     
     if (carData.damage_annotations && Array.isArray(carData.damage_annotations) && carData.damage_annotations.length > 0 && !hasDamageReportImage) {
-      console.log(`🎯 Processing ${carData.damage_annotations.length} damage markers (no damage report image found)`);
-      
       damageMarkersHtml = carData.damage_annotations.map(marker => {
         // Convert pixel coordinates to percentages (assuming 2029x765 diagram)
         const x_percent = ((marker.x || 0) / 2029 * 100).toFixed(2);
@@ -1141,26 +943,18 @@ app.post('/render-consignment-agreement', async (req, res) => {
               ${damage_type_short}
             </div>`;
       }).join('');
-      
-      console.log(`✅ Generated damage markers HTML: ${damageMarkersHtml.length} characters`);
     } else if (hasDamageReportImage) {
-      console.log('ℹ️ Using damage report image - markers already included in image');
     } else {
-      console.log('ℹ️ No damage markers found');
     }
 
     // Replace template variables
     let finalHtml = htmlTemplate;
-    console.log('🔄 Starting template variable replacement...');
-    console.log('📋 Template variables:', Object.keys(templateVars));
-    
     for (const [key, value] of Object.entries(templateVars)) {
       const regex = new RegExp(`{{${key}}}`, 'g');
       const beforeLength = finalHtml.length;
       finalHtml = finalHtml.replace(regex, value || '');
       const afterLength = finalHtml.length;
       if (beforeLength !== afterLength) {
-        console.log(`✅ Replaced {{${key}}} with "${value}"`);
       }
     }
     
@@ -1173,16 +967,10 @@ app.post('/render-consignment-agreement', async (req, res) => {
     if (carData.other_accessories_details && carData.other_accessories_details.trim()) {
       // Keep the content inside the if block
       finalHtml = finalHtml.replace(otherAccessoriesRegex, '$1');
-      console.log('✅ Other accessories details section included');
     } else {
       // Remove the entire if block
       finalHtml = finalHtml.replace(otherAccessoriesRegex, '');
-      console.log('✅ Other accessories details section removed (no content)');
     }
-    
-    console.log('✅ Template variable replacement completed');
-
-    console.log('📄 Starting PDF generation with Playwright...');
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ 
       headless: true, 
@@ -1198,7 +986,6 @@ app.post('/render-consignment-agreement', async (req, res) => {
     await page.waitForTimeout(1000); // Additional wait for styling
 
     // Generate PDF with A4 settings
-    console.log('📄 Generating PDF...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -1209,8 +996,6 @@ app.post('/render-consignment-agreement', async (req, res) => {
     await browser.close();
 
     const fileSizeMB = (pdfBuffer.length / (1024 * 1024)).toFixed(2);
-    console.log(`✅ Consignment Agreement PDF generated: ${fileSizeMB}MB`);
-
     // Return base64 PDF data
     res.json({
       success: true,
@@ -1223,7 +1008,6 @@ app.post('/render-consignment-agreement', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Consignment Agreement PDF render error:', err);
     res.status(500).json({ 
       success: false, 
       error: err instanceof Error ? err.message : 'Unknown error' 
@@ -1235,39 +1019,25 @@ app.post('/render-consignment-agreement', async (req, res) => {
 // Myth Buster Monday Endpoint
 app.post('/render-myth-buster', async (req, res) => {
   try {
-    console.log('🎨 Myth Buster Monday render request received');
     const { html, templateType, width = 2160, height = 3840 } = req.body;
-    
-    console.log('📝 Request details:', { 
-      templateType, 
-      htmlLength: html?.length || 0,
-      dimensions: `${width}x${height}`
-    });
-    
     if (!html || !templateType) {
       return res.status(400).json({ 
         success: false, 
         error: 'Missing required fields: html and templateType' 
       });
     }
-
-    console.log('🚀 Launching browser for Myth Buster Monday...');
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ 
       headless: true, 
       args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     });
     const page = await browser.newPage();
-    console.log('✅ Browser launched');
-
     // Instagram story format - default 2x (2160x3840) for high quality
-    console.log(`📐 Setting up Instagram story format (${width}x${height})...`);
     await page.setViewportSize({ width, height });
     await page.setContent(html, { waitUntil: 'networkidle', timeout: 30000 });
     await page.addStyleTag({ content: '*{ -webkit-font-smoothing: antialiased; }' });
     
     // Wait for fonts to load (using same approach as content pillars)
-    console.log('⏳ Waiting for fonts and images to load...');
     await page.evaluate(() => document.fonts && document.fonts.ready);
     
     // Check image loading status
@@ -1281,8 +1051,6 @@ app.post('/render-myth-buster', async (req, res) => {
         naturalHeight: img.naturalHeight
       }));
     });
-    console.log('🖼️ Image loading status:', imageInfo);
-    
     // Force font loading by applying styles (same as content pillars)
     await page.evaluate(() => {
       // Create test elements for Resonate font
@@ -1304,22 +1072,14 @@ app.post('/render-myth-buster', async (req, res) => {
     
     // Give extra time for custom fonts and external images to load
     await page.waitForTimeout(3000);
-    
-    console.log('📸 Taking screenshot...');
     const imageBuffer = await page.screenshot({ 
       type: 'png', 
       clip: { x: 0, y: 0, width, height } 
     });
-    console.log('✅ Screenshot taken');
-
     await browser.close();
-    console.log('🔒 Browser closed');
-
     const mythBusterImage = imageBuffer.toString('base64');
     
     const fileSizeMB = (imageBuffer.length / (1024 * 1024)).toFixed(2);
-    console.log(`✅ Myth Buster ${templateType} image generated: ${fileSizeMB}MB`);
-
     res.json({ 
       success: true, 
       mythBusterImage,
@@ -1330,8 +1090,6 @@ app.post('/render-myth-buster', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('❌ Myth Buster render error:', err);
-    console.error('❌ Error stack:', err.stack);
     res.status(500).json({ 
       success: false, 
       error: err instanceof Error ? err.message : 'Unknown error' 
@@ -1342,7 +1100,6 @@ app.post('/render-myth-buster', async (req, res) => {
 // Damage Report Endpoint
 app.post('/render-damage-report', async (req, res) => {
   try {
-    console.log('🔧 Damage report render request received');
     const { carDetails, damageAnnotations, inspectionNotes, diagramImageUrl, timestamp } = req.body;
 
     if (!damageAnnotations || !diagramImageUrl) {
@@ -1358,10 +1115,6 @@ app.post('/render-damage-report', async (req, res) => {
         error: 'Damage report template not loaded' 
       });
     }
-
-    console.log('📊 Car details:', carDetails);
-    console.log('🎯 Damage annotations count:', damageAnnotations.length);
-
     // Convert damage markers to template format with percentage coordinates
     const damageMarkers = damageAnnotations.map(marker => ({
       damageType: marker.damageType,
@@ -1369,9 +1122,6 @@ app.post('/render-damage-report', async (req, res) => {
       x_percent: (marker.x / 2029) * 100, // Convert to percentage
       y_percent: (marker.y / 765) * 100   // Convert to percentage
     }));
-
-    console.log('🎯 Converted damage markers:', damageMarkers);
-
     // Prepare template data
     const templateData = {
       DIAGRAM_IMAGE_URL: diagramImageUrl,
@@ -1407,12 +1157,6 @@ app.post('/render-damage-report', async (req, res) => {
       // Remove the entire inspection notes section if no notes
       html = html.replace(/{{#if INSPECTION_NOTES}}[\s\S]*?{{\/if}}/g, '');
     }
-
-    console.log('🎨 Generating damage report image...');
-    console.log('🔍 Final HTML length:', html.length);
-    console.log('🔍 Markers HTML:', markersHtml);
-    console.log('🔍 Diagram URL:', templateData.DIAGRAM_IMAGE_URL);
-
     // Generate image using Playwright
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ 
@@ -1438,9 +1182,6 @@ app.post('/render-damage-report', async (req, res) => {
         markersHTML: Array.from(markers).map(m => m.outerHTML)
       };
     });
-    
-    console.log('🔍 Debug info:', debugInfo);
-    
     // Wait extra time for external image to load
     await page.waitForTimeout(3000);
 
@@ -1457,15 +1198,12 @@ app.post('/render-damage-report', async (req, res) => {
     const base64Image = imageBuffer.toString('base64');
     
     const fileSizeMB = (imageBuffer.length / (1024 * 1024)).toFixed(2);
-    console.log(`✅ Damage report image generated: ${fileSizeMB}MB`);
-
     res.json({
       success: true,
       damageReportImage: base64Image
     });
 
   } catch (error) {
-    console.error('❌ Damage report generation error:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1480,9 +1218,6 @@ app.post('/render-pdf-to-images', async (req, res) => {
     if (!pdfUrl) {
       return res.status(400).json({ success: false, error: 'pdfUrl is required' });
     }
-
-    console.log('🖼️ PDF-to-image conversion requested:', { pdfUrl, scale });
-
     const browser = await chromium.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -1527,14 +1262,11 @@ app.post('/render-pdf-to-images', async (req, res) => {
 
         return images;
       }, { pdfUrl, scale, pdfJsWorker });
-
-      console.log('🖼️ PDF-to-image conversion complete:', { pageCount: pages.length });
       res.json({ success: true, pages });
     } finally {
       await browser.close();
     }
   } catch (error) {
-    console.error('❌ PDF-to-image conversion failed:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -1555,8 +1287,7 @@ app.get('/health', (req, res) => {
 const port = process.env.PORT || 3001;
 
 loadTemplate().then(() => {
-  app.listen(port, () => console.log(`Renderer listening on :${port}`));
+  app.listen(port);
 }).catch((e) => {
-  console.error('Failed to load template:', e);
   process.exit(1);
 }); 

@@ -55,7 +55,6 @@ export default function WorkshopNavigation({ activeTab, onTabChange }: { activeT
 
         setPendingContractsCount(count);
       } catch (error) {
-        console.error('Error fetching pending contracts:', error);
       }
     };
 

@@ -29,13 +29,11 @@ export default function WorkshopDashboard() {
         .order('month', { ascending: false });
 
       if (error) {
-        console.error('Error fetching service targets:', error);
         return [];
       }
 
       return targets || [];
     } catch (error) {
-      console.error('Error fetching service targets:', error);
       return [];
     }
   };
@@ -46,8 +44,6 @@ export default function WorkshopDashboard() {
       async function loadServiceData() {
         try {
           setLoading(true);
-          console.log('🚀 Loading service metrics for workshop dashboard...');
-          
           const [metrics, targets] = await Promise.all([
             fetchAllMetrics(),
             fetchAllTargets()
@@ -56,10 +52,7 @@ export default function WorkshopDashboard() {
           setAllMetrics(metrics);
           setAllTargets(targets);
           hasFetchedInitialData.current = true;
-          
-          console.log('✅ Service metrics loaded for workshop dashboard');
         } catch (error) {
-          console.error('❌ Error loading service data for workshop:', error);
           setAllMetrics([]);
           setAllTargets([]);
         } finally {

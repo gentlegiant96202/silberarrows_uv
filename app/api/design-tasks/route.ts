@@ -40,7 +40,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -75,7 +74,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -83,8 +81,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 // GET - Fetch all design tasks
 export async function GET(req: NextRequest) {
   try {
-    console.log('Fetching design tasks...');
-    
     // Validate user has view permission
     const authResult = await validateUserPermissions(req, 'view');
     if (authResult.error) {
@@ -109,15 +105,12 @@ export async function GET(req: NextRequest) {
         .single();
 
       if (error) {
-        console.error('Error fetching task by ID:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
       if (!task) {
         return NextResponse.json({ error: 'Task not found' }, { status: 404 });
       }
-
-      console.log(`✅ Successfully fetched task ${taskId}`);
       return NextResponse.json(task);
     }
 
@@ -143,7 +136,6 @@ export async function GET(req: NextRequest) {
         .single();
 
       if (roleError || !userRole) {
-        console.error('Error getting user role:', roleError);
         return NextResponse.json({ error: 'Unable to determine user department' }, { status: 500 });
       }
 
@@ -154,7 +146,6 @@ export async function GET(req: NextRequest) {
         .eq('role', userRole.role);
 
       if (usersError || !departmentUsers) {
-        console.error('Error getting department users:', usersError);
         return NextResponse.json({ error: 'Unable to get department users' }, { status: 500 });
       }
 
@@ -179,22 +170,14 @@ export async function GET(req: NextRequest) {
     query = query
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
-
-    console.log(`🔍 Executing query with limit=${limit}, offset=${offset}, excludeArchived=${excludeArchived}, statusFilter=${statusFilter}`);
     const queryStart = Date.now();
     const { data: tasks, error } = await query;
     const queryTime = Date.now() - queryStart;
-    console.log(`⏱️ Database query took ${queryTime}ms`);
-
     if (error) {
-      console.error('Error fetching design tasks:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    console.log(`✅ Successfully fetched ${tasks.length} tasks`);
     return NextResponse.json(tasks);
   } catch (error: any) {
-    console.error('Error in GET /api/design-tasks:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -203,8 +186,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log('Creating design task:', body);
-
     // Validate user has create permission
     const authResult = await validateUserPermissions(req, 'create');
     if (authResult.error) {
@@ -212,18 +193,6 @@ export async function POST(req: NextRequest) {
     }
 
     const { title, headline, description, status = 'planned', assignee, due_date, task_type = 'design', media_files = [] } = body;
-
-    console.log('📊 Raw media_files received:', media_files);
-    console.log('📊 Media files count:', media_files?.length || 0);
-    console.log('📊 Media files details:', media_files?.map((m: any) => ({
-      name: m.name || 'unknown',
-      type: m.type || 'unknown',
-      url: typeof m === 'string' ? m : m.url,
-      isImage: typeof m === 'string' 
-        ? m.match(/\.(jpe?g|png|webp|gif)$/i)
-        : m.type?.startsWith('image/')
-    })));
-
     const taskData = {
       title: title || headline, // Handle both title and headline fields
       description,
@@ -234,9 +203,6 @@ export async function POST(req: NextRequest) {
       media_files,
       created_by: authResult.user?.id // Track who created the task
     };
-
-    console.log('Task data to insert:', taskData);
-
     const { data, error } = await supabase
       .from('design_tasks')
       .insert([taskData])
@@ -244,14 +210,10 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating design task:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    console.log('✅ Successfully created task:', data);
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
-    console.error('Error in POST /api/design-tasks:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -260,8 +222,6 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log('Updating design task:', body);
-
     const { id, title, headline, description, status, assignee, due_date, task_type, media_files } = body;
     
     // Check if this is an approval action
@@ -272,9 +232,6 @@ export async function PUT(req: NextRequest) {
     if (authResult.error) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-
-    console.log('Extracted fields:', { id, title, headline, description, status, assignee, due_date, task_type, media_files });
-    
     // Get current task data to check for admin-only field changes
     const { data: currentTask, error: fetchError } = await supabase
       .from('design_tasks')
@@ -283,7 +240,6 @@ export async function PUT(req: NextRequest) {
       .single();
 
     if (fetchError) {
-      console.error('Error fetching current task:', fetchError);
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
@@ -322,14 +278,10 @@ export async function PUT(req: NextRequest) {
       // Defensive programming: Ensure media_files is an array and validate structure
       const validatedMediaFiles = Array.isArray(media_files) ? media_files : [];
       updates.media_files = validatedMediaFiles;
-      console.log(`Updating media_files: ${validatedMediaFiles.length} files`);
     }
 
     // Always update the updated_at timestamp
     updates.updated_at = new Date().toISOString();
-    
-    console.log('Updates to be applied:', updates);
-
     const { data, error } = await supabase
       .from('design_tasks')
       .update(updates)
@@ -338,19 +290,14 @@ export async function PUT(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error updating design task:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     if (!data) {
-      console.error('Task not found:', id);
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
-
-    console.log('✅ Successfully updated task:', data);
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('Error in PUT /api/design-tasks:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -370,23 +317,16 @@ export async function DELETE(req: NextRequest) {
     if (authResult.error) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-
-    console.log('Deleting design task:', id);
-
     const { error } = await supabase
       .from('design_tasks')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting design task:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    console.log('✅ Successfully deleted task:', id);
     return NextResponse.json({ message: 'Task deleted successfully' });
   } catch (error: any) {
-    console.error('Error in DELETE /api/design-tasks:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -436,17 +376,13 @@ export async function PATCH(req: NextRequest) {
         .eq('id', id);
 
       if (error) {
-        console.error('Error acknowledging task:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
-
-      console.log('✅ Successfully acknowledged task:', id);
       return NextResponse.json({ message: 'Task acknowledged successfully' });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error: any) {
-    console.error('Error in PATCH /api/design-tasks:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 } 

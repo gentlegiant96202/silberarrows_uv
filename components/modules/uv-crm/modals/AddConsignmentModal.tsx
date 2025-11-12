@@ -67,7 +67,6 @@ export default function AddConsignmentModal({ onClose, onAdd }: Props) {
 
       onAdd(consignmentData);
     } catch (error) {
-      console.error('Error preparing consignment data:', error);
       alert('Error preparing consignment data. Please try again.');
     } finally {
       setSaving(false);

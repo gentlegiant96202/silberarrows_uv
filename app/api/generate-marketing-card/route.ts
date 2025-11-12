@@ -13,10 +13,6 @@ export async function POST(request: NextRequest) {
 
     // Call Railway renderer service to generate marketing card
     const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
-
-    console.log('🔄 Calling Railway renderer service for marketing card at:', rendererUrl);
-    console.log('📊 Marketing details:', marketingDetails);
-
     const renderResponse = await fetch(`${rendererUrl}/render-leasing-catalog-alt`, {
       method: 'POST',
       headers: {
@@ -26,12 +22,8 @@ export async function POST(request: NextRequest) {
         carDetails: marketingDetails, // Use generic details
       }),
     });
-
-    console.log('📊 Marketing card render response status:', renderResponse.status);
-
     if (!renderResponse.ok) {
       const errorText = await renderResponse.text();
-      console.error('❌ Renderer service error for marketing card:', errorText);
       return NextResponse.json({
         error: 'Failed to generate marketing card',
         details: `Renderer service returned ${renderResponse.status}: ${errorText}`,
@@ -62,7 +54,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Storage upload error for marketing card:', uploadError);
       return NextResponse.json({
         error: 'Failed to save generated marketing card',
         details: uploadError.message
@@ -85,7 +76,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error generating marketing card:', error);
     return NextResponse.json({
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'

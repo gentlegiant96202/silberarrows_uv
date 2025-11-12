@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
       .eq('sale_status', 'available');
 
     if (error) {
-      console.error('Error fetching cars:', error);
       return NextResponse.json({ 
         error: 'Failed to fetch inventory cars', 
         details: error.message 
@@ -61,7 +60,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error generating XML feed:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

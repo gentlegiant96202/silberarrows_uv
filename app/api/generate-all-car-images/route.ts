@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (carsError) {
-      console.error('Error fetching cars:', carsError);
       return NextResponse.json({ error: 'Failed to fetch cars' }, { status: 500 });
     }
 
@@ -56,7 +55,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (queueError) {
-      console.error('Error adding to queue:', queueError);
       return NextResponse.json({ error: 'Failed to queue cars' }, { status: 500 });
     }
 
@@ -67,7 +65,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Batch queue error:', error);
     return NextResponse.json({ 
       error: 'Failed to queue cars for batch generation' 
     }, { status: 500 });
@@ -84,7 +81,6 @@ export async function PUT(request: NextRequest) {
       .eq('sale_status', 'available');
 
     if (carsError) {
-      console.error('Error fetching all cars:', carsError);
       return NextResponse.json({ error: 'Failed to fetch cars' }, { status: 500 });
     }
 
@@ -102,7 +98,6 @@ export async function PUT(request: NextRequest) {
       .in('id', allCars.map(c => c.id));
 
     if (clearError) {
-      console.error('Error clearing image URLs:', clearError);
       return NextResponse.json({ error: 'Failed to clear image URLs' }, { status: 500 });
     }
 
@@ -120,7 +115,6 @@ export async function PUT(request: NextRequest) {
       });
 
     if (queueError) {
-      console.error('Error adding to queue:', queueError);
       return NextResponse.json({ error: 'Failed to queue cars' }, { status: 500 });
     }
 
@@ -131,7 +125,6 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Force regeneration error:', error);
     return NextResponse.json({ 
       error: 'Failed to force regenerate all images' 
     }, { status: 500 });

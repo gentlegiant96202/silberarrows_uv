@@ -32,7 +32,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -44,7 +43,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -63,9 +61,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const reservationId = id;
-
-    console.log('🔍 Fetching contracts for reservation:', reservationId);
-
     // First verify the reservation exists and get its details
     const { data: reservation, error: reservationError } = await supabase
       .from('vehicle_reservations')
@@ -122,7 +117,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .eq('reservation_id', reservationId);
 
     if (serviceError) {
-      console.error('Service contracts fetch error:', serviceError);
     }
 
     // Get linked warranty contracts
@@ -153,7 +147,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .eq('reservation_id', reservationId);
 
     if (warrantyError) {
-      console.error('Warranty contracts fetch error:', warrantyError);
     }
 
     // Add calculated fields to contracts
@@ -187,13 +180,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const processedServiceContracts = processContracts(serviceContracts || []);
     const processedWarrantyContracts = processContracts(warrantyContracts || []);
-
-    console.log('✅ Contracts fetched:', {
-      reservation_id: reservationId,
-      service_contracts: processedServiceContracts.length,
-      warranty_contracts: processedWarrantyContracts.length
-    });
-
     return NextResponse.json({
       success: true,
       reservation: {
@@ -227,7 +213,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
   } catch (error) {
-    console.error('Error fetching reservation contracts:', error);
     return NextResponse.json(
       { 
         error: 'Failed to fetch reservation contracts',

@@ -31,7 +31,6 @@ export async function DELETE(
       .eq('record_type', 'call_entry');
 
     if (error) {
-      console.error('Error deleting call log:', error);
       return NextResponse.json(
         { error: 'Failed to delete call log entry' },
         { status: 500 }
@@ -43,7 +42,6 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error) {
-    console.error('API Error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -89,7 +87,6 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('Error updating call log:', error);
       return NextResponse.json(
         { error: 'Failed to update call log entry' },
         { status: 500 }
@@ -114,7 +111,6 @@ export async function PUT(
 
     return NextResponse.json(transformedData);
   } catch (error) {
-    console.error('API Error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

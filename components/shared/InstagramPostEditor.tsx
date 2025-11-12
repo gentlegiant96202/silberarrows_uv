@@ -139,7 +139,6 @@ export default function InstagramPostEditor({ initialImageUrl, carData, onSave }
         onSave(result.imageUrl);
       }
     } catch (error) {
-      console.error('Error processing image:', error);
       alert('Failed to process image. Please try again.');
     } finally {
       setIsProcessing(false);

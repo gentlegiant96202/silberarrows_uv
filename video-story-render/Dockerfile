@@ -61,7 +61,7 @@ RUN npm ci --omit=dev --verbose
 COPY . .
 
 # Create a health check endpoint script
-RUN echo 'console.log("Health check: OK");' > health.js
+RUN echo 'process.stdout.write("Health check: OK\\n");' > health.js
 
 EXPOSE 3001
 

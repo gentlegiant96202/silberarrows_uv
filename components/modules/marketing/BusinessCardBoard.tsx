@@ -47,7 +47,6 @@ export default function BusinessCardBoard() {
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
 
@@ -64,7 +63,6 @@ export default function BusinessCardBoard() {
       const result = await response.json();
       setBusinessCards(result.businessCards || []);
     } catch (error) {
-      console.error('Error loading business cards:', error);
     } finally {
       setLoading(false);
     }
@@ -81,7 +79,6 @@ export default function BusinessCardBoard() {
       await navigator.clipboard.writeText(url);
       alert('Public URL copied to clipboard!');
     } catch (err) {
-      console.error('Failed to copy URL:', err);
     }
   };
 
@@ -109,7 +106,6 @@ export default function BusinessCardBoard() {
 
       await loadBusinessCards();
     } catch (error) {
-      console.error('Error updating card status:', error);
     }
   };
 
@@ -134,7 +130,6 @@ export default function BusinessCardBoard() {
 
       await loadBusinessCards();
     } catch (error) {
-      console.error('Error deleting card:', error);
     }
   };
 
@@ -169,7 +164,6 @@ export default function BusinessCardBoard() {
       // Reload cards to update QR status
       await loadBusinessCards();
     } catch (error) {
-      console.error('Error generating QR code:', error);
       alert('Failed to generate QR code');
     }
   };

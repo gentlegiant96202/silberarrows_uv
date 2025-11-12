@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
         .range(offset, offset + pageSize - 1);
 
       if (error) {
-        console.error('Error fetching call logs:', error);
         return NextResponse.json(
           { error: 'Failed to fetch call logs' },
           { status: 500 }
@@ -42,9 +41,6 @@ export async function GET(request: NextRequest) {
 
       offset += pageSize;
     }
-
-    console.log(`📊 API Debug: Fetched ${allRows.length} / ${totalCount || allRows.length} call entries`);
-
     // Transform data to match frontend interface
     const transformedData = allRows.map(row => ({
       id: row.id,
@@ -63,7 +59,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(transformedData);
   } catch (error) {
-    console.error('API Error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -97,7 +92,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating call log:', error);
       return NextResponse.json(
         { error: 'Failed to create call log' },
         { status: 500 }
@@ -122,7 +116,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(transformedData);
   } catch (error) {
-    console.error('API Error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

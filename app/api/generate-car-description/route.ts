@@ -78,7 +78,6 @@ Create a professional luxury car advertisement that highlights the vehicle's pre
       description: formattedDescription
     });
   } catch (e: any) {
-    console.error('generate-car-description error', e);
     return NextResponse.json({ 
       success: false, 
       error: e.message 

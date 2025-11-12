@@ -218,7 +218,6 @@ export default function SalesDataGrid({
         setEditingCell(null);
       }
     } catch (error) {
-      console.error('Error saving row:', error);
     } finally {
       setSavingRows(prev => {
         const newSet = new Set(prev);
@@ -240,7 +239,6 @@ export default function SalesDataGrid({
         setRows(prev => prev.filter(r => r.id !== row.id));
       }
     } catch (error) {
-      console.error('Error deleting row:', error);
     } finally {
       setDeletingRows(prev => {
         const newSet = new Set(prev);

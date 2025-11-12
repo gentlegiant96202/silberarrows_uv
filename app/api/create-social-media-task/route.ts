@@ -20,8 +20,6 @@ async function processWithClipDrop(
   taskId: string,
 ) {
   try {
-    console.log('🚀 Starting background ClipDrop Uncrop for task:', taskId)
-
     // Dynamic imports (keep dev bundle small & avoid ESM issues)
     // @ts-ignore
     const fetch = (await import('node-fetch')).default
@@ -51,7 +49,6 @@ async function processWithClipDrop(
 
     if (!res.ok) {
       const errorText = await res.text()
-      console.error('ClipDrop error:', errorText)
       throw new Error('ClipDrop uncrop failed')
     }
 
@@ -68,7 +65,6 @@ async function processWithClipDrop(
       })
 
     if (uploadError) {
-      console.error('Failed to upload ClipDrop image:', uploadError)
       throw new Error('ClipDrop image upload failed')
     }
 
@@ -77,8 +73,6 @@ async function processWithClipDrop(
       .getPublicUrl(processedFileName)
 
     const processedImageUrl = publicUrlData.publicUrl
-    console.log('✅ ClipDrop image uploaded:', processedImageUrl)
-
     // Update the task with the ClipDrop result
     const { error: updateError } = await supabase
       .from('design_tasks')
@@ -89,12 +83,9 @@ async function processWithClipDrop(
       .eq('id', taskId)
 
     if (updateError) {
-      console.error('Failed to update task with ClipDrop result:', updateError)
     } else {
-      console.log('✅ Task updated with ClipDrop result:', taskId)
     }
   } catch (error) {
-    console.error('Background ClipDrop processing failed for task', taskId, ':', error)
   }
 }
 
@@ -117,7 +108,6 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (carError || !car) {
-      console.error('Car not found:', carError)
       return NextResponse.json({ error: 'Car not found' }, { status: 404 })
     }
 
@@ -127,17 +117,12 @@ export async function POST(request: NextRequest) {
       .list(carId)
 
     if (imagesError || !images || images.length === 0) {
-      console.error('No images found for car:', imagesError)
       return NextResponse.json({ error: 'No images found for this car' }, { status: 404 })
     }
-
-    console.log(`Found ${images.length} images for car ${car.stock_number}`)
-
     // Filter to image file types only (skip pdf, etc.)
     const imageFiles = images.filter((file) => /\.(jpe?g|png|webp)$/i.test(file.name))
 
     if (imageFiles.length === 0) {
-      console.error('No valid image files found for car')
       return NextResponse.json({ error: 'No valid image files found' }, { status: 404 })
     }
 
@@ -150,15 +135,11 @@ export async function POST(request: NextRequest) {
 
     // Process the first image (first uploaded/oldest)
     const firstImage = sortedImages[0]
-    console.log(`Selected image ${1} of ${images.length}: ${firstImage.name}`)
-    
     const { data: imageData } = supabase.storage
       .from('car-media')
       .getPublicUrl(`${carId}/${firstImage.name}`)
     
     const imageUrl = imageData.publicUrl
-    console.log('Processing image:', imageUrl)
-
     // 3. Download and process the image
     const response = await fetch(imageUrl)
     if (!response.ok) {
@@ -177,9 +158,6 @@ export async function POST(request: NextRequest) {
     // Target dimensions for 4:5 aspect ratio (Instagram)
     const targetWidth = 864
     const targetHeight = 1080
-
-    console.log('Original image dimensions:', imgW, imgH)
-
     // Calculate how to fit the image in the target dimensions
     // Make the car fill ~90% of the available frame so it is larger / more in-focus.
     // We scale by the smaller ratio (height-first) then apply a 0.9 multiplier to leave a ~5% margin top+bottom.
@@ -191,9 +169,6 @@ export async function POST(request: NextRequest) {
  
     const leftPad = Math.round((targetWidth - scaledW) / 2)
     const topPad = Math.round((targetHeight - scaledH) / 2)
-    
-    console.log('Scaled dimensions:', scaledW, scaledH, 'Padding:', leftPad, topPad)
-
     // Resize the image to fit
     const resizedImageBuffer = await sharpDyn(imageBuffer)
       .resize(scaledW, scaledH, { fit: 'inside', withoutEnlargement: true })
@@ -248,9 +223,6 @@ export async function POST(request: NextRequest) {
 
     const paddedImage = canvasBuffer;
     const mask = maskBuffer;
-
-    console.log('Mask and padded image generated.')
-
     // 4. Create marketing task immediately with fallback image (fast response)
     // Create immediate fallback by smart-cropping to 4:5 (center-crop)
     // This avoids sending a letter-boxed frame with black bars.
@@ -272,7 +244,6 @@ export async function POST(request: NextRequest) {
       })
 
     if (fallbackUploadError) {
-      console.error('Failed to upload fallback image:', fallbackUploadError)
       throw new Error('Failed to upload processed image')
     }
 
@@ -281,8 +252,6 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(fallbackFileName)
     
     const processedImageUrl = publicUrlData.publicUrl
-    console.log('✅ Fallback processed image uploaded:', processedImageUrl)
-
     // 5. Create marketing task in the design_tasks table (Intake column)
     const { data: createdTask, error: taskError } = await supabase
       .from('design_tasks')
@@ -298,12 +267,8 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (taskError) {
-      console.error('Error creating marketing task:', taskError)
       throw new Error('Failed to create marketing task')
     }
-
-    console.log('✅ Marketing task created:', createdTask.id)
-
     // 6. Start ClipDrop Uncrop processing in background (don't await)
     setImmediate(() => {
       const extendUp = topPad
@@ -320,7 +285,6 @@ export async function POST(request: NextRequest) {
         car,
         createdTask.id,
       ).catch((error) => {
-        console.error('Background ClipDrop processing failed:', error)
       })
     })
 
@@ -332,7 +296,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error in social media task creation:', error)
     return NextResponse.json(
       { error: 'Failed to create social media task' },
       { status: 500 }

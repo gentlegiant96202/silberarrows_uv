@@ -2,8 +2,6 @@
 
 // Extension installation/update handler
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log('SilberArrows Car Filler installed/updated:', details.reason);
-  
   // Set default options
   if (details.reason === 'install') {
     chrome.storage.sync.set({
@@ -17,8 +15,6 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Handle messages from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Background received message:', message);
-  
   switch (message.action) {
     case 'getSettings':
       handleGetSettings(sendResponse);
@@ -33,7 +29,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
       
     default:
-      console.warn('Unknown message action:', message.action);
   }
 });
 
@@ -65,16 +60,8 @@ async function handleGetSettings(sendResponse) {
           }
         } : defaultFieldMappings
     };
-    
-    console.log('🔧 Background: Sending settings with field mappings:', {
-      apiUrl: defaultSettings.apiUrl,
-      fieldMappingsKeys: Object.keys(defaultSettings.fieldMappings),
-      silberarrowsMappingsCount: Object.keys(defaultSettings.fieldMappings['silberarrows.com'] || {}).length
-    });
-    
     sendResponse({ success: true, settings: defaultSettings });
   } catch (error) {
-    console.error('Failed to get settings:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -83,18 +70,14 @@ async function handleGetSettings(sendResponse) {
 async function handleSaveSettings(settings, sendResponse) {
   try {
     await chrome.storage.sync.set(settings);
-    console.log('Settings saved:', settings);
     sendResponse({ success: true });
   } catch (error) {
-    console.error('Failed to save settings:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
 
 // Log fill result for analytics
 function handleLogFillResult(result) {
-  console.log('Fill result:', result);
-  
   // Store recent fill results (last 10)
   chrome.storage.local.get(['fillHistory'], (data) => {
     const history = data.fillHistory || [];
@@ -219,5 +202,4 @@ try {
     });
   }
 } catch (error) {
-  console.log('Context menus not available:', error);
 }

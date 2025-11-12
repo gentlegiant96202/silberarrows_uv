@@ -26,16 +26,7 @@ interface ApiFlashRequest {
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🚀 API Flash route called');
-    
     const body: ApiFlashRequest = await req.json();
-    console.log('📝 Request body received:', { 
-      mythBusterId: body.mythBusterId, 
-      templateType: body.templateType,
-      title: body.title?.substring(0, 50) + '...',
-      hasImageUrl: !!body.imageUrl
-    });
-    
     const {
       mythBusterId,
       templateType,
@@ -53,9 +44,6 @@ export async function POST(req: NextRequest) {
       imageVerticalPosition,
       imageUrl
     } = body;
-
-    console.log(`🎨 Generating API Flash image for Myth Buster ${mythBusterId}, Template ${templateType}`);
-
     // Get auth token for API call
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -71,7 +59,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate HTML content using the MythBusterPreview component logic
-    console.log('🔨 Generating HTML content...');
     const htmlContent = generateMythBusterHTML({
       templateType,
       title,
@@ -87,27 +74,15 @@ export async function POST(req: NextRequest) {
       imageZoom,
       imageVerticalPosition
     });
-
-    console.log('✅ Generated HTML content for API Flash, length:', htmlContent.length);
-
     const apiFlashApiKey = process.env.API_FLASH_API_KEY;
     if (!apiFlashApiKey) {
-      console.error('❌ API_FLASH_API_KEY is not set in environment variables');
       throw new Error('API_FLASH_API_KEY is not set in environment variables.');
     }
-
-    console.log('🔑 API Flash key found, length:', apiFlashApiKey.length);
-
     // Use htmlcsstoimage.com as an alternative to API Flash
-    console.log('📄 HTML content length:', htmlContent.length);
-
     const htmlcsstoimageApiKey = process.env.HTML_CSSToIMAGE_API_KEY || 'free'; // Use free tier for now
 
     // Create the request to htmlcsstoimage.com
-    console.log('🌐 Using htmlcsstoimage.com as image generation service');
     const htmlcsstoimageUrl = `https://hcti.io/v1/image`;
-
-    console.log('📡 Making htmlcsstoimage.com POST request...');
     const htmlcsstoimageResponse = await fetch(htmlcsstoimageUrl, {
       method: 'POST',
       headers: {
@@ -126,24 +101,15 @@ export async function POST(req: NextRequest) {
         quality: 90,
       }),
     });
-
-    console.log('📊 htmlcsstoimage.com response status:', htmlcsstoimageResponse.status);
-
     let publicImageUrl: string;
 
     if (!htmlcsstoimageResponse.ok) {
       const errorText = await htmlcsstoimageResponse.text();
-      console.error('❌ htmlcsstoimage.com error response:', errorText);
-
       // Fallback to placeholder if htmlcsstoimage also fails
-      console.log('⚠️ htmlcsstoimage.com failed, using placeholder');
       publicImageUrl = `https://via.placeholder.com/1080x1920/000000/FFFFFF?text=Myth+Buster+${templateType}`;
-      console.log('✅ Using placeholder URL:', publicImageUrl);
     } else {
       const result = await htmlcsstoimageResponse.json();
-      console.log('✅ htmlcsstoimage.com request successful');
       publicImageUrl = result.url;
-      console.log('✅ Image URL generated:', publicImageUrl);
     }
 
     const imageId = `${mythBusterId}-${templateType}-${Date.now()}`;
@@ -151,8 +117,6 @@ export async function POST(req: NextRequest) {
     // Update the myth_buster_monday table with the generated image URL and ID
     const updateColumnUrl = templateType === 'A' ? 'generated_image_a_url' : 'generated_image_b_url';
     const updateColumnId = templateType === 'A' ? 'generated_image_a_id' : 'generated_image_b_id';
-
-    console.log('💾 Updating database with image URLs...');
     const { error: updateError } = await supabase
       .from('myth_buster_monday')
       .update({
@@ -162,24 +126,14 @@ export async function POST(req: NextRequest) {
       .eq('id', mythBusterId);
 
     if (updateError) {
-      console.error('❌ Supabase update error:', updateError);
       throw new Error(`Failed to update myth buster record with image URL: ${updateError.message}`);
     }
-    console.log('✅ Database updated with image URLs');
-
-    console.log(`🎉 Successfully generated and saved image for Template ${templateType}:`, publicImageUrl);
-
     return NextResponse.json({
       success: true,
       data: { imageUrl: publicImageUrl, imageId: imageId },
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('❌ Error generating API Flash image:', error);
-    console.error('❌ Error stack:', error.stack);
-    console.error('❌ Error name:', error.name);
-    console.error('❌ Error message:', error.message);
-    
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Unknown error',

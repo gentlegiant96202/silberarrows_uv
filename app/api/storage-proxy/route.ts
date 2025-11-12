@@ -20,9 +20,6 @@ export async function GET(request: NextRequest) {
     if (!imageUrl) {
       return NextResponse.json({ error: 'URL parameter required' }, { status: 400 });
     }
-
-    console.log('🖼️ Storage Proxy: Attempting to fetch image:', imageUrl);
-
     // Try multiple URL variations to find working storage
     const urlsToTry = [
       imageUrl, // Original URL
@@ -35,7 +32,6 @@ export async function GET(request: NextRequest) {
 
     for (const url of urlsToTry) {
       try {
-        console.log('🔍 Trying URL:', url);
         const testResponse = await fetch(url, { 
           method: 'HEAD',
           signal: AbortSignal.timeout(5000) // 5 second timeout
@@ -47,21 +43,16 @@ export async function GET(request: NextRequest) {
           break;
         }
       } catch (error) {
-        console.log('❌ URL failed:', url);
         continue;
       }
     }
 
     if (!response || !response.ok || !workingUrl) {
-      console.error('❌ Storage Proxy: No working URL found for image');
       return NextResponse.json({ error: 'Image not accessible' }, { status: 404 });
     }
 
     const imageBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'image/jpeg';
-
-    console.log('✅ Storage Proxy: Successfully proxied image from:', workingUrl);
-
     return new NextResponse(imageBuffer, {
       headers: {
         'Content-Type': contentType,
@@ -74,7 +65,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Storage Proxy: Error:', error);
     return NextResponse.json({ error: 'Failed to proxy image' }, { status: 500 });
   }
 }

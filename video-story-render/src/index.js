@@ -32,15 +32,8 @@ app.get('/health', (req, res) => {
 // Video rendering endpoint
 app.post('/render-video', async (req, res) => {
   try {
-    console.log('🎬 Video render request received');
-    console.log('📊 Request body keys:', Object.keys(req.body || {}));
-    
     const { dayOfWeek, templateType, formData, html } = req.body || {};
-
-    console.log('🎨 Bundling Remotion composition...');
     const bundleLocation = await bundle(path.resolve(__dirname, 'Video.tsx'));
-    console.log('✅ Bundle created at:', bundleLocation);
-
     // Launch Chromium explicitly with the new Headless mode
     const browser = await openBrowser({
       browserExecutable: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
@@ -61,16 +54,12 @@ app.post('/render-video', async (req, res) => {
     let outputName = `content-pillar-${dayOfWeek}-${templateType}`;
 
     if (html) {
-      console.log('🔍 Checking dayOfWeek for Remotion routing:', dayOfWeek);
       // For Monday, Tuesday, and Wednesday templates, use the proper Remotion component for smooth animations
       if (dayOfWeek === 'monday' || dayOfWeek === 'tuesday' || dayOfWeek === 'wednesday') {
-        console.log('✅ Using Remotion ContentPillar composition for', dayOfWeek);
         compositionId = 'ContentPillar';
         // Extract form data from the request if available
         // Use templateType-specific formData (formDataA or formDataB) if available
         const f = (templateType === 'B' ? req.body.formDataB : req.body.formDataA) || req.body.formData || {};
-        console.log(`🎬 Using formData for Template ${templateType}:`, Object.keys(f));
-        console.log(`🖼️ Template ${templateType} imageUrl:`, f.imageUrl);
         inputProps = { 
           dayOfWeek: dayOfWeek, 
           templateType: templateType || 'A',
@@ -119,14 +108,12 @@ app.post('/render-video', async (req, res) => {
         outputName = `${dayOfWeek}-${templateType || 'A'}`;
       } else {
         // For other days, use HTML rendering
-        console.log('❌ Using HTMLVideo composition for', dayOfWeek);
         compositionId = 'HTMLVideo';
         inputProps = { html };
         outputName = `html-video`;
       }
     } else {
       if (!dayOfWeek || !templateType || !formData) {
-        console.error('❌ Missing required fields:', { dayOfWeek: !!dayOfWeek, templateType: !!templateType, formData: !!formData });
         return res.status(400).json({ 
           success: false, 
           error: 'Missing required fields: Provide html OR (dayOfWeek, templateType, formData)' 
@@ -134,17 +121,12 @@ app.post('/render-video', async (req, res) => {
       }
       inputProps = { dayOfWeek, templateType, ...formData };
     }
-
-    console.log('🔍 Selecting composition...', compositionId);
     const composition = await selectComposition({
       serveUrl: bundleLocation,
       id: compositionId,
       inputProps,
       browserInstance: browser,
     });
-    console.log('✅ Composition selected:', composition.id);
-
-    console.log('🎬 Starting video rendering...');
     const outputPath = `/tmp/${outputName}-${Date.now()}.mp4`;
     
     await renderMedia({
@@ -155,9 +137,6 @@ app.post('/render-video', async (req, res) => {
       inputProps,
       browserInstance: browser,
     });
-
-    console.log('✅ Video rendered successfully:', outputPath);
-
     // Read the video file and convert to base64
     const fs = await import('fs/promises');
     const videoBuffer = await fs.readFile(outputPath);
@@ -165,9 +144,6 @@ app.post('/render-video', async (req, res) => {
     
     // Clean up temporary file
     await fs.unlink(outputPath);
-    
-    console.log('📤 Sending video response, size:', Math.round(videoBuffer.length / 1024 / 1024), 'MB');
-
     // Send response (only once)
     res.json({
       success: true,
@@ -184,12 +160,9 @@ app.post('/render-video', async (req, res) => {
     try {
       await browser.close({ silent: true });
     } catch (closeErr) {
-      console.warn('⚠️ Browser close warning (ignored):', closeErr?.message || closeErr);
     }
 
   } catch (err) {
-    console.error('❌ Video render error:', err);
-    console.error('❌ Error stack:', err.stack);
     if (!res.headersSent) {
       res.status(500).json({ 
         success: false, 
@@ -297,7 +270,6 @@ app.post('/render-html-video-puppeteer', async (req, res) => {
 
     return res.json({ success: true, videoData: videoBase64, stats: { fileSizeMB: Math.round(videoBuffer.length/1024/1024), durationMs: duration, fps, width, height } });
   } catch (err) {
-    console.error('❌ render-html-video-puppeteer error:', err);
     return res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
@@ -352,7 +324,6 @@ app.post('/image-to-video', async (req, res) => {
 
     return res.json({ success: true, videoData: videoBase64, stats: { fileSizeMB: Math.round(videoBuffer.length/1024/1024), duration: `${durationSeconds} seconds` } });
   } catch (err) {
-    console.error('❌ image-to-video error:', err);
     return res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
@@ -360,11 +331,4 @@ app.post('/image-to-video', async (req, res) => {
 const port = process.env.PORT || 3001;
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`🎬 Video Story Render service listening on 0.0.0.0:${port}`);
-  console.log('🚀 Ready to generate content pillar videos!');
-  console.log('🔧 Environment:', {
-    NODE_ENV: process.env.NODE_ENV,
-    PORT: process.env.PORT,
-    RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT
-  });
 });

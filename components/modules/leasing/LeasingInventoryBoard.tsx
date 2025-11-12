@@ -198,8 +198,6 @@ export default function LeasingInventoryBoard() {
   // Progressive column loading (like UV CRM)
   useEffect(() => {
     if (!hasFetchedVehicles.current) {
-      console.log('🚗 Leasing Inventory: Starting optimistic column loading...');
-      
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: string }[] = [
         { key: 'marketing', delay: 0, statusFilter: 'marketing' },
@@ -214,44 +212,18 @@ export default function LeasingInventoryBoard() {
       // Load each column progressively
       columnPriorities.forEach(({ key, delay, statusFilter }) => {
         setTimeout(async () => {
-          console.log(`🚗 Loading ${key} column...`);
-          
           try {
-            console.log(`🔍 Querying for status: "${statusFilter}"`);
             const { data, error } = await supabase
               .from('leasing_inventory')
               .select('*')
               .eq('status', statusFilter)
               .order('created_at', { ascending: false });
-            
-            console.log(`🔍 Raw Supabase response for ${key}:`, { data, error });
-
             if (error) {
-              console.error(`❌ Error loading ${key}:`, error);
-              console.error(`❌ Error details for ${key}:`, {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code
-              });
               setColumnLoading(prev => ({ ...prev, [key]: false }));
               return;
             }
-
-            console.log(`✅ Loaded ${key}: ${data?.length || 0} vehicles`);
-            
             // Debug: Log first vehicle data to see what fields we're getting
             if (data && data.length > 0) {
-              console.log(`🔍 Sample ${key} vehicle data:`, {
-                stock_number: data[0].stock_number,
-                vehicle_model: data[0].vehicle_model,
-                model_family: data[0].model_family,
-                colour: data[0].colour,
-                interior_colour: data[0].interior_colour,
-                chassis_number: data[0].chassis_number
-              });
-              console.log(`🔍 ALL fields from Supabase:`, Object.keys(data[0]));
-              console.log(`🔍 Full vehicle object:`, data[0]);
             }
             
             setColumnData(prev => ({ ...prev, [key]: data || [] }));
@@ -264,7 +236,6 @@ export default function LeasingInventoryBoard() {
             });
 
           } catch (error) {
-            console.error(`❌ Exception loading ${key}:`, error);
             setColumnLoading(prev => ({ ...prev, [key]: false }));
           }
         }, delay);
@@ -281,8 +252,6 @@ export default function LeasingInventoryBoard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'leasing_inventory' },
         (payload: any) => {
-          console.log('🔄 Leasing inventory change detected:', payload);
-          
           if (payload.eventType === 'INSERT') {
             const newVehicle = payload.new;
             setColumnData(prev => ({
@@ -375,13 +344,9 @@ export default function LeasingInventoryBoard() {
         .eq('id', vehicleId);
 
       if (error) {
-        console.error('❌ Error updating vehicle status:', error);
         alert('Failed to update vehicle status. Please try again.');
         return;
       }
-
-      console.log(`✅ Vehicle ${vehicleId} moved to ${targetStatus}`);
-      
       // Optimistic update
       const updatedVehicle = { ...vehicleToMove, status: targetStatus as VehicleStatus };
       
@@ -394,7 +359,6 @@ export default function LeasingInventoryBoard() {
       setVehicles(prev => prev.map(v => v.id === vehicleId ? updatedVehicle : v));
 
     } catch (error) {
-      console.error("❌ Exception updating vehicle:", error);
       alert('Failed to update vehicle status. Please try again.');
     }
   };
@@ -412,7 +376,6 @@ export default function LeasingInventoryBoard() {
         .eq('id', vehicle.id);
 
       if (error) {
-        console.error('❌ Error archiving vehicle:', error);
         alert('Failed to archive vehicle. Please try again.');
         return;
       }
@@ -427,7 +390,6 @@ export default function LeasingInventoryBoard() {
 
       setVehicles(prev => prev.map(v => v.id === vehicle.id ? updatedVehicle : v));
     } catch (err) {
-      console.error('❌ Exception archiving vehicle:', err);
       alert('Failed to archive vehicle. Please try again.');
     }
   };
@@ -450,13 +412,9 @@ export default function LeasingInventoryBoard() {
         .eq('id', vehicle.id);
 
       if (error) {
-        console.error('❌ Error deleting vehicle:', error);
         alert('Failed to delete vehicle. Please try again.');
         return;
       }
-
-      console.log(`✅ Vehicle ${vehicle.stock_number} deleted successfully`);
-
       // Update UI by removing from all columns and main vehicles array
       setColumnData(prev => {
         const newData = { ...prev };
@@ -469,7 +427,6 @@ export default function LeasingInventoryBoard() {
       setVehicles(prev => prev.filter(v => v.id !== vehicle.id));
 
     } catch (err) {
-      console.error('❌ Exception deleting vehicle:', err);
       alert('Failed to delete vehicle. Please try again.');
     }
   };

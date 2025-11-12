@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'No authorization code received' }, { status: 400 });
 
   } catch (error) {
-    console.error('Consent page error:', error);
     return NextResponse.json({ error: 'Consent processing failed' }, { status: 500 });
   }
 }

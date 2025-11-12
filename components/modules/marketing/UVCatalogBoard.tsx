@@ -101,7 +101,6 @@ export default function UVCatalogBoard() {
         .order('created_at', { ascending: false });
 
       if (catalogError) {
-        console.error('Error fetching catalog data:', catalogError);
         return;
       }
 
@@ -147,7 +146,6 @@ export default function UVCatalogBoard() {
 
       setEntries(processedEntries);
     } catch (error) {
-      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -171,7 +169,6 @@ export default function UVCatalogBoard() {
           filter: 'status=eq.inventory'
         },
         (payload) => {
-          console.log('🔄 Car inventory change detected:', payload);
           // Refresh catalog when inventory changes
           fetchEntries();
         }
@@ -188,7 +185,6 @@ export default function UVCatalogBoard() {
           table: 'uv_catalog'
         },
         (payload) => {
-          console.log('🔄 UV Catalog change detected:', payload);
           // Refresh catalog when entries are added/removed
           fetchEntries();
         }
@@ -213,7 +209,6 @@ export default function UVCatalogBoard() {
         .eq('car_id', entry.car_id);
 
       if (error) {
-        console.error('Error removing from catalog:', error);
         alert('Failed to remove car from catalog');
         return;
       }
@@ -223,7 +218,6 @@ export default function UVCatalogBoard() {
       alert(`✅ "${entry.title}" removed from UV Catalog!`);
 
     } catch (error) {
-      console.error('Error removing from catalog:', error);
       alert('Failed to remove car from catalog');
     }
   };
@@ -252,12 +246,9 @@ export default function UVCatalogBoard() {
       }
 
       const result = await response.json();
-      console.log('✅ Catalog image generated:', result.imageUrl);
-      
       await refreshData();
       
     } catch (error) {
-      console.error('Error generating catalog image:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGeneratingCarId(null);
@@ -277,7 +268,6 @@ export default function UVCatalogBoard() {
       
       alert(`Generated catalog images for ${entriesNeedingImages.length} cars!`);
     } catch (error) {
-      console.error('Error generating all images:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGenerating(false);
@@ -297,7 +287,6 @@ export default function UVCatalogBoard() {
           await handleGenerateCatalogImage(entry);
           regeneratedCount++;
         } catch (error) {
-          console.error(`Failed to regenerate image for ${entry.title}:`, error);
         }
       }
       
@@ -339,7 +328,6 @@ export default function UVCatalogBoard() {
       alert(`✅ Complete update finished!\n\n📸 Regenerated: ${regeneratedCount} catalog images\n📋 XML feed updated with ${carCount} cars\n🔗 Live URL: ${getFacebookXmlUrl()}\n\nThe feed now includes all latest pricing and updates!`);
       
     } catch (error) {
-      console.error('Error updating XML feed:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGenerating(false);

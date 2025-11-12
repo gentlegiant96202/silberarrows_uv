@@ -100,7 +100,6 @@ export default function LeasingCatalogBoard() {
         .order('created_at', { ascending: false });
 
       if (catalogError) {
-        console.error('Error fetching catalog data:', catalogError);
         return;
       }
 
@@ -163,7 +162,6 @@ export default function LeasingCatalogBoard() {
 
       setEntries(processedEntries as CatalogEntry[]);
     } catch (error) {
-      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -187,7 +185,6 @@ export default function LeasingCatalogBoard() {
           filter: 'status=eq.inventory'
         },
         (payload) => {
-          console.log('🔄 Leasing vehicle change detected:', payload);
           // Refresh catalog when inventory changes
           fetchEntries();
         }
@@ -204,7 +201,6 @@ export default function LeasingCatalogBoard() {
           table: 'leasing_catalog'
         },
         (payload) => {
-          console.log('🔄 Leasing Catalog change detected:', payload);
           // Refresh catalog when entries are added/removed
           fetchEntries();
         }
@@ -229,7 +225,6 @@ export default function LeasingCatalogBoard() {
         .eq('vehicle_id', entry.vehicle_id);
 
       if (error) {
-        console.error('Error removing from catalog:', error);
         alert('Failed to remove vehicle from catalog');
         return;
       }
@@ -239,7 +234,6 @@ export default function LeasingCatalogBoard() {
       alert(`✅ "${entry.title}" removed from Leasing Catalog!`);
 
     } catch (error) {
-      console.error('Error removing from catalog:', error);
       alert('Failed to remove vehicle from catalog');
     }
   };
@@ -263,9 +257,7 @@ export default function LeasingCatalogBoard() {
       });
 
       if (!response.ok) {
-        console.error('Response status:', response.status, response.statusText);
         const responseText = await response.text();
-        console.error('Response text:', responseText);
         try {
           const error = JSON.parse(responseText);
           throw new Error(error.error || error.details || `Failed to generate catalog image: ${response.status}`);
@@ -275,12 +267,9 @@ export default function LeasingCatalogBoard() {
       }
 
       const result = await response.json();
-      console.log('✅ Catalog image generated:', result.imageUrl);
-      
       await refreshData();
       
     } catch (error) {
-      console.error('Error generating catalog image:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGeneratingVehicleId(null);
@@ -300,13 +289,10 @@ export default function LeasingCatalogBoard() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Marketing card generation error:', errorText);
         throw new Error(`Failed to generate marketing card: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('✅ Marketing card generated:', result.imageUrl);
-      
       // Save to localStorage and state
       localStorage.setItem('leasing_marketing_card_url', result.imageUrl);
       setMarketingCardUrl(result.imageUrl);
@@ -314,7 +300,6 @@ export default function LeasingCatalogBoard() {
       alert('✅ Marketing card generated successfully!');
       
     } catch (error) {
-      console.error('Error generating marketing card:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGeneratingMarketing(false);
@@ -334,7 +319,6 @@ export default function LeasingCatalogBoard() {
       
       alert(`Generated catalog images for ${entriesNeedingImages.length} vehicles!`);
     } catch (error) {
-      console.error('Error generating all images:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGenerating(false);
@@ -355,7 +339,6 @@ export default function LeasingCatalogBoard() {
           await handleGenerateCatalogImage(entry);
           regeneratedCount++;
         } catch (error) {
-          console.error(`Failed to regenerate image for ${entry.title}:`, error);
         }
       }
       
@@ -397,7 +380,6 @@ export default function LeasingCatalogBoard() {
       alert(`✅ Complete update finished!\n\n📸 Regenerated: ${regeneratedCount} catalog images\n📋 XML feed updated with ${vehicleCount} vehicles\n🔗 Live URL: ${getFacebookXmlUrl()}\n\nThe feed now includes all latest pricing and updates!`);
       
     } catch (error) {
-      console.error('Error updating XML feed:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGenerating(false);

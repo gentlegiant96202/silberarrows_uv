@@ -32,7 +32,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -53,7 +52,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -73,16 +71,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const contractId = id;
     const body = await request.json();
     const { action, type = 'service' } = body;
-
-    console.log('🛠️ Update contract PUT:', {
-      contractId,
-      action,
-      type,
-      keys: Object.keys(body || {}),
-      hasNotes: 'notes' in (body || {}),
-      notesPreview: body?.notes?.slice?.(0, 120) || body?.notes || null
-    });
-
     // Determine which table to update
     const tableName = type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
 
@@ -210,18 +198,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       };
 
       // Debug logging for problematic fields
-      console.log('🔍 Field debugging:', {
-        customer_id_number_in_body: customer_id_number,
-        exterior_colour_in_body: exterior_colour,
-        interior_colour_in_body: interior_colour,
-        notes_in_body: notes,
-        customer_id_number_in_updateData: updateData.customer_id_number,
-        exterior_colour_in_updateData: updateData.exterior_colour,
-        interior_colour_in_updateData: updateData.interior_colour,
-        notes_in_updateData: updateData.notes,
-        tableName: tableName,
-        all_updateData_keys: Object.keys(updateData)
-      });
     } else {
       // Legacy status change - no longer supported
       return NextResponse.json(
@@ -239,14 +215,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .single();
 
     if (updateError) {
-      console.error('❌ Database update error:', {
-        message: updateError.message,
-        details: updateError.details,
-        hint: updateError.hint,
-        code: (updateError as any).code,
-        tableName,
-        fieldsAttempted: Object.keys(updateData)
-      });
       return NextResponse.json(
         { error: 'Failed to update contract', details: updateError.message },
         { status: 500 }
@@ -262,21 +230,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       formatted_end_date: updatedContract.end_date ? new Date(updatedContract.end_date).toLocaleDateString('en-GB') : '',
       vehicle_info: `${updatedContract.make} ${updatedContract.model} (${updatedContract.model_year})`
     };
-
-    console.log('✅ Contract updated. Field values now:', {
-      notes: (enhancedContract as any)?.notes ?? null,
-      customer_id_number: (enhancedContract as any)?.customer_id_number ?? null,
-      exterior_colour: (enhancedContract as any)?.exterior_colour ?? null,
-      interior_colour: (enhancedContract as any)?.interior_colour ?? null
-    });
-
     return NextResponse.json({
       contract: enhancedContract,
       message: 'Contract updated successfully'
     });
 
   } catch (error) {
-    console.error('Error updating contract:', error);
     return NextResponse.json(
       { 
         error: 'Failed to update contract',
@@ -313,7 +272,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Contract not found', details: error.message },
         { status: 404 }
@@ -331,7 +289,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ contract: enhancedContract });
 
   } catch (error) {
-    console.error('Error fetching contract:', error);
     return NextResponse.json(
       { 
         error: 'Failed to fetch contract',
@@ -370,7 +327,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       .single();
 
     if (deleteError) {
-      console.error('Database delete error:', deleteError);
       return NextResponse.json(
         { error: 'Failed to delete contract', details: deleteError.message },
         { status: 500 }
@@ -385,7 +341,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
   } catch (error) {
-    console.error('Error deleting contract:', error);
     return NextResponse.json(
       { 
         error: 'Failed to delete contract',

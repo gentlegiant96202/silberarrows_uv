@@ -101,7 +101,6 @@ export default function ServiceTargetsManager({
       setEditingId(null);
       resetForm();
     } catch (err) {
-      console.error('Error saving target:', err);
     } finally {
       setSubmitting(false);
     }
@@ -132,7 +131,6 @@ export default function ServiceTargetsManager({
       if (error) throw error;
       await onRefresh();
     } catch (err) {
-      console.error('Error deleting target:', err);
     }
   };
 

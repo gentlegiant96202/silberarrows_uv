@@ -3,8 +3,6 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚗 API: Fetching inventory cars...');
-
     // Fetch available cars from inventory with social media images
     const { data: cars, error } = await supabaseAdmin
       .from('cars')
@@ -33,7 +31,6 @@ export async function GET(request: NextRequest) {
       .order('vehicle_model');
 
     if (error) {
-      console.error('❌ API: Error fetching cars:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -47,16 +44,12 @@ export async function GET(request: NextRequest) {
           url: media.url?.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com') || media.url
         })) || []
     }))?.filter(car => car.car_media && car.car_media.length > 0) || []; // Only include cars with social media images
-
-    console.log(`✅ API: Successfully fetched ${transformedCars.length} inventory cars with transformed URLs`);
-
     return NextResponse.json({
       success: true,
       cars: transformedCars
     });
 
   } catch (error) {
-    console.error('❌ API: Unexpected error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch inventory cars' },
       { status: 500 }

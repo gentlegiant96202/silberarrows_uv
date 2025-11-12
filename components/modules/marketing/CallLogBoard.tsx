@@ -448,7 +448,6 @@ export default function CallLogBoard() {
         alert('To take a screenshot:\n\n• Mac: Press Cmd + Shift + 4, then select the dashboard area\n• Windows: Press Windows + Shift + S, then select the dashboard area\n• Or use your browser\'s built-in screenshot feature');
       }
     } catch (error) {
-      console.log('Screenshot permission denied');
       // Show manual screenshot instructions
       alert('To take a screenshot:\n\n• Mac: Press Cmd + Shift + 4, then select the dashboard area\n• Windows: Press Windows + Shift + S, then select the dashboard area\n• Or use your browser\'s built-in screenshot feature');
     }
@@ -556,10 +555,8 @@ export default function CallLogBoard() {
         setStaffMembers(mergedStaff);
       } else {
         // If API fails, keep mock data
-        console.log('Using mock staff data as fallback');
       }
     } catch (e) {
-      console.error('Failed to load staff directory', e);
       // Keep mock data on error
     }
   };
@@ -591,7 +588,6 @@ export default function CallLogBoard() {
       setEditingStaffId(null);
       setEditingStaff(null);
     } catch (e) {
-      console.error('Save staff failed', e);
       alert('Failed to save staff member');
     }
   };
@@ -612,7 +608,6 @@ export default function CallLogBoard() {
         setMonthlyWorkingDays(mapped);
       }
     } catch (e) {
-      console.error('Failed to load working days config', e);
     }
   };
 
@@ -642,7 +637,6 @@ export default function CallLogBoard() {
       setEditingWorkingDays(false);
       setEditingWorkingDaysData([]);
     } catch (e) {
-      console.error('Failed saving working days config', e);
       alert('Failed to save working days configuration');
     }
   };
@@ -786,7 +780,6 @@ export default function CallLogBoard() {
       link.click();
       document.body.removeChild(link);
     } catch (error) {
-      console.error('Export failed:', error);
       alert('Export failed. Please try again.');
     } finally {
       setIsExporting(false);
@@ -837,8 +830,6 @@ export default function CallLogBoard() {
           // Save to database via bulk import API
           try {
             setImportProgress(importedData.length);
-            console.log(`Starting bulk import of ${importedData.length} entries...`);
-            
             const response = await fetch('/api/call-logs/bulk-import', {
               method: 'POST',
               headers: {
@@ -863,8 +854,6 @@ export default function CallLogBoard() {
             
             if (response.ok) {
               const result = await response.json();
-              console.log('Bulk import successful:', result);
-              
               // Update local state with imported data
               setCallLogs(prev => [...importedData, ...prev]);
               
@@ -874,13 +863,11 @@ export default function CallLogBoard() {
               await loadCallLogs();
             } else {
               const errorData = await response.json();
-              console.error('Bulk import failed:', errorData);
               alert(`Import failed: ${errorData.error || 'Unknown error'}. Data may not persist after refresh.`);
               // Still update local state for immediate viewing
               setCallLogs(prev => [...importedData, ...prev]);
             }
           } catch (error) {
-            console.error('Bulk import error:', error);
             alert('Import failed due to network error. Data may not persist after refresh.');
             // Still update local state for immediate viewing
             setCallLogs(prev => [...importedData, ...prev]);
@@ -889,7 +876,6 @@ export default function CallLogBoard() {
           alert('No valid data found in the file.');
         }
       } catch (error) {
-        console.error('Import failed:', error);
         alert('Import failed. Please check your file format and try again.');
       } finally {
         setIsImporting(false);
@@ -912,7 +898,6 @@ export default function CallLogBoard() {
         const data = await response.json();
         // Ensure data is an array
         if (Array.isArray(data)) {
-          console.log('✅ Loaded call logs from API:', data.length, 'entries');
           // Merge API data with mock data for richer visualization
           const mergedLogs = [...mockCallLogEntries];
           data.forEach(apiLog => {
@@ -922,15 +907,12 @@ export default function CallLogBoard() {
           });
           setCallLogs(mergedLogs);
         } else {
-          console.warn('API response is not an array:', data);
           // Keep mock data if API doesn't return array
         }
       } else {
-        console.warn('API request failed, using mock data');
         // Keep existing mock data
       }
     } catch (error) {
-      console.error('Failed to load call logs:', error);
       // Keep existing mock data on error
     } finally {
       setLoading(false);
@@ -2251,7 +2233,6 @@ export default function CallLogBoard() {
                               setEditingRow(null);
                               
                             } catch (error) {
-                              console.error('Error saving call log:', error);
                               alert(`Failed to save call log entry: ${error instanceof Error ? error.message : 'Unknown error'}`);
                             }
                           }}
@@ -2303,7 +2284,6 @@ export default function CallLogBoard() {
                                 // Remove from local state
                                 setCallLogs(prev => prev.filter(entry => entry.id !== log.id));
                               } catch (error) {
-                                console.error('Delete failed:', error);
                                 alert('Failed to delete entry from database. Please try again.');
                               }
                             }

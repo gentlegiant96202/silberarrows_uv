@@ -40,7 +40,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -69,7 +68,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Internal server error', status: 500 };
   }
 }
@@ -98,13 +96,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       if (error.code === 'PGRST116') {
         return NextResponse.json({ error: 'Business card not found' }, { status: 404 });
       }
-      console.error('Database error:', error);
       return NextResponse.json({ error: 'Failed to fetch business card' }, { status: 500 });
     }
 
     return NextResponse.json({ businessCard });
   } catch (error) {
-    console.error('GET /api/business-cards/[id] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -138,7 +134,6 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       if (fetchError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Business card not found' }, { status: 404 });
       }
-      console.error('Database error:', fetchError);
       return NextResponse.json({ error: 'Failed to fetch business card' }, { status: 500 });
     }
 
@@ -167,13 +162,11 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json({ error: 'Failed to update business card' }, { status: 500 });
     }
 
     return NextResponse.json({ businessCard });
   } catch (error) {
-    console.error('PUT /api/business-cards/[id] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -200,7 +193,6 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       if (fetchError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Business card not found' }, { status: 404 });
       }
-      console.error('Database error:', fetchError);
       return NextResponse.json({ error: 'Failed to fetch business card' }, { status: 500 });
     }
 
@@ -211,13 +203,11 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       .eq('id', params.id);
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json({ error: 'Failed to delete business card' }, { status: 500 });
     }
 
     return NextResponse.json({ message: 'Business card deleted successfully' });
   } catch (error) {
-    console.error('DELETE /api/business-cards/[id] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

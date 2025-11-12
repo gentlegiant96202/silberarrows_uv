@@ -199,7 +199,6 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
 
     // Listen for custom primary photo change events
     const handlePrimaryPhotoChange = () => {
-      console.log('Primary photo changed event received in LeadDetailsModal, reloading thumbnails...');
       loadCars();
     };
     
@@ -240,7 +239,6 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
       onUpdated(data);
       setIsEditing(false);
     } catch (error) {
-      console.error('Error updating lead:', error);
       alert('Error updating lead. Please try again.');
     } finally {
       setLoading(false);
@@ -263,7 +261,6 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
       
       onDeleted(lead.id);
     } catch (error) {
-      console.error('Error deleting lead:', error);
       alert('Error deleting lead. Please try again.');
     } finally {
       setLoading(false);
@@ -289,12 +286,6 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
         .single();
       
       if (error) {
-        console.error('Supabase error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
         throw error;
       }
       
@@ -302,8 +293,6 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
       onUpdated(data);
       
     } catch (error: any) {
-      console.error('Error saving note:', error);
-      
       // Revert the state if save failed
       setNotesArray(notesArray);
       
@@ -1086,7 +1075,6 @@ export default function LeadDetailsModal({ lead, onClose, onUpdated, onDeleted }
                   allow="microphone; camera; geolocation"
                   sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
                   onLoad={() => {
-                    console.log('WhatsApp iframe loaded - 75% scaled view');
                   }}
                   style={{
                     minHeight: '600px',

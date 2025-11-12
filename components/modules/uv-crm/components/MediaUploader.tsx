@@ -140,13 +140,11 @@ export default function MediaUploader({
           if (file.type.includes('png')) {
             const hasTransparency = await hasPngTransparency(file);
             if (hasTransparency) {
-              console.log(`Adding light grey gradient background to transparent PNG: ${file.name}`);
               uploadFile = await addGradientBackground(file);
             }
           }
           // Note: Image compression removed - uploading original quality
         } catch (err) {
-          console.warn('Image processing failed, falling back to original', err);
         }
       }
 
@@ -198,7 +196,6 @@ export default function MediaUploader({
       });
       
       if (dbErr) {
-        console.error('Database insert error:', dbErr);
         failed.push({ file, error: `Database error: ${dbErr.message}` });
         setFailedFiles([...failed]);
         setProgress(Math.round(((idx + 1) / files.length) * 100));
@@ -213,7 +210,6 @@ export default function MediaUploader({
       setUploading(false);
       setProgress(0);
       setTotalFiles(0);
-      console.log('Upload completed for mediaKind:', mediaKind, 'calling onUploaded...');
       if (onUploaded) {
         onUploaded();
       }

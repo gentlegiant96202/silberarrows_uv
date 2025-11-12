@@ -209,17 +209,14 @@ export default function VehicleDocumentModal({
   // Load inventory car data when modal opens
   useEffect(() => {
     if (isOpen && lead.inventory_car_id) {
-      console.log('Loading inventory car for lead:', lead.id, 'car_id:', lead.inventory_car_id);
       loadInventoryCarData();
     } else if (isOpen) {
-      console.log('No inventory_car_id found for lead:', lead.id);
     }
   }, [isOpen, lead.inventory_car_id]);
 
   // Load existing reservation data if editing
   useEffect(() => {
     if (isOpen && lead.id) {
-      console.log('🔍 Modal opened for lead:', lead.id, 'Loading existing reservation...');
       loadExistingReservation();
     }
   }, [isOpen, lead.id]);
@@ -240,10 +237,7 @@ export default function VehicleDocumentModal({
 
   // Parse dealer warranty/service data from stored strings
   const parseDealerWarranty = (warrantyString: string) => {
-    console.log('Parsing warranty string:', warrantyString);
-    
     if (!warrantyString) {
-      console.log('No warranty string provided');
       return { hasDealer: false, date: '', km: 0 };
     }
 
@@ -260,7 +254,6 @@ export default function VehicleDocumentModal({
       (lowerString.includes('warranty') && !lowerString.includes('silberarrows'));
 
     if (!isDealerWarranty) {
-      console.log('No dealer warranty found in string');
       return { hasDealer: false, date: '', km: 0 };
     }
 
@@ -271,7 +264,6 @@ export default function VehicleDocumentModal({
     if (exactMatch) {
       const extractedDate = exactMatch[1];
       const extractedKm = parseInt(exactMatch[2]) || 0;
-      console.log('Successfully parsed warranty (exact format):', { date: extractedDate, km: extractedKm });
       return {
         hasDealer: true,
         date: extractedDate,
@@ -299,23 +291,17 @@ export default function VehicleDocumentModal({
     }
 
     if (extractedDate || extractedKm > 0) {
-      console.log('Successfully parsed warranty (fallback):', { date: extractedDate, km: extractedKm });
       return {
         hasDealer: true,
         date: extractedDate,
         km: extractedKm
       };
     }
-    
-    console.log('Warranty detected but no date/mileage extracted - enabling manual input');
     return { hasDealer: true, date: '', km: 0 };
   };
 
   const parseDealerService = (serviceString: string) => {
-    console.log('Parsing service string:', serviceString);
-    
     if (!serviceString) {
-      console.log('No service string provided');
       return { hasDealer: false, date: '', km: 0 };
     }
 
@@ -332,7 +318,6 @@ export default function VehicleDocumentModal({
       (lowerString.includes('service') && !lowerString.includes('silberarrows'));
 
     if (!isDealerService) {
-      console.log('No dealer service found in string');
       return { hasDealer: false, date: '', km: 0 };
     }
 
@@ -343,7 +328,6 @@ export default function VehicleDocumentModal({
     if (exactMatch) {
       const extractedDate = exactMatch[1];
       const extractedKm = parseInt(exactMatch[2]) || 0;
-      console.log('Successfully parsed service (exact format):', { date: extractedDate, km: extractedKm });
       return {
         hasDealer: true,
         date: extractedDate,
@@ -371,15 +355,12 @@ export default function VehicleDocumentModal({
     }
 
     if (extractedDate || extractedKm > 0) {
-      console.log('Successfully parsed service (fallback):', { date: extractedDate, km: extractedKm });
       return {
         hasDealer: true,
         date: extractedDate,
         km: extractedKm
       };
     }
-    
-    console.log('Service detected but no date/mileage extracted - enabling manual input');
     return { hasDealer: true, date: '', km: 0 };
   };
 
@@ -396,17 +377,9 @@ export default function VehicleDocumentModal({
 
       if (data) {
         setInventoryCar(data);
-        console.log('Loaded inventory car data:', data);
-        console.log('Raw current_warranty:', JSON.stringify(data.current_warranty));
-        console.log('Raw current_service:', JSON.stringify(data.current_service));
-        
         // Parse warranty and service data with improved patterns
         const warrantyData = parseDealerWarranty(data.current_warranty || '');
         const serviceData = parseDealerService(data.current_service || '');
-        
-        console.log('Final warranty data:', warrantyData);
-        console.log('Final service data:', serviceData);
-        
         // Auto-populate vehicle details
         setFormData(prev => ({
           ...prev,
@@ -431,7 +404,6 @@ export default function VehicleDocumentModal({
         }));
       }
     } catch (error) {
-      console.error('Error loading inventory car:', error);
     } finally {
       setLoading(false);
     }
@@ -440,27 +412,20 @@ export default function VehicleDocumentModal({
   // Load existing reservation data if editing
   const loadExistingReservation = async () => {
     try {
-      console.log('🔍 Searching for existing reservation for lead_id:', lead.id);
           const { data: existingReservation, error } = await supabase
       .from('vehicle_reservations')
       .select('*, document_number')
       .eq('lead_id', lead.id)
       .maybeSingle();
-        
-      console.log('🔍 Query result:', { data: existingReservation, error });
       if (error) {
-        console.error('🔍 Database error details:', error);
       }
         
       if (existingReservation) {
-        console.log('Loading existing reservation data:', existingReservation);
-        console.log('Available fields:', Object.keys(existingReservation));
         setIsEditing(true);
         
         // If opening in invoice mode but the record is still a reservation, convert first
         if (mode === 'invoice' && existingReservation.document_type === 'reservation' && existingReservation.id) {
           try {
-            console.log('🔄 Converting to invoice on modal open (client-side)');
             const { data: conv, error: convErr } = await supabase
               .from('vehicle_reservations')
               .update({ document_type: 'invoice', updated_at: new Date().toISOString() })
@@ -468,14 +433,11 @@ export default function VehicleDocumentModal({
               .select('document_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
               .single();
             if (convErr) {
-              console.warn('Conversion on open failed:', convErr.message);
             } else if (conv) {
-              console.log('✅ Converted on open. New values:', conv);
               if (conv.document_number) setDocumentNumber(conv.document_number);
               setHasInvoice(true);
             }
           } catch (e) {
-            console.warn('Conversion on open exception:', e);
           }
         }
         
@@ -485,23 +447,19 @@ export default function VehicleDocumentModal({
           : existingReservation.invoice_pdf_url;
           
         if (relevantPdfUrl) {
-          console.log(`Setting ${mode} PDF URL:`, relevantPdfUrl);
           setGeneratedPdfUrl(relevantPdfUrl);
           setPdfGenerated(true);
         } else {
-          console.log(`No ${mode} PDF found - will need to generate`);
           setPdfGenerated(false);
           setGeneratedPdfUrl(null);
         }
         
         // Set document number for display in modal
         if (existingReservation.document_number) {
-          console.log('Document number:', existingReservation.document_number);
           setDocumentNumber(existingReservation.document_number);
         } else if (mode === 'invoice' && existingReservation.document_type === 'reservation') {
           // If opening in invoice mode but record is still a reservation, 
           // we'll convert it and get an invoice number when form is submitted
-          console.log('Awaiting conversion-generated INV number');
         }
         
         setFormData(prev => ({
@@ -549,15 +507,12 @@ export default function VehicleDocumentModal({
           amountDue: existingReservation.amount_due || 0,
           additionalNotes: existingReservation.additional_notes || ''
         }));
-        console.log('Form data updated with existing reservation');
-        
         // Determine if an invoice exists for this lead
         const isInvoiceType = existingReservation.document_type === 'invoice';
         const hasInvoiceSignals = !!(existingReservation.document_number || existingReservation.invoice_pdf_url || existingReservation.pdf_url);
         setHasInvoice(isInvoiceType && hasInvoiceSignals);
       }
     } catch (error) {
-      console.log('No existing reservation found or error loading:', error);
       setIsEditing(false);
     }
   };
@@ -599,7 +554,6 @@ export default function VehicleDocumentModal({
 
     try {
       // Step 1: Save form data to vehicle_reservations table
-      console.log('Saving reservation data to database...');
       const reservationData = {
         lead_id: lead.id,
         document_type: mode,
@@ -668,34 +622,18 @@ export default function VehicleDocumentModal({
       };
 
       // Check if reservation already exists for this lead
-      console.log('🔍 Checking for existing reservation before save for lead_id:', lead.id);
       const { data: existingReservation, error: checkError } = await supabase
         .from('vehicle_reservations')
         .select('id, document_type, document_number')
         .eq('lead_id', lead.id)
         .maybeSingle();
-        
-      console.log('🔍 Existing reservation check result:', { data: existingReservation, error: checkError });
-
       let savedReservation;
       if (existingReservation) {
         // Check if we're converting reservation to invoice
         const isConvertingToInvoice = existingReservation.document_type === 'reservation' && mode === 'invoice';
-        
-        console.log('🔍 Conversion check:', {
-          existingType: existingReservation.document_type,
-          currentMode: mode,
-          isConverting: isConvertingToInvoice,
-          existingDocNumber: existingReservation.document_number
-        });
-        
         if (isConvertingToInvoice) {
-          console.log('🔄 Converting reservation to invoice:', existingReservation.id);
-          
           // With separate PDF columns, no need for manual preservation
           // The database trigger will handle preserving the reservation data
-          console.log('📄 Using separate PDF columns - no manual preservation needed');
-
           // When converting to invoice, trigger will generate INV- number automatically
           const updateData = {
             ...reservationData,
@@ -710,34 +648,23 @@ export default function VehicleDocumentModal({
             .single();
 
           if (updateError) {
-            console.error('Error converting reservation to invoice:', updateError);
             throw new Error('Failed to convert reservation to invoice');
           }
           savedReservation = data;
-          console.log('Reservation converted to invoice:', savedReservation);
-          
           // Fetch the updated record to get the trigger-generated invoice number
-          console.log('🔍 Fetching updated record to get invoice number...');
           const { data: refreshedData, error: refreshError } = await supabase
             .from('vehicle_reservations')
             .select('document_number, document_type')
             .eq('id', existingReservation.id)
             .single();
-          
-          console.log('🔍 Refreshed data:', refreshedData);
-          console.log('🔍 Refresh error:', refreshError);
-          
           if (refreshedData?.document_number) {
-            console.log('🔢 Setting invoice number in modal:', refreshedData.document_number);
             setDocumentNumber(refreshedData.document_number);
             // Update the savedReservation with the new document number
             savedReservation.document_number = refreshedData.document_number;
           } else {
-            console.warn('⚠️ No document number generated after conversion. Data:', refreshedData);
           }
         } else {
           // Regular update - keep existing document number
-          console.log('Updating existing document:', existingReservation.id);
           const { data, error: updateError } = await supabase
             .from('vehicle_reservations')
             .update({
@@ -749,15 +676,12 @@ export default function VehicleDocumentModal({
             .single();
 
           if (updateError) {
-            console.error('Error updating document data:', updateError);
             throw new Error('Failed to update document data');
           }
           savedReservation = data;
-          console.log('Document data updated:', savedReservation);
         }
       } else {
         // Create new reservation/invoice
-        console.log('Creating new', mode);
         const { data, error: insertError } = await supabase
           .from('vehicle_reservations')
           .insert([reservationData])
@@ -765,15 +689,12 @@ export default function VehicleDocumentModal({
           .single();
 
         if (insertError) {
-          console.error('Error saving document data:', insertError);
           throw new Error('Failed to save document data');
         }
         savedReservation = data;
-        console.log('Document data saved:', savedReservation);
       }
 
       // Step 2: Generate PDF with the saved reservation ID
-      console.log('Generating PDF document...');
       const response = await fetch('/api/generate-vehicle-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -791,7 +712,6 @@ export default function VehicleDocumentModal({
       
       // Step 3: Update reservation record with PDF URL
       if (result.pdfUrl) {
-        console.log('Updating reservation with PDF URL:', result.pdfUrl);
         await supabase
           .from('vehicle_reservations')
           .update({ 
@@ -816,7 +736,6 @@ export default function VehicleDocumentModal({
         
         // Reset DocuSign status when PDF is regenerated
         if (docusignEnvelopeId) {
-          console.log('🔄 PDF regenerated - resetting DocuSign status');
           setDocusignEnvelopeId(null);
           setSigningStatus('pending');
           setSignedPdfUrl(null);
@@ -835,18 +754,13 @@ export default function VehicleDocumentModal({
         }
         
         // PDF generated successfully - no auto-download
-        console.log('PDF generated successfully:', result.pdfUrl);
       }
-      
-      console.log('Document generated successfully:', result);
-      
       // Step 4: Call onSubmit callback (updates lead status) - but keep modal open
       if (onSubmit) {
         onSubmit();
       }
       // Note: Don't close modal automatically - let user close it manually
     } catch (error) {
-      console.error('Error generating document:', error);
       alert('Error generating document. Please try again.');
     } finally {
       setSaving(false);
@@ -885,10 +799,6 @@ export default function VehicleDocumentModal({
     setShowEmailModal(false);
     
     try {
-      console.log('🔄 Sending document for DocuSign signing...');
-      console.log('👤 Company signer:', companyEmail);
-      console.log('👤 Customer:', formData.customerName, formData.emailAddress);
-
       const response = await fetch('/api/docusign/send-for-signing-vehicle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -917,11 +827,7 @@ export default function VehicleDocumentModal({
       
       // Start polling for status updates
       startStatusPolling();
-      
-      console.log('✅ Document sent for signing:', result.envelopeId);
-      
     } catch (error) {
-      console.error('❌ Error sending for signing:', error);
       alert('Failed to send document for signing. Please try again.');
     } finally {
       setSendingForSigning(false);
@@ -933,9 +839,6 @@ export default function VehicleDocumentModal({
     if (statusPollingInterval) {
       clearInterval(statusPollingInterval);
     }
-
-    console.log('🔄 Starting DocuSign status polling...');
-    
     const interval = setInterval(async () => {
       try {
         if (!docusignEnvelopeId) return;
@@ -950,7 +853,6 @@ export default function VehicleDocumentModal({
           .single();
 
         if (error) {
-          console.error('Error polling signing status:', error);
           return;
         }
 
@@ -963,13 +865,11 @@ export default function VehicleDocumentModal({
 
           // Stop polling if completed
           if (reservation.signing_status === 'completed') {
-            console.log('✅ Document signing completed!');
             clearInterval(interval);
             setStatusPollingInterval(null);
           }
         }
       } catch (error) {
-        console.error('Error during status polling:', error);
       }
     }, 10000); // Poll every 10 seconds
 
@@ -1012,7 +912,6 @@ export default function VehicleDocumentModal({
             }
           }
         } catch (error) {
-          console.error('Error loading DocuSign data:', error);
         }
       };
 
@@ -1023,7 +922,6 @@ export default function VehicleDocumentModal({
   // Cleanup polling on modal close
   useEffect(() => {
     if (!isOpen && statusPollingInterval) {
-      console.log('🛑 Stopping DocuSign polling - modal closing');
       clearInterval(statusPollingInterval);
       setStatusPollingInterval(null);
     }

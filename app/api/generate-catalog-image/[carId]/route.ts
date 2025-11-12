@@ -417,11 +417,6 @@ export async function POST(
 
     // Call Railway renderer service to generate catalog image (same as price drop)
     const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
-    
-    console.log('🔄 Calling Railway renderer service at:', rendererUrl);
-    console.log('📊 Car details:', carDetails);
-    console.log('🖼️ Catalog image URL:', catalogMedia.url);
-    
     const renderResponse = await fetch(`${rendererUrl}/render-catalog`, {
       method: 'POST',
       headers: {
@@ -432,12 +427,8 @@ export async function POST(
         catalogImageUrl: catalogMedia.url,
       }),
     });
-
-    console.log('📊 Render response status:', renderResponse.status);
-
     if (!renderResponse.ok) {
       const errorText = await renderResponse.text();
-      console.error('❌ Renderer service error:', errorText);
       return NextResponse.json({ 
         error: 'Failed to generate catalog image',
         details: `Renderer service returned ${renderResponse.status}: ${errorText}`,
@@ -470,7 +461,6 @@ export async function POST(
       });
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError);
       return NextResponse.json({ 
         error: 'Failed to save generated image',
         details: uploadError.message 
@@ -506,8 +496,6 @@ export async function POST(
       });
 
     if (catalogUpdateError) {
-      console.error('❌ CRITICAL: UV catalog upsert error:', catalogUpdateError);
-      console.error('❌ Database update failed for car:', carId, 'with URL:', updatedPublicUrl);
       // Return error since catalog update is critical for frontend display
       return NextResponse.json({ 
         error: 'Failed to update catalog database',
@@ -525,7 +513,6 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Error generating catalog image:', error);
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'

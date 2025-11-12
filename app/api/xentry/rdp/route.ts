@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
       headers,
     });
   } catch (error) {
-    console.error('Error generating RDP file:', error);
     return NextResponse.json(
       { error: 'Failed to generate RDP file' },
       { status: 500 }

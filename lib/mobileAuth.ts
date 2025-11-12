@@ -31,7 +31,6 @@ export const restorePWASession = async () => {
       const { data, error } = await supabase.auth.getSession();
       
       if (error) {
-        console.warn(`PWA Auth: Session restoration attempt ${4 - retries} failed:`, error);
         retries--;
         
         if (retries > 0) {
@@ -46,19 +45,15 @@ export const restorePWASession = async () => {
     }
     
     if (session) {
-      console.log('✅ PWA Auth: Session restored after', 4 - retries, 'attempts');
-      
       // Store successful restoration timestamp
       localStorage.setItem('pwa_session_restored', new Date().toISOString());
       
       return { session, user: session.user, error: null };
     } else {
-      console.log('ℹ️ PWA Auth: No session found after all attempts');
       return { session: null, user: null, error: null };
     }
     
   } catch (error) {
-    console.error('PWA Auth: Critical session restoration failure:', error);
     return { session: null, user: null, error };
   }
 };
@@ -80,13 +75,10 @@ export const signInPWA = async (email: string, password: string) => {
       // Store PWA-specific auth markers
       localStorage.setItem('pwa_auth_success', new Date().toISOString());
       localStorage.setItem('pwa_user_email', email);
-      
-      console.log('✅ PWA Auth: Sign in successful, session stored');
     }
     
     return { error: null };
   } catch (error) {
-    console.error('PWA Auth: Sign in failed:', error);
     return { error: 'Authentication failed' };
   }
 };
@@ -99,7 +91,6 @@ export const checkPWASessionHealth = () => {
   const sessionRestored = localStorage.getItem('pwa_session_restored');
   
   if (!lastAuth || !sessionRestored) {
-    console.log('ℹ️ PWA Auth: No session markers found');
     return false;
   }
   
@@ -109,10 +100,7 @@ export const checkPWASessionHealth = () => {
   
   // Session should be valid for 24 hours
   if (hoursSinceAuth > 24) {
-    console.log('⚠️ PWA Auth: Session expired (>24h)');
     return false;
   }
-  
-  console.log(`✅ PWA Auth: Session healthy (${hoursSinceAuth.toFixed(1)}h old)`);
   return true;
 };

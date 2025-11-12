@@ -20,8 +20,6 @@ export const maxDuration = 300;
  */
 export async function POST(req: NextRequest) {
   try {
-    console.log('=== PDF TO IMAGES CONVERSION API (Playwright renderer) ===');
-
     const body = await req.json();
     const { pdfUrl, taskId } = body;
 
@@ -34,15 +32,11 @@ export async function POST(req: NextRequest) {
 
     const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || process.env.RENDERER_URL;
     if (!rendererUrl) {
-      console.error('Renderer URL not configured');
       return NextResponse.json(
         { error: 'Renderer service URL not configured' },
         { status: 500 }
       );
     }
-
-    console.log(`🔄 Calling renderer service at ${rendererUrl}/render-pdf-to-images`);
-
     const rendererResponse = await fetch(`${rendererUrl}/render-pdf-to-images`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -51,7 +45,6 @@ export async function POST(req: NextRequest) {
 
     if (!rendererResponse.ok) {
       const errorText = await rendererResponse.text();
-      console.error('Renderer service failed:', rendererResponse.status, errorText);
       return NextResponse.json(
         { error: 'Renderer service failed', details: errorText },
         { status: 502 }
@@ -62,15 +55,11 @@ export async function POST(req: NextRequest) {
     const rendererPages = Array.isArray(rendererPayload.pages) ? rendererPayload.pages : [];
 
     if (!rendererPages.length) {
-      console.error('Renderer returned no pages');
       return NextResponse.json(
         { error: 'Renderer returned no pages' },
         { status: 500 }
       );
     }
-
-    console.log(`🖼️ Renderer produced ${rendererPages.length} page images`);
-
     const uploadedPages: Array<{
       url: string;
       pageIndex: number;
@@ -89,7 +78,6 @@ export async function POST(req: NextRequest) {
           : dataUrlField;
 
         if (!base64Data) {
-          console.warn('⚠️ Renderer page missing dataUrl, skipping page', page.pageIndex);
           continue;
         }
 
@@ -115,7 +103,6 @@ export async function POST(req: NextRequest) {
           });
 
         if (uploadError) {
-          console.error(`Error uploading page ${page.pageIndex}:`, uploadError);
           continue;
         }
 
@@ -150,15 +137,9 @@ export async function POST(req: NextRequest) {
           name: `pdf_page_${page.pageIndex}.png`,
           originalType: 'application/pdf'
         });
-
-        console.log(`✅ Page ${page.pageIndex} uploaded: ${publicUrl}`);
       } catch (pageError) {
-        console.error('Page upload failed:', page.pageIndex, pageError);
       }
     }
-
-    console.log(`=== PDF CONVERSION COMPLETE: ${uploadedPages.length} pages ===`);
-
     return NextResponse.json({
       success: true,
       pages: uploadedPages,
@@ -166,7 +147,6 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('PDF conversion API error:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

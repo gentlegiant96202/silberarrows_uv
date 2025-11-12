@@ -65,7 +65,6 @@ export default function ShowroomPage() {
   }, []);
 
   const fetchVehicles = async () => {
-    console.log('🚗 Fetching inventory vehicles from leasing_inventory...');
     try {
       const { data, error } = await supabase
         .from('leasing_inventory')
@@ -74,15 +73,10 @@ export default function ShowroomPage() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching vehicles:', error);
         throw error;
       }
-      
-      console.log('✅ Vehicles fetched:', data?.length || 0, 'inventory vehicles');
-      console.log('📊 Vehicle data:', data);
       setVehicles(data || []);
     } catch (error) {
-      console.error('❌ Exception fetching vehicles:', error);
     } finally {
       setLoading(false);
     }

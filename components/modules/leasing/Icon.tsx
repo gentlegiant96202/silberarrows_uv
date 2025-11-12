@@ -71,7 +71,6 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, variant = 
   const iconSource = iconMap[name];
   
   if (!iconSource) {
-    console.warn(`Icon "${name}" not found`);
     return null;
   }
 

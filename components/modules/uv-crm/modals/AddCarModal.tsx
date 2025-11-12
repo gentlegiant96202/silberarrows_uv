@@ -353,11 +353,9 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
                 }));
               }
             } catch (e) {
-              console.error('enrich error', e);
             }
           }
         } catch (e) {
-          console.error(e);
         }
       }
       // Move to next tab
@@ -448,7 +446,6 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         alert('Failed to generate description. Please try again.');
       }
     } catch (error) {
-      console.error('Error generating description:', error);
       alert('Failed to generate description. Please try again.');
     } finally {
       setGeneratingDescription(false);
@@ -478,7 +475,6 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
         return date.toISOString().split('T')[0]; // Returns yyyy-mm-dd
       }
     } catch (e) {
-      console.error('Date parsing error:', e);
     }
     
     return null;
@@ -573,7 +569,6 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
     // Generate damage report image if this is a consignment car with damage annotations
     if (form.ownership_type === 'consignment' && form.damage_annotations.length > 0) {
       try {
-        console.log('🔧 Generating damage report image for new car:', data.id);
         const response = await fetch('/api/generate-damage-report-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -586,12 +581,9 @@ export default function AddCarModal({ onClose, onCreated }: Props) {
 
         const result = await response.json();
         if (result.success) {
-          console.log('✅ Damage report image generated for new car:', result.imageUrl);
         } else {
-          console.error('❌ Failed to generate damage report image:', result.error);
         }
       } catch (error) {
-        console.error('❌ Error generating damage report image:', error);
       }
     }
     

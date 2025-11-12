@@ -144,7 +144,6 @@ export default function PaymentModal({
 
       setOutstandingInvoices(Object.values(invoiceGroups));
     } catch (error) {
-      console.error('Error fetching  outstanding invoices:', error);
     } finally {
       setLoadingInvoices(false);
     }
@@ -162,7 +161,6 @@ export default function PaymentModal({
       if (error) throw error;
       setPaymentHistory(data || []);
     } catch (error) {
-      console.error('Error fetching  payment history:', error);
     } finally {
       setLoadingHistory(false);
     }
@@ -176,14 +174,6 @@ export default function PaymentModal({
 
     setRecording(true);
     try {
-      console.log('💳 Recording  payment:', {
-        leaseId,
-        amount: parseFloat(paymentAmount),
-        method: paymentMethod,
-        reference: paymentReference,
-        notes
-      });
-
       // Use  transaction-safe function
       const { data, error } = await supabase.rpc('ifrs_record_payment', {
         p_lease_id: leaseId,
@@ -194,15 +184,10 @@ export default function PaymentModal({
       });
 
       if (error) {
-        console.error('❌ Error recording  payment:', error);
         throw error;
       }
-
-      console.log('✅  Payment recorded successfully:', data);
-
       // Generate PDF receipt
       try {
-        console.log('📄 Generating payment receipt...');
         const receiptData = {
           receiptNumber: `RCP-${Date.now()}`,
           paymentId: data,
@@ -228,8 +213,6 @@ export default function PaymentModal({
 
         if (receiptResponse.ok) {
           const receiptResult = await receiptResponse.json();
-          console.log('✅ Payment receipt generated:', receiptResult);
-          
           // Update payment record with receipt URL
           if (receiptResult.pdfUrl) {
             try {
@@ -239,23 +222,18 @@ export default function PaymentModal({
                 .eq('id', data);
               
               if (updateError) {
-                console.error('❌ Failed to update payment with receipt URL:', updateError);
               } else {
-                console.log('✅ Payment updated with receipt URL:', receiptResult.pdfUrl);
               }
             } catch (updateError) {
-              console.error('❌ Error updating payment with receipt URL:', updateError);
             }
           }
           
           // Show success message with receipt info
           alert(`Payment recorded successfully!\nPayment ID: ${data}\nAmount: ${formatCurrency(parseFloat(paymentAmount))}\nReceipt: ${receiptResult.receiptNumber}`);
         } else {
-          console.error('❌ Failed to generate receipt:', await receiptResponse.text());
           alert(`Payment recorded successfully!\nPayment ID: ${data}\nAmount: ${formatCurrency(parseFloat(paymentAmount))}\nNote: Receipt generation failed`);
         }
       } catch (receiptError) {
-        console.error('❌ Error generating receipt:', receiptError);
         alert(`Payment recorded successfully!\nPayment ID: ${data}\nAmount: ${formatCurrency(parseFloat(paymentAmount))}\nNote: Receipt generation failed`);
       }
 
@@ -266,8 +244,6 @@ export default function PaymentModal({
       onClose();
       
     } catch (error) {
-      console.error('❌ Detailed error recording  payment:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       alert('Error recording payment. Please try again.');
     } finally {
       setRecording(false);

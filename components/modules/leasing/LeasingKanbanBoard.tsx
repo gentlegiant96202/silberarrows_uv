@@ -165,8 +165,6 @@ export default function LeasingKanbanBoard() {
   // Progressive column loading (like UV CRM)
   useEffect(() => {
     if (!hasFetchedLeases.current) {
-      console.log('🏢 Leasing: Starting optimistic column loading...');
-      
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: string }[] = [
         { key: 'prospects', delay: 0, statusFilter: 'prospects' },
@@ -181,8 +179,6 @@ export default function LeasingKanbanBoard() {
       // Load each column progressively
       columnPriorities.forEach(({ key, delay, statusFilter }) => {
         setTimeout(async () => {
-          console.log(`🏢 Loading ${key} column...`);
-          
           try {
             const { data, error } = await supabase
               .from('leasing_customers')
@@ -191,13 +187,9 @@ export default function LeasingKanbanBoard() {
               .order('created_at', { ascending: false });
 
             if (error) {
-              console.error(`❌ Error loading ${key}:`, error);
               setColumnLoading(prev => ({ ...prev, [key]: false }));
               return;
             }
-
-            console.log(`✅ Loaded ${key}: ${data?.length || 0} customers`);
-            
             // Normalize data: ensure status field matches lease_status from database
             const normalizedData = (data || []).map(customer => ({
               ...customer,
@@ -214,7 +206,6 @@ export default function LeasingKanbanBoard() {
             });
 
           } catch (error) {
-            console.error(`❌ Exception loading ${key}:`, error);
             setColumnLoading(prev => ({ ...prev, [key]: false }));
           }
         }, delay);
@@ -231,8 +222,6 @@ export default function LeasingKanbanBoard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'leasing_customers' },
         (payload: any) => {
-          console.log('🔄 Leasing customer change detected:', payload);
-          
           if (payload.eventType === 'INSERT') {
             const newCustomer = { ...payload.new, status: payload.new.lease_status || payload.new.status };
             setColumnData(prev => ({
@@ -309,38 +298,20 @@ export default function LeasingKanbanBoard() {
     setHovered(null);
 
     const customerId = e.dataTransfer.getData("text/plain");
-    console.log('🗂️ Drop event:', { targetStatus, customerId, availableTypes: e.dataTransfer.types });
-
     if (!customerId) {
-      console.error('❌ No customer ID found in drag data');
       return;
     }
 
     const customerToMove = leases.find(l => l.id === customerId);
     if (!customerToMove) {
-      console.error('❌ Customer not found in leases:', { 
-        customerId, 
-        availableLeases: leases.length,
-        leaseIds: leases.map(l => l.id)
-      });
       return;
     }
-
-    console.log('📋 Moving customer:', { 
-      customerToMove, 
-      targetStatus,
-      currentStatus: customerToMove.status,
-      currentLeaseStatus: customerToMove.lease_status 
-    });
-
     if (customerToMove.status === targetStatus) {
-      console.log('⚠️ Customer already in target column');
       return;
     }
 
     // Special case: Moving from prospects to appointments should open appointment modal
     if (customerToMove.status === 'prospects' && targetStatus === 'appointments') {
-      console.log('📅 Opening appointment modal for prospect → appointment move');
       setEditingLease(customerToMove);
       setForceShowAppointmentFields(true); // Force show appointment fields
       setShowAppointmentModal(true);
@@ -349,8 +320,6 @@ export default function LeasingKanbanBoard() {
 
     // Special case: Moving TO active_leases should auto-open accounting module
     if (targetStatus === 'active_leases') {
-      console.log('💰 Auto-opening accounting module for move to active leases');
-      
       // First update the status in database
       try {
         const updateData = {
@@ -365,7 +334,6 @@ export default function LeasingKanbanBoard() {
           .select();
 
         if (error) {
-          console.error('❌ Error updating customer to active lease:', error);
           alert(`Failed to update customer status: ${error.message}`);
           return;
         }
@@ -391,7 +359,6 @@ export default function LeasingKanbanBoard() {
         return; // Exit early since we handled everything
         
       } catch (error) {
-        console.error('❌ Exception updating to active lease:', error);
         alert('Failed to update customer status.');
         return;
       }
@@ -399,27 +366,11 @@ export default function LeasingKanbanBoard() {
 
     try {
       // Debug logging
-      console.log('🔄 Attempting to move customer:', {
-        id: customerId,
-        from: customerToMove.status,
-        to: targetStatus,
-        targetType: typeof targetStatus,
-        customerData: {
-          name: customerToMove.customer_name,
-          phone: customerToMove.customer_phone,
-          email: customerToMove.customer_email,
-          hasRequiredFields: !!(customerToMove.customer_name && customerToMove.customer_phone)
-        }
-      });
-
       // Update in database
       const updateData = {
           lease_status: targetStatus as LeaseStatus,
           updated_at: new Date().toISOString()
       };
-      
-      console.log('📝 Update payload:', updateData);
-      
       const { data, error } = await supabase
         .from('leasing_customers')
         .update(updateData)
@@ -427,33 +378,11 @@ export default function LeasingKanbanBoard() {
         .select();
 
       if (error) {
-        console.error('❌ Error updating customer status:', {
-          error: error,
-          targetStatus: targetStatus,
-          customerId: customerId,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          fullError: JSON.stringify(error, null, 2)
-        });
         alert(`Failed to update customer status: ${error.message || 'Unknown error'}. Code: ${error.code}. Please check console for details.`);
         return;
       }
-
-      console.log('✅ Customer updated successfully:', data);
-
-      
       // Optimistic update (real-time subscription will also update)
       const updatedCustomer = { ...customerToMove, status: targetStatus as LeaseStatus, lease_status: targetStatus as LeaseStatus };
-
-      console.log('🔄 Performing optimistic update:', {
-        fromColumn: customerToMove.status,
-        toColumn: targetStatus,
-        removedFrom: customerToMove.status,
-        addedTo: targetStatus
-      });
-
       setColumnData(prev => {
         // Check if the customer is already in the target column to prevent duplicates
         const isAlreadyInTarget = prev[targetStatus].some(l => l.id === customerId);
@@ -465,23 +394,12 @@ export default function LeasingKanbanBoard() {
             ? prev[targetStatus].map(l => l.id === customerId ? updatedCustomer : l)
             : [...prev[targetStatus], updatedCustomer]
         };
-
-        console.log('📊 Column data updated:', {
-          fromColumnCount: prev[customerToMove.status]?.length || 0,
-          toColumnCount: newData[targetStatus]?.length || 0
-        });
-
         return newData;
       });
 
       setLeases(prev => prev.map(l => l.id === customerId ? updatedCustomer : l));
 
     } catch (error) {
-      console.error("❌ Exception updating customer:", {
-        error: error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
       alert('Failed to update customer status. Please check console for details.');
     }
   };
@@ -497,17 +415,6 @@ export default function LeasingKanbanBoard() {
   };
 
   const handleCardClick = async (lease: Lease, e: React.MouseEvent) => {
-    console.log('🎯 Card clicked - Customer data:', {
-      lease,
-      customerName: lease.customer_name,
-      customerEmail: lease.customer_email,
-      customerPhone: lease.customer_phone,
-      appointmentDate: lease.appointment_date,
-      appointmentTime: lease.appointment_time,
-      notes: lease.notes,
-      status: lease.status
-    });
-    
     if (lease.status === 'prospects') {
       // Open appointment modal for editing prospects
       setModalTargetColumn('prospects');
@@ -526,12 +433,10 @@ export default function LeasingKanbanBoard() {
       setShowContractsModal(true);
     } else if (lease.status === 'active_leases') {
       // Open accounting modal for active leases
-      console.log('💰 Opening accounting modal for active lease click');
       setOverdueAccountingCustomer(lease);
       setShowOverdueAccountingModal(true);
     } else if (lease.status === 'overdue_ending_soon') {
       // Open accounting modal for overdue/ending soon leases
-      console.log('💰 Opening accounting modal for overdue/ending soon lease click');
       setOverdueAccountingCustomer(lease);
       setShowOverdueAccountingModal(true);
     } else {
@@ -578,38 +483,25 @@ export default function LeasingKanbanBoard() {
   };
 
   const handleContractCreated = (updatedCustomer: any) => {
-    console.log('📋 Contract created/updated:', updatedCustomer);
-    console.log('🔍 Current columnData.contracts_drafted length:', columnData.contracts_drafted.length);
-    console.log('🔍 Current leases length:', leases.length);
-    
     // Normalize the customer data to ensure status consistency
     const normalizedCustomer = {
       ...updatedCustomer,
       status: updatedCustomer.lease_status || updatedCustomer.status || 'contracts_drafted'
     };
-
-    console.log('📊 Normalized customer status:', normalizedCustomer.status);
-    console.log('📊 Normalized customer ID:', normalizedCustomer.id);
-
     if (normalizedCustomer.status === 'contracts_drafted') {
       // Update or add to contracts_drafted column
       setColumnData(prev => {
-        console.log('🔄 Updating columnData, previous contracts_drafted:', prev.contracts_drafted.length);
         const existingIndex = prev.contracts_drafted.findIndex(lease => lease.id === normalizedCustomer.id);
-        console.log('🔍 Existing index:', existingIndex);
-        
         if (existingIndex >= 0) {
           // Update existing customer in contracts_drafted
           const updatedContracts = [...prev.contracts_drafted];
           updatedContracts[existingIndex] = normalizedCustomer;
-          console.log('✅ Updated existing customer in contracts_drafted');
           return {
       ...prev,
             contracts_drafted: updatedContracts
           };
         } else {
           // Add new customer to contracts_drafted (remove from other columns if exists)
-          console.log('✅ Adding new customer to contracts_drafted');
           return {
             ...prev,
             prospects: prev.prospects.filter(lease => lease.id !== normalizedCustomer.id),
@@ -623,29 +515,24 @@ export default function LeasingKanbanBoard() {
       });
     } else {
       // Handle other statuses if needed
-      console.log('⚠️ Unexpected status for contract creation:', normalizedCustomer.status);
     }
 
     // Update the main leases array - either update or add
     setLeases(prev => {
       const existingLeaseIndex = prev.findIndex(lease => lease.id === normalizedCustomer.id);
-      console.log('🔍 Existing lease index:', existingLeaseIndex);
       if (existingLeaseIndex >= 0) {
         // Update existing lease
         const updatedLeases = [...prev];
         updatedLeases[existingLeaseIndex] = normalizedCustomer;
-        console.log('✅ Updated existing lease in main array');
         return updatedLeases;
       } else {
         // Add new lease
-        console.log('✅ Added new lease to main array');
         return [...prev, normalizedCustomer];
       }
     });
     
     // Update contractsCustomer with the new data so the modal shows updated content
     setContractsCustomer(normalizedCustomer);
-    console.log('✅ Updated contractsCustomer to show saved data in modal');
   };
 
   // Filter helper functions (like UV CRM)

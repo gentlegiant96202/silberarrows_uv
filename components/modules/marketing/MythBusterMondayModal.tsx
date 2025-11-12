@@ -141,26 +141,17 @@ export default function MythBusterMondayModal({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('🚀 handleSubmit called!', { editingItem: !!editingItem, formData });
-    console.log('📝 Myth field value:', formData.myth);
-    console.log('📝 Fact field value:', formData.fact);
     e.preventDefault();
 
     try {
       // Just save the myth buster
-      console.log('💾 Calling onSave with formData:', formData);
       const savedItem = await onSave(formData);
-      console.log('💾 onSave returned:', savedItem);
-
       if (savedItem && savedItem.id) {
-        console.log('✅ Successfully saved myth buster with ID:', savedItem.id);
         alert('✅ Myth Buster saved successfully!');
       } else {
-        console.log('❌ Failed to save item');
         alert('❌ Failed to save item. Please try again.');
       }
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
       alert('❌ Error saving item. Please try again.');
     }
   };
@@ -168,12 +159,9 @@ export default function MythBusterMondayModal({
   const handleAIGenerate = async () => {
     setIsGenerating(true);
     try {
-      console.log('✨ Starting AI generation for Myth Buster Monday content');
-
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
 
@@ -197,8 +185,6 @@ export default function MythBusterMondayModal({
 
       if (result.success && result.data) {
         const generatedContent = result.data;
-        console.log('✅ AI generated content:', generatedContent);
-
         // Update form data with generated content (all fields)
         setFormData(prev => ({
           ...prev,
@@ -207,14 +193,10 @@ export default function MythBusterMondayModal({
           fact: generatedContent.fact || prev.fact,
           badge_text: generatedContent.badge_text || prev.badge_text
         }));
-
-        console.log('✅ Form updated with AI generated content');
       } else {
-        console.error('AI generation failed:', result.error);
         alert('Failed to generate content. Please try again.');
       }
     } catch (error) {
-      console.error('Error generating content:', error);
       alert('Error generating content. Please try again.');
     } finally {
       setIsGenerating(false);
@@ -224,19 +206,14 @@ export default function MythBusterMondayModal({
   const handleGeneratePreviewImages = async () => {
     setIsGeneratingImages(true);
     try {
-      console.log('🎨 Generating preview images for both templates');
-
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
 
       // Delete old generated images if they exist (prevent storage bloat)
       if (formData.generated_image_a_url || formData.generated_image_b_url) {
-        console.log('🗑️ Deleting old generated images before creating new ones...');
-        
         const deletePromises = [];
         
         if (formData.generated_image_a_url) {
@@ -244,14 +221,13 @@ export default function MythBusterMondayModal({
           const urlParts = formData.generated_image_a_url.split('/myth-buster-images/');
           if (urlParts.length > 1) {
             const filePath = urlParts[1];
-            console.log(`🗑️ Deleting old Template A: ${filePath}`);
             deletePromises.push(
               supabase.storage
                 .from('myth-buster-images')
                 .remove([filePath])
                 .then(({ error }) => {
-                  if (error) console.error('Error deleting old Template A:', error);
-                  else console.log('✅ Deleted old Template A');
+                  if (error) {}
+                  else {}
                 })
             );
           }
@@ -262,21 +238,19 @@ export default function MythBusterMondayModal({
           const urlParts = formData.generated_image_b_url.split('/myth-buster-images/');
           if (urlParts.length > 1) {
             const filePath = urlParts[1];
-            console.log(`🗑️ Deleting old Template B: ${filePath}`);
             deletePromises.push(
               supabase.storage
                 .from('myth-buster-images')
                 .remove([filePath])
                 .then(({ error }) => {
-                  if (error) console.error('Error deleting old Template B:', error);
-                  else console.log('✅ Deleted old Template B');
+                  if (error) {}
+                  else {}
                 })
             );
           }
         }
         
         await Promise.all(deletePromises);
-        console.log('✅ Old images deleted, now generating new ones...');
       }
 
       // Use the utility function to generate HTML that exactly matches the preview component
@@ -339,10 +313,6 @@ export default function MythBusterMondayModal({
       ]);
 
       if (templateAResult.success && templateBResult.success) {
-        console.log('✅ Successfully generated both template preview images via Railway');
-        console.log('Template A stats:', templateAResult.data.stats);
-        console.log('Template B stats:', templateBResult.data.stats);
-
         // Helper to convert base64 to blob and download
         const downloadBase64Image = (base64Data: string, filename: string) => {
           try {
@@ -365,12 +335,10 @@ export default function MythBusterMondayModal({
             document.body.removeChild(link);
             window.URL.revokeObjectURL(downloadUrl);
           } catch (error) {
-            console.error(`Failed to download ${filename}:`, error);
           }
         };
 
         // Download Template A
-        console.log('📥 Downloading Template A...');
         downloadBase64Image(
           templateAResult.data.imageBase64,
           `myth-buster-monday-template-a-${Date.now()}.png`
@@ -380,15 +348,12 @@ export default function MythBusterMondayModal({
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Download Template B
-        console.log('📥 Downloading Template B...');
         downloadBase64Image(
           templateBResult.data.imageBase64,
           `myth-buster-monday-template-b-${Date.now()}.png`
         );
 
         // Upload generated images to Supabase Storage
-        console.log('📤 Uploading generated images to Supabase Storage...');
-        
         // Helper to convert base64 to blob and upload to Supabase
         const uploadBase64ToStorage = async (base64Data: string, templateType: 'A' | 'B') => {
           try {
@@ -405,9 +370,6 @@ export default function MythBusterMondayModal({
             const timestamp = Date.now();
             const fileName = `myth-buster-template-${templateType.toLowerCase()}-${timestamp}.png`;
             const filePath = `generated/${fileName}`;
-            
-            console.log(`⬆️ Uploading ${fileName} to myth-buster-images bucket...`);
-            
             // Upload to Supabase Storage
             const { data: uploadData, error: uploadError } = await supabase.storage
               .from('myth-buster-images')
@@ -418,7 +380,6 @@ export default function MythBusterMondayModal({
               });
             
             if (uploadError) {
-              console.error(`Upload error for template ${templateType}:`, uploadError);
               throw uploadError;
             }
             
@@ -426,11 +387,8 @@ export default function MythBusterMondayModal({
             const { data: { publicUrl } } = supabase.storage
               .from('myth-buster-images')
               .getPublicUrl(filePath);
-            
-            console.log(`✅ Template ${templateType} uploaded: ${publicUrl}`);
             return publicUrl;
           } catch (error) {
-            console.error(`Failed to upload template ${templateType}:`, error);
             throw error;
           }
         };
@@ -450,11 +408,9 @@ export default function MythBusterMondayModal({
 
         alert('✅ Images generated, downloaded, and uploaded to storage successfully!');
       } else {
-        console.error('Railway image generation failed:', templateAResult.error || templateBResult.error);
         alert('❌ Failed to generate images via Railway. Please try again.');
       }
     } catch (error) {
-      console.error('Error generating preview images:', error);
       alert('❌ Error generating preview images. Please try again.');
     } finally {
       setIsGeneratingImages(false);
@@ -674,7 +630,6 @@ export default function MythBusterMondayModal({
                             }]);
 
                           } catch (error) {
-                            console.error('Upload error:', error);
                             alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
                           } finally {
                             setIsUploading(false);

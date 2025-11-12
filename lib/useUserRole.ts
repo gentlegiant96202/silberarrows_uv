@@ -70,37 +70,29 @@ export function useUserRole(): UserRole {
         if (roleData && !roleError) {
           // Found in database - use new system
           setRole(roleData.role);
-          console.log('🆕 Using database role:', roleData.role);
           return;
         }
 
         if (roleError && roleError.code !== 'PGRST116') {
           // PGRST116 is "no rows returned" - that's expected for new users
-          console.warn('Database role lookup failed:', roleError.message);
         }
 
         // Check for legacy admin users only (not regular users)
         if (isAdminLegacy) {
           setRole('admin');
-          console.log('📜 Using legacy admin role (fallback)');
           return;
         }
 
         // No role found - user needs admin to assign one
         setRole(null);
-        console.log('ℹ️ User has no assigned role - awaiting admin assignment');
-
       } catch (err: any) {
-        console.error('Error fetching user role:', err);
         setError(err.message);
         
         // On error, check legacy admin status only
         if (isAdminLegacy) {
           setRole('admin');
-          console.log('⚠️ Error fallback to legacy admin role');
         } else {
           setRole(null);
-          console.log('⚠️ Error - no role assigned');
         }
       } finally {
         setIsLoading(false);

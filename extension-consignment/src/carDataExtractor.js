@@ -18,9 +18,6 @@ class CarDataExtractor {
   async extractCarData() {
     const url = window.location.href;
     const domain = this.getDomain(url);
-    
-    console.log('🔍 Extracting car data from:', domain);
-    
     const extractor = this.siteDetectors[domain] || this.siteDetectors['default'];
     const data = await extractor();
     
@@ -28,8 +25,6 @@ class CarDataExtractor {
     data.extracted_from = url;
     data.extracted_at = new Date().toISOString();
     data.site_domain = domain;
-    
-    console.log('✅ Extracted car data:', data);
     return data;
   }
 
@@ -108,7 +103,6 @@ class CarDataExtractor {
       }
 
     } catch (error) {
-      console.error('Error extracting Dubizzle data:', error);
     }
 
     return data;
@@ -165,7 +159,6 @@ class CarDataExtractor {
       data.notes = this.extractAdditionalDetails().join('\n');
 
     } catch (error) {
-      console.error('Error extracting AutoTrader data:', error);
     }
 
     return data;
@@ -222,7 +215,6 @@ class CarDataExtractor {
       data.notes = this.extractAdditionalDetails().join('\n');
 
     } catch (error) {
-      console.error('Error extracting Cars24 data:', error);
     }
 
     return data;
@@ -279,7 +271,6 @@ class CarDataExtractor {
       data.notes = this.extractAdditionalDetails().join('\n');
 
     } catch (error) {
-      console.error('Error extracting YallaMotor data:', error);
     }
 
     return data;
@@ -336,7 +327,6 @@ class CarDataExtractor {
       data.notes = this.extractAdditionalDetails().join('\n');
 
     } catch (error) {
-      console.error('Error extracting OLX data:', error);
     }
 
     return data;
@@ -393,7 +383,6 @@ class CarDataExtractor {
       data.notes = this.extractAdditionalDetails().join('\n');
 
     } catch (error) {
-      console.error('Error extracting Dubicars data:', error);
     }
 
     return data;
@@ -460,7 +449,6 @@ class CarDataExtractor {
       data.notes = this.extractAdditionalDetails().join('\n');
 
     } catch (error) {
-      console.error('Error extracting generic data:', error);
     }
 
     return data;
@@ -599,7 +587,6 @@ class CarDataExtractor {
       }
 
     } catch (error) {
-      console.error('Error extracting additional details:', error);
     }
 
     return details;

@@ -204,7 +204,6 @@ export default function CarKanbanBoard() {
 
   const load = async () => {
     try {
-      console.log('🚗 CarKanbanBoard: Loading cars with proper permissions...');
       const { data, error } = await supabase
         .from('cars')
         .select(`
@@ -234,10 +233,8 @@ export default function CarKanbanBoard() {
       let carRows: Car[] = [];
       
       if (error) {
-        console.error('❌ CarKanbanBoard: Error loading cars:', error);
         // If the new fields don't exist, try without them
         if (error.message?.includes('column') && (error.message?.includes('current_mileage_km') || error.message?.includes('mileage_km') || error.message?.includes('horsepower_hp'))) {
-          console.log('🔄 CarKanbanBoard: Retrying without new fields...');
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('cars')
             .select(`
@@ -263,7 +260,6 @@ export default function CarKanbanBoard() {
             .order('updated_at', { ascending: false });
           
           if (fallbackError) {
-            console.error('❌ CarKanbanBoard: Fallback query also failed:', fallbackError);
             return;
           }
           
@@ -295,7 +291,6 @@ export default function CarKanbanBoard() {
           }
           map[m.car_id] = imageUrl; 
         });
-        console.log('🖼️ CarKanbanBoard: Loaded', mediaRows?.length || 0, 'primary thumbnails');
         setThumbs(map);
       }
     } finally {
@@ -309,12 +304,10 @@ export default function CarKanbanBoard() {
     if (!canEditCars) {
       e.preventDefault();
       if (process.env.NODE_ENV === 'development') {
-        console.log('🚫 Drag prevented - no edit permission for UV CRM');
       }
       return;
     }
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Drag allowed - user has edit permission');
     }
     e.dataTransfer.setData('text/plain', car.id);
   };
@@ -327,13 +320,11 @@ export default function CarKanbanBoard() {
     // Permission checks for users without edit access
     if (!canEditCars) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🚫 Drop prevented - no edit permission for UV CRM');
       }
       return; // users without edit permission cannot drop
     }
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Drop allowed - user has edit permission');
     }
 
     // optimistic update
@@ -392,14 +383,11 @@ export default function CarKanbanBoard() {
       }).eq('id', carId);
       
       if (error) {
-        console.error("❌ Failed to archive car:", error);
       } else {
-        console.log("✅ Car archived successfully:", carId);
         // Reload cars to refresh the display
         load();
       }
     } catch (error) {
-      console.error("❌ Error archiving car:", error);
     }
   }, []);
 
@@ -421,8 +409,6 @@ export default function CarKanbanBoard() {
 
   useEffect(() => {
     if (!hasFetchedCars.current) {
-      console.log('🚗 Inventory: Starting optimistic column loading...');
-      
       // Define loading priority (left to right column order)
       const columnPriorities: { key: ColKey; delay: number; statusFilter: any }[] = [
         { key: 'marketing', delay: 0, statusFilter: { status: 'marketing' } },        // SALES (leftmost)
@@ -438,8 +424,6 @@ export default function CarKanbanBoard() {
       columnPriorities.forEach(({ key, delay, statusFilter }) => {
         setTimeout(async () => {
           try {
-            console.log(`🚗 Loading ${key} column...`);
-            
             let query = supabase
               .from('cars')
               .select(`
@@ -477,7 +461,6 @@ export default function CarKanbanBoard() {
             const { data, error } = await query;
 
             if (error) {
-              console.error(`❌ Failed to load ${key} column:`, error);
               // Try fallback without new fields
               const fallbackQuery = supabase
                 .from('cars')
@@ -524,7 +507,6 @@ export default function CarKanbanBoard() {
                     });
                     
                     setThumbs(prev => ({ ...prev, ...newThumbs }));
-                    console.log(`🖼️ ${key} fallback loaded ${mediaRows.length} thumbnails`);
                   }
                 }
               }
@@ -565,14 +547,10 @@ export default function CarKanbanBoard() {
                   });
                   
                   setThumbs(prev => ({ ...prev, ...newThumbs }));
-                  console.log(`🖼️ ${key} column loaded ${mediaRows.length} thumbnails`);
                 }
               }
-              
-              console.log(`✅ ${key} column loaded with ${data.length} cars`);
             }
           } catch (error) {
-            console.error(`❌ Failed to load ${key} column:`, error);
           } finally {
             // Mark column as loaded
             setColumnLoading(prev => ({ ...prev, [key]: false }));
@@ -659,14 +637,11 @@ export default function CarKanbanBoard() {
 
     // Listen for custom primary photo change events
     const handlePrimaryPhotoChange = (event: any) => {
-      console.log('🔄 CarKanbanBoard: Primary photo changed event received, reloading thumbnails...', event.detail);
-      
       // Use a ref to track if component is still mounted
       if (hasFetchedCars.current) {
         // Debounce the reload to prevent multiple rapid calls
         setTimeout(() => {
-          if (hasFetchedCars.current) { // Check again after timeout
-            console.log('🔄 CarKanbanBoard: Force reloading after primary photo change...');
+          if (hasFetchedCars.current) { 
             load();
           }
         }, 100);
@@ -711,14 +686,10 @@ export default function CarKanbanBoard() {
         .single();
       
       if (error) {
-        console.error('❌ Error loading full car data:', error);
         return null;
       }
-      
-      console.log('✅ Loaded full car data for:', carId, 'Fields:', Object.keys(data || {}));
       return data;
     } catch (error) {
-      console.error('❌ Exception loading full car data:', error);
       return null;
     }
   }, []);
@@ -776,7 +747,6 @@ export default function CarKanbanBoard() {
       if (fullData) {
         setSelectedCarFull(fullData);
       } else {
-        console.error('❌ CarKanbanBoard: Failed to load full car details');
       }
       
       setLoadingCarDetails(false);
@@ -1299,7 +1269,6 @@ export default function CarKanbanBoard() {
             setSelectedCarForPriceDrop(null);
             // Refresh the car data to show updated price
             window.dispatchEvent(new CustomEvent('priceUpdated'));
-            console.log('Price drop task created successfully');
           }}
         />
       )}

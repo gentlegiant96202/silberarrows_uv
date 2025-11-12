@@ -287,22 +287,10 @@ export default function ServiceDashboard({ metrics, targets, loading = false }: 
           .order('call_time', { ascending: false });
 
         if (error) {
-          console.error('Error fetching call logs:', error);
           return;
         }
-
-        console.log('Call logs fetched:', {
-          total: data?.length || 0,
-          sample: data?.slice(0, 3).map(d => ({ call_date: d.call_date, customer_name: d.customer_name })),
-          octoberCount: data?.filter(d => {
-            const date = new Date(d.call_date);
-            return date.getFullYear() === 2025 && date.getMonth() === 9; // October is month 9 (0-indexed)
-          }).length || 0
-        });
-
         setCallLogs(data || []);
       } catch (error) {
-        console.error('Error fetching call logs:', error);
       } finally {
         setCallLogsLoading(false);
       }
@@ -1579,7 +1567,6 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
           setReceivables(customersArray);
         }
       } catch (error) {
-        console.error('Error fetching receivables:', error);
       } finally {
         setLoadingReceivables(false);
       }
@@ -1898,13 +1885,6 @@ function TeamMember({ name, role, sales, contribution, rank }: { name: string; r
 
 // Call Metrics Section Component
 function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDate, loading }: { callLogs: CallLogEntry[], selectedYear: number, selectedMonth: number, selectedDate: string, loading: boolean }) {
-  console.log('🔍 CallMetricsSection PARAMS:', { 
-    selectedYear, 
-    selectedMonth, 
-    selectedDate,
-    totalCallLogs: callLogs.length 
-  });
-
   // Filter call logs based on selected filters (NO staff filter - show ALL service calls)
   const filteredCalls = callLogs.filter(call => {
     if (!call.call_date) return false;
@@ -1914,7 +1894,6 @@ function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDat
     
     // Check if date is valid
     if (isNaN(callDate.getTime())) {
-      console.warn('Invalid call_date format:', call.call_date);
       return false;
     }
     
@@ -1945,19 +1924,8 @@ function CallMetricsSection({ callLogs, selectedYear, selectedMonth, selectedDat
   });
 
   // Debug: Log filtering results
-  console.log(`📊 FILTERING RESULTS: ${filteredCalls.length} calls found out of ${callLogs.length} total | Year: ${selectedYear} | Month: ${selectedMonth} | Date: ${selectedDate || 'ALL'}`);
-  console.log('CallMetricsSection filtering:', {
-    totalCallLogs: callLogs.length,
-    filteredCalls: filteredCalls.length,
-    selectedYear,
-    selectedMonth,
-    selectedDate,
-    sampleFiltered: filteredCalls.slice(0, 2).map(c => ({ call_date: c.call_date, customer_name: c.customer_name }))
-  });
-
   // Calculate metrics
   const totalCalls = filteredCalls.length;
-  console.log(`🎯 TOTAL CALLS TO DISPLAY: ${totalCalls}`);
   const answeredCalls = filteredCalls.filter(call => 
     call.answered_yn === 'Yes' || call.answered_yn_2 === 'Yes'
   ).length;

@@ -1,10 +1,6 @@
 // Background script for SilberArrows Consignment Creator extension
-console.log('SilberArrows Consignment Creator background script loaded');
-
 // Listen for messages from popup and content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Background received message:', message);
-  
   switch (message.action) {
     case 'getSettings':
       handleGetSettings(sendResponse);
@@ -19,7 +15,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
       
     default:
-      console.warn('Unknown message action:', message.action);
   }
 });
 
@@ -40,12 +35,9 @@ async function handleGetSettings(sendResponse) {
     };
     
     const finalSettings = { ...defaultSettings, ...settings };
-    
-    console.log('Settings loaded:', finalSettings);
     sendResponse({ success: true, settings: finalSettings });
     
   } catch (error) {
-    console.error('Error loading settings:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -54,11 +46,9 @@ async function handleGetSettings(sendResponse) {
 async function handleSaveSettings(settings, sendResponse) {
   try {
     await chrome.storage.sync.set(settings);
-    console.log('Settings saved:', settings);
     sendResponse({ success: true });
     
   } catch (error) {
-    console.error('Error saving settings:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -66,15 +56,9 @@ async function handleSaveSettings(settings, sendResponse) {
 // Handle consignment creation
 async function handleCreateConsignment(consignmentData, sendResponse) {
   try {
-    console.log('Creating consignment from background:', consignmentData);
-    
     // Get API URL from settings
     const settings = await chrome.storage.sync.get(['apiUrl']);
     const apiUrl = settings.apiUrl || 'https://portal.silberarrows.com';
-    
-    console.log('API URL:', apiUrl);
-    console.log('Request data:', JSON.stringify(consignmentData, null, 2));
-    
     const response = await fetch(`${apiUrl}/api/consignments/create`, {
       method: 'POST',
       headers: {
@@ -82,14 +66,8 @@ async function handleCreateConsignment(consignmentData, sendResponse) {
       },
       body: JSON.stringify(consignmentData)
     });
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-    
     // Get response text first to debug
     const responseText = await response.text();
-    console.log('Response text:', responseText);
-    
     if (!response.ok) {
       // Try to parse as JSON, fallback to text
       let errorMessage = `HTTP ${response.status}`;
@@ -113,17 +91,11 @@ async function handleCreateConsignment(consignmentData, sendResponse) {
     try {
       result = JSON.parse(responseText);
     } catch (e) {
-      console.error('Failed to parse JSON response:', e);
-      console.error('Response text was:', responseText);
       throw new Error('Invalid JSON response from server');
     }
-    
-    console.log('Consignment created successfully:', result);
-    
     sendResponse({ success: true, result });
     
   } catch (error) {
-    console.error('Error creating consignment:', error);
     sendResponse({ success: false, error: error.message });
   }
 }

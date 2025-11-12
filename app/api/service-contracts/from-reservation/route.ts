@@ -32,7 +32,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -44,7 +43,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -103,9 +101,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log('🔄 Creating ServiceCare contract from reservation:', reservation_id);
-
     // Get reservation data
     const { data: reservation, error: reservationError } = await supabase
       .from('vehicle_reservations')
@@ -114,15 +109,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (reservationError || !reservation) {
-      console.error('Reservation fetch error:', reservationError);
       return NextResponse.json(
         { error: 'Reservation not found', details: reservationError?.message },
         { status: 404 }
       );
     }
-
-    console.log('✅ Reservation data retrieved for customer:', reservation.customer_name);
-
     // Check if ServiceCare contract already exists for this reservation
     const { data: existingService, error: existingError } = await supabase
       .from('service_contracts')
@@ -200,14 +191,6 @@ export async function POST(request: NextRequest) {
       // Audit fields
       created_by: validation.user.id
     };
-
-    console.log('📝 Creating ServiceCare contract with data:', {
-      reference_no: serviceContractData.reference_no,
-      customer: serviceContractData.owner_name,
-      vehicle: `${vehicleMake} ${vehicleModel}`,
-      service_type: service_type
-    });
-
     // Insert the service contract
     const { data: newContract, error: insertError } = await supabase
       .from('service_contracts')
@@ -216,15 +199,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error('Database insert error:', insertError);
       return NextResponse.json(
         { error: 'Failed to create ServiceCare contract', details: insertError.message },
         { status: 500 }
       );
     }
-
-    console.log('✅ ServiceCare contract created successfully:', newContract.reference_no);
-
     // Log activity
     try {
       await supabase
@@ -245,7 +224,6 @@ export async function POST(request: NextRequest) {
           created_by: validation.user.id
         });
     } catch (activityError) {
-      console.error('Failed to log activity:', activityError);
       // Continue without failing - contract was created successfully
     }
 
@@ -265,7 +243,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating ServiceCare contract from reservation:', error);
     return NextResponse.json(
       { 
         error: 'Failed to create ServiceCare contract from reservation',

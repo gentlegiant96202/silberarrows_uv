@@ -57,7 +57,6 @@ export default function NotesTimeline({ leadId, notes, canEdit, onAdded }: Notes
       setDraft('');
       onAdded?.(newNote);
     } catch (err) {
-      console.error('Failed to add note', err);
       alert('Failed to add note.');
     } finally {
       setSaving(false);

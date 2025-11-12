@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error generating image:', error);
     return NextResponse.json(
       { error: 'Failed to generate image' },
       { status: 500 }

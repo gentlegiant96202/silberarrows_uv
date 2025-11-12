@@ -78,7 +78,6 @@ function getOriginalImageUrl(imageUrl: string): string {
         return originalUrl; // Return original Supabase URL
       }
     } catch (error) {
-      console.warn('Failed to parse proxy URL:', error);
     }
   }
   
@@ -95,7 +94,6 @@ function optimizeImageForPdf(imageUrl: string): string {
 function getCompressedImageUrl(originalUrl: string): string {
   try {
     if (originalUrl.includes('.supabase.co')) {
-      console.log('🔄 Using original image URL (CSS will handle sizing):', originalUrl.split('?')[0]);
       return originalUrl.split('?')[0]; // Remove any existing query params
     }
     return originalUrl;
@@ -105,15 +103,6 @@ function getCompressedImageUrl(originalUrl: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🚀🚀🚀 PDF GENERATION API ROUTE HIT - NEW VERSION 🚀🚀🚀');
-  console.log('🚀 PDF Generation POST endpoint hit');
-  console.log('📍 Request URL:', request.url);
-  console.log('📍 Request method:', request.method);
-  console.log('📍 User-Agent:', request.headers.get('user-agent'));
-  console.log('📍 Content-Type:', request.headers.get('content-type'));
-  console.log('📍 Origin:', request.headers.get('origin'));
-  console.log('📍 Referer:', request.headers.get('referer'));
-  
   try {
     // Load logo from file system
     const fs = await import('fs');
@@ -131,37 +120,24 @@ export async function POST(request: NextRequest) {
           const logoData = fs.readFileSync(candidate);
           const b64 = logoData.toString('base64');
           logoSrc = `data:image/png;base64,${b64}`;
-          console.log('✅ Loaded logo from file system:', candidate);
           break;
         }
       } catch (err) {
-        console.log('⚠️ Failed to load logo from:', candidate);
       }
     }
-    
-    console.log('📦 Parsing request body...');
     const { car, media } = await request.json();
-    
-    console.log('📋 Car ID:', car?.id);
-    console.log('📋 Car model:', car?.vehicle_model);
-    console.log('📋 Car year:', car?.model_year);
-    console.log('📊 Media count:', media?.length);
-    
     // Debug car data for potential issues
     if (!car?.id) {
       return NextResponse.json({ error: 'Car ID is missing' }, { status: 400 });
     }
     
     if (!car?.vehicle_model) {
-      console.warn('⚠️ Car missing vehicle_model');
     }
     
     if (car?.description && car.description.length > 5000) {
-      console.warn('⚠️ Car has very long description:', car.description.length, 'characters');
     }
     
     if (car?.key_equipment && car.key_equipment.length > 3000) {
-      console.warn('⚠️ Car has very long key_equipment:', car.key_equipment.length, 'characters');
     }
     
     if (!process.env.PDFSHIFT_API_KEY) {
@@ -169,28 +145,19 @@ export async function POST(request: NextRequest) {
     }
     
     const photos = media.filter((m: any) => m.kind === 'photo');
-    console.log('📸 Photo count:', photos.length);
-    
     // Check for problematic image URLs
     photos.forEach((photo: any, i: number) => {
       if (!photo.url) {
-        console.error(`❌ Photo ${i} has no URL`);
       } else if (photo.url.length > 500) {
-        console.warn(`⚠️ Photo ${i} has very long URL:`, photo.url.length, 'characters');
       }
     });
     
     // Use all photos but optimize for PDFShift
-    console.log('📸 Processing all', photos.length, 'photos for PDF generation');
-    
     // Convert proxy URLs to original Supabase URLs (fast)
     const optimizedPhotos = photos.map((photo: any) => ({
       ...photo,
       url: optimizeImageForPdf(photo.url)
     }));
-    
-    console.log('✅ URLs converted to original Supabase domains');
-    
     // Apply server-side ordering to guarantee consistent PDF order
     // Order: primary first, then sort_order ASC, then created_at ASC
     const orderedPhotos = [...optimizedPhotos].sort((a: any, b: any) => {
@@ -203,21 +170,10 @@ export async function POST(request: NextRequest) {
       const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
       return aTime - bTime;
     });
-    console.log('🧭 Photos sorted server-side (primary → sort_order → created_at)');
-    console.log(`📸 Using all ${orderedPhotos.length} images for PDF generation`);
-    
         // Split images: first 5 for main pages, rest for gallery pages (2 per page)  
     let mainPhotos = orderedPhotos.slice(0, 5);
     let galleryPhotos = orderedPhotos.slice(5);
-    
-    console.log(`📸 Image distribution: ${mainPhotos.length} main photos, ${galleryPhotos.length} gallery photos`);
-    console.log(`📄 Gallery pages needed: ${Math.ceil(galleryPhotos.length / 2)} pages`);
-    console.log(`📸 Total optimized photos: ${optimizedPhotos.length}`);
-    console.log(`🔍 Main photos URLs:`, mainPhotos.slice(0, 2).map((p: any) => p.url?.substring(0, 50) + '...'));
-    console.log(`🔍 Gallery photos URLs:`, galleryPhotos.slice(0, 2).map((p: any) => p.url?.substring(0, 50) + '...'));
-    console.log(`📝 Has description: ${!!car.description}`);
     if (galleryPhotos.length % 2 === 1) {
-        console.log(`📄 Last gallery page will have 1 image (odd number: ${galleryPhotos.length})`);
     }
     
     // Compress ALL images for maximum file size reduction
@@ -230,24 +186,15 @@ export async function POST(request: NextRequest) {
       ...photo,
       url: getCompressedImageUrl(photo.url) // Compress gallery photos
     }));
-    
-    console.log('✅ All images processed for PDF generation');
     optimizedPhotos.slice(0, 3).forEach((photo: any, i: number) => {
-      console.log(`   [${i}] Final URL: ${photo.url}`);
     });
     
     const firstPhotoUrl = mainPhotos[0]?.url || '';
-    console.log('📸 Main photos for template:', mainPhotos.length);
-    console.log('📸 Gallery photos for additional pages:', galleryPhotos.length);
-    console.log('🎯 First photo URL:', firstPhotoUrl);
-    
     // Helper functions
     const toTitle = (s: string) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
     const equipItems = car.key_equipment ? car.key_equipment.split(/[\n,]+/).map((item: string) => item.trim()) : [];
     
     // Log equipment info after it's defined
-    console.log(`🛠️ Equipment items: ${equipItems.length} items`);
-    
     // Build the exact sophisticated HTML template optimized for single page
     const html = `
       <!DOCTYPE html>
@@ -1066,20 +1013,14 @@ export async function POST(request: NextRequest) {
 
           <!-- REST OF PAGES: Image Gallery Section (2 images per page, no empty pages) -->
           ${(() => {
-              console.log(`🎯 FINAL CHECK: galleryPhotos.length = ${galleryPhotos.length}`);
-              console.log(`🎯 Will render gallery section: ${galleryPhotos.length > 0}`);
               return galleryPhotos.length > 0;
           })() ? `
           <div class="image-gallery">
               ${(() => {
                   const imagePages = [];
-                  console.log(`📄 Processing ${galleryPhotos.length} gallery photos for pagination...`);
-                  
                   // Group images in pairs (2 per page) for vertical stacking
                   for (let i = 0; i < galleryPhotos.length; i += 2) {
                       const pageImages = galleryPhotos.slice(i, i + 2);
-                      console.log(`📄 Page ${Math.floor(i/2) + 1}: ${pageImages.length} images (indices ${i} to ${i + pageImages.length - 1})`);
-                      
                       // Only create a page if we have at least one image
                       if (pageImages.length > 0) {
                           const pageHTML = `
@@ -1093,7 +1034,6 @@ export async function POST(request: NextRequest) {
                           imagePages.push(pageHTML);
                       }
                   }
-                  console.log(`📄 Generated ${imagePages.length} gallery pages total`);
                   return imagePages.join('');
               })()}
           </div>
@@ -1103,26 +1043,14 @@ export async function POST(request: NextRequest) {
     `;
 
         // Call our own renderer service for PDF generation
-    console.log('📄 Generating PDF using our renderer service...');
-    console.log('📄 Image count for PDF:', optimizedPhotos.length);
-    
     // DEBUG: Log the actual HTML structure to see what pages are being created
     const pageBreaks = (html.match(/page-break-before:\s*always/g) || []).length;
     const quotationContainers = (html.match(/quotation-container/g) || []).length;
     const imagePages = (html.match(/image-page/g) || []).length;
-    
-    console.log('🔍 HTML STRUCTURE DEBUG:');
-    console.log(`   - Page breaks (page-break-before): ${pageBreaks}`);
-    console.log(`   - Quotation containers: ${quotationContainers}`);
-    console.log(`   - Image pages: ${imagePages}`);
-    console.log(`   - HTML length: ${html.length} characters`);
-    
     // Log sections of HTML to see the structure
     const htmlLines = html.split('\n');
     const pageBreakLines = htmlLines.filter(line => line.includes('page-break-before'));
-    console.log('🔍 PAGE BREAK LINES:');
     pageBreakLines.forEach((line, i) => {
-        console.log(`   ${i + 1}: ${line.trim().substring(0, 100)}...`);
     });
     
     // Save HTML to inspect the actual structure (development only)
@@ -1132,20 +1060,14 @@ export async function POST(request: NextRequest) {
             const path = await import('path');
             const htmlPath = path.join(process.cwd(), 'debug-pdf.html');
             fs.writeFileSync(htmlPath, html);
-            console.log('💾 HTML saved to debug-pdf.html for inspection');
         } catch (e) {
-            console.log('⚠️ Could not save debug HTML:', e instanceof Error ? e.message : e);
         }
     }
     
     const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
-    console.log('🔄 Calling renderer service at:', rendererUrl);
-    
     const controller = new AbortController();
     const timeoutMs = 120000; // 2 minutes timeout for our own service
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    console.log(`📄 Renderer timeout set to ${timeoutMs/1000} seconds`);
-    
     const response = await fetch(`${rendererUrl}/render-car-pdf`, {
       method: 'POST',
       headers: {
@@ -1161,12 +1083,6 @@ export async function POST(request: NextRequest) {
     
     if (!response.ok) {
       const error = await response.text();
-      console.error('📄 Renderer Error Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: error.slice(0, 500)
-      });
-      
       return NextResponse.json({ 
         error: `Renderer service error (${response.status}): ${error}` 
       }, { status: 500 });
@@ -1184,12 +1100,6 @@ export async function POST(request: NextRequest) {
     // Convert base64 PDF back to buffer
     const pdfBuffer = Buffer.from(renderResult.pdf, 'base64');
     const pdfSizeMB = (pdfBuffer.byteLength / (1024 * 1024)).toFixed(2);
-    
-    console.log(`📄 PDF Generated:`);
-    console.log(`   Final PDF size: ${pdfSizeMB}MB`);
-    console.log(`   Image count: ${optimizedPhotos.length}`);
-    console.log(`   ${parseFloat(pdfSizeMB) < 5 ? '✅ Optimization successful!' : '⚠️ Still large - check image processing'}`);
-    
     // Return PDF as base64 to client - let client handle Supabase upload
     const base64Pdf = Buffer.from(pdfBuffer).toString('base64');
     
@@ -1205,8 +1115,6 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('PDF Generation Error:', error);
-    console.error('Error stack:', error.stack);
     return NextResponse.json({ 
       error: error.message, 
       stack: error.stack,

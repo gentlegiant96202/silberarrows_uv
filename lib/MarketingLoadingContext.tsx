@@ -31,8 +31,6 @@ export function MarketingLoadingProvider({ children }: MarketingLoadingProviderP
   const setLoading = (loading: boolean) => {
     setIsLoading(loading);
     if (!loading) {
-      console.log('✅ Marketing module content loaded - signaling transition complete');
-      
       // Signal that module content is ACTUALLY loaded
       window.dispatchEvent(new Event('module-transition-complete'));
       

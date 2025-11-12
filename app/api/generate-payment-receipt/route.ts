@@ -466,21 +466,8 @@ async function generatePaymentReceiptPdf(data: any): Promise<Buffer> {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    
-    console.log('📝 Generating payment receipt:', { 
-      receiptNumber: data.receiptNumber, 
-      customerName: data.customerName,
-      amount: data.amount 
-    });
-    
     // Validate required data
     if (!data.receiptNumber || !data.customerName || !data.amount) {
-      console.error('❌ Missing required parameters:', { 
-        receiptNumber: !!data.receiptNumber, 
-        customerName: !!data.customerName,
-        amount: !!data.amount,
-        receivedData: Object.keys(data)
-      });
       return NextResponse.json(
         { error: 'Missing required parameters: receiptNumber, customerName, and amount are required' },
         { status: 400 }
@@ -489,31 +476,18 @@ export async function POST(request: NextRequest) {
 
     // Validate PDFShift API key
     if (!process.env.PDFSHIFT_API_KEY) {
-      console.error('❌ PDFShift API key not configured');
       return NextResponse.json(
         { error: 'PDFShift API key not configured' },
         { status: 500 }
       );
     }
-
-    console.log('📄 Generating payment receipt PDF using PDFShift...');
-
     // Generate PDF
     const pdfBuffer = await generatePaymentReceiptPdf(data);
-    console.log('✅ Payment receipt PDF generated successfully:', { 
-      sizeBytes: pdfBuffer.byteLength, 
-      sizeMB: (pdfBuffer.byteLength / 1024 / 1024).toFixed(2) 
-    });
-
     // Upload PDF to Supabase storage
     let pdfUrl = null;
     try {
       const fileName = `Payment_Receipt_${data.receiptNumber}_${Date.now()}.pdf`;
       const filePath = `payment-receipts/${fileName}`;
-
-      console.log('☁️ Uploading PDF to storage bucket: service-documents');
-      console.log('📁 File path:', filePath);
-
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('service-documents')
         .upload(filePath, pdfBuffer, {
@@ -522,27 +496,16 @@ export async function POST(request: NextRequest) {
         });
 
       if (uploadError) {
-        console.error('❌ Storage upload error:', uploadError);
-        console.log('⚠️ PDF will be downloaded locally but not stored in cloud');
       } else {
-        console.log('✅ PDF uploaded successfully:', uploadData);
-        
         // Get public URL for the uploaded file
         const { data: urlData } = supabase.storage
           .from('service-documents')
           .getPublicUrl(filePath);
         
         pdfUrl = urlData.publicUrl;
-        console.log('📄 PDF generated and uploaded:', pdfUrl);
       }
     } catch (storageError) {
-      console.error('❌ Failed to upload PDF to storage:', storageError);
-      console.log('⚠️ PDF will be downloaded locally but not stored in cloud');
     }
-
-    console.log('🎉 PAYMENT RECEIPT PROCESS COMPLETED');
-    console.log('📊 Final status: PDF URL =', pdfUrl ? 'SAVED TO CLOUD' : 'LOCAL DOWNLOAD ONLY');
-
     // Return JSON response with PDF URL
     const response = {
       success: true,
@@ -551,13 +514,9 @@ export async function POST(request: NextRequest) {
       message: 'Payment receipt generated successfully',
       timestamp: new Date().toISOString()
     };
-
-    console.log('📤 Returning response with PDF URL:', pdfUrl);
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('❌ Error generating payment receipt:', error);
-    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       { 
         error: 'Internal server error',

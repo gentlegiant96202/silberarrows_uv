@@ -37,14 +37,12 @@ export default function SalesDashboard() {
         .order('month', { ascending: false });
       
       if (error) {
-        console.error('Error fetching sales targets:', error);
         return [];
       }
       
       setAllSalesTargets(salesTargets || []);
       return salesTargets || [];
     } catch (error) {
-      console.error('Error fetching sales targets:', error);
       return [];
     }
   };
@@ -58,7 +56,6 @@ export default function SalesDashboard() {
       setAllSalesMetrics(salesMetrics);
       setAllSalesTargets(salesTargets);
     } catch (error) {
-      console.error('Error refreshing sales data:', error);
     }
   };
 
@@ -70,7 +67,6 @@ export default function SalesDashboard() {
       }
       return success;
     } catch (error) {
-      console.error('Error submitting sales data:', error);
       return false;
     }
   };

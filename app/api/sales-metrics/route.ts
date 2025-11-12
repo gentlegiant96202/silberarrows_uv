@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('Error fetching sales metrics:', error);
       return NextResponse.json(
         { error: 'Failed to fetch sales metrics: ' + error.message },
         { status: 500 }
@@ -43,7 +42,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Unexpected error in sales metrics GET:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -95,7 +93,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error saving sales metrics:', error);
       return NextResponse.json(
         { error: 'Failed to save sales input metrics: ' + error.message },
         { status: 500 }
@@ -108,7 +105,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Unexpected error in sales metrics POST:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

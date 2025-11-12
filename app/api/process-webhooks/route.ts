@@ -12,7 +12,6 @@ export async function POST() {
       .limit(10); // Process in batches
 
     if (fetchError) {
-      console.error('Error fetching webhook queue:', fetchError);
       return NextResponse.json({ error: 'Failed to fetch webhook queue' }, { status: 500 });
     }
 
@@ -28,9 +27,6 @@ export async function POST() {
       try {
         // Replace with your actual external webhook URL
         const EXTERNAL_WEBHOOK_URL = process.env.EXTERNAL_WEBHOOK_URL || 'https://webhook.site/your-unique-url';
-        
-        console.log(`Processing webhook ${webhook.id}: ${webhook.event_type}`);
-        
         // Send webhook to external URL
         const response = await fetch(EXTERNAL_WEBHOOK_URL, {
           method: 'POST',
@@ -52,7 +48,6 @@ export async function POST() {
             .eq('id', webhook.id);
 
           if (updateError) {
-            console.error(`Error updating webhook ${webhook.id}:`, updateError);
           } else {
             processedCount++;
             results.push({
@@ -72,7 +67,6 @@ export async function POST() {
             .eq('id', webhook.id);
 
           if (errorUpdateError) {
-            console.error(`Error updating webhook error ${webhook.id}:`, errorUpdateError);
           }
 
           results.push({
@@ -85,8 +79,6 @@ export async function POST() {
         }
 
       } catch (error) {
-        console.error(`Error processing webhook ${webhook.id}:`, error);
-        
         // Mark error in database
         const { error: errorUpdateError } = await supabase
           .from('webhook_queue')
@@ -96,7 +88,6 @@ export async function POST() {
           .eq('id', webhook.id);
 
         if (errorUpdateError) {
-          console.error(`Error updating webhook error ${webhook.id}:`, errorUpdateError);
         }
 
         results.push({
@@ -116,7 +107,6 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error('Error in webhook processing:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -144,7 +134,6 @@ export async function GET() {
     return NextResponse.json(stats);
 
   } catch (error) {
-    console.error('Error fetching queue stats:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

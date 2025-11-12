@@ -117,7 +117,6 @@ export default function MythBusterMondayBoard() {
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
 
@@ -135,7 +134,6 @@ export default function MythBusterMondayBoard() {
       const data = await response.json();
       setItems(data);
     } catch (error) {
-      console.error('Error fetching myth buster monday items:', error);
     } finally {
       setLoading(false);
     }
@@ -158,7 +156,6 @@ export default function MythBusterMondayBoard() {
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
       
@@ -176,7 +173,6 @@ export default function MythBusterMondayBoard() {
 
       await fetchItems();
     } catch (error) {
-      console.error('Error deleting item:', error);
     }
   };
 
@@ -185,7 +181,6 @@ export default function MythBusterMondayBoard() {
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
       
@@ -207,7 +202,6 @@ export default function MythBusterMondayBoard() {
 
       await fetchItems();
     } catch (error) {
-      console.error('Error updating status:', error);
     }
   };
 
@@ -239,8 +233,6 @@ export default function MythBusterMondayBoard() {
   // Send to Creative Hub
   const handleSendToCreativeHub = async (item: MythBusterItem) => {
     try {
-      console.log('Sending to Creative Hub:', item);
-      
       if (!user) {
         throw new Error('Authentication required');
       }
@@ -279,8 +271,6 @@ export default function MythBusterMondayBoard() {
       
       // Format description
       const formattedDescription = formatMythBusterDescription(item);
-      console.log('📝 Formatted description for Creative Hub:', formattedDescription);
-      
       // Create task data for the Marketing Kanban
       // Use 'in_progress' status so description shows in Caption field
       const taskData = {
@@ -298,10 +288,6 @@ export default function MythBusterMondayBoard() {
       if (!session) {
         throw new Error('No session found');
       }
-
-      console.log('🚀 Sending task data to Creative Hub:', taskData);
-      console.log('📝 Description being sent:', taskData.description);
-      
       const response = await fetch('/api/design-tasks', {
         method: 'POST',
         headers: {
@@ -317,27 +303,21 @@ export default function MythBusterMondayBoard() {
       }
 
       const newTask = await response.json();
-      console.log('✅ Task created in Creative Hub:', newTask);
-      console.log('✅ Task description in response:', newTask.description);
-
       // Update marketing status to 'sent'
       await handleStatusChange(item.id, 'sent', 'marketing_status');
       
       alert('Successfully sent to Creative Hub!');
       
     } catch (error) {
-      console.error('Error sending to Creative Hub:', error);
       alert(`Failed to send to Creative Hub: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const handleSave = async (itemData: any) => {
-    console.log('💾 handleSave called in parent component with:', itemData);
     try {
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
 
@@ -358,15 +338,8 @@ export default function MythBusterMondayBoard() {
       }
 
       const result = await response.json();
-      console.log('💾 API response:', result);
-      console.log('💾 API response type:', typeof result);
-      console.log('💾 API response has data property:', 'data' in result);
-      
       // The API returns the data directly, not wrapped in a 'data' property
       const savedItem = result.data || result;
-      console.log('💾 savedItem:', savedItem);
-      console.log('💾 savedItem has id:', !!savedItem?.id);
-
       // Don't refresh items or close modal - let user close with X button
       // await fetchItems();
       // setShowModal(false);
@@ -374,7 +347,6 @@ export default function MythBusterMondayBoard() {
       
       return savedItem; // Return the saved item for auto-image generation
     } catch (error) {
-      console.error('Error saving item:', error);
       return null;
     }
   };
@@ -384,9 +356,7 @@ export default function MythBusterMondayBoard() {
     try {
       // Implement AI generation logic here
       // This would call your AI generation API
-      console.log('AI Generation prompt:', prompt);
     } catch (error) {
-      console.error('Error generating content:', error);
     } finally {
       setAiGenerating(false);
     }
@@ -536,12 +506,6 @@ export default function MythBusterMondayBoard() {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log('🚀 Send button clicked for item:', item.id);
-                  console.log('Status:', item.status);
-                  console.log('Generated images:', {
-                    a: item.generated_image_a_url,
-                    b: item.generated_image_b_url
-                  });
                   handleSendToCreativeHub(item);
                 }}
                 disabled={item.status !== 'ready' || (!item.generated_image_a_url && !item.generated_image_b_url)}

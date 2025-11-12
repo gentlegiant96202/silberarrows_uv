@@ -64,10 +64,8 @@ export default function ConsignmentKanbanBoard() {
         .order("created_at", { ascending: false });
     
     if (error) {
-      console.error("Error loading consignments:", error);
     } else {
       setItems(data as unknown as Consignment[]);
-      console.log("Loaded consignments:", data?.length || 0);
     }
   }, []);
 
@@ -88,20 +86,12 @@ export default function ConsignmentKanbanBoard() {
           table: "consignments"
         },
         (payload: any) => {
-          console.log("🔔 Real-time event received:", payload);
-          console.log("🔔 Event type:", payload.eventType);
-          console.log("🔔 New data:", payload.new);
-          console.log("🔔 Old data:", payload.old);
-          
           setItems((prev) => {
             if (payload.eventType === "INSERT") {
-              console.log("➕ Adding new consignment to state:", payload.new);
               return [payload.new as Consignment, ...prev];
             } else if (payload.eventType === "UPDATE") {
-              console.log("✏️ Updating consignment in state:", payload.new);
               return prev.map((c) => (c.id === payload.new.id ? (payload.new as Consignment) : c));
             } else if (payload.eventType === "DELETE") {
-              console.log("🗑️ Deleting consignment from state:", payload.old);
               return prev.filter((c) => c.id !== payload.old.id);
             }
             return prev;
@@ -110,31 +100,20 @@ export default function ConsignmentKanbanBoard() {
       );
 
     channel.subscribe((status, err) => {
-      console.log("Real-time subscription status:", status);
       if (err) {
-        console.error("Real-time subscription error:", err);
       }
       if (status === 'SUBSCRIBED') {
-        console.log("✅ Real-time subscription active for consignments");
-        console.log("🔍 Channel details:", channel);
       } else if (status === 'CHANNEL_ERROR') {
-        console.error("❌ Real-time subscription error");
-        console.error("Error details:", err);
       } else if (status === 'TIMED_OUT') {
-        console.error("❌ Real-time subscription timed out");
-        console.error("This usually means the connection was idle too long");
       } else if (status === 'CLOSED') {
         // Only log as warning in development, not error
         if (process.env.NODE_ENV === 'development') {
-          console.warn("⚠️ Real-time subscription closed (normal in React Strict Mode)");
         } else {
-          console.warn("⚠️ Real-time subscription closed - component will reconnect on remount");
         }
       }
     });
 
     return () => {
-      console.log("Cleaning up real-time subscription");
       supabase.removeChannel(channel);
     };
   }, []);
@@ -174,7 +153,6 @@ export default function ConsignmentKanbanBoard() {
       }).eq("id", id).then(
         (result) => {
           if (result.error) {
-            console.error('Error archiving consignment:', result.error);
           }
         }
       );
@@ -185,7 +163,6 @@ export default function ConsignmentKanbanBoard() {
     supabase.from("consignments").update({ status: target }).eq("id", id).then(
       (result) => {
         if (result.error) {
-          console.error('Error updating consignment status:', result.error);
         }
       }
     );
@@ -203,7 +180,6 @@ export default function ConsignmentKanbanBoard() {
         .eq("id", consignment.id);
       
       if (error) {
-        console.error('Error toggling archive status:', error);
       } else {
         setItems(prev => 
           prev.map(c => 
@@ -214,7 +190,6 @@ export default function ConsignmentKanbanBoard() {
         );
       }
     } catch (error) {
-      console.error('Error toggling archive status:', error);
     }
   };
   
@@ -269,7 +244,6 @@ export default function ConsignmentKanbanBoard() {
         .single();
 
       if (error) {
-        console.error('Error adding consignment:', error);
         alert('Error adding consignment: ' + error.message);
         return;
       }
@@ -278,7 +252,6 @@ export default function ConsignmentKanbanBoard() {
       setItems(prev => [data as Consignment, ...prev]);
       setShowAddModal(false);
     } catch (error) {
-      console.error('Error adding consignment:', error);
       alert('Error adding consignment. Please try again.');
     }
   };

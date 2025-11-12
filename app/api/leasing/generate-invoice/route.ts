@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (invoiceError || !invoice) {
-      console.error('Error fetching invoice:', invoiceError);
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
@@ -55,7 +54,6 @@ export async function POST(request: NextRequest) {
       .order('transaction_date', { ascending: true });
 
     if (transError) {
-      console.error('Error fetching transactions:', transError);
       return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 });
     }
 
@@ -422,7 +420,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Error uploading PDF:', uploadError);
       return NextResponse.json({ error: 'Failed to upload PDF' }, { status: 500 });
     }
 
@@ -444,7 +441,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error generating invoice:', error);
     return NextResponse.json(
       { error: 'Failed to generate invoice' },
       { status: 500 }

@@ -56,7 +56,6 @@ export default function GargashReportPage() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching Gargash cars:', error);
         return;
       }
 
@@ -182,7 +181,6 @@ export default function GargashReportPage() {
       setPriceDistribution(priceData);
 
     } catch (error) {
-      console.error('Error in fetchGargashData:', error);
     } finally {
       setLoading(false);
     }

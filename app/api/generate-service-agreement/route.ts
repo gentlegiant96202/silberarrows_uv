@@ -7,8 +7,6 @@ import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 // Helper: Merge Service Agreement with ServiceCare Booklet
 async function mergeWithServiceCareBooklet(agreementPdfBuffer: Buffer): Promise<Buffer> {
   try {
-    console.log('🔄 Starting PDF merge process...');
-    
     // Dynamic import for pdf-lib
     const { PDFDocument } = await import('pdf-lib');
     
@@ -19,13 +17,10 @@ async function mergeWithServiceCareBooklet(agreementPdfBuffer: Buffer): Promise<
     // Copy service agreement pages (portrait) - should be 1 page
     const agreementPages = await mergedPdf.copyPages(agreementPdf, agreementPdf.getPageIndices());
     agreementPages.forEach(page => mergedPdf.addPage(page));
-    console.log(`✅ Added ${agreementPages.length} agreement page(s)`);
-    
     // Load ServiceCare booklet from public folder
     const bookletPath = path.join(process.cwd(), 'public', 'SILBERARROWS SERVICECARE.pdf');
     
     if (!fs.existsSync(bookletPath)) {
-      console.error('❌ ServiceCare booklet not found at:', bookletPath);
       throw new Error('ServiceCare booklet not found');
     }
     
@@ -35,16 +30,11 @@ async function mergeWithServiceCareBooklet(agreementPdfBuffer: Buffer): Promise<
     // Copy all booklet pages (landscape) - should be 10 pages  
     const bookletPages = await mergedPdf.copyPages(bookletPdf, bookletPdf.getPageIndices());
     bookletPages.forEach(page => mergedPdf.addPage(page));
-    console.log(`✅ Added ${bookletPages.length} booklet page(s)`);
-    
     // Generate final merged PDF
     const finalPdfBuffer = await mergedPdf.save();
-    console.log(`✅ PDF merge completed - Total pages: ${agreementPages.length + bookletPages.length}`);
-    
     return Buffer.from(finalPdfBuffer);
     
   } catch (error) {
-    console.error('❌ Error merging PDFs:', error);
     throw error;
   }
 }
@@ -240,10 +230,6 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
     const skipDatabase = data.skipDatabase || false; // New flag to skip database operations
-    
-    console.log('📝 Generating service agreement:', { referenceNo: data.referenceNo, ownerName: data.ownerName, skipDatabase });
-    console.log('📝 Form data received:', JSON.stringify(data, null, 2));
-    
     // Format dates to DD/MM/YYYY
     const formatDate = (dateString: string) => {
       if (!dateString) return '';
@@ -716,11 +702,6 @@ export async function POST(request: NextRequest) {
 
     // Validate required data
     if (!data.referenceNo || !data.ownerName) {
-      console.error('❌ Missing required parameters:', { 
-        referenceNo: !!data.referenceNo, 
-        ownerName: !!data.ownerName,
-        receivedData: Object.keys(data)
-      });
       return NextResponse.json(
         { error: 'Missing required parameters: referenceNo and ownerName are required' },
         { status: 400 }
@@ -729,10 +710,6 @@ export async function POST(request: NextRequest) {
 
     // Additional validation for database operations
     if (!skipDatabase && (!data.startDate || !data.endDate)) {
-      console.error('❌ Missing required date parameters for database operations:', { 
-        startDate: !!data.startDate, 
-        endDate: !!data.endDate 
-      });
       return NextResponse.json(
         { error: 'Missing required parameters: startDate and endDate are required for database operations' },
         { status: 400 }
@@ -741,26 +718,14 @@ export async function POST(request: NextRequest) {
 
     // Validate PDFShift API key
     if (!process.env.PDFSHIFT_API_KEY) {
-      console.error('❌ PDFShift API key not configured');
       return NextResponse.json(
         { error: 'PDFShift API key not configured' },
         { status: 500 }
       );
     }
-
-    console.log('📄 HTML content generated, length:', htmlContent.length);
-    
     // Debug: Check if signature strings are in HTML
     const hasSilberArrowsSignature = htmlContent.includes('SilberArrows Signature:');
     const hasCustomerSignature = htmlContent.includes('Customer Signature:');
-    console.log('🔍 Signature strings in HTML:', { 
-      hasSilberArrowsSignature, 
-      hasCustomerSignature,
-      signatureSection: htmlContent.includes('signature-section')
-    });
-    
-    console.log('📄 Generating service agreement PDF using PDFShift...');
-
     // Call PDFShift API with LANDSCAPE format
     const pdfResponse = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
       method: 'POST',
@@ -777,29 +742,19 @@ export async function POST(request: NextRequest) {
         delay: 1000
       }),
     });
-
-    console.log('📊 PDFShift API response status:', pdfResponse.status);
-
     if (!pdfResponse.ok) {
       const errorText = await pdfResponse.text();
-      console.error('❌ PDFShift API error:', errorText);
       throw new Error(`PDFShift API error: ${pdfResponse.status} - ${errorText}`);
     }
 
     const agreementPdfBuffer = await pdfResponse.arrayBuffer();
-    console.log('✅ Service Agreement PDF generated successfully:', { sizeBytes: agreementPdfBuffer.byteLength, sizeMB: (agreementPdfBuffer.byteLength / 1024 / 1024).toFixed(2) });
-
     // Merge with ServiceCare booklet
-    console.log('🔄 Merging with ServiceCare booklet...');
     const pdfBuffer = await mergeWithServiceCareBooklet(Buffer.from(agreementPdfBuffer));
-    console.log('✅ Merged PDF created successfully:', { sizeBytes: pdfBuffer.byteLength, sizeMB: (pdfBuffer.byteLength / 1024 / 1024).toFixed(2) });
-
     // Handle database operations (skip if this is PDF-only generation)
     let contractData = null;
     if (!skipDatabase) {
       try {
         // Check if contract already exists by reference number
-        console.log('🔍 Checking if contract already exists...');
         const { data: existingContract, error: checkError } = await supabase
           .from('service_contracts')
           .select('*')
@@ -808,13 +763,11 @@ export async function POST(request: NextRequest) {
 
         if (checkError && checkError.code !== 'PGRST116') {
           // PGRST116 is "not found" error, which is expected for new contracts
-          console.error('❌ Error checking existing contract:', checkError);
           throw new Error('Failed to check existing contract');
         }
 
         if (existingContract) {
           // Contract exists, update it
-          console.log('📝 Updating existing contract...');
           const { data: dbData, error: dbError } = await supabase
             .from('service_contracts')
             .update({
@@ -839,15 +792,12 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (dbError) {
-            console.error('❌ Database update error:', dbError);
             throw new Error('Failed to update contract in database');
           }
 
           contractData = dbData;
-          console.log('✅ Contract updated successfully, ID:', contractData.id);
         } else {
           // Contract doesn't exist, create new one
-          console.log('💾 Creating new contract...');
           const { data: dbData, error: dbError } = await supabase
             .from('service_contracts')
             .insert({
@@ -872,25 +822,16 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (dbError) {
-            console.error('❌ Database insert error:', dbError);
             throw new Error('Failed to save contract to database');
           }
 
           contractData = dbData;
-          console.log('✅ Contract created successfully, ID:', contractData.id);
         }
 
       } catch (dbError) {
-        console.error('❌ Failed to handle contract database operations:', dbError);
-        console.error('❌ Contract data that failed:', {
-          referenceNo: data.referenceNo,
-          ownerName: data.ownerName,
-          email: data.email
-        });
         throw new Error('Failed to handle contract database operations');
       }
     } else {
-      console.log('⏭️ Skipping database operations (PDF-only generation)');
     }
 
     // Upload PDF to Supabase storage (skip if this is PDF-only generation)
@@ -899,11 +840,6 @@ export async function POST(request: NextRequest) {
       try {
         const fileName = `ServiceCare_Agreement_${data.referenceNo}_${Date.now()}.pdf`;
         const filePath = `service-contracts/${fileName}`;
-
-        console.log('☁️ Uploading PDF to storage bucket: service-documents');
-        console.log('📁 File path:', filePath);
-        console.log('📄 PDF size:', pdfBuffer.byteLength, 'bytes');
-
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('service-documents')
           .upload(filePath, pdfBuffer, {
@@ -912,47 +848,32 @@ export async function POST(request: NextRequest) {
           });
 
         if (uploadError) {
-          console.error('❌ Storage upload error:', uploadError);
-          console.error('🔍 Error details:', JSON.stringify(uploadError, null, 2));
-          
           // Continue without failing - PDF will still download
-          console.log('⚠️ PDF will be downloaded locally but not stored in cloud');
         } else {
-          console.log('✅ PDF uploaded successfully:', uploadData);
-          
           // Get public URL for the uploaded file
           const { data: urlData } = supabase.storage
             .from('service-documents')
             .getPublicUrl(filePath);
           
           pdfUrl = urlData.publicUrl;
-          console.log('📄 PDF generated and uploaded:', pdfUrl);
-
           // Update contract record with PDF URL
-          console.log('💾 Updating contract with PDF URL...');
           const { error: updateError } = await supabase
             .from('service_contracts')
             .update({ pdf_url: pdfUrl })
             .eq('id', contractData.id);
 
           if (updateError) {
-            console.error('❌ Failed to update contract with PDF URL:', updateError);
           } else {
-            console.log('✅ Contract updated with PDF URL successfully');
           }
         }
       } catch (storageError) {
-        console.error('❌ Failed to upload PDF to storage:', storageError);
-        console.log('⚠️ PDF will be downloaded locally but not stored in cloud');
       }
     } else {
-      console.log('⏭️ Skipping storage upload (PDF-only generation)');
     }
 
     // Log contract creation activity (skip if this is PDF-only generation)
     if (!skipDatabase && contractData) {
       try {
-        console.log('📝 Logging contract activity...');
         await supabase
           .from('contract_activities')
           .insert({
@@ -967,18 +888,11 @@ export async function POST(request: NextRequest) {
               pdf_url: pdfUrl
             }
           });
-        console.log('✅ Activity logged successfully');
       } catch (activityError) {
-        console.error('❌ Failed to log activity:', activityError);
         // Continue without failing
       }
     } else {
-      console.log('⏭️ Skipping activity logging (PDF-only generation)');
     }
-
-    console.log('🎉 SERVICE AGREEMENT PROCESS COMPLETED');
-    console.log('📊 Final status: PDF URL =', pdfUrl ? 'SAVED TO CLOUD' : 'LOCAL DOWNLOAD ONLY');
-
     // Return JSON response with PDF URL for local state updates
     const response: any = {
       success: true,
@@ -992,13 +906,9 @@ export async function POST(request: NextRequest) {
     if (!skipDatabase && contractData) {
       response.contractId = contractData.id;
     }
-
-    console.log('📤 Returning response with PDF URL:', pdfUrl);
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('❌ Error generating service agreement:', error);
-    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       { 
         error: 'Internal server error',
@@ -1036,7 +946,6 @@ export async function GET(request: NextRequest) {
     const { data: contracts, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching service contracts:', error);
       return NextResponse.json(
         { error: 'Failed to fetch service contracts' },
         { status: 500 }
@@ -1049,7 +958,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching service contracts:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

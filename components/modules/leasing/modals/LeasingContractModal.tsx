@@ -153,8 +153,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
   // Update form when existingCustomer changes
   useEffect(() => {
     if (existingCustomer && !hasInitializedRef.current) {
-      console.log('🔍 Contract Modal received existingCustomer (initial load):', existingCustomer);
-      
       setPersonalInfo({
         customer_name: existingCustomer.customer_name || "",
         customer_email: existingCustomer.customer_email || "",
@@ -214,8 +212,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       hasInitializedRef.current = true;
     } else if (existingCustomer && hasInitializedRef.current) {
       // Update only the form data without resetting tab
-      console.log('🔄 Contract Modal updating existingCustomer (after save):', existingCustomer);
-      
       setPersonalInfo({
         customer_name: existingCustomer.customer_name || "",
         customer_email: existingCustomer.customer_email || "",
@@ -260,7 +256,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         fetchSelectedVehicle(existingCustomer.selected_vehicle_id);
       } else {
         // Don't clear selectedVehicle if the ID is missing - might be temporary
-        console.log('⚠️ No selected_vehicle_id in updated customer, keeping current selectedVehicle');
       }
 
       // Load existing PDF URL if available
@@ -381,7 +376,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         .single();
 
       if (error) {
-        console.error('❌ Error fetching selected vehicle:', error);
         return;
       }
 
@@ -404,16 +398,8 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
           buyout_price: prev.buyout_price || data.buyout_price?.toString() || "",
           excess_mileage_charges: prev.excess_mileage_charges || data.excess_mileage_charges?.toString() || ""
         }));
-        
-        console.log('✅ Vehicle loaded and pricing auto-populated:', {
-          monthly_lease_rate: data.monthly_lease_rate,
-          security_deposit: data.security_deposit,
-          buyout_price: data.buyout_price,
-          excess_mileage_charges: data.excess_mileage_charges
-        });
       }
     } catch (error) {
-      console.error('❌ Error in fetchSelectedVehicle:', error);
     }
   };
 
@@ -423,8 +409,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     setAgreementStatusMsg('');
     
     try {
-      console.log('📄 Generating lease agreement PDF...');
-      
              // Prepare contract data for PDF generation
              const contractData = {
                // Customer Information
@@ -461,9 +445,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                // Additional Information
                notes: notes
              };
-      
-      console.log('📋 Contract data prepared:', contractData);
-      
       // Call the PDF generation API
       const response = await fetch('/api/generate-lease-agreement', {
         method: 'POST',
@@ -479,8 +460,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       }
       
       const result = await response.json();
-      console.log('✅ PDF generated successfully:', result);
-      
       // Set generated contract details
       const filename = result.fileName || `Lease_Agreement_${personalInfo.customer_name?.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
       const generatedAt = new Date().toLocaleDateString('en-US', {
@@ -509,7 +488,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       document.body.removeChild(link);
       
            } catch (error: any) {
-             console.error('Error generating agreement:', error);
              setAgreementStatusMsg(`Failed to generate agreement: ${error.message || 'Please try again.'}`);
     } finally {
       setGeneratingAgreement(false);
@@ -522,7 +500,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     
     // Validate form before submission
     if (!validateForm()) {
-      console.log('❌ Form validation failed:', errors);
       // Find the first tab with errors and switch to it
       const errorKeys = Object.keys(errors);
       if (errorKeys.length > 0) {
@@ -544,13 +521,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     setShowErrors(false);
 
     try {
-      console.log('📝 Submitting contract data...');
-      console.log('📊 Form data before processing:');
-      console.log('Personal Info:', personalInfo);
-      console.log('Address Info:', addressInfo);
-      console.log('Contract Info:', contractInfo);
-      console.log('Document URLs:', documentUrls);
-
       // Combine all form data - only include fields that exist in database
       const contractData: any = {
         // Personal info (core fields that should exist)
@@ -604,9 +574,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       if (contractInfo.buyout_price && contractInfo.lease_to_own_option) {
         contractData.buyout_price = parseFloat(contractInfo.buyout_price);
       }
-
-      console.log('📊 Contract data to save:', contractData);
-
       let result;
       if (mode === 'edit' && existingCustomer?.id) {
         // Update existing customer
@@ -627,26 +594,15 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
 
 
       if (result.error) {
-        console.error('❌ Error saving contract:', result.error);
-        console.error('Error details:', {
-          message: result.error.message,
-          details: result.error.details,
-          hint: result.error.hint,
-          code: result.error.code
-        });
-        console.error('Contract data that failed:', contractData);
         alert(`Error saving contract: ${result.error.message || 'Unknown error'}. Please check the console for details.`);
         return;
       }
-
-      console.log('✅ Contract saved successfully:', result.data);
       setLoading(false);
       onCreated(result.data);
       // Don't close the modal automatically - let user close it manually
       // This allows them to see the updated data and make more edits if needed
 
     } catch (error) {
-      console.error('❌ Error in handleSubmit:', error);
       alert('Error saving contract. Please try again.');
       setLoading(false);
     }
@@ -657,7 +613,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
   const handleFileUpload = async (field: string, file: File) => {
     setUploading(true);
     try {
-      console.log(`📎 File upload for ${field}:`, file.name);
       // TODO: Implement actual file upload to Supabase Storage
       // Simulate upload delay
       await new Promise(resolve => setTimeout(resolve, 1000));

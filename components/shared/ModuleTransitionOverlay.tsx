@@ -28,16 +28,12 @@ export default function ModuleTransitionOverlay() {
     const handleTransition = (e: CustomEvent) => {
       // Prevent multiple simultaneous transitions
       if (isTransitioning.current) {
-        console.log('⏸️ Transition already in progress, ignoring');
         return;
       }
       
       isTransitioning.current = true;
 
       const { cardRect, gradient, lottieData } = e.detail;
-      
-      console.log('🎬 Starting module transition');
-      
       setTransition({
         isActive: true,
         cardRect,
@@ -53,8 +49,6 @@ export default function ModuleTransitionOverlay() {
 
       // Fallback: If module doesn't signal completion within 5 seconds, hide anyway
       const fallbackTimer = setTimeout(() => {
-        console.warn('⚠️ Module transition timeout (5s) - forcing completion');
-        
         // Hide immediately on timeout
         setTransition({
           isActive: false,
@@ -71,8 +65,6 @@ export default function ModuleTransitionOverlay() {
     };
 
     const handleModuleLoaded = () => {
-      console.log('✅ Module visible - hiding transition immediately');
-      
       // Clear fallback timer if it exists
       if ((window as any).__transitionFallbackTimer) {
         clearTimeout((window as any).__transitionFallbackTimer);

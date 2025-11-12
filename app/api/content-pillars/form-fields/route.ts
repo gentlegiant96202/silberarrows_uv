@@ -39,7 +39,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -68,7 +67,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -77,8 +75,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log('Updating form fields:', body);
-
     const { id, titleFontSize, imageFit, imageAlignment, imageZoom, imageVerticalPosition } = body;
     
     // Validate user has edit permission
@@ -100,13 +96,7 @@ export async function PUT(req: NextRequest) {
     if (imageVerticalPosition !== undefined) updateData.imageVerticalPosition = imageVerticalPosition;
     
     updateData.updated_at = new Date().toISOString();
-
-    console.log('Form fields update data:', updateData);
-    console.log('Content pillar ID:', id);
-
     // Use direct Supabase update instead of raw SQL
-    console.log('Updating form fields with data:', updateData);
-    
     const { data, error } = await supabaseAdmin
       .from('content_pillars')
       .update(updateData)
@@ -115,16 +105,11 @@ export async function PUT(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error updating form fields:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       return NextResponse.json({ error: error.message, details: error }, { status: 500 });
     }
-
-    console.log('Form fields updated successfully:', data);
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error updating form fields:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

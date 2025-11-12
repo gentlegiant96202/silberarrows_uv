@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
       .limit(10); // Process 10 at a time
 
     if (queueError) {
-      console.error('Queue fetch error:', queueError);
       return NextResponse.json({ error: 'Queue fetch failed' }, { status: 500 });
     }
 
@@ -86,8 +85,6 @@ export async function POST(request: NextRequest) {
         }
 
       } catch (itemError) {
-        console.error(`Error processing car ${item.car_id}:`, itemError);
-        
         // Mark as failed
         await supabase
           .from('car_image_queue')
@@ -124,7 +121,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Queue processing error:', error);
     return NextResponse.json({ 
       error: 'Queue processing failed', 
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -169,7 +165,6 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Manual queue error:', error);
     return NextResponse.json({ 
       error: 'Failed to queue car for image generation' 
     }, { status: 500 });

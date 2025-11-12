@@ -620,11 +620,6 @@ ${fontFaceCSS}
             <ul class="features-list">
               ${(() => {
                 let equipmentText = formData.features?.join(', ') || 'Premium Interior Package, Advanced Driver Assistance, Panoramic Sunroof, AMG Styling Package, Leather Seats, Navigation System, Bluetooth Connectivity, Cruise Control, Parking Sensors, Automatic Climate Control, Keyless Entry, Power Windows, Electric Mirrors, Heated Seats, Premium Sound System, AMG Performance Package, Burmester Sound System, Ambient Lighting, Memory Seats, Wireless Charging, Head-Up Display, 360° Camera, Lane Keeping Assist, Blind Spot Monitoring, Adaptive Cruise Control';
-                
-                console.log('Key Equipment Text:', equipmentText);
-                console.log('Contains newline?', equipmentText.includes('\n'));
-                console.log('Contains arrow?', equipmentText.includes('↵'));
-                
                 // Handle different formats of equipment data
                 let allEquipment = [];
                 
@@ -652,15 +647,9 @@ ${fontFaceCSS}
                   .filter(item => item !== '') // Remove empty strings
                   .filter(item => item.match(/[A-Za-z]/)) // Must contain at least one letter
                   .filter(item => !item.match(/^[A-Z]{1,2}$/)); // Remove single/double letter abbreviations only
-                
-                console.log('Processed Equipment:', allEquipment);
-                
                 // Shuffle and pick 10 random items (reduced from 13)
                 const shuffled = [...allEquipment].sort(() => 0.5 - Math.random());
                 const selectedEquipment = shuffled.slice(0, 10);
-                
-                console.log('Selected Equipment:', selectedEquipment);
-                
                 return selectedEquipment.map(item => `<li>${item}</li>`).join('');
               })()}
             </ul>

@@ -49,7 +49,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -70,7 +69,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -78,24 +76,15 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 // GET - Fetch all tech tips tuesday items
 export async function GET(req: NextRequest) {
   try {
-    console.log('🔍 API: Fetching tech tips tuesday items...');
-    
     // Validate user has view permission
     const authResult = await validateUserPermissions(req, 'view');
     if (authResult.error) {
-      console.log('❌ API: Auth error:', authResult.error);
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-
-    console.log('✅ API: Auth validated, user ID:', authResult.user?.id);
-
     // Get query parameters for filtering
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const marketingStatus = searchParams.get('marketing_status');
-
-    console.log('📋 API: Query params - status:', status, 'marketing_status:', marketingStatus);
-
     let query = supabaseAdmin
       .from('tech_tips_tuesday')
       .select('*')
@@ -114,15 +103,10 @@ export async function GET(req: NextRequest) {
     const { data: items, error } = await query;
 
     if (error) {
-      console.error('❌ API: Error fetching tech tips tuesday items:', error);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
-
-    console.log('📦 API: Fetched items count:', items?.length || 0);
-    console.log(`✅ API: Successfully fetched ${items.length} tech tips tuesday items`);
     return NextResponse.json(items);
   } catch (error: any) {
-    console.error('Error in GET /api/tech-tips-tuesday:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
@@ -131,8 +115,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log('Creating tech tips tuesday item:', body);
-
     // Validate user has create permission
     const authResult = await validateUserPermissions(req, 'create');
     if (authResult.error) {
@@ -160,9 +142,6 @@ export async function POST(req: NextRequest) {
       imageZoom, 
       imageVerticalPosition 
     } = body;
-    
-    console.log('📝 Extracted fields:', { title, subtitle, problem, solution, badge_text });
-
     // Validate and sanitize media files
     const sanitizedMediaFiles = Array.isArray(media_files) ? media_files.filter(file => 
       file && typeof file === 'object' && file.url && file.name
@@ -203,16 +182,6 @@ export async function POST(req: NextRequest) {
     if (imageAlignment !== undefined) itemData.imagealignment = imageAlignment;
     if (imageZoom !== undefined) itemData.imagezoom = imageZoom;
     if (imageVerticalPosition !== undefined) itemData.imageverticalposition = imageVerticalPosition;
-    
-    console.log('📊 Media files validation:', {
-      original_count: media_files?.length || 0,
-      sanitized_count: sanitizedMediaFiles.length,
-      template_a_count: sanitizedMediaFilesA?.length || 0,
-      template_b_count: sanitizedMediaFilesB?.length || 0
-    });
-
-    console.log('Tech tips tuesday item data to insert:', itemData);
-
     const { data, error } = await supabaseAdmin
       .from('tech_tips_tuesday')
       .insert([itemData])
@@ -220,14 +189,10 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating tech tips tuesday item:', error);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
-
-    console.log('✅ Successfully created tech tips tuesday item:', data);
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
-    console.error('Error in POST /api/tech-tips-tuesday:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
@@ -236,8 +201,6 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log('Updating tech tips tuesday item:', body);
-
     const { 
       id, 
       title, 
@@ -306,9 +269,6 @@ export async function PUT(req: NextRequest) {
     if (imageAlignment !== undefined) updateData.imagealignment = imageAlignment;
     if (imageZoom !== undefined) updateData.imagezoom = imageZoom;
     if (imageVerticalPosition !== undefined) updateData.imageverticalposition = imageVerticalPosition;
-    
-    console.log('📝 PUT - Final updateData being sent to database:', updateData);
-
     const { data, error } = await supabaseAdmin
       .from('tech_tips_tuesday')
       .update(updateData)
@@ -317,14 +277,10 @@ export async function PUT(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error updating tech tips tuesday item:', error);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
-
-    console.log('✅ Successfully updated tech tips tuesday item:', data);
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('Error in PUT /api/tech-tips-tuesday:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
@@ -338,9 +294,6 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'Tech tips tuesday item ID is required' }, { status: 400 });
     }
-
-    console.log('Deleting tech tips tuesday item:', id);
-
     // Validate user has delete permission
     const authResult = await validateUserPermissions(req, 'delete');
     if (authResult.error) {
@@ -353,14 +306,10 @@ export async function DELETE(req: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting tech tips tuesday item:', error);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
-
-    console.log('✅ Successfully deleted tech tips tuesday item:', id);
     return NextResponse.json({ message: 'Tech tips tuesday item deleted successfully' });
   } catch (error: any) {
-    console.error('Error in DELETE /api/tech-tips-tuesday:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

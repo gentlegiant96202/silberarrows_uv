@@ -86,7 +86,6 @@ export default function IFRSCreditNoteModal({ isOpen, onClose, invoice, onCredit
           setNextCreditNoteNumber(data);
         }
       } catch (error) {
-        console.error("Error previewing next credit note number:", error);
         setNextCreditNoteNumber("CN-LE-XXXX");
       }
     };
@@ -141,7 +140,6 @@ export default function IFRSCreditNoteModal({ isOpen, onClose, invoice, onCredit
       onCreditNoteIssued();
       onClose();
     } catch (error) {
-      console.error("Error issuing credit note:", error);
       alert("Failed to issue credit note. Please try again.");
     } finally {
       setIssuing(false);

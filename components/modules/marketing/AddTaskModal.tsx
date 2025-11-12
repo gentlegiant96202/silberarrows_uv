@@ -106,8 +106,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
   };
 
   const convertPdfOnServer = async (file: File, taskId: string) => {
-    console.log('📄 Starting server-side PDF conversion for:', file.name);
-
     const ext = file.name.split('.').pop() || 'pdf';
     const pdfFileName = `${crypto.randomUUID()}.${ext}`;
     const pdfPath = `${taskId}/pdf/${pdfFileName}`;
@@ -155,7 +153,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       .remove([pdfPath]);
 
     if (removeError) {
-      console.warn('Unable to remove temporary PDF after conversion:', removeError);
     }
 
     return pages.map((page: any) => {
@@ -336,12 +333,10 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           .eq('id', task.id)
           .then(({ error }) => {
             if (error) {
-              console.error('Failed to update media files order:', error);
             }
           });
       }
     } catch (error) {
-      console.error('Error during drop:', error);
       setDraggedIndex(null);
     }
   };
@@ -370,7 +365,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
     if (task) {
       // Only reset the form and media if this is a different task
       if (task.id !== currentTaskId) {
-        console.log('🔄 AddTaskModal: Loading new task', task.id);
         setCurrentTaskId(task.id);
         setFormData({
           title: task.title || '',
@@ -383,10 +377,8 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         });
         setExistingMedia(task.media_files || []);
       } else {
-        console.log('🔄 AddTaskModal: Same task, keeping local state', task.id);
       }
     } else {
-      console.log('🔄 AddTaskModal: No task, clearing state');
       setCurrentTaskId(null);
       setExistingMedia([]);
     }
@@ -420,7 +412,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       
       return isWebP;
     } catch (error) {
-      console.warn('WebP detection failed:', error);
       return false;
     }
   };
@@ -428,15 +419,11 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
   // Generate thumbnail for different file types
   const generateThumbnail = async (file: File): Promise<string> => {
     if (file.type.startsWith('application/pdf')) {
-      console.log('📄 Skipping client-side PDF thumbnail generation for', file.name);
       return '';
     }
 
     const useWebP = supportsWebP();
     const quality = 0.8;
-    
-    console.log(`📸 Generating thumbnail with ${useWebP ? 'WebP' : 'JPEG'} format for:`, file.name);
-
     return new Promise((resolve, reject) => {
       if (file.type.startsWith('image/')) {
         // Handle images - resize and compress
@@ -527,12 +514,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
             }
             
             const avgBrightness = totalBrightness / pixelCount;
-            console.log('📸 Frame average brightness:', avgBrightness.toFixed(2));
-            
             // Consider it a black frame if average brightness is very low
             return avgBrightness < 15;
           } catch (error) {
-            console.warn('📸 Could not analyze frame brightness:', error);
             return false;
           }
         };
@@ -540,31 +524,22 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         const tryNextSeekTime = () => {
           seekAttempt++;
           if (seekAttempt >= seekTimes.length) {
-            console.warn('📸 All seek times exhausted, using current frame');
             return false;
           }
           
           const nextSeekTime = seekTimes[seekAttempt];
           if (nextSeekTime >= video.duration) {
-            console.log('📸 Seek time', nextSeekTime, 'beyond video duration', video.duration);
             return tryNextSeekTime(); // Try next time
           }
-          
-          console.log('📸 Trying next seek time:', nextSeekTime);
           video.currentTime = nextSeekTime;
           return true;
         };
 
         const onMetadataLoaded = () => {
-          console.log('📸 Video metadata loaded, seeking to first frame');
           // Set canvas size to video dimensions (scaled down)
           const maxSize = 300;
           let { videoWidth: width, videoHeight: height } = video;
-          
-          console.log('📸 Video dimensions:', { videoWidth: width, videoHeight: height, duration: video.duration });
-          
           if (width === 0 || height === 0) {
-            console.error('📸 Invalid video dimensions');
             rejectOnce(new Error('Invalid video dimensions'));
             return;
           }
@@ -586,43 +561,29 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           
           // Start with first seek time (0.05 seconds as requested)
           const seekTime = seekTimes[0];
-          console.log('📸 Seeking to time:', seekTime, 'of', video.duration);
           video.currentTime = seekTime;
         };
 
         const onSeeked = () => {
-          console.log('📸 Video seeked to first frame, capturing thumbnail');
           try {
             // Draw the current video frame to canvas
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
             // Check if this is a black frame and we should try a different time
             if (isBlackFrame(ctx, canvas) && tryNextSeekTime()) {
-              console.log('📸 Black frame detected, trying different seek time');
               return; // Will trigger another seeked event
             }
             
             // Convert to data URL
             const format = useWebP ? 'image/webp' : 'image/jpeg';
             const dataURL = canvas.toDataURL(format, quality);
-            
-            console.log('📸 Video thumbnail generated successfully', {
-              dataURLLength: dataURL.length,
-              dataURLPreview: dataURL.substring(0, 50) + '...',
-              canvasSize: `${canvas.width}x${canvas.height}`,
-              videoSize: `${video.videoWidth}x${video.videoHeight}`,
-              seekTime: video.currentTime,
-              attemptNumber: seekAttempt + 1
-            });
             resolveOnce(dataURL);
           } catch (error) {
-            console.error('📸 Error capturing video frame:', error);
             rejectOnce(new Error('Failed to capture video frame'));
           }
         };
 
         const onError = (error: any) => {
-          console.error('📸 Video error:', error);
           rejectOnce(new Error('Failed to load video for thumbnail'));
         };
 
@@ -633,7 +594,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
 
         // Timeout after 10 seconds
         timeoutId = setTimeout(() => {
-          console.error('📸 Video thumbnail generation timeout');
           rejectOnce(new Error('Video thumbnail generation timeout'));
         }, 10000);
 
@@ -656,7 +616,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         try {
           // If PDF, defer conversion to server-side flow
           if (file.type === 'application/pdf') {
-            console.log('📄 PDF detected, deferring to server-side conversion:', file.name);
             filesWithThumbnails.push({
               file,
               thumbnail: '',
@@ -668,9 +627,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           }
           
           // Normal file thumbnail generation
-          console.log('🎬 Starting thumbnail generation for:', file.name, 'type:', file.type);
           const thumbnail = await generateThumbnail(file);
-          console.log('✅ Thumbnail generated for:', file.name, 'length:', thumbnail.length);
           filesWithThumbnails.push({
             file,
             thumbnail,
@@ -679,8 +636,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
             uploaded: false
           });
         } catch (error) {
-          console.error('Error generating thumbnail:', error);
-          console.log('❌ Thumbnail generation failed for:', file.name, 'using empty thumbnail');
           filesWithThumbnails.push({
             file,
             thumbnail: '',
@@ -700,7 +655,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         await uploadFilesToStorageImmediate(currentTaskId, filesWithThumbnails, currentLength, null);
       } else {
         // For new tasks, create a draft task first so we can upload files immediately
-        console.log('🆕 Creating draft task for immediate file upload...');
         await createDraftTaskForUpload(filesWithThumbnails, currentLength);
       }
     }
@@ -708,13 +662,10 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
 
   // Upload files immediately when selected (for existing tasks)
   const uploadFilesToStorageImmediate = async (taskId: string, filesToUpload: FileWithThumbnail[], startIndex: number, savedTaskData?: any) => {
-    console.log('uploadFilesToStorageImmediate called with:', { taskId, fileCount: filesToUpload.length, startIndex });
-    
     let currentMedia: any[] = [];
     
     if (savedTaskData) {
       // Use saved task data for newly created tasks (avoid database timing issues)
-      console.log('Using saved task data for media_files:', savedTaskData.media_files);
       currentMedia = savedTaskData.media_files || [];
     } else {
       // Query database for existing tasks
@@ -725,20 +676,15 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         .single();
 
       if (!existing) {
-        console.error('Task not found:', taskId);
         return;
       }
       currentMedia = existing?.media_files || [];
     }
     const newMedia: any[] = [];
-
-    console.log('Setting uploading state for files starting at index', startIndex);
-
     // Update files to uploading state
     setSelectedFiles(prev => {
       const updated = prev.map((f, idx) => {
         if (idx >= startIndex) {
-          console.log(`Setting file ${idx} (${f.file.name}) to uploading`);
           return { ...f, uploading: true, uploadProgress: 0 };
         }
         return f;
@@ -757,8 +703,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       const fileWithThumbnail = filesToUpload[i];
       const file = fileWithThumbnail.file;
       const globalIndex = startIndex + i;
-      console.log(`Processing file ${i + 1}/${filesToUpload.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-      
       if (file.type === 'application/pdf') {
         try {
           setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 15 } : f));
@@ -775,10 +719,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
             uploaded: true,
             thumbnail: firstThumbnail
           } : f));
-
-          console.log('✅ Server-side PDF conversion completed:', file.name, 'pages:', convertedPages.length);
         } catch (error) {
-          console.error('❌ Server-side PDF conversion failed:', error);
           setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? {
             ...f,
             error: error instanceof Error ? error.message : 'PDF conversion failed',
@@ -798,8 +739,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         }
         
         // Always use direct Supabase upload for all files
-        console.log('📤 Using direct Supabase upload for file:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-        
         const ext = file.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${ext}`;
         const storagePath = `${taskId}/${fileName}`;
@@ -832,7 +771,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           clearInterval(progressInterval);
           
           if (upErr) {
-            console.error('📤 Supabase upload error:', upErr);
             throw new Error(upErr.message);
           }
           
@@ -849,8 +787,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           const url = rawUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
           
           publicUrl = url;
-          console.log('📤 Direct Supabase upload completed:', publicUrl);
-          
         } catch (error) {
           clearInterval(progressInterval);
           throw error;
@@ -869,11 +805,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         newMedia.push(newMediaItem);
         
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { ...f, uploadProgress: 100, uploading: false, uploaded: true } : f));
-        
-        console.log('✅ File upload completed:', file.name);
-        
       } catch (error) {
-        console.error('❌ Upload error for file', file.name, ':', error);
         setSelectedFiles(prev => prev.map((f, idx) => idx === globalIndex ? { 
           ...f, 
           error: error instanceof Error ? error.message : 'Upload failed', 
@@ -891,14 +823,12 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
 
     // Update database with all new media
     if (newMedia.length) {
-      console.log('Updating database with', newMedia.length, 'new files');
       const updatedArray = [...currentMedia, ...newMedia];
       const { error: updErr } = await supabase
         .from('design_tasks')
         .update({ media_files: updatedArray })
         .eq('id', taskId);
       if (updErr) {
-        console.error('Error updating media_files:', updErr);
       } else {
         // Update existing media in local state to reflect database
         setExistingMedia(updatedArray);
@@ -914,7 +844,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
             previewUrl 
           };
           onTaskUpdate(updatedTask);
-          console.log('✅ Notified parent of task update with new media files and preview:', previewUrl);
         }
       }
     }
@@ -934,46 +863,33 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         task_type: formData.task_type || 'design',
         description: formData.description || '',
       };
-
-      console.log('📝 Creating draft task with data:', draftTaskData);
       const savedTask = await onSave(draftTaskData);
       
       if (savedTask?.id) {
-        console.log('✅ Draft task created:', savedTask.id, 'now uploading files...');
-        
         // Update local state to treat this as an existing task
         setCurrentTaskId(savedTask.id);
         
         // Upload files immediately to the new task
         await uploadFilesToStorageImmediate(savedTask.id, filesWithThumbnails, startIndex, savedTask);
-        console.log('🎉 Files uploaded to draft task successfully!');
       }
     } catch (error) {
-      console.error('❌ Error creating draft task for upload:', error);
     }
   };
 
   // Upload remaining files when creating new task
   const uploadFilesToStorage = async (taskId: string, savedTaskData?: any) => {
-    console.log('📤 uploadFilesToStorage called with taskId:', taskId);
-    console.log('📁 Total selectedFiles:', selectedFiles.length);
     const filesToUpload = selectedFiles.filter(f => !f.uploaded);
-    console.log('📋 Files to upload:', filesToUpload.length);
-    
     if (!filesToUpload.length) {
-      console.log('⚠️ No files to upload, returning early');
       return;
     }
 
     // Find the start index of unuploaded files
     const startIndex = selectedFiles.findIndex(f => !f.uploaded);
-    console.log('🎯 Start index for upload:', startIndex);
     await uploadFilesToStorageImmediate(taskId, filesToUpload, startIndex >= 0 ? startIndex : 0, savedTaskData);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🚀 handleSubmit called with selectedFiles:', selectedFiles.length);
     setLoading(true);
 
     try {
@@ -993,15 +909,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       if (task) {
         taskData.id = task.id;
       }
-
-      console.log('AddTaskModal - Form data:', formData);
-      console.log('AddTaskModal - Sending task data:', taskData);
-
       const savedTask = await onSave(taskData);
 
       // Files are already uploaded via the draft task creation process
-      console.log('✅ Task saved successfully:', savedTask?.id);
-      console.log('📁 Final media files:', savedTask?.media_files?.length || 0);
       // Close modal on successful save (after upload completes)
       if (savedTask) {
         onClose();
@@ -1021,7 +931,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         setSelectedFiles([]);
       }
     } catch (error) {
-      console.error('Error saving task:', error);
     } finally {
       setLoading(false);
     }
@@ -1036,7 +945,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         await onDelete(task.id);
         onClose();
       } catch (error) {
-        console.error('Error deleting task:', error);
       } finally {
         setDeleting(false);
       }
@@ -1108,7 +1016,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           processedFiles++;
           
         } catch (error) {
-          console.error(`Error downloading file ${fileName}:`, error);
           // Continue with other files
         }
       }
@@ -1130,11 +1037,7 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
-      console.log(`✅ Successfully created ZIP with ${processedFiles}/${totalFiles} files`);
-      
     } catch (error) {
-      console.error('Error creating ZIP file:', error);
       alert('Failed to create ZIP file');
     } finally {
       setDownloading(false);
@@ -1162,7 +1065,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
 
   const handleDeleteExistingFile = async (file: any, index: number) => {
     if (!task?.id) return;
-    console.log('🗑️ AddTaskModal: Deleting file', file.name, 'at index', index);
     // Remove confirm dialog if you want instant delete, or keep if you want confirmation
     // const confirmDelete = confirm('Are you sure you want to delete this file?');
     // if (!confirmDelete) return;
@@ -1189,7 +1091,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           .from('media-files')
           .remove(filesToDeleteFromStorage);
         if (storageError) {
-          console.error('Storage deletion error:', storageError);
         }
       }
       // Remove from local state using original file URL for comparison
@@ -1198,8 +1099,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         return currentOriginalUrl !== originalFileUrl;
       });
       setExistingMedia(updatedMedia);
-      console.log('🗑️ AddTaskModal: Updated media count:', updatedMedia.length);
-
       // Immediately notify parent component with local optimistic update
       if (onTaskUpdate && task) {
         const previewUrlImmediate = getPreviewUrl(updatedMedia);
@@ -1210,7 +1109,6 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
           _optimistic: true,
         } as any;
         onTaskUpdate(optimisticTask);
-        console.log('🚀 Sent optimistic task update after local deletion, preview:', previewUrlImmediate);
       }
       // Force refresh of computed arrays
       setRefreshKey(prev => prev + 1);
@@ -1220,12 +1118,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
         .update({ media_files: updatedMedia })
         .eq('id', task.id);
       if (dbError) {
-        console.error('Database update error:', dbError);
         // Revert local state if database update failed
         setExistingMedia(existingMedia);
       } else {
-        console.log('🗑️ AddTaskModal: Database updated successfully');
-        
         // Notify parent component of the updated task with new media files
         if (onTaskUpdate && task) {
           // Calculate preview URL for the updated task
@@ -1238,11 +1133,9 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
             previewUrl 
           };
           onTaskUpdate(updatedTask);
-          console.log('✅ Notified parent of task update after file deletion, new preview:', previewUrl);
         }
       }
     } catch (error) {
-      console.error('Delete error:', error);
     }
   };
 
@@ -1452,22 +1345,18 @@ export default function AddTaskModal({ task, onSave, onClose, onDelete, onTaskUp
                           <div className="flex-shrink-0 w-10 h-10 rounded overflow-hidden bg-white/5 flex items-center justify-center">
                             {thumbnail ? (
                               <>
-                                {console.log('🖼️ Displaying thumbnail for', file.name, 'thumbnail length:', thumbnail.length, 'preview:', thumbnail.substring(0, 50))}
                                 <img 
                                   src={thumbnail} 
                                   alt={file.name}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
-                                    console.error('🚨 Thumbnail image failed to load for', file.name, 'src:', thumbnail.substring(0, 100));
                                   }}
                                   onLoad={() => {
-                                    console.log('✅ Thumbnail image loaded successfully for', file.name);
                                   }}
                                 />
                               </>
                             ) : (
                               <>
-                                {console.log('❌ No thumbnail for', file.name, 'showing file icon instead')}
                                 {getFileIcon(file)}
                               </>
                             )}

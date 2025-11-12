@@ -101,7 +101,6 @@ const AnnotationOverlay: React.FC<AnnotationOverlayProps> = ({
         svgHeight: (viewBoxHeight ?? rect?.height ?? 0),
         pointerCoords: pointerCoords,
       };
-      console.log('🎨 AnnotationOverlay sending pointer coords:', pointerCoords);
       onSave(payload);
       // Clear everything immediately to prevent glitches
       setCurrentPath('');

@@ -233,7 +233,6 @@ export default function ServiceDataGrid({
         await onRefresh();
       }
     } catch (error) {
-      console.error('Failed to save row:', error);
     } finally {
       setSavingRows(prev => {
         const newSet = new Set(prev);
@@ -272,7 +271,6 @@ export default function ServiceDataGrid({
         }
       }
     } catch (error) {
-      console.error('Error deleting row:', error);
       // For saved rows that failed to delete, restore via refresh
       if (!row.isNew) {
         await onRefresh();
@@ -450,7 +448,6 @@ export default function ServiceDataGrid({
               row[header] = numValue;
             } else if (value && value.trim() !== '') {
               // If value exists but isn't a number, set to 0
-              console.warn(`Could not parse numeric value for ${header}: "${value}" -> cleaned to "${cleanValue}"`);
               row[header] = 0;
             }
           }
@@ -469,7 +466,6 @@ export default function ServiceDataGrid({
       setCsvData(data);
       alert(`Successfully parsed ${data.length} rows from CSV`);
     } catch (error) {
-      console.error('Error parsing CSV:', error);
       alert('Error parsing CSV file. Please ensure it is properly formatted.');
     }
   };
@@ -503,7 +499,6 @@ export default function ServiceDataGrid({
           errorCount++;
         }
       } catch (error) {
-        console.error('Error importing row:', row, error);
         errorCount++;
       }
     }

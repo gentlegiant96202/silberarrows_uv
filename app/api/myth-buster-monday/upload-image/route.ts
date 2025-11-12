@@ -30,9 +30,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log(`Uploading image: ${file.name} (${file.size} bytes) for myth buster: ${mythBusterId}`);
-
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -41,9 +38,6 @@ export async function POST(req: NextRequest) {
     const ext = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${ext}`;
     const filePath = `myth-buster-monday/${mythBusterId || 'temp'}/${fileName}`;
-
-    console.log(`Uploading to path: ${filePath}`);
-
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('media-files')
@@ -54,7 +48,6 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError);
       return NextResponse.json(
         { error: `Upload failed: ${uploadError.message}` },
         { status: 500 }
@@ -65,9 +58,6 @@ export async function POST(req: NextRequest) {
     const { data: { publicUrl } } = supabase.storage
       .from('media-files')
       .getPublicUrl(filePath);
-
-    console.log(`Image uploaded successfully: ${publicUrl}`);
-
     return NextResponse.json({
       success: true,
       url: publicUrl,
@@ -78,7 +68,6 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

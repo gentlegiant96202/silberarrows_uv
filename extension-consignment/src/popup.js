@@ -15,8 +15,6 @@ const logoImage = document.getElementById('logoImage');
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('Consignment Creator popup loaded');
-  
   // Set the logo image URL using Chrome extension API
   if (logoImage) {
     logoImage.src = chrome.runtime.getURL('icons/main-logo.png');
@@ -26,7 +24,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSettings();
     setupEventListeners();
   } catch (error) {
-    console.error('Failed to initialize popup:', error);
     showStatus('Failed to initialize extension', 'error');
   }
 });
@@ -43,12 +40,10 @@ async function loadSettings() {
     const response = await chrome.runtime.sendMessage({ action: 'getSettings' });
     if (response.success) {
       extensionSettings = response.settings;
-      console.log('Settings loaded:', extensionSettings);
     } else {
       throw new Error(response.error || 'Failed to load settings');
     }
   } catch (error) {
-    console.error('Error loading settings:', error);
     throw error;
   }
 }
@@ -75,9 +70,7 @@ async function handleExtractData() {
         target: { tabId: tab.id },
         files: ['src/content.js']
       });
-      console.log('Content script injected successfully');
     } catch (injectError) {
-      console.warn('Could not inject content script:', injectError);
       // Continue anyway, the script might already be there
     }
     
@@ -89,8 +82,6 @@ async function handleExtractData() {
     try {
       response = await chrome.tabs.sendMessage(tab.id, { action: 'extractCarData' });
     } catch (messageError) {
-      console.warn('Message sending failed, trying direct extraction:', messageError);
-      
       // Fallback: Try to extract data directly via scripting
       try {
         const results = await chrome.scripting.executeScript({
@@ -104,7 +95,6 @@ async function handleExtractData() {
           throw new Error('Direct extraction failed');
         }
       } catch (directError) {
-        console.error('Direct extraction also failed:', directError);
         throw new Error('Could not extract car data. Please refresh the page and try again.');
       }
     }
@@ -127,8 +117,6 @@ async function handleExtractData() {
     createBtn.style.display = 'block';
     
   } catch (error) {
-    console.error('Error extracting car data:', error);
-    
     // Provide more helpful error messages
     let errorMessage = error.message;
     if (error.message.includes('Could not establish connection')) {
@@ -185,8 +173,6 @@ async function handleCreateConsignment() {
     }, 3000);
     
   } catch (error) {
-    console.error('Error creating consignment:', error);
-    
     // Special handling for API not available
     if (error.message.includes('API endpoint not available')) {
       showStatus('⏳ API is being deployed. Please try again in 2-3 minutes.', 'error');
@@ -241,10 +227,6 @@ async function extractCarDataDirectly() {
       extracted_at: new Date().toISOString(),
       site_domain: window.location.hostname.replace('www.', '')
     };
-    
-    console.log('🌐 Full listing URL:', data.listing_url);
-    console.log('🌐 Site domain:', data.site_domain);
-
     // Extract title/model - Updated for Dubizzle structure
     const titleSelectors = [
       'h1', // Main title element
@@ -345,15 +327,9 @@ async function extractCarDataDirectly() {
         button.textContent.includes('Phone')
       )
     );
-    
-    console.log('📞 Found buttons:', showNumberButtons.length);
-    console.log('📞 Button texts:', showNumberButtons.map(b => b.textContent.trim()));
-    
     if (showNumberButtons.length > 0) {
       // Try to click the first "Show Number" button
       try {
-        console.log('🖱️ Clicking button:', showNumberButtons[0].textContent);
-        
         // Scroll button into view first
         showNumberButtons[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
         
@@ -364,12 +340,9 @@ async function extractCarDataDirectly() {
         showNumberButtons[0].click();
         
         // Wait longer for the modal to appear
-        console.log('⏳ Waiting for modal to appear...');
         await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Look for phone number in modal that appeared
-        console.log('🔍 Looking for modal after button click...');
-        
         // Wait a bit more for modal to fully load
         await new Promise(resolve => setTimeout(resolve, 1000));
         
@@ -394,20 +367,12 @@ async function extractCarDataDirectly() {
         // Check all modal selectors
         for (const modalSelector of modalSelectors) {
           const modals = document.querySelectorAll(modalSelector);
-          console.log(`🔍 Checking selector "${modalSelector}": found ${modals.length} elements`);
-          
           for (const modal of modals) {
             if (modal && modal.textContent) {
-              console.log('🔍 Found modal with selector:', modalSelector);
-              console.log('📄 Modal content preview:', modal.textContent.substring(0, 300) + '...');
-              
               // Look for phone number with more comprehensive regex
               const phoneRegex = /(\+971|971|0)?[5-9][0-9]{7,8}/g;
               const modalText = modal.textContent;
               const phoneMatches = modalText.match(phoneRegex);
-              
-              console.log('📞 Phone matches in modal:', phoneMatches);
-              
               if (phoneMatches && phoneMatches.length > 0) {
                 const validPhone = phoneMatches.find(match => {
                   const cleanPhone = match.replace(/[^\d]/g, '');
@@ -415,7 +380,6 @@ async function extractCarDataDirectly() {
                 });
                 if (validPhone) {
                   data.phone_number = validPhone.replace(/[^\d]/g, '');
-                  console.log('✅ Phone found in modal:', data.phone_number);
                   foundModal = true;
                   break;
                 }
@@ -427,12 +391,8 @@ async function extractCarDataDirectly() {
         
         // If no modal found, look for any new content that appeared
         if (!foundModal) {
-          console.log('🔍 No modal found, looking for any new content...');
-          
           // Look for any element that might contain the phone number
           const allElements = document.querySelectorAll('*');
-          console.log(`🔍 Checking ${allElements.length} elements for phone numbers...`);
-          
           for (const element of allElements) {
             if (element.textContent && element.textContent.length < 1000) { // Only check elements with reasonable text length
               const text = element.textContent;
@@ -440,14 +400,12 @@ async function extractCarDataDirectly() {
               const phoneMatches = text.match(phoneRegex);
               
               if (phoneMatches && phoneMatches.length > 0) {
-                console.log('📞 Found phone in element:', element.tagName, element.className, text.substring(0, 100));
                 const validPhone = phoneMatches.find(match => {
                   const cleanPhone = match.replace(/[^\d]/g, '');
                   return cleanPhone.length >= 9 && cleanPhone.length <= 12;
                 });
                 if (validPhone) {
                   data.phone_number = validPhone.replace(/[^\d]/g, '');
-                  console.log('✅ Phone found in element:', data.phone_number);
                   foundModal = true;
                   break;
                 }
@@ -457,7 +415,6 @@ async function extractCarDataDirectly() {
         }
         
       } catch (error) {
-        console.log('Could not click show number button:', error);
       }
     }
 
@@ -544,12 +501,9 @@ async function extractCarDataDirectly() {
     if (yearMatch) {
       data.year = yearMatch[0];
     }
-
-    console.log('Direct extraction result:', data);
     return data;
 
   } catch (error) {
-    console.error('Error in direct extraction:', error);
     return {
       vehicle_model: '',
       asking_price: null,

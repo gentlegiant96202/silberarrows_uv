@@ -15,13 +15,10 @@ const supabaseAdmin = createClient(
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔄 Server: Fetching user metadata...');
-
     // Get all users with their metadata
     const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
     if (error) {
-      console.error('❌ Server: Failed to fetch user metadata:', error);
       return NextResponse.json(
         { error: `Failed to fetch user metadata: ${error.message}` },
         { status: 500 }
@@ -34,15 +31,11 @@ export async function GET(request: NextRequest) {
       full_name: user.user_metadata?.full_name || null,
       email: user.email
     }));
-
-    console.log(`✅ Server: Successfully fetched metadata for ${userMetadata.length} users`);
-
     return NextResponse.json({ 
       users: userMetadata 
     });
 
   } catch (error: any) {
-    console.error('❌ Server: Error in get-users-metadata API:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

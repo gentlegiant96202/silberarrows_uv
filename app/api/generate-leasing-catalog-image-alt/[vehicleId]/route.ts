@@ -67,10 +67,6 @@ export async function POST(
 
     // Call Railway renderer service to generate alt catalog image
     const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
-    
-    console.log('🔄 Calling Railway renderer service (ALT) at:', rendererUrl);
-    console.log('📊 Vehicle details:', vehicleDetails);
-    
     const renderResponse = await fetch(`${rendererUrl}/render-leasing-catalog-alt`, {
       method: 'POST',
       headers: {
@@ -80,12 +76,8 @@ export async function POST(
         carDetails: vehicleDetails,
       }),
     });
-
-    console.log('📊 Render response status:', renderResponse.status);
-
     if (!renderResponse.ok) {
       const errorText = await renderResponse.text();
-      console.error('❌ Renderer service error:', errorText);
       return NextResponse.json({ 
         error: 'Failed to generate alt catalog image',
         details: `Renderer service returned ${renderResponse.status}: ${errorText}`,
@@ -117,7 +109,6 @@ export async function POST(
       });
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError);
       return NextResponse.json({ 
         error: 'Failed to save generated image',
         details: uploadError.message 
@@ -141,8 +132,6 @@ export async function POST(
       .eq('vehicle_id', vehicleId);
 
     if (catalogUpdateError) {
-      console.error('❌ CRITICAL: Leasing catalog update error:', catalogUpdateError);
-      console.error('❌ Database update failed for vehicle:', vehicleId, 'with URL:', updatedPublicUrl);
       return NextResponse.json({ 
         error: 'Failed to update catalog database',
         details: catalogUpdateError.message,
@@ -159,7 +148,6 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Error generating alt catalog image:', error);
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'

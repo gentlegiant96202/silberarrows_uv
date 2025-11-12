@@ -192,19 +192,7 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
 
   // Sync form when existingVehicle or mode changes (for edit mode ONLY)
   useEffect(() => {
-    console.log('🔄 useEffect triggered - isOpen:', isOpen, 'mode:', mode, 'existingVehicle:', !!existingVehicle);
     if (isOpen && mode === 'edit' && existingVehicle) {
-      console.log('🔍 Loading existing vehicle data for ID:', existingVehicle.id);
-      console.log('🔍 Full existingVehicle object:', existingVehicle);
-      console.log('🔍 Specific fields:', {
-        vehicle_model: existingVehicle.vehicle_model,
-        model_family: existingVehicle.model_family,
-        colour: existingVehicle.colour,
-        interior_colour: existingVehicle.interior_colour,
-        chassis_number: existingVehicle.chassis_number,
-        description: existingVehicle.description
-      });
-      
       const newForm = {
         // Basic vehicle info
         stock_number: existingVehicle.stock_number || "",
@@ -287,16 +275,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         remarks: existingVehicle.remarks || "",
         insurance_expiry_date: existingVehicle.insurance_expiry_date || "",
       };
-      
-      console.log('🔍 Setting form state to:', {
-        vehicle_model: newForm.vehicle_model,
-        model_family: newForm.model_family,
-        colour: newForm.colour,
-        interior_colour: newForm.interior_colour,
-        chassis_number: newForm.chassis_number,
-        description: newForm.description
-      });
-      
       setForm(newForm);
     }
   }, [isOpen, mode, existingVehicle]);
@@ -310,7 +288,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       
       // Reset form for create mode
       if (mode === 'create') {
-        console.log('🆕 Resetting form for create mode');
         setForm({
           // Basic vehicle info
           stock_number: "",
@@ -497,18 +474,9 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
   };
 
   const handleSave = async () => {
-    console.log('💾 Save button clicked - mode:', mode, 'existingVehicle:', !!existingVehicle);
     if (mode !== 'edit' || !existingVehicle) {
-      console.log('❌ Save blocked - mode:', mode, 'existingVehicle:', !!existingVehicle);
       return;
     }
-    
-    console.log('💾 Starting save process...', {
-      excess_mileage_charges: form.excess_mileage_charges,
-      monthly_lease_rate: form.monthly_lease_rate,
-      security_deposit: form.security_deposit,
-      buyout_price: form.buyout_price
-    });
     setSaving(true);
     setErrors([]);
 
@@ -568,20 +536,16 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         .single();
 
       if (error) {
-        console.error('Error updating vehicle:', error);
         setErrors([`Error updating vehicle: ${error.message}`]);
         return;
       }
 
       // Update the existing vehicle data
       const updatedVehicle = { ...existingVehicle, ...data };
-      console.log('✅ Vehicle saved successfully, calling onCreated callback');
       onCreated(updatedVehicle);
-      console.log('🔄 Setting editing to false');
       setEditing(false);
       
     } catch (error) {
-      console.error('Error saving vehicle:', error);
       setErrors([`Error saving vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`]);
     } finally {
       setSaving(false);
@@ -600,7 +564,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         .single();
       setDocs(data?.documents || []);
     } catch (error) {
-      console.error('Error fetching documents:', error);
     }
   };
 
@@ -625,7 +588,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         .eq('id', vehicleId);
 
       if (dbError) {
-        console.error('Error deleting document from database:', dbError);
         alert('Error deleting document from database');
         return;
       }
@@ -637,14 +599,12 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         .remove([path]);
 
       if (storageError) {
-        console.error('Error deleting document from storage:', storageError);
         // Don't show error to user since DB deletion succeeded
       }
 
       // Refresh documents list
       await refetchDocs();
     } catch (error) {
-      console.error('Error deleting document:', error);
       alert('Error deleting document');
     }
   };
@@ -659,19 +619,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
 
     try {
       const vehicleData = savedVehicle || existingVehicle;
-      console.log('🚗 Generating PDF for vehicle:', {
-        vehicleId,
-        vehicleData: {
-          id: vehicleData?.id,
-          make: vehicleData?.make,
-          vehicle_model: vehicleData?.vehicle_model,
-          model_year: vehicleData?.model_year,
-          colour: vehicleData?.colour,
-          stock_number: vehicleData?.stock_number,
-          photos: vehicleData?.photos?.length || 0
-        }
-      });
-
       const response = await fetch('/api/generate-vehicle-pdf', {
         method: 'POST',
         headers: {
@@ -682,18 +629,12 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
           vehicleData: vehicleData
         }),
       });
-
-      console.log('📄 PDF API Response status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ PDF API Error:', errorData);
         throw new Error(`Failed to generate PDF: ${errorData.error || 'Unknown error'}`);
       }
 
       const result = await response.json();
-      console.log('✅ PDF generated successfully:', result);
-      
       if (result.pdfUrl) {
         // Server-side upload complete - just update local state
         setPdfUrl(result.pdfUrl);
@@ -703,13 +644,11 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         setStatusMsg(`PDF generated successfully!${sizeInfo}`);
       } else {
         setStatusMsg('PDF generated but no URL returned. Check server logs.');
-        console.warn('⚠️ PDF generated but no pdfUrl returned.');
       }
       
       // Clear status message after 5 seconds
       setTimeout(() => setStatusMsg(''), 5000);
     } catch (error) {
-      console.error('❌ Error generating PDF:', error);
       setStatusMsg(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setGenerating(false);
@@ -730,15 +669,12 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       
       if (bucketIndex !== -1 && pathParts[bucketIndex + 1]) {
         const filePath = pathParts.slice(bucketIndex + 1).join('/');
-        console.log('🗑️ Deleting PDF from storage:', filePath);
-        
         // Delete from storage
         const { error: deleteError } = await supabase.storage
           .from('leasing')
           .remove([filePath]);
         
         if (deleteError) {
-          console.error('❌ Failed to delete PDF from storage:', deleteError);
           setStatusMsg('Failed to delete PDF from storage');
           return;
         }
@@ -753,10 +689,8 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
           .eq('id', vehicleId);
         
         if (updateError) {
-          console.error('❌ Failed to update database:', updateError);
           setStatusMsg('PDF deleted but database not updated');
         } else {
-          console.log('✅ PDF deleted successfully');
           setStatusMsg('PDF deleted successfully');
         }
         
@@ -767,7 +701,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         setTimeout(() => setStatusMsg(''), 3000);
       }
     } catch (error) {
-      console.error('❌ Error deleting PDF:', error);
       setStatusMsg(`Error deleting PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -778,18 +711,12 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
     
     setMediaLoading(true);
     try {
-      console.log('📸 Fetching media for vehicle ID:', existingVehicle.id);
       const { data, error } = await supabase
         .from('leasing_inventory')
         .select('photos, social_media_images, catalog_images, vehicle_pdf_url')
         .eq('id', existingVehicle.id)
         .single();
-      
-      console.log('📸 Raw media data from database:', data);
-      console.log('📸 Database error (if any):', error);
-      
       if (error) {
-        console.error('Supabase error fetching media:', error);
         setMedia([]);
       } else {
         // Combine all media types with kind property
@@ -812,11 +739,9 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         // Load existing PDF URL
         if (data?.vehicle_pdf_url) {
           setPdfUrl(data.vehicle_pdf_url);
-          console.log('📄 Loaded existing vehicle PDF URL:', data.vehicle_pdf_url);
         }
       }
     } catch (error) {
-      console.error('Failed to refetch media:', error);
       setMedia([]);
     } finally {
       setMediaLoading(false);
@@ -868,7 +793,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       // Update local state
       setMedia(prev => prev.filter(m => m.id !== item.id));
     } catch (error) {
-      console.error('Error deleting media:', error);
       alert('Failed to delete media item');
     } finally {
       setMediaLoading(false);
@@ -911,7 +835,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         is_primary: m.id === mediaId && m.kind === 'photo'
       })));
     } catch (error) {
-      console.error('Error setting primary:', error);
       alert('Failed to set primary photo');
     } finally {
       setMediaLoading(false);
@@ -989,7 +912,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       setSelectedMediaIds(new Set());
       setIsSelectionMode(false);
     } catch (error) {
-      console.error('Error deleting selected media:', error);
       alert('Failed to delete selected media items');
     } finally {
       setMediaLoading(false);
@@ -1009,7 +931,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       return aOrder - bOrder;
     });
   
-  // console.log('📸 Current gallery derived from media:', gallery.map(g => ({ id: g.id, sort_order: g.sort_order })));
 
   const socialMedia = media
     .filter((m: any) => m.kind === 'social_media')
@@ -1048,7 +969,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
           const filename = item.filename || `image_${i + 1}.jpg`;
           zip.file(filename, blob);
         } catch (error) {
-          console.error(`Failed to download ${item.url}:`, error);
         }
       }
 
@@ -1063,7 +983,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error creating zip:', error);
       alert('Failed to create zip file');
     } finally {
       if (setLoading) setLoading(false);
@@ -1072,12 +991,9 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
 
   // Drag and drop functions
   const handleDragStart = (e: React.DragEvent, index: number) => {
-    console.log('🔄 Drag start - editing:', editing, 'reorderLoading:', reorderLoading, 'index:', index);
     if (!editing || reorderLoading) {
-      console.log('❌ Drag blocked - editing:', editing, 'reorderLoading:', reorderLoading);
       return;
     }
-    console.log('✅ Drag started for index:', index);
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -1094,13 +1010,9 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
 
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
-    console.log('🔄 Drop - draggedIndex:', draggedIndex, 'dropIndex:', dropIndex, 'editing:', editing);
     if (draggedIndex === null || !editing) {
-      console.log('❌ Drop blocked - draggedIndex:', draggedIndex, 'editing:', editing);
       return;
     }
-    
-    console.log('✅ Moving photo from', draggedIndex, 'to', dropIndex);
     movePhotoToPosition(draggedIndex, dropIndex);
     setDraggedIndex(null);
     setDragOverIndex(null);
@@ -1113,13 +1025,10 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
 
   // Move photo to position function
   const movePhotoToPosition = async (fromIndex: number, toIndex: number) => {
-    console.log('📸 movePhotoToPosition called:', { fromIndex, toIndex, galleryLength: gallery.length, editing, reorderLoading });
     if (!editing || reorderLoading) return;
     if (fromIndex === toIndex || toIndex < 0 || toIndex >= gallery.length) return;
     
     setReorderLoading(true);
-    console.log('📸 Starting photo reorder...');
-    
     // Optimistic update: show change immediately
     const newGallery = [...gallery];
     const [movedItem] = newGallery.splice(fromIndex, 1);
@@ -1130,17 +1039,10 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       ...item,
       sort_order: index
     }));
-    
-    console.log('📸 Optimistic update - old gallery:', gallery.map(g => g.id));
-    console.log('📸 Optimistic update - new gallery:', newGalleryWithUpdatedOrder.map(g => g.id));
-    
     const docs = media.filter(m => m.kind === 'document');
     const nonGalleryMedia = media.filter(m => m.kind !== 'photo' && m.kind !== 'video');
     const optimisticMedia = [...docs, ...nonGalleryMedia, ...newGalleryWithUpdatedOrder];
     setMedia(optimisticMedia);
-    
-    console.log('📸 Updated media state with new order and sort_order values');
-    
     try {
       // Update sort orders in JSON array
       const vehicleId = existingVehicle?.id;
@@ -1176,15 +1078,11 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
           catalog_images: updatedCatalog
         })
         .eq('id', vehicleId);
-      
-      console.log('✅ Photo reorder completed successfully');
     } catch (error) {
-      console.error('❌ Error updating sort order:', error);
       // Revert optimistic update on error
       refetchMedia();
     } finally {
       setReorderLoading(false);
-      console.log('📸 Reorder loading finished');
     }
   };
 
@@ -1200,11 +1098,8 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
   // VIN API lookup
   const lookupVIN = async (vin: string) => {
     if (!vin || vin.length !== 17) {
-      console.log('VIN length not 17, skipping lookup');
       return;
     }
-    
-    console.log('🔍 Looking up VIN:', vin);
     setProcessing(true);
     setErrors([]);
     
@@ -1214,13 +1109,8 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
           'Authorization': 'Basic ' + btoa(`${VIN_API_USER}:${VIN_API_PASS}`)
         }
       });
-      
-      console.log('VIN API response status:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('VIN API error response:', errorText);
-        
         if (response.status === 404) {
           setErrors(['VIN not found in database. You can continue manually.']);
         } else if (response.status === 400) {
@@ -1233,8 +1123,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       }
       
       const json = await response.json();
-      console.log('VIN API response data:', json);
-      
       const map = json.data?.vehicle?.stream_map || {};
       
       if (!map || Object.keys(map).length === 0) {
@@ -1267,8 +1155,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       
       if (Object.keys(updates).length > 0) {
         setForm(prev => ({ ...prev, ...updates }));
-        console.log('✅ VIN lookup successful:', updates);
-        
         // Stay on current tab after successful VIN lookup
         setErrors([]); // Clear any previous errors
       } else {
@@ -1276,7 +1162,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       }
       
     } catch (error) {
-      console.error('VIN lookup error:', error);
       setErrors(['Failed to lookup VIN. Network error or invalid response.']);
     } finally {
       setProcessing(false);
@@ -1284,7 +1169,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
   };
 
   const handleSubmit = async () => {
-    console.log('🚀 handleSubmit called - mode:', mode, 'existingVehicle:', !!existingVehicle);
     const validationErrors = validateStep();
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
@@ -1343,18 +1227,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
         // ===== AUDIT =====
         updated_at: new Date().toISOString(),
       } as any;
-
-      console.log('🔍 Vehicle data being saved:', {
-        excess_mileage_charges: vehicleData.excess_mileage_charges,
-        form_excess_mileage: form.excess_mileage_charges,
-        all_pricing_fields: {
-          monthly_lease_rate: vehicleData.monthly_lease_rate,
-          security_deposit: vehicleData.security_deposit,
-          buyout_price: vehicleData.buyout_price,
-          excess_mileage_charges: vehicleData.excess_mileage_charges
-        }
-      });
-
       let result;
       if (mode === 'edit' && existingVehicle) {
         result = await supabase
@@ -1375,12 +1247,9 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       }
 
       if (result.error) {
-        console.error('❌ Database error saving vehicle:', result.error);
         setErrors([`Failed to save vehicle: ${result.error.message}`]);
         return;
       }
-
-      console.log('✅ Vehicle saved successfully:', result.data);
       setSavedVehicle(result.data);
       // update existingVehicle-like reference so dependent effects pick up the id
       if (!existingVehicle?.id && result.data?.id) {
@@ -1392,14 +1261,12 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
       try {
         await refetchMedia();
       } catch (e) {
-        console.warn('⚠️ Media refresh after save failed:', e);
       }
       // ensure we stay on media tab and show latest
       setActiveTab('media');
       setEditing(false);
 
     } catch (error) {
-      console.error('❌ Exception saving vehicle:', error);
       setErrors([`Failed to save vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`]);
     } finally {
       setSaving(false);
@@ -1477,7 +1344,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
                 <>
                   <button
                     onClick={() => {
-                      console.log('🖱️ Save button clicked!');
                       handleSave();
                     }}
                     disabled={saving}
@@ -1954,13 +1820,10 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
                                   
                                   // Use existing MediaUploader logic inline
                                   setMediaLoading(true);
-                                  console.log(`📤 Starting upload of ${files.length} photo(s)...`);
                                   for (let i = 0; i < files.length; i++) {
                                     const file = files[i];
-                                    console.log(`📤 Uploading photo ${i + 1}/${files.length}: ${file.name}`);
                                     const ext = file.name.split('.').pop();
                                     const vehicleId = existingVehicle?.id || savedVehicle?.id;
-                                    console.log('🔍 Upload check - vehicleId:', vehicleId, 'existingVehicle?.id:', existingVehicle?.id, 'savedVehicle?.id:', savedVehicle?.id);
                                     if (!vehicleId) {
                                       alert('Please save the vehicle first before uploading photos');
                                       setMediaLoading(false);
@@ -2009,7 +1872,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
                                       .update({ photos: updatedPhotos })
                                       .eq('id', vehicleId);
                                   }
-                                  console.log(`✅ Completed upload of ${files.length} photo(s)`);
                                   setMediaLoading(false);
                                   refetchMedia();
                                   e.target.value = '';
@@ -2108,7 +1970,6 @@ export default function AddVehicleModal({ isOpen, onClose, onCreated, onDelete, 
                           }`}
                           draggable={!isViewMode && !isSelectionMode}
                           onDragStart={(e) => {
-                            console.log('🔄 onDragStart called - isSelectionMode:', isSelectionMode, 'index:', i);
                             if (!isSelectionMode) handleDragStart(e, i);
                           }}
                           onDragOver={(e) => !isSelectionMode && handleDragOver(e, i)}

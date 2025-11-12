@@ -70,12 +70,8 @@ export async function middleware(request: NextRequest) {
   try {
     // Look for Supabase auth cookie (matching storageKey in supabaseClient.ts)
     const authCookie = request.cookies.get('sb-auth-token');
-    
-    console.log('🔐 Middleware auth check for:', pathname, '- Cookie present:', !!authCookie);
-    
     if (!authCookie || !authCookie.value) {
       // No auth cookie found - redirect to login
-      console.log('🔐 No auth cookie found, redirecting to login');
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('returnTo', pathname);
       return NextResponse.redirect(loginUrl);
@@ -85,10 +81,8 @@ export async function middleware(request: NextRequest) {
     let session;
     try {
       session = JSON.parse(decodeURIComponent(authCookie.value));
-      console.log('🔐 Session parsed successfully, has access_token:', !!session?.access_token);
     } catch (parseError) {
       // If parsing fails, redirect to login
-      console.log('🔐 Failed to parse session cookie:', parseError);
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('returnTo', pathname);
       return NextResponse.redirect(loginUrl);
@@ -98,7 +92,6 @@ export async function middleware(request: NextRequest) {
     const accessToken = session?.access_token;
     
     if (!accessToken) {
-      console.log('🔐 No access token in session, redirecting to login');
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('returnTo', pathname);
       return NextResponse.redirect(loginUrl);
@@ -118,18 +111,15 @@ export async function middleware(request: NextRequest) {
 
     if (error || !user) {
       // Invalid or expired session - redirect to login
-      console.log('🔐 Token validation failed:', error?.message || 'No user');
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('returnTo', pathname);
       return NextResponse.redirect(loginUrl);
     }
 
     // User is authenticated - allow access
-    console.log('🔐 Auth successful for user:', user.email);
     return NextResponse.next();
   } catch (error) {
     // On error, redirect to login to be safe
-    console.error('🔐 Auth middleware error:', error);
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('returnTo', pathname);
     return NextResponse.redirect(loginUrl);

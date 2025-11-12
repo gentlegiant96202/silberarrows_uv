@@ -195,18 +195,14 @@ export default function RouteProtector({
       
       // If user has permission, start showing content
       if (canView) {
-        console.log('✅ Module access granted:', moduleName);
-        
         // Show content immediately
         setShowContent(true);
         
         // Marketing module handles its own loading completion event via MarketingLoadingContext
         // Other modules signal completion immediately since they don't have internal loading
         if (moduleName !== 'marketing') {
-          console.log('📤 Dispatching module-transition-complete for', moduleName);
           window.dispatchEvent(new Event('module-transition-complete'));
         } else {
-          console.log('⏳ Marketing module will signal completion when content loads');
         }
         
         // Hide skeleton after brief delay

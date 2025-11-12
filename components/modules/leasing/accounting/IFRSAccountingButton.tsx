@@ -43,13 +43,11 @@ export default function AccountingButton({
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching  balance:', error);
         return;
       }
 
       setBalance(data);
     } catch (error) {
-      console.error('Error fetching  balance:', error);
     } finally {
       setLoading(false);
     }

@@ -49,7 +49,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -70,7 +69,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -78,24 +76,15 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 // GET - Fetch all myth buster monday items
 export async function GET(req: NextRequest) {
   try {
-    console.log('🔍 API: Fetching myth buster monday items...');
-    
     // Validate user has view permission
     const authResult = await validateUserPermissions(req, 'view');
     if (authResult.error) {
-      console.log('❌ API: Auth error:', authResult.error);
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
-
-    console.log('✅ API: Auth validated, user ID:', authResult.user?.id);
-
     // Get query parameters for filtering
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const marketingStatus = searchParams.get('marketing_status');
-
-    console.log('📋 API: Query params - status:', status, 'marketing_status:', marketingStatus);
-
     let query = supabaseAdmin
       .from('myth_buster_monday')
       .select('*')
@@ -114,15 +103,10 @@ export async function GET(req: NextRequest) {
     const { data: items, error } = await query;
 
     if (error) {
-      console.error('❌ API: Error fetching myth buster monday items:', error);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
-
-    console.log('📦 API: Fetched items count:', items?.length || 0);
-    console.log(`✅ API: Successfully fetched ${items.length} myth buster monday items`);
     return NextResponse.json(items);
   } catch (error: any) {
-    console.error('Error in GET /api/myth-buster-monday:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
@@ -131,8 +115,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log('Creating myth buster monday item:', body);
-
     // Validate user has create permission
     const authResult = await validateUserPermissions(req, 'create');
     if (authResult.error) {
@@ -161,9 +143,6 @@ export async function POST(req: NextRequest) {
       generated_image_a_id,
       generated_image_b_id
     } = body;
-    
-    console.log('📝 Extracted fields:', { title, subtitle, myth, fact, badge_text });
-
     // Validate and sanitize media files
     const sanitizedMediaFiles = Array.isArray(media_files) ? media_files.filter(file => 
       file && typeof file === 'object' && file.url && file.name
@@ -205,16 +184,6 @@ export async function POST(req: NextRequest) {
     if (generated_image_b_url !== undefined) itemData.generated_image_b_url = generated_image_b_url;
     if (generated_image_a_id !== undefined) itemData.generated_image_a_id = generated_image_a_id;
     if (generated_image_b_id !== undefined) itemData.generated_image_b_id = generated_image_b_id;
-    
-    console.log('📊 Media files validation:', {
-      original_count: media_files?.length || 0,
-      sanitized_count: sanitizedMediaFiles.length,
-      template_a_count: sanitizedMediaFilesA?.length || 0,
-      template_b_count: sanitizedMediaFilesB?.length || 0
-    });
-
-    console.log('Myth buster monday item data to insert:', itemData);
-
     const { data, error } = await supabaseAdmin
       .from('myth_buster_monday')
       .insert([itemData])
@@ -222,14 +191,10 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating myth buster monday item:', error);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
-
-    console.log('✅ Successfully created myth buster monday item:', data);
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
-    console.error('Error in POST /api/myth-buster-monday:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
@@ -238,8 +203,6 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log('Updating myth buster monday item:', body);
-
     const { 
       id, 
       title, 
@@ -314,9 +277,6 @@ export async function PUT(req: NextRequest) {
     if (generated_image_b_url !== undefined) updateData.generated_image_b_url = generated_image_b_url;
     if (generated_image_a_id !== undefined) updateData.generated_image_a_id = generated_image_a_id;
     if (generated_image_b_id !== undefined) updateData.generated_image_b_id = generated_image_b_id;
-    
-    console.log('📝 PUT - Final updateData being sent to database:', updateData);
-
     const { data, error } = await supabaseAdmin
       .from('myth_buster_monday')
       .update(updateData)
@@ -325,14 +285,10 @@ export async function PUT(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error updating myth buster monday item:', error);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
-
-    console.log('✅ Successfully updated myth buster monday item:', data);
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('Error in PUT /api/myth-buster-monday:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
@@ -346,9 +302,6 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'Myth buster monday item ID is required' }, { status: 400 });
     }
-
-    console.log('Deleting myth buster monday item:', id);
-
     // Validate user has delete permission
     const authResult = await validateUserPermissions(req, 'delete');
     if (authResult.error) {
@@ -361,14 +314,10 @@ export async function DELETE(req: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting myth buster monday item:', error);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
     }
-
-    console.log('✅ Successfully deleted myth buster monday item:', id);
     return NextResponse.json({ message: 'Myth buster monday item deleted successfully' });
   } catch (error: any) {
-    console.error('Error in DELETE /api/myth-buster-monday:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

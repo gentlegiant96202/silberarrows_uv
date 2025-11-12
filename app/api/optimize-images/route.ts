@@ -110,10 +110,6 @@ export async function POST(request: NextRequest) {
     if (!carId) {
       return NextResponse.json({ error: 'Missing carId' }, { status: 400 });
     }
-    
-    console.log(`🎨 Starting image optimization for car: ${carId}`);
-    console.log(`   Quality: ${quality}%, Min size: ${minSizeKB}KB`);
-    
     // Fetch all photo media for this car
     const { data: mediaItems, error: fetchError } = await supabase
       .from('car_media')
@@ -174,9 +170,6 @@ export async function POST(request: NextRequest) {
           skippedCount++;
           continue;
         }
-        
-        console.log(`📥 Processing: ${storagePath} (${(sizeInKB).toFixed(1)}KB)`);
-        
         // Download original image
         const originalBuffer = await downloadImage(item.url);
         
@@ -213,7 +206,6 @@ export async function POST(request: NextRequest) {
           .eq('id', item.id);
         
         if (updateError) {
-          console.error('Failed to update file_size:', updateError);
         }
         
         // Calculate savings
@@ -227,13 +219,9 @@ export async function POST(request: NextRequest) {
         totalOriginalSize += originalBuffer.length;
         totalOptimizedSize += optimizedBuffer.length;
         optimizedCount++;
-        
-        console.log(`✅ Optimized: ${(originalBuffer.length / 1024).toFixed(1)}KB → ${(optimizedBuffer.length / 1024).toFixed(1)}KB (${savings.toFixed(1)}% savings)`);
-        
         results.push(result);
         
       } catch (error: any) {
-        console.error(`❌ Error processing ${item.id}:`, error);
         result.error = error.message;
         results.push(result);
       }
@@ -242,14 +230,6 @@ export async function POST(request: NextRequest) {
     const totalSavings = totalOriginalSize > 0 
       ? ((totalOriginalSize - totalOptimizedSize) / totalOriginalSize) * 100 
       : 0;
-    
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 Optimization Summary:');
-    console.log(`   ✅ Optimized: ${optimizedCount}`);
-    console.log(`   ⏭️  Skipped: ${skippedCount}`);
-    console.log(`   💾 Total savings: ${((totalOriginalSize - totalOptimizedSize) / 1024 / 1024).toFixed(2)}MB (${totalSavings.toFixed(1)}%)`);
-    console.log('='.repeat(60));
-    
     return NextResponse.json({
       success: true,
       summary: {
@@ -264,7 +244,6 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('❌ Optimization failed:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 }

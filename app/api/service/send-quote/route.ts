@@ -486,12 +486,7 @@ function buildServiceCareQuoteHtml(quoteData: QuoteData): string {
 // ============================================================================
 
 async function generateServiceCarePdf(quoteData: QuoteData): Promise<string> {
-  console.log('📄 Building ServiceCare quote HTML content...');
   const htmlContent = buildServiceCareQuoteHtml(quoteData);
-  console.log('📄 HTML content length:', htmlContent.length);
-
-  console.log('📄 Calling PDFShift API with metadata response...');
-  
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
   
@@ -516,26 +511,18 @@ async function generateServiceCarePdf(quoteData: QuoteData): Promise<string> {
   });
   
   clearTimeout(timeoutId);
-  
-  console.log('📄 PDFShift API response status:', resp.status);
-  
   if (!resp.ok) {
     const errText = await resp.text();
-    console.error('❌ PDFShift API error:', resp.status, errText);
     throw new Error(`PDFShift API error: ${resp.status} - ${errText}`);
   }
   
   // Parse JSON response to get the PDF URL
   const responseData = await resp.json();
-  console.log('📄 PDFShift response:', responseData);
-  
   if (responseData.url) {
-    console.log('✅ PDF URL from PDFShift:', responseData.url);
     return responseData.url;
   }
   
   // Fallback
-  console.error('❌ No URL in PDFShift response:', responseData);
   throw new Error('PDFShift did not return a PDF URL');
 }
 
@@ -544,8 +531,6 @@ async function generateServiceCarePdf(quoteData: QuoteData): Promise<string> {
 // ============================================================================
 
 async function sendToWhatsAppWebhook(quoteData: QuoteData, pdfUrl: string): Promise<void> {
-  console.log('📤 Sending data to WhatsApp webhook...');
-  
   // Define package inclusions based on tier
   const packageInclusionsArray = quoteData.tier === 'standard' 
     ? [
@@ -576,9 +561,6 @@ async function sendToWhatsAppWebhook(quoteData: QuoteData, pdfUrl: string): Prom
     pdfUrl: pdfUrl,
     timestamp: new Date().toISOString()
   };
-
-  console.log('📤 Webhook payload:', JSON.stringify(webhookPayload, null, 2));
-
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -593,20 +575,14 @@ async function sendToWhatsAppWebhook(quoteData: QuoteData, pdfUrl: string): Prom
     });
 
     clearTimeout(timeoutId);
-
-    console.log('📤 Webhook response status:', response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Webhook error:', response.status, errorText);
       throw new Error(`Webhook failed: ${response.status} - ${errorText}`);
     }
 
     const responseData = await response.json();
-    console.log('✅ Webhook sent successfully:', responseData);
   } catch (error) {
     clearTimeout(timeoutId);
-    console.error('❌ Webhook send error:', error);
     throw error;
   }
 }
@@ -617,8 +593,6 @@ async function sendToWhatsAppWebhook(quoteData: QuoteData, pdfUrl: string): Prom
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 ServiceCare send-quote API called');
-    
     const body = await request.json();
     
     const quoteData: QuoteData = {
@@ -632,18 +606,8 @@ export async function POST(request: NextRequest) {
       price: body.price,
       duration: body.duration
     };
-    
-    console.log('📝 Quote data received:', {
-      customerName: quoteData.customerName,
-      mobile: `${quoteData.countryCode}${quoteData.mobileNumber}`,
-      model: quoteData.model,
-      tier: quoteData.tier,
-      price: quoteData.price
-    });
-    
     // Validation
     if (!quoteData.customerName || !quoteData.mobileNumber) {
-      console.error('❌ Missing required customer details');
       return NextResponse.json(
         { error: 'Customer name and mobile number are required' },
         { status: 400 }
@@ -651,7 +615,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!quoteData.model || !quoteData.variant || !quoteData.tier) {
-      console.error('❌ Missing required quote details');
       return NextResponse.json(
         { error: 'Model, variant, and tier are required' },
         { status: 400 }
@@ -659,7 +622,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.PDFSHIFT_API_KEY) {
-      console.error('❌ PDFShift API key not configured');
       return NextResponse.json(
         { error: 'PDF generation service not configured' },
         { status: 500 }
@@ -667,28 +629,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate PDF
-    console.log('📄 Generating ServiceCare PDF...');
     let pdfUrl: string;
     try {
       pdfUrl = await generateServiceCarePdf(quoteData);
-      console.log('✅ PDF generated successfully:', pdfUrl);
     } catch (pdfError) {
-      console.error('❌ PDF generation failed:', pdfError);
       throw new Error(`PDF generation failed: ${pdfError instanceof Error ? pdfError.message : 'Unknown error'}`);
     }
 
     // Send to webhook
-    console.log('📤 Sending to WhatsApp webhook...');
     try {
       await sendToWhatsAppWebhook(quoteData, pdfUrl);
-      console.log('✅ Webhook sent successfully');
     } catch (webhookError) {
-      console.error('❌ Webhook send failed:', webhookError);
       throw new Error(`Webhook send failed: ${webhookError instanceof Error ? webhookError.message : 'Unknown error'}`);
     }
-
-    console.log('🎉 ServiceCare quote sent successfully!');
-
     return NextResponse.json({
       success: true,
       message: 'Quote sent successfully via WhatsApp',
@@ -696,8 +649,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error in send-quote API:', error);
-    console.error('❌ Full error details:', error instanceof Error ? error.stack : error);
     return NextResponse.json(
       { 
         error: 'Failed to send quote',

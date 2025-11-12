@@ -128,7 +128,6 @@ export default function StatementOfAccount({
 
       setPayments(enhancedPayments);
     } catch (error) {
-      console.error('Error fetching payments for SOA:', error);
       setPayments([]);
     }
   };

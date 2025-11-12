@@ -258,7 +258,6 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
         setShowResults(true);
       }
     } catch (error) {
-      console.error('Error searching reservations:', error);
     } finally {
       setSearchLoading(false);
     }
@@ -340,7 +339,6 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
         setShowResults(false);
       }
     } catch (error) {
-      console.error('Error populating from reservation:', error);
     }
   };
 
@@ -433,7 +431,6 @@ export default function ServiceContractModal({ isOpen, onClose, onSubmit, contra
       // Reset form with smart defaults
       setFormData(getSmartDefaults());
     } catch (error) {
-      console.error('Error creating contract:', error);
       alert('Failed to create contract. Please try again.');
     } finally {
       setLoading(false);

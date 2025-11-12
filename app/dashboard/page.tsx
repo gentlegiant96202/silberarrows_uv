@@ -123,7 +123,6 @@ function CumulativeFunnel({ salesYear, salesMonth }: { salesYear: number; salesM
         const data = await response.json();
         
         if (data.error) {
-          console.error('Funnel API Error:', data.error);
           setFunnelData([]);
           setTotalLeads(0);
         } else {
@@ -131,7 +130,6 @@ function CumulativeFunnel({ salesYear, salesMonth }: { salesYear: number; salesM
           setTotalLeads(data.totalLeads || 0);
         }
       } catch (error) {
-        console.error('Error fetching funnel data:', error);
         setFunnelData([]);
         setTotalLeads(0);
       } finally {
@@ -241,14 +239,12 @@ export default function DashboardPage() {
         .order('month', { ascending: false });
 
       if (error) {
-        console.error('Error fetching sales targets:', error);
         return [];
       }
 
       setAllSalesTargets(salesTargets || []);
       return salesTargets || [];
     } catch (error) {
-      console.error('Error fetching sales targets:', error);
       return [];
     }
   };
@@ -258,8 +254,6 @@ export default function DashboardPage() {
     if (!hasFetchedInitialData.current) {
       async function loadSalesData() {
         try {
-          console.log('🚀 Loading sales metrics first...');
-          
           // Add retry mechanism for fetch failures
           let retryCount = 0;
           const maxRetries = 2;
@@ -274,7 +268,6 @@ export default function DashboardPage() {
             } catch (error) {
               if (retryCount < maxRetries && error instanceof TypeError && error.message === 'fetch failed') {
                 retryCount++;
-                console.log(`🔄 Retry attempt ${retryCount}/${maxRetries} for sales data...`);
                 await new Promise(resolve => setTimeout(resolve, 200)); // Brief delay before retry
                 return loadWithRetry();
               }
@@ -287,8 +280,6 @@ export default function DashboardPage() {
           setAllSalesMetrics(salesMetrics);
           setAllSalesTargets(salesTargets);
           hasFetchedInitialData.current = true;
-          
-          console.log('✅ Sales metrics loaded, starting progressive component loading...');
           setSalesLoaded(true);
           
           // Progressive top-to-bottom component loading
@@ -309,7 +300,6 @@ export default function DashboardPage() {
           componentPriorities.forEach(({ key, delay }) => {
             setTimeout(() => {
               setComponentLoading(prev => ({ ...prev, [key]: false }));
-              console.log(`✅ Dashboard: ${key} component loaded`);
             }, delay);
           });
           
@@ -319,12 +309,8 @@ export default function DashboardPage() {
           }, 100);
           
         } catch (error) {
-          console.error('❌ Error loading sales data after retries:', error);
           // Show detailed error info for debugging
           if (error instanceof Error) {
-            console.error('Error name:', error.name);
-            console.error('Error message:', error.message);
-            console.error('Error stack:', error.stack);
           }
           // Still show components even if sales fails, but with empty data
           setAllSalesMetrics([]);
@@ -366,7 +352,6 @@ export default function DashboardPage() {
         .lte('created_at', to.toISOString().split('T')[0]);
 
       if (error) {
-        console.error(error);
         return;
       }
 
@@ -756,7 +741,6 @@ const InventoryKPICards: React.FC<{year:number; months:number[]}> = ({year, mont
           });
         }
       } catch (error) {
-        console.error('Error fetching KPI data:', error);
       } finally {
         setLoading(false);
       }
@@ -826,7 +810,6 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
           .not('stock_age_days', 'is', null);
 
         if (error) {
-          console.error('❌ [Stock Age] Error fetching cars:', error);
           return;
         }
 
@@ -875,7 +858,6 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
           });
         }
       } catch (error) {
-        console.error('Error fetching stock age data:', error);
       } finally {
         setLoading(false);
       }
@@ -924,13 +906,11 @@ const StockAgeInsights: React.FC<{year:number; months:number[]}> = ({year, month
         .order('stock_age_days', { ascending: false });
 
       if (error) {
-        console.error('Error fetching car list:', error);
         return;
       }
 
       setShowCarList({ type: title, cars: cars || [], position });
     } catch (error) {
-      console.error('Error in handleCategoryClick:', error);
     }
   };
 
@@ -1047,8 +1027,6 @@ const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year,
     async function fetchStockData() {
       setLoading(true);
       try {
-        console.log(`🔍 [Stock] Fetching data for year: ${year}`);
-        
         // Fetch cars data with proper module permissions
         const { data: cars, error } = await supabase
           .from('cars')
@@ -1058,12 +1036,8 @@ const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year,
           .lte('created_at', `${year}-12-31T23:59:59`);
 
         if (error) {
-          console.error('❌ [Stock] Query error:', error);
           return;
         }
-
-        console.log(`✅ [Stock] Found ${cars?.length || 0} cars for ${year}`);
-
         if (cars) {
           const monthlyData = [];
           for (let month = 1; month <= 12; month++) {
@@ -1077,7 +1051,6 @@ const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year,
             
             // Debug January specifically
             if (month === 1) {
-              console.log(`📊 [Stock] January ${year} cars:`, count);
             }
 
             monthlyData.push({
@@ -1089,7 +1062,6 @@ const StockAcquisitionsChart: React.FC<{year:number; months:number[]}> = ({year,
           setChartData(monthlyData);
         }
       } catch (error) {
-        console.error('💥 [Stock] Error fetching data:', error);
       } finally {
         setLoading(false);
       }
@@ -1152,8 +1124,6 @@ const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = (
     async function fetchConsignmentData() {
       setLoading(true);
       try {
-        console.log(`🔍 [Consignment] Fetching data for year: ${year}`);
-        
         // Fetch cars data with proper module permissions
         const { data: cars, error } = await supabase
           .from('cars')
@@ -1163,12 +1133,8 @@ const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = (
           .lte('created_at', `${year}-12-31T23:59:59`);
 
         if (error) {
-          console.error('❌ [Consignment] Query error:', error);
           return;
         }
-
-        console.log(`✅ [Consignment] Found ${cars?.length || 0} cars for ${year}`);
-
         if (cars) {
           const monthlyData = [];
           for (let month = 1; month <= 12; month++) {
@@ -1182,9 +1148,7 @@ const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = (
             
             // Debug January specifically
             if (month === 1) {
-              console.log(`📊 [Consignment] January ${year} cars:`, count);
               if (count > 0) {
-                console.log('🚗 [Consignment] January cars:', monthCars.map(c => c.stock_number));
               }
             }
 
@@ -1193,12 +1157,9 @@ const ConsignmentAcquisitionsChart: React.FC<{year:number; months:number[]}> = (
               count
             });
           }
-
-          console.log('📈 [Consignment] Monthly data:', monthlyData);
           setChartData(monthlyData);
         }
       } catch (error) {
-        console.error('💥 [Consignment] Error fetching data:', error);
       } finally {
         setLoading(false);
       }
@@ -1291,7 +1252,6 @@ const AcquisitionsTrendChart: React.FC<{year:number; months:number[]}> = ({year,
           setChartData(monthlyData);
         }
       } catch (error) {
-        console.error('Error fetching trend data:', error);
       } finally {
         setLoading(false);
       }
@@ -1426,7 +1386,6 @@ const ModelDemandChart: React.FC<{year:number; months:number[]}> = ({year, month
           setChartData(chartData);
         }
       } catch (error) {
-        console.error('Error fetching demand chart:', error);
       } finally {
         setLoading(false);
       }
@@ -1481,7 +1440,6 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
           .eq('sale_status', 'available');
 
         if (error) {
-          console.error('❌ [Location] Error fetching cars:', error);
           return;
         }
 
@@ -1539,7 +1497,6 @@ const LocationInsights: React.FC<{year:number; months:number[]}> = ({year, month
           setLocationData(locationCards);
         }
       } catch (error) {
-        console.error('Error fetching location data:', error);
       } finally {
         setLoading(false);
       }

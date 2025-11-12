@@ -8,9 +8,6 @@ export async function POST(req: NextRequest) {
     if (body.html) {
       // New approach: use provided HTML directly
       const { html, dayOfWeek } = body;
-      
-      console.log('🎨 Generating content pillar image from HTML:', { dayOfWeek, htmlLength: html?.length });
-      
       if (!html || !dayOfWeek) {
         return NextResponse.json({ 
           success: false, 
@@ -27,9 +24,6 @@ export async function POST(req: NextRequest) {
         title, description, imageUrl, dayOfWeek, badgeText, subtitle,
         myth, fact, problem, solution, difficulty, tools_needed, warning 
       } = body;
-      
-      console.log('🎨 Generating content pillar image:', { title, dayOfWeek, hasImage: !!imageUrl });
-      
       if (!title || !description || !imageUrl || !dayOfWeek) {
         return NextResponse.json({ 
           success: false, 
@@ -44,7 +38,6 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('❌ Error in generate-content-pillar-image:', error);
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
@@ -54,15 +47,12 @@ export async function POST(req: NextRequest) {
 
 // Generate from HTML using PDFShift (for production)
 async function generateFromHTMLPDFShift(html: string, dayOfWeek: string) {
-  console.log('🎨 Using PDFShift for image generation (production mode)');
-  
   if (!process.env.PDFSHIFT_API_KEY) {
     throw new Error('PDFShift API key not configured');
   }
 
   try {
     // Call PDFShift API to convert HTML to image
-    console.log('📄 Generating image with PDFShift...');
     const response = await fetch('https://api.pdfshift.io/v3/convert/png', {
       method: 'POST',
       headers: {
@@ -91,9 +81,6 @@ async function generateFromHTMLPDFShift(html: string, dayOfWeek: string) {
 
     const imageBuffer = await response.arrayBuffer();
     const base64Image = Buffer.from(imageBuffer).toString('base64');
-    
-    console.log('✅ Image generated successfully with PDFShift');
-    
     return NextResponse.json({
       success: true,
       image: `data:image/png;base64,${base64Image}`,
@@ -101,7 +88,6 @@ async function generateFromHTMLPDFShift(html: string, dayOfWeek: string) {
     });
 
   } catch (error) {
-    console.error('PDFShift error:', error);
     throw error;
   }
 }
@@ -110,9 +96,6 @@ async function generateFromHTMLPDFShift(html: string, dayOfWeek: string) {
 async function generateFromHTML(html: string, dayOfWeek: string) {
   // Call the Railway renderer service with fallback to local
   const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || process.env.RENDERER_URL || 'https://story-render-production.up.railway.app';
-  
-  console.log('📡 Calling renderer service at:', rendererUrl);
-  
   // First, check if renderer is healthy
   try {
     const healthCheck = await fetch(`${rendererUrl}/health`, { 
@@ -120,12 +103,9 @@ async function generateFromHTML(html: string, dayOfWeek: string) {
       signal: AbortSignal.timeout(5000)
     });
     if (healthCheck.ok) {
-      console.log('✅ Renderer health check passed');
     } else {
-      console.warn('⚠️ Renderer health check failed, but continuing...');
     }
   } catch (error) {
-    console.warn('⚠️ Renderer health check error:', error instanceof Error ? error.message : error);
   }
   
   let response;
@@ -134,8 +114,6 @@ async function generateFromHTML(html: string, dayOfWeek: string) {
   // Try 3 times with increasing delays
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      console.log(`🔄 Attempt ${attempt}/3 to reach renderer...`);
-      
       response = await fetch(`${rendererUrl}/render-html`, {
         method: 'POST',
         headers: {
@@ -149,7 +127,6 @@ async function generateFromHTML(html: string, dayOfWeek: string) {
       });
       
       if (response.ok) {
-        console.log(`✅ Connected to renderer on attempt ${attempt}`);
         break;
       } else {
         throw new Error(`Renderer responded with status: ${response.status}`);
@@ -157,11 +134,8 @@ async function generateFromHTML(html: string, dayOfWeek: string) {
       
     } catch (error) {
       lastError = error;
-      console.warn(`⚠️ Attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
-      
       if (attempt < 3) {
         const delay = attempt * 2000; // 2s, 4s
-        console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -176,9 +150,6 @@ async function generateFromHTML(html: string, dayOfWeek: string) {
   if (!result.success) {
     throw new Error(result.error || 'Renderer failed to generate image');
   }
-
-  console.log('✅ Content pillar image generated successfully');
-  
   return NextResponse.json({
     success: true,
     imageBase64: result.contentPillarImage
@@ -189,9 +160,6 @@ async function generateFromHTML(html: string, dayOfWeek: string) {
 async function generateFromTemplate(title: string, description: string, imageUrl: string, dayOfWeek: string, badgeText?: string, subtitle?: string, myth?: string, fact?: string, problem?: string, solution?: string, difficulty?: string, tools_needed?: string, warning?: string) {
   // Call the Railway renderer service with fallback to local
   const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || process.env.RENDERER_URL || 'https://story-render-production.up.railway.app';
-  
-  console.log('📡 Calling renderer service at:', rendererUrl);
-  
   // First, check if renderer is healthy
   try {
     const healthCheck = await fetch(`${rendererUrl}/health`, { 
@@ -199,12 +167,9 @@ async function generateFromTemplate(title: string, description: string, imageUrl
       signal: AbortSignal.timeout(5000)
     });
     if (healthCheck.ok) {
-      console.log('✅ Renderer health check passed');
     } else {
-      console.warn('⚠️ Renderer health check failed, but continuing...');
     }
   } catch (error) {
-    console.warn('⚠️ Renderer health check error:', error instanceof Error ? error.message : error);
   }
   
   let response;
@@ -213,8 +178,6 @@ async function generateFromTemplate(title: string, description: string, imageUrl
   // Try 3 times with increasing delays
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      console.log(`🔄 Attempt ${attempt}/3 to reach renderer...`);
-      
       response = await fetch(`${rendererUrl}/render-content-pillar`, {
         method: 'POST',
         headers: {
@@ -239,7 +202,6 @@ async function generateFromTemplate(title: string, description: string, imageUrl
       });
       
       if (response.ok) {
-        console.log(`✅ Connected to renderer on attempt ${attempt}`);
         break;
       } else {
         throw new Error(`Renderer responded with status: ${response.status}`);
@@ -247,11 +209,8 @@ async function generateFromTemplate(title: string, description: string, imageUrl
       
     } catch (error) {
       lastError = error;
-      console.warn(`⚠️ Attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
-      
       if (attempt < 3) {
         const delay = attempt * 2000; // 2s, 4s
-        console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -266,9 +225,6 @@ async function generateFromTemplate(title: string, description: string, imageUrl
   if (!result.success) {
     throw new Error(result.error || 'Renderer failed to generate image');
   }
-
-  console.log('✅ Content pillar image generated successfully');
-  
   return NextResponse.json({
     success: true,
     imageBase64: result.contentPillarImage

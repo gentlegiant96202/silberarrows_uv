@@ -63,7 +63,6 @@ export default function ContractDetailsView({ leaseId, customerName }: Props) {
       if (error) throw error;
       setCustomerData(data);
     } catch (error) {
-      console.error('Error fetching customer data:', error);
     } finally {
       setLoading(false);
     }

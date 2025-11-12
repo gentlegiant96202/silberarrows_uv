@@ -76,7 +76,6 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
         });
 
         if (error) {
-          console.error(`Error fetching permissions for ${moduleName}:`, error);
           // Fallback to static role-based permissions if RPC fails
           const isAdmin = role === 'admin';
           const hasModuleAccess = isAdmin || (
@@ -117,7 +116,6 @@ export function useModulePermissions(moduleName: string): ModulePermissions {
           });
         }
       } catch (err: any) {
-        console.error('Error in useModulePermissions:', err);
         setPermissions({
           canView: false,
           canCreate: false,
@@ -188,7 +186,6 @@ export function useAllModulePermissions(): AllModulePermissions {
           const result = results[index];
           
           if (result.error) {
-            console.error(`Error fetching permissions for ${module}:`, result.error);
             newPermissions[module] = {
               canView: false,
               canCreate: false,
@@ -223,7 +220,6 @@ export function useAllModulePermissions(): AllModulePermissions {
 
         setAllPermissions(newPermissions);
       } catch (err: any) {
-        console.error('Error in useAllModulePermissions:', err);
         const errorPerms = { canView: false, canCreate: false, canEdit: false, canDelete: false, isLoading: false, error: err.message };
         setAllPermissions({
           uv_crm: errorPerms,
@@ -264,7 +260,6 @@ export function usePermissionHelpers() {
       if (error || !data || data.length === 0) return false;
       return data[0].can_view || false;
     } catch (err) {
-      console.error('Error checking module access:', err);
       return false;
     }
   };
@@ -289,7 +284,6 @@ export function usePermissionHelpers() {
         default: return false;
       }
     } catch (err) {
-      console.error('Error checking permission:', err);
       return false;
     }
   };

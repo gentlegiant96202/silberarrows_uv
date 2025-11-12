@@ -33,7 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.warn('PWA Auth: Session restoration error:', error);
           setSession(null);
           setUser(null);
         } else {
@@ -42,13 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           // Log for PWA debugging
           if (data.session) {
-            console.log('✅ PWA Auth: Session restored successfully');
           } else {
-            console.log('ℹ️ PWA Auth: No existing session found');
           }
         }
       } catch (error) {
-        console.error('PWA Auth: Session restoration failed:', error);
         setSession(null);
         setUser(null);
       } finally {
@@ -58,7 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth state changes with PWA-specific handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, updatedSession) => {
-      console.log('PWA Auth: State change event:', _event, !!updatedSession);
       setSession(updatedSession);
       setUser(updatedSession?.user ?? null);
       
@@ -135,7 +130,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setUser(null);
     } catch (error) {
-      console.error('Error during logout:', error);
     } finally {
     setLoading(false);
     }
@@ -203,15 +197,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Force refresh the user session to get updated metadata
       const { data: { user: refreshedUser }, error } = await supabase.auth.getUser();
       if (error) {
-        console.error('Error refreshing user:', error);
         return;
       }
       
       // Update the user state with fresh data
       setUser(refreshedUser);
-      console.log('✅ User data refreshed successfully');
     } catch (error) {
-      console.error('❌ Failed to refresh user data:', error);
     }
   };
 

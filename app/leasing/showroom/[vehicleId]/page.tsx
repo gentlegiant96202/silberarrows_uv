@@ -101,7 +101,6 @@ export default function VehicleDetailPage() {
         });
       }
     } catch (error) {
-      console.error('Error fetching vehicle:', error);
     } finally {
       setLoading(false);
     }

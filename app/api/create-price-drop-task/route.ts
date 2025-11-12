@@ -13,9 +13,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log('🎨 Creating price drop task for:', carDetails.stock_number);
-
     // Upload images to storage
     const imageUrls: string[] = [];
     const timestamp = Date.now();
@@ -37,7 +34,6 @@ export async function POST(request: NextRequest) {
         });
 
       if (imageStoryError) {
-        console.error('Error uploading story image:', imageStoryError);
         throw new Error('Failed to upload story image');
       }
 
@@ -65,7 +61,6 @@ export async function POST(request: NextRequest) {
         });
 
       if (image45Error) {
-        console.error('Error uploading 4:5 image:', image45Error);
         throw new Error('Failed to upload 4:5 image');
       }
 
@@ -92,13 +87,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (taskError) {
-      console.error('Error creating design task:', taskError);
       throw new Error('Failed to create design task');
     }
-
-    console.log('✅ Price drop task created successfully:', taskData.id);
-    console.log(`📷 Generated ${imageUrls.length} images (Story first)`);
-
     return NextResponse.json({
       success: true,
       taskId: taskData.id,
@@ -108,8 +98,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error creating price drop task:', error);
-    
     const errorResponse = { 
       error: 'Failed to create price drop task',
       details: error instanceof Error ? error.message : 'Unknown error'

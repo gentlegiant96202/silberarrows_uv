@@ -66,7 +66,6 @@ const generateTimeSlots = () => {
 const timeSlots = generateTimeSlots();
 
 // Debug: Log time slots to verify format (remove this in production)
-// console.log('🕐 Generated time slots:', timeSlots.slice(0, 5));
 
 export default function LeasingAppointmentModal({ 
   isOpen, 
@@ -78,17 +77,6 @@ export default function LeasingAppointmentModal({
   targetColumn
 }: Props) {
   // Debug existing customer data
-  console.log('🔍 Modal received existingCustomer:', {
-    existingCustomer,
-    mode,
-    customerName: existingCustomer?.customer_name,
-    customerEmail: existingCustomer?.customer_email,
-    customerPhone: existingCustomer?.customer_phone,
-    appointmentDate: existingCustomer?.appointment_date,
-    appointmentTime: existingCustomer?.appointment_time,
-    notes: existingCustomer?.notes
-  });
-
   // Form state - exact same as UV CRM
   const [customerName, setCustomerName] = useState(existingCustomer?.customer_name || "");
   const [customerEmail, setCustomerEmail] = useState(existingCustomer?.customer_email || "");
@@ -127,7 +115,6 @@ export default function LeasingAppointmentModal({
   // Update form fields when existingCustomer changes
   useEffect(() => {
     if (existingCustomer && mode === 'edit') {
-      console.log('🔄 Updating form fields with existing customer data:', existingCustomer);
       setCustomerName(existingCustomer.customer_name || "");
       setCustomerEmail(existingCustomer.customer_email || "");
       setPhoneNumber(
@@ -159,8 +146,6 @@ export default function LeasingAppointmentModal({
   const fetchInventory = async () => {
     setLoadingInventory(true);
     try {
-      console.log('🚗 Fetching leasing inventory...');
-      
       // Get only cars with 'inventory' status for appointment selection
       const { data, error } = await supabase
         .from('leasing_inventory')
@@ -170,16 +155,7 @@ export default function LeasingAppointmentModal({
         .limit(50); // Get up to 50 records
 
       if (error) {
-        console.error('❌ Error fetching inventory:', error);
-        console.error('Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        
         // Set some mock data for now so the UI still works
-        console.log('📝 Using fallback mock data due to database error');
         const mockData = [
           {
             id: 'mock-1',
@@ -220,11 +196,6 @@ export default function LeasingAppointmentModal({
         setFilteredInventory(mockData);
         return;
       }
-
-      console.log('✅ Inventory fetched:', data?.length, 'vehicles');
-      console.log('📊 Sample data:', data?.[0]);
-      console.log('📊 Available columns:', data?.[0] ? Object.keys(data[0]) : 'No data');
-      
       // Transform data to match our interface
       const transformedData = data?.map((car: any) => ({
         ...car,
@@ -241,7 +212,6 @@ export default function LeasingAppointmentModal({
       setInventory(transformedData);
       setFilteredInventory(transformedData);
     } catch (error) {
-      console.error('❌ Error in fetchInventory:', error);
     } finally {
       setLoadingInventory(false);
     }
@@ -285,7 +255,6 @@ export default function LeasingAppointmentModal({
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, vehicle: InventoryVehicle) => {
-    console.log('🚗 Drag started:', vehicle.stock_number);
     setDraggedVehicle(vehicle);
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
@@ -293,7 +262,6 @@ export default function LeasingAppointmentModal({
   };
 
   const handleDragEnd = () => {
-    console.log('🚗 Drag ended');
     setIsDragging(false);
     setDraggedVehicle(null);
   };
@@ -305,11 +273,8 @@ export default function LeasingAppointmentModal({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    console.log('🚗 Vehicle dropped:', draggedVehicle?.stock_number);
-    
     if (draggedVehicle) {
       setSelectedVehicle(draggedVehicle);
-      console.log('✅ Vehicle selected via drag & drop:', draggedVehicle.stock_number);
     }
     
     setIsDragging(false);
@@ -364,25 +329,6 @@ export default function LeasingAppointmentModal({
         
         updated_at: new Date().toISOString()
       };
-
-      console.log('💾 Saving customer data:', {
-        customerData,
-        selectedVehicle: selectedVehicle ? {
-          id: selectedVehicle.id,
-          stock_number: selectedVehicle.stock_number,
-          make: selectedVehicle.make,
-          vehicle_model: selectedVehicle.vehicle_model
-        } : null,
-        customerEmail: customerEmail,
-        emailLength: customerEmail?.length,
-        originalAppointmentTime: appointmentTime,
-        formattedTime: formattedTime,
-        appointmentTimeType: typeof appointmentTime,
-        appointmentTimeLength: appointmentTime?.length,
-        hasAppointmentDetails,
-        willBeAppointment: leaseStatus === 'appointments'
-      });
-
       let result;
       if (mode === 'edit' && existingCustomer) {
         // Update existing customer
@@ -405,24 +351,9 @@ export default function LeasingAppointmentModal({
       }
 
       if (result.error) {
-        console.error('❌ Detailed error saving customer:', {
-          error: result.error,
-          message: result.error.message,
-          details: result.error.details,
-          hint: result.error.hint,
-          code: result.error.code,
-          customerData: customerData
-        });
         alert(`Failed to save customer: ${result.error.message || 'Unknown error'}`);
         return;
       }
-
-      console.log('✅ Customer saved successfully:', {
-        savedData: result.data,
-        savedEmail: result.data?.customer_email,
-        savedAppointmentTime: result.data?.appointment_time,
-        savedAppointmentDate: result.data?.appointment_date
-      });
       onCreated(result.data);
       onClose();
       
@@ -438,7 +369,6 @@ export default function LeasingAppointmentModal({
       }
 
     } catch (error) {
-      console.error('Error saving customer:', error);
       alert('Failed to save customer. Please try again.');
     } finally {
       setSaving(false);
@@ -783,7 +713,6 @@ export default function LeasingAppointmentModal({
                     <select
                       value={appointmentTime}
                       onChange={e => {
-                        console.log('⏰ Time selected:', e.target.value);
                         setAppointmentTime(e.target.value);
                       }}
                       className="w-full px-3 py-3 text-base rounded-lg bg-black/20 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all appearance-none h-12"

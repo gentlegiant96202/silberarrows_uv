@@ -5,11 +5,6 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    console.log('📝 Public contract creation payload received:', {
-      keys: Object.keys(data),
-      type: data?.type
-    });
-
     const { type, ...contractData } = data;
 
     // Validate required fields
@@ -82,22 +77,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (result.error) {
-      console.error('Database error:', result.error);
       return NextResponse.json(
         { error: 'Failed to create contract', details: result.error.message },
         { status: 500 }
       );
     }
-
-    console.log('✅ Public contract created successfully:', result.data);
-
     return NextResponse.json({
       contract: result.data,
       message: `${type} contract created successfully`
     });
 
   } catch (error) {
-    console.error('Error creating public contract:', error);
     return NextResponse.json(
       { 
         error: 'Failed to create contract',

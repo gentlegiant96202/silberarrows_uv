@@ -32,7 +32,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -53,7 +52,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -156,7 +154,6 @@ export async function GET(request: NextRequest) {
 
     // Apply filters (status field no longer exists)
     if (status) {
-      console.warn('Status filtering is no longer supported - status field removed');
     }
 
     // Apply pagination and sorting
@@ -167,7 +164,6 @@ export async function GET(request: NextRequest) {
     const { data: contracts, error, count } = await query;
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to fetch contracts', details: error.message },
         { status: 500 }
@@ -195,7 +191,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching contracts:', error);
     return NextResponse.json(
       { 
         error: 'Failed to fetch contracts',
@@ -219,12 +214,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const data = await request.json();
-    console.log('📝 Create contract payload received:', {
-      keys: Object.keys(data),
-      type: (data as any)?.type,
-      hasNotes: 'notes' in (data || {}),
-      notesPreview: (data as any)?.notes?.slice?.(0, 120) || (data as any)?.notes || null
-    });
     const { type, ...contractData } = data;
 
     // Validate required fields
@@ -305,7 +294,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (result.error) {
-      console.error('Database error:', result.error);
       return NextResponse.json(
         { error: 'Failed to create contract', details: result.error.message },
         { status: 500 }
@@ -313,16 +301,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Activity logging removed - contract_activities table deleted
-
-    console.log('✅ Contract inserted. Notes field persisted as:', (result.data as any)?.notes ?? null);
-
     return NextResponse.json({
       contract: result.data,
       message: `${type} contract created successfully`
     });
 
   } catch (error) {
-    console.error('Error creating contract:', error);
     return NextResponse.json(
       { 
         error: 'Failed to create contract',

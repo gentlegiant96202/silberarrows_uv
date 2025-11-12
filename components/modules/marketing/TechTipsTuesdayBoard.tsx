@@ -108,7 +108,6 @@ export default function TechTipsTuesdayBoard() {
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
 
@@ -126,7 +125,6 @@ export default function TechTipsTuesdayBoard() {
       const data = await response.json();
       setItems(data);
     } catch (error) {
-      console.error('Error fetching tech tips tuesday items:', error);
     } finally {
       setLoading(false);
     }
@@ -149,7 +147,6 @@ export default function TechTipsTuesdayBoard() {
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
       
@@ -167,7 +164,6 @@ export default function TechTipsTuesdayBoard() {
 
       await fetchItems();
     } catch (error) {
-      console.error('Error deleting item:', error);
     }
   };
 
@@ -176,7 +172,6 @@ export default function TechTipsTuesdayBoard() {
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
       
@@ -198,7 +193,6 @@ export default function TechTipsTuesdayBoard() {
 
       await fetchItems();
     } catch (error) {
-      console.error('Error updating status:', error);
     }
   };
 
@@ -207,7 +201,6 @@ export default function TechTipsTuesdayBoard() {
       // Get auth token for API call
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
         return;
       }
 
@@ -231,7 +224,6 @@ export default function TechTipsTuesdayBoard() {
       setShowModal(false);
       setEditingItem(null);
     } catch (error) {
-      console.error('Error saving item:', error);
     }
   };
 
@@ -240,9 +232,7 @@ export default function TechTipsTuesdayBoard() {
     try {
       // Implement AI generation logic here
       // This would call your AI generation API
-      console.log('AI Generation prompt:', prompt);
     } catch (error) {
-      console.error('Error generating content:', error);
     } finally {
       setAiGenerating(false);
     }

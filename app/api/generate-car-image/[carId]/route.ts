@@ -58,7 +58,6 @@ export async function POST(
       });
 
     if (mediaError) {
-      console.error('Media table error:', mediaError);
       return NextResponse.json({ 
         error: 'Failed to save media record', 
         details: mediaError.message,
@@ -73,7 +72,6 @@ export async function POST(
       .eq('id', carId);
 
     if (updateError) {
-      console.error('Database update error:', updateError);
       return NextResponse.json({ error: 'Database update failed' }, { status: 500 });
     }
 
@@ -85,7 +83,6 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Image generation error:', error);
     return NextResponse.json({ 
       error: 'Image generation failed', 
       details: error instanceof Error ? error.message : 'Unknown error'

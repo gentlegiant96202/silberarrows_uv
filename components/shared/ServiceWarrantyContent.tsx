@@ -63,8 +63,6 @@ export default function ServiceWarrantyContent() {
   const { isAdmin, isAccounts, role } = useUserRole();
   
   // Debug logging for role detection
-  console.log('🔍 User role debug:', { isAdmin, isAccounts, role, userEmail: user?.email });
-  
   const [activeTab, setActiveTab] = useState<'service' | 'warranty'>('service');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreatingContract, setIsCreatingContract] = useState(false);
@@ -111,7 +109,6 @@ export default function ServiceWarrantyContent() {
         const serviceData = await serviceResponse.json();
         setServiceContracts(serviceData.contracts || []);
       } else if (serviceResponse.status === 403) {
-        console.warn('No permission to view service contracts');
         setServiceContracts([]);
       }
 
@@ -121,11 +118,9 @@ export default function ServiceWarrantyContent() {
         const warrantyData = await warrantyResponse.json();
         setWarrantyContracts(warrantyData.contracts || []);
       } else if (warrantyResponse.status === 403) {
-        console.warn('No permission to view warranty contracts');
         setWarrantyContracts([]);
       }
     } catch (error) {
-      console.error('Error fetching contracts:', error);
     } finally {
       setLoading(false);
     }
@@ -194,8 +189,6 @@ export default function ServiceWarrantyContent() {
       }
 
       const result = await response.json();
-      console.log('Service contract created:', result);
-
       // Refresh contracts list to show the new contract
       await fetchContracts();
       
@@ -203,7 +196,6 @@ export default function ServiceWarrantyContent() {
       alert(`Contract ${data.referenceNo} created successfully! You can generate the PDF from the edit modal.`);
       
     } catch (error) {
-      console.error('Error creating service contract:', error);
       alert('Failed to create service contract. Please try again.');
     } finally {
       setIsCreatingContract(false);
@@ -240,7 +232,6 @@ export default function ServiceWarrantyContent() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Error downloading PDF:', error);
       // Fallback: open PDF in new tab
       window.open(contract.pdf_url, '_blank');
     }
@@ -326,8 +317,6 @@ export default function ServiceWarrantyContent() {
       }
 
       // Success - contract already removed from local state
-      console.log(`Contract ${contract.reference_no} deleted successfully`);
-      
       // Optional: Show a brief success message without blocking alert
       const successMsg = document.createElement('div');
       successMsg.textContent = `Contract ${contract.reference_no} deleted successfully`;
@@ -336,7 +325,6 @@ export default function ServiceWarrantyContent() {
       setTimeout(() => successMsg.remove(), 3000);
       
     } catch (error) {
-      console.error('Error deleting contract:', error);
       alert('Failed to delete contract. Please try again.');
     }
   };
@@ -365,9 +353,7 @@ export default function ServiceWarrantyContent() {
 
       // Refresh contracts list
       await fetchContracts();
-      console.log('Contract updated successfully');
     } catch (error) {
-      console.error('Error updating contract:', error);
       throw error; // Re-throw to be handled by the modal
     }
   };
@@ -621,7 +607,6 @@ export default function ServiceWarrantyContent() {
                 <div className="flex items-center justify-center gap-2">
                   <button 
                     onClick={() => {
-                      console.log('🔍 Edit permission debug:', { canEdit, role, userEmail: user?.email });
                       handleViewContract(contract);
                     }}
                     className="p-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-400/30 rounded transition-colors"

@@ -107,20 +107,15 @@ export default function MusicPlayer() {
     el.loop = true;
     
     // Log track loading
-    console.log(`🎵 Attempting to play ${trackInfo.type}: ${trackInfo.label}`);
-    
     // Enhanced error handling
     el.onerror = (e) => {
-      console.warn(`❌ Failed to load ${trackInfo.type}: ${trackInfo.label}`, e);
       setPlaying(false);
     };
     
     el.onloadstart = () => {
-      console.log(`🔄 Loading ${trackInfo.type}: ${trackInfo.label}`);
     };
     
     el.oncanplay = () => {
-      console.log(`✅ Ready to play ${trackInfo.type}: ${trackInfo.label}`);
     };
     
     // Set source and attempt to play
@@ -131,11 +126,9 @@ export default function MusicPlayer() {
     if (playPromise !== undefined) {
       playPromise
         .then(() => {
-          console.log(`🎵 Successfully playing ${trackInfo.type}: ${trackInfo.label}`);
           setPlaying(true);
         })
         .catch(err => {
-          console.warn(`❌ Playback failed for ${trackInfo.type}: ${trackInfo.label}`, err);
           setPlaying(false);
         });
     }

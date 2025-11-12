@@ -47,7 +47,6 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
   // Auto-generate inspection notes when component loads with existing annotations
   useEffect(() => {
     if (initialAnnotations.length > 0 && !initialInspectionNotes) {
-      console.log('🔄 Auto-generating inspection notes for existing annotations...');
       updateInspectionNotes(initialAnnotations);
     }
   }, [initialAnnotations, initialInspectionNotes]);
@@ -415,14 +414,11 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
                     
                     // First, save the current manual notes before generating report
                     setIsSavingNotes(true);
-                    console.log('💾 Saving manual inspection notes before generating report...');
                     onSave(annotations, inspectionNotes);
                     
                     // Brief delay to ensure save completes
                     await new Promise(resolve => setTimeout(resolve, 500));
                     setIsSavingNotes(false);
-
-                    console.log('🔧 Generating damage report image from edit mode...');
                     const response = await fetch('/api/generate-damage-report-image', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -434,21 +430,16 @@ const DamageMarkingInterface: React.FC<DamageMarkingInterfaceProps> = ({
                     });
 
                     const result = await response.json();
-                    console.log('📊 Generation result:', result);
-                    
                     if (result.success) {
-                      console.log('✅ Damage report image generated:', result.imageUrl);
                       alert('Damage report image generated successfully!');
                       // Notify parent component about the new image
                       if (onImageGenerated) {
                         onImageGenerated(result.imageUrl, result.fileName);
                       }
                     } else {
-                      console.error('❌ Failed to generate damage report image:', result.error);
                       alert(`Failed to generate image: ${result.error}`);
                     }
                   } catch (error) {
-                    console.error('❌ Error generating damage report image:', error);
                     alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
                   } finally {
                     setIsGeneratingReport(false);

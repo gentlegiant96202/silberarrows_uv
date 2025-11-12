@@ -7,8 +7,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Testing single insert...');
-
     const testData = {
       record_type: 'call_entry',
       call_date: '2024-08-12',
@@ -23,16 +21,12 @@ export async function POST(request: NextRequest) {
       answered_yn_2: null,
       notes: 'Test note'
     };
-
-    console.log('Inserting test data:', testData);
-
     const { data, error } = await supabase
       .from('call_management')
       .insert([testData])
       .select();
 
     if (error) {
-      console.error('Insert error:', error);
       return NextResponse.json({
         success: false,
         error: error.message,
@@ -40,8 +34,6 @@ export async function POST(request: NextRequest) {
         testData
       });
     }
-
-    console.log('Insert successful:', data);
     return NextResponse.json({
       success: true,
       message: 'Test insert successful',
@@ -50,7 +42,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Exception:', error);
     return NextResponse.json(
       { 
         success: false,

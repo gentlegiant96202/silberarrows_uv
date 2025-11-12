@@ -3,8 +3,6 @@ import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Fetching cars table schema...');
-
     // Get a sample record to infer structure (simpler approach)
     const { data: sampleCar, error: sampleError } = await supabase
       .from('cars')
@@ -26,9 +24,6 @@ export async function GET(request: NextRequest) {
       sample_value: sampleCar[key],
       is_null: sampleCar[key] === null
     }));
-
-    console.log('✅ Successfully fetched cars table schema');
-
     return NextResponse.json({
       success: true,
       method: 'sample_record_analysis',
@@ -39,7 +34,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('❌ Schema fetch error:', error);
     return NextResponse.json(
       { 
         error: 'Failed to fetch table schema',

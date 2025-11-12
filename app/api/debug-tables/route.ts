@@ -91,7 +91,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(results);
 
   } catch (error) {
-    console.error('Database debug error:', error);
     return NextResponse.json(
       { 
         error: 'Failed to check database structure', 

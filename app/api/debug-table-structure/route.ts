@@ -15,15 +15,11 @@ const supabaseAdmin = createClient(
 
 export async function GET(req: NextRequest) {
   try {
-    console.log('🔍 DEBUG: Checking table structure...');
-    
     // Get table structure
     const { data: columns, error: columnsError } = await supabaseAdmin
       .rpc('get_table_columns', { table_name: 'content_pillars' });
     
     if (columnsError) {
-      console.error('❌ Error getting columns:', columnsError);
-      
       // Fallback: try to query the table directly
       const { data: sampleData, error: sampleError } = await supabaseAdmin
         .from('content_pillars')
@@ -68,7 +64,6 @@ export async function GET(req: NextRequest) {
     });
     
   } catch (error: unknown) {
-    console.error('❌ Debug error:', error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });
   }

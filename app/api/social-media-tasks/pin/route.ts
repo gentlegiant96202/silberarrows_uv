@@ -15,13 +15,10 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('📌 Pin API: Received request');
-    
     const { taskId, pinned } = await request.json();
     
     // Validate input
     if (!taskId) {
-      console.error('❌ Pin API: Missing taskId');
       return NextResponse.json(
         { error: 'Task ID is required' },
         { status: 400 }
@@ -29,15 +26,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (typeof pinned !== 'boolean') {
-      console.error('❌ Pin API: Invalid pinned value');
       return NextResponse.json(
         { error: 'Pinned must be a boolean value' },
         { status: 400 }
       );
     }
-
-    console.log(`📌 Pin API: ${pinned ? 'Pinning' : 'Unpinning'} task ${taskId}`);
-
     // Update the task's pinned status in the database
     const { data, error } = await supabase
       .from('design_tasks')
@@ -50,7 +43,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('❌ Pin API: Database error:', error);
       return NextResponse.json(
         { error: `Failed to update task: ${error.message}` },
         { status: 500 }
@@ -58,22 +50,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data) {
-      console.error('❌ Pin API: Task not found');
       return NextResponse.json(
         { error: 'Task not found' },
         { status: 404 }
       );
     }
-
-    console.log(`✅ Pin API: Successfully ${pinned ? 'pinned' : 'unpinned'} task:`, data);
-
     return NextResponse.json({
       message: `Task ${pinned ? 'pinned' : 'unpinned'} successfully`,
       task: data
     });
 
   } catch (error: any) {
-    console.error('❌ Pin API: Unexpected error:', error);
     return NextResponse.json(
       { error: error.message || 'An unexpected error occurred' },
       { status: 500 }
@@ -101,7 +88,6 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('❌ Pin API GET: Database error:', error);
       return NextResponse.json(
         { error: `Failed to fetch task: ${error.message}` },
         { status: 500 }
@@ -111,7 +97,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ task: data });
 
   } catch (error: any) {
-    console.error('❌ Pin API GET: Unexpected error:', error);
     return NextResponse.json(
       { error: error.message || 'An unexpected error occurred' },
       { status: 500 }

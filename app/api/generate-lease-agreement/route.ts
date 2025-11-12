@@ -313,23 +313,12 @@ async function generateLeaseAgreementPdf(data: any): Promise<Buffer> {
 export async function POST(request: NextRequest) {
   try {
     const contractData = await request.json();
-    
-    console.log('📄 Generating lease agreement PDF using PDFShift...');
-    console.log('📋 Contract data:', {
-      customer: contractData.customer_name,
-      vehicle: `${contractData.vehicle_make} ${contractData.vehicle_model}`,
-      monthlyPayment: contractData.monthly_payment,
-      leaseTerm: contractData.lease_term_months
-    });
-
     if (!process.env.PDFSHIFT_API_KEY) {
       return NextResponse.json({ error: 'PDFShift API key not configured' }, { status: 500 });
     }
 
     // Generate PDF
     const pdfBuffer = await generateLeaseAgreementPdf(contractData);
-    console.log('✅ Lease agreement PDF generated successfully:', { sizeBytes: pdfBuffer.length, sizeMB: (pdfBuffer.length / 1024 / 1024).toFixed(2) });
-
     // Upload to Supabase storage
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const sanitizedCustomerName = (contractData.customer_name || 'customer').replace(/[^a-zA-Z0-9-_]/g, '-');
@@ -343,7 +332,6 @@ export async function POST(request: NextRequest) {
       });
     
     if (uploadError) {
-      console.error('Error uploading PDF:', uploadError);
       throw new Error('Failed to upload PDF');
     }
     
@@ -351,9 +339,6 @@ export async function POST(request: NextRequest) {
     const { data: { publicUrl } } = supabase.storage
       .from('service-documents')
       .getPublicUrl(fileName);
-      
-    console.log('📄 PDF generated and uploaded:', publicUrl);
-
     // Save PDF URL to database if customer_id is provided
     if (contractData.customer_id) {
       try {
@@ -366,13 +351,10 @@ export async function POST(request: NextRequest) {
           .eq('id', contractData.customer_id);
 
         if (updateError) {
-          console.error('❌ Database update error:', updateError);
           // Don't throw error here, just log it - PDF was generated successfully
         } else {
-          console.log('✅ PDF URL saved to database for customer:', contractData.customer_id);
         }
       } catch (dbError) {
-        console.error('❌ Database error:', dbError);
         // Don't throw error here, just log it - PDF was generated successfully
       }
     }
@@ -389,7 +371,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Lease agreement generation error:', error);
     return NextResponse.json(
       { 
         success: false, 

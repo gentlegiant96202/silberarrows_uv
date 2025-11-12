@@ -61,14 +61,12 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching receivables:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ receivables: data || [] });
 
   } catch (error) {
-    console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -119,7 +117,6 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         errors.push(`Batch insert error: ${error.message}`);
-        console.error('Insert error:', error);
       } else {
         totalInserted += data?.length || 0;
       }
@@ -142,7 +139,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -158,7 +154,6 @@ async function getReceivablesStats(): Promise<ReceivablesStats> {
     .select('*');
 
   if (error || !receivables) {
-    console.error('Error fetching receivables summary:', error);
     return {
       total_outstanding: 0,
       total_customers: 0,

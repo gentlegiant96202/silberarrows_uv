@@ -210,7 +210,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       handleFieldChange('key_equipment', processedEquipment);
       
     } catch (error) {
-      console.error('Error processing key equipment:', error);
       alert('Error processing key equipment. Please try again.');
     } finally {
       setProcessingKeyEquipment(false);
@@ -260,7 +259,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         alert('Optimization failed: ' + (data.error || 'Unknown error'));
       }
     } catch (error: any) {
-      console.error('Optimization error:', error);
       alert('Failed to optimize images: ' + error.message);
     } finally {
       setOptimizing(false);
@@ -346,7 +344,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         .order('sort_order', { ascending: true });
       
       if (error) {
-        console.error('Supabase error fetching media:', error);
         setMedia([]);
       } else {
         // Fix storage URLs for custom domain
@@ -360,14 +357,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         setMedia(fixedData);
         
         // Debug: Log media items to see what's loaded
-        console.log('🔍 Media loaded for car:', car.id);
-        console.log('📊 Total media items:', fixedData.length);
         const damageReports = fixedData.filter(m => m.kind === 'damage_report');
-        console.log('🎯 Damage report items found:', damageReports.length, damageReports);
-        
         // Debug: Log all media URLs to check processing
         fixedData.forEach((m, i) => {
-          console.log(`📷 Media ${i + 1}: kind=${m.kind}, url=${m.url}, filename=${m.filename}`);
         });
         
         // Load consignment documents separately (includes both consignment and drive-whilst-sell agreements)
@@ -380,7 +372,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         setConsignmentDocs(consignmentData);
       }
     } catch (error) {
-      console.error('Failed to refetch media:', error);
       setMedia([]);
     } finally {
       setMediaLoading(false);
@@ -524,7 +515,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
           const zipNameEntry = `${indexPrefix}_${originalName}`;
           zip.file(zipNameEntry, blob);
         } catch (e) {
-          console.error('Failed to fetch', it.url, e);
         }
       }));
 
@@ -538,7 +528,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (err) {
-      console.error(err);
       alert('Failed to prepare ZIP file');
     } finally {
       // Clear loading state
@@ -609,7 +598,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       // Refetch to ensure consistency
       await refetchMedia();
     } catch (error) {
-      console.error('Failed to reorder media:', error);
       // Rollback on failure
       setMedia(previousMedia);
       alert('Failed to reorder media. Please try again.');
@@ -625,8 +613,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
     setMediaLoading(true);
     
     try {
-      console.log('🔄 Setting photo as primary:', mediaId);
-      
       const response = await fetch('/api/set-primary-photo', {
         method: 'POST',
         headers: {
@@ -639,14 +625,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         const error = await response.json();
         throw new Error(error.error || 'Failed to set primary photo');
       }
-      
-      console.log('✅ API call successful, refetching media...');
-      
       // First refetch media to get updated order and primary status
       await refetchMedia();
       
       // Dispatch event to notify other components immediately
-      console.log('🔄 Dispatching primary photo change event for car:', car.id);
       window.dispatchEvent(new CustomEvent('primaryPhotoChanged', { 
         detail: { carId: car.id, mediaId } 
       }));
@@ -656,11 +638,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         window.dispatchEvent(new CustomEvent('primaryPhotoChanged', { 
           detail: { carId: car.id, mediaId } 
         }));
-        console.log('🔄 Backup primary photo change event dispatched');
       }, 1000);
       
     } catch (error) {
-      console.error('Failed to set primary photo:', error);
       alert('Failed to set primary photo. Please try again.');
     } finally {
       setMediaLoading(false);
@@ -700,14 +680,8 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
 
   const handleGeneratePdf = async ()=>{
     try{
-      console.log('[PDF] Generating started');
       setGenerating(true);
       setStatusMsg('Building HTML content...');
-      
-      console.log('🔥 ABOUT TO CALL API: /api/generate-car-pdf-pdfshift');
-      console.log('🔥 Car ID:', car.id);
-      console.log('🔥 Media count:', media.length);
-      
       const response = await fetch('/api/generate-car-pdf-pdfshift', {
         method: 'POST',
         headers: {
@@ -718,11 +692,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
           media: media
         }),
       });
-      
-      console.log('🔥 API RESPONSE STATUS:', response.status);
-      console.log('🔥 API RESPONSE OK:', response.ok);
-      console.log('🔥 API RESPONSE HEADERS:', Object.fromEntries(response.headers.entries()));
-      
       if (!response.ok) {
         let message = 'Failed to generate PDF';
         try {
@@ -742,7 +711,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       
       // Log PDF stats
       if (result.pdfStats) {
-        console.log('📊 PDF Generation Results:', result.pdfStats);
       }
       
       // Convert base64 to blob and upload to Supabase
@@ -760,12 +728,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
           
           if (storageIndex !== -1) {
             const oldPath = oldUrl.slice(storageIndex + storagePrefix.length);
-            console.log('[PDF] Deleting old PDF:', oldPath);
             await supabase.storage.from('car-media').remove([oldPath]);
-            console.log('[PDF] Old PDF deleted successfully');
           }
         } catch (deleteError) {
-          console.warn('[PDF] Failed to delete old PDF:', deleteError);
           // Continue with upload even if deletion fails
         }
       }
@@ -788,12 +753,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         : '';
       setStatusMsg(`PDF generated successfully!${sizeInfo}`);
     }catch(e:any){
-      console.error(e);
       alert(e.message||'Failed to create PDF');
       setStatusMsg('Generation failed - please try again');
     } finally {
       setGenerating(false);
-      console.log('[PDF] Generating finished');
     }
   };
 
@@ -809,7 +772,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         .eq('id', car.id);
 
       if (error) {
-        console.error('Failed to delete vehicle PDF:', error);
         alert('Failed to delete vehicle PDF');
         return;
       }
@@ -817,11 +779,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       // Update local state
       setPdfUrl(null);
       setLocalCar(prev => ({ ...prev, vehicle_details_pdf_url: null }));
-      
-      console.log('✅ Vehicle PDF deleted successfully');
-      
     } catch (error) {
-      console.error('Error deleting vehicle PDF:', error);
       alert('Failed to delete vehicle PDF');
     } finally {
       setGenerating(false);
@@ -849,9 +807,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
     try {
       setSendingForSigning(selectedDoc.id);
       setShowEmailModal(false);
-      console.log('📧 Sending document for signing:', selectedDoc.filename);
-      console.log('👤 Company signer:', companyEmail);
-
       const response = await fetch('/api/docusign/send-for-signing', {
         method: 'POST',
         headers: {
@@ -870,14 +825,11 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       }
 
       const result = await response.json();
-      console.log('✅ Document sent for signing:', result.envelopeId);
-
       // Refresh documents to show updated signing status
       await refetchMedia();
 
       // Start polling for status updates every 10 seconds (only while modal is open)
       const interval = setInterval(async () => {
-        console.log('🔄 Polling for DocuSign status updates...');
         await refetchMedia();
         
         // Check if document is completed
@@ -888,7 +840,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
           .single();
           
         if (updatedDocs.data?.signing_status === 'completed') {
-          console.log('✅ Document signing completed! Stopping polling.');
           clearInterval(interval);
           setPollingInterval(null);
           
@@ -898,12 +849,9 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       }, 10000); // Poll every 10 seconds
       
       setPollingInterval(interval);
-      console.log('🔄 Started DocuSign status polling (10-second intervals)');
-
       alert(`Consignment agreement sent to ${companyEmail} for company approval. Customer will receive email after company signature is completed.`);
 
     } catch (error: any) {
-      console.error('Error sending for signing:', error);
       alert(error.message || 'Failed to send document for signing');
     } finally {
       setSendingForSigning(null);
@@ -924,7 +872,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         .eq('id', doc.id);
 
       if (error) {
-        console.error('Failed to delete consignment agreement:', error);
         alert('Failed to delete consignment agreement');
         return;
       }
@@ -932,11 +879,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       // Update local state
       setConsignmentDocs(prev => prev.filter(d => d.id !== doc.id));
       setMedia(prev => prev.filter(m => m.id !== doc.id));
-      
-      console.log('✅ Consignment agreement deleted successfully');
-      
     } catch (error) {
-      console.error('Error deleting consignment agreement:', error);
       alert('Failed to delete consignment agreement');
     } finally {
       setMediaLoading(false);
@@ -946,7 +889,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
 
   const handleGenerateConsignmentAgreement = async () => {
     try {
-      console.log('[Consignment] Agreement generation started');
       setGeneratingAgreement(true);
       setAgreementStatusMsg(`Generating ${agreementType === 'drive-whilst-sell' ? 'drive whilst sell' : 'consignment'} agreement...`);
       
@@ -970,7 +912,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       
       // Log generation stats
       if (result.pdfStats) {
-        console.log('📊 Agreement Results:', result.pdfStats);
       }
       
       // Convert base64 to blob and trigger download
@@ -1000,12 +941,10 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       }, 5000);
       
     } catch (e: any) {
-      console.error('[Consignment] Error:', e);
       alert(e.message || `Failed to generate ${agreementType} agreement`);
       setAgreementStatusMsg('Generation failed - please try again');
     } finally {
       setGeneratingAgreement(false);
-      console.log('[Consignment] Agreement generation finished');
     }
   };
 
@@ -1267,7 +1206,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
             await supabase.storage.from('car-media').remove([path]);
           }
         }catch(storageError){
-          console.warn('Storage deletion failed:', storageError);
           // Continue even if storage deletion fails
         }
       }
@@ -1275,7 +1213,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       // Refetch to ensure consistency
       await refetchMedia();
     } catch (error) {
-      console.error('Failed to delete media:', error);
       // Rollback on failure
       setMedia(previousMedia);
       alert(`Failed to delete media: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1329,7 +1266,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         try {
           await supabase.storage.from('car-media').remove(storagePaths);
         } catch (storageError) {
-          console.warn('Some storage files could not be deleted:', storageError);
           // Continue even if storage deletion fails
         }
       }
@@ -1341,7 +1277,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
       // Refetch to ensure consistency
       await refetchMedia();
     } catch (error) {
-      console.error('Failed to delete selected media:', error);
       // Rollback on failure
       setMedia(previousMedia);
       alert(`Failed to delete selected media: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1395,7 +1330,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
   useEffect(() => {
     return () => {
       if (pollingInterval) {
-        console.log('🛑 Stopping DocuSign polling - modal closing');
         clearInterval(pollingInterval);
         setPollingInterval(null);
       }
@@ -1413,10 +1347,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
     );
 
     if (pendingDocs.length > 0 && !pollingInterval) {
-      console.log('🔄 Modal opened with pending DocuSign documents - starting polling');
-      
       const interval = setInterval(async () => {
-        console.log('🔄 Polling for DocuSign status updates...');
         await refetchMedia();
         
         // Check if any documents are completed
@@ -1434,14 +1365,12 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
         );
         
         if (!stillPending || stillPending.length === 0) {
-          console.log('✅ All DocuSign documents completed! Stopping polling.');
           clearInterval(interval);
           setPollingInterval(null);
         }
       }, 10000); // Poll every 10 seconds
       
       setPollingInterval(interval);
-      console.log(`🔄 Started DocuSign polling for ${pendingDocs.length} pending documents`);
     }
   }, [consignmentDocs, car.id]); // Re-run when consignment docs change
 
@@ -1841,15 +1770,11 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
                         .eq('id', localCar.id);
                       
                       if (error) {
-                        console.error('Error saving damage annotations:', error);
                       } else {
-                        console.log('✅ Damage annotations saved to database');
                         if (onSaved) onSaved({ ...localCar, damage_annotations: annotations, visual_inspection_notes: inspectionNotes });
                       }
                     }}
                     onImageGenerated={(imageUrl, filename) => {
-                      console.log('🔄 Image generated, updating local media state...');
-                      
                       // Remove old damage reports from local state
                       const filteredMedia = media.filter(m => m.kind !== 'damage_report');
                       
@@ -1867,7 +1792,6 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
                       };
                       
                       setMedia([...filteredMedia, newDamageReport]);
-                      console.log('✅ Local media state updated with new damage report');
                     }}
                   />
                 ) : (
@@ -1891,10 +1815,7 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
                               src={latestReport.url}
                               alt="Vehicle Damage Report"
                               className="w-full h-auto"
-                              onLoad={() => console.log('✅ Damage report image loaded:', latestReport.url)}
                               onError={(e) => {
-                                console.error('❌ Failed to load damage report image:', latestReport.url);
-                                console.error('❌ Image error:', e);
                               }}
                             />
                           </div>
@@ -2674,21 +2595,15 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
                           {canEditInventory && (
                             <button 
                               onClick={() => {
-                                console.log('🔥 HEADER BUTTON CLICKED!');
-                                console.log('📋 consignmentDocs:', consignmentDocs);
                                 // First try to find an unsigned document
                                 let docToSend = consignmentDocs.find(doc => !doc.docusign_envelope_id);
                                 // If no unsigned document, use the first available document (for resending)
                                 if (!docToSend && consignmentDocs.length > 0) {
                                   docToSend = consignmentDocs[0];
-                                  console.log('📄 No unsigned doc found, using first document for resending:', docToSend);
                                 }
-                                console.log('📄 Document to send:', docToSend);
                                 if (docToSend) {
-                                  console.log('🚀 Calling handleSendForSigning...');
                                   handleSendForSigning(docToSend);
                                 } else {
-                                  console.log('❌ No document found at all');
                                 }
                               }}
                               disabled={sendingForSigning !== null}

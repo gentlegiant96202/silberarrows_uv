@@ -41,7 +41,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -70,7 +69,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Internal server error', status: 500 };
   }
 }
@@ -117,13 +115,11 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json({ error: 'Failed to fetch business cards' }, { status: 500 });
     }
 
     return NextResponse.json({ businessCards });
   } catch (error) {
-    console.error('GET /api/business-cards error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -175,13 +171,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json({ error: 'Failed to create business card' }, { status: 500 });
     }
 
     return NextResponse.json({ businessCard }, { status: 201 });
   } catch (error) {
-    console.error('POST /api/business-cards error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

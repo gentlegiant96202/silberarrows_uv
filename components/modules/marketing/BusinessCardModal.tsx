@@ -105,7 +105,6 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
         });
         setQrCodeDataUrl(qrDataUrl);
       } catch (error) {
-        console.error('Error generating QR preview:', error);
       } finally {
         setGeneratingQR(false);
       }
@@ -150,7 +149,6 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
 
       alert('QR code downloaded successfully!');
     } catch (error) {
-      console.error('Error downloading QR code:', error);
       alert('Failed to download QR code');
     }
   };
@@ -218,7 +216,6 @@ export default function BusinessCardModal({ isOpen, onClose, onSave, editingCard
       onSave();
       onClose();
     } catch (error) {
-      console.error('Error saving business card:', error);
       alert(error instanceof Error ? error.message : 'Failed to save business card');
     } finally {
       setSaving(false);

@@ -11,9 +11,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const stockNumber = searchParams.get('stock');
     const carId = searchParams.get('id');
-
-    console.log('🔌 Extension API: Fetching car data...', { stockNumber, carId });
-
     if (!stockNumber && !carId) {
       return NextResponse.json(
         { error: 'Either stock number or car ID is required' },
@@ -65,7 +62,6 @@ export async function GET(request: NextRequest) {
     const { data: cars, error } = await query;
 
     if (error) {
-      console.error('❌ Extension API: Error fetching car:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -77,8 +73,6 @@ export async function GET(request: NextRequest) {
     }
 
     const car = cars[0];
-    console.log(`✅ Extension API: Successfully fetched car ${car.stock_number}`);
-
     // Parse ServiceCare pricing from current_service text
     const parseServiceCare = (serviceText: string) => {
       const serviceCare2YrMatch = serviceText?.match(/2yr:\s*AED\s*(\d+)/i);
@@ -184,7 +178,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Extension API: Unexpected error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch car data' },
       { status: 500 }
@@ -195,25 +188,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const timestamp = new Date().toISOString();
-    console.log(`🔌 Extension API: Listing ALL KANBAN cars (NO LIMIT)... (${timestamp})`);
-
     // Debug: Check what cars exist in production
     const { data: allCars, error: allError } = await supabase
       .from('cars')
       .select('id, stock_number, status, sale_status')
       .limit(20);
-    
-    console.log('🔍 PRODUCTION DEBUG: Sample cars:', allCars);
-    console.log('🔍 PRODUCTION DEBUG: Error:', allError);
-    
     // Show status distribution
     const statusCounts = allCars?.reduce((acc: any, car: any) => {
       const key = `${car.status}/${car.sale_status}`;
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
-    console.log('🔍 PRODUCTION DEBUG: Status distribution:', statusCounts);
-
     // Fetch cars across marketing, qc_ceo, and inventory columns
     const { data: cars, error } = await supabase
       .from('cars')
@@ -234,16 +219,10 @@ export async function POST(request: NextRequest) {
       .order('vehicle_model');
 
     if (error) {
-      console.error('❌ Extension API: Error fetching car list:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    console.log(`✅ Extension API: Successfully fetched ${cars?.length || 0} kanban cars`);
-    
     // Debug: Log the actual cars being returned
-    console.log('🔍 EXTENSION DEBUG: Cars being returned to extension:');
     cars?.forEach(car => {
-      console.log(`  - ${car.stock_number}: ${car.model_year} ${car.vehicle_model} (status: inventory, sale_status: ${car.sale_status})`);
     });
 
     const formattedCars = cars?.map((car: any) => {
@@ -276,7 +255,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Extension API: Unexpected error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch car list' },
       { status: 500 }

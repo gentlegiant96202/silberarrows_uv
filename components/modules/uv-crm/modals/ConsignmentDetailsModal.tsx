@@ -80,12 +80,10 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
 
   useEffect(() => {
     // Parse existing notes if they exist
-    console.log('Loading consignment notes:', consignment.notes);
     if (consignment.notes) {
       try {
         const parsed = JSON.parse(consignment.notes);
         if (Array.isArray(parsed)) {
-          console.log('Parsed notes array:', parsed);
           // Convert to proper NoteItem format if needed
           const formattedNotes = parsed.map(note => ({
             ts: note.ts || note.timestamp || new Date().toISOString(),
@@ -95,7 +93,6 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
           setNotesArray(formattedNotes);
         }
       } catch (error) {
-        console.log('Failed to parse notes as JSON, converting string to timeline format');
         // If notes is just a string, convert to timeline format
         setNotesArray([{
           ts: consignment.created_at,
@@ -104,7 +101,6 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
         }]);
       }
     } else {
-      console.log('No existing notes found');
       setNotesArray([]);
     }
   }, [consignment.notes]);
@@ -135,9 +131,6 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
           asking_price: askingPrice ? parseInt(askingPrice.replace(/[^0-9]/g, ''), 10) : null,
         }
       };
-      
-      console.log('Sending PDF generation request:', requestData);
-      
       const pdfResponse = await fetch('/api/consignments/generate-pdf', {
         method: 'POST',
         headers: {
@@ -145,16 +138,9 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
         },
         body: JSON.stringify(requestData),
       });
-      
-      console.log('PDF API response status:', pdfResponse.status);
-
       if (pdfResponse.ok) {
         const pdfResult = await pdfResponse.json();
-        console.log('PDF generation response:', pdfResult);
-        
         if (pdfResult.success && pdfResult.pdfUrl) {
-          console.log('PDF generated successfully with URL:', pdfResult.pdfUrl);
-          
           // Update consignment with PDF URL in database
           const { error: pdfError } = await supabase
             .from('consignments')
@@ -165,17 +151,13 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
             .eq('id', consignment.id);
 
           if (pdfError) {
-            console.error('Error saving PDF URL to database:', pdfError);
             alert('PDF generated but failed to save URL to database');
           } else {
-            console.log('PDF URL saved to database successfully');
-            
             // Update local state to show PDF buttons immediately
             const updatedConsignment = {
               ...currentConsignment,
               pdf_quotation_url: pdfResult.pdfUrl
             };
-            console.log('Updating local state with PDF URL:', updatedConsignment.pdf_quotation_url);
             setCurrentConsignment(updatedConsignment);
             
             // Update parent component data without closing modal
@@ -186,16 +168,13 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
             alert('PDF quotation generated successfully!');
           }
         } else {
-          console.error('PDF generation failed:', pdfResult);
           alert('Failed to generate PDF: ' + (pdfResult.error || 'No PDF URL returned'));
         }
       } else {
         const errorText = await pdfResponse.text();
-        console.error('PDF generation API failed:', errorText);
         alert('Failed to generate PDF: ' + errorText);
       }
     } catch (error) {
-      console.error('Error generating PDF:', error);
       alert('Error generating PDF. Please try again.');
     } finally {
       setGeneratingPDF(false);
@@ -218,15 +197,12 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
       
       if (bucketIndex !== -1 && pathParts[bucketIndex + 1]) {
         const filePath = pathParts.slice(bucketIndex + 1).join('/');
-        console.log('Deleting PDF file:', filePath);
-        
         // Delete from storage
         const { error: deleteError } = await supabase.storage
           .from('Consignment')
           .remove([filePath]);
         
         if (deleteError) {
-          console.error('Error deleting PDF from storage:', deleteError);
           alert('Failed to delete PDF from storage');
           return;
         }
@@ -242,7 +218,6 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
         .eq('id', consignment.id);
 
       if (dbError) {
-        console.error('Error removing PDF URL from database:', dbError);
         alert('PDF deleted from storage but failed to update database');
         return;
       }
@@ -261,7 +236,6 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
       
       alert('PDF quotation deleted successfully!');
     } catch (error) {
-      console.error('Error deleting PDF:', error);
       alert('Error deleting PDF. Please try again.');
     } finally {
       setGeneratingPDF(false);
@@ -304,7 +278,6 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
         .single();
 
       if (error) {
-        console.error('Error updating consignment:', error);
         alert('Error updating consignment: ' + error.message);
         return;
       }
@@ -312,7 +285,6 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
       onUpdated(data);
       setIsEditing(false);
     } catch (error) {
-      console.error('Error updating consignment:', error);
       alert('Error updating consignment. Please try again.');
     } finally {
       setSaving(false);
@@ -322,26 +294,18 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
 
   // Save notes immediately when timeline is updated
   const handleNoteAdded = async (note: NoteItem) => {
-    console.log('Adding new note:', note);
     const updatedNotes = [note, ...notesArray];
-    console.log('Updated notes array:', updatedNotes);
     setNotesArray(updatedNotes);
     setSavingNote(true);
     setHasUnsavedNotes(true);
     
     // Save to database immediately
     try {
-      console.log('Saving notes to database for consignment:', consignment.id);
-      console.log('Notes JSON string length:', JSON.stringify(updatedNotes).length);
-      
       // Log the update data
       const updateData = {
         notes: JSON.stringify(updatedNotes),
         updated_at: new Date().toISOString()
       };
-      console.log('Update data:', updateData);
-      console.log('Update data JSON length:', updateData.notes.length);
-      
       const { data, error } = await supabase
         .from('consignments')
         .update(updateData)
@@ -350,24 +314,13 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
         .single();
       
       if (error) {
-        console.error('Supabase error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
         throw error;
       }
-      
-      console.log('Note saved successfully, updated consignment:', data);
       // Mark that we have successfully saved notes
       setHasUnsavedNotes(false);
       // Don't call onUpdated here as it might close the modal
       // The parent will get updated when the modal is closed or form is saved
     } catch (error: any) {
-      console.error('Error saving note:', error);
-      console.error('Full error object:', JSON.stringify(error, null, 2));
-      
       // Revert the state if save failed
       setNotesArray(notesArray);
       setHasUnsavedNotes(false);
@@ -397,7 +350,6 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
           onUpdated(data);
         }
       } catch (error) {
-        console.error('Error fetching latest consignment data:', error);
       }
     }
     onClose();
@@ -416,14 +368,12 @@ export default function ConsignmentDetailsModal({ consignment, onClose, onUpdate
         .eq('id', consignment.id);
 
       if (error) {
-        console.error('Error deleting consignment:', error);
         alert('Error deleting consignment: ' + error.message);
         return;
       }
 
       onDeleted(consignment.id);
     } catch (error) {
-      console.error('Error deleting consignment:', error);
       alert('Error deleting consignment. Please try again.');
     } finally {
       setDeleting(false);

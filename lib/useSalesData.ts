@@ -39,18 +39,9 @@ export function useSalesData() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sales metrics';
       setError(errorMessage);
-      console.error('❌ Error fetching sales metrics:', err);
-      
       // Log more details for debugging
       if (err instanceof TypeError && err.message === 'fetch failed') {
-        console.error('🔍 Network error details:', {
-          message: err.message,
-          name: err.name,
-          stack: err.stack
-        });
-        console.log('🔄 This might be a temporary network issue during development');
       } else if (err instanceof DOMException && err.name === 'AbortError') {
-        console.log('⏰ Request was aborted (timeout or component unmount)');
       }
       
       return [];
@@ -83,7 +74,6 @@ export function useSalesData() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save sales data';
       setError(errorMessage);
-      console.error('Error submitting sales data:', err);
       return false;
     } finally {
       setLoading(false);
@@ -110,7 +100,6 @@ export function useSalesData() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete sales data';
       setError(errorMessage);
-      console.error('Error deleting sales data:', err);
       return false;
     } finally {
       setLoading(false);

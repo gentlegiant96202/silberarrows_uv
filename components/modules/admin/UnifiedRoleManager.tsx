@@ -140,14 +140,10 @@ export default function UnifiedRoleManager() {
     try {
       setLoading(true);
       setError(null);
-
-      console.log('🔄 Loading admin data...');
-
       // Load all users with roles and metadata
       const { data: usersData, error: usersError } = await supabase.rpc('get_all_users_with_roles');
       
       if (usersError) {
-        console.error('❌ Failed to load users:', usersError);
         throw new Error(`Failed to load users: ${usersError.message}`);
       }
 
@@ -158,12 +154,10 @@ export default function UnifiedRoleManager() {
         const result = await response.json();
         
         if (!response.ok) {
-          console.warn('⚠️ Failed to load user metadata via API:', result.error);
         } else {
           authUsers = result.users || [];
         }
       } catch (metadataError) {
-        console.warn('⚠️ API not available, names will not be loaded:', metadataError);
       }
 
       // Merge user data with metadata
@@ -174,33 +168,21 @@ export default function UnifiedRoleManager() {
           full_name: authUser?.full_name || null
         };
       }) || [];
-
-      console.log('✅ Loaded users:', usersWithNames);
-
       // Load modules
       const { data: modulesData, error: modulesError } = await supabase.from('modules').select('*');
       if (modulesError) {
-        console.error('❌ Failed to load modules:', modulesError);
         throw new Error(`Failed to load modules: ${modulesError.message}`);
       }
-
-      console.log('✅ Loaded modules:', modulesData);
-
       // Load permissions
       const { data: permissionsData, error: permissionsError } = await supabase.rpc('get_all_role_permissions');
       if (permissionsError) {
-        console.error('❌ Failed to load permissions:', permissionsError);
         throw new Error(`Failed to load permissions: ${permissionsError.message}`);
       }
-
-      console.log('✅ Loaded permissions:', permissionsData);
-
       setUsers(usersWithNames);
       setModules(modulesData || []);
       setPermissions(permissionsData || []);
 
     } catch (err: any) {
-      console.error('❌ Error loading data:', err);
       setError(err.message || 'Failed to load admin data');
     } finally {
       setLoading(false);
@@ -212,8 +194,6 @@ export default function UnifiedRoleManager() {
     setError(null);
 
     try {
-      console.log(`🔄 Updating user ${userId} name to: ${newName}`);
-
       // Call the server-side API route
       const response = await fetch('/api/update-user-name', {
         method: 'POST',
@@ -240,8 +220,6 @@ export default function UnifiedRoleManager() {
             : user
         )
       );
-
-      console.log(`✅ Successfully updated user ${userId} name to: ${newName}`);
       setEditingName(null);
       setEditedName('');
       setSuccess(`Successfully updated user name to "${newName}"`);
@@ -251,7 +229,6 @@ export default function UnifiedRoleManager() {
       await refreshUser();
       
     } catch (err: any) {
-      console.error('❌ Error updating user name:', err);
       setError(err.message || 'Failed to update user name. Please try again.');
     } finally {
       setUpdatingName(null);
@@ -272,9 +249,6 @@ export default function UnifiedRoleManager() {
     try {
       setUpdating(userId);
       setError(null);
-
-      console.log(`🔄 Updating user ${userId} to role ${newRole}...`);
-
       // Update in database
       const { error } = await supabase.rpc('update_user_role', {
         target_user_id: userId,
@@ -293,11 +267,7 @@ export default function UnifiedRoleManager() {
             : user
         )
       );
-
-      console.log(`✅ Successfully updated user ${userId} to role ${newRole}`);
-      
     } catch (err: any) {
-      console.error('❌ Error updating user role:', err);
       setError(err.message || 'Failed to update user role');
     } finally {
       setUpdating(null);
@@ -310,22 +280,10 @@ export default function UnifiedRoleManager() {
     setSuccess(null);
 
     try {
-      console.log(`🔄 Saving permissions for role: ${role}...`);
       const rolePermissions = permissions.filter(p => p.role === role);
-      console.log(`📋 Found ${rolePermissions.length} permissions to save:`, rolePermissions);
-      
       let updateCount = 0;
       // Update each permission in the database
       for (const perm of rolePermissions) {
-        console.log(`🔧 Updating ${perm.module_display_name}:`, {
-          target_role: role,
-          target_module_name: perm.module_name,
-          new_can_view: perm.can_view,
-          new_can_create: perm.can_create,
-          new_can_edit: perm.can_edit,
-          new_can_delete: perm.can_delete
-        });
-
         const { data, error } = await supabase.rpc('update_role_permission', {
           target_role: role,
           target_module_name: perm.module_name,
@@ -336,15 +294,10 @@ export default function UnifiedRoleManager() {
         });
 
         if (error) {
-          console.error(`❌ Failed to update ${perm.module_display_name}:`, error);
           throw new Error(`Failed to update ${perm.module_display_name}: ${error.message}`);
         }
-
-        console.log(`✅ Successfully updated ${perm.module_display_name}:`, data);
         updateCount++;
       }
-
-      console.log(`✅ Successfully saved ${updateCount} permissions for role: ${role}`);
       setSuccess(`${role} permissions updated successfully! (${updateCount} modules)`);
       
       // Reload data to show updated permissions
@@ -352,7 +305,6 @@ export default function UnifiedRoleManager() {
       
       setTimeout(() => setSuccess(null), 5000);
     } catch (err: any) {
-      console.error('❌ Error saving permissions:', err);
       setError(err.message || 'Failed to save permissions');
     } finally {
       setSaving(false);
@@ -375,7 +327,6 @@ export default function UnifiedRoleManager() {
         // Create new permission entry
         const module = modules.find(m => m.name === moduleName);
         if (!module) {
-          console.error(`Module ${moduleName} not found!`);
           return prevPermissions;
         }
         

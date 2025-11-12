@@ -37,9 +37,6 @@ export async function POST(request: NextRequest) {
           };
 
     // Note: Extraction metadata removed as requested
-
-    console.log('Creating consignment from extension:', consignmentData);
-
     // Insert into database
     const { data, error } = await supabase
       .from('consignments')
@@ -48,15 +45,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating consignment:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to create consignment: ' + error.message },
         { status: 500 }
       );
     }
-
-    console.log('Consignment created successfully:', data);
-
     return NextResponse.json({
       success: true,
       consignment: data,
@@ -64,7 +57,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Error in consignment creation API:', error);
     return NextResponse.json(
       { 
         success: false, 

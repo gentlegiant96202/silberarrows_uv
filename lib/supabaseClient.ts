@@ -11,25 +11,20 @@ const cookieStorage = typeof window !== 'undefined' ? {
       const [name, value] = cookie.trim().split('=');
       if (name === key) {
         const decoded = decodeURIComponent(value);
-        console.log('🍪 Cookie GET:', key, '- Found:', !!decoded);
         return decoded;
       }
     }
-    console.log('🍪 Cookie GET:', key, '- Not found');
     return null;
   },
   setItem: (key: string, value: string) => {
-    console.log('🍪 Cookie SET:', key, '- Value length:', value.length);
     // Set cookie with 7 day expiry for auth persistence
     const maxAge = 60 * 60 * 24 * 7; // 7 days
     document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
     
     // Verify it was set
     const verify = document.cookie.includes(key);
-    console.log('🍪 Cookie SET verification:', key, '- Success:', verify);
   },
   removeItem: (key: string) => {
-    console.log('🍪 Cookie REMOVE:', key);
     document.cookie = `${key}=; path=/; max-age=0`;
   }
 } : undefined;

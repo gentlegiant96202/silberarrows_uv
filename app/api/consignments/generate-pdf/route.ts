@@ -509,13 +509,7 @@ async function generateConsignmentQuotationPdf(negotiationData: NegotiationData)
       }
     } catch {}
   }
-
-  console.log('📄 Building consignment quotation HTML content...');
   const htmlContent = buildConsignmentQuotationHtml(negotiationData, logoSrc);
-  console.log('📄 HTML content length:', htmlContent.length);
-
-  console.log('📄 Calling PDFShift API...');
-  
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
   
@@ -537,12 +531,8 @@ async function generateConsignmentQuotationPdf(negotiationData: NegotiationData)
   });
   
   clearTimeout(timeoutId);
-  
-  console.log('📄 PDFShift API response status:', resp.status);
-  
   if (!resp.ok) {
     const errText = await resp.text();
-    console.error('❌ PDFShift API error:', resp.status, errText);
     throw new Error(`PDFShift API error: ${resp.status} - ${errText}`);
   }
   
@@ -569,10 +559,6 @@ async function uploadPdfToStorage(pdfBuffer: Buffer, negotiationData: Negotiatio
   
   const fileName = `Consignment_Quotation_${safeMake}_${safeModel}_${safeYear}_${Date.now()}.pdf`;
   const filePath = `consignment-quotations/${fileName}`;
-
-  console.log('☁️ Uploading PDF to storage bucket: Consignment');
-  console.log('📁 File path:', filePath);
-
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from('Consignment')
     .upload(filePath, pdfBuffer, {
@@ -581,12 +567,8 @@ async function uploadPdfToStorage(pdfBuffer: Buffer, negotiationData: Negotiatio
     });
 
   if (uploadError) {
-    console.error('❌ Storage upload error:', uploadError);
     throw new Error('Failed to upload PDF to storage: ' + uploadError.message);
   }
-
-  console.log('✅ PDF uploaded successfully:', uploadData);
-  
   const { data: urlData } = supabase.storage
     .from('Consignment')
     .getPublicUrl(filePath);
@@ -600,8 +582,6 @@ async function uploadPdfToStorage(pdfBuffer: Buffer, negotiationData: Negotiatio
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('📝 Consignment PDF API called');
-    
     const { consignmentData } = await request.json();
     
     // Extract ONLY negotiation modal data - this is the key fix!
@@ -615,18 +595,8 @@ export async function POST(request: NextRequest) {
       consignment_price: consignmentData?.consignment_price,
       negotiation_notes: consignmentData?.negotiation_notes
     };
-    
-    console.log('📝 Generating consignment quotation PDF with NEGOTIATION DATA ONLY:', { 
-      vehicle_make: negotiationData?.vehicle_make,
-      vehicle_model: negotiationData?.vehicle_model,
-      vehicle_year: negotiationData?.vehicle_year,
-      hasDirectPurchase: !!negotiationData?.direct_purchase_price,
-      hasConsignmentPrice: !!negotiationData?.consignment_price
-    });
-    
     // Validation
     if (!negotiationData) {
-      console.error('❌ Missing required parameters');
       return NextResponse.json(
         { error: 'Missing required parameters: consignmentData is required' },
         { status: 400 }
@@ -634,7 +604,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!negotiationData.vehicle_make || !negotiationData.vehicle_model || !negotiationData.vehicle_year) {
-      console.error('❌ Missing required fields for PDF generation');
       return NextResponse.json(
         { error: 'Vehicle make, model, and year are required for PDF generation' },
         { status: 400 }
@@ -642,29 +611,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.PDFSHIFT_API_KEY) {
-      console.error('❌ PDFShift API key not configured');
       return NextResponse.json(
         { error: 'PDFShift API key not configured' },
         { status: 500 }
       );
     }
-
-    console.log('📄 Generating consignment quotation PDF using PDFShift...');
-
     // Generate PDF
     const pdfBuffer = await generateConsignmentQuotationPdf(negotiationData);
-    console.log('✅ Consignment quotation PDF generated successfully:', { 
-      sizeBytes: pdfBuffer.byteLength, 
-      sizeMB: (pdfBuffer.byteLength / 1024 / 1024).toFixed(2)
-    });
-
     // Upload PDF to Supabase storage
     let pdfUrl: string;
     try {
       pdfUrl = await uploadPdfToStorage(pdfBuffer, negotiationData);
-      console.log('📄 PDF generated and uploaded:', pdfUrl);
     } catch (storageError) {
-      console.error('❌ Failed to upload PDF to storage:', storageError);
       return NextResponse.json(
         { 
           success: false, 
@@ -673,9 +631,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    console.log('🎉 CONSIGNMENT QUOTATION PROCESS COMPLETED');
-
     const response = {
       success: true,
       pdfUrl: pdfUrl,
@@ -687,7 +642,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('❌ Error generating consignment quotation PDF:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

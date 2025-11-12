@@ -3,8 +3,6 @@ import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🌐 Generating Facebook automotive catalog XML feed...');
-
     // Fetch all cars from UV catalog that are ready with catalog images
     const { data: catalogEntries, error: catalogError } = await supabase
       .from('uv_catalog')
@@ -41,7 +39,6 @@ export async function GET(request: NextRequest) {
       .eq('cars.sale_status', 'available');
 
     if (catalogError) {
-      console.error('Error fetching catalog entries:', catalogError);
       return NextResponse.json({ error: 'Failed to fetch catalog entries' }, { status: 500 });
     }
 
@@ -50,9 +47,6 @@ export async function GET(request: NextRequest) {
       entry.catalog_image_url &&
       (entry.cars as any).advertised_price_aed > 0
     ) || [];
-
-    console.log(`Found ${validEntries.length} ready catalog entries with images`);
-
     // Generate Facebook automotive XML format
     const xmlContent = generateFacebookXML(validEntries);
 
@@ -68,7 +62,6 @@ export async function GET(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Error uploading XML to storage:', uploadError);
     } else {
       // Also update the latest.xml file for permanent URL with cache busting
       await supabase.storage
@@ -92,7 +85,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error generating XML feed:', error);
     return NextResponse.json({ 
       error: 'Failed to generate XML feed',
       details: error instanceof Error ? error.message : 'Unknown error'

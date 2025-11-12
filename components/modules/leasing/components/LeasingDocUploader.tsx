@@ -40,8 +40,7 @@ export default function LeasingDocUploader({ vehicleId, onUploaded, variant = 'd
             upsert: false,
           });
 
-        if (upErr) { 
-          console.error('Upload error:', upErr);
+        if (upErr) {
           alert(`Error uploading ${file.name}: ${upErr.message}`); 
           continue; 
         }
@@ -69,12 +68,10 @@ export default function LeasingDocUploader({ vehicleId, onUploaded, variant = 'd
         .eq('id', vehicleId);
 
       if (updateError) {
-        console.error('Error updating documents:', updateError);
         alert('Error saving document references');
       }
 
     } catch (error) {
-      console.error('Error uploading documents:', error);
       alert('Error uploading documents');
     } finally {
       setUploading(false);

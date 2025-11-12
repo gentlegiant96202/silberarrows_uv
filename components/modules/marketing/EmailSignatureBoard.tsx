@@ -316,37 +316,27 @@ export default function EmailSignatureBoard() {
   // Database functions
   const loadTemplates = async () => {
     try {
-      console.log('📋 Loading email signature templates...');
       const response = await fetch('/api/email-signatures');
       const result = await response.json();
-      
-      console.log('📋 Templates API response:', result);
-      
       if (result.signatures) {
-        console.log(`📋 Found ${result.signatures.length} templates:`, result.signatures.map((t: SignatureTemplate) => t.name));
         setTemplates(result.signatures);
         
         // Load default template if available
         const defaultTemplate = result.signatures.find((t: SignatureTemplate) => t.is_default);
         if (defaultTemplate) {
-          console.log('📋 Loading default template:', defaultTemplate.name);
           loadTemplate(defaultTemplate);
         } else if (result.signatures.length > 0) {
-          console.log('📋 No default template, loading first template:', result.signatures[0].name);
           loadTemplate(result.signatures[0]);
         }
       } else {
-        console.log('📋 No signatures found in response');
         setTemplates([]);
       }
     } catch (error) {
-      console.error('❌ Error loading templates:', error);
       setTemplates([]);
     }
   };
 
   const loadTemplate = (template: SignatureTemplate) => {
-    console.log('📋 Loading template into UI:', template.name, template);
     setCurrentTemplate(template);
     setTemplateName(template.name);
     setSignatureData({
@@ -373,7 +363,6 @@ export default function EmailSignatureBoard() {
     
     // Force refresh to ensure UI updates
     setRefreshKey(prev => prev + 1);
-    console.log('📋 Template loaded successfully, UI refreshed');
   };
 
   const saveTemplate = async (forceNew: boolean = false) => {
@@ -427,7 +416,6 @@ export default function EmailSignatureBoard() {
 
       const result = await response.json();
       if (!response.ok) {
-        console.error('Save failed:', result);
         alert(`Save failed: ${result?.error || 'Unknown error'}`);
         return;
       }
@@ -444,7 +432,6 @@ export default function EmailSignatureBoard() {
         await loadTemplates(); // Refresh templates list
       }
     } catch (error) {
-      console.error('Error saving template:', error);
     } finally {
       setLoading(false);
     }
@@ -470,9 +457,6 @@ export default function EmailSignatureBoard() {
   const uploadBannerImage = async (file: File, bannerType: 'banner_1' | 'banner_2') => {
     const uploadingKey: 'banner1' | 'banner2' = bannerType === 'banner_1' ? 'banner1' : 'banner2';
     const dataKey: 'bannerImage1' | 'bannerImage2' = bannerType === 'banner_1' ? 'bannerImage1' : 'bannerImage2';
-    
-    console.log('Starting upload:', { fileName: file.name, fileSize: file.size, bannerType });
-    
     setUploading(prev => ({ ...prev, [uploadingKey]: true }));
     
     try {
@@ -480,39 +464,26 @@ export default function EmailSignatureBoard() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('taskId', `email-signature-${bannerType}`); // Use separate folders for each banner
-
-      console.log('Sending upload request to /api/upload-file...');
-
       const response = await fetch('/api/upload-file', {
         method: 'POST',
         body: formData
       });
-
-      console.log('Upload response status:', response.status);
-
       const result = await response.json();
-      console.log('Upload result:', result);
-
       if (result.success && result.fileUrl) {
-        console.log(`✅ ${bannerType} upload successful, updating UI with URL:`, result.fileUrl);
         setSignatureData(prev => {
           const updated = {
             ...prev,
             [dataKey]: result.fileUrl
           };
-          console.log(`Updated ${dataKey} in state:`, updated[dataKey]);
           return updated;
         });
         
         // Force re-render to ensure UI updates
         setRefreshKey(prev => prev + 1);
-        console.log(`🔄 Forced re-render for ${bannerType} upload`);
       } else {
-        console.error(`❌ ${bannerType} upload failed:`, result.error || 'Unknown error');
         alert(`Upload failed: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error uploading banner:', error);
       alert(`Upload error: ${error}`);
     } finally {
       setUploading(prev => ({ ...prev, [uploadingKey]: false }));
@@ -651,7 +622,6 @@ export default function EmailSignatureBoard() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy signature:', err);
     }
   };
 
@@ -695,7 +665,6 @@ export default function EmailSignatureBoard() {
         setCurrentTemplate(null);
       }
     } catch (err) {
-      console.error('Failed to delete template:', err);
       alert(`Delete failed: ${err}`);
     }
   };
@@ -828,7 +797,6 @@ export default function EmailSignatureBoard() {
                     key={`banner1-${signatureData.bannerImage1}-${refreshKey}`}
                     value={signatureData.bannerImage1}
                     onChange={(e) => {
-                      console.log('Banner 1 URL manually changed to:', e.target.value);
                       setSignatureData(prev => ({ ...prev, bannerImage1: e.target.value }));
                     }}
                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
@@ -848,10 +816,8 @@ export default function EmailSignatureBoard() {
                         accept="image/*"
                         className="hidden"
                         onChange={(e) => {
-                          console.log('Banner 1 file selected:', e.target.files?.[0]?.name);
                           const file = e.target.files?.[0];
                           if (file) {
-                            console.log('Starting Banner 1 upload...');
                             uploadBannerImage(file, 'banner_1');
                           }
                           // Reset the input to allow re-upload of same file
@@ -886,7 +852,6 @@ export default function EmailSignatureBoard() {
                     key={`banner2-${signatureData.bannerImage2}-${refreshKey}`}
                     value={signatureData.bannerImage2}
                     onChange={(e) => {
-                      console.log('Banner 2 URL manually changed to:', e.target.value);
                       setSignatureData(prev => ({ ...prev, bannerImage2: e.target.value }));
                     }}
                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-gray-500"
@@ -906,10 +871,8 @@ export default function EmailSignatureBoard() {
                         accept="image/*"
                         className="hidden"
                         onChange={(e) => {
-                          console.log('Banner 2 file selected:', e.target.files?.[0]?.name);
                           const file = e.target.files?.[0];
                           if (file) {
-                            console.log('Starting Banner 2 upload...');
                             uploadBannerImage(file, 'banner_2');
                           }
                           // Reset the input to allow re-upload of same file
@@ -1161,7 +1124,6 @@ export default function EmailSignatureBoard() {
                 <div
                   key={`preview-${signatureData.bannerImage1}-${signatureData.bannerImage2}-${refreshKey}`}
                   dangerouslySetInnerHTML={{ __html: generateSignature(true) }}
-                  onError={(e) => console.log('Preview image load error:', e)}
                 />
               </div>
             ) : (

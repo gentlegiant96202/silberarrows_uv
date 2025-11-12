@@ -10,8 +10,6 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get('x-supabase-signature');
     
     // Log the webhook data for debugging
-    console.log('Received webhook:', JSON.stringify(webhookData, null, 2));
-    
     // Handle different webhook events
     const { table, record, old_record, type } = webhookData;
     
@@ -26,12 +24,10 @@ export async function POST(req: NextRequest) {
         await handleCarMediaWebhook(type, record, old_record);
         break;
       default:
-        console.log(`Unhandled table: ${table}`);
     }
     
     return NextResponse.json({ success: true, message: 'Webhook processed successfully' });
   } catch (error) {
-    console.error('Webhook error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -40,15 +36,12 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleLeadsWebhook(type: string, record: any, old_record?: any) {
-  console.log(`Processing leads webhook: ${type}`);
-  
   // Trigger webhook queue processing for real-time delivery
   try {
     fetch('http://localhost:3000/api/process-webhooks', { 
       method: 'POST' 
-    }).catch(err => console.log('Queue processing trigger failed:', err));
+    }).catch(() => {});
   } catch (error) {
-    console.log('Failed to trigger queue processing:', error);
   }
   
   // Format appointment date from YYYY-MM-DD to DD-MM-YYYY for external systems
@@ -57,7 +50,6 @@ async function handleLeadsWebhook(type: string, record: any, old_record?: any) {
     try {
       return dayjs(dateString).format('DD-MM-YYYY');
     } catch (error) {
-      console.warn('Failed to format date:', dateString, error);
       return dateString; // Return original if formatting fails
     }
   };
@@ -69,8 +61,6 @@ async function handleLeadsWebhook(type: string, record: any, old_record?: any) {
       if (newRecord.appointment_date) {
         newRecord.appointment_date_formatted = formatDateForWebhook(newRecord.appointment_date);
       }
-      
-      console.log('New lead created:', newRecord);
       // Add any custom logic for new leads
       // e.g., send notification emails, update external systems
       // Use newRecord.appointment_date_formatted for external API calls
@@ -87,18 +77,14 @@ async function handleLeadsWebhook(type: string, record: any, old_record?: any) {
         if (updatedRecord.appointment_date) {
           updatedRecord.appointment_date_formatted = formatDateForWebhook(updatedRecord.appointment_date);
         }
-        
-        console.log('Lead appointment updated:', updatedRecord);
         // Add any custom logic for appointment updates
         // e.g., send notifications for rescheduled appointments
         // Use updatedRecord.appointment_date_formatted for external API calls
       } else {
-        console.log('Lead status changed (no webhook fired):', record.status);
       }
       break;
       
     case 'DELETE':
-      console.log('Lead deleted:', old_record);
       // Add any custom logic for lead deletion
       // e.g., cleanup related data, send notifications
       break;
@@ -106,38 +92,28 @@ async function handleLeadsWebhook(type: string, record: any, old_record?: any) {
 }
 
 async function handleCarsWebhook(type: string, record: any, old_record?: any) {
-  console.log(`Processing cars webhook: ${type}`);
-  
   switch (type) {
     case 'INSERT':
-      console.log('New car added:', record);
       // Add any custom logic for new cars
       break;
     case 'UPDATE':
-      console.log('Car updated:', record);
       // Add any custom logic for car updates
       break;
     case 'DELETE':
-      console.log('Car deleted:', old_record);
       // Add any custom logic for car deletion
       break;
   }
 }
 
 async function handleCarMediaWebhook(type: string, record: any, old_record?: any) {
-  console.log(`Processing car_media webhook: ${type}`);
-  
   switch (type) {
     case 'INSERT':
-      console.log('New car media added:', record);
       // Add any custom logic for new media
       break;
     case 'UPDATE':
-      console.log('Car media updated:', record);
       // Add any custom logic for media updates
       break;
     case 'DELETE':
-      console.log('Car media deleted:', old_record);
       // Add any custom logic for media deletion
       break;
   }

@@ -89,7 +89,6 @@ function extractReportDate(workbook: XLSX.WorkBook): string {
       }
     }
   } catch (error) {
-    console.warn('Could not extract report date:', error);
   }
   
   // Default to today if not found
@@ -165,13 +164,9 @@ function parseAdvisorSheet(
           transactions.push(transaction);
         }
       } catch (error) {
-        console.warn(`Error parsing transaction row for ${currentCustomer.name}:`, error);
       }
     }
   }
-
-  console.log(`Parsed ${advisorName}: ${transactions.length} transactions`);
-  
   return {
     advisor_name: advisorName.toUpperCase(),
     report_date: reportDate,
@@ -236,7 +231,6 @@ function parseTransactionRow(
       age_days: isNaN(ageDays) ? 0 : ageDays
     };
   } catch (error) {
-    console.warn('Error parsing transaction row:', error);
     return null;
   }
 }
@@ -273,7 +267,6 @@ function parseExcelDate(dateStr: string): string | null {
       return date.toISOString().split('T')[0];
     }
   } catch (error) {
-    console.warn('Failed to parse date:', dateStr, error);
   }
 
   return null;

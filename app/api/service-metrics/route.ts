@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { success: false, error: `Failed to fetch metrics: ${error.message}` },
         { status: 500 }
@@ -47,7 +46,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('API error in service-metrics GET:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
@@ -82,9 +80,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log('Upserting service metrics for date:', date, body);
-
     // Upsert the record (insert or update if exists)
     const { data, error } = await supabaseAdmin
       .from('daily_service_metrics')
@@ -110,15 +105,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { success: false, error: `Failed to save metrics: ${error.message}` },
         { status: 500 }
       );
     }
-
-    console.log('Successfully saved service metrics:', data);
-
     return NextResponse.json({
       success: true,
       data: data,
@@ -126,7 +117,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('API error in service-metrics POST:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
@@ -146,24 +136,17 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log('Deleting service metrics for date:', date);
-
     const { error, count } = await supabaseAdmin
       .from('daily_service_metrics')
       .delete()
       .eq('metric_date', date);
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { success: false, error: `Failed to delete metrics: ${error.message}` },
         { status: 500 }
       );
     }
-
-    console.log(`Successfully deleted ${count || 0} metrics for date ${date}`);
-
     return NextResponse.json({
       success: true,
       message: `Deleted ${count || 0} metrics for ${date}`,
@@ -171,7 +154,6 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('API error in service-metrics DELETE:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }

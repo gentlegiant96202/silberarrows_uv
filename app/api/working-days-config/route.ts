@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to fetch working days config', details: error.message },
         { status: 500 }
@@ -58,7 +57,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching working days config:', error);
     return NextResponse.json(
       { error: 'Failed to fetch working days config' },
       { status: 500 }
@@ -93,7 +91,6 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (findError) {
-      console.error('Database select error:', findError);
       return NextResponse.json(
         { error: 'Failed to check existing configuration', details: findError.message },
         { status: 500 }
@@ -132,7 +129,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to save working days config', details: error.message },
         { status: 500 }
@@ -146,7 +142,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error saving working days config:', error);
     return NextResponse.json(
       { error: 'Failed to save working days config' },
       { status: 500 }
@@ -183,7 +178,6 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to update working days config', details: error.message },
         { status: 500 }
@@ -204,7 +198,6 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error updating working days config:', error);
     return NextResponse.json(
       { error: 'Failed to update working days config' },
       { status: 500 }
@@ -234,7 +227,6 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to delete configuration', details: error.message },
         { status: 500 }
@@ -254,7 +246,6 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error deleting working days config:', error);
     return NextResponse.json(
       { error: 'Failed to delete working days config' },
       { status: 500 }

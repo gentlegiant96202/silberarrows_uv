@@ -90,15 +90,11 @@ export async function POST(request: NextRequest) {
           const logoData = fs.readFileSync(candidate);
           const b64 = logoData.toString('base64');
           logoSrc = `data:image/png;base64,${b64}`;
-          console.log('✅ Loaded logo from file system:', candidate);
           break;
         }
       } catch (err) {
-        console.log('⚠️ Failed to load logo from:', candidate);
       }
     }
-    
-    console.log('📝 Vehicle PDF API called (UV layout)');
     const { vehicleId, vehicleData } = await request.json();
 
     if (!vehicleId || !vehicleData) {
@@ -1215,13 +1211,9 @@ export async function POST(request: NextRequest) {
           <div class="image-gallery">
               ${(() => {
                   const imagePages = [];
-                  console.log(`📄 Processing ${galleryPhotos.length} gallery photos for pagination...`);
-                  
                   // Group images in pairs (2 per page) for vertical stacking
                   for (let i = 0; i < galleryPhotos.length; i += 2) {
                       const pageImages = galleryPhotos.slice(i, i + 2);
-                      console.log(`📄 Page ${Math.floor(i/2) + 1}: ${pageImages.length} images (indices ${i} to ${i + pageImages.length - 1})`);
-                      
                       // Only create a page if we have at least one image
                       if (pageImages.length > 0) {
                           const pageHTML = `
@@ -1235,8 +1227,6 @@ export async function POST(request: NextRequest) {
                           imagePages.push(pageHTML);
                       }
                   }
-                  
-                  console.log(`📄 Total image pages created: ${imagePages.length}`);
                   return imagePages.join('');
               })()}
           </div>
@@ -1246,10 +1236,7 @@ export async function POST(request: NextRequest) {
   `;
 
     // Call renderer service with A4 paper size
-    console.log('📄 Calling renderer service with A4 paper size...');
   const rendererUrl = process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app';
-  console.log('🔄 Using renderer service at:', rendererUrl);
-
   const controller = new AbortController();
   const timeoutMs = 120000; // 2 minutes timeout
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -1271,43 +1258,25 @@ export async function POST(request: NextRequest) {
   });
 
   clearTimeout(timeoutId);
-
-  console.log('📄 Renderer service response status:', resp.status);
   if (!resp.ok) {
     const error = await resp.text();
-    console.error('📄 Renderer Error Response:', {
-      status: resp.status,
-      statusText: resp.statusText,
-      error: error.slice(0, 500)
-    });
     throw new Error(`Renderer service error (${resp.status}): ${error.slice(0, 500)}`);
   }
 
   // Try to parse the response - catch if it's not JSON
   let renderResult;
   try {
-    console.log('📄 Reading response body...');
     const responseText = await resp.text();
-    console.log('📄 Response size:', responseText.length, 'characters');
-    console.log('📄 Response preview:', responseText.slice(0, 200));
-    console.log('📄 Parsing JSON...');
     renderResult = JSON.parse(responseText);
-    console.log('📄 JSON parsed successfully');
   } catch (parseError) {
-    console.error('📄 Failed to parse renderer response as JSON:', parseError);
     throw new Error('Renderer service returned invalid response (not JSON)');
   }
   
   if (!renderResult.success || !renderResult.pdf) {
-    console.error('📄 Invalid render result:', { success: renderResult.success, hasPdf: !!renderResult.pdf });
     throw new Error('Renderer service returned invalid response');
   }
-
-  console.log('📄 Converting PDF from base64...');
   // Convert base64 PDF back to buffer
   const pdfBuffer = Buffer.from(renderResult.pdf, 'base64');
-  console.log('📄 PDF buffer size:', pdfBuffer.length, 'bytes');
-
     // Delete old PDF from Supabase storage if it exists
     const { data: existingVehicle } = await supabase
       .from('leasing_inventory')
@@ -1323,20 +1292,15 @@ export async function POST(request: NextRequest) {
         
         if (pathMatch && pathMatch[1]) {
           const oldFilePath = decodeURIComponent(pathMatch[1]);
-          console.log('🗑️ Deleting old PDF:', oldFilePath);
-          
           const { error: deleteError } = await supabase.storage
             .from('leasing')
             .remove([oldFilePath]);
           
           if (deleteError) {
-            console.warn('⚠️ Failed to delete old PDF:', deleteError.message);
           } else {
-            console.log('✅ Old PDF deleted successfully');
           }
         }
       } catch (err) {
-        console.warn('⚠️ Error deleting old PDF:', err);
       }
     }
 
@@ -1353,7 +1317,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('❌ Storage upload error:', uploadError);
       throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
 
@@ -1373,7 +1336,6 @@ export async function POST(request: NextRequest) {
       .eq('id', vehicleId);
 
     if (dbError) {
-      console.error('❌ Database update error:', dbError);
     }
 
     return NextResponse.json({ 
@@ -1383,7 +1345,6 @@ export async function POST(request: NextRequest) {
       fileName
     });
   } catch (error) {
-    console.error('❌ Error generating vehicle showcase PDF:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

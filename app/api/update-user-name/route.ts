@@ -16,9 +16,6 @@ const supabaseAdmin = createClient(
 export async function POST(request: NextRequest) {
   try {
     const { userId, fullName } = await request.json();
-
-    console.log(`🔄 Server: Updating user ${userId} name to: ${fullName}`);
-
     // Validate input
     if (!userId || !fullName) {
       return NextResponse.json(
@@ -33,22 +30,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('❌ Server: Failed to update user name:', error);
       return NextResponse.json(
         { error: `Failed to update user name: ${error.message}` },
         { status: 500 }
       );
     }
-
-    console.log(`✅ Server: Successfully updated user ${userId} name to: ${fullName}`);
-
     return NextResponse.json({ 
       success: true, 
       message: `User name updated to "${fullName}"` 
     });
 
   } catch (error: any) {
-    console.error('❌ Server: Error in update-user-name API:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

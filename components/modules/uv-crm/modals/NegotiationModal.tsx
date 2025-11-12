@@ -66,7 +66,6 @@ const NegotiationModal = ({ consignment, onClose, onUpdate }: Props) => {
       onUpdate(data as Consignment);
       onClose();
     } catch (error) {
-      console.error('Error updating negotiation details:', error);
       alert('Error updating negotiation details. Please try again.');
     } finally {
       setSaving(false);

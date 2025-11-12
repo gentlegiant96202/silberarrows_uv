@@ -15,13 +15,9 @@ export async function POST(request: NextRequest) {
   try {
     const { car, agreementType } = await request.json();
     const isDriveWhilstSell = agreementType === 'drive-whilst-sell';
-    
-    console.log(`📄 Generating ${isDriveWhilstSell ? 'drive whilst sell' : 'consignment'} agreement PDF using Railway renderer...`);
-
     // Fetch damage report image URL if it exists
     let damageReportImageUrl = '';
     if (car.id) {
-      console.log('🔍 Looking for damage report image for car:', car.id);
       const { data: damageReportMedia } = await supabase
         .from('car_media')
         .select('url')
@@ -34,9 +30,7 @@ export async function POST(request: NextRequest) {
       
       if (damageReportMedia) {
         damageReportImageUrl = damageReportMedia.url;
-        console.log('✅ Found damage report image:', damageReportImageUrl);
       } else {
-        console.log('ℹ️ No damage report image found for this car');
       }
     }
 
@@ -48,8 +42,6 @@ export async function POST(request: NextRequest) {
     };
 
     // Railway renderer loads templates from files, so we skip inline HTML generation
-    console.log('📄 Calling Railway renderer service...');
-
     // Use your Railway renderer instead of PDF Shift
     const rendererResponse = await fetch(`${process.env.NEXT_PUBLIC_RENDERER_URL || 'https://story-render-production.up.railway.app'}/render-consignment-agreement`, {
       method: 'POST',
@@ -64,7 +56,6 @@ export async function POST(request: NextRequest) {
 
     if (!rendererResponse.ok) {
       const errorText = await rendererResponse.text();
-      console.error('Renderer API Error:', errorText);
       throw new Error(`Renderer API Error: ${errorText}`);
     }
 
@@ -74,8 +65,6 @@ export async function POST(request: NextRequest) {
     }
 
     const fileSizeMB = rendererResult.pdfStats?.fileSizeMB || 'Unknown';
-    console.log(`📄 ${isDriveWhilstSell ? 'Drive Whilst Sell' : 'Consignment'} Agreement PDF Generated: ${fileSizeMB}MB`);
-
     // Sanitize filename
     const sanitizedStockNumber = (car.stock_number || 'draft')
       .replace(/[^a-zA-Z0-9-_]/g, '-')
@@ -84,8 +73,6 @@ export async function POST(request: NextRequest) {
 
     // Save PDF to vehicle documents
     try {
-      console.log('💾 Saving agreement PDF to database...');
-      
       const agreementTypeLabel = isDriveWhilstSell ? 'drive-whilst-sell' : 'consignment';
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19); // Format: YYYY-MM-DDTHH-MM-SS
       const filename = `${sanitizedStockNumber}-${agreementTypeLabel}-agreement-${timestamp}.pdf`;
@@ -99,30 +86,20 @@ export async function POST(request: NextRequest) {
         .or('filename.ilike.%consignment-agreement%,filename.ilike.%drive-whilst-sell-agreement%');
       
       if (existingMedia && existingMedia.length > 0) {
-        console.log(`🗑️ Deleting ${existingMedia.length} existing agreement(s) (all types)`);
-        
         // Delete from storage and database
         for (const media of existingMedia) {
           try {
             // Extract path from URL for storage deletion
             const urlParts = media.url.split('/');
             const storagePath = `${car.id}/${urlParts[urlParts.length - 1]}`;
-            
-            console.log(`🗑️ Deleting storage file: ${storagePath}`);
             const { error: storageError } = await supabase.storage.from('car-media').remove([storagePath]);
             if (storageError) {
-              console.log(`⚠️ Storage deletion warning for ${storagePath}:`, storageError);
             }
-            
-            console.log(`🗑️ Deleting database record: ${media.id}`);
             const { error: dbError } = await supabase.from('car_media').delete().eq('id', media.id);
             if (dbError) {
-              console.log(`⚠️ Database deletion warning for ${media.id}:`, dbError);
             } else {
-              console.log(`✅ Deleted: ${media.filename}`);
             }
           } catch (error) {
-            console.log(`⚠️ Error deleting existing agreement:`, error);
           }
         }
       }
@@ -140,7 +117,6 @@ export async function POST(request: NextRequest) {
         );
 
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
         throw uploadError;
       }
 
@@ -161,14 +137,11 @@ export async function POST(request: NextRequest) {
         });
 
       if (mediaError) {
-        console.error('Database insert error:', mediaError);
         // Don't throw here - PDF was still generated successfully
       } else {
-        console.log(`✅ ${isDriveWhilstSell ? 'Drive Whilst Sell' : 'Consignment'} Agreement saved to database`);
       }
 
     } catch (saveError) {
-      console.error('Error saving PDF:', saveError);
       // Continue - PDF generation was successful even if saving failed
     }
 
@@ -181,7 +154,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Agreement generation error:', error);
     return NextResponse.json(
       { 
         success: false, 

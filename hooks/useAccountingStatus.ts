@@ -123,7 +123,6 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         });
 
       } catch (error) {
-        console.error('Error fetching accounting status:', error);
         setStatus({
           status: "Error",
           color: "red",
@@ -150,7 +149,6 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
           filter: `lease_id=eq.${leaseId}`
         }, 
         () => {
-          console.log('Accounting data changed, refreshing status...');
           fetchAccountingStatus();
         }
       )

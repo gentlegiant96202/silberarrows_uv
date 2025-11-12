@@ -122,7 +122,6 @@ export default function ModuleSelectionPage() {
     if (!permissionsLoading) return;
     
     const fallbackTimer = setTimeout(() => {
-      console.warn('⚠️ Permissions taking too long to load, enabling fallback mode');
       setShowFallback(true);
     }, 5000);
 

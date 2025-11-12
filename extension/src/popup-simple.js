@@ -25,10 +25,8 @@ async function loadSettings() {
     const settings = await chrome.storage.sync.get(['apiUrl']);
     if (settings.apiUrl) {
       API_BASE = settings.apiUrl;
-      console.log('Using API URL:', API_BASE);
     }
   } catch (error) {
-    console.error('Failed to load settings:', error);
   }
 }
 
@@ -65,7 +63,6 @@ async function loadCars() {
     hideStatus();
     
   } catch (error) {
-    console.error('Failed to load cars:', error);
     showStatus(`Error: ${error.message}`, 'error');
     carList.innerHTML = `
       <div class="status error">
@@ -158,18 +155,11 @@ async function handleFill() {
     
     // Send data to content script
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
-    console.log('Sending message to tab:', tab.id);
-    console.log('Car data:', data.car);
-    
     // Simple message sending without injection
     const response2 = await chrome.tabs.sendMessage(tab.id, {
       action: 'fillCarData',
       carData: data.car
     });
-    
-    console.log('Fill response:', response2);
-    
     if (response2 && response2.success) {
       showStatus('Car data filled successfully!', 'success');
       
@@ -182,7 +172,6 @@ async function handleFill() {
     }
     
   } catch (error) {
-    console.error('Fill failed:', error);
     showStatus(`Error: ${error.message}`, 'error');
   } finally {
     fillBtn.disabled = false;

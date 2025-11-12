@@ -69,7 +69,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
     // In the future, you can add more granular permissions here
     return { user };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -130,7 +129,6 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to fetch records', details: error.message },
         { status: 500 }
@@ -193,7 +191,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching call management records:', error);
     return NextResponse.json(
       { 
         error: 'Failed to fetch records',
@@ -312,7 +309,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to create record', details: error.message },
         { status: 500 }
@@ -326,7 +322,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating call management record:', error);
     return NextResponse.json(
       { 
         error: 'Failed to create record',
@@ -373,7 +368,6 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to update record', details: error.message },
         { status: 500 }
@@ -394,7 +388,6 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error updating call management record:', error);
     return NextResponse.json(
       { 
         error: 'Failed to update record',
@@ -435,7 +428,6 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to delete record', details: error.message },
         { status: 500 }
@@ -455,7 +447,6 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error deleting call management record:', error);
     return NextResponse.json(
       { 
         error: 'Failed to delete record',

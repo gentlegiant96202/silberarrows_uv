@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
     }, { status: 501 });
 
   } catch (error) {
-    console.error('Error in generate-price-drop-images:', error);
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 

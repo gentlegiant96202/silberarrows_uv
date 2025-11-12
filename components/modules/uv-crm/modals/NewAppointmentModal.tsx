@@ -110,7 +110,6 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
 
     // Listen for custom primary photo change events
     const handlePrimaryPhotoChange = () => {
-      console.log('Primary photo changed event received in NewAppointmentModal, reloading thumbnails...');
       loadCars();
     };
     
@@ -195,7 +194,6 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
           .select();
         
         if (error) {
-          console.error('Error converting lead:', error);
           alert('Error converting lead: ' + error.message);
           setSaving(false);
           return;
@@ -212,7 +210,6 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
           .select();
         
         if (error) {
-          console.error('Error creating lead:', error);
           alert('Error creating lead: ' + error.message);
           setSaving(false);
           return;
@@ -225,7 +222,6 @@ export default function NewAppointmentModal({ onClose, onCreated, mode = 'create
       
       onClose();
     } catch (error) {
-      console.error('Error processing lead:', error);
       alert('Error processing lead. Please try again.');
     } finally {
       setSaving(false);

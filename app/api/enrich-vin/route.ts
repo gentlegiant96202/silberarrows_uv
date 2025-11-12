@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: result });
   } catch (e: any) {
-    console.error('enrich-vin error', e);
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 } 

@@ -338,16 +338,12 @@ export default function ServiceCarePricingCalculator({ isOpen, onClose }: Servic
       if (!response.ok) {
         throw new Error(data.error || 'Failed to send quote');
       }
-
-      console.log('✅ Quote sent successfully:', data);
-      
       // Wait 5 seconds for WhatsApp to process and deliver the message
       await new Promise(resolve => setTimeout(resolve, 5000));
       
       setQuoteSent(true);
       setCurrentStep('result');
     } catch (error) {
-      console.error('❌ Error sending quote:', error);
       setSendError(error instanceof Error ? error.message : 'Failed to send quote. Please try again.');
     } finally {
       setIsSending(false);

@@ -33,12 +33,8 @@ export default function BusinessCardPage() {
   useEffect(() => {
     const loadBusinessCard = async () => {
       try {
-        console.log('Loading business card for slug:', slug);
         const response = await fetch(`/api/business-cards/public/${slug}`);
-        console.log('Response status:', response.status);
-        
         if (!response.ok) {
-          console.error('Response not ok:', response.status, response.statusText);
           if (response.status === 404) {
             setError(true);
             return;
@@ -47,10 +43,8 @@ export default function BusinessCardPage() {
         }
 
         const result = await response.json();
-        console.log('Business card data:', result);
         setBusinessCard(result.businessCard);
       } catch (err) {
-        console.error('Error loading business card:', err);
         setError(true);
       } finally {
         setLoading(false);

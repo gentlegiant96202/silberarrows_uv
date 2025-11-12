@@ -5,9 +5,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { contentType = 'image' } = body;
-
-    console.log('🤖 Starting AI generation for Myth Buster Monday with size constraints');
-
     // Get auth token for API call
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -30,16 +27,12 @@ export async function POST(req: NextRequest) {
       .limit(100);
 
     if (fetchError) {
-      console.warn('Could not fetch existing myth busters:', fetchError);
     }
 
     // Create a list of existing content to avoid
     const existingContent = existingMythBusters?.map(item => 
       `${item.title} | ${item.myth} | ${item.fact}`
     ).join('\n') || '';
-
-    console.log('📚 Found existing myth busters (up to 100):', existingMythBusters?.length || 0);
-
     // Call OpenAI API with specific constraints for Myth Buster Monday
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -133,9 +126,6 @@ WARNING: {safety/warranty warning if needed}`
 
     const openaiData = await openaiResponse.json();
     const responseText = openaiData.choices[0]?.message?.content || '';
-
-    console.log('🤖 Raw AI response:', responseText);
-
     // Parse the response
     const lines = responseText.split('\n').filter((line: string) => line.trim());
     let title = '', myth = '', fact = '', difficulty = '', tools_needed = '', warning = '';
@@ -178,16 +168,12 @@ WARNING: {safety/warranty warning if needed}`
       warning: warning || 'Always consult a professional for complex repairs',
       ai_response: { title, myth, fact, difficulty, tools_needed, warning, raw_response: responseText }
     };
-
-    console.log('✅ Successfully generated Myth Buster Monday content with constraints:', finalContent);
-
     return NextResponse.json({
       success: true,
       data: finalContent
     });
 
   } catch (error: any) {
-    console.error('Error generating Myth Buster Monday content:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

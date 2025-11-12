@@ -10,13 +10,9 @@ export async function GET(request: NextRequest) {
     authUrl.searchParams.set('client_id', process.env.DOCUSIGN_INTEGRATION_KEY!);
     authUrl.searchParams.set('redirect_uri', `${process.env.NEXT_PUBLIC_BASE_URL}/api/docusign/oauth`);
     authUrl.searchParams.set('state', 'docusign_auth'); // Optional state parameter
-
-    console.log('🔗 Redirecting to DocuSign OAuth:', authUrl.toString());
-
     return NextResponse.redirect(authUrl.toString());
 
   } catch (error) {
-    console.error('DocuSign auth initiation error:', error);
     return NextResponse.json({ error: 'Failed to initiate authentication' }, { status: 500 });
   }
 }

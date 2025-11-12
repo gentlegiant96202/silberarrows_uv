@@ -62,33 +62,26 @@ export default function BuyerJourneyCanvas() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'buyer_journey_nodes' },
         (payload) => {
-          console.log('🔄 Realtime event received:', payload);
           if (payload.eventType === 'INSERT') {
-            console.log('➕ Adding new node from realtime:', payload.new);
             setNodes((prev) => {
               // Prevent duplicates
               const exists = prev.some(node => node.id === payload.new.id);
               if (exists) {
-                console.log('⚠️ Node already exists, skipping duplicate');
                 return prev;
               }
               const newNodes = [...prev, payload.new as JourneyNode];
-              console.log('📊 Updated nodes array:', newNodes.length);
               return newNodes;
             });
           } else if (payload.eventType === 'UPDATE') {
-            console.log('🔄 Updating node from realtime:', payload.new);
             setNodes((prev) =>
               prev.map((node) => (node.id === payload.new.id ? payload.new as JourneyNode : node))
             );
           } else if (payload.eventType === 'DELETE') {
-            console.log('🗑️ Deleting node from realtime:', payload.old);
             setNodes((prev) => prev.filter((node) => node.id !== payload.old.id));
           }
         }
       )
       .subscribe((status) => {
-        console.log('📡 Realtime subscription status:', status);
       });
 
     const connectionsChannel = supabase
@@ -97,16 +90,13 @@ export default function BuyerJourneyCanvas() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'buyer_journey_connections' },
         (payload) => {
-          console.log('🔄 Connection realtime event:', payload);
           if (payload.eventType === 'INSERT') {
             setConnections((prev) => {
               // Prevent duplicates from realtime
               const exists = prev.some(conn => conn.id === payload.new.id);
               if (exists) {
-                console.log('⚠️ Connection already exists from manual add, skipping realtime duplicate');
                 return prev;
               }
-              console.log('➕ Adding connection from realtime:', payload.new);
               return [...prev, payload.new as Connection];
             });
           } else if (payload.eventType === 'DELETE') {
@@ -115,7 +105,6 @@ export default function BuyerJourneyCanvas() {
         }
       )
       .subscribe((status) => {
-        console.log('📡 Connection realtime subscription status:', status);
       });
 
     return () => {
@@ -126,48 +115,33 @@ export default function BuyerJourneyCanvas() {
 
   const loadData = async () => {
     try {
-      console.log('📊 Loading buyer journey data...');
-      
       const [nodesRes, connectionsRes] = await Promise.all([
         supabase.from('buyer_journey_nodes').select('*').order('created_at', { ascending: true }),
         supabase.from('buyer_journey_connections').select('*')
       ]);
-
-      console.log('🔍 Nodes query result:', nodesRes);
-      console.log('🔍 Connections query result:', connectionsRes);
-
       if (nodesRes.error) {
-        console.error('❌ Nodes query error:', nodesRes.error);
         if (nodesRes.error.message.includes('relation "buyer_journey_nodes" does not exist')) {
           alert('Database tables not created yet. Please run the SQL setup files first:\n1. create_buyer_journey_tables.sql\n2. create_buyer_journey_storage.sql');
         }
       }
 
       if (connectionsRes.error) {
-        console.error('❌ Connections query error:', connectionsRes.error);
       }
 
       if (nodesRes.data) {
-        console.log('✅ Loaded nodes:', nodesRes.data.length);
         setNodes(nodesRes.data);
       }
       if (connectionsRes.data) {
-        console.log('✅ Loaded connections:', connectionsRes.data.length);
         setConnections(connectionsRes.data);
       }
     } catch (error) {
-      console.error('❌ Error loading buyer journey data:', error);
     }
   };
 
   // Create new node
   const createNode = async (department: 'used_car' | 'service') => {
     try {
-      console.log('🚀 Creating new node for department:', department);
-      
       const { data: userData } = await supabase.auth.getUser();
-      console.log('👤 User data:', userData?.user?.id);
-      
       // Calculate position to avoid overlap - spread nodes in a grid pattern
       const existingNodesCount = nodes.filter(n => n.department === department).length;
       const gridCols = 3;
@@ -188,9 +162,6 @@ export default function BuyerJourneyCanvas() {
         position_y: gridY,
         created_by: userData?.user?.id
       };
-
-      console.log('📝 New node data:', newNode);
-
       const { data, error } = await supabase
         .from('buyer_journey_nodes')
         .insert([newNode])
@@ -198,20 +169,14 @@ export default function BuyerJourneyCanvas() {
         .single();
 
       if (error) {
-        console.error('❌ Database error:', error);
         throw error;
       }
-      
-      console.log('✅ Node created successfully:', data);
-      
       // Manually refresh data since realtime might not work due to WebSocket issues
       setTimeout(() => {
-        console.log('🔄 Manually refreshing data after node creation...');
         loadData();
       }, 500);
       
     } catch (error) {
-      console.error('❌ Error creating node:', error);
       alert(`Failed to create node: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -226,7 +191,6 @@ export default function BuyerJourneyCanvas() {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error updating node:', error);
     }
   };
 
@@ -242,7 +206,6 @@ export default function BuyerJourneyCanvas() {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting node:', error);
     }
   };
 
@@ -271,17 +234,13 @@ export default function BuyerJourneyCanvas() {
         video_filename: file.name
       });
     } catch (error) {
-      console.error('Error uploading video:', error);
       alert('Failed to upload video. Make sure the "buyer-journey-videos" storage bucket exists.');
     }
   };
 
   // Create connection
   const createConnection = async (fromNodeId: string, toNodeId: string) => {
-    console.log('🚀 createConnection called with:', { fromNodeId, toNodeId });
-    
     if (fromNodeId === toNodeId) {
-      console.log('❌ Cannot connect node to itself');
       return;
     }
     
@@ -291,48 +250,35 @@ export default function BuyerJourneyCanvas() {
     );
     
     if (exists) {
-      console.log('❌ Connection already exists');
       return;
     }
 
     try {
-      console.log('🔗 Creating connection from:', fromNodeId, 'to:', toNodeId);
-      
       const { data, error } = await supabase
         .from('buyer_journey_connections')
         .insert([{ from_node_id: fromNodeId, to_node_id: toNodeId }])
         .select();
 
       if (error) {
-        console.error('❌ Database error creating connection:', error);
-        console.error('❌ Full error object:', JSON.stringify(error, null, 2));
         throw error;
       }
-      
-      console.log('✅ Connection created successfully:', data);
-      
       // Manually add to local state since realtime might not work
       const newConnection = {
         id: data[0].id,
         from_node_id: fromNodeId,
         to_node_id: toNodeId
       };
-      
-      console.log('📝 Adding to local state:', newConnection);
       setConnections(prev => {
         // Check if connection already exists to prevent duplicates
         const exists = prev.some(conn => conn.id === newConnection.id);
         if (exists) {
-          console.log('⚠️ Connection already exists in state, skipping duplicate');
           return prev;
         }
         const updated = [...prev, newConnection];
-        console.log('📊 Updated connections array:', updated);
         return updated;
       });
       
     } catch (error) {
-      console.error('❌ Error creating connection:', error);
       alert(`Failed to create connection: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -347,7 +293,6 @@ export default function BuyerJourneyCanvas() {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting connection:', error);
     }
   };
 
@@ -366,7 +311,6 @@ export default function BuyerJourneyCanvas() {
     
     // Don't pan if clicking on a button or node
     if (target.closest('button') || target.closest('.node-card')) {
-      console.log('🚫 Canvas pan prevented - clicked on button or node');
       return;
     }
     
@@ -375,7 +319,6 @@ export default function BuyerJourneyCanvas() {
                      target.classList.contains('canvas-background');
     
     if (isCanvas) {
-      console.log('🎯 Starting canvas pan');
       setIsPanning(true);
       setPanStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
       e.preventDefault();
@@ -417,7 +360,6 @@ export default function BuyerJourneyCanvas() {
   const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
     // If in connecting mode, don't start dragging - we want to complete the connection
     if (connectingFrom) {
-      console.log('🚫 Node drag prevented - in connecting mode');
       return;
     }
     
@@ -426,11 +368,8 @@ export default function BuyerJourneyCanvas() {
     if (target.closest('.node-control') || 
         target.closest('button') ||
         target.closest('[title*="Connection point"]')) {
-      console.log('🚫 Node drag prevented - clicked on control, button, or connection point');
       return;
     }
-    
-    console.log('🎯 Node drag started for:', nodeId);
     e.stopPropagation();
     e.preventDefault();
     setDraggingNode(nodeId);
@@ -513,31 +452,21 @@ export default function BuyerJourneyCanvas() {
 
   // Filter nodes by department - show one department at a time
   const filteredNodes = nodes.filter((node) => {
-    console.log('🔍 Filtering node:', node.id, 'department:', node.department, 'selected:', selectedDepartment);
     if (selectedDepartment === 'all') return true;
     return node.department === selectedDepartment;
   });
-  
-  console.log('📊 Total nodes:', nodes.length);
-  console.log('📊 Filtered nodes:', filteredNodes.length);
-  console.log('📊 Selected department:', selectedDepartment);
-  console.log('📊 Total connections:', connections.length);
-  console.log('📊 Connections data:', connections);
-
   // Render connection line with arrow
   const renderConnection = (conn: Connection) => {
     const fromNode = nodes.find((n) => n.id === conn.from_node_id);
     const toNode = nodes.find((n) => n.id === conn.to_node_id);
 
     if (!fromNode || !toNode) {
-      console.log('❌ Missing nodes for connection:', conn.id, 'from:', conn.from_node_id, 'to:', conn.to_node_id);
       return null;
     }
 
     // Filter by department
     if (selectedDepartment !== 'all') {
       if (fromNode.department !== selectedDepartment || toNode.department !== selectedDepartment) {
-        console.log('🔍 Connection filtered out by department:', fromNode.department, 'vs', selectedDepartment);
         return null;
       }
     }
@@ -557,9 +486,6 @@ export default function BuyerJourneyCanvas() {
       x: toNode.position_x * scale + offset.x - dotRadius, // End at the dot center
       y: (toNode.position_y + cardMidHeight) * scale + offset.y
     };
-
-    console.log('🔗 Rendering connection:', conn.id, 'from:', fromConnectionPoint, 'to:', toConnectionPoint);
-
     // Calculate arrow angle
     const angle = Math.atan2(toConnectionPoint.y - fromConnectionPoint.y, toConnectionPoint.x - fromConnectionPoint.x);
     const arrowSize = 10;
@@ -764,7 +690,6 @@ export default function BuyerJourneyCanvas() {
           
           {/* Render all connections */}
           {connections.map((conn) => {
-            console.log('🎯 About to render connection:', conn.id);
             return renderConnection(conn);
           })}
 
@@ -815,27 +740,20 @@ export default function BuyerJourneyCanvas() {
                 onDeleteNode={deleteNode}
                 onUploadVideo={uploadVideo}
         onStartConnection={(nodeId) => {
-          console.log('🎯🎯🎯 onStartConnection called for node:', nodeId);
           if (nodeId === '') {
             // Cancel connection mode
-            console.log('❌ Cancelling connection mode');
             setConnectingFrom(null);
             setConnectionPreview(null);
           } else {
-            console.log('✅✅✅ Setting connectingFrom to:', nodeId);
             setConnectingFrom(nodeId);
           }
-          console.log('📊 New connectingFrom state will be:', nodeId === '' ? null : nodeId);
         }}
                 onEndConnection={(nodeId) => {
-                  console.log('🎯 onEndConnection called:', { connectingFrom, nodeId });
                   if (connectingFrom) {
-                    console.log('🔗 Calling createConnection...');
                     createConnection(connectingFrom, nodeId);
                     setConnectingFrom(null);
                     setConnectionPreview(null);
                   } else {
-                    console.log('❌ No connectingFrom node set');
                   }
                 }}
                 isConnecting={!!connectingFrom && connectingFrom !== node.id}
@@ -951,7 +869,6 @@ function JourneyNodeCard({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Error downloading video:', error);
       alert('Failed to download video');
     }
   };
@@ -976,12 +893,9 @@ function JourneyNodeCard({
           transition: isDragging ? 'none' : 'all 0.1s ease-out'
         }}
       onMouseDown={(e) => {
-        console.log('🔍 Card mousedown event:', { isConnecting, target: (e.target as HTMLElement).className });
-        
         // Don't handle onMouseDown if clicking a button
         const target = e.target as HTMLElement;
         if (target.closest('button')) {
-          console.log('🚫 Skipping mousedown - button click');
           return;
         }
         
@@ -989,12 +903,10 @@ function JourneyNodeCard({
         if (isConnecting) {
           e.stopPropagation();
           e.preventDefault();
-          console.log('🎯 Card clicked (onMouseDown) while connecting - completing connection to:', node.id);
           onEndConnection(node.id);
           return;
         }
         // Otherwise, handle normal drag
-        console.log('🎯 Starting drag for node:', node.id);
         onMouseDown(e);
       }}
     >
@@ -1005,13 +917,11 @@ function JourneyNodeCard({
           onMouseDown={(e) => {
             e.stopPropagation();
             e.preventDefault();
-            console.log('🎯 Overlay mousedown - completing connection to:', node.id);
             onEndConnection(node.id);
           }}
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
-            console.log('🎯 Overlay clicked - completing connection to:', node.id);
             onEndConnection(node.id);
           }}
         >
@@ -1036,17 +946,13 @@ function JourneyNodeCard({
               type="button"
               onMouseDown={(e) => {
                 e.stopPropagation();
-                console.log('🎯 Connection button mousedown for node:', node.id, 'isConnecting:', isConnecting);
               }}
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('🎯 Connection button clicked for node:', node.id, 'isConnecting:', isConnecting);
                 if (isConnecting) {
                   // If this card is in connecting mode, cancel it
-                  console.log('🚫 Cancelling connection mode');
                   onStartConnection(''); // Clear by passing empty string
                 } else {
-                  console.log('✅ Starting connection mode for node:', node.id);
                   onStartConnection(node.id);
                 }
               }}

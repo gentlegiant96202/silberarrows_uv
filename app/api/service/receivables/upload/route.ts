@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse Excel file
-    console.log('Parsing Excel file:', file.name);
     const parseResult = await parseReceivablesExcel(file);
 
     // Validate parsed data
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (importError || !importRecord) {
-      console.error('Error creating import record:', importError);
       return NextResponse.json(
         { error: 'Failed to create import record' },
         { status: 500 }
@@ -75,16 +73,13 @@ export async function POST(request: NextRequest) {
 
     // Delete existing data if requested
     if (replaceExisting) {
-      console.log('Deleting existing receivables data...');
       const { error: deleteError } = await supabaseAdmin
         .from('service_receivables')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
 
       if (deleteError) {
-        console.error('Error deleting existing data:', deleteError);
       } else {
-        console.log('Successfully deleted existing data');
       }
     }
 
@@ -158,7 +153,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
     return NextResponse.json({
       error: 'Failed to process upload',
       details: error instanceof Error ? error.message : 'Unknown error'

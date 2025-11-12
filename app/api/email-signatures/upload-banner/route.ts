@@ -4,19 +4,9 @@ import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== EMAIL SIGNATURE BANNER UPLOAD ===');
-    
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const bannerType = formData.get('bannerType') as string;
-
-    console.log('Upload request:', { 
-      fileName: file?.name, 
-      fileSize: file?.size, 
-      fileType: file?.type,
-      bannerType
-    });
-
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
@@ -29,9 +19,6 @@ export async function POST(request: NextRequest) {
     const ext = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${ext}`;
     const filePath = `email-signatures/${fileName}`;
-
-    console.log('Uploading to path:', filePath);
-
     // Upload to Supabase Storage (exactly like upload-file route)
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('media-files')
@@ -42,7 +29,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
@@ -50,9 +36,6 @@ export async function POST(request: NextRequest) {
     const { data: { publicUrl } } = supabase.storage
       .from('media-files')
       .getPublicUrl(filePath);
-
-    console.log('File uploaded successfully:', publicUrl);
-
     return NextResponse.json({
       success: true,
       file: {
@@ -64,7 +47,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -98,7 +80,6 @@ export async function DELETE(request: NextRequest) {
       .remove([mediaRecord.file_path]);
 
     if (storageError) {
-      console.error('Storage deletion error:', storageError);
     }
 
     // Delete media record
@@ -108,7 +89,6 @@ export async function DELETE(request: NextRequest) {
       .eq('id', mediaId);
 
     if (deleteError) {
-      console.error('Database deletion error:', deleteError);
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
@@ -122,7 +102,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -777,9 +777,6 @@ ${isInvoice ? '• Full payment must be received before the vehicle can be rel
 export async function POST(request: NextRequest) {
   try {
     const { mode, formData, leadId, reservationId, taxInvoice } = await request.json();
-    
-    console.log('📝 Generating vehicle document:', { mode, leadId, reservationId });
-    console.log('📝 Form data received:', JSON.stringify(formData, null, 2));
     // Resolve logo data URL from local PNG (fallback to cloud if missing)
     const logoFileCandidates = [
       path.join(process.cwd(), 'public', 'main-logo.png'),
@@ -801,7 +798,6 @@ export async function POST(request: NextRequest) {
 
     // Validate required data
     if (!mode || !formData || !leadId || !reservationId) {
-      console.error('❌ Missing required parameters:', { mode, formData: !!formData, leadId, reservationId });
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
@@ -810,7 +806,6 @@ export async function POST(request: NextRequest) {
 
     // Validate PDFShift API key
     if (!process.env.PDFSHIFT_API_KEY) {
-      console.error('❌ PDFShift API key not configured');
       return NextResponse.json(
         { error: 'PDFShift API key not configured' },
         { status: 500 }
@@ -818,7 +813,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for existing data and get document number
-    console.log('🔍 Checking for existing reservation data...');
     const { data: existingReservation } = await supabase
       .from('vehicle_reservations')
       .select('pdf_url, document_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
@@ -829,7 +823,6 @@ export async function POST(request: NextRequest) {
     // convert it first so the trigger assigns INV-xxxx and preserves RES-xxxx
     let sourceReservation = existingReservation;
     if (mode === 'invoice' && existingReservation?.document_type === 'reservation') {
-      console.log('🔄 Server-side conversion: reservation -> invoice before PDF generation');
       const { data: conv, error: convError } = await supabase
         .from('vehicle_reservations')
         .update({ document_type: 'invoice', updated_at: new Date().toISOString() })
@@ -837,16 +830,12 @@ export async function POST(request: NextRequest) {
         .select('pdf_url, document_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
         .single();
       if (convError) {
-        console.warn('⚠️ Conversion update failed; proceeding with existing data:', convError);
       } else if (conv) {
         sourceReservation = conv;
-        console.log('✅ Converted server-side. Using updated values:', { document_number: conv.document_number, original_reservation_number: conv.original_reservation_number });
       }
     }
 
     // Deletion disabled by policy: always generate a new file and update URL
-    console.log('🗑️ Skipping deletion of existing PDFs (policy). A new PDF will be uploaded and URL updated.');
-
     // Add document number and original reservation number to form data (use converted values if applicable)
     const enhancedFormData = {
       ...formData,
@@ -856,12 +845,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Generate HTML content for the reservation/invoice form
-    console.log('📄 Generating HTML content...');
     const htmlContent = generateReservationHTML(enhancedFormData, mode, logoSrc);
-    console.log('📄 HTML content generated, length:', htmlContent.length);
-    
-    console.log('📄 Generating vehicle document PDF using PDFShift...');
-    
     // Call PDFShift API
     const pdfShiftResponse = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
       method: 'POST',
@@ -881,7 +865,6 @@ export async function POST(request: NextRequest) {
 
     if (!pdfShiftResponse.ok) {
       const errorText = await pdfShiftResponse.text();
-      console.error('❌ PDFShift API Error:', pdfShiftResponse.status, errorText);
       throw new Error(`PDFShift API Error: ${pdfShiftResponse.status} - ${errorText}`);
     }
 
@@ -898,7 +881,6 @@ export async function POST(request: NextRequest) {
       });
     
     if (uploadError) {
-      console.error('Error uploading PDF:', uploadError);
       throw new Error('Failed to upload PDF');
     }
     
@@ -906,30 +888,21 @@ export async function POST(request: NextRequest) {
     const { data: { publicUrl } } = supabase.storage
       .from('documents')
       .getPublicUrl(fileName);
-      
-    console.log('📄 PDF generated and uploaded:', publicUrl);
-
     // Update the database with the new PDF URL using separate columns
     // Skip database update for tax invoices - they are separate documents and shouldn't overwrite original PDFs
     if (taxInvoice) {
-      console.log('🏷️ Tax invoice generated - skipping database update to preserve original invoice PDF');
     } else {
       const pdfUpdateData = mode === 'reservation' 
         ? { pdf_url: publicUrl, reservation_pdf_url: publicUrl }
         : { pdf_url: publicUrl, invoice_pdf_url: publicUrl };
-
-      console.log('💾 Updating database with PDF URL for', mode, ':', pdfUpdateData);
-      
       const { error: updateError } = await supabase
         .from('vehicle_reservations')
         .update(pdfUpdateData)
         .eq('id', reservationId);
 
       if (updateError) {
-        console.error('❌ Error updating PDF URL:', updateError);
         // Continue anyway, PDF was generated successfully
       } else {
-        console.log('✅ PDF URL saved to database successfully');
       }
     }
 
@@ -951,8 +924,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error generating vehicle document:', error);
-    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       { 
         error: 'Internal server error',
@@ -992,7 +963,6 @@ export async function GET(request: NextRequest) {
     const { data: reservations, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching reservations:', error);
       return NextResponse.json(
         { error: 'Failed to fetch reservations' },
         { status: 500 }
@@ -1005,7 +975,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching vehicle documents:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

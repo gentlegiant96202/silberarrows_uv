@@ -40,7 +40,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -61,7 +60,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -69,8 +67,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 // GET - Fetch all content examples
 export async function GET(req: NextRequest) {
   try {
-    console.log('Fetching content examples...');
-    
     // Validate user has view permission
     const authResult = await validateUserPermissions(req, 'view');
     if (authResult.error) {
@@ -94,14 +90,10 @@ export async function GET(req: NextRequest) {
     const { data: examples, error } = await query;
 
     if (error) {
-      console.error('Error fetching content examples:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    console.log(`✅ Successfully fetched ${examples.length} content examples`);
     return NextResponse.json(examples);
   } catch (error: any) {
-    console.error('Error in GET /api/content-examples:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -116,8 +108,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    console.log('Creating/updating content examples:', body);
-
     // Validate user has create permission
     const authResult = await validateUserPermissions(req, 'create');
     if (authResult.error) {
@@ -135,9 +125,6 @@ export async function POST(req: NextRequest) {
       ...example,
       created_by: authResult.user?.id
     }));
-
-    console.log('Content examples data to upsert:', examplesWithUser);
-
     // Use upsert to handle both create and update operations
     const { data, error } = await supabaseAdmin
       .from('content_examples')
@@ -148,14 +135,10 @@ export async function POST(req: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Error upserting content examples:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    console.log('✅ Successfully upserted content examples:', data?.length);
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
-    console.error('Error in POST /api/content-examples:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -170,8 +153,6 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    console.log('Replacing content examples:', body);
-
     const { examples, dayOfWeek } = body;
     
     // Validate user has edit permission
@@ -197,8 +178,6 @@ export async function PUT(req: NextRequest) {
     // If dayOfWeek is provided, first delete examples that are no longer in the new list
     if (dayOfWeek && examples.length > 0) {
       const newTitles = examples.map(ex => ex.title);
-      console.log(`🗑️ Checking for examples to delete for ${dayOfWeek}, keeping:`, newTitles);
-      
       // First, get existing examples for this day
       const { data: existingExamples, error: fetchError } = await supabaseAdmin
         .from('content_examples')
@@ -206,12 +185,9 @@ export async function PUT(req: NextRequest) {
         .eq('day_of_week', dayOfWeek);
 
       if (fetchError) {
-        console.error('Error fetching existing examples:', fetchError);
       } else if (existingExamples) {
         // Find examples to delete (existing but not in new list)
         const toDelete = existingExamples.filter(ex => !newTitles.includes(ex.title));
-        console.log(`🗑️ Found ${toDelete.length} examples to delete:`, toDelete.map(ex => ex.title));
-        
         if (toDelete.length > 0) {
           const deleteIds = toDelete.map(ex => ex.id);
           const { error: deleteError } = await supabaseAdmin
@@ -220,9 +196,7 @@ export async function PUT(req: NextRequest) {
             .in('id', deleteIds);
 
           if (deleteError) {
-            console.error('Error deleting removed examples:', deleteError);
           } else {
-            console.log('✅ Successfully deleted removed examples');
           }
         }
       }
@@ -234,7 +208,6 @@ export async function PUT(req: NextRequest) {
         .eq('day_of_week', dayOfWeek);
 
       if (deleteError) {
-        console.error('Error deleting all examples for day:', deleteError);
         return NextResponse.json({ error: deleteError.message }, { status: 500 });
       }
       return NextResponse.json([]);
@@ -250,14 +223,10 @@ export async function PUT(req: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Error inserting content examples:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    console.log('✅ Successfully replaced content examples:', data?.length);
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('Error in PUT /api/content-examples:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -271,9 +240,6 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'Content example ID is required' }, { status: 400 });
     }
-
-    console.log('Deleting content example:', id);
-
     // Validate user has delete permission
     const authResult = await validateUserPermissions(req, 'delete');
     if (authResult.error) {
@@ -286,14 +252,10 @@ export async function DELETE(req: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting content example:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    console.log('✅ Successfully deleted content example:', id);
     return NextResponse.json({ message: 'Content example deleted successfully' });
   } catch (error: any) {
-    console.error('Error in DELETE /api/content-examples:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

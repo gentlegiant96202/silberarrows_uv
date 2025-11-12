@@ -176,7 +176,6 @@ export default function TwoColumnKanban() {
           : lead
       ));
     } catch (error) {
-      console.error('Error updating lead status:', error);
     } finally {
       setDraggedLead(null);
     }

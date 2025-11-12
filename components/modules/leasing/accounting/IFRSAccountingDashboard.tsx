@@ -277,7 +277,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
       setAvailableCredits(availablePayments || []);
     } catch (error) {
-      console.error('Error fetching available credits:', error);
     }
   };
 
@@ -292,7 +291,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
       if (error) throw error;
       setLeaseInfo(data);
     } catch (error) {
-      console.error('Error fetching lease info:', error);
     }
   };
 
@@ -309,7 +307,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
       if (error) throw error;
       setRecords(data || []);
     } catch (error) {
-      console.error('Error fetching  accounting data:', error);
     } finally {
       setLoading(false);
     }
@@ -392,7 +389,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
       setInvoices(Object.values(invoiceGroups));
     } catch (error) {
-      console.error('Error fetching invoices:', error);
     }
   };
 
@@ -417,7 +413,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
       if (error) throw error;
       setPaymentHistory(data || []);
     } catch (error) {
-      console.error('Error fetching payment history:', error);
     } finally {
       setLoadingPayments(false);
     }
@@ -426,8 +421,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
 
   const handleAddCharge = async () => {
     try {
-      console.log('💰 Form data before processing:', newCharge);
-      
       // Validation
       if (!newCharge.billing_period) {
         alert('Please select a billing period');
@@ -457,13 +450,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
         fetchAccountingData(); // Refresh data
       } else {
         // Add new charge using  function
-        console.log('🔄 Calling ifrs_add_charge with params:', {
-          p_lease_id: leaseId,
-          p_billing_period: newCharge.billing_period,
-          p_charge_type: newCharge.charge_type,
-          p_total_amount: parseFloat(newCharge.total_amount)
-        });
-        
         const { data, error } = await supabase.rpc('ifrs_add_charge', {
           p_lease_id: leaseId,
           p_billing_period: newCharge.billing_period,
@@ -476,11 +462,8 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
         });
 
         if (error) {
-          console.error('❌ Error from ifrs_add_charge:', error);
           throw error;
         }
-
-        console.log('✅ Charge added successfully, returned data:', data);
         alert('Charge added successfully.');
         fetchAccountingData(); // Refresh data
       }
@@ -489,7 +472,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
       resetNewChargeForm();
       setEditingCharge(null);
     } catch (error) {
-      console.error('Error saving  charge:', error);
       alert('Error saving charge. Please try again.');
     }
   };
@@ -549,7 +531,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
       alert('Charge deleted successfully.');
       fetchAccountingData();
     } catch (error) {
-      console.error('Error deleting  charge:', error);
       alert('Error deleting charge. It may have already been invoiced.');
     }
   };
@@ -561,11 +542,9 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
   };
 
   const handleAddChargeForPeriod = (billingPeriod: string) => {
-    console.log('📅 Adding charge for period:', billingPeriod);
     setNewCharge(prev => ({ ...prev, billing_period: billingPeriod }));
     setActiveTab('charges'); // Switch to charges tab
     setShowAddCharge(true);
-    console.log('📝 Switched to charges tab, form visible, billing period set to:', billingPeriod);
   };
 
   const handleInvoiceGenerated = () => {
@@ -661,7 +640,6 @@ export default function AccountingDashboard({ leaseId, leaseStartDate, customerN
       fetchAvailableCredits();
       fetchPaymentHistory();
     } catch (error) {
-      console.error('Error applying payment:', error);
       alert('Failed to apply payment. Please try again.');
     } finally {
       setIsApplyingCredit(false);
@@ -1293,7 +1271,6 @@ const EmptyState = ({ icon: Icon, title, description, action }: EmptyStateProps)
                     <button
                       onClick={() => {
                         // Add 6 more billing periods
-                        console.log('Extending billing periods by 6 months');
                         alert('Extend periods functionality will be wired to the billing periods view');
                       }}
                       className={primaryButtonClass}

@@ -298,7 +298,6 @@ export default function KanbanBoard() {
               
             }
           } catch (error) {
-            console.error(`❌ Failed to load ${key} column:`, error);
           } finally {
             // Mark column as loaded
             setColumnLoading(prev => ({
@@ -495,7 +494,6 @@ export default function KanbanBoard() {
         }).eq("id", leadToMove.id);
         
         if (error) {
-          console.error("Failed to update lead status:", error);
         }
         return;
       }
@@ -526,7 +524,6 @@ export default function KanbanBoard() {
         }).eq("id", leadToMove.id);
         
         if (error) {
-          console.error("Failed to update lead status:", error);
         }
         return;
       }
@@ -548,7 +545,6 @@ export default function KanbanBoard() {
       }).eq("id", id);
       
       if (error) {
-        console.error("Failed to archive lead:", error);
       }
       return;
     }
@@ -560,7 +556,6 @@ export default function KanbanBoard() {
     }).eq("id", id);
     
     if (error) {
-      console.error("Failed to update lead status:", error);
     }
   };
 
@@ -574,20 +569,14 @@ export default function KanbanBoard() {
     setTimeout(async () => {
       if (!isDragging) {
         // Check if lead is in won/delivered status and has a reservation document
-        console.log('Lead clicked:', lead.id, 'status:', lead.status);
         if (lead.status === 'won' || lead.status === 'delivered') {
-          console.log('Checking for existing reservation for lead:', lead.id);
           // Check for existing reservation
           const { data: existingReservation, error } = await supabase
             .from('vehicle_reservations')
             .select('*')
             .eq('lead_id', lead.id)
             .single();
-            
-          console.log('Existing reservation:', existingReservation, 'error:', error);
-          
           // Always open vehicle document modal for won/delivered leads
-          console.log('Opening vehicle document modal');
           setLeadForDocument(lead);
           setLeadOriginalStatus(lead.status);
           setVehicleDocumentMode(lead.status === 'won' ? 'reservation' : 'invoice');
@@ -647,14 +636,12 @@ export default function KanbanBoard() {
       }).eq("id", leadToLose.id);
       
       if (error) {
-        console.error("Failed to update lead with lost reason:", error);
       }
       
       // Close modal and reset state
       setShowLostReasonModal(false);
       setLeadToLose(null);
     } catch (error) {
-      console.error("Error updating lost lead:", error);
     } finally {
       setIsUpdatingLostLead(false);
     }
@@ -680,7 +667,6 @@ export default function KanbanBoard() {
           .maybeSingle();
         
         if (checkErr) {
-          console.error('Failed to verify invoice creation:', checkErr);
           alert('Error verifying invoice. Status not updated.');
           return;
         }
@@ -691,7 +677,6 @@ export default function KanbanBoard() {
           return;
         }
       } catch (error) {
-        console.error('Invoice verification failed:', error);
         alert('Cannot verify invoice creation. Status not updated.');
         return;
       }
@@ -705,7 +690,6 @@ export default function KanbanBoard() {
     }).eq("id", leadForDocument.id);
     
     if (error) {
-      console.error("Failed to update lead status:", error);
       alert('Failed to update lead status.');
     }
     
@@ -722,9 +706,7 @@ export default function KanbanBoard() {
         updated_at: new Date().toISOString()
       }).eq("id", leadForDocument.id).then(({ error }) => {
         if (error) {
-          console.error("Failed to revert lead status:", error);
         } else {
-          console.log(`Lead reverted to ${leadOriginalStatus || 'won'} status due to cancelled invoice`);
         }
       });
     }
@@ -737,9 +719,7 @@ export default function KanbanBoard() {
         updated_at: new Date().toISOString()
       }).eq("id", leadForDocument.id).then(({ error }) => {
         if (error) {
-          console.error("Failed to revert lead status:", error);
         } else {
-          console.log(`Lead reverted to ${leadOriginalStatus || 'negotiation'} status due to cancelled reservation`);
         }
       });
     }
@@ -759,12 +739,9 @@ export default function KanbanBoard() {
       }).eq("id", leadId);
       
       if (error) {
-        console.error("❌ Failed to archive lead:", error);
       } else {
-        console.log("✅ Lead archived successfully:", leadId);
       }
     } catch (error) {
-      console.error("❌ Error archiving lead:", error);
     }
   };
 

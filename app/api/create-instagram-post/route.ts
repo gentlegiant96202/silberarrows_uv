@@ -50,14 +50,6 @@ export async function POST(request: NextRequest) {
     // Target dimensions for 4:5 aspect ratio (Instagram portrait)
     const targetWidth = 864
     const targetHeight = 1080
-
-    console.log('Original dimensions:', originalWidth, originalHeight)
-    console.log('Target dimensions:', targetWidth, targetHeight)
-
-    console.log('🎨 IMPLEMENTING CONTENT-AWARE BACKGROUND FILL')
-    console.log('Original ratio:', originalWidth / originalHeight)
-    console.log('Target ratio:', targetWidth / targetHeight)
-    
     // --- GRADIENT FROM ORIGINAL IMAGE ---
     // Helper: average color in a row range
     const avgColorRowRange = (y0: number, y1: number) => {
@@ -214,7 +206,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error processing image:', error)
     return NextResponse.json(
       { error: 'Failed to process image' },
       { status: 500 }

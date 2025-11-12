@@ -507,15 +507,12 @@ export default function MarketingKanbanBoard() {
       const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true&lightweight=true', { headers });
       
       if (!response.ok) {
-        console.error('❌ Failed to load tasks:', response.statusText);
         setLoading(false);
         return;
       }
 
       const rawData = await response.json();
       const fetchTime = performance.now() - startTime;
-      console.log(`⚡ Fetched ${rawData.length} tasks in ${fetchTime.toFixed(0)}ms (lightweight mode)`);
-      
       const baseTasks: MarketingTask[] = rawData.map((rawTask: any) => ({
         id: rawTask.id,
         title: rawTask.title,
@@ -536,8 +533,6 @@ export default function MarketingKanbanBoard() {
         acknowledged_at: rawTask.acknowledged_at,
         previewUrl: null // Will be loaded for critical columns
       }));
-      
-      console.log(`✅ Loaded ${baseTasks.length} tasks (lightweight)`);
       setTasks(baseTasks);
       setColumnData(groupTasksByStatus(baseTasks));
       setColumnLoading({
@@ -553,11 +548,9 @@ export default function MarketingKanbanBoard() {
 
       // IMMEDIATELY fetch preview data for visual review columns (in_review, approved, instagram_feed_preview)
       // These columns need previews for proper review workflow
-      console.log('🖼️ Loading preview images for review columns...');
       fetchPreviewsForCriticalColumns(baseTasks);
 
     } catch (error) {
-      console.error('❌ Error loading tasks:', error);
       setLoading(false);
     }
   };
@@ -594,11 +587,8 @@ export default function MarketingKanbanBoard() {
       const totalTasks = Object.values(tasksByStatus).reduce((sum, arr) => sum + arr.length, 0);
       
       if (totalTasks === 0) {
-        console.log('✅ No tasks in review columns need previews');
         return;
       }
-
-      console.log(`🔍 Loading ${totalTasks} preview images (parallel cascading)...`);
       const headers = await getAuthHeaders();
       const startTime = performance.now();
 
@@ -642,7 +632,6 @@ export default function MarketingKanbanBoard() {
               }
             }
           } catch (error) {
-            console.error(`Failed to fetch preview for task ${task.id}:`, error);
           }
         }
       });
@@ -651,10 +640,7 @@ export default function MarketingKanbanBoard() {
       await Promise.all(columnPromises);
 
       const fetchTime = performance.now() - startTime;
-      console.log(`✅ Loaded ${totalTasks} preview images in ${fetchTime.toFixed(0)}ms`);
-
     } catch (error) {
-      console.error('❌ Error fetching previews for critical columns:', error);
     }
   };
 
@@ -669,11 +655,8 @@ export default function MarketingKanbanBoard() {
       );
 
       if (tasksNeedingPreviews.length === 0) {
-        console.log('✅ Instagram feed previews already loaded');
         return;
       }
-
-      console.log(`🔍 Loading ${tasksNeedingPreviews.length} Instagram feed previews...`);
       const headers = await getAuthHeaders();
       const startTime = performance.now();
 
@@ -720,15 +703,11 @@ export default function MarketingKanbanBoard() {
             }
           }
         } catch (error) {
-          console.error(`Failed to fetch Instagram preview for task ${task.id}:`, error);
         }
       }
 
       const fetchTime = performance.now() - startTime;
-      console.log(`✅ Loaded ${sortedTasks.length} Instagram previews in ${fetchTime.toFixed(0)}ms`);
-
     } catch (error) {
-      console.error('❌ Error fetching Instagram previews:', error);
     }
   };
 
@@ -773,8 +752,6 @@ export default function MarketingKanbanBoard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'design_tasks' },
         (payload: any) => {
-          console.log('🔄 Real-time event:', payload.eventType, payload.new?.id || payload.old?.id);
-          
           // ===== UPDATE TASKS STATE =====
           setTasks(prev => {
             if (payload.eventType === 'INSERT') {
@@ -783,11 +760,8 @@ export default function MarketingKanbanBoard() {
               // Check if task already exists to prevent duplicates
               const taskExists = prev.some(task => task.id === newTask.id);
               if (taskExists) {
-                console.log('⚠️ Task already exists, skipping INSERT:', newTask.id);
                 return prev;
               }
-              
-              console.log('✅ Adding new task to state:', newTask.id);
               return [...prev, newTask];
             } 
             else if (payload.eventType === 'UPDATE') {
@@ -803,8 +777,7 @@ export default function MarketingKanbanBoard() {
                   // If this is a local update from AddTaskModal, ignore real-time updates for a short period
                   if ((task as any)._localUpdate) {
                     const timeSinceLocalUpdate = Date.now() - localUpdateTime;
-                    if (timeSinceLocalUpdate < 2000) { // 2 second grace period
-                      console.log('⏸️ Ignoring real-time update - recent local update detected:', task.id);
+                    if (timeSinceLocalUpdate < 2000) { 
                       return task;
                     }
                     // Remove the local update flag after grace period
@@ -814,7 +787,6 @@ export default function MarketingKanbanBoard() {
                   
                   // If local task is newer, preserve local media_files and other critical fields
                   if (localUpdateTime > incomingUpdateTime) {
-                    console.log('🔒 Preserving local task state (newer than incoming update):', task.id);
                     return {
                       ...updatedTask,
                       media_files: task.media_files, // Preserve local media files
@@ -827,19 +799,16 @@ export default function MarketingKanbanBoard() {
                   const incomingMediaCount = updatedTask.media_files?.length || 0;
                   const localMediaCount = task.media_files?.length || 0;
                   if (incomingMediaCount > localMediaCount) {
-                    console.log('🔄 Merging media files (incoming has more):', task.id);
                     return updatedTask;
                   }
                   
                   // Default: use incoming update
-                  console.log('✅ Updating task in state:', task.id);
                   return updatedTask;
                 }
                 return task;
               });
             } 
             else if (payload.eventType === 'DELETE') {
-              console.log('🗑️ Removing task from state:', payload.old.id);
               return prev.filter(task => task.id !== payload.old.id);
             }
             
@@ -856,14 +825,12 @@ export default function MarketingKanbanBoard() {
               // Check if task already exists in column to prevent duplicates
               const taskExists = updated[newTask.status]?.some(task => task.id === newTask.id);
               if (taskExists) {
-                console.log('⚠️ Task already exists in columnData, skipping INSERT:', newTask.id);
                 return prev;
               }
               
               // Add to appropriate column
               if (updated[newTask.status]) {
                 updated[newTask.status] = [newTask, ...updated[newTask.status]];
-                console.log('✅ Added task to columnData:', newTask.id, 'in column:', newTask.status);
               }
             }
             else if (payload.eventType === 'UPDATE') {
@@ -888,7 +855,6 @@ export default function MarketingKanbanBoard() {
                   const timeSinceLocalUpdate = Date.now() - localUpdateTime;
                   
                   if (timeSinceLocalUpdate < 2000) {
-                    console.log('⏸️ Ignoring columnData update - recent local update detected:', updatedTask.id);
                     // Re-add the existing task to its original column
                     updated[existingTask.status] = [existingTask, ...updated[existingTask.status]];
                     return updated;
@@ -896,8 +862,6 @@ export default function MarketingKanbanBoard() {
                 }
                 
                 updated[updatedTask.status] = [updatedTask, ...updated[updatedTask.status]];
-                console.log('✅ Updated task in columnData:', updatedTask.id, 
-                  oldStatus !== updatedTask.status ? `moved from ${oldStatus} to ${updatedTask.status}` : `in ${updatedTask.status}`);
               }
             }
             else if (payload.eventType === 'DELETE') {
@@ -906,7 +870,6 @@ export default function MarketingKanbanBoard() {
                 const colKey = key as ColKey;
                 updated[colKey] = updated[colKey].filter(t => t.id !== payload.old.id);
               });
-              console.log('✅ Removed task from columnData:', payload.old.id);
             }
             
             return updated;
@@ -915,11 +878,8 @@ export default function MarketingKanbanBoard() {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for marketing tasks');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Real-time subscription error');
         } else if (status === 'CLOSED') {
-          console.warn('⚠️ Real-time subscription closed');
         }
       });
 
@@ -1010,7 +970,6 @@ export default function MarketingKanbanBoard() {
     // Permission check: Only users with edit permission can move cards
     if (!canEdit) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🚫 Drop prevented - no edit permission for marketing');
       }
       setDraggedTask(null);
       setHovered(null);
@@ -1145,9 +1104,6 @@ export default function MarketingKanbanBoard() {
         updated[taskToUpdate.status] = [taskToUpdate, ...updated[taskToUpdate.status]];
         return updated;
       });
-      
-      console.error('Error updating task status:', error);
-      
       // Show user-friendly error message
       alert('Failed to move card. Your media files are safe. Please try again.');
     }
@@ -1198,7 +1154,6 @@ export default function MarketingKanbanBoard() {
           setSelectedTask(task);
         }
       } catch (error) {
-        console.error('Error fetching full task details:', error);
         // Fallback to lightweight task if fetch fails
         setSelectedTask(task);
       }
@@ -1243,11 +1198,9 @@ export default function MarketingKanbanBoard() {
         ));
       } else {
         const error = await response.json();
-        console.error('❌ Failed to update pin status:', error);
         // Optionally show user notification here
       }
     } catch (error) {
-      console.error('❌ Error updating pin status:', error);
       // Optionally show user notification here
     } finally {
       setPinningTask(null);
@@ -1262,7 +1215,6 @@ export default function MarketingKanbanBoard() {
           id: selectedTask.id,
           ...taskData,
         };
-        console.log('Sending update request:', updatePayload);
         const headers = await getAuthHeaders();
         const response = await fetch('/api/design-tasks', {
           method: 'PUT',
@@ -1287,7 +1239,6 @@ export default function MarketingKanbanBoard() {
           );
           return taskWithPreview;
         } else {
-          console.error('Failed to update task');
           return null;
         }
       } else {
@@ -1312,12 +1263,10 @@ export default function MarketingKanbanBoard() {
           setTasks(prevTasks => [...prevTasks, taskWithPreview]);
           return taskWithPreview;
         } else {
-          console.error('Failed to create task');
           return null;
         }
       }
     } catch (error) {
-      console.error('Error saving task:', error);
       return null;
     }
   };
@@ -1341,8 +1290,6 @@ export default function MarketingKanbanBoard() {
       if (response.ok) {
         const rawData = await response.json();
         const fetchTime = performance.now() - startTime;
-        console.log(`⚡ Fetched ${rawData.length} archived tasks in ${fetchTime.toFixed(0)}ms (lightweight)`);
-        
         // Transform archived tasks the same way as regular tasks (lightweight)
         const transformedArchivedTasks = rawData.map((rawTask: any) => ({
           id: rawTask.id,
@@ -1368,13 +1315,9 @@ export default function MarketingKanbanBoard() {
         setArchivedTasks(transformedArchivedTasks);
         setArchivedFetched(true);
         setShowArchived(true);
-        
-        console.log(`✅ Loaded ${transformedArchivedTasks.length} archived tasks (lightweight)`);
       } else {
-        console.error('Failed to fetch archived tasks:', response.statusText);
       }
     } catch (error) {
-      console.error('Error fetching archived tasks:', error);
     } finally {
       setLoadingArchived(false);
     }
@@ -1401,12 +1344,9 @@ export default function MarketingKanbanBoard() {
             task.id === taskId ? updatedTask : task
           )
         );
-        console.log('✅ Task archived successfully:', taskId);
       } else {
-        console.error('❌ Failed to archive task');
       }
     } catch (error) {
-      console.error('❌ Error archiving task:', error);
     }
   };
 
@@ -1433,10 +1373,8 @@ export default function MarketingKanbanBoard() {
         setShowModal(false);
         setSelectedTask(null);
       } else {
-        console.error('Failed to delete task');
       }
     } catch (error) {
-      console.error('Error deleting task:', error);
     }
   };
 

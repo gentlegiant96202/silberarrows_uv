@@ -42,14 +42,11 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
   // Auto-close modal after success
   useEffect(() => {
     if (showSuccess) {
-      console.log('🎉 Success state triggered, starting 3-second timer...');
       const timer = setTimeout(() => {
-        console.log('⏰ Timer expired, closing modal...');
         onClose();
       }, 3000); // Close after 3 seconds
 
       return () => {
-        console.log('⏹️ Cleaning up timer...');
         clearTimeout(timer);
       };
     }
@@ -102,24 +99,19 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
   // Load Acumin font
   const loadAcuminFont = useCallback(async (): Promise<boolean> => {
     if (typeof document === 'undefined') {
-      console.log('Document not available (SSR), skipping font loading');
       return false;
     }
 
     if (document.fonts.check('12px "Acumin Variable Concept"')) {
-      console.log('Acumin font already loaded');
       return true;
     }
 
     try {
-      console.log('Loading Acumin Variable Concept font...');
       const font = new FontFace('Acumin Variable Concept', 'url(/Acumin Variable Concept.ttf)');
       await font.load();
       document.fonts.add(font);
-      console.log('✅ Acumin font loaded successfully');
       return true;
     } catch (error) {
-      console.warn('⚠️ Acumin font not available, using fallback:', error);
       return false;
     }
   }, []);
@@ -128,13 +120,10 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
   const generatePriceDropImages = async () => {
     try {
       setIsGenerating(true);
-      console.log('🎨 Generating price drop images with Playwright...');
-      
       // Ensure font is loaded before generating images
       await loadAcuminFont();
       
       // First, get the complete car data with all fields (like CarDetailsModal does)
-      console.log('🔄 Loading complete car data...');
       const { data: fullCarData, error: carError } = await supabase
         .from('cars')
         .select('*')
@@ -142,17 +131,9 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
         .single();
       
       if (carError) {
-        console.error('❌ Error loading full car data:', carError);
         throw new Error('Failed to load complete car data');
       }
-      
-      console.log('✅ Full car data loaded:', {
-        current_mileage_km: fullCarData.current_mileage_km,
-        horsepower_hp: fullCarData.horsepower_hp
-      });
-      
       // Get the first catalog image for this car
-      console.log('📸 Fetching catalog image...');
       const { data: carMedia, error } = await supabase
         .from('car_media')
         .select('url, sort_order, kind')
@@ -162,34 +143,13 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
         .limit(1);
 
       if (error) {
-        console.error('❌ Error fetching car images:', error);
         throw new Error('Failed to fetch car images');
       }
-
-      console.log('🔎 car_media results:', (carMedia || []).map(m => ({ kind: m.kind, sort_order: m.sort_order, url: m.url })));
-
       if (!carMedia || carMedia.length === 0) {
         throw new Error('No catalog images found for this car');
       }
 
       const firstImageUrl = carMedia[0]?.url;
-
-      console.log('📷 Catalog image URL:', firstImageUrl);
-      console.log('📊 Car details (from kanban):', {
-        id: car.id,
-        year: car.model_year,
-        model: car.vehicle_model,
-        mileage: car.current_mileage_km,
-        current_mileage_km: car.current_mileage_km,
-        horsepower_hp: car.horsepower_hp,
-        stockNumber: car.stock_number
-      });
-      
-      console.log('📊 Full car data (from database):', {
-        current_mileage_km: fullCarData.current_mileage_km,
-        horsepower_hp: fullCarData.horsepower_hp
-      });
-
       const rendererBase = process.env.NEXT_PUBLIC_RENDERER_URL as string | undefined;
       const endpoint = rendererBase ? `${rendererBase.replace(/\/$/, '')}/render` : '/api/generate-price-drop-images';
       
@@ -211,9 +171,6 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
         firstImageUrl,
         secondImageUrl: firstImageUrl
       };
-      
-      console.log('🚀 Sending to renderer:', JSON.stringify(payloadToSend, null, 2));
-      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -231,15 +188,12 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       if (!result.success) {
         throw new Error(result.error || 'Image generation failed');
       }
-
-      console.log('✅ Successfully generated images with Playwright');
       return {
         image45: result.image45,
         imageStory: result.imageStory
       };
       
     } catch (error) {
-      console.error('❌ Error generating images:', error);
       throw error;
     } finally {
       setIsGenerating(false);
@@ -254,10 +208,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
     setIsGenerating(true);
     
     try {
-      console.log('🚀 Starting price drop process...');
-      
       // Step 1: Update car price
-      console.log('💰 Updating price:', car.stock_number, '->', `AED ${newPrice}`);
       const priceResponse = await fetch('/api/update-car-price', {
         method: 'POST',
         headers: {
@@ -305,14 +256,10 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       if (!taskResponse.ok) {
         throw new Error('Failed to create price drop task');
       }
-
-      console.log('✅ Price drop images generated and task created successfully!');
-      console.log('🔄 Setting showSuccess to true...');
       setShowSuccess(true);
       onSuccess(); // Call onSuccess prop
       
     } catch (error) {
-      console.error('❌ Price drop generation failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to generate price drop: ${errorMessage}`);
     } finally {

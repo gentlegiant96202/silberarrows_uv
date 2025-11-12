@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
       .select('id, stock_number, advertised_price_aed');
 
     if (error) {
-      console.error('Error updating car price:', error);
       return NextResponse.json(
         { error: 'Failed to update car price' },
         { status: 500 }
@@ -41,16 +40,12 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-
-    console.log(`✅ Updated car price: ${data[0].stock_number} -> AED ${newPrice}`);
-
     return NextResponse.json({
       success: true,
       car: data[0]
     });
 
   } catch (error) {
-    console.error('Error in update-car-price API:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

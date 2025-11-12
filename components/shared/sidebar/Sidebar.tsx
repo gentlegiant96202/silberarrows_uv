@@ -74,7 +74,6 @@ export default function Sidebar() {
           return data;
         })
         .catch(err => {
-          console.warn('Failed to load Lottie animation:', err);
           throw err;
         });
     }
@@ -128,7 +127,6 @@ export default function Sidebar() {
 
         setPendingContractsCount(count);
       } catch (error) {
-        console.error('Error fetching pending contracts:', error);
       }
     };
 

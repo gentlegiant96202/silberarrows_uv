@@ -93,9 +93,6 @@ export default function BillingPeriodsView({
     const endDate = leaseEndDate ? new Date(leaseEndDate) : null;
     const today = new Date();
     const periods: OverdueBillingPeriod[] = [];
-    
-    console.log(`Generating billing periods from lease start: ${startDate.toISOString().split('T')[0]} (day ${startDate.getDate()})`);
-    
     // Calculate number of periods to generate (exactly like existing)
     let numberOfPeriods: number;
     if (endDate) {
@@ -118,8 +115,6 @@ export default function BillingPeriodsView({
     for (let i = 0; i < numberOfPeriods; i++) {
       // Use addMonths helper to avoid JavaScript date pitfalls
       const periodStart = addMonths(startDate, i);
-      console.log(`Period ${i}: Start date calculated as ${periodStart.toISOString().split('T')[0]} from lease start ${startDate.toISOString().split('T')[0]}`);
-      
       // Period end is the day before next month's start date
       const nextMonthStart = addMonths(startDate, i + 1);
       const periodEnd = new Date(nextMonthStart);
@@ -137,9 +132,6 @@ export default function BillingPeriodsView({
       const periodKey = formatLocalDate(periodStart);
       const periodStartStr = formatLocalDate(periodStart);
       const periodEndStr = formatLocalDate(periodEnd);
-      
-      console.log(`Period ${i}: ${periodStartStr} to ${periodEndStr}`);
-
       const periodCharges = records.filter(record => {
         if (!record.billing_period) return false;
         const recordDate = new Date(record.billing_period);

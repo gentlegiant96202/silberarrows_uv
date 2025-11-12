@@ -21,21 +21,16 @@ export default function MobilePage() {
       const isStandalone = isPWAStandalone();
       
       if (isStandalone) {
-        console.log('🔧 PWA Mode: Running in standalone mode');
-        
         // Check session health first
         const isHealthy = checkPWASessionHealth();
         
         if (!isHealthy && !user && !loading) {
-          console.log('🔄 PWA Mode: Attempting session restoration...');
           try {
             const result = await restorePWASession();
             if (!result.session) {
-              console.log('🔄 PWA Mode: Session restoration failed, redirecting to login');
               router.push('/login?returnTo=/mobile&pwa=true');
             }
           } catch (error) {
-            console.error('PWA Mode: Session restoration error:', error);
             router.push('/login?returnTo=/mobile&pwa=true');
           }
         }

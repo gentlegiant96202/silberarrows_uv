@@ -32,7 +32,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -51,7 +50,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -107,9 +105,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '');
     const filename = `${type}_contract_${referenceNo}_${timestamp}.pdf`;
     const filePath = `service-documents/${filename}`;
-
-    console.log('📤 Uploading PDF to Supabase storage:', filePath);
-
     // Upload to Supabase storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('service-documents')
@@ -119,23 +114,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError);
       return NextResponse.json(
         { error: 'Failed to upload PDF to storage', details: uploadError.message },
         { status: 500 }
       );
     }
-
-    console.log('✅ PDF uploaded successfully:', uploadData.path);
-
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('service-documents')
       .getPublicUrl(filePath);
 
     const publicUrl = urlData.publicUrl;
-    console.log('🔗 Public URL generated:', publicUrl);
-
     // Update contract with PDF URL
     const tableName = type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
     
@@ -150,15 +139,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .single();
 
     if (updateError) {
-      console.error('Database update error:', updateError);
-      
       // Try to clean up uploaded file
       try {
         await supabase.storage
           .from('service-documents')
           .remove([filePath]);
       } catch (cleanupError) {
-        console.error('Failed to cleanup uploaded file:', cleanupError);
       }
       
       return NextResponse.json(
@@ -166,9 +152,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 500 }
       );
     }
-
-    console.log('✅ Contract updated with PDF URL');
-
     // Log activity
     try {
       await supabase
@@ -187,7 +170,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           }
         });
     } catch (activityError) {
-      console.error('Failed to log activity:', activityError);
       // Continue without failing
     }
 
@@ -199,7 +181,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
   } catch (error) {
-    console.error('Error uploading PDF:', error);
     return NextResponse.json(
       { 
         error: 'Failed to upload PDF',
@@ -232,7 +213,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       type = body.type || 'service';
     } catch (e) {
       // No JSON body sent, use default type 'service'
-      console.log('No JSON body in DELETE request, defaulting to service type');
     }
 
     // Get current contract to find PDF URL
@@ -245,7 +225,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       .single();
 
     if (fetchError) {
-      console.error('Error fetching contract:', fetchError);
       return NextResponse.json(
         { error: 'Contract not found', details: fetchError.message },
         { status: 404 }
@@ -258,9 +237,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         { status: 404 }
       );
     }
-
-    console.log('🗑️ Deleting PDF:', contract.pdf_url);
-
     // Extract file path from URL
     try {
       const url = new URL(contract.pdf_url);
@@ -272,21 +248,16 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       }
       
       const filePath = pathParts.slice(bucketIndex + 1).join('/');
-      console.log('📁 File path to delete:', filePath);
-
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('service-documents')
         .remove([filePath]);
 
       if (storageError) {
-        console.error('Storage deletion error:', storageError);
         // Continue with database update even if storage deletion fails
       } else {
-        console.log('✅ PDF deleted from storage');
       }
     } catch (urlError) {
-      console.error('Error parsing PDF URL for deletion:', urlError);
       // Continue with database update
     }
 
@@ -302,15 +273,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       .single();
 
     if (updateError) {
-      console.error('Database update error:', updateError);
       return NextResponse.json(
         { error: 'Failed to update contract', details: updateError.message },
         { status: 500 }
       );
     }
-
-    console.log('✅ Contract updated - PDF URL removed');
-
     // Log activity
     try {
       await supabase
@@ -327,7 +294,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
           }
         });
     } catch (activityError) {
-      console.error('Failed to log activity:', activityError);
       // Continue without failing
     }
 
@@ -337,7 +303,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
   } catch (error) {
-    console.error('Error deleting PDF:', error);
     return NextResponse.json(
       { 
         error: 'Failed to delete PDF',

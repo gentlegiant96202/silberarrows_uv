@@ -213,59 +213,31 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
 
   // Helper function to detect which PDF page a pointer coordinate is over
   const detectPageFromPointerCoords = (coords: { x: number; y: number } | undefined): number => {
-    console.log('🔎 detectPageFromPointerCoords called with:', coords);
-    console.log('🔎 Context check:', { 
-      hasCoords: !!coords, 
-      mediaType, 
-      hasPdfPages: !!pdfPages, 
-      pdfPagesLength: pdfPages?.length 
-    });
-    
     if (!coords) {
-      console.log('❌ No coords, returning getCurrentPageNumber');
       return getCurrentPageNumber();
     }
     
     if (mediaType !== 'pdf') {
-      console.log('❌ Not a PDF (mediaType=' + mediaType + '), returning getCurrentPageNumber');
       return getCurrentPageNumber();
     }
     
     if (!pdfPages || pdfPages.length <= 1) {
-      console.log('❌ Not multi-page PDF (length=' + (pdfPages?.length || 0) + '), returning getCurrentPageNumber');
       return getCurrentPageNumber();
     }
-
-    console.log('✅ All checks passed, proceeding with page detection');
-
     try {
       const pageElements = document.querySelectorAll('[data-page-element="true"]');
-      console.log('📄 Found page elements:', pageElements.length);
-      
       if (pageElements.length === 0) {
-        console.log('⚠️ No page elements found');
         return getCurrentPageNumber();
       }
 
       const { x: clickX, y: clickY } = coords;
-      console.log('🖱️ Click position:', { clickX, clickY });
-
       // Find which page element contains this click position
       for (let i = 0; i < pageElements.length; i++) {
         const pageEl = pageElements[i];
         const rect = pageEl.getBoundingClientRect();
         const pageNum = parseInt(pageEl.getAttribute('data-page-number') || '1');
-
-        console.log(`📄 Page ${pageNum} rect:`, { 
-          top: rect.top, 
-          bottom: rect.bottom, 
-          left: rect.left, 
-          right: rect.right 
-        });
-
         // Check if click is within this page's bounds
         if (clickY >= rect.top && clickY <= rect.bottom && clickX >= rect.left && clickX <= rect.right) {
-          console.log('✅ Detected page:', pageNum);
           return pageNum;
         }
       }
@@ -287,12 +259,9 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
           closestPage = pageNum;
         }
       });
-
-      console.log('📍 Closest page:', closestPage);
       return closestPage;
 
     } catch (error) {
-      console.error('Error detecting page from pointer:', error);
       return getCurrentPageNumber();
     }
   };
@@ -385,11 +354,7 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
               onSave={({ path, comment, svgWidth, svgHeight, pointerCoords }) => {
                 // Detect which page the annotation was actually drawn on
-                console.log('🎨 Received pointer coords in MarketingWorkspace:', pointerCoords);
-                console.log('🔍 Detection context:', { mediaType, pdfPagesLength: pdfPages?.length, hasPointerCoords: !!pointerCoords });
                 const detectedPage = detectPageFromPointerCoords(pointerCoords);
-                console.log('💾 Saving annotation to page:', detectedPage);
-                
                 const newAnnotation = {
                   id: Date.now().toString(),
                   path,
@@ -410,7 +375,6 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
                   .eq('id', task.id)
                   .then(({ error }) => {
                     if (error) {
-                      console.error('Error saving annotation:', error);
                     }
                   });
               }}
@@ -510,19 +474,8 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
           height="100%"
           isActive={isAnnotationMode}
           onSave={({ path, comment, svgWidth, svgHeight, pointerCoords }) => {
-            console.log('🎨 [Single Image/Video] Received pointer coords:', pointerCoords);
-            console.log('🔍 [Single Image/Video] Context:', { 
-              mediaType, 
-              hasPointerCoords: !!pointerCoords,
-              currentPageNumber: getCurrentPageNumber()
-            });
-            
             // For single-page PDF views, use the selected thumbnail index
             const detectedPage = getCurrentPageNumber();
-            
-            console.log('💾 [Single Image/Video] Saving annotation to page:', detectedPage);
-            console.log('⚠️ NOTE: In single-page view, click the correct page thumbnail BEFORE annotating!');
-            
             const newAnnotation = {
               id: Date.now().toString(),
               path,
@@ -544,7 +497,6 @@ function MediaViewer({ mediaUrl, fileName, mediaType, pdfPages, task, onAnnotati
               .eq('id', task.id)
               .then(({ error }) => {
                 if (error) {
-                  console.error('Error saving annotation:', error);
                 }
               });
           }}
@@ -634,13 +586,11 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
       return pageFiles;
     } catch (error) {
-      console.error('Local PDF conversion failed:', error);
       return [];
     }
   };
 
   const convertPdfOnServer = async (file: File) => {
-    console.log('📄 PDF detected, converting on server:', file.name);
     setUploadFileName(file.name);
     setUploadProgress(0);
 
@@ -697,7 +647,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         .remove([pdfPath]);
 
       if (removeError) {
-        console.warn('Unable to remove temporary PDF after conversion:', removeError);
       }
 
       setUploadProgress(100);
@@ -846,19 +795,15 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           .single();
           
         if (error) {
-          console.error('Error loading annotations:', error);
           return;
         }
         
         if (data?.annotations) {
-          console.log('Loaded annotations from database:', data.annotations);
           setCurrentAnnotations(data.annotations);
         } else {
-          console.log('No annotations found in database for task:', task.id);
           setCurrentAnnotations([]);
         }
       } catch (error) {
-        console.error('Error loading annotations:', error);
         setCurrentAnnotations([]);
       }
     };
@@ -1014,13 +959,11 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           .eq('id', task.id)
           .then(({ error }) => {
             if (error) {
-              console.error('Failed to update media files order:', error);
             }
           });
       }, 0);
         
     } catch (error) {
-      console.error('❌ Error during drop:', error);
       // Drag state already cleared above
     }
   };
@@ -1028,14 +971,11 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
   // Generate video thumbnail from 0.05 second frame
   const generateVideoThumbnail = (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
-      console.log('🎬 Starting thumbnail generation for:', file.name, 'Type:', file.type, 'Size:', file.size);
-      
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
       if (!ctx) {
-        console.error('❌ Could not get canvas context');
         reject(new Error('Could not get canvas context'));
         return;
       }
@@ -1048,23 +988,13 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
       let hasResolved = false;
       const timeout = setTimeout(() => {
         if (!hasResolved) {
-          console.error('❌ Thumbnail generation timeout after 15 seconds');
           URL.revokeObjectURL(video.src);
           reject(new Error('Thumbnail generation timeout'));
         }
       }, 15000); // Increased timeout
 
       video.onloadedmetadata = () => {
-        console.log('📹 Video metadata loaded:', {
-          duration: video.duration,
-          videoWidth: video.videoWidth,
-          videoHeight: video.videoHeight,
-          readyState: video.readyState,
-          networkState: video.networkState
-        });
-        
         if (video.videoWidth === 0 || video.videoHeight === 0) {
-          console.error('❌ Invalid video dimensions');
           clearTimeout(timeout);
           URL.revokeObjectURL(video.src);
           reject(new Error('Invalid video dimensions'));
@@ -1072,7 +1002,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         }
 
         if (isNaN(video.duration) || video.duration <= 0) {
-          console.error('❌ Invalid video duration:', video.duration);
           clearTimeout(timeout);
           URL.revokeObjectURL(video.src);
           reject(new Error('Invalid video duration'));
@@ -1082,27 +1011,19 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         // Set canvas size to video dimensions
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        
-        console.log('🎯 Seeking to frame...');
         // Seek to 0.1 seconds or 1% of duration, whichever is smaller, but at least 0.1s
         const seekTime = Math.max(0.1, Math.min(0.5, video.duration * 0.01));
-        console.log('⏰ Seek time calculated:', seekTime);
         video.currentTime = seekTime;
       };
 
       video.onseeked = () => {
         if (hasResolved) return;
-        
-        console.log('✅ Video seeked successfully to:', video.currentTime, 'drawing frame...');
         try {
           // Wait a bit for the frame to be ready
           setTimeout(() => {
             try {
               // Draw the video frame to canvas
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              
-              console.log('🎨 Frame drawn to canvas, converting to blob...');
-              
               // Convert canvas to blob
               canvas.toBlob((blob) => {
                 clearTimeout(timeout);
@@ -1110,20 +1031,15 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                 
                 if (blob && !hasResolved) {
                   hasResolved = true;
-                  console.log('✅ Thumbnail blob created:', blob.size, 'bytes');
-                  
                   // Create a File object from the blob
                   const thumbnailFile = new File(
                     [blob], 
                     file.name.replace(/\.[^/.]+$/, '_thumbnail.jpg'), 
                     { type: 'image/jpeg' }
                   );
-                  
-                  console.log('🖼️ Thumbnail file created:', thumbnailFile.name);
                   resolve(thumbnailFile);
                 } else if (!hasResolved) {
                   hasResolved = true;
-                  console.error('❌ Failed to create thumbnail blob');
                   reject(new Error('Failed to create thumbnail blob'));
                 }
               }, 'image/jpeg', 0.9); // Higher quality
@@ -1132,7 +1048,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
               URL.revokeObjectURL(video.src);
               if (!hasResolved) {
                 hasResolved = true;
-                console.error('❌ Error drawing video frame:', drawError);
                 reject(drawError);
               }
             }
@@ -1142,7 +1057,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           URL.revokeObjectURL(video.src);
           if (!hasResolved) {
             hasResolved = true;
-            console.error('❌ Error in onseeked handler:', error);
             reject(error);
           }
         }
@@ -1153,32 +1067,26 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         URL.revokeObjectURL(video.src);
         if (!hasResolved) {
           hasResolved = true;
-          console.error('❌ Video loading error:', error, 'Error code:', video.error?.code, 'Message:', video.error?.message);
           reject(new Error(`Video loading error: ${video.error?.message || error}`));
         }
       };
 
       video.onloadstart = () => {
-        console.log('🔄 Video loading started...');
       };
 
       video.oncanplay = () => {
-        console.log('▶️ Video can start playing...');
       };
 
       video.onloadeddata = () => {
-        console.log('📊 Video data loaded...');
       };
 
       // Load the video file
       try {
         const objectURL = URL.createObjectURL(file);
-        console.log('🔗 Created object URL:', objectURL);
         video.src = objectURL;
         video.load(); // Explicitly load the video
       } catch (error) {
         clearTimeout(timeout);
-        console.error('❌ Error creating object URL:', error);
         reject(new Error('Error creating object URL: ' + error));
       }
     });
@@ -1201,24 +1109,19 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
       for (const file of Array.from(files)) {
         if (file.type === 'application/pdf') {
-          console.log('📄 PDF detected, converting via server API:', file.name);
           try {
             const convertedPages = await convertPdfOnServer(file);
 
             if (convertedPages.length > 0) {
-              console.log(`✅ Server conversion produced ${convertedPages.length} page images`);
               uploadedFiles.push(...convertedPages);
               continue;
             }
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            console.warn('⚠️ Server conversion failed, attempting client fallback:', message);
-
             if (message.includes('libvips') || message.includes('Conversion returned no pages')) {
               const fallbackFiles = await convertPdfToImagesLocally(file);
 
               if (fallbackFiles.length) {
-                console.log(`✅ Client fallback produced ${fallbackFiles.length} page images`);
                 filesToUpload.push(
                   ...fallbackFiles.map((fallbackFile, index) => ({
                     file: fallbackFile,
@@ -1232,8 +1135,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
             setDeleteMessage(`Failed to convert "${file.name}": ${message}`);
           }
-
-          console.warn('⚠️ PDF conversion failed, uploading original PDF');
         }
 
         filesToUpload.push({ file });
@@ -1244,7 +1145,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         // Check file size limit (50MB)
         const maxFileSize = 50 * 1024 * 1024; // 50MB
         if (file.size > maxFileSize) {
-          console.error(`File size exceeds 50MB limit: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
           setDeleteMessage(`File "${file.name}" exceeds 50MB limit`);
           continue;
         }
@@ -1253,8 +1153,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         setUploadProgress(0);
 
         // Always use direct Supabase upload for all files
-        console.log('📤 Using direct Supabase upload for file:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-        
         const ext = file.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${ext}`;
         const storagePath = `${task.id}/${fileName}`;
@@ -1292,7 +1190,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           clearInterval(progressInterval);
           
           if (upErr) {
-            console.error('📤 Supabase upload error:', upErr);
             setDeleteMessage(`Failed to upload "${file.name}": ${upErr.message}`);
             continue;
           }
@@ -1308,12 +1205,10 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           const url = rawUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
           
           publicUrl = url;
-          console.log('📤 Direct Supabase upload completed:', publicUrl);
           setUploadProgress(100);
           
         } catch (error) {
           clearInterval(progressInterval);
-          console.error('📤 Upload error:', error);
           setDeleteMessage(`Failed to upload "${file.name}": ${error instanceof Error ? error.message : 'Unknown error'}`);
           continue;
         }
@@ -1345,10 +1240,8 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
               // Convert to custom domain to avoid ISP blocking
               fileObject.thumbnail = rawThumbUrl.replace('rrxfvdtubynlsanplbta.supabase.co', 'database.silberarrows.com');
             } else {
-              console.warn('Thumbnail upload error:', thumbErr);
             }
           } catch (thumbGenErr) {
-            console.warn('Thumbnail generation failed:', thumbGenErr);
           }
         }
 
@@ -1374,7 +1267,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
             media_files: updatedMediaFiles,
             previewUrl 
           });
-          console.log('✅ Updated task preview in MarketingWorkspace:', previewUrl);
         }
         
         // Update database
@@ -1390,7 +1282,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         setTimeout(() => setDeleteMessage(null), 3000);
       }
     } catch (error) {
-      console.error('Upload error:', error);
       setDeleteMessage('Failed to upload files');
       setTimeout(() => setDeleteMessage(null), 3000);
     } finally {
@@ -1417,7 +1308,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         media_files: mediaFiles,
       });
     } catch (error) {
-      console.error('Save error:', error);
     } finally {
       setSaving(false);
     }
@@ -1437,7 +1327,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
       // Close the workspace after successful explicit save
       onClose();
     } catch (error) {
-      console.error('Save error:', error);
     } finally {
       setSaving(false);
     }
@@ -1482,9 +1371,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           .remove(filesToDeleteFromStorage);
 
         if (storageError) {
-          console.error('Storage deletion error:', storageError);
         } else {
-          console.log('✅ Deleted from storage:', filesToDeleteFromStorage);
         }
       }
 
@@ -1493,10 +1380,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         const currentOriginalUrl = typeof file === 'string' ? file : file.url;
         return currentOriginalUrl !== originalFileUrl;
       });
-      
-      console.log('🗑️ Media files before deletion:', mediaFiles.length);
-      console.log('🗑️ Media files after deletion:', updatedMediaFiles.length);
-      
       setMediaFiles(updatedMediaFiles);
 
       // Update database
@@ -1506,7 +1389,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         .eq('id', task.id);
 
       if (dbError) {
-        console.error('Database update error:', dbError);
         // Revert local state if database update failed
         setMediaFiles(mediaFiles);
         return;
@@ -1526,10 +1408,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         return file.type?.startsWith('image/') || file.type?.startsWith('video/') || file.type === 'application/pdf' ||
                file.name?.match(/\.(jpe?g|png|gif|webp|mp4|mov|avi|webm|mkv|pdf)$/i);
       })];
-
-      console.log('📊 Viewable files after deletion:', newViewableFiles.length);
-      console.log('📊 Should close workspace?', newViewableFiles.length === 0);
-
       // Adjust selected index if necessary
       if (selectedImageIndex >= newViewableFiles.length) {
         setSelectedImageIndex(Math.max(0, newViewableFiles.length - 1));
@@ -1543,16 +1421,13 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
       // If no viewable files left, close the workspace after a brief delay
       if (newViewableFiles.length === 0) {
-        console.log('🚪 Closing workspace - no viewable files remaining');
         setTimeout(() => {
           onClose();
         }, 1000);
       } else {
-        console.log('🔄 Keeping workspace open - still have', newViewableFiles.length, 'viewable files');
       }
 
     } catch (error) {
-      console.error('Delete error:', error);
       setDeleteMessage('Failed to delete file');
       setTimeout(() => setDeleteMessage(null), 3000);
     } finally {
@@ -1562,19 +1437,13 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
 
   // Handle annotation click - navigate to page and highlight annotation
   const handleAnnotationClick = (annotation: any) => {
-    console.log('Clicked annotation:', annotation);
-    console.log('Setting selectedAnnotationId to:', annotation.id);
-    console.log('Annotation page:', annotation.pageIndex, 'Current page:', selectedImageIndex + 1);
-    
     setSelectedAnnotationId(annotation.id);
     
     // If annotation is on a different page, navigate to that page
     const annotationPageIndex = annotation.pageIndex - 1; // Convert to 0-based index
     if (annotationPageIndex !== selectedImageIndex && annotationPageIndex >= 0 && annotationPageIndex < allViewableFiles.length) {
-      console.log('Navigating from page', selectedImageIndex + 1, 'to page', annotation.pageIndex);
       setSelectedImageIndex(annotationPageIndex);
     } else {
-      console.log('Staying on current page', selectedImageIndex + 1);
     }
   };
 
@@ -1588,7 +1457,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
         e.preventDefault();
         handleNextImage();
       } else if (e.key === 'Escape') {
-        console.log('🚪 ESC key pressed - closing workspace');
         onClose();
       } else if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
@@ -1685,7 +1553,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
           // Fetch the file content
           const response = await fetch(fileUrl);
           if (!response.ok) {
-            console.warn(`Failed to fetch ${fileName}: ${response.statusText}`);
             continue;
           }
           
@@ -1717,7 +1584,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
             `;
           }
         } catch (fileError) {
-          console.error(`Error processing file ${fileName}:`, fileError);
           continue;
         }
       }
@@ -1753,11 +1619,7 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
       
       // Clean up blob URL
       URL.revokeObjectURL(link.href);
-      
-      console.log(`✅ Successfully downloaded ${processedFiles} files in ZIP format`);
-      
     } catch (error) {
-      console.error('Error creating ZIP file:', error);
       alert(`Error creating ZIP file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       // Restore button state
@@ -1854,16 +1716,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
               (typeof file === 'string' ? file.includes('_page_') : 
                file.originalType === 'application/pdf')
             );
-            
-            console.log('📋 PDF Detection:', {
-              fileName,
-              isPdf,
-              isNativePdf,
-              allPdfPagesLength: allPdfPages.length,
-              allViewableFilesLength: allViewableFiles.length,
-              willUseMultiPageView: allPdfPages.length > 1
-            });
-
             if (isVideo) {
               // Video - Optimized rendering without zoom/pan for better performance
               return (
@@ -1904,9 +1756,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                         height="100%"
                         isActive={isAnnotationMode && !showCommentPopup && selectedAnnotationId == null}
                         onSave={({ path, comment, svgWidth, svgHeight, pointerCoords }) => {
-                          console.log('🎨 [Video Overlay] Received pointer coords:', pointerCoords);
-                          console.log('💾 [Video Overlay] Saving annotation to page:', selectedImageIndex + 1);
-                          
                           const newAnnotation = {
                             id: Date.now().toString(),
                             path,
@@ -1927,7 +1776,6 @@ export default function MarketingWorkspace({ task, onClose, onSave, onUploadStar
                             .eq('id', task.id)
                             .then(({ error }) => {
                               if (error) {
-                                console.error('Error saving annotation:', error);
                               }
                             });
                         }}

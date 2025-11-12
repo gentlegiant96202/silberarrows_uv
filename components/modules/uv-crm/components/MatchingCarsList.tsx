@@ -33,7 +33,6 @@ export default function MatchingCarsList({ model }: { model: string }) {
         .limit(6);
 
       if (error) {
-        console.error('[MatchingCarsList] Supabase error:', error.message);
         setCars([]);
       } else {
         setCars(data ?? []);
@@ -65,7 +64,6 @@ export default function MatchingCarsList({ model }: { model: string }) {
 
     // Listen for custom primary photo change events
     const handlePrimaryPhotoChange = () => {
-      console.log('Primary photo changed event received in MatchingCarsList, reloading thumbnails...');
       fetchCars();
     };
     

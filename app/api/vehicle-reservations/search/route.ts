@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
       .limit(limit);
 
     if (error) {
-      console.error('Error fetching reservations:', error);
       return NextResponse.json(
         { error: 'Failed to fetch reservations' },
         { status: 500 }
@@ -64,7 +63,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ reservations: reservations || [] });
   } catch (error) {
-    console.error('Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -91,7 +89,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !reservation) {
-      console.error('Error fetching reservation details:', error);
       return NextResponse.json(
         { error: 'Reservation not found' },
         { status: 404 }
@@ -100,7 +97,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ reservation });
   } catch (error) {
-    console.error('Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

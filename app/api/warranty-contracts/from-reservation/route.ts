@@ -32,7 +32,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -44,7 +43,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
@@ -108,9 +106,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log('🔄 Creating Extended Warranty contract from reservation:', reservation_id);
-
     // Get reservation data
     const { data: reservation, error: reservationError } = await supabase
       .from('vehicle_reservations')
@@ -119,15 +114,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (reservationError || !reservation) {
-      console.error('Reservation fetch error:', reservationError);
       return NextResponse.json(
         { error: 'Reservation not found', details: reservationError?.message },
         { status: 404 }
       );
     }
-
-    console.log('✅ Reservation data retrieved for customer:', reservation.customer_name);
-
     // Check if Extended Warranty contract already exists for this reservation
     const { data: existingWarranty, error: existingError } = await supabase
       .from('warranty_contracts')
@@ -192,15 +183,6 @@ export async function POST(request: NextRequest) {
       // Audit fields
       created_by: validation.user.id
     };
-
-    console.log('📝 Creating Extended Warranty contract with data:', {
-      reference_no: warrantyContractData.reference_no,
-      customer: warrantyContractData.owner_name,
-      vehicle: `${vehicleMake} ${vehicleModel}`,
-      warranty_type: warranty_type,
-      coverage_months: coverage_months
-    });
-
     // Insert the warranty contract
     const { data: newContract, error: insertError } = await supabase
       .from('warranty_contracts')
@@ -209,15 +191,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error('Database insert error:', insertError);
       return NextResponse.json(
         { error: 'Failed to create Extended Warranty contract', details: insertError.message },
         { status: 500 }
       );
     }
-
-    console.log('✅ Extended Warranty contract created successfully:', newContract.reference_no);
-
     // Log activity
     try {
       await supabase
@@ -239,7 +217,6 @@ export async function POST(request: NextRequest) {
           created_by: validation.user.id
         });
     } catch (activityError) {
-      console.error('Failed to log activity:', activityError);
       // Continue without failing - contract was created successfully
     }
 
@@ -260,7 +237,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating Extended Warranty contract from reservation:', error);
     return NextResponse.json(
       { 
         error: 'Failed to create Extended Warranty contract from reservation',

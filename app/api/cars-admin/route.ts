@@ -3,8 +3,6 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚗 API: Loading cars using admin client to bypass RLS...');
-
     // Get all cars using admin client (bypasses RLS)
     const { data: cars, error: carsError } = await supabaseAdmin
       .from('cars')
@@ -12,12 +10,8 @@ export async function GET(request: NextRequest) {
       .order('updated_at', { ascending: false });
 
     if (carsError) {
-      console.error('❌ API: Error loading cars:', carsError);
       return NextResponse.json({ error: carsError.message }, { status: 500 });
     }
-
-    console.log('✅ API: Loaded', cars?.length || 0, 'cars');
-
     // Get primary thumbnails for these cars
     const carIds = cars?.map(c => c.id) || [];
     let thumbnails: Record<string, string> = {};
@@ -31,7 +25,6 @@ export async function GET(request: NextRequest) {
         .in('car_id', carIds);
 
       if (mediaError) {
-        console.warn('⚠️ API: Error loading thumbnails:', mediaError);
       } else {
         mediaRows?.forEach((m: any) => {
           let imageUrl = m.url;
@@ -39,12 +32,10 @@ export async function GET(request: NextRequest) {
           // If URL is from old domain, proxy it through our storage proxy
           if (imageUrl && imageUrl.includes('.supabase.co/storage/')) {
             imageUrl = `/api/storage-proxy?url=${encodeURIComponent(m.url)}`;
-            console.log('🔧 Using storage proxy for image');
           }
           
           thumbnails[m.car_id] = imageUrl;
         });
-        console.log('🖼️ API: Loaded', mediaRows?.length || 0, 'primary thumbnails');
       }
     }
 
@@ -55,7 +46,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ API: Unexpected error:', error);
     return NextResponse.json(
       { error: 'Failed to load cars' },
       { status: 500 }

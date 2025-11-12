@@ -90,19 +90,14 @@ async function downloadSignedPDF(envelopeId: string) {
 
     return await response.arrayBuffer();
   } catch (error) {
-    console.error('Failed to download signed PDF:', error);
     throw error;
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('📧 DocuSign webhook received');
-    
     // Get the raw body first to check content type
     const rawBody = await request.text();
-    console.log('📋 Raw webhook body preview:', rawBody.substring(0, 100) + '...');
-    
     let body: any;
     let envelopeId: string | null = null;
     let envelopeStatus: string | null = null;
@@ -110,8 +105,6 @@ export async function POST(request: NextRequest) {
 
     // Handle both JSON and XML webhook formats
     if (rawBody.startsWith('<?xml')) {
-      console.log('📄 Processing XML webhook format');
-      
       // Parse XML to extract envelope info
       // Look for envelope ID and status in XML
       const envelopeIdMatch = rawBody.match(/<EnvelopeID>(.*?)<\/EnvelopeID>/i);
@@ -119,28 +112,17 @@ export async function POST(request: NextRequest) {
       
       envelopeId = envelopeIdMatch?.[1] || null;
       envelopeStatus = statusMatch?.[1] || null;
-      
-      console.log('📋 Extracted from XML:', { envelopeId, envelopeStatus });
     } else {
-      console.log('📄 Processing JSON webhook format');
       body = JSON.parse(rawBody);
-      console.log('📋 Webhook data:', JSON.stringify(body, null, 2));
-
       // Extract envelope information from JSON
       envelopeId = body.data?.envelopeId || body.envelopeId;
       envelopeStatus = body.data?.envelopeSummary?.status || body.status;
       recipientStatus = body.data?.envelopeSummary?.recipients?.signers || [];
-      
-      console.log('📋 Recipient status:', recipientStatus);
     }
 
     if (!envelopeId) {
-      console.error('❌ No envelope ID in webhook');
       return NextResponse.json({ error: 'No envelope ID' }, { status: 400 });
     }
-
-    console.log(`📄 Envelope ${envelopeId} status: ${envelopeStatus}`);
-
     // Determine signing status based on recipient completion
     let customStatus = envelopeStatus?.toLowerCase();
     
@@ -148,26 +130,15 @@ export async function POST(request: NextRequest) {
     if (recipientStatus && recipientStatus.length >= 2) {
       const companySigner = recipientStatus.find(r => r.routingOrder === '1' || r.routingOrder === 1);
       const customerSigner = recipientStatus.find(r => r.routingOrder === '2' || r.routingOrder === 2);
-      
-      console.log('📋 Signer status check:', {
-        companyStatus: companySigner?.status,
-        customerStatus: customerSigner?.status,
-        companyCompleted: companySigner?.status?.toLowerCase() === 'completed',
-        customerCompleted: customerSigner?.status?.toLowerCase() === 'completed'
-      });
-      
       // If company completed but customer hasn't
       if (companySigner?.status?.toLowerCase() === 'completed' && 
           customerSigner?.status?.toLowerCase() !== 'completed') {
         customStatus = 'company_signed';
-        console.log('🟠 Company signature completed, waiting for customer');
       }
     }
 
     // Only download PDF when fully completed (all signers)
     if (envelopeStatus?.toLowerCase() !== 'completed') {
-      console.log(`⏳ Envelope not fully completed yet (${envelopeStatus}), updating status to: ${customStatus}`);
-      
       // Update status in car_media, vehicle_reservations, service_contracts, warranty_contracts
       const updates = await Promise.allSettled([
         supabase.from('car_media').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
@@ -178,7 +149,6 @@ export async function POST(request: NextRequest) {
 
       updates.forEach((res, idx) => {
         if (res.status === 'rejected') {
-          console.error('Interim status update failed for table idx', idx, res.reason);
         }
       });
 
@@ -186,8 +156,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Envelope is completed - replace with signed PDF
-    console.log('✅ Envelope completed! Downloading signed PDF...');
-
     // Find the document in our database - check car_media, vehicle_reservations, then service/warranty contracts
     let document: any = null;
     let documentType: 'consignment' | 'vehicle' | 'service' | 'warranty' | null = null;
@@ -202,7 +170,6 @@ export async function POST(request: NextRequest) {
     if (consignmentDoc) {
       document = consignmentDoc;
       documentType = 'consignment';
-      console.log('📄 Found consignment document:', document.id);
     }
 
     if (!document) {
@@ -214,7 +181,6 @@ export async function POST(request: NextRequest) {
       if (vehicleDoc) {
         document = vehicleDoc;
         documentType = 'vehicle';
-        console.log('📄 Found vehicle document:', document.id, document.document_type);
       }
     }
 
@@ -227,7 +193,6 @@ export async function POST(request: NextRequest) {
       if (serviceDoc) {
         document = serviceDoc;
         documentType = 'service';
-        console.log('📄 Found service contract:', document.id);
       }
     }
 
@@ -240,12 +205,10 @@ export async function POST(request: NextRequest) {
       if (warrantyDoc) {
         document = warrantyDoc;
         documentType = 'warranty';
-        console.log('📄 Found warranty contract:', document.id);
       }
     }
 
     if (!document || !documentType) {
-      console.error('❌ Document not found in database');
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
@@ -254,7 +217,6 @@ export async function POST(request: NextRequest) {
     
     if (documentType === 'consignment') {
       // Handle consignment documents (existing logic)
-      console.log('📄 Processing consignment document');
       const originalPath = document.url.split('/').pop(); // Get filename from URL
       const signedPath = `${document.car_id}/signed-${originalPath}`;
       
@@ -267,7 +229,6 @@ export async function POST(request: NextRequest) {
         });
 
       if (uploadError) {
-        console.error('❌ Failed to upload signed PDF:', uploadError);
         throw uploadError;
       }
 
@@ -288,15 +249,10 @@ export async function POST(request: NextRequest) {
         .eq('id', document.id);
 
       if (updateError) {
-        console.error('❌ Failed to update consignment document:', updateError);
         throw updateError;
       }
-
-      console.log('✅ Consignment document updated with signed PDF');
-      
     } else if (documentType === 'vehicle') {
       // Handle vehicle documents (reservations/invoices)
-      console.log('📄 Processing vehicle document:', document.document_type);
       const fileName = `${document.document_type}-${document.id}-signed-${Date.now()}.pdf`;
       
       const { error: uploadError } = await supabase.storage
@@ -308,7 +264,6 @@ export async function POST(request: NextRequest) {
         });
 
       if (uploadError) {
-        console.error('❌ Failed to upload signed vehicle PDF:', uploadError);
         throw uploadError;
       }
 
@@ -333,23 +288,16 @@ export async function POST(request: NextRequest) {
             signing_status: 'completed',
             completed_at: new Date().toISOString()
           };
-
-      console.log('💾 Updating vehicle_reservations with signed PDF:', updateData);
-
       const { error: updateError } = await supabase
         .from('vehicle_reservations')
         .update(updateData)
         .eq('id', document.id);
 
       if (updateError) {
-        console.error('❌ Failed to update vehicle document:', updateError);
         throw updateError;
       }
-
-      console.log('✅ Vehicle document updated with signed PDF');
     } else if (documentType === 'service' || documentType === 'warranty') {
       // Handle service and warranty contracts
-      console.log('📄 Processing', documentType, 'contract:', document.id);
       const fileName = `${documentType}_contract_${document.id}_signed_${Date.now()}.pdf`;
       const bucket = 'service-documents';
       const { error: uploadError } = await supabase.storage
@@ -361,7 +309,6 @@ export async function POST(request: NextRequest) {
         });
 
       if (uploadError) {
-        console.error('❌ Failed to upload signed service/warranty PDF:', uploadError);
         throw uploadError;
       }
 
@@ -381,22 +328,15 @@ export async function POST(request: NextRequest) {
         .eq('id', document.id);
 
       if (updateError) {
-        console.error('❌ Failed to update', documentType, 'contract:', updateError);
         throw updateError;
       }
-
-      console.log('✅', documentType, 'contract updated with signed PDF');
     }
-
-    console.log('🎉 Successfully processed signed document!');
-
     return NextResponse.json({ 
       success: true, 
       message: 'Signed PDF downloaded and replaced successfully' 
     });
 
   } catch (error) {
-    console.error('❌ DocuSign webhook error:', error);
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }

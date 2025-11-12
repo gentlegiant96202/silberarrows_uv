@@ -3,8 +3,6 @@ import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🌐 Generating Facebook leasing catalog XML feed...');
-
     // Fetch all vehicles from Leasing catalog that are ready with catalog images
     const { data: catalogEntries, error: catalogError } = await supabase
       .from('leasing_catalog')
@@ -37,7 +35,6 @@ export async function GET(request: NextRequest) {
       .not('catalog_image_url', 'is', null);
 
     if (catalogError) {
-      console.error('Error fetching catalog entries:', catalogError);
       return NextResponse.json({ error: 'Failed to fetch catalog entries' }, { status: 500 });
     }
 
@@ -50,7 +47,6 @@ export async function GET(request: NextRequest) {
       .eq('status', 'inventory');
 
     if (vehiclesError) {
-      console.error('Error fetching vehicle details:', vehiclesError);
     }
 
     // Create a map of vehicle_id to stock_number
@@ -62,9 +58,6 @@ export async function GET(request: NextRequest) {
       entry.price_aed > 0 &&
       vehicleMap.has(entry.vehicle_id)
     ) || [];
-
-    console.log(`Found ${validEntries.length} ready leasing catalog entries with images`);
-
     // Generate Facebook automotive XML format
     const xmlContent = generateFacebookLeasingXML(validEntries, vehicleMap);
 
@@ -80,7 +73,6 @@ export async function GET(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Error uploading XML to storage:', uploadError);
     } else {
       // Also update the latest.xml file for permanent URL with cache busting
       await supabase.storage
@@ -104,7 +96,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error generating XML feed:', error);
     return NextResponse.json({ 
       error: 'Failed to generate XML feed',
       details: error instanceof Error ? error.message : 'Unknown error'

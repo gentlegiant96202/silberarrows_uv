@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
     const reorderedGallery = [targetMedia, ...galleryWithoutTarget];
 
     // Step 1: Clear primary status from all photos for this car
-    console.log('🔄 Clearing primary status from all photos for car:', carId);
     const { error: clearError } = await supabase
       .from('car_media')
       .update({ is_primary: false })
@@ -56,18 +55,13 @@ export async function POST(request: NextRequest) {
       .eq('kind', 'photo');
 
     if (clearError) {
-      console.error('Error clearing primary status:', clearError);
       return NextResponse.json({ error: 'Failed to clear primary status' }, { status: 500 });
     }
 
     // Step 2: Set the target as primary and update sort orders sequentially
-    console.log('🔄 Setting new primary photo and updating sort orders...');
     for (let i = 0; i < reorderedGallery.length; i++) {
       const item = reorderedGallery[i];
       const isPrimary = i === 0 && item.kind === 'photo';
-      
-      console.log(`🔄 Updating item ${item.id}: sort_order=${i}, is_primary=${isPrimary}`);
-      
       const { error: updateError } = await supabase
         .from('car_media')
         .update({
@@ -77,7 +71,6 @@ export async function POST(request: NextRequest) {
         .eq('id', item.id);
 
       if (updateError) {
-        console.error(`Error updating media item ${item.id}:`, updateError);
         return NextResponse.json({ error: `Failed to update media item ${item.id}` }, { status: 500 });
       }
     }
@@ -90,7 +83,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Set primary error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

@@ -31,7 +31,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -46,36 +45,24 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
 
 // POST - Generate PDF for existing warranty contract
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  console.log('🚀 Warranty PDF generation API called - starting...');
-  
   try {
     // Validate edit permissions (generating PDF is considered editing)
-    console.log('🔐 Validating user permissions...');
     const validation = await validateUserPermissions(request, 'edit');
     if ('error' in validation) {
-      console.error('❌ Permission validation failed:', validation.error);
       return NextResponse.json(
         { error: validation.error },
         { status: validation.status }
       );
     }
-    console.log('✅ User permissions validated');
-
     const { id } = await params;
     const contractId = id;
-
-    console.log('🔄 Generating PDF for warranty contract:', contractId);
-
     // Get warranty contract data from database
-    console.log('📋 Fetching warranty contract data from database...');
-    
     const { data: contract, error: fetchError } = await supabase
       .from('warranty_contracts')
       .select('*')
@@ -83,15 +70,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .single();
 
     if (fetchError) {
-      console.error('❌ Error fetching warranty contract:', fetchError);
       return NextResponse.json(
         { error: 'Warranty contract not found', details: fetchError.message },
         { status: 404 }
       );
     }
-
-    console.log('✅ Warranty contract data retrieved:', contract.reference_no);
-
     // Prepare data for PDF generation (matching the format expected by the PDF service)
     const pdfData = {
       referenceNo: contract.reference_no,
@@ -119,8 +102,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       notes: contract.notes || '',
       contractType: 'warranty' // Specify this is a warranty contract
     };
-
-    console.log('📄 Generating warranty PDF directly...');
     const buffer = await generateWarrantyAgreementPdf({
       ...pdfData
     });
@@ -129,9 +110,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '');
     const filename = `warranty_contract_${contract.reference_no}_${timestamp}.pdf`;
     const filePath = `service-documents/${filename}`;
-
-    console.log('📤 Uploading warranty PDF to storage:', filePath);
-
     // Upload to Supabase storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('service-documents')
@@ -141,10 +119,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError);
       // Still return the PDF even if storage fails
-      console.log('⚠️ Storage failed, returning PDF without saving URL');
-      
       return new NextResponse(Buffer.from(buffer), {
         headers: {
           'Content-Type': 'application/pdf',
@@ -152,17 +127,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       });
     }
-
-    console.log('✅ Warranty PDF uploaded to storage:', uploadData.path);
-
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('service-documents')
       .getPublicUrl(filePath);
 
     const publicUrl = urlData.publicUrl;
-    console.log('🔗 Public URL generated:', publicUrl);
-
     // Update warranty contract with PDF URL and reset signing status
     const { error: updateError } = await supabase
       .from('warranty_contracts')
@@ -178,10 +148,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .eq('id', contractId);
 
     if (updateError) {
-      console.error('Database update error:', updateError);
       // Continue without failing - PDF is still generated
     } else {
-      console.log('✅ Warranty contract updated with PDF URL and signing status reset to pending');
     }
 
     // Log activity
@@ -201,12 +169,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           }
         });
     } catch (activityError) {
-      console.error('Failed to log activity:', activityError);
       // Continue without failing
     }
 
     // Update warranty contract with PDF URL
-    console.log('💾 Updating warranty contract with PDF URL...');
     const { error: contractUpdateError } = await supabase
       .from('warranty_contracts')
       .update({
@@ -216,13 +182,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .eq('id', contractId);
 
     if (contractUpdateError) {
-      console.error('❌ Failed to update warranty contract with PDF URL:', contractUpdateError);
       throw new Error('Failed to update warranty contract with PDF URL');
     }
-
-    console.log('✅ Warranty contract updated with PDF URL:', publicUrl);
-    console.log('🎉 Warranty PDF generation complete');
-
     // Return the PDF for download
     return new NextResponse(Buffer.from(buffer), {
       headers: {
@@ -232,7 +193,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
   } catch (error) {
-    console.error('Error generating warranty PDF:', error);
     return NextResponse.json(
       { 
         error: 'Failed to generate warranty PDF',

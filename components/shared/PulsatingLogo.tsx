@@ -17,7 +17,6 @@ export function clearLottieCache() {
   globalLottieCache = null;
   globalLottieFetchPromise = null;
   globalLottieError = false;
-  console.log('Lottie cache cleared');
 }
 
 interface PulsatingLogoProps {
@@ -75,7 +74,6 @@ export default function PulsatingLogo({
             return data;
           })
           .catch(err => {
-            console.warn('Lottie animation not found, falling back to image:', err);
             globalLottieError = true;
             throw err;
           });

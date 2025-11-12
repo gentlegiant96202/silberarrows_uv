@@ -112,9 +112,7 @@ export default function TechTipsTuesdayModal({
     try {
       // Implement AI generation logic here
       // This would call your AI generation API
-      console.log('AI Generation for tech tips content');
     } catch (error) {
-      console.error('Error generating content:', error);
     } finally {
       setIsGenerating(false);
     }

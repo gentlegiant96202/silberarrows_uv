@@ -31,7 +31,6 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
       });
 
     if (permError) {
-      console.error('Permission check error:', permError);
       return { error: 'Permission check failed', status: 500 };
     }
 
@@ -46,40 +45,27 @@ async function validateUserPermissions(request: NextRequest, requiredPermission:
 
     return { user, permissions: perms };
   } catch (error) {
-    console.error('Permission validation error:', error);
     return { error: 'Permission validation failed', status: 500 };
   }
 }
 
 // POST - Generate PDF for existing contract
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  console.log('🚀 PDF generation API called - starting...');
-  
   try {
     // Validate edit permissions (generating PDF is considered editing)
-    console.log('🔐 Validating user permissions...');
     const validation = await validateUserPermissions(request, 'edit');
     if ('error' in validation) {
-      console.error('❌ Permission validation failed:', validation.error);
       return NextResponse.json(
         { error: validation.error },
         { status: validation.status }
       );
     }
-    console.log('✅ User permissions validated');
-
     const { id } = await params;
     const contractId = id;
     const body = await request.json();
     const type = body.type || 'service';
-
-    console.log('🔄 Generating PDF for existing contract:', contractId, 'type:', type);
-
     // Get contract data from database
-    console.log('📋 Fetching contract data from database...');
     const tableName = type === 'warranty' ? 'warranty_contracts' : 'service_contracts';
-    console.log('📋 Using table:', tableName);
-    
     const { data: contract, error: fetchError } = await supabase
       .from(tableName)
       .select('*')
@@ -87,15 +73,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .single();
 
     if (fetchError) {
-      console.error('❌ Error fetching contract:', fetchError);
       return NextResponse.json(
         { error: 'Contract not found', details: fetchError.message },
         { status: 404 }
       );
     }
-
-    console.log('✅ Contract data retrieved:', contract.reference_no);
-
     // Prepare data for PDF generation (matching the format expected by the PDF service)
     const pdfData = {
       referenceNo: contract.reference_no,
@@ -122,8 +104,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       salesExecutive: contract.sales_executive,
       notes: contract.notes || ''
     };
-
-    console.log('📄 Generating PDF directly (no internal HTTP)...');
     const buffer = await generateServiceAgreementPdf({
       ...pdfData
     });
@@ -132,9 +112,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '');
     const filename = `${type}_contract_${contract.reference_no}_${timestamp}.pdf`;
     const filePath = `service-documents/${filename}`;
-
-    console.log('📤 Uploading PDF to storage:', filePath);
-
     // Upload to Supabase storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('service-documents')
@@ -144,10 +121,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError);
       // Still return the PDF even if storage fails
-      console.log('⚠️ Storage failed, returning PDF without saving URL');
-      
       return new NextResponse(buffer, {
         headers: {
           'Content-Type': 'application/pdf',
@@ -155,17 +129,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       });
     }
-
-    console.log('✅ PDF uploaded to storage:', uploadData.path);
-
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('service-documents')
       .getPublicUrl(filePath);
 
     const publicUrl = urlData.publicUrl;
-    console.log('🔗 Public URL generated:', publicUrl);
-
     // Update contract with PDF URL and reset signing status
     // When regenerating PDF, reset all signing-related fields so it can be sent for signing again
     const { error: updateError } = await supabase
@@ -182,10 +151,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .eq('id', contractId);
 
     if (updateError) {
-      console.error('Database update error:', updateError);
       // Continue without failing - PDF is still generated
     } else {
-      console.log('✅ Contract updated with PDF URL and signing status reset to pending');
     }
 
     // Log activity
@@ -205,12 +172,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           }
         });
     } catch (activityError) {
-      console.error('Failed to log activity:', activityError);
       // Continue without failing
     }
-
-    console.log('🎉 PDF generation complete');
-
     // Return the PDF for download
     return new NextResponse(buffer, {
       headers: {
@@ -220,7 +183,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
   } catch (error) {
-    console.error('Error generating PDF:', error);
     return NextResponse.json(
       { 
         error: 'Failed to generate PDF',

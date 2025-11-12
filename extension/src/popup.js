@@ -64,7 +64,6 @@ async function loadCars() {
     hideStatus();
     
   } catch (error) {
-    console.error('Failed to load cars:', error);
     showStatus(`Error: ${error.message}`, 'error');
     carList.innerHTML = `
       <div class="status error">
@@ -157,10 +156,6 @@ async function handleFill() {
     
     // Send data to content script
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
-    console.log('Sending message to tab:', tab.id);
-    console.log('Car data:', data.car);
-    
     try {
       // First, ping the content script to see if it's responsive
       let contentScriptReady = false;
@@ -168,10 +163,8 @@ async function handleFill() {
         const pingResponse = await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
         if (pingResponse && pingResponse.success) {
           contentScriptReady = true;
-          console.log('Content script is already ready');
         }
       } catch (pingError) {
-        console.log('Content script not responding to ping:', pingError);
       }
       
       // If content script isn't ready, try to inject it
@@ -183,10 +176,8 @@ async function handleFill() {
               target: { tabId: tab.id },
               files: ['src/content.js']
             });
-            console.log('Content script injected via scripting API');
           } else {
             // Fallback: assume content script is loaded via manifest
-            console.log('Scripting API not available, assuming content script is loaded via manifest');
           }
           
           // Wait for the script to initialize
@@ -197,9 +188,7 @@ async function handleFill() {
           if (!pingResponse || !pingResponse.success) {
             throw new Error('Content script failed to initialize. Please refresh the page and try again.');
           }
-          console.log('Content script is now ready after injection');
         } catch (injectError) {
-          console.error('Failed to inject content script:', injectError);
           throw new Error('Could not load the extension on this page. Please refresh the page and try again.');
         }
       }
@@ -209,15 +198,11 @@ async function handleFill() {
         action: 'fillCarData',
         carData: data.car
       });
-      
-      console.log('Fill message sent successfully:', response);
-      
       if (!response || !response.success) {
         throw new Error(response?.error || 'Failed to fill car data');
       }
       
     } catch (messageError) {
-      console.error('Failed to communicate with page:', messageError);
       throw messageError;
     }
     
@@ -229,7 +214,6 @@ async function handleFill() {
     }, 1500);
     
   } catch (error) {
-    console.error('Fill failed:', error);
     showStatus(`Error: ${error.message}`, 'error');
   } finally {
     fillBtn.disabled = false;
@@ -248,7 +232,6 @@ async function loadSettings() {
     autoFillCheckbox.checked = result.autoFillEnabled !== false; // Default to true
     highlightCheckbox.checked = result.highlightFields !== false; // Default to true
   } catch (error) {
-    console.error('Failed to load settings:', error);
     // Set defaults
     API_BASE = 'https://portal.silberarrows.com';
     apiUrlInput.value = API_BASE;
@@ -299,7 +282,6 @@ async function saveSettings() {
     }, 1500);
     
   } catch (error) {
-    console.error('Failed to save settings:', error);
     showSettingsStatus(`Error: ${error.message}`, 'error');
   } finally {
     saveSettingsBtn.disabled = false;
@@ -337,7 +319,6 @@ async function resetSettings() {
     }, 3000);
     
   } catch (error) {
-    console.error('Failed to reset settings:', error);
     showSettingsStatus(`Error: ${error.message}`, 'error');
   } finally {
     resetSettingsBtn.disabled = false;

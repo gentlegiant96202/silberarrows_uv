@@ -22,10 +22,6 @@ const fieldNames = [
 
 // Initialize options page
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('Options page loaded');
-  console.log('Save button element:', saveBtn);
-  console.log('API URL input element:', apiUrlInput);
-  
   await loadSettings();
   setupEventListeners();
   renderMappings();
@@ -33,17 +29,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Setup event listeners
 function setupEventListeners() {
-  console.log('Setting up event listeners');
-  
   if (saveBtn) {
     saveBtn.addEventListener('click', (e) => {
-      console.log('Save button clicked event');
       e.preventDefault();
       saveSettings();
     });
-    console.log('Save button listener added');
   } else {
-    console.error('Save button not found!');
   }
   
   if (resetBtn) {
@@ -83,12 +74,9 @@ async function loadSettings() {
         highlightFields: settings.highlightFields !== false,
         fieldMappings: settings.fieldMappings || {}
       };
-      
-      console.log('Loaded settings directly:', currentSettings);
       populateForm();
       return;
     } catch (directError) {
-      console.log('Direct storage failed, trying message:', directError);
     }
     
     // Fallback to background script
@@ -101,7 +89,6 @@ async function loadSettings() {
       throw new Error(response?.error || 'Failed to load settings');
     }
   } catch (error) {
-    console.error('Failed to load settings:', error);
     showStatus(`Error loading settings: ${error.message}`, 'error');
   }
 }
@@ -255,24 +242,16 @@ window.removeDomain = removeDomain;
 // Save settings
 async function saveSettings() {
   try {
-    console.log('Save button clicked');
-    console.log('Current API URL input value:', apiUrlInput.value);
-    
     // Update settings from form
     currentSettings.apiUrl = apiUrlInput.value.trim();
     currentSettings.autoFillEnabled = autoFillEnabledCheckbox.checked;
     currentSettings.highlightFields = highlightFieldsCheckbox.checked;
-    
-    console.log('Settings to save:', currentSettings);
-    
     // Try direct storage first as fallback
     try {
       await chrome.storage.sync.set(currentSettings);
-      console.log('Direct storage save successful');
       showStatus('Settings saved successfully!', 'success');
       return;
     } catch (directError) {
-      console.log('Direct storage failed, trying message:', directError);
     }
     
     // Save to storage via background script
@@ -280,16 +259,12 @@ async function saveSettings() {
       action: 'saveSettings',
       settings: currentSettings
     });
-    
-    console.log('Save response:', response);
-    
     if (response && response.success) {
       showStatus('Settings saved successfully!', 'success');
     } else {
       throw new Error(response?.error || 'Failed to save settings');
     }
   } catch (error) {
-    console.error('Failed to save settings:', error);
     showStatus(`Error saving settings: ${error.message}`, 'error');
   }
 }
@@ -310,7 +285,6 @@ async function resetToDefaults() {
     
     showStatus('Settings reset to defaults', 'success');
   } catch (error) {
-    console.error('Failed to reset settings:', error);
     showStatus(`Error resetting settings: ${error.message}`, 'error');
   }
 }

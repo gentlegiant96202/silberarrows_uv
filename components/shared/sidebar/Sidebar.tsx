@@ -149,7 +149,7 @@ export default function Sidebar() {
     'uv-crm': [
       { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
       { key: 'crm', label: 'CRM', icon: UserPlus, href: '/crm' },
-      { key: 'customers', label: 'Customers', icon: UsersRound, href: '/customers' },
+      { key: 'customers', label: 'Customer Database', icon: UsersRound, href: '/customers' },
       { key: 'inventory', label: 'Inventory', icon: MercedesStar, href: '/inventory' },
       { key: 'consignments', label: 'Consignments', icon: FileText, href: '/consignments' },
       { key: 'service', label: 'Service & Warranty', icon: Wrench, href: '/service', badge: pendingContractsCount },

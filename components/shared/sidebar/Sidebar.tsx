@@ -8,6 +8,11 @@ import dynamic from 'next/dynamic';
 // Dynamically import Lottie to avoid SSR issues
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
+// Import custom Mercedes star icon
+import MercedesStar from '@/components/icons/MercedesStar';
+// Import custom Dirham icon (smaller version for sidebar)
+import DirhamIconSmall from '@/components/icons/DirhamIconSmall';
+
 // Global cache for Lottie animation to prevent reloading and static logo flash
 let globalSidebarLottieCache: any = null;
 let globalSidebarLottieFetchPromise: Promise<any> | null = null;
@@ -35,7 +40,10 @@ import {
   ChevronDown,
   ChevronRight,
   Route,
-  Calculator
+  Calculator,
+  UserCog,
+  UserPlus,
+  UsersRound
 } from 'lucide-react';
 
 interface NavItem {
@@ -140,12 +148,12 @@ export default function Sidebar() {
   const navigationByModule: Record<string, NavItem[]> = {
     'uv-crm': [
       { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-      { key: 'crm', label: 'CRM', icon: Users, href: '/crm' },
-      { key: 'customers', label: 'Customers', icon: UserCircle, href: '/customers' },
-      { key: 'inventory', label: 'Inventory', icon: Car, href: '/inventory' },
+      { key: 'crm', label: 'CRM', icon: UserPlus, href: '/crm' },
+      { key: 'customers', label: 'Customers', icon: UsersRound, href: '/customers' },
+      { key: 'inventory', label: 'Inventory', icon: MercedesStar, href: '/inventory' },
       { key: 'consignments', label: 'Consignments', icon: FileText, href: '/consignments' },
       { key: 'service', label: 'Service & Warranty', icon: Wrench, href: '/service', badge: pendingContractsCount },
-      { key: 'accounts', label: 'Accounts', icon: DollarSign, href: '/accounting' }
+      { key: 'accounts', label: 'Accounts', icon: DirhamIconSmall, href: '/accounting' }
     ],
     'workshop': [
       { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/workshop/dashboard' },

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import RouteProtector from '@/components/shared/RouteProtector';
@@ -361,5 +361,9 @@ function AccountsDashboardContent() {
 }
 
 export default function AccountsDashboard() {
-  return <AccountsDashboardContent />;
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-black"><div className="text-white">Loading...</div></div>}>
+      <AccountsDashboardContent />
+    </Suspense>
+  );
 } 

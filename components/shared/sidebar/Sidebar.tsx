@@ -43,7 +43,9 @@ import {
   Calculator,
   UserCog,
   UserPlus,
-  UsersRound
+  UsersRound,
+  Grid3X3,
+  Target
 } from 'lucide-react';
 
 interface NavItem {
@@ -153,7 +155,7 @@ export default function Sidebar() {
       { key: 'inventory', label: 'Inventory', icon: MercedesStar, href: '/inventory' },
       { key: 'consignments', label: 'Consignments', icon: FileText, href: '/consignments' },
       { key: 'service', label: 'Service & Warranty', icon: Wrench, href: '/service', badge: pendingContractsCount },
-      { key: 'accounts', label: 'Accounts', icon: DirhamIconSmall, href: '/accounting' }
+      { key: 'accounts', label: 'Accounts', icon: DirhamIconSmall, href: '/accounts/dashboard' }
     ],
     'workshop': [
       { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/workshop/dashboard' },
@@ -185,7 +187,29 @@ export default function Sidebar() {
       { key: 'calculator', label: 'Calculator', icon: Calculator, href: '/leasing?tab=calculator' }
     ],
     'accounts': [
-      { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/accounts/dashboard' }
+      {
+        key: 'accounts_service',
+        label: 'Service',
+        icon: Wrench,
+        subItems: [
+          { key: 'service_dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/accounts/dashboard?tab=service&subtab=dashboard' },
+          { key: 'service_grid', label: 'Data Grid', icon: Grid3X3, href: '/accounts/dashboard?tab=service&subtab=grid' },
+          { key: 'service_targets', label: 'Targets', icon: Target, href: '/accounts/dashboard?tab=service&subtab=targets' },
+          { key: 'service_receivables', label: 'Receivables', icon: DirhamIconSmall, href: '/accounts/dashboard?tab=service&subtab=receivables' }
+        ]
+      },
+      {
+        key: 'accounts_sales',
+        label: 'Sales',
+        icon: TrendingUp,
+        subItems: [
+          { key: 'sales_dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/accounts/dashboard?tab=sales&subtab=dashboard' },
+          { key: 'sales_grid', label: 'Data Grid', icon: Grid3X3, href: '/accounts/dashboard?tab=sales&subtab=grid' },
+          { key: 'sales_targets', label: 'Targets', icon: Target, href: '/accounts/dashboard?tab=sales&subtab=targets' },
+          { key: 'sales_accounting', label: 'Accounting', icon: FileText, href: '/accounts/dashboard?tab=sales&subtab=accounting' }
+        ]
+      },
+      { key: 'accounts_leasing', label: 'Leasing', icon: Calculator, href: '/accounts/dashboard?tab=leasing' }
     ]
   };
 
@@ -200,9 +224,18 @@ export default function Sidebar() {
       const [path, query] = item.href.split('?');
       const params = new URLSearchParams(query);
       const tab = params.get('tab');
+      const subtab = params.get('subtab');
       
       if (pathname === path) {
         const currentTab = searchParams.get('tab');
+        const currentSubtab = searchParams.get('subtab');
+        
+        // If the item has a subtab parameter, check both tab and subtab
+        if (subtab) {
+          return currentTab === tab && currentSubtab === subtab;
+        }
+        
+        // If the item only has a tab parameter, just check tab
         return currentTab === tab;
       }
       return false;
@@ -264,22 +297,24 @@ export default function Sidebar() {
         <button
           onClick={() => handleNavigation(item)}
           className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-colors duration-200 group relative ${
-            isSubItem ? 'pl-12' : ''
+            isSubItem ? 'py-2' : ''
           } ${
-            active
+            active && !isSubItem
               ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg'
-              : hasActiveSub
+              : hasActiveSub && !isSubItem
               ? 'bg-white/10 text-white'
+              : active && isSubItem
+              ? 'text-white border-l-2 border-white/50'
               : 'text-white/70 hover:text-white hover:bg-white/10'
           }`}
           title={!isHovered ? item.label : ''}
         >
           {/* Icon - always visible */}
-          <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-black' : ''}`} />
+          <Icon className={`${isSubItem ? 'w-4 h-4' : 'w-5 h-5'} flex-shrink-0 ${active && !isSubItem ? 'text-black' : ''}`} />
           
           {/* Label container - fixed position to prevent layout shift */}
           <div className={`flex-1 flex items-center overflow-hidden transition-all duration-200 ${isHovered ? 'ml-3 opacity-100' : 'ml-0 opacity-0 w-0'}`}>
-            <span className={`text-sm font-medium whitespace-nowrap ${active ? 'text-black' : ''}`}>
+            <span className={`${isSubItem ? 'text-xs' : 'text-sm'} font-medium whitespace-nowrap ${active && !isSubItem ? 'text-black' : ''}`}>
               {item.label}
             </span>
           </div>
@@ -301,7 +336,7 @@ export default function Sidebar() {
 
         {/* Sub-items */}
         {hasSubItems && isExpanded && isHovered && item.subItems && (
-          <div className="mt-1 space-y-1">
+          <div className="mt-1 space-y-1 ml-3">
             {item.subItems.map(subItem => renderNavItem(subItem, true))}
           </div>
         )}

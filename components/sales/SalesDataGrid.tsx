@@ -316,7 +316,7 @@ export default function SalesDataGrid({
           <button
             onClick={addNewRow}
             disabled={loading || submitting}
-            className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md hover:from-gray-500 hover:to-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             <span>Add Entry</span>
@@ -325,7 +325,7 @@ export default function SalesDataGrid({
           <button
             onClick={onRefresh}
             disabled={loading || submitting}
-            className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-800/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -348,20 +348,20 @@ export default function SalesDataGrid({
 
 
       {/* Data Grid */}
-      <div className="backdrop-blur-md bg-gradient-to-br from-gray-900/90 via-black/80 to-gray-800/90 rounded-xl border border-gray-500/30 shadow-2xl overflow-hidden">
+      <div className="backdrop-blur-md bg-black/90 rounded-xl border border-white/10 shadow-2xl overflow-hidden">
         <div className="overflow-x-auto max-w-full">
           <table className="min-w-[1400px] text-sm">
             <thead>
-              <tr className="border-b border-gray-400/30 bg-gradient-to-r from-gray-600/30 via-gray-500/30 to-gray-600/30 backdrop-blur-sm">
-                <th className="px-3 py-4 text-left text-gray-100 font-semibold w-32">
+              <tr className="border-b border-white/10 bg-gradient-to-r from-white/5 via-white/10 to-white/5">
+                <th className="px-3 py-4 text-left text-white font-semibold w-32">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-300" />
+                    <Calendar className="w-4 h-4" />
                     Date
                   </div>
                 </th>
                 
                 {/* Input Metrics Headers */}
-                <th className="px-2 py-4 text-center text-gray-200 font-semibold border-l border-gray-400/30" colSpan={inputColumns.length}>
+                <th className="px-2 py-4 text-center text-white font-semibold border-l border-white/10" colSpan={inputColumns.length}>
                   <div className="flex items-center justify-center gap-2">
                     <FileText className="w-4 h-4" />
                     Input Metrics (Manual Entry)
@@ -369,25 +369,25 @@ export default function SalesDataGrid({
                 </th>
                 
                 {/* Calculated Metrics Headers */}
-                <th className="px-2 py-4 text-center text-gray-200 font-semibold border-l border-gray-400/30" colSpan={calculatedColumns.length}>
+                <th className="px-2 py-4 text-center text-white font-semibold border-l border-white/10" colSpan={calculatedColumns.length}>
                   <div className="flex items-center justify-center gap-2">
                     <Calculator className="w-4 h-4" />
                     Calculated Metrics (Auto-Computed)
                   </div>
                 </th>
                 
-                <th className="px-3 py-4 text-center text-gray-100 font-semibold w-24">Actions</th>
+                <th className="px-3 py-4 text-center text-white font-semibold w-24">Actions</th>
               </tr>
               
-              <tr className="border-b border-gray-400/20 bg-gradient-to-r from-gray-700/40 via-gray-600/40 to-gray-700/40 backdrop-blur-sm">
-                <th className="px-3 py-3 text-xs text-white/60 font-medium">Entry Date</th>
+              <tr className="border-b border-white/10 bg-white/5">
+                <th className="px-3 py-3 text-xs text-white/70 font-medium">Entry Date</th>
                 
                 {/* Input Column Headers */}
                 {inputColumns.map(col => {
                   const Icon = col.icon;
                   const definition = col.key in METRIC_DEFINITIONS ? METRIC_DEFINITIONS[col.key as keyof typeof METRIC_DEFINITIONS] : undefined;
                   return (
-                    <th key={col.key} className={`px-2 py-2 text-xs text-gray-100 font-medium ${col.width} ${col.key === 'working_days_elapsed' ? 'border-l border-gray-400/30' : ''}`}>
+                    <th key={col.key} className={`px-2 py-2 text-xs text-white/90 font-medium ${col.width} ${col.key === 'working_days_elapsed' ? 'border-l border-white/10' : ''}`}>
                       <div className="flex flex-col items-center gap-1">
                         <Icon className="w-4 h-4" />
                         <span className="text-center leading-tight">{definition?.label}</span>
@@ -401,7 +401,7 @@ export default function SalesDataGrid({
                   const Icon = col.icon;
                   const definition = col.key in METRIC_DEFINITIONS ? METRIC_DEFINITIONS[col.key as keyof typeof METRIC_DEFINITIONS] : undefined;
                   return (
-                    <th key={col.key} className={`px-2 py-2 text-xs text-gray-100 font-medium ${col.width} ${col.key === 'gross_profit_year_actual' ? 'border-l border-gray-400/30' : ''}`}>
+                    <th key={col.key} className={`px-2 py-2 text-xs text-white/90 font-medium ${col.width} ${col.key === 'gross_profit_year_actual' ? 'border-l border-white/10' : ''}`}>
                       <div className="flex flex-col items-center gap-1">
                         <Icon className="w-4 h-4" />
                         <span className="text-center leading-tight">{definition?.label}</span>
@@ -418,7 +418,7 @@ export default function SalesDataGrid({
               {rows.map((row, index) => (
                 <tr 
                   key={row.id} 
-                  className={`border-b border-gray-400/10 hover:bg-gray-300/5 backdrop-blur-sm ${row.isNew ? 'bg-gray-400/10' : ''} ${row.hasChanges ? 'bg-amber-400/10' : ''}`}
+                  className={`border-b border-white/10 hover:bg-white/5 backdrop-blur-sm ${row.isNew ? 'bg-white/10' : ''} ${row.hasChanges ? 'bg-amber-400/10' : ''}`}
                 >
                   {/* Date Column */}
                   <td className="px-3 py-2 font-medium">

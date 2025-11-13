@@ -546,18 +546,15 @@ export default function ServiceDataGrid({
               cancelEdit(row.id);
             }
           }}
-          className="w-full px-1 py-0.5 text-xs bg-gray-800 border border-gray-600 rounded focus:outline-none focus:border-blue-500 text-white"
+          className="w-full px-1 py-0.5 text-xs bg-black/60 border border-white/20 rounded focus:outline-none focus:border-white/40 text-white"
         />
       );
     }
 
     const cellClasses = `
       px-2 py-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-24
-      ${isEditable ? 'cursor-pointer hover:bg-gray-700/50' : 'text-gray-400'}
-      ${metricDef?.category === 'input' ? 'text-blue-300' : ''}
-      ${metricDef?.category === 'individual' ? 'text-green-300' : ''}
-      ${metricDef?.category === 'calculated' ? 'text-yellow-300' : ''}
-      ${metricDef?.category === 'target' ? 'text-purple-300' : ''}
+      ${isEditable ? 'cursor-pointer hover:bg-white/10' : 'text-white/60'}
+      text-white/90
     `;
 
     // Special handling for date field
@@ -594,7 +591,7 @@ export default function ServiceDataGrid({
           <button
             onClick={addNewRow}
             disabled={loading || submitting}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             <span>Add Entry</span>
@@ -603,7 +600,7 @@ export default function ServiceDataGrid({
           <button
             onClick={() => setShowCSVImport(true)}
             disabled={loading || submitting}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
+            className="flex items-center space-x-2 px-4 py-2 bg-black/40 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
           >
             <Upload className="w-4 h-4" />
             <span>Import CSV</span>
@@ -611,7 +608,7 @@ export default function ServiceDataGrid({
 
           <button
             onClick={downloadSampleCSV}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg font-medium transition-all duration-200"
+            className="flex items-center space-x-2 px-4 py-2 bg-black/40 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-lg font-medium transition-all duration-200"
           >
             <Download className="w-4 h-4" />
             <span>Sample CSV</span>
@@ -619,7 +616,7 @@ export default function ServiceDataGrid({
         </div>
 
         {loading && (
-          <div className="flex items-center space-x-2 text-blue-400">
+          <div className="flex items-center space-x-2 text-white/70">
             <RefreshCw className="w-4 h-4 animate-spin" />
             <span className="text-sm">Loading...</span>
           </div>
@@ -634,49 +631,49 @@ export default function ServiceDataGrid({
       )}
 
       {/* Data Grid */}
-      <div className="w-full overflow-hidden rounded-lg border border-gray-600/50 bg-gray-900/50 backdrop-blur-md">
+      <div className="w-full overflow-hidden rounded-lg border border-white/10 bg-black/90 backdrop-blur-md">
         <div className="overflow-x-auto">
           <table className="w-full table-auto" style={{minWidth: '100%'}}>
             <thead>
-              <tr className="border-b border-gray-600/50">
+              <tr className="border-b border-white/10 bg-gradient-to-r from-white/5 via-white/10 to-white/5">
                 <th className="px-3 py-3 text-left min-w-24">
-                  <div className="flex items-center space-x-1 text-xs font-medium text-gray-300">
+                  <div className="flex items-center space-x-1 text-xs font-medium text-white">
                     <Calendar className="w-3 h-3" />
                     <span>Date</span>
                   </div>
                 </th>
                 
                 {/* Input Metrics */}
-                <th colSpan={INPUT_METRICS.length} className="px-2 py-1 text-center text-xs font-medium text-blue-300 border-b border-gray-600/30">
+                <th colSpan={INPUT_METRICS.length} className="px-2 py-1 text-center text-xs font-medium text-white border-b border-white/10">
                   Input Metrics
                 </th>
                 
                 {/* Individual Salesperson Metrics */}
-                <th colSpan={INDIVIDUAL_METRICS.length} className="px-2 py-1 text-center text-xs font-medium text-green-300 border-b border-gray-600/30">
+                <th colSpan={INDIVIDUAL_METRICS.length} className="px-2 py-1 text-center text-xs font-medium text-white border-b border-white/10">
                   Individual Sales
                 </th>
                 
 
                 
                 {/* Targets */}
-                <th colSpan={3} className="px-2 py-1 text-center text-xs font-medium text-purple-300 border-b border-gray-600/30">
+                <th colSpan={3} className="px-2 py-1 text-center text-xs font-medium text-white border-b border-white/10">
                   Targets
                 </th>
                 
                 <th className="px-3 py-3 text-left min-w-32">
-                  <span className="text-xs font-medium text-gray-300">Notes</span>
+                  <span className="text-xs font-medium text-white">Notes</span>
                 </th>
                 
                 <th className="px-3 py-3 text-center min-w-20">
-                  <span className="text-xs font-medium text-gray-300">Actions</span>
+                  <span className="text-xs font-medium text-white">Actions</span>
                 </th>
               </tr>
               
-              <tr className="border-b border-gray-600/50">
+              <tr className="border-b border-white/10 bg-white/5">
                 <th></th>
                 {INPUT_METRICS.map(field => (
                   <th key={field} className="px-3 py-2 text-left min-w-28">
-                    <div className="flex items-center space-x-1 text-xs font-medium text-blue-300">
+                    <div className="flex items-center space-x-1 text-xs font-medium text-white/90">
                       {getFieldIcon(field)}
                       <span className="truncate">{METRIC_DEFINITIONS[field]?.name || field}</span>
                     </div>
@@ -684,7 +681,7 @@ export default function ServiceDataGrid({
                 ))}
                 {INDIVIDUAL_METRICS.map(field => (
                   <th key={field} className="px-3 py-2 text-left min-w-24">
-                    <div className="flex items-center space-x-1 text-xs font-medium text-green-300">
+                    <div className="flex items-center space-x-1 text-xs font-medium text-white/90">
                       {getFieldIcon(field)}
                       <span className="truncate">{METRIC_DEFINITIONS[field]?.name || field}</span>
                     </div>
@@ -692,35 +689,35 @@ export default function ServiceDataGrid({
                 ))}
 
                 <th className="px-3 py-2 text-left min-w-24">
-                  <div className="flex items-center space-x-1 text-xs font-medium text-purple-300">
+                  <div className="flex items-center space-x-1 text-xs font-medium text-white/90">
                     <Target className="w-3 h-3" />
                     <span className="truncate">Net Target</span>
                   </div>
                 </th>
                 <th className="px-3 py-2 text-left min-w-24">
-                  <div className="flex items-center space-x-1 text-xs font-medium text-purple-300">
+                  <div className="flex items-center space-x-1 text-xs font-medium text-white/90">
                     <Target className="w-3 h-3" />
                     <span className="truncate">Labor Target</span>
                   </div>
                 </th>
                 <th className="px-3 py-2 text-left min-w-24">
-                  <div className="flex items-center space-x-1 text-xs font-medium text-purple-300">
+                  <div className="flex items-center space-x-1 text-xs font-medium text-white/90">
                     <Clock className="w-3 h-3" />
                     <span className="truncate">Work Days</span>
                   </div>
                 </th>
                 <th className="px-3 py-2 text-left min-w-32">
-                  <span className="text-xs font-medium text-gray-300">Notes</span>
+                  <span className="text-xs font-medium text-white/90">Notes</span>
                 </th>
                 <th className="px-3 py-2 text-center min-w-20">
-                  <span className="text-xs font-medium text-gray-300">Actions</span>
+                  <span className="text-xs font-medium text-white/90">Actions</span>
                 </th>
               </tr>
             </thead>
             
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-gray-700/30 hover:bg-gray-800/30">
+                <tr key={row.id} className="border-b border-white/10 hover:bg-white/5">
                   {allColumns.map(field => (
                     <td key={field}>
                       {renderCell(
@@ -755,7 +752,7 @@ export default function ServiceDataGrid({
                       {row.isEditing && (
                         <button
                           onClick={() => cancelEdit(row.id)}
-                          className="p-1 text-gray-400 hover:text-gray-300"
+                          className="p-1 text-white/60 hover:text-white"
                           title="Cancel editing"
                         >
                           <X className="w-3 h-3" />
@@ -781,7 +778,7 @@ export default function ServiceDataGrid({
               
               {rows.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={allColumns.length + 1} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={allColumns.length + 1} className="px-4 py-8 text-center text-white/60">
                     No data available. Click "Add Entry" to start.
                   </td>
                 </tr>
@@ -794,12 +791,12 @@ export default function ServiceDataGrid({
       {/* CSV Import Modal */}
       {showCSVImport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-gray-900 border border-gray-600 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div className="bg-black/90 border border-white/10 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto backdrop-blur-md">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Import CSV Data</h3>
               <button
                 onClick={() => setShowCSVImport(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-white/60 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -807,7 +804,7 @@ export default function ServiceDataGrid({
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Select CSV File
                 </label>
                 <input
@@ -815,12 +812,12 @@ export default function ServiceDataGrid({
                   type="file"
                   accept=".csv"
                   onChange={handleFileSelect}
-                  className="block w-full text-sm text-gray-300 bg-gray-800 border border-gray-600 rounded-lg cursor-pointer focus:outline-none"
+                  className="block w-full text-sm text-white bg-black/60 border border-white/20 rounded-lg cursor-pointer focus:outline-none"
                 />
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-white/60">
                   CSV should have columns: date, working_days_elapsed, current_net_sales, current_net_labor_sales, number_of_invoices, current_marketing_spend, daniel_total_sales, essrar_total_sales, lucy_total_sales, notes
                 </p>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-white/50">
                   Supports Google Sheets exports. Date formats: YYYY-MM-DD or DD/MM/YYYY. Currency values can include "AED", commas, or currency symbols (e.g., "AED 150,000" or "150000").
                 </p>
               </div>
@@ -838,12 +835,12 @@ export default function ServiceDataGrid({
                   </div>
                   
                   <div>
-                    <h4 className="text-sm font-medium text-gray-300 mb-2">
+                    <h4 className="text-sm font-medium text-white mb-2">
                       Preview ({csvData.length} records)
                     </h4>
-                    <div className="max-h-60 overflow-y-auto border border-gray-600 rounded">
-                    <table className="w-full text-xs">
-                      <thead className="bg-gray-800">
+                    <div className="max-h-60 overflow-y-auto border border-white/10 rounded">
+                      <table className="w-full text-xs">
+                      <thead className="bg-white/5">
                         <tr>
                           <th className="px-2 py-1 text-left">Date</th>
                           <th className="px-2 py-1 text-left">Days</th>
@@ -858,7 +855,7 @@ export default function ServiceDataGrid({
                       </thead>
                       <tbody>
                         {csvData.slice(0, 10).map((row, index) => (
-                          <tr key={index} className="border-t border-gray-700">
+                          <tr key={index} className="border-t border-white/10">
                             <td className="px-2 py-1">{row.date}</td>
                             <td className="px-2 py-1">{row.working_days_elapsed}</td>
                             <td className="px-2 py-1">{row.current_net_sales}</td>
@@ -880,7 +877,7 @@ export default function ServiceDataGrid({
               <div className="flex items-center justify-end space-x-3">
                 <button
                   onClick={() => setShowCSVImport(false)}
-                  className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+                  className="px-4 py-2 text-white/70 hover:text-white transition-colors"
                 >
                   Cancel
                 </button>

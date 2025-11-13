@@ -6,15 +6,8 @@ import WeatherClock from './sections/WeatherClock';
 import MusicPlayer from './sections/MusicPlayer';
 import ProfileDropdown from './sections/ProfileDropdown';
 import FinanceCalculator from './modules/uv-crm/FinanceCalculator';
-import AccountsNavigation from './modules/accounts/AccountsNavigation';
-import { useAccountsTab } from '@/lib/AccountsTabContext';
 
-interface HeaderProps {
-  activeTab?: string;
-  onTabChange?: (tab: string) => void;
-}
-
-export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
+export default function Header() {
   const pathname = usePathname();
   
   // Check if we're on the module selection page
@@ -48,31 +41,15 @@ export default function Header({ activeTab, onTabChange }: HeaderProps = {}) {
         return '';
     }
   };
-  
-  // Use accounts tab context when in accounts module
-  let accountsTabState = null;
-  try {
-    if (currentModule === 'accounts') {
-      accountsTabState = useAccountsTab();
-    }
-  } catch (error) {
-    // Context not available, use fallback
-    accountsTabState = null;
-  }
 
   return (
     <header className={`w-full z-50 ${isModuleSelectionPage ? 'bg-transparent' : 'bg-black/95 backdrop-blur-md'} border-b ${isModuleSelectionPage ? 'border-white/5' : 'border-white/10'}`}>
       <div className="px-4">
         <div className="flex items-center justify-between py-2.5">
           
-          {/* Left side - Department name or Accounts tabs */}
+          {/* Left side - Department name */}
           {isModuleSelectionPage ? (
             <div className="w-12" />
-          ) : currentModule === 'accounts' ? (
-            <AccountsNavigation 
-              activeTab={accountsTabState?.activeTab || activeTab} 
-              onTabChange={accountsTabState?.setActiveTab || onTabChange} 
-            />
           ) : (
             <div className="flex items-center">
               <h1 className="text-sm font-semibold text-white/90 tracking-wide uppercase">

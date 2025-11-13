@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import RouteProtector from '@/components/shared/RouteProtector';
 import ServiceDashboard from '@/components/shared/ServiceDashboard';
@@ -18,10 +19,92 @@ import DirhamIcon from '@/components/ui/DirhamIcon';
 import dayjs from 'dayjs';
 import { AccountsTabProvider, useAccountsTab } from '@/lib/AccountsTabContext';
 
+// Sales Filter Component
+function SalesFilterInline({ salesYear, salesMonth, setSalesYear, setSalesMonth }: {
+  salesYear: number;
+  salesMonth: number;
+  setSalesYear: (year: number) => void;
+  setSalesMonth: (month: number) => void;
+}) {
+  return (
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 backdrop-blur-md bg-gradient-to-r from-white/10 to-white/5 border border-white/10 rounded-lg shadow-inner mb-4">
+      <div className="flex items-center gap-1.5">
+        <span className="text-white/60 text-xs font-medium whitespace-nowrap">Year:</span>
+        <select
+          value={salesYear}
+          onChange={(e) => setSalesYear(Number(e.target.value))}
+          className="bg-white/10 border border-white/20 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-white/40 backdrop-blur-sm"
+        >
+          {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+            <option key={year} value={year} className="bg-gray-800 text-white">{year}</option>
+          ))}
+        </select>
+      </div>
+      
+      <div className="flex items-center gap-1.5">
+        <span className="text-white/60 text-xs font-medium whitespace-nowrap">Month:</span>
+        <select
+          value={salesMonth}
+          onChange={(e) => setSalesMonth(Number(e.target.value))}
+          className="bg-white/10 border border-white/20 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-white/40 backdrop-blur-sm"
+        >
+          {[
+            { value: 1, label: 'January' },
+            { value: 2, label: 'February' },
+            { value: 3, label: 'March' },
+            { value: 4, label: 'April' },
+            { value: 5, label: 'May' },
+            { value: 6, label: 'June' },
+            { value: 7, label: 'July' },
+            { value: 8, label: 'August' },
+            { value: 9, label: 'September' },
+            { value: 10, label: 'October' },
+            { value: 11, label: 'November' },
+            { value: 12, label: 'December' }
+          ].map(month => (
+            <option key={month.value} value={month.value} className="bg-gray-800 text-white">
+              {month.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 function AccountsDashboardContent() {
   const { activeTab, setActiveTab } = useAccountsTab();
+  const searchParams = useSearchParams();
+  
   const [serviceSubTab, setServiceSubTab] = useState<'dashboard' | 'grid' | 'targets' | 'receivables'>('dashboard');
   const [salesSubTab, setSalesSubTab] = useState<'dashboard' | 'grid' | 'targets' | 'accounting'>('dashboard');
+  
+  // Sales filter state
+  const [salesYear, setSalesYear] = useState(new Date().getFullYear());
+  const [salesMonth, setSalesMonth] = useState(new Date().getMonth() + 1);
+  
+  // Set active tab and subtab from URL query parameter on mount
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    const subtabParam = searchParams.get('subtab');
+    
+    if (tabParam && ['service', 'sales', 'leasing'].includes(tabParam)) {
+      setActiveTab(tabParam as 'service' | 'sales' | 'leasing');
+    } else {
+      // Default to service tab if no tab parameter
+      setActiveTab('service');
+    }
+    
+    // Set service subtab from URL
+    if (subtabParam && ['dashboard', 'grid', 'targets', 'receivables'].includes(subtabParam)) {
+      setServiceSubTab(subtabParam as 'dashboard' | 'grid' | 'targets' | 'receivables');
+    }
+    
+    // Set sales subtab from URL
+    if (subtabParam && ['dashboard', 'grid', 'targets', 'accounting'].includes(subtabParam)) {
+      setSalesSubTab(subtabParam as 'dashboard' | 'grid' | 'targets' | 'accounting');
+    }
+  }, [searchParams, setActiveTab]);
   const [allMetrics, setAllMetrics] = useState<any[]>([]);
   const [allTargets, setAllTargets] = useState<any[]>([]);
   const [allSalesMetrics, setAllSalesMetrics] = useState<any[]>([]);
@@ -171,113 +254,6 @@ function AccountsDashboardContent() {
     <RouteProtector moduleName="accounts">
       <div className="w-full bg-black min-h-full">
         <div className="w-full px-4 py-4">
-            
-
-            {/* Service Sub-Navigation */}
-            {activeTab === 'service' && (
-              <div className="mb-6">
-                <div className="flex space-x-1 bg-gray-900/50 p-1 rounded-lg border border-gray-700/50 backdrop-blur-sm">
-
-                  <button
-                    onClick={() => handleServiceSubTabChange('dashboard')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      serviceSubTab === 'dashboard'
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    <span>Dashboard</span>
-                  </button>
-                  <button
-                    onClick={() => handleServiceSubTabChange('grid')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      serviceSubTab === 'grid'
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                    <span>Data Grid</span>
-                  </button>
-                  <button
-                    onClick={() => handleServiceSubTabChange('targets')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      serviceSubTab === 'targets'
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <Target className="w-4 h-4" />
-                    <span>Targets</span>
-                  </button>
-                  <button
-                    onClick={() => handleServiceSubTabChange('receivables')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      serviceSubTab === 'receivables'
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <DirhamIcon className="w-4 h-4" />
-                    <span>Receivables</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Sales Sub-Navigation */}
-            {activeTab === 'sales' && (
-              <div className="mb-6">
-                <div className="flex space-x-1 bg-gray-900/50 p-1 rounded-lg border border-gray-700/50 backdrop-blur-sm">
-
-                  <button
-                    onClick={() => handleSalesSubTabChange('dashboard')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      salesSubTab === 'dashboard'
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    <span>Dashboard</span>
-                  </button>
-                  <button
-                    onClick={() => handleSalesSubTabChange('grid')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      salesSubTab === 'grid'
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                    <span>Data Grid</span>
-                  </button>
-                  <button
-                    onClick={() => handleSalesSubTabChange('targets')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      salesSubTab === 'targets'
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <Target className="w-4 h-4" />
-                    <span>Targets</span>
-                  </button>
-                  <button
-                    onClick={() => handleSalesSubTabChange('accounting')}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      salesSubTab === 'accounting'
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Accounting</span>
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Content */}
             <div className="space-y-6">
@@ -319,11 +295,21 @@ function AccountsDashboardContent() {
               ) : activeTab === 'sales' ? (
                 <>
                   {salesSubTab === 'dashboard' && !salesLoading && (
-                    <SharedSalesDashboard 
-                      metrics={allSalesMetrics} 
-                      targets={allSalesTargets}
-                      loading={false}
-                    />
+                    <>
+                      <SalesFilterInline 
+                        salesYear={salesYear}
+                        salesMonth={salesMonth}
+                        setSalesYear={setSalesYear}
+                        setSalesMonth={setSalesMonth}
+                      />
+                      <SharedSalesDashboard 
+                        metrics={allSalesMetrics} 
+                        targets={allSalesTargets}
+                        loading={false}
+                        salesYear={salesYear}
+                        salesMonth={salesMonth}
+                      />
+                    </>
                   )}
                   {salesSubTab === 'grid' && (
                     <SalesDataGrid

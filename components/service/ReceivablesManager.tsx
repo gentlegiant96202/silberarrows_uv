@@ -199,11 +199,11 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
 
   const getAgingColor = (bucket?: string) => {
     switch (bucket) {
-      case '0-30': return 'bg-gradient-to-br from-gray-600/40 to-gray-700/40 text-gray-200 border-gray-500/40';
-      case '31-60': return 'bg-gradient-to-br from-gray-700/50 to-gray-800/50 text-gray-300 border-gray-500/50';
-      case '61-90': return 'bg-gradient-to-br from-gray-800/60 to-gray-900/60 text-gray-300 border-gray-600/50';
-      case '91+': return 'bg-gradient-to-br from-black/70 to-gray-900/70 text-white border-gray-700/60';
-      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+      case '0-30': return 'bg-white/10 text-white/90 border-white/20';
+      case '31-60': return 'bg-white/15 text-white/90 border-white/25';
+      case '61-90': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
+      case '91+': return 'bg-red-500/20 text-red-300 border-red-500/40';
+      default: return 'bg-white/10 text-white/80 border-white/20';
     }
   };
 
@@ -237,22 +237,22 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
   return (
     <div className="w-full space-y-4">
       {/* Header */}
-      <div className="backdrop-blur-md bg-gradient-to-br from-gray-900/90 via-black/80 to-gray-800/90 rounded-xl border border-gray-500/30 shadow-2xl p-4">
+      <div className="backdrop-blur-md bg-black/90 rounded-xl border border-white/10 shadow-2xl p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-600 via-gray-500 to-gray-700 flex items-center justify-center shadow-lg">
-              <Receipt className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 flex items-center justify-center shadow-lg">
+              <Receipt className="w-5 h-5 text-black" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Service Receivables</h2>
-              <p className="text-gray-400 text-sm">Track accounts receivable by service advisor</p>
+              <p className="text-white/60 text-sm">Track accounts receivable by service advisor</p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowUploadModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 hover:from-gray-600 hover:via-gray-500 hover:to-gray-600 text-white shadow-lg border border-gray-500/30"
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg hover:shadow-xl"
             >
               <Upload className="w-4 h-4" />
               <span>Upload Excel</span>
@@ -261,7 +261,7 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
             <button
               onClick={exportToCSV}
               disabled={receivables.length === 0}
-              className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 hover:from-gray-600 hover:via-gray-500 hover:to-gray-600 text-white shadow-lg border border-gray-500/30 disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               <span>Export CSV</span>
@@ -270,7 +270,7 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
             <button
               onClick={fetchReceivables}
               disabled={loading}
-              className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-white shadow-md border border-gray-500/30"
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -281,42 +281,42 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="backdrop-blur-md bg-gradient-to-br from-gray-800/90 via-gray-700/80 to-gray-800/90 rounded-lg border border-gray-500/30 p-4 shadow-xl">
+          <div className="backdrop-blur-md bg-black/90 rounded-lg border border-white/10 p-4 shadow-xl">
             <div className="flex items-center space-x-2 mb-2">
-              <DirhamIcon className="w-5 h-5 text-gray-300" />
-              <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Total Outstanding</span>
+              <DirhamIcon className="w-5 h-5 text-white/90" />
+              <span className="text-xs font-medium text-white/70 uppercase tracking-wider">Total Outstanding</span>
             </div>
             <div className="text-2xl font-bold text-white">{formatCurrency(stats.total_outstanding)}</div>
           </div>
 
-          <div className="backdrop-blur-md bg-gradient-to-br from-gray-700/80 via-gray-600/70 to-gray-700/80 rounded-lg border border-gray-400/30 p-4 shadow-lg">
+          <div className="backdrop-blur-md bg-black/90 rounded-lg border border-white/10 p-4 shadow-lg">
             <div className="flex items-center space-x-2 mb-2">
-              <TrendingUp className="w-5 h-5 text-gray-200" />
-              <span className="text-xs font-medium text-gray-200 uppercase tracking-wider">0-30 Days</span>
+              <TrendingUp className="w-5 h-5 text-white/90" />
+              <span className="text-xs font-medium text-white/70 uppercase tracking-wider">0-30 Days</span>
             </div>
             <div className="text-2xl font-bold text-white">{formatCurrency(stats.aging_breakdown.days_0_30)}</div>
           </div>
 
-          <div className="backdrop-blur-md bg-gradient-to-br from-gray-700/80 via-gray-600/70 to-gray-700/80 rounded-lg border border-gray-400/30 p-4 shadow-lg">
+          <div className="backdrop-blur-md bg-black/90 rounded-lg border border-white/10 p-4 shadow-lg">
             <div className="flex items-center space-x-2 mb-2">
-              <Calendar className="w-5 h-5 text-gray-200" />
-              <span className="text-xs font-medium text-gray-200 uppercase tracking-wider">31-60 Days</span>
+              <Calendar className="w-5 h-5 text-white/90" />
+              <span className="text-xs font-medium text-white/70 uppercase tracking-wider">31-60 Days</span>
             </div>
             <div className="text-2xl font-bold text-white">{formatCurrency(stats.aging_breakdown.days_31_60)}</div>
           </div>
 
-          <div className="backdrop-blur-md bg-gradient-to-br from-gray-700/80 via-gray-600/70 to-gray-700/80 rounded-lg border border-gray-400/30 p-4 shadow-lg">
+          <div className="backdrop-blur-md bg-black/90 rounded-lg border border-white/10 p-4 shadow-lg">
             <div className="flex items-center space-x-2 mb-2">
-              <AlertCircle className="w-5 h-5 text-gray-200" />
-              <span className="text-xs font-medium text-gray-200 uppercase tracking-wider">61-90 Days</span>
+              <AlertCircle className="w-5 h-5 text-yellow-300" />
+              <span className="text-xs font-medium text-white/70 uppercase tracking-wider">61-90 Days</span>
             </div>
             <div className="text-2xl font-bold text-white">{formatCurrency(stats.aging_breakdown.days_61_90)}</div>
           </div>
 
-          <div className="backdrop-blur-md bg-gradient-to-br from-gray-800/90 via-gray-700/80 to-gray-800/90 rounded-lg border border-gray-500/30 p-4 shadow-xl">
+          <div className="backdrop-blur-md bg-black/90 rounded-lg border border-white/10 p-4 shadow-xl">
             <div className="flex items-center space-x-2 mb-2">
-              <AlertTriangle className="w-5 h-5 text-gray-300" />
-              <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">91+ Days (At Risk)</span>
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+              <span className="text-xs font-medium text-white/70 uppercase tracking-wider">91+ Days (At Risk)</span>
             </div>
             <div className="text-2xl font-bold text-white">{formatCurrency(stats.aging_breakdown.days_91_plus)}</div>
           </div>
@@ -324,32 +324,32 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
       )}
 
       {/* Filters */}
-      <div className="backdrop-blur-md bg-gradient-to-br from-gray-900/90 via-black/80 to-gray-800/90 rounded-xl border border-gray-500/30 p-4">
+      <div className="backdrop-blur-md bg-black/90 rounded-xl border border-white/10 p-4">
         <div className="flex items-center space-x-4">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-medium text-gray-300">Filters:</span>
+          <Filter className="w-4 h-4 text-white/60" />
+          <span className="text-sm font-medium text-white">Filters:</span>
 
           <select
             value={selectedAdvisor}
             onChange={(e) => setSelectedAdvisor(e.target.value)}
-            className="px-3 py-1.5 bg-black/40 border border-gray-500/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-gray-400"
+            className="px-3 py-1.5 bg-black/60 border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/40"
           >
-            <option value="all">All Advisors</option>
+            <option value="all" className="bg-black text-white">All Advisors</option>
             {uniqueAdvisors.map(advisor => (
-              <option key={advisor} value={advisor}>{advisor}</option>
+              <option key={advisor} value={advisor} className="bg-black text-white">{advisor}</option>
             ))}
           </select>
 
           <select
             value={selectedAgingBucket}
             onChange={(e) => setSelectedAgingBucket(e.target.value)}
-            className="px-3 py-1.5 bg-black/40 border border-gray-500/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-gray-400"
+            className="px-3 py-1.5 bg-black/60 border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/40"
           >
-            <option value="all">All Aging</option>
-            <option value="0-30">0-30 Days</option>
-            <option value="31-60">31-60 Days</option>
-            <option value="61-90">61-90 Days</option>
-            <option value="91+">91+ Days</option>
+            <option value="all" className="bg-black text-white">All Aging</option>
+            <option value="0-30" className="bg-black text-white">0-30 Days</option>
+            <option value="31-60" className="bg-black text-white">31-60 Days</option>
+            <option value="61-90" className="bg-black text-white">61-90 Days</option>
+            <option value="91+" className="bg-black text-white">91+ Days</option>
           </select>
 
           {(selectedAdvisor !== 'all' || selectedAgingBucket !== 'all') && (
@@ -358,7 +358,7 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
                 setSelectedAdvisor('all');
                 setSelectedAgingBucket('all');
               }}
-              className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-400 hover:text-white"
+              className="flex items-center space-x-1 px-2 py-1 text-xs text-white/60 hover:text-white"
             >
               <X className="w-3 h-3" />
               <span>Clear</span>
@@ -376,20 +376,20 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
       )}
 
       {/* Data Table */}
-      <div className="backdrop-blur-md bg-gradient-to-br from-gray-900/90 via-black/80 to-gray-800/90 rounded-xl border border-gray-500/30 shadow-2xl overflow-hidden">
+      <div className="backdrop-blur-md bg-black/90 rounded-xl border border-white/10 shadow-2xl overflow-hidden">
         <div className="overflow-x-auto max-w-full">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-gradient-to-r from-gray-600/30 via-gray-500/30 to-gray-600/30 backdrop-blur-sm border-b border-gray-400/30">
-                <th className="px-3 py-4 text-left text-gray-100 font-semibold">Advisor</th>
-                <th className="px-3 py-4 text-left text-gray-100 font-semibold">Customer</th>
-                <th className="px-3 py-4 text-left text-gray-100 font-semibold">Date</th>
-                <th className="px-3 py-4 text-left text-gray-100 font-semibold">Reference</th>
-                <th className="px-3 py-4 text-right text-gray-100 font-semibold">Invoice</th>
-                <th className="px-3 py-4 text-right text-gray-100 font-semibold">Receipt</th>
-                <th className="px-3 py-4 text-right text-gray-100 font-semibold">Balance</th>
-                <th className="px-3 py-4 text-center text-gray-100 font-semibold">Age</th>
-                <th className="px-3 py-4 text-center text-gray-100 font-semibold">Aging</th>
+              <tr className="bg-gradient-to-r from-white/5 via-white/10 to-white/5 backdrop-blur-sm border-b border-white/10">
+                <th className="px-3 py-4 text-left text-white font-semibold">Advisor</th>
+                <th className="px-3 py-4 text-left text-white font-semibold">Customer</th>
+                <th className="px-3 py-4 text-left text-white font-semibold">Date</th>
+                <th className="px-3 py-4 text-left text-white font-semibold">Reference</th>
+                <th className="px-3 py-4 text-right text-white font-semibold">Invoice</th>
+                <th className="px-3 py-4 text-right text-white font-semibold">Receipt</th>
+                <th className="px-3 py-4 text-right text-white font-semibold">Balance</th>
+                <th className="px-3 py-4 text-center text-white font-semibold">Age</th>
+                <th className="px-3 py-4 text-center text-white font-semibold">Aging</th>
               </tr>
             </thead>
             <tbody>
@@ -412,20 +412,20 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
                   return (
                     <React.Fragment key={`${customer.advisor_name}-${customer.customer_id}`}>
                       {/* Customer Header Row */}
-                      <tr className="bg-gradient-to-r from-gray-700/40 to-gray-600/40 border-t-2 border-gray-500/50">
+                      <tr className="bg-white/10 border-t-2 border-white/20">
                         <td className="px-3 py-3 font-bold text-white" colSpan={2}>
                           <div className="flex items-center space-x-3">
                             <span className="text-sm">{customer.advisor_name}</span>
-                            <span className="text-gray-400">→</span>
+                            <span className="text-white/60">→</span>
                             <span className="text-base">{customer.customer_name}</span>
-                            <span className="text-xs text-gray-400">(ID: {customer.customer_id})</span>
+                            <span className="text-xs text-white/60">(ID: {customer.customer_id})</span>
                           </div>
                         </td>
                         <td colSpan={5} className="px-3 py-3 text-right">
-                          <span className="text-xs text-gray-300 mr-2">Final Balance:</span>
+                          <span className="text-xs text-white/70 mr-2">Final Balance:</span>
                           <span className="text-lg font-bold text-white">{formatCurrency(finalBalance.balance)}</span>
                         </td>
-                        <td className="px-3 py-3 text-center text-gray-300 font-mono text-sm">
+                        <td className="px-3 py-3 text-center text-white/90 font-mono text-sm">
                           {finalBalance.age_days}d
                         </td>
                         <td className="px-3 py-3 text-center">
@@ -441,42 +441,42 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
                         return (
                           <tr
                             key={record.id}
-                            className={`border-b border-gray-400/10 hover:bg-gray-300/5 transition-colors ${
-                              isLastTransaction ? 'bg-blue-900/10 border-b-2 border-blue-500/30' : 'bg-black/5'
+                            className={`border-b border-white/10 hover:bg-white/5 transition-colors ${
+                              isLastTransaction ? 'bg-white/5 border-b-2 border-white/20' : ''
                             }`}
                           >
-                            <td className="px-3 py-2 text-gray-400 text-xs pl-8">
+                            <td className="px-3 py-2 text-white/60 text-xs pl-8">
                               {isLastTransaction && '→ '}
                             </td>
-                            <td className="px-3 py-2 text-gray-400 text-xs">
+                            <td className="px-3 py-2 text-white/60 text-xs">
                               {isLastTransaction ? (
-                                <span className="text-blue-300 font-semibold">Final Balance</span>
+                                <span className="text-white font-semibold">Final Balance</span>
                               ) : (
                                 <span>Transaction {index + 1}</span>
                               )}
                             </td>
-                            <td className="px-3 py-2 text-gray-300 font-mono text-xs">
+                            <td className="px-3 py-2 text-white/90 font-mono text-xs">
                               {new Date(record.transaction_date).toLocaleDateString('en-GB')}
                             </td>
-                            <td className="px-3 py-2 text-gray-300 font-mono text-xs">{record.reference_number}</td>
-                            <td className="px-3 py-2 text-right text-gray-300 font-mono text-xs">
+                            <td className="px-3 py-2 text-white/90 font-mono text-xs">{record.reference_number}</td>
+                            <td className="px-3 py-2 text-right text-white/90 font-mono text-xs">
                               {record.invoice_amount > 0 ? formatCurrency(record.invoice_amount) : '-'}
                             </td>
-                            <td className="px-3 py-2 text-right text-gray-300 font-mono text-xs">
+                            <td className="px-3 py-2 text-right text-white/90 font-mono text-xs">
                               {record.receipt_amount > 0 ? formatCurrency(record.receipt_amount) : '-'}
                             </td>
                             <td className={`px-3 py-2 text-right font-mono text-sm ${
                               isLastTransaction ? 'text-white font-bold' : 
-                              record.balance < 0 ? 'text-green-300' : 'text-gray-300'
+                              record.balance < 0 ? 'text-green-300' : 'text-white/90'
                             }`}>
                               {formatCurrency(record.balance)}
                             </td>
-                            <td className="px-3 py-2 text-center text-gray-400 font-mono text-xs">{record.age_days}d</td>
+                            <td className="px-3 py-2 text-center text-white/70 font-mono text-xs">{record.age_days}d</td>
                             <td className="px-3 py-2 text-center">
                               <span className={`px-2 py-1 rounded-md border text-xs font-semibold ${
                                 isLastTransaction 
                                   ? getAgingColor(record.aging_bucket)
-                                  : 'bg-gray-800/20 text-gray-400 border-gray-600/30'
+                                  : 'bg-white/5 text-white/60 border-white/20'
                               }`}>
                                 {record.aging_bucket || '-'}
                               </span>
@@ -496,7 +496,7 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-gray-900 border border-gray-600 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div className="bg-black/90 border border-white/10 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[80vh] overflow-y-auto backdrop-blur-md">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
                 <FileSpreadsheet className="w-5 h-5" />
@@ -504,7 +504,7 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
               </h3>
               <button
                 onClick={() => setShowUploadModal(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-white/60 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -512,7 +512,7 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Select Excel File
                 </label>
                 <input
@@ -520,9 +520,9 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
                   type="file"
                   accept=".xlsx,.xls"
                   onChange={handleFileSelect}
-                  className="block w-full text-sm text-gray-300 bg-gray-800 border border-gray-600 rounded-lg cursor-pointer focus:outline-none"
+                  className="block w-full text-sm text-white bg-black/60 border border-white/20 rounded-lg cursor-pointer focus:outline-none"
                 />
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-white/60">
                   Upload the accounts receivable report with multiple advisor sheets (DANIEL, ESSRAR, LUCY, etc.)
                 </p>
               </div>
@@ -540,22 +540,22 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-medium text-gray-300 mb-2">Preview</h4>
-                    <div className="border border-gray-600 rounded-lg overflow-hidden">
+                    <h4 className="text-sm font-medium text-white mb-2">Preview</h4>
+                    <div className="border border-white/20 rounded-lg overflow-hidden">
                       <table className="w-full text-xs">
-                        <thead className="bg-gray-800">
+                        <thead className="bg-white/10">
                           <tr>
-                            <th className="px-2 py-1 text-left">Advisor</th>
-                            <th className="px-2 py-1 text-left">Report Date</th>
-                            <th className="px-2 py-1 text-right">Records</th>
+                            <th className="px-2 py-1 text-left text-white">Advisor</th>
+                            <th className="px-2 py-1 text-left text-white">Report Date</th>
+                            <th className="px-2 py-1 text-right text-white">Records</th>
                           </tr>
                         </thead>
                         <tbody>
                           {parseResult.sheets.map((sheet, index) => (
-                            <tr key={index} className="border-t border-gray-700">
-                              <td className="px-2 py-1 text-gray-200">{sheet.advisor_name}</td>
-                              <td className="px-2 py-1 text-gray-200">{sheet.report_date}</td>
-                              <td className="px-2 py-1 text-right text-gray-200">{sheet.transactions.length}</td>
+                            <tr key={index} className="border-t border-white/10">
+                              <td className="px-2 py-1 text-white/90">{sheet.advisor_name}</td>
+                              <td className="px-2 py-1 text-white/90">{sheet.report_date}</td>
+                              <td className="px-2 py-1 text-right text-white/90">{sheet.transactions.length}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -588,14 +588,14 @@ export default function ReceivablesManager({ onRefresh }: ReceivablesManagerProp
               <div className="flex items-center justify-end space-x-3 pt-4">
                 <button
                   onClick={() => setShowUploadModal(false)}
-                  className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+                  className="px-4 py-2 text-white/70 hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUpload}
                   disabled={!parseResult || parseResult.sheets.length === 0 || uploading || !!error}
-                  className="px-4 py-2 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 hover:from-gray-600 hover:via-gray-500 hover:to-gray-600 text-white rounded-lg shadow-lg border border-gray-500/30 disabled:opacity-50 flex items-center space-x-2"
+                  className="px-4 py-2 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center space-x-2"
                 >
                   {uploading && <RefreshCw className="w-4 h-4 animate-spin" />}
                   <span>{uploading ? 'Uploading...' : 'Import Data'}</span>

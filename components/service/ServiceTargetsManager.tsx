@@ -168,23 +168,23 @@ export default function ServiceTargetsManager({
   });
 
   return (
-    <div className="w-full backdrop-blur-md bg-gradient-to-br from-gray-900/90 via-black/80 to-gray-800/90 rounded-xl border border-gray-500/30 shadow-2xl">
+    <div className="w-full backdrop-blur-md bg-black/90 rounded-xl border border-white/10 shadow-2xl">
       {/* Header */}
-      <div className="p-4 border-b border-gray-500/20">
+      <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-600 via-gray-500 to-gray-700 flex items-center justify-center shadow-lg">
-              <Target className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 flex items-center justify-center shadow-lg">
+              <Target className="w-5 h-5 text-black" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Service Targets Management</h2>
-              <p className="text-gray-400 text-sm">Set monthly targets for service department performance</p>
+              <p className="text-white/60 text-sm">Set monthly targets for service department performance</p>
             </div>
           </div>
           
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md hover:from-gray-500 hover:to-gray-600"
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg hover:shadow-xl"
           >
             <Plus className="w-4 h-4" />
             <span>Add Target</span>
@@ -201,22 +201,22 @@ export default function ServiceTargetsManager({
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <div className="p-4 border-b border-gray-400/30 bg-gradient-to-r from-gray-600/20 via-gray-500/20 to-gray-600/20 backdrop-blur-sm">
+        <div className="p-4 border-b border-white/10 bg-white/5 backdrop-blur-sm">
           <h3 className="text-lg font-semibold text-white mb-2">
             {editingId ? 'Edit Target' : 'Add New Target'}
           </h3>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-white/60 mb-4">
             💡 The 112% stretch target and daily pace will be calculated automatically based on your inputs.
           </p>
           
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Year</label>
+              <label className="block text-sm font-medium text-white mb-1">Year</label>
               <input
                 type="number"
                 value={formData.year}
                 onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 bg-black/40 border border-gray-500/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                className="w-full px-3 py-2 bg-black/60 border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/40 focus:border-transparent"
                 min="2020"
                 max="2030"
                 required
@@ -224,26 +224,26 @@ export default function ServiceTargetsManager({
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Month</label>
+              <label className="block text-sm font-medium text-white mb-1">Month</label>
               <select
                 value={formData.month}
                 onChange={(e) => setFormData(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 bg-black/40 border border-gray-500/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                className="w-full px-3 py-2 bg-black/60 border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/40 focus:border-transparent"
                 required
               >
                 {MONTHS.map(month => (
-                  <option key={month.value} value={month.value} className="bg-gray-800">{month.label}</option>
+                  <option key={month.value} value={month.value} className="bg-black text-white">{month.label}</option>
                 ))}
               </select>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Net Sales Target (AED)</label>
+              <label className="block text-sm font-medium text-white mb-1">Net Sales Target (AED)</label>
               <input
                 type="number"
                 value={formData.net_sales_target}
                 onChange={(e) => setFormData(prev => ({ ...prev, net_sales_target: parseFloat(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 bg-black/40 border border-gray-500/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                className="w-full px-3 py-2 bg-black/60 border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/40 focus:border-transparent"
                 step="0.01"
                 min="0"
                 required
@@ -251,12 +251,12 @@ export default function ServiceTargetsManager({
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Labour Sales Target (AED)</label>
+              <label className="block text-sm font-medium text-white mb-1">Labour Sales Target (AED)</label>
               <input
                 type="number"
                 value={formData.labour_sales_target}
                 onChange={(e) => setFormData(prev => ({ ...prev, labour_sales_target: parseFloat(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 bg-black/40 border border-gray-500/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                className="w-full px-3 py-2 bg-black/60 border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/40 focus:border-transparent"
                 step="0.01"
                 min="0"
                 required
@@ -264,12 +264,12 @@ export default function ServiceTargetsManager({
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Working Days</label>
+              <label className="block text-sm font-medium text-white mb-1">Working Days</label>
               <input
                 type="number"
                 value={formData.number_of_working_days}
                 onChange={(e) => setFormData(prev => ({ ...prev, number_of_working_days: parseInt(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 bg-black/40 border border-gray-500/30 rounded-lg text-white text-sm focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                className="w-full px-3 py-2 bg-black/60 border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-white/40 focus:border-transparent"
                 min="1"
                 max="31"
                 required
@@ -280,7 +280,7 @@ export default function ServiceTargetsManager({
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md hover:from-gray-500 hover:to-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />
                 <span>{submitting ? 'Saving...' : editingId ? 'Update' : 'Save'}</span>
@@ -289,7 +289,7 @@ export default function ServiceTargetsManager({
               <button
                 type="button"
                 onClick={cancelEdit}
-                className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-800/50"
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-black/40 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white hover:bg-white/10"
               >
                 <X className="w-4 h-4" />
                 <span>Cancel</span>
@@ -300,48 +300,48 @@ export default function ServiceTargetsManager({
       )}
 
       {/* Targets List */}
-      <div className="backdrop-blur-md bg-gradient-to-br from-gray-900/90 via-black/80 to-gray-800/90 rounded-xl border border-gray-500/30 shadow-2xl overflow-hidden">
+      <div className="backdrop-blur-md bg-black/90 rounded-xl border border-white/10 shadow-2xl overflow-hidden">
         <div className="overflow-x-auto max-w-full">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-gradient-to-r from-gray-600/30 via-gray-500/30 to-gray-600/30 backdrop-blur-sm border-b border-gray-400/30">
-                <th className="sticky left-0 bg-gradient-to-r from-gray-700/60 to-gray-600/60 backdrop-blur-sm px-3 py-4 text-left text-gray-100 font-semibold border-r border-gray-400/30">
+              <tr className="bg-gradient-to-r from-white/5 via-white/10 to-white/5 border-b border-white/10">
+                <th className="sticky left-0 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-sm px-3 py-4 text-left text-white font-semibold border-r border-white/10">
                   <div className="flex items-center space-x-2">
-                    <Calendar className="w-4 h-4 text-gray-300" />
+                    <Calendar className="w-4 h-4" />
                     <span>Period</span>
                   </div>
                 </th>
-                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                <th className="px-3 py-4 text-center text-white font-semibold border-r border-white/10">
                   <div className="flex items-center justify-center space-x-2">
-                    <Target className="w-4 h-4 text-gray-300" />
-                    <span className="text-gray-200">Net Sales Target</span>
+                    <Target className="w-4 h-4" />
+                    <span>Net Sales Target</span>
                   </div>
                 </th>
-                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                <th className="px-3 py-4 text-center text-white font-semibold border-r border-white/10">
                   <div className="flex items-center justify-center space-x-2">
-                    <Target className="w-4 h-4 text-gray-300" />
-                    <span className="text-gray-200">112% Stretch</span>
+                    <Target className="w-4 h-4" />
+                    <span>112% Stretch</span>
                   </div>
                 </th>
-                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                <th className="px-3 py-4 text-center text-white font-semibold border-r border-white/10">
                   <div className="flex items-center justify-center space-x-2">
-                    <Target className="w-4 h-4 text-gray-300" />
-                    <span className="text-gray-200">Daily Pace</span>
+                    <Target className="w-4 h-4" />
+                    <span>Daily Pace</span>
                   </div>
                 </th>
-                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                <th className="px-3 py-4 text-center text-white font-semibold border-r border-white/10">
                   <div className="flex items-center justify-center space-x-2">
-                    <Target className="w-4 h-4 text-gray-300" />
-                    <span className="text-gray-200">Labour Target</span>
+                    <Target className="w-4 h-4" />
+                    <span>Labour Target</span>
                   </div>
                 </th>
-                <th className="px-3 py-4 text-center text-gray-100 font-semibold border-r border-gray-400/20">
+                <th className="px-3 py-4 text-center text-white font-semibold border-r border-white/10">
                   <div className="flex items-center justify-center space-x-2">
-                    <Clock className="w-4 h-4 text-gray-300" />
-                    <span className="text-gray-200">Working Days</span>
+                    <Clock className="w-4 h-4" />
+                    <span>Working Days</span>
                   </div>
                 </th>
-                <th className="px-3 py-4 text-center text-gray-100 font-semibold">
+                <th className="px-3 py-4 text-center text-white font-semibold">
                   Actions
                 </th>
               </tr>
@@ -363,40 +363,38 @@ export default function ServiceTargetsManager({
                 sortedTargets.map((target, index) => (
                   <tr 
                     key={target.id} 
-                    className={`border-b border-gray-400/10 hover:bg-gray-300/5 backdrop-blur-sm transition-colors ${
-                      index % 2 === 0 ? 'bg-black/5' : 'bg-gray-900/10'
-                    }`}
+                    className="border-b border-white/10 hover:bg-white/5 backdrop-blur-sm transition-colors"
                   >
-                    <td className="sticky left-0 bg-gradient-to-r from-gray-700/60 to-gray-600/60 backdrop-blur-sm px-3 py-3 border-r border-gray-400/30">
+                    <td className="sticky left-0 bg-white/5 backdrop-blur-sm px-3 py-3 border-r border-white/10">
                       <div className="flex items-center space-x-2">
-                        <Calendar className="w-4 h-4 text-gray-300" />
-                        <span className="text-gray-100 font-medium">
+                        <Calendar className="w-4 h-4 text-white/90" />
+                        <span className="text-white/90 font-medium">
                           {getMonthName(target.month)} {target.year}
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
-                      <span className="text-gray-200 font-mono">
+                    <td className="px-3 py-3 text-center border-r border-white/10">
+                      <span className="text-white/90 font-mono">
                         {formatCurrency(target.net_sales_target)}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
-                      <span className="text-gray-200 font-mono">
+                    <td className="px-3 py-3 text-center border-r border-white/10">
+                      <span className="text-white/90 font-mono">
                         {formatCurrency(target.net_sales_112_percent || target.net_sales_target * 1.12)}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
-                      <span className="text-gray-200 font-mono">
+                    <td className="px-3 py-3 text-center border-r border-white/10">
+                      <span className="text-white/90 font-mono">
                         {formatCurrency(target.daily_cumulative_target || target.net_sales_target / target.number_of_working_days)}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
-                      <span className="text-gray-200 font-mono">
+                    <td className="px-3 py-3 text-center border-r border-white/10">
+                      <span className="text-white/90 font-mono">
                         {formatCurrency(target.labour_sales_target)}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-center border-r border-gray-400/10">
-                      <span className="text-gray-200 font-mono">
+                    <td className="px-3 py-3 text-center border-r border-white/10">
+                      <span className="text-white/90 font-mono">
                         {target.number_of_working_days}
                       </span>
                     </td>
@@ -404,7 +402,7 @@ export default function ServiceTargetsManager({
                       <div className="flex items-center justify-center space-x-2">
                         <button
                           onClick={() => handleEdit(target)}
-                          className="p-1 text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all duration-200 rounded"
+                          className="p-1 text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 rounded"
                           title="Edit"
                         >
                           <Edit3 className="w-4 h-4" />

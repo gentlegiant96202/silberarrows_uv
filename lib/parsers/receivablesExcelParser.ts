@@ -214,11 +214,6 @@ function parseTransactionRow(
     if (balance === 0 && invoiceAmt === 0 && receiptAmt === 0) {
       return null;
     }
-    
-    // Skip rows with invalid or missing age days (unless balance is zero)
-    if (isNaN(ageDays) && balance !== 0) {
-      return null;
-    }
 
     return {
       customer_name: customer.name,

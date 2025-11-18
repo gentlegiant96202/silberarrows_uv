@@ -1303,7 +1303,15 @@ app.get('/health', (req, res) => {
 const port = process.env.PORT || 3001;
 
 loadTemplate().then(() => {
-  app.listen(port);
+  app.listen(port, () => {
+    console.log(`✅ Renderer service started successfully`);
+    console.log(`🚀 Server listening on port ${port}`);
+    console.log(`📋 Templates loaded: ${Object.keys(contentPillarTemplates).length}`);
+    console.log(`💚 Health endpoint: /health`);
+    console.log(`🎨 Render endpoint: /render`);
+    console.log(`⏰ Started at: ${new Date().toISOString()}`);
+  });
 }).catch((e) => {
+  console.error('❌ Failed to start renderer service:', e);
   process.exit(1);
 }); 

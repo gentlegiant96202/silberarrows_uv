@@ -140,7 +140,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
         .eq('car_id', car.id)
         .eq('kind', 'catalog')
         .order('sort_order', { ascending: true })
-        .limit(1);
+        .limit(2);
 
       if (error) {
         throw new Error('Failed to fetch car images');
@@ -150,6 +150,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
       }
 
       const firstImageUrl = carMedia[0]?.url;
+      const secondImageUrl = carMedia[1]?.url ?? firstImageUrl;
       const rendererBase = process.env.NEXT_PUBLIC_RENDERER_URL as string | undefined;
       const endpoint = rendererBase ? `${rendererBase.replace(/\/$/, '')}/render` : '/api/generate-price-drop-images';
       
@@ -159,6 +160,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
           model: fullCarData.vehicle_model,
           mileage: fullCarData.current_mileage_km ? `${fullCarData.current_mileage_km.toLocaleString()} KM` : 'N/A',
           stockNumber: fullCarData.stock_number,
+          regionalSpec: fullCarData.regional_specification || 'GCC Spec',
           horsepower: fullCarData.horsepower_hp ?? null
         },
         pricing: {
@@ -169,7 +171,7 @@ const PriceDropModal: React.FC<PriceDropModalProps> = ({ car, isOpen, onClose, o
           isCashOnly: newMonthly.isCashOnly
         },
         firstImageUrl,
-        secondImageUrl: firstImageUrl
+        secondImageUrl
       };
       const response = await fetch(endpoint, {
         method: 'POST',

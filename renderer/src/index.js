@@ -153,6 +153,9 @@ function fillTemplate({ carDetails, pricing, firstImageUrl, secondImageUrl }) {
   const horsepowerDisplay = carDetails.horsepower && carDetails.horsepower !== null && carDetails.horsepower !== '' 
     ? String(carDetails.horsepower)
     : 'N/A';
+  const regionalSpecDisplay = carDetails.regionalSpec && typeof carDetails.regionalSpec === 'string' && carDetails.regionalSpec.trim() !== ''
+    ? carDetails.regionalSpec
+    : (carDetails.stockNumber ? String(carDetails.stockNumber) : 'GCC Spec');
   const primaryImage = String(firstImageUrl ?? '');
   const secondaryImage = String(secondImageUrl ?? firstImageUrl ?? '');
 
@@ -162,6 +165,7 @@ function fillTemplate({ carDetails, pricing, firstImageUrl, secondImageUrl }) {
     '{{mileage}}': mileageDisplay,
     '{{horsepower}}': horsepowerDisplay,
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
+    '{{regionalSpec}}': regionalSpecDisplay,
     '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
     '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),
@@ -187,6 +191,9 @@ function fillTemplate45({ carDetails, pricing, firstImageUrl, secondImageUrl }) 
   const horsepowerDisplay = carDetails.horsepower && carDetails.horsepower !== null && carDetails.horsepower !== '' 
     ? String(carDetails.horsepower)
     : 'N/A';
+  const regionalSpecDisplay = carDetails.regionalSpec && typeof carDetails.regionalSpec === 'string' && carDetails.regionalSpec.trim() !== ''
+    ? carDetails.regionalSpec
+    : (carDetails.stockNumber ? String(carDetails.stockNumber) : 'GCC Spec');
   
   const primaryImage = String(firstImageUrl ?? '');
   const secondaryImage = String(secondImageUrl ?? firstImageUrl ?? '');
@@ -197,6 +204,7 @@ function fillTemplate45({ carDetails, pricing, firstImageUrl, secondImageUrl }) 
     '{{mileage}}': mileageDisplay,
     '{{horsepower}}': horsepowerDisplay,
     '{{stockNumber}}': String(carDetails.stockNumber ?? ''),
+    '{{regionalSpec}}': regionalSpecDisplay,
     '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
     '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),

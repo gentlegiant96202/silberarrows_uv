@@ -20,7 +20,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            background: #000000;
             color: #ffffff;
             line-height: 1.6;
             display: flex;
@@ -35,17 +35,11 @@
         }
 
         .campaign-card {
-            background: linear-gradient(145deg, #0a0a0a, #1f1f1f);
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
             display: grid;
             grid-template-columns: 1fr 1fr;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-            backdrop-filter: blur(20px);
-            height: 100%;
             width: 100%;
+            height: 100%;
+            background: linear-gradient(145deg, #080808, #161616);
         }
 
         .car-section {
@@ -53,6 +47,7 @@
             flex-direction: column;
             height: 100%;
             position: relative;
+            gap: 0;
         }
 
         .car-image-container {
@@ -66,7 +61,7 @@
         }
 
         .car-image-container:first-child {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .glass-overlay {
@@ -81,24 +76,22 @@
         }
 
         .car-image {
-            width: 90%;
-            height: 90%;
-            object-fit: contain;
-            filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.9));
-            transition: all 0.5s ease;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
             z-index: 2;
-            position: relative;
         }
 
         .price-drop-badge {
             position: absolute;
-            top: 50px;
-            left: 20px;
+            top: 48px;
+            left: 32px;
             background: linear-gradient(135deg, #2a2a2a, #0a0a0a);
             border: 2px solid rgba(255, 255, 255, 0.2);
             color: #ffffff;
-            padding: 14px 28px;
-            border-radius: 30px;
+            padding: 14px 30px;
+            border-radius: 32px;
             font-weight: 700;
             font-size: 1.4rem;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
@@ -106,7 +99,7 @@
             z-index: 3;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-family: 'Space Grotesk', sans-serif;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -114,21 +107,20 @@
 
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6); }
-            50% { transform: scale(1.05); box-shadow: 0 12px 30px rgba(255, 255, 255, 0.1); }
+            50% { transform: scale(1.05); box-shadow: 0 12px 30px rgba(255, 255, 255, 0.08); }
             100% { transform: scale(1); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6); }
         }
 
         .content {
-            padding: 32px 28px;
+            padding: 32px 28px 36px 28px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            background: linear-gradient(135deg, #111111, #000000);
-            height: 100%;
+            background: linear-gradient(135deg, #101010, #050505);
         }
 
         .header {
-            margin-bottom: 20px;
+            margin-bottom: 22px;
             position: relative;
             padding-bottom: 18px;
         }
@@ -150,7 +142,7 @@
             margin-bottom: 10px;
             color: #ffffff;
             line-height: 1.1;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            text-shadow: 0 2px 8px rgba(0,0,0,0.45);
             font-weight: 700;
             letter-spacing: -0.5px;
         }
@@ -160,7 +152,6 @@
             color: #a0a0a0;
             font-weight: 400;
             letter-spacing: 0.5px;
-            font-family: 'Inter', sans-serif;
         }
 
         .highlight {
@@ -171,8 +162,7 @@
         .specs-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin: 20px 0;
+            gap: 18px;
         }
 
         .spec-item {
@@ -180,16 +170,14 @@
             padding: 22px 18px;
             border-radius: 12px;
             text-align: center;
-            transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
+            transition: transform 0.3s ease;
         }
 
         .spec-item:hover {
             transform: translateY(-3px);
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.25);
         }
 
         .spec-value {
@@ -202,23 +190,19 @@
 
         .spec-label {
             font-size: 1rem;
-            color: #888888;
+            color: #8a8a8a;
             text-transform: uppercase;
             letter-spacing: 1px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
         }
 
         .price-section {
             background: linear-gradient(145deg, #0a0a0a, #1a1a1a);
-            border-radius: 16px;
+            border-radius: 18px;
             padding: 32px;
-            margin: 10px 0;
+            margin-top: 18px;
             position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(20px);
         }
 
         .price-section::before {
@@ -228,7 +212,7 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
         }
 
         .price-row {
@@ -240,8 +224,7 @@
 
         .price-label {
             font-size: 1.4rem;
-            color: #999999;
-            font-family: 'Inter', sans-serif;
+            color: #a0a0a0;
             font-weight: 500;
         }
 
@@ -249,8 +232,6 @@
             font-size: 2rem;
             color: #666666;
             text-decoration: line-through;
-            font-weight: 400;
-            font-family: 'Space Grotesk', sans-serif;
         }
 
         .new-price {
@@ -259,10 +240,9 @@
             color: #ffffff;
             font-weight: 700;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-            background: linear-gradient(135deg, #ffffff, #888888);
+            background: linear-gradient(135deg, #ffffff, #8f8f8f);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .savings {
@@ -274,8 +254,7 @@
             padding: 14px 24px;
             border-radius: 26px;
             font-size: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-family: 'Space Grotesk', sans-serif;
+            border: 1px solid rgba(255, 255, 255, 0.25);
             font-weight: 600;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
@@ -306,7 +285,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             width: 100%;
-            margin-top: 18px;
+            margin-top: 20px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
             display: flex;
             justify-content: center;
@@ -321,8 +300,6 @@
         .cta-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 30px rgba(255, 255, 255, 0.1);
-            background: linear-gradient(135deg, #333333, #111111);
-            border-color: rgba(255, 255, 255, 0.3);
         }
     </style>
 </head>
@@ -347,7 +324,7 @@
                 <div>
                     <div class="header">
                         <h1>{{year}} {{model}}</h1>
-                        <p class="subtitle">{{mileage}} KM • <span class="highlight">Premium Selection</span></p>
+                        <p class="subtitle">{{mileage}} • <span class="highlight">Premium Selection</span></p>
                     </div>
 
                     <div class="specs-grid">
@@ -364,8 +341,8 @@
                             <div class="spec-label">Horsepower</div>
                         </div>
                         <div class="spec-item">
-                            <div class="spec-value">{{stockNumber}}</div>
-                            <div class="spec-label">Stock #</div>
+                            <div class="spec-value">{{regionalSpec}}</div>
+                            <div class="spec-label">Regional Spec</div>
                         </div>
                     </div>
                 </div>
@@ -414,10 +391,10 @@
             const carImages = document.querySelectorAll('.car-image');
             carImages.forEach(img => {
                 img.addEventListener('mouseenter', () => {
-                    img.style.filter = 'drop-shadow(0 25px 50px rgba(255, 255, 255, 0.1))';
+                    img.style.transform = 'scale(1.02)';
                 });
                 img.addEventListener('mouseleave', () => {
-                    img.style.filter = 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.9))';
+                    img.style.transform = 'scale(1)';
                 });
             });
         });

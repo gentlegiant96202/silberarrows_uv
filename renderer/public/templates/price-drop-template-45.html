@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Template updated: Reduced image size, improved text design -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{year}} {{model}} | Price Drop Special</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     * {
@@ -34,231 +33,218 @@
       height: 100%;
     }
 
-    .campaign-card {
+    .card {
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, #060606, #141414);
-      border-radius: 0;
-      overflow: hidden;
+      background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
       display: flex;
       flex-direction: column;
+      position: relative;
+      overflow: hidden;
     }
 
-    .media-section {
-      flex: 0 0 8%;
-      padding: 12px 32px 0px;
+    /* Compact Image Section - Only 35% of height */
+    .image-section {
+      height: 35%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .image-wrapper {
+      width: 100%;
+      height: 100%;
       position: relative;
     }
 
-    .media-wrapper {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      border-radius: 26px;
-      overflow: hidden;
-      background: linear-gradient(145deg, #080808, #1c1c1c);
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
-    }
-
-    .image-title-overlay {
-      position: absolute;
-      bottom: 12px;
-      left: 38px;
-      right: 38px;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 20px;
-      padding: 16px 22px 18px;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      color: #000000;
-    }
-
-    .image-title-overlay h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 2.8rem;
-      letter-spacing: -0.5px;
-      text-transform: uppercase;
-    }
-
-    .image-title-overlay p {
-      font-size: 1.15rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #000000;
-    }
-
-    .image-specs {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .image-spec-pill {
-      flex: 1 1 140px;
-      background: #ffffff;
-      border-radius: 14px;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      padding: 10px 14px;
-      display: flex;
-      flex-direction: column;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-size: 0.85rem;
-    }
-
-    .image-spec-pill span:first-child {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.2rem;
-      font-weight: 600;
-      letter-spacing: normal;
-      margin-bottom: 2px;
-    }
-
-    .media-wrapper img {
+    .image-wrapper img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center 20%;
-      transition: transform 0.4s ease;
+      object-position: center;
     }
 
-    .media-wrapper:hover img {
-      transform: scale(1.03);
-    }
-
-    .glass-overlay {
+    /* Gradient overlay on image */
+    .image-overlay {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
-      mix-blend-mode: screen;
-      pointer-events: none;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%);
     }
 
-    .price-drop-badge {
+    /* Price Drop Badge */
+    .badge {
       position: absolute;
-      top: 34px;
-      left: 38px;
-      background: linear-gradient(135deg, #ff3c3c, #b00018);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: #ffffff;
-      padding: 12px 28px;
-      border-radius: 32px;
+      top: 20px;
+      left: 20px;
+      background: linear-gradient(135deg, #ff0844, #c00030);
+      padding: 10px 20px;
+      border-radius: 8px;
       font-weight: 700;
-      font-size: 1.1rem;
-      display: inline-flex;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: flex;
       align-items: center;
       gap: 8px;
+      box-shadow: 0 4px 20px rgba(255, 8, 68, 0.4);
+      z-index: 10;
+    }
+
+    /* Content Section - 65% of height */
+    .content-section {
+      height: 65%;
+      padding: 30px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      background: #000000;
+    }
+
+    /* Title */
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .title h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+    }
+
+    .title p {
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.6);
       text-transform: uppercase;
       letter-spacing: 1px;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 18px 40px rgba(255, 60, 60, 0.35);
+      font-weight: 500;
     }
 
-    .details-section {
-      flex: 1;
-      background: linear-gradient(180deg, #0d0d0d 0%, #050505 100%);
-      padding: 24px 32px 32px;
+    /* Specs Row */
+    .specs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .spec-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 12px 16px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 4px;
     }
 
-    .price-section {
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+    .spec-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .spec-label {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+
+    /* Pricing Section */
+    .pricing {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
       border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 20px;
-      padding: 28px 30px 32px;
+      border-radius: 16px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
       gap: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
       position: relative;
       overflow: hidden;
     }
 
-    .price-section::before {
+    .pricing::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
     }
 
     .limited-badge {
-      align-self: flex-end;
-      font-size: 0.75rem;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      padding: 6px 16px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.15);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 999px;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.7rem;
       font-weight: 600;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .price-rows {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 16px;
     }
 
     .price-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 20px;
-      padding: 8px 0;
     }
 
     .price-label {
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
       letter-spacing: 0.5px;
       font-weight: 500;
-      text-transform: uppercase;
-    }
-
-    .price-value {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-      font-family: 'Space Grotesk', sans-serif;
     }
 
     .old-price {
-      font-size: 1.8rem;
-      color: rgba(255, 255, 255, 0.35);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.4rem;
+      color: rgba(255, 255, 255, 0.3);
       text-decoration: line-through;
-      opacity: 0.6;
+      font-weight: 600;
     }
 
     .new-price {
-      font-size: 4rem;
-      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
       color: #ffffff;
-      text-shadow: 0 0 30px rgba(255, 255, 255, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
       letter-spacing: -1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .dirham-symbol {
       display: inline-flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: center;
     }
 
     .old-price .dirham-symbol {
-      height: 1.7rem;
-      width: 1.7rem;
+      width: 1.3rem;
+      height: 1.3rem;
     }
 
     .new-price .dirham-symbol {
-      height: 3.6rem;
-      width: 3.6rem;
+      width: 2.8rem;
+      height: 2.8rem;
     }
 
     .dirham-symbol svg {
@@ -267,92 +253,100 @@
       fill: currentColor;
     }
 
-    .savings {
-      display: inline-flex;
+    .savings-row {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 10px;
-      padding: 12px 24px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      font-weight: 600;
-      font-size: 1rem;
-      margin-top: 4px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      align-self: flex-start;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .savings {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #10b981;
+      font-weight: 700;
+      font-size: 1.1rem;
     }
 
     .savings i {
-      color: #ffd700;
-      filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+      color: #10b981;
+      font-size: 1rem;
     }
 
-    .cta-button {
-      width: 100%;
-      padding: 18px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+    .monthly {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: right;
+    }
+
+    /* CTA */
+    .cta {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #ffffff;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
+      border-radius: 12px;
+      padding: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 10px;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
       margin-top: auto;
-      font-size: 1rem;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
     }
 
-    .cta-button:hover {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.1));
-      border-color: rgba(255, 255, 255, 0.3);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-    }
-
-    .cta-button i {
-      font-size: 1rem;
+    .cta i {
+      font-size: 0.95rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="campaign-card">
-      <div class="media-section">
-        <div class="price-drop-badge">
-          <i class="fas fa-tags"></i> Price Drop
+    <div class="card">
+      <!-- Compact Image Section (35%) -->
+      <div class="image-section">
+        <div class="badge">
+          <i class="fas fa-tags"></i>
+          PRICE DROP
         </div>
-        <div class="media-wrapper">
-          <div class="glass-overlay"></div>
+        <div class="image-wrapper">
           <img src="{{carImageUrl1}}" alt="{{year}} {{model}}" />
-          <div class="image-title-overlay">
-            <h1>{{year}} {{model}}</h1>
-            <p>Premium Selection</p>
-            <div class="image-specs">
-              <div class="image-spec-pill">
-                <span>{{mileage}}</span>
-                <span>Kilometers</span>
-              </div>
-              <div class="image-spec-pill">
-                <span>{{regionalSpec}}</span>
-                <span>Regional Spec</span>
-              </div>
-            </div>
-          </div>
+          <div class="image-overlay"></div>
         </div>
       </div>
 
-      <div class="details-section">
-        <div class="price-section">
+      <!-- Content Section (65%) -->
+      <div class="content-section">
+        <!-- Title -->
+        <div class="title">
+          <h1>{{year}} {{model}}</h1>
+          <p>Premium Selection</p>
+        </div>
+
+        <!-- Specs -->
+        <div class="specs">
+          <div class="spec-item">
+            <div class="spec-value">{{mileage}}</div>
+            <div class="spec-label">Kilometers</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">{{regionalSpec}}</div>
+            <div class="spec-label">Regional Spec</div>
+          </div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="pricing">
           <div class="limited-badge">Limited Time</div>
+          
           <div class="price-rows">
             <div class="price-row">
               <span class="price-label">Was</span>
-              <span class="price-value old-price">
+              <span class="old-price">
                 <span class="dirham-symbol">
                   <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
                     <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
@@ -361,9 +355,10 @@
                 {{wasPrice}}
               </span>
             </div>
+
             <div class="price-row">
               <span class="price-label">Now</span>
-              <span class="price-value new-price">
+              <span class="new-price">
                 <span class="dirham-symbol">
                   <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
                     <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
@@ -373,16 +368,22 @@
               </span>
             </div>
           </div>
-          <div class="savings">
-            <i class="fas fa-bolt"></i>
-            Save {{savings}}
+
+          <div class="savings-row">
+            <div class="savings">
+              <i class="fas fa-bolt"></i>
+              Save {{savings}}
+            </div>
+            <div class="monthly">{{monthlyPayment}}</div>
           </div>
         </div>
 
-        <button class="cta-button">
+        <!-- CTA -->
+        <div class="cta">
           <i class="fas fa-phone"></i>
-          Inquire Now
-        </button>
+          <i class="fab fa-whatsapp"></i>
+          Call or WhatsApp +971 4 380 5515
+        </div>
       </div>
     </div>
   </div>

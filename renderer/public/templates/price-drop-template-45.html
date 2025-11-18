@@ -44,8 +44,8 @@
     }
 
     .media-section {
-      flex: 0 0 28%;
-      padding: 28px 32px 0px;
+      flex: 0 0 22%;
+      padding: 20px 32px 0px;
       position: relative;
     }
 
@@ -61,22 +61,22 @@
 
     .image-title-overlay {
       position: absolute;
-      bottom: 24px;
+      bottom: 12px;
       left: 38px;
       right: 38px;
       background: rgba(255, 255, 255, 0.9);
       border-radius: 20px;
-      padding: 18px 24px;
+      padding: 16px 22px 18px;
       box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 10px;
       color: #000000;
     }
 
     .image-title-overlay h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 3rem;
+      font-size: 2.8rem;
       letter-spacing: -0.5px;
       text-transform: uppercase;
     }
@@ -86,6 +86,33 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       color: #000000;
+    }
+
+    .image-specs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .image-spec-pill {
+      flex: 1 1 140px;
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.85rem;
+    }
+
+    .image-spec-pill span:first-child {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: normal;
+      margin-bottom: 2px;
     }
 
     .media-wrapper img {
@@ -131,65 +158,37 @@
     .details-section {
       flex: 1;
       background: linear-gradient(180deg, #0d0d0d 0%, #050505 100%);
-      padding: 24px 32px 32px;
+      padding: 14px 30px 26px;
       display: flex;
       flex-direction: column;
-      gap: 24px;
-    }
-
-    .specs-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-    }
-
-    .spec-item {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
-      padding: 16px;
-      text-align: center;
-      backdrop-filter: blur(10px);
-    }
-
-    .spec-value {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 2rem;
-      font-weight: 600;
-    }
-
-    .spec-label {
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.6);
+      gap: 16px;
     }
 
     .price-section {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 20px;
-      padding: 28px 30px 34px;
+      border-radius: 18px;
+      padding: 22px 24px 26px;
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 14px;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     .limited-badge {
       align-self: flex-end;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       letter-spacing: 1px;
       text-transform: uppercase;
-      padding: 7px 16px;
-      background: rgba(255, 255, 255, 0.18);
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.15);
       border-radius: 999px;
     }
 
     .price-rows {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 14px;
     }
 
     .price-row {
@@ -208,18 +207,18 @@
     .price-value {
       display: flex;
       align-items: flex-end;
-      gap: 12px;
+      gap: 10px;
       font-family: 'Space Grotesk', sans-serif;
     }
 
     .old-price {
-      font-size: 2rem;
+      font-size: 1.7rem;
       color: rgba(255, 255, 255, 0.4);
       text-decoration: line-through;
     }
 
     .new-price {
-      font-size: 4.2rem;
+      font-size: 3.6rem;
       font-weight: 700;
       color: #ffffff;
       text-shadow: 0 0 25px rgba(255, 255, 255, 0.25);
@@ -242,12 +241,13 @@
     .savings {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 20px;
+      gap: 8px;
+      padding: 8px 18px;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.15);
       font-weight: 600;
+      font-size: 0.95rem;
     }
 
     .cta-button {
@@ -285,22 +285,21 @@
           <div class="image-title-overlay">
             <h1>{{year}} {{model}}</h1>
             <p>Premium Selection</p>
+            <div class="image-specs">
+              <div class="image-spec-pill">
+                <span>{{mileage}}</span>
+                <span>Kilometers</span>
+              </div>
+              <div class="image-spec-pill">
+                <span>{{regionalSpec}}</span>
+                <span>Regional Spec</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="details-section">
-        <div class="specs-grid">
-          <div class="spec-item">
-            <div class="spec-value">{{mileage}}</div>
-            <div class="spec-label">Kilometers</div>
-          </div>
-          <div class="spec-item">
-            <div class="spec-value">{{regionalSpec}}</div>
-            <div class="spec-label">Regional Spec</div>
-          </div>
-        </div>
-
         <div class="price-section">
           <div class="limited-badge">Limited Time</div>
           <div class="price-rows">

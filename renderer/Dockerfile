@@ -16,7 +16,7 @@ COPY public ./public
 # This will fail the build if the file is missing or stale
 RUN test -f public/templates/price-drop-template-45.html && \
     echo "Template file found" && \
-    grep -q "media-section" public/templates/price-drop-template-45.html && \
+    grep -q "image-section" public/templates/price-drop-template-45.html && \
     echo "Template contains expected content" || \
     (echo "ERROR: Template file missing or incorrect!" && exit 1)
 

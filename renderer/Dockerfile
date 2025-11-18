@@ -9,7 +9,7 @@ COPY src ./src
 
 # Copy public directory - Railway should detect changes to template files
 # Updated: Force rebuild to pick up template changes
-# Build timestamp: $(date +%Y%m%d-%H%M%S)
+# Build timestamp: 2025-11-18 19:36
 COPY public ./public
 
 # Force verification of template file to ensure it's copied correctly

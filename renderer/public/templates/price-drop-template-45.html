@@ -44,8 +44,8 @@
     }
 
     .media-section {
-      flex: 0 0 22%;
-      padding: 20px 32px 0px;
+      flex: 0 0 16%;
+      padding: 16px 32px 0px;
       position: relative;
     }
 
@@ -117,9 +117,9 @@
 
     .media-wrapper img {
       width: 100%;
-      height: 125%;
+      height: 100%;
       object-fit: cover;
-      object-position: center 5%; /* Changed from 20% to 5% to push image 15% higher */
+      object-position: center 20%;
       transition: transform 0.4s ease;
     }
 
@@ -158,50 +158,68 @@
     .details-section {
       flex: 1;
       background: linear-gradient(180deg, #0d0d0d 0%, #050505 100%);
-      padding: 14px 30px 26px;
+      padding: 24px 32px 32px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
     }
 
     .price-section {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 18px;
-      padding: 22px 24px 26px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 28px 30px 32px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      gap: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .price-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     }
 
     .limited-badge {
       align-self: flex-end;
-      font-size: 0.8rem;
-      letter-spacing: 1px;
+      font-size: 0.75rem;
+      letter-spacing: 1.2px;
       text-transform: uppercase;
-      padding: 6px 14px;
-      background: rgba(255, 255, 255, 0.15);
+      padding: 6px 16px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 999px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .price-rows {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 18px;
     }
 
     .price-row {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
-      gap: 16px;
+      align-items: center;
+      gap: 20px;
+      padding: 8px 0;
     }
 
     .price-label {
-      font-size: 1.1rem;
-      color: rgba(255, 255, 255, 0.65);
-      letter-spacing: 0.8px;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: 0.5px;
+      font-weight: 500;
+      text-transform: uppercase;
     }
 
     .price-value {
@@ -212,16 +230,18 @@
     }
 
     .old-price {
-      font-size: 1.7rem;
-      color: rgba(255, 255, 255, 0.4);
+      font-size: 1.8rem;
+      color: rgba(255, 255, 255, 0.35);
       text-decoration: line-through;
+      opacity: 0.6;
     }
 
     .new-price {
-      font-size: 3.6rem;
+      font-size: 4rem;
       font-weight: 700;
       color: #ffffff;
-      text-shadow: 0 0 25px rgba(255, 255, 255, 0.25);
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
+      letter-spacing: -1px;
     }
 
     .dirham-symbol {
@@ -249,30 +269,48 @@
     .savings {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 18px;
-      background: rgba(255, 255, 255, 0.1);
+      gap: 10px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
       border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 1rem;
+      margin-top: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      align-self: flex-start;
+    }
+
+    .savings i {
+      color: #ffd700;
+      filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
     }
 
     .cta-button {
       width: 100%;
-      padding: 16px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 18px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+      border: 1px solid rgba(255, 255, 255, 0.2);
       color: #ffffff;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.2px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 12px;
       margin-top: auto;
+      font-size: 1rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .cta-button:hover {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.1));
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
     }
 
     .cta-button i {

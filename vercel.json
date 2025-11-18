@@ -3,5 +3,6 @@
     "app/api/upload-file/route.ts": {
       "maxDuration": 300
     }
-  }
+  },
+  "trailingSlash": false
 }

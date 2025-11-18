@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{year}} {{model}} | Price Drop Special</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     * {
@@ -31,23 +31,26 @@
     .container {
       width: 100%;
       height: 100%;
-    }
-
-    .card {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+      background: #000000;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      position: relative;
-      overflow: hidden;
     }
 
-    /* Compact Image Section - Only 35% of height */
+    /* Image Section with Frame - 50% of height */
     .image-section {
-      height: 35%;
+      height: 50%;
       position: relative;
+      margin-bottom: 24px;
+    }
+
+    .image-frame {
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
       overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     }
 
     .image-wrapper {
@@ -67,7 +70,7 @@
     .image-overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%);
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%);
     }
 
     /* Price Drop Badge */
@@ -76,94 +79,92 @@
       top: 20px;
       left: 20px;
       background: linear-gradient(135deg, #ff0844, #c00030);
-      padding: 10px 20px;
-      border-radius: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
       font-weight: 700;
-      font-size: 0.9rem;
-      letter-spacing: 1px;
+      font-size: 1.1rem;
+      letter-spacing: 1.2px;
       text-transform: uppercase;
       display: flex;
       align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 20px rgba(255, 8, 68, 0.4);
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(255, 8, 68, 0.5);
       z-index: 10;
     }
 
-    /* Content Section - 65% of height */
+    /* Content Section - 50% of height */
     .content-section {
-      height: 65%;
-      padding: 30px 32px;
+      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 24px;
-      background: #000000;
+      gap: 28px;
     }
 
     /* Title */
     .title {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .title h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 2.2rem;
-      font-weight: 700;
+      font-size: 2.6rem;
+      font-weight: 800;
       line-height: 1.1;
       letter-spacing: -0.5px;
       color: #ffffff;
     }
 
     .title p {
-      font-size: 0.95rem;
-      color: rgba(255, 255, 255, 0.6);
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.65);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 500;
+      letter-spacing: 1.5px;
+      font-weight: 600;
     }
 
     /* Specs Row */
     .specs {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      gap: 16px;
     }
 
     .spec-item {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 16px 18px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .spec-value {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-size: 1.4rem;
+      font-weight: 700;
       color: #ffffff;
     }
 
     .spec-label {
-      font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.55);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 500;
+      letter-spacing: 0.8px;
+      font-weight: 600;
     }
 
     /* Pricing Section */
     .pricing {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 16px;
-      padding: 24px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.04) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 20px;
+      padding: 28px 26px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 24px;
       position: relative;
       overflow: hidden;
     }
@@ -175,27 +176,28 @@
       left: 0;
       right: 0;
       height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
     }
 
     .limited-badge {
       position: absolute;
-      top: 16px;
-      right: 16px;
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-size: 0.7rem;
-      font-weight: 600;
+      top: 18px;
+      right: 18px;
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 24px;
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.2px;
     }
 
     .price-rows {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
+      padding-top: 8px;
     }
 
     .price-row {
@@ -205,30 +207,30 @@
     }
 
     .price-label {
-      font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.6);
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.65);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 500;
+      letter-spacing: 0.8px;
+      font-weight: 600;
     }
 
     .old-price {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.4rem;
-      color: rgba(255, 255, 255, 0.3);
+      font-size: 1.6rem;
+      color: rgba(255, 255, 255, 0.35);
       text-decoration: line-through;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .new-price {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 3rem;
+      font-size: 3.4rem;
       font-weight: 800;
       color: #ffffff;
       letter-spacing: -1px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .dirham-symbol {
@@ -238,13 +240,13 @@
     }
 
     .old-price .dirham-symbol {
-      width: 1.3rem;
-      height: 1.3rem;
+      width: 1.5rem;
+      height: 1.5rem;
     }
 
     .new-price .dirham-symbol {
-      width: 2.8rem;
-      height: 2.8rem;
+      width: 3.2rem;
+      height: 3.2rem;
     }
 
     .dirham-symbol svg {
@@ -257,133 +259,134 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .savings {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       color: #10b981;
-      font-weight: 700;
-      font-size: 1.1rem;
+      font-weight: 800;
+      font-size: 1.3rem;
     }
 
     .savings i {
       color: #10b981;
-      font-size: 1rem;
+      font-size: 1.2rem;
     }
 
     .monthly {
-      font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.6);
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.65);
       text-align: right;
+      font-weight: 600;
     }
 
     /* CTA */
     .cta {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      padding: 16px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.08) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
+      padding: 18px 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
       color: #ffffff;
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-weight: 700;
+      font-size: 1.05rem;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.2px;
       margin-top: auto;
     }
 
     .cta i {
-      font-size: 0.95rem;
+      font-size: 1.1rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="card">
-      <!-- Compact Image Section (35%) -->
-      <div class="image-section">
-        <div class="badge">
-          <i class="fas fa-tags"></i>
-          PRICE DROP
-        </div>
+    <!-- Image Section with Rounded Frame (50%) -->
+    <div class="image-section">
+      <div class="badge">
+        <i class="fas fa-tags"></i>
+        PRICE DROP
+      </div>
+      <div class="image-frame">
         <div class="image-wrapper">
           <img src="{{carImageUrl1}}" alt="{{year}} {{model}}" />
           <div class="image-overlay"></div>
         </div>
       </div>
+    </div>
 
-      <!-- Content Section (65%) -->
-      <div class="content-section">
-        <!-- Title -->
-        <div class="title">
-          <h1>{{year}} {{model}}</h1>
-          <p>Premium Selection</p>
+    <!-- Content Section (50%) -->
+    <div class="content-section">
+      <!-- Title -->
+      <div class="title">
+        <h1>{{year}} {{model}}</h1>
+        <p>Premium Selection</p>
+      </div>
+
+      <!-- Specs -->
+      <div class="specs">
+        <div class="spec-item">
+          <div class="spec-value">{{mileage}}</div>
+          <div class="spec-label">Kilometers</div>
         </div>
-
-        <!-- Specs -->
-        <div class="specs">
-          <div class="spec-item">
-            <div class="spec-value">{{mileage}}</div>
-            <div class="spec-label">Kilometers</div>
-          </div>
-          <div class="spec-item">
-            <div class="spec-value">{{regionalSpec}}</div>
-            <div class="spec-label">Regional Spec</div>
-          </div>
+        <div class="spec-item">
+          <div class="spec-value">{{regionalSpec}}</div>
+          <div class="spec-label">Regional Spec</div>
         </div>
+      </div>
 
-        <!-- Pricing -->
-        <div class="pricing">
-          <div class="limited-badge">Limited Time</div>
-          
-          <div class="price-rows">
-            <div class="price-row">
-              <span class="price-label">Was</span>
-              <span class="old-price">
-                <span class="dirham-symbol">
-                  <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
-                  </svg>
-                </span>
-                {{wasPrice}}
+      <!-- Pricing -->
+      <div class="pricing">
+        <div class="limited-badge">Limited Time</div>
+        
+        <div class="price-rows">
+          <div class="price-row">
+            <span class="price-label">Was</span>
+            <span class="old-price">
+              <span class="dirham-symbol">
+                <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+                </svg>
               </span>
-            </div>
+              {{wasPrice}}
+            </span>
+          </div>
 
-            <div class="price-row">
-              <span class="price-label">Now</span>
-              <span class="new-price">
-                <span class="dirham-symbol">
-                  <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
-                  </svg>
-                </span>
-                {{nowPrice}}
+          <div class="price-row">
+            <span class="price-label">Now</span>
+            <span class="new-price">
+              <span class="dirham-symbol">
+                <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+                </svg>
               </span>
-            </div>
-          </div>
-
-          <div class="savings-row">
-            <div class="savings">
-              <i class="fas fa-bolt"></i>
-              Save {{savings}}
-            </div>
-            <div class="monthly">{{monthlyPayment}}</div>
+              {{nowPrice}}
+            </span>
           </div>
         </div>
 
-        <!-- CTA -->
-        <div class="cta">
-          <i class="fas fa-phone"></i>
-          <i class="fab fa-whatsapp"></i>
-          Call or WhatsApp +971 4 380 5515
+        <div class="savings-row">
+          <div class="savings">
+            <i class="fas fa-bolt"></i>
+            Save {{savings}}
+          </div>
+          <div class="monthly">{{monthlyPayment}}</div>
         </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta">
+        <i class="fas fa-phone"></i>
+        <i class="fab fa-whatsapp"></i>
+        Call or WhatsApp +971 4 380 5515
       </div>
     </div>
   </div>

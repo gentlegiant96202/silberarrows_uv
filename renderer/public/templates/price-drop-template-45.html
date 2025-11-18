@@ -59,6 +59,35 @@
       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
     }
 
+    .image-title-overlay {
+      position: absolute;
+      bottom: 24px;
+      left: 38px;
+      right: 38px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      padding: 18px 24px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      color: #000000;
+    }
+
+    .image-title-overlay h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 3rem;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+    }
+
+    .image-title-overlay p {
+      font-size: 1.15rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #000000;
+    }
+
     .media-wrapper img {
       width: 100%;
       height: 125%;
@@ -105,25 +134,7 @@
       padding: 24px 32px 32px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
-    }
-
-    .header {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .header h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 3.6rem;
-      letter-spacing: -0.5px;
-      text-transform: uppercase;
-    }
-
-    .header p {
-      font-size: 1.25rem;
-      color: rgba(255, 255, 255, 0.7);
+      gap: 24px;
     }
 
     .specs-grid {
@@ -271,15 +282,14 @@
         <div class="media-wrapper">
           <div class="glass-overlay"></div>
           <img src="{{carImageUrl1}}" alt="{{year}} {{model}}" />
+          <div class="image-title-overlay">
+            <h1>{{year}} {{model}}</h1>
+            <p>Premium Selection</p>
+          </div>
         </div>
       </div>
 
       <div class="details-section">
-        <div class="header">
-          <h1>{{year}} {{model}}</h1>
-          <p>{{mileage}} • Premium Selection</p>
-        </div>
-
         <div class="specs-grid">
           <div class="spec-item">
             <div class="spec-value">{{mileage}}</div>

@@ -5,12 +5,18 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev
 
-# Copy source and public files together to ensure template changes are detected
 COPY src ./src
+
+# Copy public directory - Railway should detect changes to template files
 COPY public ./public
 
-# Verify templates are present
-RUN ls -la public/templates/ || echo "Templates directory check"
+# Force verification of template file to ensure it's copied correctly
+# This will fail the build if the file is missing or stale
+RUN test -f public/templates/price-drop-template-45.html && \
+    echo "Template file found" && \
+    grep -q "media-section" public/templates/price-drop-template-45.html && \
+    echo "Template contains expected content" || \
+    (echo "ERROR: Template file missing or incorrect!" && exit 1)
 
 ENV PORT=3000
 EXPOSE 3000

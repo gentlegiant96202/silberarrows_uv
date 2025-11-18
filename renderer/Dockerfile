@@ -8,6 +8,7 @@ RUN npm install --omit=dev
 COPY src ./src
 
 # Copy public directory - Railway should detect changes to template files
+# Updated: Force rebuild to pick up template changes
 COPY public ./public
 
 # Force verification of template file to ensure it's copied correctly

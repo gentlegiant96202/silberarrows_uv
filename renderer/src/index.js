@@ -141,7 +141,7 @@ function replaceAll(str, find, replace) {
   return str.split(find).join(replace);
 }
 
-function fillTemplate({ carDetails, pricing, firstImageUrl }) {
+function fillTemplate({ carDetails, pricing, firstImageUrl, secondImageUrl }) {
   let html = templateHtml;
   
   // Handle mileage - if it's "N/A" or empty, show "N/A"
@@ -153,6 +153,9 @@ function fillTemplate({ carDetails, pricing, firstImageUrl }) {
   const horsepowerDisplay = carDetails.horsepower && carDetails.horsepower !== null && carDetails.horsepower !== '' 
     ? String(carDetails.horsepower)
     : 'N/A';
+  const primaryImage = String(firstImageUrl ?? '');
+  const secondaryImage = String(secondImageUrl ?? firstImageUrl ?? '');
+
   const replacements = {
     '{{year}}': String(carDetails.year ?? ''),
     '{{model}}': String(carDetails.model ?? ''),
@@ -163,7 +166,8 @@ function fillTemplate({ carDetails, pricing, firstImageUrl }) {
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
     '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),
     '{{monthlyPayment}}': pricing.isCashOnly ? 'CASH ONLY' : `From AED ${Number(pricing.monthlyPayment ?? 0).toLocaleString()}/mo`,
-    '{{carImageUrl1}}': String(firstImageUrl ?? ''),
+    '{{carImageUrl1}}': primaryImage,
+    '{{carImageUrl2}}': secondaryImage,
   };
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);
@@ -171,7 +175,7 @@ function fillTemplate({ carDetails, pricing, firstImageUrl }) {
   return html;
 }
 
-function fillTemplate45({ carDetails, pricing, firstImageUrl }) {
+function fillTemplate45({ carDetails, pricing, firstImageUrl, secondImageUrl }) {
   let html = template45Html;
   
   // Handle mileage - if it's "N/A" or empty, show "N/A"
@@ -184,6 +188,9 @@ function fillTemplate45({ carDetails, pricing, firstImageUrl }) {
     ? String(carDetails.horsepower)
     : 'N/A';
   
+  const primaryImage = String(firstImageUrl ?? '');
+  const secondaryImage = String(secondImageUrl ?? firstImageUrl ?? '');
+
   const replacements = {
     '{{year}}': String(carDetails.year ?? ''),
     '{{model}}': String(carDetails.model ?? ''),
@@ -194,7 +201,8 @@ function fillTemplate45({ carDetails, pricing, firstImageUrl }) {
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
     '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),
     '{{monthlyPayment}}': pricing.isCashOnly ? 'CASH ONLY' : `From AED ${Number(pricing.monthlyPayment ?? 0).toLocaleString()}/mo`,
-    '{{carImageUrl1}}': String(firstImageUrl ?? ''),
+    '{{carImageUrl1}}': primaryImage,
+    '{{carImageUrl2}}': secondaryImage,
   };
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);

@@ -4,7 +4,8 @@ A standalone Playwright-based service for generating price drop images for the S
 
 ## Deployment on Railway
 
-> **Note:** This service is configured on Railway with a `renderer/**` watch pattern, so any updates that should trigger a rebuild must touch files within this directory (like this README).
+> **Note:** This service requires Root Directory set to `renderer` in Railway dashboard settings.
+> **Last Updated:** 2025-11-18 18:15 - Fixed template height, resolved Railway Root Directory issue
 
 ### Quick Deploy
 1. Create new project on Railway

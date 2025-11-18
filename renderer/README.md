@@ -4,6 +4,8 @@ A standalone Playwright-based service for generating price drop images for the S
 
 ## Deployment on Railway
 
+> **Note:** This service is configured on Railway with a `renderer/**` watch pattern, so any updates that should trigger a rebuild must touch files within this directory (like this README).
+
 ### Quick Deploy
 1. Create new project on Railway
 2. Connect this GitHub repository

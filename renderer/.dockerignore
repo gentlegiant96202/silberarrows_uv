@@ -1,0 +1,18 @@
+# Ignore everything outside renderer directory
+../*
+
+# But keep renderer files
+!src
+!public
+!package.json
+!package-lock.json
+!Dockerfile
+
+# Ignore common files
+node_modules
+.git
+.gitignore
+*.md
+.env*
+.DS_Store
+

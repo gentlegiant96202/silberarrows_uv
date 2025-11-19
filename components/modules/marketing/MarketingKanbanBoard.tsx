@@ -497,68 +497,6 @@ export default function MarketingKanbanBoard() {
     return () => window.removeEventListener('resize', updateColumnWidth);
   }, []);
 
-  // Lightweight poll to check for card movements when tab becomes active
-  const pollForCardMovements = useCallback(async () => {
-    try {
-      const headers = await getAuthHeaders();
-      
-      // Use lightweight mode - only fetch essential fields to detect status changes
-      const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true&lightweight=true', { headers });
-      
-      if (!response.ok) return;
-
-      const rawData = await response.json();
-      
-      // Only update tasks that have changed (status or updated_at)
-      setTasks(prevTasks => {
-        const taskMap = new Map(prevTasks.map(t => [t.id, t]));
-        let hasChanges = false;
-        
-        const updatedTasks = rawData.map((rawTask: any) => {
-          const existingTask = taskMap.get(rawTask.id);
-          
-          // Check if status or updated_at changed
-          if (existingTask) {
-            const statusChanged = existingTask.status !== rawTask.status;
-            const updatedChanged = existingTask.updated_at !== rawTask.updated_at;
-            
-            if (statusChanged || updatedChanged) {
-              hasChanges = true;
-              // Preserve existing media_files and previewUrl to avoid refetching
-              return {
-                ...existingTask,
-                status: rawTask.status,
-                updated_at: rawTask.updated_at,
-                pinned: rawTask.pinned || false,
-                // Keep existing media_files and previewUrl
-                media_files: existingTask.media_files || [],
-                previewUrl: existingTask.previewUrl || null
-              };
-            }
-            return existingTask;
-          } else {
-            // New task
-            hasChanges = true;
-            return transformRawTask(rawTask);
-          }
-        });
-        
-        // Remove tasks that no longer exist
-        const existingIds = new Set(rawData.map((t: any) => t.id));
-        const filteredTasks = updatedTasks.filter((t: MarketingTask) => existingIds.has(t.id));
-        
-        if (hasChanges || filteredTasks.length !== prevTasks.length) {
-          setColumnData(groupTasksByStatus(filteredTasks));
-          return filteredTasks;
-        }
-        
-        return prevTasks;
-      });
-    } catch (error) {
-      // Silently fail - real-time subscription will handle updates
-    }
-  }, [transformRawTask, groupTasksByStatus, getAuthHeaders]);
-
   // Fetch all tasks at once with LIGHTWEIGHT mode for faster initial load
   const fetchAllTasks = async () => {
     try {
@@ -795,6 +733,68 @@ export default function MarketingKanbanBoard() {
     };
     return baseTask;
   }, []);
+
+  // Lightweight poll to check for card movements when tab becomes active
+  const pollForCardMovements = useCallback(async () => {
+    try {
+      const headers = await getAuthHeaders();
+      
+      // Use lightweight mode - only fetch essential fields to detect status changes
+      const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true&lightweight=true', { headers });
+      
+      if (!response.ok) return;
+
+      const rawData = await response.json();
+      
+      // Only update tasks that have changed (status or updated_at)
+      setTasks(prevTasks => {
+        const taskMap = new Map(prevTasks.map(t => [t.id, t]));
+        let hasChanges = false;
+        
+        const updatedTasks = rawData.map((rawTask: any) => {
+          const existingTask = taskMap.get(rawTask.id);
+          
+          // Check if status or updated_at changed
+          if (existingTask) {
+            const statusChanged = existingTask.status !== rawTask.status;
+            const updatedChanged = existingTask.updated_at !== rawTask.updated_at;
+            
+            if (statusChanged || updatedChanged) {
+              hasChanges = true;
+              // Preserve existing media_files and previewUrl to avoid refetching
+              return {
+                ...existingTask,
+                status: rawTask.status,
+                updated_at: rawTask.updated_at,
+                pinned: rawTask.pinned || false,
+                // Keep existing media_files and previewUrl
+                media_files: existingTask.media_files || [],
+                previewUrl: existingTask.previewUrl || null
+              };
+            }
+            return existingTask;
+          } else {
+            // New task
+            hasChanges = true;
+            return transformRawTask(rawTask);
+          }
+        });
+        
+        // Remove tasks that no longer exist
+        const existingIds = new Set(rawData.map((t: any) => t.id));
+        const filteredTasks = updatedTasks.filter((t: MarketingTask) => existingIds.has(t.id));
+        
+        if (hasChanges || filteredTasks.length !== prevTasks.length) {
+          setColumnData(groupTasksByStatus(filteredTasks));
+          return filteredTasks;
+        }
+        
+        return prevTasks;
+      });
+    } catch (error) {
+      // Silently fail - real-time subscription will handle updates
+    }
+  }, [transformRawTask, groupTasksByStatus, getAuthHeaders]);
 
   useEffect(() => {
     if (!hasFetchedTasks.current) {

@@ -169,7 +169,9 @@ function fillTemplate({ carDetails, pricing, firstImageUrl, secondImageUrl }) {
     '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
     '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),
+    '{{monthlyValue}}': pricing.isCashOnly ? '' : Number(pricing.monthlyPayment ?? 0).toLocaleString(),
     '{{monthlyPayment}}': pricing.isCashOnly ? 'CASH ONLY' : `From AED ${Number(pricing.monthlyPayment ?? 0).toLocaleString()}/mo`,
+    '{{isCashOnly}}': pricing.isCashOnly ? 'cash-only' : '',
     '{{carImageUrl1}}': primaryImage,
     '{{carImageUrl2}}': secondaryImage,
   };
@@ -208,7 +210,9 @@ function fillTemplate45({ carDetails, pricing, firstImageUrl, secondImageUrl }) 
     '{{wasPrice}}': Number(pricing.wasPrice ?? 0).toLocaleString(),
     '{{nowPrice}}': Number(pricing.nowPrice ?? 0).toLocaleString(),
     '{{savings}}': Number(pricing.savings ?? 0).toLocaleString(),
+    '{{monthlyValue}}': pricing.isCashOnly ? '' : Number(pricing.monthlyPayment ?? 0).toLocaleString(),
     '{{monthlyPayment}}': pricing.isCashOnly ? 'CASH ONLY' : `From AED ${Number(pricing.monthlyPayment ?? 0).toLocaleString()}/mo`,
+    '{{isCashOnly}}': pricing.isCashOnly ? 'cash-only' : '',
     '{{carImageUrl1}}': primaryImage,
     '{{carImageUrl2}}': secondaryImage,
   };

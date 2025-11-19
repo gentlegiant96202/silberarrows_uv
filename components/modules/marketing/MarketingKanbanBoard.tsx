@@ -497,6 +497,68 @@ export default function MarketingKanbanBoard() {
     return () => window.removeEventListener('resize', updateColumnWidth);
   }, []);
 
+  // Lightweight poll to check for card movements when tab becomes active
+  const pollForCardMovements = useCallback(async () => {
+    try {
+      const headers = await getAuthHeaders();
+      
+      // Use lightweight mode - only fetch essential fields to detect status changes
+      const response = await fetch('/api/design-tasks?limit=200&exclude_archived=true&lightweight=true', { headers });
+      
+      if (!response.ok) return;
+
+      const rawData = await response.json();
+      
+      // Only update tasks that have changed (status or updated_at)
+      setTasks(prevTasks => {
+        const taskMap = new Map(prevTasks.map(t => [t.id, t]));
+        let hasChanges = false;
+        
+        const updatedTasks = rawData.map((rawTask: any) => {
+          const existingTask = taskMap.get(rawTask.id);
+          
+          // Check if status or updated_at changed
+          if (existingTask) {
+            const statusChanged = existingTask.status !== rawTask.status;
+            const updatedChanged = existingTask.updated_at !== rawTask.updated_at;
+            
+            if (statusChanged || updatedChanged) {
+              hasChanges = true;
+              // Preserve existing media_files and previewUrl to avoid refetching
+              return {
+                ...existingTask,
+                status: rawTask.status,
+                updated_at: rawTask.updated_at,
+                pinned: rawTask.pinned || false,
+                // Keep existing media_files and previewUrl
+                media_files: existingTask.media_files || [],
+                previewUrl: existingTask.previewUrl || null
+              };
+            }
+            return existingTask;
+          } else {
+            // New task
+            hasChanges = true;
+            return transformRawTask(rawTask);
+          }
+        });
+        
+        // Remove tasks that no longer exist
+        const existingIds = new Set(rawData.map((t: any) => t.id));
+        const filteredTasks = updatedTasks.filter((t: MarketingTask) => existingIds.has(t.id));
+        
+        if (hasChanges || filteredTasks.length !== prevTasks.length) {
+          setColumnData(groupTasksByStatus(filteredTasks));
+          return filteredTasks;
+        }
+        
+        return prevTasks;
+      });
+    } catch (error) {
+      // Silently fail - real-time subscription will handle updates
+    }
+  }, [transformRawTask, groupTasksByStatus, getAuthHeaders]);
+
   // Fetch all tasks at once with LIGHTWEIGHT mode for faster initial load
   const fetchAllTasks = async () => {
     try {
@@ -889,6 +951,52 @@ export default function MarketingKanbanBoard() {
       supabase.removeChannel(channel);
     };
   }, [transformRawTask]);
+
+  // Lightweight poll when tab becomes active (visibility change)
+  useEffect(() => {
+    let pollTimeout: NodeJS.Timeout | null = null;
+    let lastPollTime = 0;
+    const POLL_DEBOUNCE_MS = 2000; // Prevent rapid polls (min 2 seconds between polls)
+
+    const handleVisibilityChange = () => {
+      // Only poll when tab becomes visible (not when it becomes hidden)
+      if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        const timeSinceLastPoll = now - lastPollTime;
+        
+        // Debounce: only poll if enough time has passed since last poll
+        if (timeSinceLastPoll >= POLL_DEBOUNCE_MS) {
+          // Clear any pending poll
+          if (pollTimeout) {
+            clearTimeout(pollTimeout);
+          }
+          
+          // Poll immediately
+          lastPollTime = now;
+          pollForCardMovements();
+        } else {
+          // Schedule poll for when debounce period expires
+          const remainingTime = POLL_DEBOUNCE_MS - timeSinceLastPoll;
+          if (pollTimeout) {
+            clearTimeout(pollTimeout);
+          }
+          pollTimeout = setTimeout(() => {
+            lastPollTime = Date.now();
+            pollForCardMovements();
+          }, remainingTime);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (pollTimeout) {
+        clearTimeout(pollTimeout);
+      }
+    };
+  }, [pollForCardMovements]);
 
   // Group tasks by status with search filtering and optimized sorting logic (memoized for performance)
   const grouped = useMemo(() => {

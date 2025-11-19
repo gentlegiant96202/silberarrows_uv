@@ -155,7 +155,7 @@ export default function Sidebar() {
       { key: 'inventory', label: 'Inventory', icon: MercedesStar, href: '/inventory' },
       { key: 'consignments', label: 'Consignments', icon: FileText, href: '/consignments' },
       { key: 'service', label: 'Service & Warranty', icon: Wrench, href: '/service', badge: pendingContractsCount },
-      { key: 'accounts', label: 'Accounts', icon: DirhamIconSmall, href: '/accounts/dashboard' }
+      { key: 'accounts', label: 'Accounts', icon: DirhamIconSmall, href: '/accounts/dashboard?tab=sales&subtab=accounting' }
     ],
     'workshop': [
       { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/workshop/dashboard' },

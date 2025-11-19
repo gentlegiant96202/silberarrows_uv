@@ -87,53 +87,35 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .glass-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0) 70%);
-            backdrop-filter: blur(1px);
-            z-index: 1;
-        }
         
         .car-image {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-            filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.9));
-            transition: all 0.5s ease;
-            z-index: 2;
-            position: relative;
+            width: 100%;
+            height: 140%;
+            object-fit: cover;
+            object-position: center center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -40%);
         }
         
         .price-drop-badge {
-            position: absolute;
-            top: 50px;
-            left: 20px;
-            background: linear-gradient(135deg, #2a2a2a, #0a0a0a);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, #ff0844, #c00030);
             color: #ffffff;
-            padding: 14px 28px;
-            border-radius: 30px;
+            padding: 10px 20px;
+            border-radius: 10px;
             font-weight: 700;
             font-size: 1.4rem;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
-            animation: pulse 2s infinite;
-            z-index: 3;
-            display: flex;
+            box-shadow: 0 4px 20px rgba(255, 8, 68, 0.5);
+            display: inline-flex;
             align-items: center;
             gap: 8px;
             font-family: 'Space Grotesk', sans-serif;
             text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6); }
-            50% { transform: scale(1.05); box-shadow: 0 12px 30px rgba(255, 255, 255, 0.1); }
-            100% { transform: scale(1); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6); }
+            letter-spacing: 1.2px;
+            margin-left: auto;
+            height: fit-content;
+            line-height: 3.8rem;
         }
         
         .content {
@@ -147,19 +129,14 @@
         
         .header {
             margin-bottom: 15px;
-            position: relative;
-            padding-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
         }
         
-        .header:after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 60px;
-            height: 3px;
-            background: linear-gradient(90deg, #ffffff, #666666);
-            border-radius: 2px;
+        .header-content {
+            flex: 1;
         }
         
         h1 {
@@ -264,39 +241,84 @@
         }
         
         .old-price {
-            font-size: 2.2rem;
-            color: #666666;
+            font-size: 2.8rem;
+            color: rgba(255, 255, 255, 0.35);
             text-decoration: line-through;
-            font-weight: 400;
+            font-weight: 700;
             font-family: 'Space Grotesk', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .new-price {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 4.2rem;
             color: #ffffff;
-            font-weight: 700;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-            background: linear-gradient(135deg, #ffffff, #888888);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .savings {
-            display: inline-flex;
+            font-weight: 800;
+            display: flex;
             align-items: center;
             gap: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            padding: 14px 28px;
-            border-radius: 30px;
-            margin-top: 15px;
-            font-size: 1.6rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dirham-symbol {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .old-price .dirham-symbol {
+            width: 2.6rem;
+            height: 2.6rem;
+        }
+
+        .new-price .dirham-symbol {
+            width: 4rem;
+            height: 4rem;
+        }
+
+        .dirham-symbol svg {
+            width: 100%;
+            height: 100%;
+            fill: currentColor;
+        }
+
+        .savings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .savings {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #10b981;
+            font-weight: 800;
+            font-size: 1.8rem;
             font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .savings i {
+            color: #10b981;
+            font-size: 1.6rem;
+        }
+
+        .monthly {
+            font-size: 1.4rem;
+            color: rgba(255, 255, 255, 0.65);
+            text-align: right;
             font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .monthly .dirham-symbol {
+            width: 1.3rem;
+            height: 1.3rem;
         }
         
         .cta-button {
@@ -328,21 +350,6 @@
             border-color: rgba(255, 255, 255, 0.3);
         }
         
-        .limited-badge {
-            position: absolute;
-            top: -10px;
-            right: 15px;
-            background: linear-gradient(135deg, #ffffff, #888888);
-            color: #000000;
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-size: 1.0rem;
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
-        }
         
         .glass-effect {
             background: rgba(255, 255, 255, 0.05);
@@ -355,24 +362,23 @@
     <div class="container">
         <div class="campaign-card">
             <div class="car-section">
-                <div class="price-drop-badge">
-                    <i class="fas fa-tags"></i> PRICE DROP
-                </div>
                 <div class="car-image-container">
-                    <div class="glass-overlay"></div>
                     <img src="{{carImageUrl1}}" alt="{{year}} {{model}}" class="car-image">
                 </div>
                 <div class="car-image-container">
-                    <div class="glass-overlay"></div>
-                    <img src="{{carImageUrl1}}" alt="{{year}} {{model}}" class="car-image">
+                    <img src="{{carImageUrl2}}" alt="{{year}} {{model}}" class="car-image">
                 </div>
             </div>
             
             <div class="content">
                 <div>
                     <div class="header">
-                        <h1>{{year}} {{model}}</h1>
-                        <p class="subtitle">{{mileage}} KM • <span class="highlight">Premium Selection</span></p>
+                        <div class="header-content">
+                            <h1>{{year}} {{model}}</h1>
+                        </div>
+                        <div class="price-drop-badge">
+                            <i class="fas fa-tags"></i> PRICE DROP
+                        </div>
                     </div>
                     
                     <div class="specs-grid">
@@ -397,22 +403,44 @@
                 
                 <div>
                     <div class="price-section glass-effect">
-                        <div class="limited-badge">Limited Time</div>
                         <div class="price-row">
                             <span class="price-label">Was:</span>
-                            <span class="old-price">AED {{wasPrice}}</span>
+                            <span class="old-price">
+                                <span class="dirham-symbol">
+                                    <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+                                    </svg>
+                                </span>
+                                {{wasPrice}}
+                            </span>
                         </div>
                         <div class="price-row">
                             <span class="price-label">Now:</span>
-                            <span class="new-price">AED {{nowPrice}}</span>
+                            <span class="new-price">
+                                <span class="dirham-symbol">
+                                    <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+                                    </svg>
+                                </span>
+                                {{nowPrice}}
+                            </span>
                         </div>
-                        <div class="savings">
-                            <i class="fas fa-bolt"></i> SAVE AED {{savings}}
+                        
+                        <div class="savings-row">
+                            <div class="savings">
+                                <i class="fas fa-bolt"></i>
+                                Save {{savings}}
+                            </div>
+                            <div class="monthly">
+                                {{monthlyPaymentHtml}}
+                            </div>
                         </div>
                     </div>
                     
                     <button class="cta-button glass-effect">
-                        <i class="fas fa-phone"></i> INQUIRE NOW
+                        <i class="fas fa-phone"></i>
+                        <i class="fab fa-whatsapp"></i>
+                        Call or WhatsApp +971 4 380 5515
                     </button>
                 </div>
             </div>

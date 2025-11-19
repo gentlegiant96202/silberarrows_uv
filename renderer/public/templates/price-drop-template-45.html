@@ -63,14 +63,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center;
-    }
-
-    /* Gradient overlay on image */
-    .image-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%);
+      object-position: center bottom;
     }
 
     /* Price Drop Badge */
@@ -179,19 +172,6 @@
       background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
     }
 
-    .limited-badge {
-      position: absolute;
-      top: 18px;
-      right: 18px;
-      background: rgba(255, 255, 255, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 24px;
-      padding: 8px 16px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-    }
 
     .price-rows {
       display: flex;
@@ -318,7 +298,6 @@
       <div class="image-frame">
         <div class="image-wrapper">
           <img src="{{carImageUrl1}}" alt="{{year}} {{model}}" />
-          <div class="image-overlay"></div>
         </div>
       </div>
     </div>
@@ -328,7 +307,6 @@
       <!-- Title -->
       <div class="title">
         <h1>{{year}} {{model}}</h1>
-        <p>Premium Selection</p>
       </div>
 
       <!-- Specs -->
@@ -345,8 +323,6 @@
 
       <!-- Pricing -->
       <div class="pricing">
-        <div class="limited-badge">Limited Time</div>
-        
         <div class="price-rows">
           <div class="price-row">
             <span class="price-label">Was</span>

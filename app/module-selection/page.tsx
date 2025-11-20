@@ -224,8 +224,10 @@ export default function ModuleSelectionPage() {
           position: 'fixed',
           width: '100%',
           height: '100%',
-          zIndex: 1,
+          zIndex: 0,
           pointerEvents: 'none',
+          top: 0,
+          left: 0,
         }}
       />
       {/* Soft white glow overlay */}
@@ -384,8 +386,10 @@ export default function ModuleSelectionPage() {
           position: 'fixed',
           width: '100%',
           height: '100%',
-          zIndex: 1,
+          zIndex: 0,
           pointerEvents: 'none',
+          top: 0,
+          left: 0,
         }}
       />
       {/* Soft white glow overlay */}

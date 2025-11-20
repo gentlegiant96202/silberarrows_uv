@@ -46,8 +46,10 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           position: 'fixed',
           width: '100%',
           height: '100%',
-          zIndex: 1,
+          zIndex: 0,
           pointerEvents: 'none',
+          top: 0,
+          left: 0,
         }}
       />
       <div className="flex h-screen overflow-hidden bg-black">

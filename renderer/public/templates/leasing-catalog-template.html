@@ -91,32 +91,24 @@
             object-position: center top;
         }
         
-        /* Bottom overlay for text content */
-        .bottom-overlay {
+        /* Top overlay for title, model, and logo */
+        .top-overlay {
             position: absolute;
-            bottom: 0;
-            left: 0;
+            top: 0;
             right: 0;
-            height: 40%;
-            background: transparent;
-            padding: 100px 100px 100px 100px;
-            z-index: 2;
+            padding: 80px 100px;
+            z-index: 3;
             display: flex;
             flex-direction: column;
-            gap: 40px;
+            align-items: flex-end;
+            text-align: right;
         }
         
         .top-banner {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            padding-left: 40px;
-            padding-right: 40px;
-        }
-        
-        .banner-left {
-            flex: 1;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 15px;
         }
         
         .banner-title {
@@ -125,8 +117,7 @@
             font-size: 140px;
             text-transform: uppercase;
             letter-spacing: 15px;
-            margin-bottom: 10px;
-            margin-left: 0;
+            margin: 0;
             line-height: 1;
             color: #000;
             text-shadow: 0 2px 4px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.5);
@@ -141,14 +132,29 @@
             line-height: 1.2;
             text-transform: uppercase;
             text-shadow: 0 2px 4px rgba(255, 255, 255, 0.8), 0 0 15px rgba(255, 255, 255, 0.4);
+            margin: 0;
         }
         
         .banner-logo {
             width: 200px;
             height: auto;
             filter: none;
-            flex-shrink: 0;
-            margin-top: 10px;
+            margin-top: 20px;
+        }
+        
+        /* Bottom overlay for text content */
+        .bottom-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40%;
+            background: transparent;
+            padding: 100px 100px 100px 100px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
         }
         
         .content-row {
@@ -187,7 +193,6 @@
         .highlight {
             color: #0066FF;
             font-weight: 700;
-            text-shadow: 0 2px 6px rgba(0, 102, 255, 0.8), 0 0 20px rgba(0, 102, 255, 0.5);
         }
         
         /* Price section positioned on the right */
@@ -314,15 +319,15 @@
             <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="car-image" onerror="this.style.display='none';" />
         </div>
         
-        <div class="bottom-overlay">
+        <div class="top-overlay">
             <div class="top-banner">
-                <div class="banner-left">
-                    <div class="banner-title">LEASE-TO-OWN</div>
-                    <div class="banner-subtitle">{{year}} {{model}} - BRAND NEW</div>
-                </div>
+                <div class="banner-title">LEASE-TO-OWN</div>
+                <div class="banner-subtitle">{{year}} {{model}} - BRAND NEW</div>
                 <img src="/main-logo.png" alt="SilberArrows" class="banner-logo" />
             </div>
-            
+        </div>
+        
+        <div class="bottom-overlay">
             <div class="content-row">
                 <div class="benefits-column">
                     <div class="benefit-item"><span class="highlight">Zero Downpayment</span></div>

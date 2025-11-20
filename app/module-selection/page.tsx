@@ -8,11 +8,7 @@ import Header from '@/components/shared/header/Header';
 import LightRays from '@/components/shared/LightRays';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
 import Snowfall from 'react-snowfall';
-import dynamic from 'next/dynamic';
 import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle } from 'lucide-react';
-
-// Dynamically import Lottie to avoid SSR issues
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 interface ModuleCard {
   id: string;
@@ -93,7 +89,6 @@ export default function ModuleSelectionPage() {
   const [debugMode, setDebugMode] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
-  const [santaAnimationData, setSantaAnimationData] = useState<any>(null);
 
   // Pre-calculate display name to prevent layout shifts
   const displayName = React.useMemo(() => {
@@ -156,24 +151,6 @@ export default function ModuleSelectionPage() {
       setHasInitiallyLoaded(true);
     }
   }, [authLoading, user, hasInitiallyLoaded]);
-
-  // Load Santa sleigh animation
-  useEffect(() => {
-    fetch('/assets/animations/292956d6-003d-4626-b25b-2eedff5b4562.json')
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`Failed to fetch: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then(data => {
-        console.log('Santa animation loaded:', data);
-        setSantaAnimationData(data);
-      })
-      .catch(err => {
-        console.error('Failed to load Santa sleigh animation:', err);
-      });
-  }, []);
 
   // Handle module navigation
   const handleModuleClick = (module: ModuleCard) => {
@@ -360,29 +337,6 @@ export default function ModuleSelectionPage() {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* Santa Sleigh Animation - Moving from left to right at top */}
-      {santaAnimationData && (
-        <div 
-          className="fixed top-10 left-0 z-20 pointer-events-none"
-          style={{
-            animation: 'sleighMove 30s linear infinite',
-            width: '300px',
-            height: '200px',
-            willChange: 'transform',
-          }}
-        >
-          <Lottie 
-            animationData={santaAnimationData}
-            loop={true}
-            autoplay={true}
-            style={{ 
-              width: '100%', 
-              height: '100%',
-              filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.3))'
-            }}
-          />
-        </div>
-      )}
       {/* Fixed Logo in Sidebar Position */}
       <div className="fixed top-3 left-3 z-30 pointer-events-none">
         <div className="w-10 h-10 relative">

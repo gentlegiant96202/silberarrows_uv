@@ -7,6 +7,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import Header from '@/components/shared/header/Header';
 import LightRays from '@/components/shared/LightRays';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
+import Snowfall from 'react-snowfall';
 import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle } from 'lucide-react';
 
 interface ModuleCard {
@@ -196,24 +197,38 @@ export default function ModuleSelectionPage() {
           </div>
         </div>
         
-        {/* Light Rays Background */}
-        <div className="absolute inset-0 z-0">
-          <LightRays
-            raysOrigin="top-center"
-            raysColor="#ffffff"
-            raysSpeed={1.2}
-            lightSpread={0.8}
-            rayLength={1.8}
-            followMouse={true}
-            mouseInfluence={0.08}
-            noiseAmount={0.03}
-            distortion={0.03}
-            fadeDistance={1.0}
-            saturation={1.0}
-          />
-        </div>
-        {/* Soft white glow overlay */}
-        <div className="absolute inset-0 z-[2] pointer-events-none">
+      {/* Light Rays Background */}
+      <div className="absolute inset-0 z-0">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#ffffff"
+          raysSpeed={1.2}
+          lightSpread={0.8}
+          rayLength={1.8}
+          followMouse={true}
+          mouseInfluence={0.08}
+          noiseAmount={0.03}
+          distortion={0.03}
+          fadeDistance={1.0}
+          saturation={1.0}
+        />
+      </div>
+      {/* Snowfall Effect */}
+      <Snowfall
+        color="#ffffff"
+        snowflakeCount={100}
+        speed={[0.5, 2]}
+        wind={[-0.5, 0.5]}
+        radius={[0.5, 3]}
+        style={{
+          position: 'fixed',
+          width: '100%',
+          height: '100%',
+          zIndex: 1,
+        }}
+      />
+      {/* Soft white glow overlay */}
+      <div className="absolute inset-0 z-[2] pointer-events-none">
           <div
             className="absolute inset-0 opacity-30"
             style={{
@@ -357,6 +372,20 @@ export default function ModuleSelectionPage() {
           saturation={1.0}
         />
       </div>
+      {/* Snowfall Effect */}
+      <Snowfall
+        color="#ffffff"
+        snowflakeCount={100}
+        speed={[0.5, 2]}
+        wind={[-0.5, 0.5]}
+        radius={[0.5, 3]}
+        style={{
+          position: 'fixed',
+          width: '100%',
+          height: '100%',
+          zIndex: 1,
+        }}
+      />
       {/* Soft white glow overlay */}
       <div className="absolute inset-0 z-[2] pointer-events-none">
         <div

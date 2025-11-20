@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/shared/AuthProvider';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
+import Snowfall from 'react-snowfall';
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -36,8 +37,23 @@ export default function Home() {
 
   // Show loading spinner while redirecting
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <PulsatingLogo size={48} text="Redirecting..." />
+    <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
+      <Snowfall
+        color="#ffffff"
+        snowflakeCount={100}
+        speed={[0.5, 2]}
+        wind={[-0.5, 0.5]}
+        radius={[0.5, 3]}
+        style={{
+          position: 'fixed',
+          width: '100%',
+          height: '100%',
+          zIndex: 1,
+        }}
+      />
+      <div className="relative z-10">
+        <PulsatingLogo size={48} text="Redirecting..." />
+      </div>
     </div>
   );
 } 

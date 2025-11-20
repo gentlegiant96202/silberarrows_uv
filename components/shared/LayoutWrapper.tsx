@@ -4,7 +4,6 @@ import { Suspense } from 'react';
 import Header from '@/components/shared/header/Header';
 import Sidebar from '@/components/shared/sidebar/Sidebar';
 import { AccountsTabProvider } from '@/lib/AccountsTabContext';
-import Snowfall from 'react-snowfall';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -34,25 +33,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const isLeasingPage = pathname.startsWith('/leasing');
   
   const content = (
-    <>
-      {/* Global Snowfall Effect - falls from left to right */}
-      <Snowfall
-        color="#ffffff"
-        snowflakeCount={100}
-        speed={[0.5, 2]}
-        wind={[0.5, 2]}
-        radius={[0.5, 3]}
-        style={{
-          position: 'fixed',
-          width: '100%',
-          height: '100%',
-          zIndex: 0,
-          pointerEvents: 'none',
-          top: 0,
-          left: 0,
-        }}
-      />
-      <div className="flex h-screen overflow-hidden bg-black">
+    <div className="flex h-screen overflow-hidden bg-black">
         {/* Persistent Sidebar - takes space in layout */}
         {shouldShowSidebar && (
           <Suspense fallback={<div className="w-[64px] flex-shrink-0 bg-black/95 backdrop-blur-md border-r border-white/10" />}>

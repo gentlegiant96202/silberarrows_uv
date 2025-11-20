@@ -369,7 +369,6 @@ export default function ModuleSelectionPage() {
             animationData={santaAnimationData}
             loop={true}
             autoplay={true}
-            speed={0.5}
             style={{ width: '100%', height: '100%' }}
           />
         </div>

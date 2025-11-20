@@ -91,17 +91,22 @@
             object-position: center center;
         }
         
-        /* Top Header Section */
-        .top-header {
+        /* Bottom Content Section */
+        .bottom-content {
             position: absolute;
-            top: 100px;
+            bottom: 120px;
             left: 0;
             right: 0;
             padding: 0 120px;
-            z-index: 3;
+            z-index: 2;
+        }
+        
+        /* Header Section in Bottom */
+        .bottom-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            margin-bottom: 40px;
         }
         
         .header-left {
@@ -136,16 +141,6 @@
             width: 220px;
             height: auto;
             filter: none;
-        }
-        
-        /* Bottom Content Section */
-        .bottom-content {
-            position: absolute;
-            bottom: 120px;
-            left: 0;
-            right: 0;
-            padding: 0 120px;
-            z-index: 2;
         }
         
         .content-grid {
@@ -311,17 +306,17 @@
             <img src="{{heroImageUrl}}" alt="Mercedes-Benz" class="car-image" />
         </div>
         
-        <!-- Top Header -->
-        <div class="top-header">
-            <div class="header-left">
-                <div class="main-title">LEASE-TO-OWN</div>
-                <div class="vehicle-info">DRIVE A MERCEDES-BENZ</div>
-            </div>
-            <img src="/main-logo.png" alt="SilberArrows" class="header-logo" />
-        </div>
-        
         <!-- Bottom Content -->
         <div class="bottom-content">
+            <!-- Header Section -->
+            <div class="bottom-header">
+                <div class="header-left">
+                    <div class="main-title">LEASE-TO-OWN</div>
+                    <div class="vehicle-info">DRIVE A MERCEDES-BENZ</div>
+                </div>
+                <img src="/main-logo.png" alt="SilberArrows" class="header-logo" />
+            </div>
+            
             <div class="content-grid">
                 <!-- Left: Benefits -->
                 <div class="benefits-section">

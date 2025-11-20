@@ -7,6 +7,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import Header from '@/components/shared/header/Header';
 import LightRays from '@/components/shared/LightRays';
 import PulsatingLogo from '@/components/shared/PulsatingLogo';
+import Snowfall from 'react-snowfall';
 import { Car, Wrench, TrendingUp, CreditCard, Calculator, AlertCircle } from 'lucide-react';
 
 interface ModuleCard {
@@ -212,6 +213,21 @@ export default function ModuleSelectionPage() {
           saturation={1.0}
         />
       </div>
+      {/* Snowfall Effect */}
+      <Snowfall
+        color="#ffffff"
+        snowflakeCount={100}
+        speed={[0.5, 2]}
+        wind={[0.5, 2]}
+        radius={[0.5, 3]}
+        style={{
+          position: 'fixed',
+          width: '100%',
+          height: '100%',
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
       {/* Soft white glow overlay */}
       <div className="absolute inset-0 z-[2] pointer-events-none">
           <div
@@ -357,6 +373,21 @@ export default function ModuleSelectionPage() {
           saturation={1.0}
         />
       </div>
+      {/* Snowfall Effect */}
+      <Snowfall
+        color="#ffffff"
+        snowflakeCount={100}
+        speed={[0.5, 2]}
+        wind={[0.5, 2]}
+        radius={[0.5, 3]}
+        style={{
+          position: 'fixed',
+          width: '100%',
+          height: '100%',
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
       {/* Soft white glow overlay */}
       <div className="absolute inset-0 z-[2] pointer-events-none">
         <div

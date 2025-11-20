@@ -551,6 +551,16 @@ select:focus {
 }
 
 /* 3D perspective utilities */
+
+/* Santa Sleigh Animation - Moving from left to right */
+@keyframes sleighMove {
+  0% {
+    transform: translateX(-200px);
+  }
+  100% {
+    transform: translateX(calc(100vw + 200px));
+  }
+}
 .perspective-1000 {
   perspective: 1000px;
 }

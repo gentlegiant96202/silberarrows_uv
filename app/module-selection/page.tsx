@@ -161,10 +161,15 @@ export default function ModuleSelectionPage() {
   useEffect(() => {
     fetch('/assets/animations/292956d6-003d-4626-b25b-2eedff5b4562.json')
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch');
+        if (!res.ok) {
+          throw new Error(`Failed to fetch: ${res.status}`);
+        }
         return res.json();
       })
-      .then(data => setSantaAnimationData(data))
+      .then(data => {
+        console.log('Santa animation loaded:', data);
+        setSantaAnimationData(data);
+      })
       .catch(err => {
         console.error('Failed to load Santa sleigh animation:', err);
       });
@@ -360,16 +365,21 @@ export default function ModuleSelectionPage() {
         <div 
           className="fixed top-10 left-0 z-20 pointer-events-none"
           style={{
-            animation: 'sleighMove 20s linear infinite',
-            width: '200px',
-            height: '150px',
+            animation: 'sleighMove 30s linear infinite',
+            width: '300px',
+            height: '200px',
+            willChange: 'transform',
           }}
         >
           <Lottie 
             animationData={santaAnimationData}
             loop={true}
             autoplay={true}
-            style={{ width: '100%', height: '100%' }}
+            style={{ 
+              width: '100%', 
+              height: '100%',
+              filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.3))'
+            }}
           />
         </div>
       )}

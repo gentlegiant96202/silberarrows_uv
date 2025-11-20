@@ -555,10 +555,10 @@ select:focus {
 /* Santa Sleigh Animation - Moving from left to right */
 @keyframes sleighMove {
   0% {
-    transform: translateX(-200px);
+    transform: translate3d(-300px, 0, 0);
   }
   100% {
-    transform: translateX(calc(100vw + 200px));
+    transform: translate3d(calc(100vw + 300px), 0, 0);
   }
 }
 .perspective-1000 {

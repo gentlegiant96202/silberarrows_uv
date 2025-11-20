@@ -56,7 +56,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           </main>
         </div>
       </div>
-    </>
   );
   
   // Wrap with AccountsTabProvider if on accounts pages

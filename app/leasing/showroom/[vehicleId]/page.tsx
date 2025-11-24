@@ -71,6 +71,14 @@ export default function VehicleDetailPage() {
         .single();
 
       if (error) throw error;
+      
+      // Check if vehicle is still in inventory
+      if (data && data.status !== 'inventory') {
+        // Vehicle removed from inventory - redirect to landing page
+        router.push('/leasing/showroom');
+        return;
+      }
+      
       setVehicle(data);
       
       // Track ViewContent event directly to Facebook Pixel

@@ -81,12 +81,11 @@ export default function VehicleDetailPage() {
       
       setVehicle(data);
       
-      // Track ViewContent event directly to Facebook Pixel
+      // Track ViewContent and AddToCart events directly to Facebook Pixel
       if (data && typeof window !== 'undefined' && window.fbq) {
         const vehicleName = `${data.model_year} ${data.make} ${data.vehicle_model || data.model_family || ''}`.trim();
         const contentId = data.stock_number || data.id;
-        
-        window.fbq('track', 'ViewContent', {
+        const pixelData = {
           content_ids: [contentId], // Critical: Must match Facebook Catalog ID
           content_type: 'product',
           content_name: vehicleName,
@@ -98,7 +97,13 @@ export default function VehicleDetailPage() {
             quantity: 1,
             item_price: data.monthly_lease_rate || 0
           }]
-        });
+        };
+        
+        // Track ViewContent (user viewed vehicle page)
+        window.fbq('track', 'ViewContent', pixelData);
+        
+        // Track AddToCart (user showed interest by viewing detail page)
+        window.fbq('track', 'AddToCart', pixelData);
       }
     } catch (error) {
     } finally {
@@ -298,10 +303,10 @@ export default function VehicleDetailPage() {
                 onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                   e.stopPropagation();
                   
-                  // Track AddToCart directly to Facebook Pixel
+                  // Track Purchase event directly to Facebook Pixel (user took action)
                   if (typeof window !== 'undefined' && window.fbq) {
                     const contentId = vehicle.stock_number || vehicle.id;
-                    window.fbq('track', 'AddToCart', {
+                    window.fbq('track', 'Purchase', {
                       content_ids: [contentId], // Critical: Must match Facebook Catalog ID
                       content_type: 'product',
                       content_name: vehicleName,
@@ -337,10 +342,10 @@ export default function VehicleDetailPage() {
                 onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                   e.stopPropagation();
                   
-                  // Track AddToCart directly to Facebook Pixel
+                  // Track Purchase event directly to Facebook Pixel (user took action)
                   if (typeof window !== 'undefined' && window.fbq) {
                     const contentId = vehicle.stock_number || vehicle.id;
-                    window.fbq('track', 'AddToCart', {
+                    window.fbq('track', 'Purchase', {
                       content_ids: [contentId], // Critical: Must match Facebook Catalog ID
                       content_type: 'product',
                       content_name: vehicleName,
@@ -640,10 +645,10 @@ export default function VehicleDetailPage() {
             onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
               e.stopPropagation();
               
-              // Track AddToCart directly to Facebook Pixel
+              // Track Purchase event directly to Facebook Pixel (user took action)
               if (typeof window !== 'undefined' && window.fbq) {
                 const contentId = vehicle.stock_number || vehicle.id;
-                window.fbq('track', 'AddToCart', {
+                window.fbq('track', 'Purchase', {
                   content_ids: [contentId], // Critical: Must match Facebook Catalog ID
                   content_type: 'product',
                   content_name: vehicleName,
@@ -680,10 +685,10 @@ export default function VehicleDetailPage() {
             onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
               e.stopPropagation();
               
-              // Track AddToCart directly to Facebook Pixel
+              // Track Purchase event directly to Facebook Pixel (user took action)
               if (typeof window !== 'undefined' && window.fbq) {
                 const contentId = vehicle.stock_number || vehicle.id;
-                window.fbq('track', 'AddToCart', {
+                window.fbq('track', 'Purchase', {
                   content_ids: [contentId], // Critical: Must match Facebook Catalog ID
                   content_type: 'product',
                   content_name: vehicleName,

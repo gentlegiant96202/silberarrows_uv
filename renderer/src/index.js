@@ -242,10 +242,16 @@ function fillTemplate45({ carDetails, pricing, firstImageUrl, secondImageUrl }) 
   return html;
 }
 
-function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
+function fillCatalogTemplate({ carDetails, catalogImageUrl, backgroundImageUrl }) {
   // No discount calculations - use original prices and payments from database
   
   let html = catalogTemplateHtml;
+  
+  // Handle optional background image
+  const backgroundImageTag = backgroundImageUrl 
+    ? `<img src="${String(backgroundImageUrl)}" alt="" class="custom-background" />`
+    : '';
+  
   const replacements = {
     '{{year}}': String(carDetails.year ?? ''),
     '{{model}}': String(carDetails.model ?? ''),
@@ -258,6 +264,7 @@ function fillCatalogTemplate({ carDetails, catalogImageUrl }) {
     '{{twentyDownPayment}}': String(carDetails.twentyDownPayment ?? '—'),
     '{{horsepower}}': String(carDetails.horsepower ?? '—'),
     '{{regionalSpecification}}': String(carDetails.regionalSpecification ?? '—').replace(/\s*SPECIFICATION/i, ''),
+    '{{backgroundImageTag}}': backgroundImageTag,
   };
   for (const [key, value] of Object.entries(replacements)) {
     html = replaceAll(html, key, value);

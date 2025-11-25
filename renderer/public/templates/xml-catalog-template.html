@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{year}} {{model}} | UV Catalog</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     * {
       margin: 0;
@@ -12,27 +13,28 @@
       box-sizing: border-box;
     }
 
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
     body {
-      font-family: 'Space Grotesk', sans-serif;
-      background: #fff;
+      font-family: 'Inter', sans-serif;
+      background: #000000;
+      color: #ffffff;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
       padding: 0;
-      margin: 0;
-      -webkit-font-smoothing: antialiased;
     }
 
     .catalog-card-container {
       width: 3000px;
       height: 3000px;
-      background: linear-gradient(to bottom, #f5f5f5 0%, #e8e8e8 100%);
-      border-radius: 80px;
-      overflow: hidden;
-      position: relative;
-      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.3);
-      border: 10px solid rgba(0, 0, 0, 0.1);
+      background: #000000;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
     }
 
     /* Custom Background Image (optional) */
@@ -47,104 +49,167 @@
       opacity: 0.15;
     }
 
-    /* Car Image Section - Centered and prominent */
-    .car-image-wrapper {
-      position: absolute;
-      top: 150px;
-      left: 0;
-      right: 0;
-      height: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    /* Image Section with Frame - 70% of height */
+    .image-section {
+      height: 70%;
+      position: relative;
+      margin-bottom: 24px;
       z-index: 1;
-      overflow: hidden;
     }
 
-    .car-image {
+    .image-frame {
       width: 100%;
       height: 100%;
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    .image-wrapper {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .image-wrapper img {
+      width: 100%;
+      height: 140%;
       object-fit: contain;
       object-position: center center;
-      transform: scale(1.05);
-    }
-
-    /* Bottom Content Section */
-    .bottom-content {
       position: absolute;
-      bottom: 120px;
-      left: 0;
-      right: 0;
-      padding: 0 120px;
-      z-index: 2;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -40%);
     }
 
-    /* Header Section */
-    .header-section {
-      margin-bottom: 60px;
+    /* Content Section - 30% of height */
+    .content-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 1;
     }
 
-    .main-title {
+    /* Title */
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .title h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700;
-      font-size: 180px;
-      text-transform: uppercase;
-      letter-spacing: 20px;
+      font-size: 6.8rem;
+      font-weight: 800;
       line-height: 1;
-      color: #000;
-      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9), 0 0 20px rgba(255, 255, 255, 0.6);
-      margin-bottom: 30px;
+      letter-spacing: -1.5px;
+      color: #ffffff;
     }
 
-    .vehicle-info {
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 600;
-      font-size: 80px;
-      color: #000;
-      letter-spacing: 5px;
-      line-height: 1.2;
-      text-transform: uppercase;
-      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9), 0 0 15px rgba(255, 255, 255, 0.5);
-    }
-
-    /* Specs Grid */
-    .specs-grid {
+    /* Specs Row */
+    .specs {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-      gap: 50px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
     }
 
     .spec-item {
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 50px;
-      padding: 70px 50px;
-      text-align: center;
-      border: 3px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 
-                  inset 0 2px 0 rgba(255, 255, 255, 0.8),
-                  0 0 30px rgba(0, 0, 0, 0.05);
-      position: relative;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .spec-value {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 120px;
+      font-size: 3.2rem;
       font-weight: 700;
-      color: #000;
-      margin-bottom: 25px;
+      color: #ffffff;
       line-height: 1;
-      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9), 0 0 10px rgba(255, 255, 255, 0.6);
     }
 
     .spec-label {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 42px;
-      color: rgba(0, 0, 0, 0.7);
+      font-size: 2rem;
+      color: rgba(255, 255, 255, 0.55);
       text-transform: uppercase;
+      letter-spacing: 1.8px;
       font-weight: 600;
-      letter-spacing: 4px;
-      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
+    }
+
+    /* Pricing Section */
+    .pricing {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.04) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 18px;
+      padding: 22px 24px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pricing::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    }
+
+    .price-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .price-label {
+      font-size: 1.8rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .price-amount {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 5.5rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -1.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      line-height: 1;
+    }
+
+    .dirham-symbol {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .price-amount .dirham-symbol {
+      width: 4.8rem;
+      height: 4.8rem;
+    }
+
+    .dirham-symbol svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
     }
 
   </style>
@@ -154,47 +219,73 @@
     <!-- Custom Background Image (optional) -->
     {{backgroundImageTag}}
     
-    <!-- Car Image -->
-    <div class="car-image-wrapper">
-      <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="car-image" />
-    </div>
-    
-    <!-- Bottom Content -->
-    <div class="bottom-content">
-      <!-- Header Section -->
-      <div class="header-section">
-        <div class="main-title">UV CATALOG</div>
-        <div class="vehicle-info">{{year}} {{model}}</div>
+    <!-- Image Section with Rounded Frame (70%) -->
+    <div class="image-section">
+      <div class="image-frame">
+        <div class="image-wrapper">
+          <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" />
+        </div>
       </div>
-      
-      <!-- Specs Grid -->
-      <div class="specs-grid">
-        <!-- Top Row -->
-        <div class="spec-item">
-          <div class="spec-value">AED {{originalPrice}}</div>
-          <div class="spec-label">Cash Price</div>
-        </div>
-        <div class="spec-item">
-          <div class="spec-value">AED {{zeroDownPayment}}</div>
-          <div class="spec-label">0% Down Payment</div>
-        </div>
-        <div class="spec-item">
-          <div class="spec-value">AED {{twentyDownPayment}}</div>
-          <div class="spec-label">20% Down Payment</div>
-        </div>
-        
-        <!-- Bottom Row -->
+    </div>
+
+    <!-- Content Section (30%) -->
+    <div class="content-section">
+      <!-- Title -->
+      <div class="title">
+        <h1>{{year}} {{model}}</h1>
+      </div>
+
+      <!-- Specs -->
+      <div class="specs">
         <div class="spec-item">
           <div class="spec-value">{{mileage}} KM</div>
           <div class="spec-label">Mileage</div>
         </div>
         <div class="spec-item">
-          <div class="spec-value">{{horsepower}} HP</div>
-          <div class="spec-label">Horsepower</div>
-        </div>
-        <div class="spec-item">
           <div class="spec-value">{{regionalSpecification}}</div>
-          <div class="spec-label">Regional</div>
+          <div class="spec-label">Regional Spec</div>
+        </div>
+      </div>
+
+      <!-- Pricing -->
+      <div class="pricing">
+        <!-- Cash Price -->
+        <div class="price-card">
+          <span class="price-label">Cash Price</span>
+          <span class="price-amount">
+            <span class="dirham-symbol">
+              <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+              </svg>
+            </span>
+            {{originalPrice}}
+          </span>
+        </div>
+
+        <!-- 0% Down Payment -->
+        <div class="price-card">
+          <span class="price-label">0% Down</span>
+          <span class="price-amount">
+            <span class="dirham-symbol">
+              <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+              </svg>
+            </span>
+            {{zeroDownPayment}}
+          </span>
+        </div>
+
+        <!-- 20% Down Payment -->
+        <div class="price-card">
+          <span class="price-label">20% Down</span>
+          <span class="price-amount">
+            <span class="dirham-symbol">
+              <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+              </svg>
+            </span>
+            {{twentyDownPayment}}
+          </span>
         </div>
       </div>
     </div>

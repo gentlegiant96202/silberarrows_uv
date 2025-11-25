@@ -31,14 +31,19 @@
     .catalog-card-container {
       width: 3000px;
       height: 3000px;
-      background: linear-gradient(180deg, 
-        #006C35 0%, 
-        #006C35 33%, 
-        #FFFFFF 33%, 
-        #FFFFFF 66%, 
-        #000000 66%, 
+      background: 
+        linear-gradient(90deg, 
+          #E74C3C 0%, 
+          #E74C3C 8%, 
+          transparent 8%),
+        linear-gradient(180deg, 
+          #006C35 0%, 
+          #006C35 33.33%, 
+          #FFFFFF 33.33%, 
+          #FFFFFF 66.66%, 
+          #000000 66.66%, 
         #000000 100%);
-      padding: 24px;
+      padding: 32px;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -51,13 +56,18 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(180deg, 
-        rgba(0, 108, 53, 0.4) 0%, 
-        rgba(0, 108, 53, 0.3) 33%, 
-        rgba(255, 255, 255, 0.2) 33%, 
-        rgba(255, 255, 255, 0.2) 66%, 
-        rgba(0, 0, 0, 0.5) 66%, 
-        rgba(0, 0, 0, 0.6) 100%);
+      background: 
+        linear-gradient(90deg, 
+          rgba(231, 76, 60, 0.3) 0%, 
+          rgba(231, 76, 60, 0.2) 8%, 
+          transparent 8%),
+        linear-gradient(180deg, 
+          rgba(0, 108, 53, 0.3) 0%, 
+          rgba(0, 108, 53, 0.2) 33.33%, 
+          rgba(255, 255, 255, 0.15) 33.33%, 
+          rgba(255, 255, 255, 0.15) 66.66%, 
+          rgba(0, 0, 0, 0.4) 66.66%, 
+          rgba(0, 0, 0, 0.5) 100%);
       z-index: 0;
       pointer-events: none;
     }
@@ -74,11 +84,11 @@
       opacity: 0.15;
     }
 
-    /* Image Section with Frame - 68% of height */
+    /* Image Section with Frame - 67% of height */
     .image-section {
-      height: 68%;
+      height: 67%;
       position: relative;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       z-index: 1;
     }
 
@@ -88,13 +98,13 @@
       border-radius: 32px;
       overflow: hidden;
       position: relative;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
-                  0 0 0 1px rgba(255, 255, 255, 0.1),
-                  inset 0 0 80px rgba(255, 255, 255, 0.05);
-      border: 2px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                  0 0 0 1px rgba(255, 255, 255, 0.15),
+                  inset 0 0 80px rgba(255, 255, 255, 0.03);
+      border: 2px solid rgba(255, 255, 255, 0.2);
     }
 
     .image-wrapper {
@@ -114,21 +124,21 @@
       transform: translate(-50%, -40%);
     }
 
-    /* Content Section - 32% of height */
+    /* Content Section - 33% of height */
     .content-section {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 20px;
       z-index: 1;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(40px) saturate(180%);
       -webkit-backdrop-filter: blur(40px) saturate(180%);
       border-radius: 32px;
-      padding: 28px;
-      border: 2px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      padding: 32px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.15);
     }
 
     /* Title */
@@ -154,21 +164,21 @@
     .specs {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 18px;
+      gap: 20px;
     }
 
     .spec-item {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
-      padding: 24px 26px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(25px) saturate(180%);
+      -webkit-backdrop-filter: blur(25px) saturate(180%);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-radius: 22px;
+      padding: 26px 28px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.25);
     }
 
     .spec-value {
@@ -191,19 +201,19 @@
 
     /* Pricing Section */
     .pricing {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
-      backdrop-filter: blur(30px) saturate(180%);
-      -webkit-backdrop-filter: blur(30px) saturate(180%);
-      border: 2px solid rgba(255, 255, 255, 0.25);
-      border-radius: 24px;
-      padding: 36px 32px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.08) 100%);
+      backdrop-filter: blur(35px) saturate(180%);
+      -webkit-backdrop-filter: blur(35px) saturate(180%);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 26px;
+      padding: 38px 34px;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 26px;
+      gap: 28px;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.25);
     }
 
     .pricing::before {
@@ -220,14 +230,14 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
-      padding: 28px 24px;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border-radius: 20px;
-      border: 2px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      padding: 30px 26px;
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(25px) saturate(180%);
+      -webkit-backdrop-filter: blur(25px) saturate(180%);
+      border-radius: 22px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
     .price-label {
@@ -284,28 +294,28 @@
         <div class="image-wrapper">
           <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" />
         </div>
-      </div>
-    </div>
+          </div>
+          </div>
 
     <!-- Content Section (32%) -->
     <div class="content-section">
       <!-- Title -->
       <div class="title">
         <h1>{{year}} {{model}}</h1>
-      </div>
-
+          </div>
+          
       <!-- Specs -->
       <div class="specs">
-        <div class="spec-item">
-          <div class="spec-value">{{mileage}} KM</div>
-          <div class="spec-label">Mileage</div>
-        </div>
-        <div class="spec-item">
-          <div class="spec-value">{{regionalSpecification}}</div>
+          <div class="spec-item">
+            <div class="spec-value">{{mileage}} KM</div>
+            <div class="spec-label">Mileage</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-value">{{regionalSpecification}}</div>
           <div class="spec-label">Regional Spec</div>
         </div>
       </div>
-
+      
       <!-- Pricing -->
       <div class="pricing">
         <!-- Cash Price -->
@@ -350,4 +360,4 @@
     </div>
   </div>
 </body>
-</html>
+</html> 

@@ -29,60 +29,60 @@
     }
 
     @layer base {
-      .catalog-card-container {
-        position: relative;
-        width: 3000px;
-        height: 3000px;
+    .catalog-card-container {
+      position: relative;
+      width: 3000px;
+      height: 3000px;
         background: conic-gradient(from 45deg at 50% 50%,
           #000000 0deg,
           #1a1a1a 90deg,
           #2a2a2a 180deg,
           #1a1a1a 270deg,
           #000000 360deg);
-        border-radius: 0;
-        padding: 6px;
-        box-sizing: border-box;
-        overflow: hidden;
-        box-shadow: 0 0 100px rgba(255, 255, 255, 0.05);
-      }
+      border-radius: 0;
+      padding: 6px;
+      box-sizing: border-box;
+      overflow: hidden;
+      box-shadow: 0 0 100px rgba(255, 255, 255, 0.05);
+    }
 
-      .catalog-card-container::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+    .catalog-card-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
         background: conic-gradient(from 90deg at 30% 30%,
           transparent 0deg,
           rgba(255, 255, 255, 0.15) 90deg,
           transparent 180deg,
           rgba(255, 255, 255, 0.1) 270deg,
           transparent 360deg);
-        z-index: 0;
-        border-radius: 0;
-        margin: -6px;
-      }
+      z-index: 0;
+      border-radius: 0;
+      margin: -6px;
+    }
 
-      .catalog-card-inner {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
+    .catalog-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
         background: radial-gradient(ellipse at center, rgba(20, 20, 20, 0.8) 0%, #0a0a0a 70%);
-        border-radius: 0;
-        z-index: 1;
-        display: flex;
-        flex-direction: column;
-      }
+      border-radius: 0;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+    }
 
       .custom-background {
-        position: absolute;
+      position: absolute;
         top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
         z-index: 0;
         opacity: 0.4;
       }
@@ -105,7 +105,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: 1;
+      z-index: 1;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -179,30 +179,25 @@
       }
 
       .light-source:nth-child(1) {
-        top: 8%;
-        left: 18%;
-        width: 450px;
-        height: 450px;
-        background: rgba(255, 255, 255, 0.35);
-        transform: translate(30px, -20px) scale(1.15);
+        top: 10%;
+        left: 20%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255, 255, 255, 0.2);
+        transform: translate(0, 0);
       }
 
       .light-source:nth-child(2) {
-        top: 58%;
-        right: 12%;
-        width: 500px;
-        height: 500px;
-        background: rgba(200, 200, 255, 0.25);
-        transform: translate(-20px, 40px) scale(0.9);
+        top: 60%;
+        right: 15%;
+        width: 450px;
+        height: 450px;
+        background: rgba(200, 200, 255, 0.15);
+        transform: translate(0, 0);
       }
 
       .light-source:nth-child(3) {
-        bottom: 18%;
-        left: 48%;
-        width: 400px;
-        height: 400px;
-        background: rgba(255, 240, 200, 0.2);
-        transform: translate(10px, -30px) scale(1.05);
+        display: none;
       }
     }
 
@@ -212,91 +207,60 @@
         bottom: 0;
         left: 0;
         right: 0;
-        height: 40%;
-        padding: 120px;
+        height: 42%;
+        padding: 140px 120px;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 50%, rgba(0, 0, 0, 0.85) 100%);
+        justify-content: flex-start;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 50%, rgba(0, 0, 0, 0.9) 100%);
         backdrop-filter: blur(30px) saturate(150%);
         -webkit-backdrop-filter: blur(30px) saturate(150%);
         z-index: 2;
-        mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 15%);
-        -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 15%);
+        mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.95) 10%);
+        -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.95) 10%);
       }
     }
 
     .header {
-      margin-bottom: 75px;
+      margin-bottom: 60px;
     }
 
     .header h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 9rem;
+      font-size: 12rem;
       font-weight: 700;
       line-height: 1;
-      margin-bottom: 20px;
+      margin-bottom: 40px;
       color: #ffffff;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8),
                    0 4px 16px rgba(0, 0, 0, 0.6),
                    0 0 40px rgba(255, 255, 255, 0.15);
-      letter-spacing: -1px;
-    }
-
-    .subtitle {
-      font-size: 3.5rem;
-      color: #e0e0e0;
-      font-weight: 500;
-      margin-bottom: 30px;
-      letter-spacing: 3px;
+      letter-spacing: -2px;
       text-transform: uppercase;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8),
-                    0 0 20px rgba(255, 255, 255, 0.1);
-    }
-
-    .highlight {
-      color: #ffffff;
-      font-weight: 600;
-      position: relative;
-      display: inline-block;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
-    }
-
-    .highlight::after {
-      content: '';
-      position: absolute;
-      bottom: -10px;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, #cccccc, #888888);
-      border-radius: 4px;
     }
 
       .specs-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         grid-template-rows: repeat(2, 1fr);
-        gap: 50px;
-        margin-bottom: 75px;
+        gap: 60px;
+        margin-bottom: 0;
         container-type: inline-size;
       }
 
       .spec-item {
-        background: rgba(0, 0, 0, 0.6);
-        padding: 55px 40px;
-        border-radius: 40px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 70px 50px;
+        border-radius: 50px;
         text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.25);
         backdrop-filter: blur(60px) saturate(200%);
         -webkit-backdrop-filter: blur(60px) saturate(200%);
-        box-shadow: 0 20px 80px rgba(0, 0, 0, 0.7), 
+        box-shadow: 0 20px 80px rgba(0, 0, 0, 0.8), 
                     inset 0 2px 0 rgba(255, 255, 255, 0.2),
-                    0 0 50px rgba(255, 255, 255, 0.15),
-                    inset 0 -2px 0 rgba(0, 0, 0, 0.5);
+                    0 0 50px rgba(255, 255, 255, 0.15);
         position: relative;
         overflow: hidden;
-        transform: translateY(-8px);
       }
 
       .spec-item::before {
@@ -306,91 +270,37 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: conic-gradient(from 45deg at 50% 50%,
-          rgba(255, 255, 255, 0.08) 0deg,
-          rgba(220, 220, 220, 0.05) 90deg,
-          rgba(255, 255, 255, 0.08) 180deg,
-          rgba(200, 200, 200, 0.05) 270deg,
-          rgba(255, 255, 255, 0.08) 360deg);
-        opacity: 0.4;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+        opacity: 0.3;
         z-index: -1;
       }
 
-      .spec-item::after {
-        content: '';
-        position: absolute;
-        top: -30%;
-        left: -30%;
-        width: 160%;
-        height: 160%;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
-        opacity: 0.5;
-        z-index: -1;
-      }
-
-      .spec-value {
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 5rem;
-        font-weight: 700;
-        margin-bottom: 20px;
-        color: #ffffff;
+    .spec-value {
+      font-family: 'Space Grotesk', sans-serif;
+        font-size: 7rem;
+      font-weight: 700;
+        margin-bottom: 25px;
+      color: #ffffff;
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9),
                      0 4px 16px rgba(0, 0, 0, 0.7),
                      0 0 30px rgba(255, 255, 255, 0.2);
-      }
+        line-height: 1;
+    }
 
     .spec-label {
-      font-size: 2.2rem;
+      font-size: 3rem;
       color: #d0d0d0;
       text-transform: uppercase;
       font-weight: 500;
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9),
                    0 0 15px rgba(255, 255, 255, 0.1);
     }
 
-    .accent-line {
-      height: 10px;
-      width: 150px;
-      background: linear-gradient(90deg, #ffffff, #888888);
-      margin: 35px 0;
-      border-radius: 5px;
-    }
-
-    .metal-detail {
-      position: absolute;
-      bottom: 50px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80%;
-      height: 4px;
-      background: linear-gradient(90deg, 
-        transparent, 
-        rgba(255, 255, 255, 0.5), 
-        rgba(200, 200, 200, 0.8), 
-        rgba(255, 255, 255, 0.5), 
-        transparent);
-      z-index: 2;
-    }
-
-    .reflection {
-      position: absolute;
-      top: -30%;
-      left: -30%;
-      width: 160%;
-      height: 160%;
-      background: linear-gradient(45deg, 
-        transparent 25%, 
-        rgba(255, 255, 255, 0.04) 50%, 
-        transparent 75%);
-      transform: rotate(25deg) translateY(-20%);
-      z-index: 1;
-    }
   </style>
 </head>
 <body>
   <div class="catalog-card-container">
-    <div class="reflection"></div>
     <div class="catalog-card-inner">
       <!-- Custom Background Image (optional - replace {{backgroundImageTag}} with <img src="url" class="custom-background" /> or leave empty) -->
       {{backgroundImageTag}}
@@ -406,7 +316,7 @@
       <!-- Car with Enhanced Effects -->
       <div class="car-wrapper">
         <div class="car-glow"></div>
-        <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" />
+      <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" />
         <div class="car-reflection"></div>
       </div>
       
@@ -414,8 +324,6 @@
       <div class="content-section">
         <div class="header">
           <h1>{{year}} {{model}}</h1>
-          <div class="accent-line"></div>
-          <p class="subtitle"><span class="highlight">Premium Selection</span></p>
         </div>
 
         <div class="specs-grid">
@@ -448,9 +356,6 @@
           </div>
         </div>
       </div>
-      
-      <!-- Metal Detail -->
-      <div class="metal-detail"></div>
     </div>
   </div>
 </body>

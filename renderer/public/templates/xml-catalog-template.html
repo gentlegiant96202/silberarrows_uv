@@ -7,6 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
+    @layer base, effects, layout;
+
     * {
       margin: 0;
       padding: 0;
@@ -26,86 +28,181 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    .catalog-card-container {
-      position: relative;
-      width: 3000px;
-      height: 3000px;
-      background: linear-gradient(135deg, 
-        #000000 0%, 
-        #1a1a1a 25%, 
-        #2a2a2a 50%, 
-        #1a1a1a 75%, 
-        #000000 100%);
-      border-radius: 0;
-      padding: 6px;
-      box-sizing: border-box;
-      overflow: hidden;
-      box-shadow: 0 0 100px rgba(255, 255, 255, 0.05);
+    @layer base {
+      .catalog-card-container {
+        position: relative;
+        width: 3000px;
+        height: 3000px;
+        background: conic-gradient(from 45deg at 50% 50%,
+          #000000 0deg,
+          #1a1a1a 90deg,
+          #2a2a2a 180deg,
+          #1a1a1a 270deg,
+          #000000 360deg);
+        border-radius: 0;
+        padding: 6px;
+        box-sizing: border-box;
+        overflow: hidden;
+        box-shadow: 0 0 100px rgba(255, 255, 255, 0.05);
+      }
+
+      .catalog-card-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: conic-gradient(from 90deg at 30% 30%,
+          transparent 0deg,
+          rgba(255, 255, 255, 0.15) 90deg,
+          transparent 180deg,
+          rgba(255, 255, 255, 0.1) 270deg,
+          transparent 360deg);
+        z-index: 0;
+        border-radius: 0;
+        margin: -6px;
+      }
+
+      .catalog-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: radial-gradient(ellipse at center, rgba(20, 20, 20, 0.8) 0%, #0a0a0a 70%);
+        border-radius: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+      }
     }
 
-    .catalog-card-container::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(45deg, 
-        rgba(255, 255, 255, 0.1) 0%, 
-        rgba(255, 255, 255, 0.2) 25%, 
-        rgba(255, 255, 255, 0.1) 50%, 
-        rgba(255, 255, 255, 0.05) 75%, 
-        rgba(255, 255, 255, 0.1) 100%);
-      background-size: 400% 400%;
-      animation: silver-glow 6s ease infinite;
-      z-index: 0;
-      border-radius: 0;
-      margin: -6px;
+    @layer effects {
+      .car-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform: translateY(-15px);
+      }
+
+      .catalog-bg-image {
+        position: relative;
+        width: 90%;
+        height: auto;
+        max-height: 75%;
+        object-fit: contain;
+        object-position: center;
+        filter: drop-shadow(0 0 100px rgba(255, 255, 255, 0.35))
+                drop-shadow(0 25px 80px rgba(0, 0, 0, 0.9))
+                drop-shadow(0 50px 120px rgba(255, 255, 255, 0.2))
+                drop-shadow(0 -10px 40px rgba(0, 0, 0, 0.6));
+        mix-blend-mode: normal;
+        transform: scale(1.01);
+      }
+
+      .car-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(1.1);
+        width: 65%;
+        height: 65%;
+        background: radial-gradient(ellipse at center,
+          rgba(255, 255, 255, 0.25) 0%,
+          rgba(255, 255, 255, 0.15) 25%,
+          rgba(255, 255, 255, 0.08) 50%,
+          transparent 75%);
+        filter: blur(90px);
+        z-index: 0;
+        opacity: 0.8;
+      }
+
+      .car-reflection {
+        position: absolute;
+        bottom: 8%;
+        left: 50%;
+        transform: translateX(-50%) scaleY(-1);
+        width: 85%;
+        height: 25%;
+        background: linear-gradient(to top,
+          rgba(255, 255, 255, 0.12) 0%,
+          rgba(255, 255, 255, 0.06) 30%,
+          transparent 70%);
+        mask-image: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%);
+        filter: blur(50px);
+        z-index: 0;
+        opacity: 0.6;
+      }
+
+      .ambient-lights {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      .light-source {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(120px);
+      }
+
+      .light-source:nth-child(1) {
+        top: 8%;
+        left: 18%;
+        width: 450px;
+        height: 450px;
+        background: rgba(255, 255, 255, 0.35);
+        transform: translate(30px, -20px) scale(1.15);
+      }
+
+      .light-source:nth-child(2) {
+        top: 58%;
+        right: 12%;
+        width: 500px;
+        height: 500px;
+        background: rgba(200, 200, 255, 0.25);
+        transform: translate(-20px, 40px) scale(0.9);
+      }
+
+      .light-source:nth-child(3) {
+        bottom: 18%;
+        left: 48%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255, 240, 200, 0.2);
+        transform: translate(10px, -30px) scale(1.05);
+      }
     }
 
-    @keyframes silver-glow {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    .catalog-card-inner {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #0a0a0a;
-      border-radius: 0;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .catalog-bg-image {
-      position: absolute;
-      top: -7%;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: top center;
-      z-index: 1;
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 90%);
-      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 90%);
-    }
-
-    .content-section {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 40%;
-      padding: 120px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      background: linear-gradient(to top, rgba(10, 10, 10, 0.95) 60%, rgba(10, 10, 10, 0.6) 100%);
-      z-index: 2;
+    @layer layout {
+      .content-section {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40%;
+        padding: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: linear-gradient(to top, rgba(10, 10, 10, 0.98) 60%, rgba(10, 10, 10, 0.7) 100%);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        z-index: 2;
+        mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 20%);
+        -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 20%);
+      }
     }
 
     .header {
@@ -150,65 +247,77 @@
       border-radius: 4px;
     }
 
-    .specs-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-      gap: 50px;
-      margin-bottom: 75px;
-    }
+      .specs-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 50px;
+        margin-bottom: 75px;
+        container-type: inline-size;
+      }
 
-    .spec-item {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 55px 40px;
-      border-radius: 40px;
-      text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(40px);
-      -webkit-backdrop-filter: blur(40px);
-      box-shadow: 0 16px 64px rgba(0, 0, 0, 0.3), 
-                  inset 0 2px 0 rgba(255, 255, 255, 0.1),
-                  0 0 40px rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
+      .spec-item {
+        background: rgba(255, 255, 255, 0.04);
+        padding: 55px 40px;
+        border-radius: 40px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(60px) saturate(200%);
+        -webkit-backdrop-filter: blur(60px) saturate(200%);
+        box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5), 
+                    inset 0 2px 0 rgba(255, 255, 255, 0.15),
+                    0 0 50px rgba(255, 255, 255, 0.1),
+                    inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+        transform: translateY(-8px);
+      }
 
-    .spec-item::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(200, 200, 200, 0.1) 100%);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      z-index: -1;
-    }
+      .spec-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: conic-gradient(from 45deg at 50% 50%,
+          rgba(255, 255, 255, 0.12) 0deg,
+          rgba(220, 220, 220, 0.08) 90deg,
+          rgba(255, 255, 255, 0.12) 180deg,
+          rgba(200, 200, 200, 0.08) 270deg,
+          rgba(255, 255, 255, 0.12) 360deg);
+        opacity: 0.6;
+        z-index: -1;
+      }
 
-    .spec-item:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4), 
-                  inset 0 2px 0 rgba(255, 255, 255, 0.15),
-                  0 0 60px rgba(255, 255, 255, 0.2);
-    }
+      .spec-item::after {
+        content: '';
+        position: absolute;
+        top: -30%;
+        left: -30%;
+        width: 160%;
+        height: 160%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
+        opacity: 0.7;
+        z-index: -1;
+      }
 
-    .spec-item:hover::before {
-      opacity: 1;
-    }
-
-    .spec-value {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 5rem;
-      font-weight: 700;
-      margin-bottom: 20px;
-      color: #ffffff;
-      background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
+      .spec-value {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 5rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        background: conic-gradient(from 45deg at 50% 50%,
+          #ffffff 0deg,
+          #e8e8e8 90deg,
+          #ffffff 180deg,
+          #d0d0d0 270deg,
+          #ffffff 360deg);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        filter: drop-shadow(0 2px 12px rgba(255, 255, 255, 0.4));
+      }
 
     .spec-label {
       font-size: 2.2rem;
@@ -244,22 +353,16 @@
 
     .reflection {
       position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
+      top: -30%;
+      left: -30%;
+      width: 160%;
+      height: 160%;
       background: linear-gradient(45deg, 
-        transparent 30%, 
-        rgba(255, 255, 255, 0.03) 50%, 
-        transparent 70%);
-      transform: rotate(25deg);
+        transparent 25%, 
+        rgba(255, 255, 255, 0.04) 50%, 
+        transparent 75%);
+      transform: rotate(25deg) translateY(-20%);
       z-index: 1;
-      animation: reflection-move 8s infinite linear;
-    }
-
-    @keyframes reflection-move {
-      0% { transform: rotate(25deg) translateY(-100%); }
-      100% { transform: rotate(25deg) translateY(100%); }
     }
   </style>
 </head>
@@ -267,8 +370,19 @@
   <div class="catalog-card-container">
     <div class="reflection"></div>
     <div class="catalog-card-inner">
-      <!-- Full Background Image -->
-      <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" />
+      <!-- Ambient Light Sources -->
+      <div class="ambient-lights">
+        <div class="light-source"></div>
+        <div class="light-source"></div>
+        <div class="light-source"></div>
+      </div>
+      
+      <!-- Car with Enhanced Effects -->
+      <div class="car-wrapper">
+        <div class="car-glow"></div>
+        <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" class="catalog-bg-image" />
+        <div class="car-reflection"></div>
+      </div>
       
       <!-- Content Overlay (Bottom) -->
       <div class="content-section">

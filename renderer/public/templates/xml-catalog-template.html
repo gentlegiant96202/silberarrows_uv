@@ -31,11 +31,23 @@
     .catalog-card-container {
       width: 3000px;
       height: 3000px;
-      position: relative;
-      overflow: hidden;
+      background: #000000;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
     }
 
-    /* UAE Flag Background */
+    /* Image Section with UAE Flag Background */
+    .image-section {
+      flex: 1;
+      min-height: 0;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* UAE Flag Background - only inside image section */
     .uae-flag-bg {
       position: absolute;
       top: 0;
@@ -85,53 +97,45 @@
       background: #000000;
     }
 
-    /* Main content wrapper */
-    .main-content {
-      position: relative;
-      z-index: 1;
+    /* Glassmorphic overlay for image */
+    .image-glass {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      padding: 40px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      z-index: 1;
     }
 
-    /* Image Section - fills glassmorphic container */
-    .image-section {
-      flex: 1;
-      min-height: 0;
-      border-radius: 40px;
-      overflow: hidden;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(40px) saturate(180%);
-      -webkit-backdrop-filter: blur(40px) saturate(180%);
-      border: 3px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4),
-                  inset 0 2px 0 rgba(255, 255, 255, 0.2);
+    .image-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
     }
 
-    .image-section img {
+    .image-wrapper img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       object-position: center center;
     }
 
-    /* Content Section - aligned with image */
+    /* Content Section - solid black background */
     .content-section {
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(40px) saturate(180%);
-      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      background: #000000;
       border-radius: 40px;
       padding: 40px;
-      border: 3px solid rgba(255, 255, 255, 0.25);
-      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5),
-                  inset 0 2px 0 rgba(255, 255, 255, 0.15);
+      border: 3px solid rgba(255, 255, 255, 0.15);
       display: flex;
       flex-direction: column;
       gap: 24px;
@@ -145,8 +149,6 @@
       line-height: 1;
       letter-spacing: -2px;
       color: #ffffff;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9),
-                   0 4px 20px rgba(0, 0, 0, 0.7);
     }
 
     /* Specs Row */
@@ -157,17 +159,13 @@
     }
 
     .spec-item {
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(25px) saturate(180%);
-      -webkit-backdrop-filter: blur(25px) saturate(180%);
-      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 24px;
       padding: 28px 32px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.3);
     }
 
     .spec-value {
@@ -176,31 +174,25 @@
       font-weight: 700;
       color: #ffffff;
       line-height: 1;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
     }
 
     .spec-label {
       font-size: 3rem;
-      color: rgba(255, 255, 255, 0.8);
+      color: rgba(255, 255, 255, 0.7);
       text-transform: uppercase;
       letter-spacing: 2px;
       font-weight: 600;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
     }
 
     /* Pricing Section */
     .pricing {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%);
-      backdrop-filter: blur(35px) saturate(180%);
-      -webkit-backdrop-filter: blur(35px) saturate(180%);
-      border: 2px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.06);
+      border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 28px;
       padding: 36px;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 24px;
-      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5),
-                  inset 0 2px 0 rgba(255, 255, 255, 0.3);
     }
 
     .price-card {
@@ -208,23 +200,18 @@
       flex-direction: column;
       gap: 16px;
       padding: 32px 28px;
-      background: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(25px) saturate(180%);
-      -webkit-backdrop-filter: blur(25px) saturate(180%);
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 24px;
-      border: 2px solid rgba(255, 255, 255, 0.25);
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.15);
     }
 
     .price-label {
       font-size: 2.8rem;
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(255, 255, 255, 0.8);
       text-transform: uppercase;
       letter-spacing: 1.5px;
       font-weight: 600;
       line-height: 1;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
     }
 
     .price-amount {
@@ -237,8 +224,6 @@
       align-items: center;
       gap: 14px;
       line-height: 1;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9),
-                   0 4px 20px rgba(0, 0, 0, 0.7);
     }
 
     .dirham-symbol {
@@ -259,83 +244,84 @@
 </head>
 <body>
   <div class="catalog-card-container">
-    <!-- UAE Flag Background -->
-    <div class="uae-flag-bg">
-      <div class="flag-red"></div>
-      <div class="flag-green"></div>
-      <div class="flag-white"></div>
-      <div class="flag-black"></div>
+    <!-- Image Section with UAE Flag -->
+    <div class="image-section">
+      <!-- UAE Flag Background -->
+      <div class="uae-flag-bg">
+        <div class="flag-red"></div>
+        <div class="flag-green"></div>
+        <div class="flag-white"></div>
+        <div class="flag-black"></div>
+      </div>
+      <!-- Glassmorphic overlay -->
+      <div class="image-glass"></div>
+      <!-- Car Image -->
+      <div class="image-wrapper">
+        <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" />
+      </div>
     </div>
 
     <!-- Custom Background Image (optional) -->
     {{backgroundImageTag}}
-    
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Image Section -->
-      <div class="image-section">
-        <img src="{{catalogImageUrl}}" alt="{{year}} {{model}}" />
-      </div>
 
-      <!-- Content Section -->
+    <!-- Content Section -->
       <div class="content-section">
-        <!-- Title -->
-        <div class="title">
+      <!-- Title -->
+      <div class="title">
           <h1>{{year}} {{model}}</h1>
-        </div>
-
-        <!-- Specs -->
-        <div class="specs">
+          </div>
+          
+      <!-- Specs -->
+      <div class="specs">
           <div class="spec-item">
             <div class="spec-value">{{mileage}} KM</div>
             <div class="spec-label">Mileage</div>
           </div>
           <div class="spec-item">
             <div class="spec-value">{{regionalSpecification}}</div>
-            <div class="spec-label">Regional Spec</div>
-          </div>
+          <div class="spec-label">Regional Spec</div>
+        </div>
+      </div>
+      
+      <!-- Pricing -->
+      <div class="pricing">
+        <!-- Cash Price -->
+        <div class="price-card">
+          <span class="price-label">Cash Price</span>
+          <span class="price-amount">
+            <span class="dirham-symbol">
+              <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+              </svg>
+            </span>
+            {{originalPrice}}
+          </span>
         </div>
 
-        <!-- Pricing -->
-        <div class="pricing">
-          <!-- Cash Price -->
-          <div class="price-card">
-            <span class="price-label">Cash Price</span>
-            <span class="price-amount">
-              <span class="dirham-symbol">
-                <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
-                </svg>
-              </span>
-              {{originalPrice}}
+        <!-- 0% Down Payment -->
+        <div class="price-card">
+          <span class="price-label">0% Down</span>
+          <span class="price-amount">
+            <span class="dirham-symbol">
+              <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+              </svg>
             </span>
-          </div>
+            {{zeroDownPayment}}
+          </span>
+        </div>
 
-          <!-- 0% Down Payment -->
-          <div class="price-card">
-            <span class="price-label">0% Down</span>
-            <span class="price-amount">
-              <span class="dirham-symbol">
-                <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
-                </svg>
-              </span>
-              {{zeroDownPayment}}
+        <!-- 20% Down Payment -->
+        <div class="price-card">
+          <span class="price-label">20% Down</span>
+          <span class="price-amount">
+            <span class="dirham-symbol">
+              <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
+                <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
+              </svg>
             </span>
-          </div>
-
-          <!-- 20% Down Payment -->
-          <div class="price-card">
-            <span class="price-label">20% Down</span>
-            <span class="price-amount">
-              <span class="dirham-symbol">
-                <svg viewBox="0 0 344.84 299.91" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z" />
-                </svg>
-              </span>
-              {{twentyDownPayment}}
-            </span>
-          </div>
+            {{twentyDownPayment}}
+          </span>
         </div>
       </div>
     </div>

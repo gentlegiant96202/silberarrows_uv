@@ -38,7 +38,8 @@ export async function middleware(request: NextRequest) {
     '/auth/callback',
     '/dubizzle',        // Public dubizzle pages (e.g., /dubizzle/servicecare)
     '/business-card',   // Public business card pages
-    '/leasing/showroom' // Public leasing showroom (includes /leasing/showroom/[vehicleId])
+    '/leasing/showroom', // Public leasing showroom (includes /leasing/showroom/[vehicleId])
+    '/uv/showroom'       // Public UV showroom (includes /uv/showroom/[carId])
   ];
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   

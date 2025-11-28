@@ -73,7 +73,7 @@ export default function UVShowroomPage() {
           .from('car_media')
           .select('*')
           .in('car_id', carIds)
-          .eq('kind', 'image')
+          .eq('kind', 'photo')
           .order('sort_order', { ascending: true });
 
         if (!mediaError && mediaData) {

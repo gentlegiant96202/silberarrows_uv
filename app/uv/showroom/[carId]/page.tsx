@@ -82,7 +82,7 @@ export default function CarDetailPage() {
         .from('car_media')
         .select('*')
         .eq('car_id', carId)
-        .eq('kind', 'image')
+        .eq('kind', 'photo')
         .order('sort_order', { ascending: true });
 
       if (!mediaError && mediaData) {

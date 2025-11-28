@@ -224,14 +224,18 @@ export default function AccountSummaryModal({
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [reservationId, setReservationId] = useState<string | null>(null);
-  const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
-  const [pdfGenerated, setPdfGenerated] = useState(false);
   const [documentNumber, setDocumentNumber] = useState<string | null>(null);
+  const [reservationNumber, setReservationNumber] = useState<string | null>(null);
   const [customerNumber, setCustomerNumber] = useState<string | null>(null);
   
+  // Document URLs - store both separately
+  const [reservationPdfUrl, setReservationPdfUrl] = useState<string | null>(null);
+  const [invoicePdfUrl, setInvoicePdfUrl] = useState<string | null>(null);
+  const [signedPdfUrl, setSignedPdfUrl] = useState<string | null>(null);
+  
+  // DocuSign state
   const [docusignEnvelopeId, setDocusignEnvelopeId] = useState<string | null>(null);
   const [signingStatus, setSigningStatus] = useState<string>('pending');
-  const [signedPdfUrl, setSignedPdfUrl] = useState<string | null>(null);
   const [sendingForSigning, setSendingForSigning] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [companyEmail, setCompanyEmail] = useState('');
@@ -282,13 +286,20 @@ export default function AccountSummaryModal({
       if (resData) {
         setIsEditing(true);
         setReservationId(resData.id);
-        setDocumentNumber(resData.document_number);
         setCustomerNumber(resData.customer_number);
-        setGeneratedPdfUrl(mode === 'reservation' ? resData.reservation_pdf_url : resData.invoice_pdf_url);
-        setPdfGenerated(!!(mode === 'reservation' ? resData.reservation_pdf_url : resData.invoice_pdf_url));
+        // Set document numbers - RES number is either current (if reservation) or original (if invoice)
+        setDocumentNumber(resData.document_number);
+        setReservationNumber(
+          resData.document_type === 'reservation' 
+            ? resData.document_number 
+            : resData.original_reservation_number || null
+        );
+        // Load both document URLs
+        setReservationPdfUrl(resData.reservation_pdf_url || null);
+        setInvoicePdfUrl(resData.invoice_pdf_url || null);
+        setSignedPdfUrl(resData.signed_pdf_url || null);
         setDocusignEnvelopeId(resData.docusign_envelope_id);
         setSigningStatus(resData.signing_status || 'pending');
-        setSignedPdfUrl(resData.signed_pdf_url);
 
         setFormData(prev => ({
           ...prev,
@@ -459,8 +470,12 @@ export default function AccountSummaryModal({
     }
   };
 
+  // Get current document URL based on mode
+  const currentPdfUrl = mode === 'reservation' ? reservationPdfUrl : invoicePdfUrl;
+  const hasCurrentPdf = !!currentPdfUrl;
+
   const handleSendForSigning = () => {
-    if (!generatedPdfUrl) { alert('Generate document first'); return; }
+    if (!currentPdfUrl) { alert('Generate document first'); return; }
     if (!formData.emailAddress) { alert('Add customer email first'); return; }
     setShowEmailModal(true);
   };
@@ -476,7 +491,7 @@ export default function AccountSummaryModal({
           leadId: lead.id, documentType: mode, customerEmail: formData.emailAddress,
           customerName: formData.customerName, companySignerEmail: companyEmail,
           documentTitle: mode === 'reservation' ? 'Vehicle Reservation Form' : 'Vehicle Invoice',
-          pdfUrl: generatedPdfUrl, formData
+          pdfUrl: currentPdfUrl, formData
         })
       });
       if (!response.ok) throw new Error('Failed to send');
@@ -548,10 +563,10 @@ export default function AccountSummaryModal({
   // ============================================================
   return createPortal(
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-3">
-      <div className="bg-black border border-white/10 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col">
+      <div className="bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-5xl h-[85vh] overflow-hidden shadow-2xl flex flex-col">
         
         {/* ============ HEADER ============ */}
-        <div className="p-5 border-b border-white/10 shrink-0">
+        <div className="p-5 bg-zinc-900 border-b border-zinc-700/50 shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               {/* Customer Name - Primary */}
@@ -560,35 +575,35 @@ export default function AccountSummaryModal({
                   {formData.customerName || 'Customer'}
                 </h2>
                 {customerNumber && (
-                  <span className="px-2.5 py-1 bg-blue-500/20 text-blue-300 text-xs font-mono font-medium rounded-md border border-blue-500/30">
+                  <span className="px-2.5 py-1 bg-sky-500/30 text-sky-300 text-xs font-mono font-medium rounded-md border border-sky-500/40">
                     {customerNumber}
                   </span>
                 )}
                 {documentNumber && (
-                  <span className="px-2.5 py-1 bg-white/10 text-white text-xs font-mono font-medium rounded-md border border-white/20">
+                  <span className="px-2.5 py-1 bg-zinc-700 text-zinc-200 text-xs font-mono font-medium rounded-md border border-zinc-600">
                     {documentNumber}
                   </span>
                 )}
                 {isPaid && (
-                  <span className="px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium rounded-md flex items-center gap-1">
+                  <span className="px-2.5 py-1 bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-medium rounded-md flex items-center gap-1">
                     <Check className="w-3 h-3" /> Paid
                   </span>
                 )}
               </div>
               {/* Contact & Vehicle Info - Secondary */}
               <div className="flex items-center gap-5 text-sm">
-                <span className="flex items-center gap-1.5 text-white/70">
+                <span className="flex items-center gap-1.5 text-zinc-300">
                   <Phone className="w-3.5 h-3.5" />
                   {formData.contactNo}
                 </span>
                 {formData.emailAddress && (
-                  <span className="flex items-center gap-1.5 text-white/50">
+                  <span className="flex items-center gap-1.5 text-zinc-400">
                     <Mail className="w-3.5 h-3.5" />
                     {formData.emailAddress}
                   </span>
                 )}
-                <span className="text-white/30">|</span>
-                <span className="flex items-center gap-1.5 text-white/50">
+                <span className="text-zinc-600">|</span>
+                <span className="flex items-center gap-1.5 text-zinc-400">
                   <Car className="w-3.5 h-3.5" />
                   {formData.makeModel} {formData.modelYear > 0 && `• ${formData.modelYear}`} {formData.exteriorColour && `• ${formData.exteriorColour}`}
                 </span>
@@ -596,38 +611,38 @@ export default function AccountSummaryModal({
             </div>
             
             {/* Close Button */}
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors group">
-              <X className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
+            <button onClick={onClose} className="p-2 hover:bg-zinc-700 rounded-lg transition-colors group">
+              <X className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" />
             </button>
           </div>
           
           {/* Quick Stats */}
-          <div className="flex items-center gap-8 mt-4 pt-4 border-t border-white/10">
-            <div>
-              <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Invoice Total</p>
-              <p className="text-xl font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p>
+          <div className="flex items-center gap-6 mt-4 pt-4 border-t border-zinc-700/50">
+            <div className="bg-zinc-800/80 rounded-lg px-4 py-3">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Invoice Total</p>
+              <p className="text-lg font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p>
             </div>
-            <div>
-              <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Paid</p>
-              <p className="text-xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p>
+            <div className="bg-zinc-800/80 rounded-lg px-4 py-3">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Paid</p>
+              <p className="text-lg font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p>
             </div>
-            <div>
-              <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Balance Due</p>
-              <p className={`text-xl font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
+            <div className="bg-zinc-800/80 rounded-lg px-4 py-3">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Balance Due</p>
+              <p className={`text-lg font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
                 AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}
               </p>
             </div>
             <div className="flex-1" />
             <div className="text-right">
-              <p className="text-[11px] text-white/40 uppercase tracking-wider">{mode === 'reservation' ? 'Reservation' : 'Invoice'}</p>
-              <p className="text-sm text-white/70 mt-1">{formData.salesExecutive}</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{mode === 'reservation' ? 'Reservation' : 'Invoice'}</p>
+              <p className="text-sm text-zinc-300 mt-1">{formData.salesExecutive}</p>
             </div>
           </div>
         </div>
 
         {/* ============ TABS ============ */}
-        <div className="shrink-0 bg-white/[0.02] border-b border-white/10">
-          <div className="grid grid-cols-4">
+        <div className="shrink-0 border-b border-white/10 px-2">
+          <div className="flex gap-1">
             {[
               { key: 'form', label: 'Details', icon: ClipboardList },
               { key: 'charges', label: 'Charges', icon: Receipt, count: charges.length },
@@ -637,10 +652,10 @@ export default function AccountSummaryModal({
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as TabType)}
-                className={`relative flex items-center justify-center gap-2 py-4 text-sm font-medium transition-all border-b-2 ${
+                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-all rounded-t-lg ${
                   activeTab === tab.key 
-                    ? 'text-white bg-white/[0.03] border-white' 
-                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.02] border-transparent'
+                    ? 'text-white bg-white/10' 
+                    : 'text-white/50 hover:text-white/70 hover:bg-white/5'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -658,7 +673,7 @@ export default function AccountSummaryModal({
         </div>
 
         {/* ============ CONTENT ============ */}
-        <div className="flex-1 overflow-y-auto p-5 relative">
+        <div className="flex-1 overflow-y-auto p-5 relative min-h-0">
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="w-10 h-10 border-2 border-white/10 border-t-white/60 rounded-full animate-spin" />
@@ -669,7 +684,7 @@ export default function AccountSummaryModal({
               {activeTab === 'form' && (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Customer Information - Full Width */}
-                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
+                  <div className="bg-zinc-800/60 rounded-xl p-4 border border-zinc-700/50">
                     <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
                       <User className="w-3.5 h-3.5" /> Customer
                     </h3>
@@ -703,7 +718,7 @@ export default function AccountSummaryModal({
                   </div>
 
                   {/* Vehicle Information */}
-                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
+                  <div className="bg-zinc-800/60 rounded-xl p-4 border border-zinc-700/50">
                     <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
                       <Car className="w-3.5 h-3.5" /> Vehicle Information
                     </h3>
@@ -717,131 +732,72 @@ export default function AccountSummaryModal({
                       <div><label className="block text-[11px] text-white/40 mb-1.5">Interior Colour</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
                       <div><label className="block text-[11px] text-white/40 mb-1.5">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/60 text-sm font-mono" /></div>
                     </div>
-                    {/* Warranty Row */}
-                    <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/5">
-                      <label className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors">
-                        <input type="checkbox" checked={formData.manufacturerWarranty} onChange={(e) => handleInputChange('manufacturerWarranty', e.target.checked)} className="w-4 h-4 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-0" />
-                        <div className="flex-1">
-                          <span className="text-sm text-white/80 flex items-center gap-2"><Shield className="w-4 h-4 text-blue-400" /> Manufacturer Warranty</span>
-                          {formData.manufacturerWarranty && (
-                            <div className="flex gap-2 mt-2">
-                              <input type="date" value={formData.manufacturerWarrantyExpiryDate} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryDate', e.target.value)} className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-white text-xs" />
-                              <input type="number" value={formData.manufacturerWarrantyExpiryMileage} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryMileage', parseInt(e.target.value) || 0)} placeholder="KM" className="w-24 px-2 py-1 bg-white/5 border border-white/10 rounded text-white text-xs" />
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                      <label className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors">
-                        <input type="checkbox" checked={formData.dealerServicePackage} onChange={(e) => handleInputChange('dealerServicePackage', e.target.checked)} className="w-4 h-4 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-0" />
-                        <div className="flex-1">
-                          <span className="text-sm text-white/80 flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-400" /> Dealer Service Package</span>
-                          {formData.dealerServicePackage && (
-                            <div className="flex gap-2 mt-2">
-                              <input type="date" value={formData.dealerServicePackageExpiryDate} onChange={(e) => handleInputChange('dealerServicePackageExpiryDate', e.target.value)} className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-white text-xs" />
-                              <input type="number" value={formData.dealerServicePackageExpiryMileage} onChange={(e) => handleInputChange('dealerServicePackageExpiryMileage', parseInt(e.target.value) || 0)} placeholder="KM" className="w-24 px-2 py-1 bg-white/5 border border-white/10 rounded text-white text-xs" />
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Account Summary - Read from Charges */}
-                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-2">
-                        <DollarSign className="w-3.5 h-3.5" /> Account Summary
-                      </h3>
-                      <button 
-                        type="button" 
-                        onClick={() => setActiveTab('charges')} 
-                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                      >
-                        Manage Charges →
-                      </button>
-                    </div>
-                    
-                    {charges.length > 0 ? (
-                      <>
-                        <div className="space-y-2 mb-4">
-                          {charges.slice(0, 5).map((charge) => (
-                            <div key={charge.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                              <span className="text-sm text-white/70">{charge.description}</span>
-                              <span className={`text-sm font-medium ${charge.total_amount < 0 ? 'text-emerald-400' : 'text-white'}`}>
-                                {charge.total_amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(charge.total_amount))}
-                              </span>
-                            </div>
-                          ))}
-                          {charges.length > 5 && (
-                            <p className="text-xs text-white/40 text-center pt-2">+ {charges.length - 5} more items</p>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/10">
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <p className="text-[10px] text-white/40 uppercase">Charges</p>
-                            <p className="text-lg font-semibold text-white">{charges.length} items</p>
+                    {/* Coverage & Warranty */}
+                    <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/10">
+                      {/* Manufacturer Warranty */}
+                      <div className={`rounded-xl p-4 border transition-all ${formData.manufacturerWarranty ? 'bg-zinc-800/80 border-zinc-600' : 'bg-zinc-800/40 border-zinc-700/50'}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0 mr-3">
+                            <p className="text-sm font-medium text-white">Manufacturer Warranty</p>
+                            <p className="text-xs text-white/40 mt-0.5">Factory coverage details</p>
                           </div>
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <p className="text-[10px] text-white/40 uppercase">Invoice Total</p>
-                            <p className="text-lg font-semibold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</p>
-                          </div>
-                          <div className="bg-white/10 rounded-lg p-3">
-                            <p className="text-[10px] text-white/60 uppercase">Balance Due</p>
-                            <p className={`text-xl font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
-                              AED {formatCurrency(Math.max(0, chargesTotals.grandTotal - chargesTotals.totalPaid))}
-                            </p>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleInputChange('manufacturerWarranty', !formData.manufacturerWarranty)}
+                            className={`relative flex-shrink-0 w-9 h-5 rounded-full transition-colors ${formData.manufacturerWarranty ? 'bg-emerald-500' : 'bg-white/20'}`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${formData.manufacturerWarranty ? 'left-[18px]' : 'left-0.5'}`} />
+                          </button>
                         </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-6">
-                        <p className="text-white/40 text-sm mb-3">No charges added yet</p>
-                        <button 
-                          type="button" 
-                          onClick={() => setActiveTab('charges')} 
-                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
-                        >
-                          Add Charges
-                        </button>
+                        {formData.manufacturerWarranty && (
+                          <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/10">
+                            <div>
+                              <label className="block text-[10px] text-white/40 uppercase tracking-wider mb-1">Expiry Date</label>
+                              <input type="date" value={formData.manufacturerWarrantyExpiryDate} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/30" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-white/40 uppercase tracking-wider mb-1">Mileage Limit</label>
+                              <input type="number" value={formData.manufacturerWarrantyExpiryMileage} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryMileage', parseInt(e.target.value) || 0)} placeholder="e.g. 100000" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/30" />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+
+                      {/* Dealer Service Package */}
+                      <div className={`rounded-xl p-4 border transition-all ${formData.dealerServicePackage ? 'bg-zinc-800/80 border-zinc-600' : 'bg-zinc-800/40 border-zinc-700/50'}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0 mr-3">
+                            <p className="text-sm font-medium text-white">Dealer Service Package</p>
+                            <p className="text-xs text-white/40 mt-0.5">Prepaid service plan</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleInputChange('dealerServicePackage', !formData.dealerServicePackage)}
+                            className={`relative flex-shrink-0 w-9 h-5 rounded-full transition-colors ${formData.dealerServicePackage ? 'bg-emerald-500' : 'bg-white/20'}`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${formData.dealerServicePackage ? 'left-[18px]' : 'left-0.5'}`} />
+                          </button>
+                        </div>
+                        {formData.dealerServicePackage && (
+                          <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/10">
+                            <div>
+                              <label className="block text-[10px] text-white/40 uppercase tracking-wider mb-1">Expiry Date</label>
+                              <input type="date" value={formData.dealerServicePackageExpiryDate} onChange={(e) => handleInputChange('dealerServicePackageExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/30" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-white/40 uppercase tracking-wider mb-1">Mileage Limit</label>
+                              <input type="number" value={formData.dealerServicePackageExpiryMileage} onChange={(e) => handleInputChange('dealerServicePackageExpiryMileage', parseInt(e.target.value) || 0)} placeholder="e.g. 60000" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/30" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Notes */}
-                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
+                  <div className="bg-zinc-800/60 rounded-xl p-4 border border-zinc-700/50">
                     <label className="block text-[11px] text-white/40 mb-1.5">Additional Notes</label>
                     <textarea value={formData.additionalNotes} onChange={(e) => handleInputChange('additionalNotes', e.target.value)} rows={2} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm resize-none placeholder-white/30 focus:outline-none focus:border-white/20" placeholder="Any notes for this transaction..." />
-                  </div>
-
-                  {/* PDF Status */}
-                  {pdfGenerated && generatedPdfUrl && (
-                    <div className={`rounded-xl p-4 border ${signingStatus === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${signingStatus === 'completed' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                          <span className={`font-medium ${signingStatus === 'completed' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                            {signingStatus === 'completed' ? 'Document Signed' : 'PDF Ready'}
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => window.open(signedPdfUrl || generatedPdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors"><Eye className="w-4 h-4" /> View PDF</button>
-                          {formData.emailAddress && signingStatus === 'pending' && (
-                            <button type="button" onClick={handleSendForSigning} disabled={sendingForSigning} className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50">
-                              {sendingForSigning ? 'Sending...' : 'Send for Signing'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Submit Buttons */}
-                  <div className="flex gap-3 pt-2">
-                    <button type="button" onClick={onClose} className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white/70 text-sm rounded-lg transition-colors">Cancel</button>
-                    <button type="submit" disabled={saving} className="px-6 py-2.5 bg-white text-black text-sm font-semibold rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center gap-2">
-                      {saving ? <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> : <FileText className="w-4 h-4" />}
-                      {saving ? 'Generating...' : pdfGenerated ? 'Regenerate' : 'Generate'} {mode === 'reservation' ? 'Reservation' : 'Invoice'}
-                    </button>
                   </div>
                 </form>
               )}
@@ -881,7 +837,7 @@ export default function AccountSummaryModal({
                                 }); 
                                 setShowAddCharge(true); 
                               }} 
-                              className="px-4 py-2 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 rounded-lg text-sm text-white/70 hover:text-white transition-all flex items-center gap-2"
+                              className="px-4 py-2 bg-zinc-700/50 hover:bg-zinc-700 border border-zinc-600/50 hover:border-zinc-500 rounded-lg text-sm text-white/70 hover:text-white transition-all flex items-center gap-2"
                             >
                               <span>{type.icon}</span> {type.label}
                             </button>
@@ -891,7 +847,7 @@ export default function AccountSummaryModal({
 
                       {/* Add Form */}
                       {showAddCharge && (
-                        <div className="bg-white/[0.03] rounded-xl p-5 border border-white/10">
+                        <div className="bg-zinc-800/60 rounded-xl p-5 border border-zinc-700/50">
                           <h4 className="text-sm font-medium text-white mb-4">Add Charge</h4>
                           <div className="grid grid-cols-4 gap-4 items-end">
                             <div><label className="block text-[11px] text-white/40 mb-1.5">Type</label><select value={newCharge.charge_type} onChange={(e) => setNewCharge(prev => ({ ...prev, charge_type: e.target.value, description: CHARGE_TYPES.find(c => c.value === e.target.value)?.label || '' }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm">{CHARGE_TYPES.map((t) => <option key={t.value} value={t.value} className="bg-zinc-900">{t.icon} {t.label}</option>)}</select></div>
@@ -906,7 +862,7 @@ export default function AccountSummaryModal({
                       )}
 
                       {/* Charges Table */}
-                      <div className="bg-white/[0.02] rounded-xl border border-white/10 overflow-hidden">
+                      <div className="bg-zinc-800/60 rounded-xl border border-zinc-700/50 overflow-hidden">
                         <table className="w-full">
                           <thead><tr className="border-b border-white/10 bg-white/[0.02]"><th className="px-5 py-4 text-left text-xs font-medium text-white/50 uppercase tracking-wider">Description</th><th className="px-5 py-4 text-right text-xs font-medium text-white/50 uppercase tracking-wider">Amount</th><th className="px-5 py-4 w-12"></th></tr></thead>
                           <tbody className="divide-y divide-white/5">
@@ -932,7 +888,7 @@ export default function AccountSummaryModal({
               {activeTab === 'payments' && (
                 <div className="space-y-5">
                   {/* Balance Header */}
-                  <div className="grid grid-cols-3 gap-4 p-5 bg-white/[0.03] rounded-xl border border-white/10">
+                  <div className="grid grid-cols-3 gap-4 p-5 bg-zinc-800/60 rounded-xl border border-zinc-700/50">
                     <div><p className="text-xs text-white/40 uppercase tracking-wider">Invoice Total</p><p className="text-2xl font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p></div>
                     <div><p className="text-xs text-white/40 uppercase tracking-wider">Total Paid</p><p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p></div>
                     <div className="text-right"><p className="text-xs text-white/40 uppercase tracking-wider">Balance Due</p><p className={`text-2xl font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}</p></div>
@@ -947,7 +903,7 @@ export default function AccountSummaryModal({
 
                   {/* Add Payment Form */}
                   {showAddPayment && (
-                    <div className="bg-white/[0.03] rounded-xl p-5 border border-white/10">
+                    <div className="bg-zinc-800/60 rounded-xl p-5 border border-zinc-700/50">
                       <h4 className="text-sm font-medium text-white mb-4">Record Payment</h4>
                       <div className="grid grid-cols-3 gap-4">
                         <div><label className="block text-[11px] text-white/40 mb-1.5">Method</label><select value={newPayment.payment_method} onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm">{PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value} className="bg-zinc-900">{m.label}</option>)}</select></div>
@@ -975,7 +931,7 @@ export default function AccountSummaryModal({
                   )}
 
                   {/* Payments Table */}
-                  <div className="bg-white/[0.02] rounded-xl border border-white/10 overflow-hidden">
+                  <div className="bg-zinc-800/60 rounded-xl border border-zinc-700/50 overflow-hidden">
                     <table className="w-full">
                       <thead><tr className="border-b border-white/10 bg-white/[0.02]"><th className="px-5 py-4 text-left text-xs font-medium text-white/50 uppercase">Date</th><th className="px-5 py-4 text-left text-xs font-medium text-white/50 uppercase">Method</th><th className="px-5 py-4 text-left text-xs font-medium text-white/50 uppercase">Reference</th><th className="px-5 py-4 text-right text-xs font-medium text-white/50 uppercase">Amount</th><th className="px-5 py-4 text-center text-xs font-medium text-white/50 uppercase">Status</th></tr></thead>
                       <tbody className="divide-y divide-white/5">
@@ -997,48 +953,135 @@ export default function AccountSummaryModal({
               {/* DOCUMENTS TAB */}
               {activeTab === 'documents' && (
                 <div className="space-y-4">
-                  {/* Reservation Doc */}
-                  <div className="bg-white/[0.03] rounded-xl p-5 border border-white/[0.06] hover:border-white/10 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center"><FileText className="w-6 h-6 text-blue-400" /></div>
-                        <div><h3 className="text-sm font-medium text-white">Reservation Form</h3><p className="text-xs text-white/40 mt-0.5">{generatedPdfUrl && mode === 'reservation' ? 'Ready to view' : 'Not generated yet'}</p></div>
-                      </div>
-                      {generatedPdfUrl && mode === 'reservation' && (
-                        <div className="flex gap-2">
-                          <button onClick={() => window.open(generatedPdfUrl, '_blank')} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"><Eye className="w-5 h-5 text-white/60" /></button>
-                          <button onClick={() => window.open(generatedPdfUrl, '_blank')} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"><Download className="w-5 h-5 text-white/60" /></button>
+                  {/* RESERVATION DOCUMENT - Always show in reservation mode, view-only in invoice mode */}
+                  <div className={`rounded-xl p-5 border ${reservationPdfUrl ? 'bg-zinc-800/60 border-zinc-700/50' : 'bg-zinc-800/30 border-zinc-700/30'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${reservationPdfUrl ? 'bg-blue-500/20' : 'bg-white/10'}`}>
+                          <FileText className={`w-5 h-5 ${reservationPdfUrl ? 'text-blue-400' : 'text-white/40'}`} />
                         </div>
-                      )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-medium text-white">Reservation Form</h3>
+                            {reservationNumber && (
+                              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] font-mono font-medium rounded border border-blue-500/30">
+                                {reservationNumber}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-white/40 mt-0.5">
+                            {reservationPdfUrl 
+                              ? (signingStatus === 'completed' ? '✓ Signed' : 'Ready') 
+                              : 'Not generated'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {mode === 'reservation' && (
+                          <button 
+                            onClick={handleSubmit} 
+                            disabled={saving} 
+                            className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                          >
+                            {saving ? <div className="w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> : null}
+                            {reservationPdfUrl ? 'Regenerate' : 'Generate'}
+                          </button>
+                        )}
+                        {reservationPdfUrl && (
+                          <>
+                            <button onClick={() => window.open(signedPdfUrl || reservationPdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors">
+                              <Eye className="w-4 h-4" /> View
+                            </button>
+                            <button onClick={() => window.open(signedPdfUrl || reservationPdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors">
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
+                    {/* Send for Signing - Reservation */}
+                    {mode === 'reservation' && reservationPdfUrl && signingStatus !== 'completed' && formData.emailAddress && (
+                      <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                        <p className="text-xs text-white/50">Send to {formData.emailAddress} for signing</p>
+                        <button 
+                          onClick={handleSendForSigning} 
+                          disabled={sendingForSigning} 
+                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+                        </button>
+                      </div>
+                    )}
+                    {/* Signed Badge */}
+                    {signingStatus === 'completed' && signedPdfUrl && (
+                      <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-emerald-400">
+                          <Check className="w-4 h-4" />
+                          <span className="text-xs font-medium">Document Signed via DocuSign</span>
+                        </div>
+                        <button onClick={() => window.open(signedPdfUrl, '_blank')} className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs rounded-lg transition-colors flex items-center gap-1.5">
+                          <Download className="w-3.5 h-3.5" /> Signed Copy
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Invoice Doc */}
-                  <div className="bg-white/[0.03] rounded-xl p-5 border border-white/[0.06] hover:border-white/10 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center"><FileText className="w-6 h-6 text-emerald-400" /></div>
-                        <div><h3 className="text-sm font-medium text-white">Invoice Document</h3><p className="text-xs text-white/40 mt-0.5">{documentNumber || 'Not generated yet'}</p></div>
-                      </div>
-                      {generatedPdfUrl && mode === 'invoice' && (
+                  {/* INVOICE DOCUMENT - Only show in invoice mode */}
+                  {mode === 'invoice' && (
+                    <div className={`rounded-xl p-5 border ${invoicePdfUrl ? 'bg-zinc-800/60 border-zinc-700/50' : 'bg-zinc-800/30 border-zinc-700/30'}`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${invoicePdfUrl ? 'bg-emerald-500/20' : 'bg-white/10'}`}>
+                            <Receipt className={`w-5 h-5 ${invoicePdfUrl ? 'text-emerald-400' : 'text-white/40'}`} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-medium text-white">Invoice</h3>
+                              {documentNumber && documentNumber.startsWith('INV') && (
+                                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-medium rounded border border-emerald-500/30">
+                                  {documentNumber}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-white/40 mt-0.5">
+                              {invoicePdfUrl ? 'Ready' : 'Not generated'}
+                            </p>
+                          </div>
+                        </div>
                         <div className="flex gap-2">
-                          <button onClick={() => window.open(generatedPdfUrl, '_blank')} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"><Eye className="w-5 h-5 text-white/60" /></button>
-                          <button onClick={() => window.open(generatedPdfUrl, '_blank')} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"><Download className="w-5 h-5 text-white/60" /></button>
+                          <button 
+                            onClick={handleSubmit} 
+                            disabled={saving} 
+                            className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                          >
+                            {saving ? <div className="w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> : null}
+                            {invoicePdfUrl ? 'Regenerate' : 'Generate'}
+                          </button>
+                          {invoicePdfUrl && (
+                            <>
+                              <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors">
+                                <Eye className="w-4 h-4" /> View
+                              </button>
+                              <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors">
+                                <Download className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {/* Send for Signing - Invoice */}
+                      {invoicePdfUrl && formData.emailAddress && (
+                        <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                          <p className="text-xs text-white/50">Send to {formData.emailAddress} for signing</p>
+                          <button 
+                            onClick={handleSendForSigning} 
+                            disabled={sendingForSigning} 
+                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+                          </button>
                         </div>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Signed Doc */}
-                  {signedPdfUrl && (
-                    <div className="bg-emerald-500/10 rounded-xl p-5 border border-emerald-500/20">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center"><Check className="w-6 h-6 text-emerald-400" /></div>
-                          <div><h3 className="text-sm font-medium text-emerald-400">Signed Document</h3><p className="text-xs text-emerald-300/60 mt-0.5">Completed via DocuSign</p></div>
-                        </div>
-                        <button onClick={() => window.open(signedPdfUrl, '_blank')} className="p-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-lg transition-colors"><Download className="w-5 h-5 text-emerald-400" /></button>
-                      </div>
                     </div>
                   )}
                 </div>

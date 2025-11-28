@@ -227,6 +227,7 @@ export default function AccountSummaryModal({
   const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [documentNumber, setDocumentNumber] = useState<string | null>(null);
+  const [customerNumber, setCustomerNumber] = useState<string | null>(null);
   
   const [docusignEnvelopeId, setDocusignEnvelopeId] = useState<string | null>(null);
   const [signingStatus, setSigningStatus] = useState<string>('pending');
@@ -282,6 +283,7 @@ export default function AccountSummaryModal({
         setIsEditing(true);
         setReservationId(resData.id);
         setDocumentNumber(resData.document_number);
+        setCustomerNumber(resData.customer_number);
         setGeneratedPdfUrl(mode === 'reservation' ? resData.reservation_pdf_url : resData.invoice_pdf_url);
         setPdfGenerated(!!(mode === 'reservation' ? resData.reservation_pdf_url : resData.invoice_pdf_url));
         setDocusignEnvelopeId(resData.docusign_envelope_id);
@@ -557,6 +559,11 @@ export default function AccountSummaryModal({
                 <h2 className="text-2xl font-bold text-white tracking-tight">
                   {formData.customerName || 'Customer'}
                 </h2>
+                {customerNumber && (
+                  <span className="px-2.5 py-1 bg-blue-500/20 text-blue-300 text-xs font-mono font-medium rounded-md border border-blue-500/30">
+                    {customerNumber}
+                  </span>
+                )}
                 {documentNumber && (
                   <span className="px-2.5 py-1 bg-white/10 text-white text-xs font-mono font-medium rounded-md border border-white/20">
                     {documentNumber}
@@ -602,12 +609,12 @@ export default function AccountSummaryModal({
             </div>
             <div>
               <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Paid</p>
-              <p className="text-xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid + (formData.hasPartExchange ? formData.partExchangeValue : 0))}</p>
+              <p className="text-xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p>
             </div>
             <div>
               <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Balance Due</p>
               <p className={`text-xl font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
-                AED {formatCurrency(Math.max(0, formData.amountDue))}
+                AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}
               </p>
             </div>
             <div className="flex-1" />
@@ -661,33 +668,26 @@ export default function AccountSummaryModal({
               {/* FORM TAB */}
               {activeTab === 'form' && (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Document Details - Full Width */}
-                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
-                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5" /> Document Details
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[11px] text-white/40 mb-1.5">Sales Executive</label>
-                        <input type="text" value={formData.salesExecutive} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-white/40 mb-1.5">Date</label>
-                        <input type="date" value={formData.date} onChange={(e) => handleInputChange('date', e.target.value)} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20" />
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Customer Information - Full Width */}
                   <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
                     <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
                       <User className="w-3.5 h-3.5" /> Customer
                     </h3>
-                    <div className="grid grid-cols-4 gap-4">
-                      <div className="col-span-2">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[11px] text-white/40 mb-1.5">Full Name</label>
+                        <input type="text" value={formData.customerName} onChange={(e) => handleInputChange('customerName', e.target.value)} placeholder="Customer Name" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-white/40 mb-1.5">Phone Number</label>
+                        <input type="tel" value={formData.contactNo} onChange={(e) => handleInputChange('contactNo', e.target.value)} placeholder="+971 XX XXX XXXX" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
+                      </div>
+                      <div>
                         <label className="block text-[11px] text-white/40 mb-1.5">Email Address</label>
                         <input type="email" value={formData.emailAddress} onChange={(e) => handleInputChange('emailAddress', e.target.value)} placeholder="customer@email.com" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
                       </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 mt-3">
                       <div>
                         <label className="block text-[11px] text-white/40 mb-1.5">ID Type</label>
                         <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none h-[42px]">
@@ -695,7 +695,7 @@ export default function AccountSummaryModal({
                           <option value="Passport" className="bg-black">Passport</option>
                         </select>
                       </div>
-                      <div>
+                      <div className="col-span-3">
                         <label className="block text-[11px] text-white/40 mb-1.5">ID Number</label>
                         <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
                       </div>
@@ -746,61 +746,65 @@ export default function AccountSummaryModal({
                     </div>
                   </div>
 
-                  {/* Part Exchange */}
-                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06] hover:border-white/10 transition-colors">
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={formData.hasPartExchange} onChange={(e) => handleInputChange('hasPartExchange', e.target.checked)} className="w-4 h-4 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-0" />
-                      <span className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-2"><Car className="w-3.5 h-3.5" /> Part Exchange</span>
-                    </label>
-                    {formData.hasPartExchange && (
-                      <div className="grid grid-cols-4 gap-3 mt-4">
-                        <div className="col-span-2"><input type="text" value={formData.partExchangeMakeModel} onChange={(e) => handleInputChange('partExchangeMakeModel', e.target.value)} placeholder="Make & Model" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30" /></div>
-                        <div><input type="text" value={formData.partExchangeModelYear} onChange={(e) => handleInputChange('partExchangeModelYear', e.target.value)} placeholder="Year" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30" /></div>
-                        <div><input type="number" value={formData.partExchangeValue} onChange={(e) => handleInputChange('partExchangeValue', parseFloat(e.target.value) || 0)} placeholder="Value (AED)" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30" /></div>
+                  {/* Account Summary - Read from Charges */}
+                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-2">
+                        <DollarSign className="w-3.5 h-3.5" /> Account Summary
+                      </h3>
+                      <button 
+                        type="button" 
+                        onClick={() => setActiveTab('charges')} 
+                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                      >
+                        Manage Charges →
+                      </button>
+                    </div>
+                    
+                    {charges.length > 0 ? (
+                      <>
+                        <div className="space-y-2 mb-4">
+                          {charges.slice(0, 5).map((charge) => (
+                            <div key={charge.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                              <span className="text-sm text-white/70">{charge.description}</span>
+                              <span className={`text-sm font-medium ${charge.total_amount < 0 ? 'text-emerald-400' : 'text-white'}`}>
+                                {charge.total_amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(charge.total_amount))}
+                              </span>
+                            </div>
+                          ))}
+                          {charges.length > 5 && (
+                            <p className="text-xs text-white/40 text-center pt-2">+ {charges.length - 5} more items</p>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/10">
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <p className="text-[10px] text-white/40 uppercase">Charges</p>
+                            <p className="text-lg font-semibold text-white">{charges.length} items</p>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <p className="text-[10px] text-white/40 uppercase">Invoice Total</p>
+                            <p className="text-lg font-semibold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</p>
+                          </div>
+                          <div className="bg-white/10 rounded-lg p-3">
+                            <p className="text-[10px] text-white/60 uppercase">Balance Due</p>
+                            <p className={`text-xl font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              AED {formatCurrency(Math.max(0, chargesTotals.grandTotal - chargesTotals.totalPaid))}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-6">
+                        <p className="text-white/40 text-sm mb-3">No charges added yet</p>
+                        <button 
+                          type="button" 
+                          onClick={() => setActiveTab('charges')} 
+                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
+                        >
+                          Add Charges
+                        </button>
                       </div>
                     )}
-                  </div>
-
-                  {/* Add-ons */}
-                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06] hover:border-white/10 transition-colors">
-                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5" /> Add-ons
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { key: 'extendedWarranty', priceKey: 'extendedWarrantyPrice', label: 'Extended Warranty', icon: '🛡️' },
-                        { key: 'ceramicTreatment', priceKey: 'ceramicTreatmentPrice', label: 'Ceramic Treatment', icon: '✨' },
-                        { key: 'serviceCare', priceKey: 'serviceCarePrice', label: 'ServiceCare', icon: '🔧' },
-                        { key: 'windowTints', priceKey: 'windowTintsPrice', label: 'Window Tints', icon: '🪟' },
-                      ].map((addon) => (
-                        <label key={addon.key} className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors">
-                          <span className="flex items-center gap-2">
-                            <input type="checkbox" checked={formData[addon.key as keyof FormData] as boolean} onChange={(e) => handleInputChange(addon.key as keyof FormData, e.target.checked)} className="w-4 h-4 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-0" />
-                            <span className="text-sm text-white/80">{addon.icon} {addon.label}</span>
-                          </span>
-                          {formData[addon.key as keyof FormData] && (
-                            <input type="number" value={formData[addon.priceKey as keyof FormData] as number} onChange={(e) => handleInputChange(addon.priceKey as keyof FormData, parseFloat(e.target.value) || 0)} className="w-24 px-2 py-1 bg-white/5 border border-white/10 rounded text-white text-sm text-right" placeholder="Price" />
-                          )}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Pricing Summary */}
-                  <div className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 rounded-xl p-4 border border-white/10">
-                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <DollarSign className="w-3.5 h-3.5" /> Pricing
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Vehicle Sale Price (AED)</label><input type="number" value={formData.vehicleSalePrice} onChange={(e) => handleInputChange('vehicleSalePrice', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">RTA Fees (AED)</label><input type="number" value={formData.rtaFees} onChange={(e) => handleInputChange('rtaFees', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20" /></div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-white/10">
-                      <div className="bg-white/5 rounded-lg p-3"><p className="text-[10px] text-white/40 uppercase">Add-ons</p><p className="text-lg font-semibold text-white">AED {formatCurrency(formData.addOnsTotal)}</p></div>
-                      <div className="bg-white/5 rounded-lg p-3"><p className="text-[10px] text-white/40 uppercase">Invoice Total</p><p className="text-lg font-semibold text-white">AED {formatCurrency(formData.invoiceTotal)}</p></div>
-                      <div className="bg-gradient-to-r from-zinc-700 to-zinc-600 rounded-lg p-3 shadow-lg"><p className="text-[10px] text-white/60 uppercase">Balance Due</p><p className="text-xl font-bold text-white">AED {formatCurrency(Math.max(0, formData.invoiceTotal - (chargesTotals.totalPaid || 0) - (formData.hasPartExchange ? formData.partExchangeValue : 0)))}</p></div>
-                    </div>
-                    <p className="text-[11px] text-white/30 mt-3 text-center">Record deposits and payments in the Payments tab</p>
                   </div>
 
                   {/* Notes */}
@@ -854,11 +858,35 @@ export default function AccountSummaryModal({
                     <>
                       {/* Quick Add Buttons */}
                       <div className="flex flex-wrap gap-2">
-                        {CHARGE_TYPES.map((type) => (
-                          <button key={type.value} onClick={() => { setNewCharge({ charge_type: type.value, description: type.label, unit_price: type.value === 'vehicle_sale' ? formData.vehicleSalePrice : 0, vat_applicable: false }); setShowAddCharge(true); }} className="px-4 py-2 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 rounded-lg text-sm text-white/70 hover:text-white transition-all flex items-center gap-2">
-                            <span>{type.icon}</span> {type.label}
-                          </button>
-                        ))}
+                        {CHARGE_TYPES.map((type) => {
+                          const getDefaultPrice = () => {
+                            if (type.value === 'vehicle_sale') return inventoryCar?.advertised_price_aed || formData.vehicleSalePrice || 0;
+                            if (type.value === 'rta_fees') return 2800; // Default RTA fees
+                            return 0;
+                          };
+                          const getDescription = () => {
+                            if (type.value === 'vehicle_sale') return `Vehicle Sale - ${formData.makeModel || 'Vehicle'}`;
+                            if (type.value === 'rta_fees') return 'RTA Registration & Transfer Fees';
+                            return type.label;
+                          };
+                          return (
+                            <button 
+                              key={type.value} 
+                              onClick={() => { 
+                                setNewCharge({ 
+                                  charge_type: type.value, 
+                                  description: getDescription(), 
+                                  unit_price: getDefaultPrice(), 
+                                  vat_applicable: false 
+                                }); 
+                                setShowAddCharge(true); 
+                              }} 
+                              className="px-4 py-2 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 rounded-lg text-sm text-white/70 hover:text-white transition-all flex items-center gap-2"
+                            >
+                              <span>{type.icon}</span> {type.label}
+                            </button>
+                          );
+                        })}
                       </div>
 
                       {/* Add Form */}
@@ -904,10 +932,10 @@ export default function AccountSummaryModal({
               {activeTab === 'payments' && (
                 <div className="space-y-5">
                   {/* Balance Header */}
-                  <div className="grid grid-cols-3 gap-4 p-5 bg-gradient-to-r from-zinc-800/50 to-zinc-900/50 rounded-xl border border-white/10">
+                  <div className="grid grid-cols-3 gap-4 p-5 bg-white/[0.03] rounded-xl border border-white/10">
                     <div><p className="text-xs text-white/40 uppercase tracking-wider">Invoice Total</p><p className="text-2xl font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p></div>
-                    <div><p className="text-xs text-white/40 uppercase tracking-wider">Total Paid</p><p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid + (formData.hasPartExchange ? formData.partExchangeValue : 0))}</p></div>
-                    <div className="text-right"><p className="text-xs text-white/40 uppercase tracking-wider">Balance Due</p><p className={`text-2xl font-bold ${isPaid ? 'text-emerald-400' : 'text-white'}`}>AED {formatCurrency(Math.max(0, formData.amountDue))}</p></div>
+                    <div><p className="text-xs text-white/40 uppercase tracking-wider">Total Paid</p><p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p></div>
+                    <div className="text-right"><p className="text-xs text-white/40 uppercase tracking-wider">Balance Due</p><p className={`text-2xl font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}</p></div>
                   </div>
 
                   {/* Add Payment Button */}

@@ -460,7 +460,6 @@ export default function AccountSummaryModal({
         } else {
           setInvoicePdfUrl(result.pdfUrl);
         }
-        setPdfGenerated(true);
         if (result.documentNumber) setDocumentNumber(result.documentNumber);
         if (savedReservation.document_number) setDocumentNumber(savedReservation.document_number);
       }

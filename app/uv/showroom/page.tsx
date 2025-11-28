@@ -66,7 +66,7 @@ export default function UVShowroomPage() {
 
       setCars(carsData || []);
 
-      // Fetch media for all cars
+      // Fetch media for all cars - order by sort_order to match inventory system
       if (carsData && carsData.length > 0) {
         const carIds = carsData.map(car => car.id);
         const { data: mediaData, error: mediaError } = await supabase
@@ -74,11 +74,10 @@ export default function UVShowroomPage() {
           .select('*')
           .in('car_id', carIds)
           .eq('kind', 'photo')
-          .order('is_primary', { ascending: false })  // Primary images first
           .order('sort_order', { ascending: true });
 
         if (!mediaError && mediaData) {
-          // Group media by car_id, with primary images first
+          // Group media by car_id
           const mediaByCarId: Record<string, MediaItem[]> = {};
           mediaData.forEach((item: any) => {
             if (!mediaByCarId[item.car_id]) {
@@ -86,18 +85,6 @@ export default function UVShowroomPage() {
             }
             mediaByCarId[item.car_id].push(item);
           });
-          
-          // Sort each car's media: primary first, then by sort_order
-          Object.keys(mediaByCarId).forEach(carId => {
-            mediaByCarId[carId].sort((a, b) => {
-              // Primary images first
-              if (a.is_primary && !b.is_primary) return -1;
-              if (!a.is_primary && b.is_primary) return 1;
-              // Then by sort_order
-              return (a.sort_order || 0) - (b.sort_order || 0);
-            });
-          });
-          
           setCarMedia(mediaByCarId);
         }
       }

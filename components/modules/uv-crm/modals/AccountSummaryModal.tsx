@@ -545,52 +545,46 @@ export default function AccountSummaryModal({
   // RENDER
   // ============================================================
   return createPortal(
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-3">
-      <div className="bg-gradient-to-br from-zinc-900 via-neutral-900 to-stone-900 border border-white/10 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col relative">
-        
-        {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-black/20 pointer-events-none rounded-2xl" />
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-3">
+      <div className="bg-black border border-white/10 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col">
         
         {/* ============ HEADER ============ */}
-        <div className="relative p-5 border-b border-white/10 shrink-0">
+        <div className="p-5 border-b border-white/10 shrink-0">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              {/* Icon */}
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-zinc-700 via-zinc-600 to-zinc-800 flex items-center justify-center shadow-lg border border-white/10">
-                <Car className="w-7 h-7 text-white/90" />
+            <div className="flex-1">
+              {/* Customer Name - Primary */}
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className="text-2xl font-bold text-white tracking-tight">
+                  {formData.customerName || 'Customer'}
+                </h2>
+                {documentNumber && (
+                  <span className="px-2.5 py-1 bg-white/10 text-white text-xs font-mono font-medium rounded-md border border-white/20">
+                    {documentNumber}
+                  </span>
+                )}
+                {isPaid && (
+                  <span className="px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium rounded-md flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Paid
+                  </span>
+                )}
               </div>
-              {/* Title & Info */}
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <h2 className="text-xl font-bold text-white tracking-tight">
-                    {formData.makeModel || 'Vehicle Account'}
-                  </h2>
-                  {documentNumber && (
-                    <span className="px-2.5 py-1 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 text-gray-900 text-xs font-mono font-bold rounded-md shadow-sm">
-                      {documentNumber}
-                    </span>
-                  )}
-                  {isPaid && (
-                    <span className="px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium rounded-md flex items-center gap-1">
-                      <Check className="w-3 h-3" /> Paid
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 text-sm text-white/60">
-                  <span className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5" />
-                    {formData.customerName}
+              {/* Contact & Vehicle Info - Secondary */}
+              <div className="flex items-center gap-5 text-sm">
+                <span className="flex items-center gap-1.5 text-white/70">
+                  <Phone className="w-3.5 h-3.5" />
+                  {formData.contactNo}
+                </span>
+                {formData.emailAddress && (
+                  <span className="flex items-center gap-1.5 text-white/50">
+                    <Mail className="w-3.5 h-3.5" />
+                    {formData.emailAddress}
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5" />
-                    {formData.contactNo}
-                  </span>
-                  {formData.modelYear > 0 && (
-                    <span className="text-white/40">
-                      {formData.modelYear} • {formData.exteriorColour}
-                    </span>
-                  )}
-                </div>
+                )}
+                <span className="text-white/30">|</span>
+                <span className="flex items-center gap-1.5 text-white/50">
+                  <Car className="w-3.5 h-3.5" />
+                  {formData.makeModel} {formData.modelYear > 0 && `• ${formData.modelYear}`} {formData.exteriorColour && `• ${formData.exteriorColour}`}
+                </span>
               </div>
             </div>
             
@@ -601,34 +595,32 @@ export default function AccountSummaryModal({
           </div>
           
           {/* Quick Stats */}
-          <div className="flex items-center gap-6 mt-4 pt-4 border-t border-white/5">
+          <div className="flex items-center gap-8 mt-4 pt-4 border-t border-white/10">
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Invoice Total</p>
-              <p className="text-lg font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p>
+              <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Invoice Total</p>
+              <p className="text-xl font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p>
             </div>
-            <div className="w-px h-10 bg-white/10" />
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Paid</p>
-              <p className="text-lg font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid + (formData.hasPartExchange ? formData.partExchangeValue : 0))}</p>
+              <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Paid</p>
+              <p className="text-xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid + (formData.hasPartExchange ? formData.partExchangeValue : 0))}</p>
             </div>
-            <div className="w-px h-10 bg-white/10" />
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Balance Due</p>
-              <p className={`text-lg font-bold ${isPaid ? 'text-emerald-400' : 'text-white'}`}>
+              <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Balance Due</p>
+              <p className={`text-xl font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
                 AED {formatCurrency(Math.max(0, formData.amountDue))}
               </p>
             </div>
             <div className="flex-1" />
             <div className="text-right">
-              <p className="text-xs text-white/40">{mode === 'reservation' ? 'Reservation' : 'Invoice'}</p>
-              <p className="text-sm text-white/70">{formData.salesExecutive}</p>
+              <p className="text-[11px] text-white/40 uppercase tracking-wider">{mode === 'reservation' ? 'Reservation' : 'Invoice'}</p>
+              <p className="text-sm text-white/70 mt-1">{formData.salesExecutive}</p>
             </div>
           </div>
         </div>
 
         {/* ============ TABS ============ */}
-        <div className="border-b border-white/10 px-5 shrink-0 relative bg-black/20">
-          <div className="flex gap-1">
+        <div className="shrink-0 bg-white/[0.02] border-b border-white/10">
+          <div className="grid grid-cols-4">
             {[
               { key: 'form', label: 'Details', icon: ClipboardList },
               { key: 'charges', label: 'Charges', icon: Receipt, count: charges.length },
@@ -638,10 +630,10 @@ export default function AccountSummaryModal({
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as TabType)}
-                className={`relative flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-all ${
+                className={`relative flex items-center justify-center gap-2 py-4 text-sm font-medium transition-all border-b-2 ${
                   activeTab === tab.key 
-                    ? 'text-white' 
-                    : 'text-white/40 hover:text-white/70'
+                    ? 'text-white bg-white/[0.03] border-white' 
+                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.02] border-transparent'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -652,9 +644,6 @@ export default function AccountSummaryModal({
                   }`}>
                     {tab.count}
                   </span>
-                )}
-                {activeTab === tab.key && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-400 via-white to-gray-400" />
                 )}
               </button>
             ))}
@@ -829,7 +818,7 @@ export default function AccountSummaryModal({
                         <div className="flex gap-2">
                           <button type="button" onClick={() => window.open(signedPdfUrl || generatedPdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors"><Eye className="w-4 h-4" /> View PDF</button>
                           {formData.emailAddress && signingStatus === 'pending' && (
-                            <button type="button" onClick={handleSendForSigning} disabled={sendingForSigning} className="px-4 py-2 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 text-gray-900 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+                            <button type="button" onClick={handleSendForSigning} disabled={sendingForSigning} className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50">
                               {sendingForSigning ? 'Sending...' : 'Send for Signing'}
                             </button>
                           )}
@@ -841,7 +830,7 @@ export default function AccountSummaryModal({
                   {/* Submit Buttons */}
                   <div className="flex gap-3 pt-2">
                     <button type="button" onClick={onClose} className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white/70 text-sm rounded-lg transition-colors">Cancel</button>
-                    <button type="submit" disabled={saving} className="px-6 py-2.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 text-gray-900 text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl hover:opacity-95 transition-all disabled:opacity-50 flex items-center gap-2">
+                    <button type="submit" disabled={saving} className="px-6 py-2.5 bg-white text-black text-sm font-semibold rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center gap-2">
                       {saving ? <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> : <FileText className="w-4 h-4" />}
                       {saving ? 'Generating...' : pdfGenerated ? 'Regenerate' : 'Generate'} {mode === 'reservation' ? 'Reservation' : 'Invoice'}
                     </button>
@@ -877,7 +866,7 @@ export default function AccountSummaryModal({
                             <div><label className="block text-[11px] text-white/40 mb-1.5">Description</label><input type="text" value={newCharge.description} onChange={(e) => setNewCharge(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" /></div>
                             <div><label className="block text-[11px] text-white/40 mb-1.5">Amount (AED)</label><input type="number" value={newCharge.unit_price} onChange={(e) => setNewCharge(prev => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" /></div>
                             <div className="flex gap-2">
-                              <button onClick={handleAddCharge} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 text-gray-900 text-sm font-medium rounded-lg">{saving ? '...' : 'Add'}</button>
+                              <button onClick={handleAddCharge} disabled={saving} className="flex-1 px-4 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors">{saving ? '...' : 'Add'}</button>
                               <button onClick={() => setShowAddCharge(false)} className="px-4 py-2.5 bg-white/10 text-white text-sm rounded-lg">Cancel</button>
                             </div>
                           </div>
@@ -947,7 +936,7 @@ export default function AccountSummaryModal({
                         </div>
                       )}
                       <div className="flex gap-3 mt-4">
-                        <button onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-5 py-2.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 text-gray-900 text-sm font-medium rounded-lg disabled:opacity-50">{saving ? '...' : 'Save Payment'}</button>
+                        <button onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-5 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50">{saving ? '...' : 'Save Payment'}</button>
                         <button onClick={() => setShowAddPayment(false)} className="px-5 py-2.5 bg-white/10 text-white text-sm rounded-lg">Cancel</button>
                       </div>
                     </div>
@@ -1036,14 +1025,14 @@ export default function AccountSummaryModal({
       {/* Email Modal */}
       {showEmailModal && createPortal(
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[60] p-4">
-          <div className="bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 p-0.5 rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-white/20 p-0.5 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="bg-zinc-900 rounded-2xl p-6">
               <h3 className="text-lg font-semibold text-white mb-2">Company Signer</h3>
               <p className="text-sm text-white/50 mb-4">Enter the email of who should sign first from SilberArrows</p>
               <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} placeholder="email@silberarrows.ae" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-white/20 mb-4" autoFocus />
               <div className="flex gap-3 justify-end">
                 <button onClick={() => setShowEmailModal(false)} className="px-5 py-2.5 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors">Cancel</button>
-                <button onClick={handleConfirmSendForSigning} disabled={!companyEmail} className="px-5 py-2.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 text-gray-900 font-medium rounded-lg disabled:opacity-50">Send for Signing</button>
+                <button onClick={handleConfirmSendForSigning} disabled={!companyEmail} className="px-5 py-2.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50">Send for Signing</button>
               </div>
             </div>
           </div>

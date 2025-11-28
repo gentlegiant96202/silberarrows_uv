@@ -74,10 +74,11 @@ export default function UVShowroomPage() {
           .select('*')
           .in('car_id', carIds)
           .eq('kind', 'photo')
+          .order('is_primary', { ascending: false })  // Primary images first
           .order('sort_order', { ascending: true });
 
         if (!mediaError && mediaData) {
-          // Group media by car_id
+          // Group media by car_id, with primary images first
           const mediaByCarId: Record<string, MediaItem[]> = {};
           mediaData.forEach((item: any) => {
             if (!mediaByCarId[item.car_id]) {
@@ -85,6 +86,18 @@ export default function UVShowroomPage() {
             }
             mediaByCarId[item.car_id].push(item);
           });
+          
+          // Sort each car's media: primary first, then by sort_order
+          Object.keys(mediaByCarId).forEach(carId => {
+            mediaByCarId[carId].sort((a, b) => {
+              // Primary images first
+              if (a.is_primary && !b.is_primary) return -1;
+              if (!a.is_primary && b.is_primary) return 1;
+              // Then by sort_order
+              return (a.sort_order || 0) - (b.sort_order || 0);
+            });
+          });
+          
           setCarMedia(mediaByCarId);
         }
       }
@@ -149,10 +162,10 @@ function HeroSection() {
             height={90} 
         />
       </div>
-        <div className="hero-tagline">Premium Pre-Owned Mercedes-Benz</div>
+        <div className="hero-tagline">Premium Pre-Owned Vehicles</div>
         <h1 className="hero-title">
-          MERCEDES-BENZ<br />
-          <span>USED CARS</span><br />
+          APPROVED USED<br />
+          <span>MERCEDES-BENZ</span><br />
           IN DUBAI
         </h1>
         <p className="hero-subtitle">

@@ -77,16 +77,25 @@ export default function CarDetailPage() {
       
       setCar(carData);
 
-      // Fetch car media
+      // Fetch car media - order by is_primary first, then sort_order
       const { data: mediaData, error: mediaError } = await supabase
         .from('car_media')
         .select('*')
         .eq('car_id', carId)
         .eq('kind', 'photo')
+        .order('is_primary', { ascending: false })  // Primary images first
         .order('sort_order', { ascending: true });
 
       if (!mediaError && mediaData) {
-        setMedia(mediaData);
+        // Sort again in JS to ensure primary images come first
+        const sortedMedia = [...mediaData].sort((a, b) => {
+          // Primary images first
+          if (a.is_primary && !b.is_primary) return -1;
+          if (!a.is_primary && b.is_primary) return 1;
+          // Then by sort_order
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        });
+        setMedia(sortedMedia);
       }
       
       // Track ViewContent event for Facebook Pixel

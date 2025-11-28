@@ -660,58 +660,62 @@ export default function AccountSummaryModal({
             <>
               {/* FORM TAB */}
               {activeTab === 'form' && (
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  {/* Document & Customer - Combined Row */}
-                  <div className="grid grid-cols-2 gap-5">
-                    {/* Document Details */}
-                    <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06] hover:border-white/10 transition-colors">
-                      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5" /> Document Details
-                      </h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] text-white/40 mb-1.5">Sales Executive</label>
-                          <input type="text" value={formData.salesExecutive} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm focus:outline-none focus:border-white/20" />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] text-white/40 mb-1.5">Date</label>
-                          <input type="date" value={formData.date} onChange={(e) => handleInputChange('date', e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/10" />
-                        </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Document Details - Full Width */}
+                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
+                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5" /> Document Details
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[11px] text-white/40 mb-1.5">Sales Executive</label>
+                        <input type="text" value={formData.salesExecutive} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-white/40 mb-1.5">Date</label>
+                        <input type="date" value={formData.date} onChange={(e) => handleInputChange('date', e.target.value)} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20" />
                       </div>
                     </div>
+                  </div>
 
-                    {/* Customer Information */}
-                    <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06] hover:border-white/10 transition-colors">
-                      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <User className="w-3.5 h-3.5" /> Customer
-                      </h3>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div><input type="email" value={formData.emailAddress} onChange={(e) => handleInputChange('emailAddress', e.target.value)} placeholder="Email Address" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20 truncate" required /></div>
-                        <div>
-                          <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none">
-                            <option value="EID" className="bg-zinc-900">EID</option>
-                            <option value="Passport" className="bg-zinc-900">Passport</option>
-                          </select>
-                        </div>
-                        <div><input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="ID Number" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required /></div>
+                  {/* Customer Information - Full Width */}
+                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
+                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <User className="w-3.5 h-3.5" /> Customer
+                    </h3>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="col-span-2">
+                        <label className="block text-[11px] text-white/40 mb-1.5">Email Address</label>
+                        <input type="email" value={formData.emailAddress} onChange={(e) => handleInputChange('emailAddress', e.target.value)} placeholder="customer@email.com" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-white/40 mb-1.5">ID Type</label>
+                        <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none h-[42px]">
+                          <option value="EID" className="bg-black">EID</option>
+                          <option value="Passport" className="bg-black">Passport</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-white/40 mb-1.5">ID Number</label>
+                        <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
                       </div>
                     </div>
                   </div>
 
                   {/* Vehicle Information */}
-                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06] hover:border-white/10 transition-colors">
+                  <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
                     <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
                       <Car className="w-3.5 h-3.5" /> Vehicle Information
                     </h3>
-                    <div className="grid grid-cols-5 gap-3">
-                      <div className="col-span-2"><label className="block text-[11px] text-white/40 mb-1.5">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm truncate" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Exterior</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm truncate" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Interior</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm truncate" /></div>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="col-span-2"><label className="block text-[11px] text-white/40 mb-1.5">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Mileage (km)</label><input type="number" value={formData.mileage} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/60 text-sm font-mono" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Mileage (km)</label><input type="number" value={formData.mileage} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
+                    <div className="grid grid-cols-3 gap-4 mt-3">
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Exterior Colour</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Interior Colour</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/60 text-sm font-mono" /></div>
                     </div>
                     {/* Warranty Row */}
                     <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/5">

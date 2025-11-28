@@ -26,7 +26,10 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   // Check if this is the public leasing showroom
   const isShowroomPage = pathname.startsWith('/leasing/showroom');
   
-  const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage && !isDubizzlePage && !isShowroomPage;
+  // Check if this is the public UV showroom
+  const isUVShowroomPage = pathname.startsWith('/uv/showroom');
+  
+  const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage && !isDubizzlePage && !isShowroomPage && !isUVShowroomPage;
   const shouldShowSidebar = shouldShowHeader; // Sidebar appears with header
   const isAccountsPage = pathname.startsWith('/accounts');
   const isMarketingPage = pathname.startsWith('/marketing');

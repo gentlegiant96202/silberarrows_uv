@@ -91,7 +91,12 @@ export default function CarDetailPage() {
       
       // Track ViewContent event for Facebook Pixel
       if (carData && typeof window !== 'undefined' && window.fbq) {
-        const vehicleName = `${carData.model_year} Mercedes-Benz ${carData.vehicle_model}`.trim();
+        // Clean vehicle name for tracking
+        const rawModelName = carData.vehicle_model || '';
+        const isAMGModel = rawModelName.toLowerCase().startsWith('mercedes-amg');
+        const cleanModelName = rawModelName.replace(/^Mercedes-Benz\s*/i, '').replace(/^Mercedes-AMG\s*/i, '').trim();
+        const trackingBrand = isAMGModel ? 'Mercedes-AMG' : 'Mercedes-Benz';
+        const vehicleName = `${carData.model_year} ${trackingBrand} ${cleanModelName}`.trim();
         const contentId = carData.stock_number || carData.id;
         const pixelData = {
           content_ids: [contentId],
@@ -153,7 +158,20 @@ export default function CarDetailPage() {
   }
 
   const images = media.length > 0 ? media.map(m => m.url) : ['/MAIN LOGO.png'];
-  const vehicleName = `Mercedes-Benz ${car.vehicle_model}`.trim();
+  
+  // Smart vehicle naming - avoid "Mercedes-Benz Mercedes-AMG" duplication
+  // If model already starts with Mercedes-AMG, just use that
+  // Otherwise, clean any Mercedes prefix and we'll add the brand in display
+  const rawModel = car.vehicle_model || '';
+  const isAMG = rawModel.toLowerCase().startsWith('mercedes-amg');
+  const cleanModel = rawModel
+    .replace(/^Mercedes-Benz\s*/i, '')
+    .replace(/^Mercedes-AMG\s*/i, '')
+    .trim();
+  // vehicleName will be just the model (e.g., "G63") - brand is added in title
+  const vehicleName = isAMG ? `AMG ${cleanModel}` : cleanModel;
+  const brandName = isAMG ? 'MERCEDES-AMG' : 'MERCEDES-BENZ';
+  
   const exteriorColor = car.colour;
   const interiorColor = car.interior_colour;
   const mileage = car.current_mileage_km;
@@ -243,7 +261,7 @@ export default function CarDetailPage() {
           {/* Vehicle Title & Key Info */}
           <div className="vehicle-header-section">
             <h1 className="vehicle-title">
-              {car.model_year} {vehicleName.toUpperCase()}
+              {car.model_year} {brandName} {cleanModel.toUpperCase()}
             </h1>
             
             {/* Availability Badges */}

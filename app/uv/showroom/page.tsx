@@ -302,7 +302,17 @@ function VehiclesSection({ cars, loading, getCarImage, onCarClick }: any) {
           </div>
       ) : (
         <div className="vehicles-grid">
-          {cars.map((car: Car) => (
+          {cars.map((car: Car) => {
+            // Smart vehicle naming - avoid "Mercedes-Benz Mercedes-AMG" duplication
+            const rawModel = car.vehicle_model || '';
+            const isAMG = rawModel.toLowerCase().startsWith('mercedes-amg');
+            const cleanModel = rawModel
+              .replace(/^Mercedes-Benz\s*/i, '')
+              .replace(/^Mercedes-AMG\s*/i, '')
+              .trim();
+            const displayName = isAMG ? `AMG ${cleanModel}` : cleanModel;
+            
+            return (
             <div 
               key={car.id} 
               className="vehicle-card"
@@ -310,11 +320,11 @@ function VehiclesSection({ cars, loading, getCarImage, onCarClick }: any) {
             >
               <img 
                 src={getCarImage(car.id)} 
-                alt={`${car.model_year} Mercedes-Benz ${car.vehicle_model}`}
+                alt={`${car.model_year} ${displayName}`}
                 className="vehicle-image"
               />
               <div className="vehicle-content">
-                <h3>{car.model_year} {car.vehicle_model}</h3>
+                <h3>{car.model_year} {displayName}</h3>
                 <div className="vehicle-meta">
                   {car.colour && (
                     <span className="vehicle-badge">{car.colour}</span>
@@ -335,9 +345,10 @@ function VehiclesSection({ cars, loading, getCarImage, onCarClick }: any) {
                   </div>
                 )}
                 <button className="vehicle-cta">View Details</button>
-      </div>
-    </div>
-          ))}
+              </div>
+            </div>
+            );
+          })}
         </div>
       )}
     </section>

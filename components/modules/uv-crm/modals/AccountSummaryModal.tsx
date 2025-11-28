@@ -455,7 +455,11 @@ export default function AccountSummaryModal({
       const result = await response.json();
       if (result.pdfUrl) {
         await supabase.from('vehicle_reservations').update({ pdf_url: result.pdfUrl, document_status: 'completed' }).eq('id', savedReservation.id);
-        setGeneratedPdfUrl(result.pdfUrl);
+        if (mode === 'reservation') {
+          setReservationPdfUrl(result.pdfUrl);
+        } else {
+          setInvoicePdfUrl(result.pdfUrl);
+        }
         setPdfGenerated(true);
         if (result.documentNumber) setDocumentNumber(result.documentNumber);
         if (savedReservation.document_number) setDocumentNumber(savedReservation.document_number);

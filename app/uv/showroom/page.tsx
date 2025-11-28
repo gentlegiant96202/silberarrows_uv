@@ -66,7 +66,7 @@ export default function UVShowroomPage() {
 
       setCars(carsData || []);
 
-      // Fetch media for all cars - order by sort_order to match inventory system
+      // Fetch media for all cars
       if (carsData && carsData.length > 0) {
         const carIds = carsData.map(car => car.id);
         const { data: mediaData, error: mediaError } = await supabase
@@ -85,6 +85,26 @@ export default function UVShowroomPage() {
             }
             mediaByCarId[item.car_id].push(item);
           });
+          
+          // Sort each car's media exactly like CarDetailsModal
+          Object.keys(mediaByCarId).forEach(carId => {
+            mediaByCarId[carId].sort((a: any, b: any) => {
+              // Primary photos come first
+              if (a.is_primary && !b.is_primary) return -1;
+              if (!a.is_primary && b.is_primary) return 1;
+              
+              // Then sort by sort_order
+              const aOrder = a.sort_order ?? 999999;
+              const bOrder = b.sort_order ?? 999999;
+              if (aOrder !== bOrder) return aOrder - bOrder;
+              
+              // Stable tiebreaker: created_at oldest first
+              const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+              const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+              return aTime - bTime;
+            });
+          });
+          
           setCarMedia(mediaByCarId);
         }
       }

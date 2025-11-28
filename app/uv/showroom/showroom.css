@@ -2450,3 +2450,23 @@ body {
     }
 }
 
+/* Large Desktop - Lighter, more readable Impact titles */
+@media (min-width: 1200px) {
+    .hero-title,
+    .section-header h2,
+    .vehicle-title,
+    .price-main,
+    .vehicle-content h3,
+    .feature-content h3,
+    .contact-card h3,
+    .hours-header h3,
+    .accordion-header h3 {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    
+    .hero-title {
+        letter-spacing: 0px;
+    }
+}
+

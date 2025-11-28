@@ -365,9 +365,12 @@ export default function AccountSummaryModal({
       (formData.serviceCare ? formData.serviceCarePrice : 0) +
       (formData.windowTints ? formData.windowTintsPrice : 0);
     const invoiceTotal = formData.vehicleSalePrice + formData.rtaFees + addOnsTotal;
-    const amountDue = invoiceTotal - formData.deposit - (formData.hasPartExchange ? formData.partExchangeValue : 0);
+    // Amount due is calculated from payments tracked in Payments tab
+    const totalPaid = chargesTotals.totalPaid || 0;
+    const partExchangeCredit = formData.hasPartExchange ? formData.partExchangeValue : 0;
+    const amountDue = invoiceTotal - totalPaid - partExchangeCredit;
     setFormData(prev => ({ ...prev, addOnsTotal, invoiceTotal, amountDue }));
-  }, [formData.extendedWarrantyPrice, formData.ceramicTreatmentPrice, formData.serviceCarePrice, formData.windowTintsPrice, formData.vehicleSalePrice, formData.rtaFees, formData.deposit, formData.partExchangeValue, formData.extendedWarranty, formData.ceramicTreatment, formData.serviceCare, formData.windowTints, formData.hasPartExchange]);
+  }, [formData.extendedWarrantyPrice, formData.ceramicTreatmentPrice, formData.serviceCarePrice, formData.windowTintsPrice, formData.vehicleSalePrice, formData.rtaFees, formData.partExchangeValue, formData.extendedWarranty, formData.ceramicTreatment, formData.serviceCare, formData.windowTints, formData.hasPartExchange, chargesTotals.totalPaid]);
 
   // ============================================================
   // HANDLERS
@@ -606,13 +609,13 @@ export default function AccountSummaryModal({
             <div className="w-px h-10 bg-white/10" />
             <div>
               <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Paid</p>
-              <p className="text-lg font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid || (formData.deposit + (formData.hasPartExchange ? formData.partExchangeValue : 0)))}</p>
+              <p className="text-lg font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid + (formData.hasPartExchange ? formData.partExchangeValue : 0))}</p>
             </div>
             <div className="w-px h-10 bg-white/10" />
             <div>
               <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Balance Due</p>
               <p className={`text-lg font-bold ${isPaid ? 'text-emerald-400' : 'text-white'}`}>
-                AED {formatCurrency(Math.max(0, chargesTotals.balanceDue || formData.amountDue))}
+                AED {formatCurrency(Math.max(0, formData.amountDue))}
               </p>
             </div>
             <div className="flex-1" />
@@ -693,15 +696,15 @@ export default function AccountSummaryModal({
                       <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
                         <User className="w-3.5 h-3.5" /> Customer
                       </h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div><input type="email" value={formData.emailAddress} onChange={(e) => handleInputChange('emailAddress', e.target.value)} placeholder="Email Address" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required /></div>
-                        <div className="flex gap-2">
-                          <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div><input type="email" value={formData.emailAddress} onChange={(e) => handleInputChange('emailAddress', e.target.value)} placeholder="Email Address" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20 truncate" required /></div>
+                        <div>
+                          <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none">
                             <option value="EID" className="bg-zinc-900">EID</option>
                             <option value="Passport" className="bg-zinc-900">Passport</option>
                           </select>
-                          <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="ID Number" className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
                         </div>
+                        <div><input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="ID Number" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required /></div>
                       </div>
                     </div>
                   </div>
@@ -711,15 +714,16 @@ export default function AccountSummaryModal({
                     <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
                       <Car className="w-3.5 h-3.5" /> Vehicle Information
                     </h3>
-                    <div className="grid grid-cols-6 gap-3">
-                      <div className="col-span-2"><label className="block text-[11px] text-white/40 mb-1.5">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
+                    <div className="grid grid-cols-5 gap-3">
+                      <div className="col-span-2"><label className="block text-[11px] text-white/40 mb-1.5">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm truncate" /></div>
                       <div><label className="block text-[11px] text-white/40 mb-1.5">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Exterior</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Interior</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Mileage</label><input type="number" value={formData.mileage} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Exterior</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm truncate" /></div>
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Interior</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm truncate" /></div>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-white/5"><label className="block text-[11px] text-white/40 mb-1.5">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/60 text-sm font-mono" /></div>
-                    
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/60 text-sm font-mono" /></div>
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Mileage (km)</label><input type="number" value={formData.mileage} readOnly className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
+                    </div>
                     {/* Warranty Row */}
                     <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/5">
                       <label className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors">
@@ -789,22 +793,21 @@ export default function AccountSummaryModal({
                     </div>
                   </div>
 
-                  {/* Payment Summary */}
+                  {/* Pricing Summary */}
                   <div className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 rounded-xl p-4 border border-white/10">
                     <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <DollarSign className="w-3.5 h-3.5" /> Payment Summary
+                      <DollarSign className="w-3.5 h-3.5" /> Pricing
                     </h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">RTA Fees</label><input type="number" value={formData.rtaFees} onChange={(e) => handleInputChange('rtaFees', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Vehicle Sale Price</label><input type="number" value={formData.vehicleSalePrice} onChange={(e) => handleInputChange('vehicleSalePrice', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Deposit Received</label><input type="number" value={formData.deposit} onChange={(e) => handleInputChange('deposit', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20" /></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">Vehicle Sale Price (AED)</label><input type="number" value={formData.vehicleSalePrice} onChange={(e) => handleInputChange('vehicleSalePrice', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20" /></div>
+                      <div><label className="block text-[11px] text-white/40 mb-1.5">RTA Fees (AED)</label><input type="number" value={formData.rtaFees} onChange={(e) => handleInputChange('rtaFees', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/20" /></div>
                     </div>
-                    <div className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-white/10">
+                    <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-white/10">
                       <div className="bg-white/5 rounded-lg p-3"><p className="text-[10px] text-white/40 uppercase">Add-ons</p><p className="text-lg font-semibold text-white">AED {formatCurrency(formData.addOnsTotal)}</p></div>
                       <div className="bg-white/5 rounded-lg p-3"><p className="text-[10px] text-white/40 uppercase">Invoice Total</p><p className="text-lg font-semibold text-white">AED {formatCurrency(formData.invoiceTotal)}</p></div>
-                      <div className="bg-white/5 rounded-lg p-3"><p className="text-[10px] text-white/40 uppercase">Credits</p><p className="text-lg font-semibold text-emerald-400">AED {formatCurrency(formData.deposit + (formData.hasPartExchange ? formData.partExchangeValue : 0))}</p></div>
-                      <div className="bg-gradient-to-r from-zinc-700 to-zinc-600 rounded-lg p-3 shadow-lg"><p className="text-[10px] text-white/60 uppercase">Amount Due</p><p className="text-xl font-bold text-white">AED {formatCurrency(formData.amountDue)}</p></div>
+                      <div className="bg-gradient-to-r from-zinc-700 to-zinc-600 rounded-lg p-3 shadow-lg"><p className="text-[10px] text-white/60 uppercase">Balance Due</p><p className="text-xl font-bold text-white">AED {formatCurrency(Math.max(0, formData.invoiceTotal - (chargesTotals.totalPaid || 0) - (formData.hasPartExchange ? formData.partExchangeValue : 0)))}</p></div>
                     </div>
+                    <p className="text-[11px] text-white/30 mt-3 text-center">Record deposits and payments in the Payments tab</p>
                   </div>
 
                   {/* Notes */}
@@ -908,9 +911,10 @@ export default function AccountSummaryModal({
               {activeTab === 'payments' && (
                 <div className="space-y-5">
                   {/* Balance Header */}
-                  <div className="flex items-center justify-between p-5 bg-gradient-to-r from-zinc-800/50 to-zinc-900/50 rounded-xl border border-white/10">
+                  <div className="grid grid-cols-3 gap-4 p-5 bg-gradient-to-r from-zinc-800/50 to-zinc-900/50 rounded-xl border border-white/10">
                     <div><p className="text-xs text-white/40 uppercase tracking-wider">Invoice Total</p><p className="text-2xl font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p></div>
-                    <div className="text-right"><p className="text-xs text-white/40 uppercase tracking-wider">Balance Due</p><p className={`text-2xl font-bold ${isPaid ? 'text-emerald-400' : 'text-white'}`}>AED {formatCurrency(Math.max(0, chargesTotals.balanceDue || formData.amountDue))}</p></div>
+                    <div><p className="text-xs text-white/40 uppercase tracking-wider">Total Paid</p><p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid + (formData.hasPartExchange ? formData.partExchangeValue : 0))}</p></div>
+                    <div className="text-right"><p className="text-xs text-white/40 uppercase tracking-wider">Balance Due</p><p className={`text-2xl font-bold ${isPaid ? 'text-emerald-400' : 'text-white'}`}>AED {formatCurrency(Math.max(0, formData.amountDue))}</p></div>
                   </div>
 
                   {/* Add Payment Button */}

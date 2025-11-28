@@ -83,7 +83,7 @@ const SkeletonCRMColumn = ({ title, icon, canCreate = false }: {
 import NewAppointmentModal from "../modals/NewAppointmentModal";
 import LeadDetailsModal from "../modals/LeadDetailsModal";
 import LostReasonModal from "../modals/LostReasonModal";
-import VehicleDocumentModal from "../modals/VehicleDocumentModal";
+import AccountSummaryModal from "../modals/AccountSummaryModal";
 import { useSearchStore } from "@/lib/searchStore";
 import { useModulePermissions } from "@/lib/useModulePermissions";
 
@@ -951,7 +951,7 @@ export default function KanbanBoard() {
       )}
       
       {showVehicleDocumentModal && leadForDocument && (
-        <VehicleDocumentModal
+        <AccountSummaryModal
           isOpen={showVehicleDocumentModal}
           mode={vehicleDocumentMode}
           lead={leadForDocument}

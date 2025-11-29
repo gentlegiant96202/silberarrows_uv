@@ -130,14 +130,14 @@ interface AccountSummaryModalProps {
 type TabType = 'form' | 'charges' | 'payments' | 'documents';
 
 const CHARGE_TYPES = [
-  { value: 'vehicle_sale', label: 'Vehicle Sale', icon: '🚗' },
-  { value: 'extended_warranty', label: 'Extended Warranty', icon: '🛡️' },
-  { value: 'ceramic_treatment', label: 'Ceramic Treatment', icon: '✨' },
-  { value: 'service_care', label: 'ServiceCare', icon: '🔧' },
-  { value: 'window_tints', label: 'Window Tints', icon: '🪟' },
-  { value: 'rta_fees', label: 'RTA Fees', icon: '📋' },
-  { value: 'other_addon', label: 'Other', icon: '➕' },
-  { value: 'discount', label: 'Discount', icon: '💰' },
+  { value: 'vehicle_sale', label: 'Vehicle Sale' },
+  { value: 'extended_warranty', label: 'Warranty' },
+  { value: 'ceramic_treatment', label: 'Ceramic' },
+  { value: 'service_care', label: 'Service' },
+  { value: 'window_tints', label: 'Tints' },
+  { value: 'rta_fees', label: 'RTA Fees' },
+  { value: 'other_addon', label: 'Other' },
+  { value: 'discount', label: 'Discount' },
 ];
 
 const PAYMENT_METHODS = [
@@ -248,11 +248,24 @@ export default function AccountSummaryModal({
   const [newCharge, setNewCharge] = useState({ charge_type: 'vehicle_sale', description: '', unit_price: 0, vat_applicable: false });
   const [newPayment, setNewPayment] = useState({ payment_method: 'cash', amount: 0, reference_number: '', notes: '', bank_name: '', cheque_number: '', cheque_date: '', part_exchange_vehicle: '', part_exchange_chassis: '' });
 
+  // PENDING DATA - stored in memory until "Generate" is clicked
+  const [pendingCharges, setPendingCharges] = useState<Array<{ id: string; charge_type: string; description: string; unit_price: number; total_amount: number; vat_applicable: boolean; vat_amount: number }>>([]);
+  const [pendingPayments, setPendingPayments] = useState<Array<{ id: string; payment_method: string; amount: number; reference_number: string; notes: string; bank_name?: string; cheque_number?: string; cheque_date?: string; part_exchange_vehicle?: string; part_exchange_chassis?: string }>>([]);
+
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Combine DB charges with pending charges for display
+  const allCharges = reservationId ? charges : pendingCharges;
+  const allPayments = reservationId ? payments : pendingPayments;
+
   const chargesTotals = {
-    subtotal: charges.reduce((sum, c) => sum + (c.total_amount || 0), 0),
-    vat: charges.reduce((sum, c) => sum + (c.vat_amount || 0), 0),
+    subtotal: allCharges.reduce((sum, c) => sum + (c.total_amount || c.unit_price || 0), 0),
+    vat: allCharges.reduce((sum, c) => sum + (c.vat_amount || 0), 0),
     get grandTotal() { return this.subtotal + this.vat; },
-    totalPaid: allocations.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
+    totalPaid: reservationId 
+      ? allocations.reduce((sum, a) => sum + (a.allocated_amount || 0), 0)
+      : pendingPayments.reduce((sum, p) => sum + (p.amount || 0), 0),
     get balanceDue() { return this.grandTotal - this.totalPaid; }
   };
 
@@ -264,8 +277,13 @@ export default function AccountSummaryModal({
     setLoading(true);
 
     try {
+      // Check if reservation exists first
+      const { data: resData } = await supabase.from('vehicle_reservations').select('*').eq('lead_id', lead.id).maybeSingle();
+      
+      let carData = null;
       if (lead.inventory_car_id) {
-        const { data: carData } = await supabase.from('cars').select('*').eq('id', lead.inventory_car_id).single();
+        const { data } = await supabase.from('cars').select('*').eq('id', lead.inventory_car_id).single();
+        carData = data;
         if (carData) {
           setInventoryCar(carData);
           setFormData(prev => ({
@@ -278,10 +296,21 @@ export default function AccountSummaryModal({
             mileage: carData.current_mileage_km || 0,
             vehicleSalePrice: carData.advertised_price_aed || 0,
           }));
+          
+          // Auto-add Vehicle Sale as first charge if no existing reservation
+          if (!resData && carData.advertised_price_aed > 0) {
+            setPendingCharges([{
+              id: `pending-vehicle-sale`,
+              charge_type: 'vehicle_sale',
+              description: `Vehicle Sale - ${carData.vehicle_model || 'Vehicle'}`,
+              unit_price: carData.advertised_price_aed,
+              total_amount: carData.advertised_price_aed,
+              vat_applicable: false,
+              vat_amount: 0
+            }]);
+          }
         }
       }
-
-      const { data: resData } = await supabase.from('vehicle_reservations').select('*').eq('lead_id', lead.id).maybeSingle();
 
       if (resData) {
         setIsEditing(true);
@@ -366,6 +395,9 @@ export default function AccountSummaryModal({
 
   useEffect(() => {
     if (isOpen) {
+      // Reset pending state when modal opens
+      setPendingCharges([]);
+      setPendingPayments([]);
       loadData();
       setActiveTab('form');
     }
@@ -392,8 +424,43 @@ export default function AccountSummaryModal({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const validateForm = (): string[] => {
+    const errors: string[] = [];
+    
+    // Customer fields
+    if (!formData.customerName?.trim()) errors.push('Customer Name is required');
+    if (!formData.contactNo?.trim()) errors.push('Phone Number is required');
+    if (!formData.emailAddress?.trim()) errors.push('Email Address is required');
+    if (!formData.customerIdNumber?.trim()) errors.push('ID Number is required');
+    
+    // Vehicle fields
+    if (!formData.makeModel?.trim()) errors.push('Vehicle Make & Model is required');
+    if (!formData.modelYear || formData.modelYear <= 0) errors.push('Vehicle Year is required');
+    if (!formData.chassisNo?.trim()) errors.push('Chassis Number is required');
+    
+    // Charges
+    if (allCharges.length === 0) errors.push('At least one charge is required');
+    
+    // Payment required for reservation
+    if (mode === 'reservation' && allPayments.length === 0) {
+      errors.push('At least one payment (deposit) is required for reservation');
+    }
+    
+    return errors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate before generating
+    const errors = validateForm();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      setActiveTab('form'); // Switch to details tab to show what's missing
+      return;
+    }
+    setValidationErrors([]);
+    
     setSaving(true);
 
     try {
@@ -443,6 +510,56 @@ export default function AccountSummaryModal({
         if (error) throw error;
         savedReservation = data;
         setReservationId(data.id);
+
+        // Save pending charges to DB now that we have a reservation_id
+        if (pendingCharges.length > 0) {
+          const chargesForDB = pendingCharges.map((c, index) => ({
+            reservation_id: data.id,
+            charge_type: c.charge_type,
+            description: c.description,
+            quantity: 1,
+            unit_price: c.unit_price,
+            vat_applicable: c.vat_applicable,
+            display_order: index,
+            created_by: user?.id
+          }));
+          await supabase.from('uv_charges').insert(chargesForDB);
+          setPendingCharges([]); // Clear pending after save
+        }
+
+        // Save pending payments to DB
+        if (pendingPayments.length > 0) {
+          for (const payment of pendingPayments) {
+            const { data: paymentData } = await supabase.from('uv_payments').insert({
+              lead_id: lead.id,
+              payment_method: payment.payment_method,
+              amount: payment.amount,
+              reference_number: payment.reference_number || null,
+              notes: payment.notes || null,
+              bank_name: payment.bank_name || null,
+              cheque_number: payment.cheque_number || null,
+              cheque_date: payment.cheque_date || null,
+              part_exchange_vehicle: payment.part_exchange_vehicle || null,
+              part_exchange_chassis: payment.part_exchange_chassis || null,
+              created_by: user?.id
+            }).select().single();
+
+            // Allocate payment to this reservation
+            if (paymentData) {
+              await supabase.from('uv_payment_allocations').insert({
+                payment_id: paymentData.id,
+                reservation_id: data.id,
+                allocated_amount: payment.amount,
+                created_by: user?.id
+              });
+              await supabase.from('uv_payments').update({
+                allocated_amount: payment.amount,
+                status: 'allocated'
+              }).eq('id', paymentData.id);
+            }
+          }
+          setPendingPayments([]); // Clear pending after save
+        }
       }
 
       const response = await fetch('/api/generate-vehicle-document', {
@@ -509,49 +626,97 @@ export default function AccountSummaryModal({
   };
 
   const handleAddCharge = async () => {
-    if (!reservationId || !newCharge.unit_price) return;
-    setSaving(true);
-    try {
-      await supabase.from('uv_charges').insert({
-        reservation_id: reservationId, charge_type: newCharge.charge_type,
-        description: newCharge.description || CHARGE_TYPES.find(c => c.value === newCharge.charge_type)?.label || '',
-        quantity: 1, unit_price: newCharge.unit_price, vat_applicable: newCharge.vat_applicable,
-        display_order: charges.length, created_by: user?.id
-      });
-      await loadData();
-      setShowAddCharge(false);
-      setNewCharge({ charge_type: 'vehicle_sale', description: '', unit_price: 0, vat_applicable: false });
-    } catch (error) { alert('Failed to add charge'); } finally { setSaving(false); }
+    if (!newCharge.unit_price) return;
+    
+    const chargeData = {
+      id: `pending-${Date.now()}`,
+      charge_type: newCharge.charge_type,
+      description: newCharge.description || CHARGE_TYPES.find(c => c.value === newCharge.charge_type)?.label || '',
+      unit_price: newCharge.unit_price,
+      total_amount: newCharge.unit_price, // For now, same as unit_price (qty=1)
+      vat_applicable: newCharge.vat_applicable,
+      vat_amount: 0
+    };
+
+    if (reservationId) {
+      // Save to DB if reservation exists
+      setSaving(true);
+      try {
+        await supabase.from('uv_charges').insert({
+          reservation_id: reservationId, charge_type: chargeData.charge_type,
+          description: chargeData.description,
+          quantity: 1, unit_price: chargeData.unit_price, vat_applicable: chargeData.vat_applicable,
+          display_order: charges.length, created_by: user?.id
+        });
+        await loadData();
+      } catch (error) { alert('Failed to add charge'); } finally { setSaving(false); }
+    } else {
+      // Store locally until Generate is clicked
+      setPendingCharges(prev => [...prev, chargeData]);
+    }
+    
+    setShowAddCharge(false);
+    setNewCharge({ charge_type: 'vehicle_sale', description: '', unit_price: 0, vat_applicable: false });
   };
 
   const handleDeleteCharge = async (id: string) => {
     if (!confirm('Delete this charge?')) return;
-    await supabase.from('uv_charges').delete().eq('id', id);
-    await loadData();
+    
+    if (id.startsWith('pending-')) {
+      // Remove from pending (local) state
+      setPendingCharges(prev => prev.filter(c => c.id !== id));
+    } else {
+      // Remove from DB
+      await supabase.from('uv_charges').delete().eq('id', id);
+      await loadData();
+    }
   };
 
   const handleAddPayment = async () => {
     if (!newPayment.amount) return;
-    setSaving(true);
-    try {
-      const { data: paymentData } = await supabase.from('uv_payments').insert({
-        lead_id: lead.id, payment_method: newPayment.payment_method, amount: newPayment.amount,
-        reference_number: newPayment.reference_number || null, notes: newPayment.notes || null,
-        bank_name: newPayment.bank_name || null, cheque_number: newPayment.cheque_number || null,
-        cheque_date: newPayment.cheque_date || null, part_exchange_vehicle: newPayment.part_exchange_vehicle || null,
-        part_exchange_chassis: newPayment.part_exchange_chassis || null, created_by: user?.id
-      }).select().single();
+    
+    const paymentData = {
+      id: `pending-${Date.now()}`,
+      payment_method: newPayment.payment_method,
+      amount: newPayment.amount,
+      reference_number: newPayment.reference_number || '',
+      notes: newPayment.notes || '',
+      bank_name: newPayment.bank_name || '',
+      cheque_number: newPayment.cheque_number || '',
+      cheque_date: newPayment.cheque_date || '',
+      part_exchange_vehicle: newPayment.part_exchange_vehicle || '',
+      part_exchange_chassis: newPayment.part_exchange_chassis || '',
+      payment_date: new Date().toISOString(),
+      status: 'pending'
+    };
 
-      if (reservationId && paymentData && chargesTotals.balanceDue > 0) {
-        const allocateAmount = Math.min(newPayment.amount, chargesTotals.balanceDue);
-        await supabase.from('uv_payment_allocations').insert({ payment_id: paymentData.id, reservation_id: reservationId, allocated_amount: allocateAmount, created_by: user?.id });
-        await supabase.from('uv_payments').update({ allocated_amount: allocateAmount, status: allocateAmount >= newPayment.amount ? 'allocated' : 'partially_allocated' }).eq('id', paymentData.id);
-      }
+    if (reservationId) {
+      // Save to DB if reservation exists
+      setSaving(true);
+      try {
+        const { data: dbPayment } = await supabase.from('uv_payments').insert({
+          lead_id: lead.id, payment_method: newPayment.payment_method, amount: newPayment.amount,
+          reference_number: newPayment.reference_number || null, notes: newPayment.notes || null,
+          bank_name: newPayment.bank_name || null, cheque_number: newPayment.cheque_number || null,
+          cheque_date: newPayment.cheque_date || null, part_exchange_vehicle: newPayment.part_exchange_vehicle || null,
+          part_exchange_chassis: newPayment.part_exchange_chassis || null, created_by: user?.id
+        }).select().single();
 
-      await loadData();
-      setShowAddPayment(false);
-      setNewPayment({ payment_method: 'cash', amount: 0, reference_number: '', notes: '', bank_name: '', cheque_number: '', cheque_date: '', part_exchange_vehicle: '', part_exchange_chassis: '' });
-    } catch (error) { alert('Failed to record payment'); } finally { setSaving(false); }
+        if (dbPayment && chargesTotals.balanceDue > 0) {
+          const allocateAmount = Math.min(newPayment.amount, chargesTotals.balanceDue);
+          await supabase.from('uv_payment_allocations').insert({ payment_id: dbPayment.id, reservation_id: reservationId, allocated_amount: allocateAmount, created_by: user?.id });
+          await supabase.from('uv_payments').update({ allocated_amount: allocateAmount, status: allocateAmount >= newPayment.amount ? 'allocated' : 'partially_allocated' }).eq('id', dbPayment.id);
+        }
+
+        await loadData();
+      } catch (error) { alert('Failed to record payment'); } finally { setSaving(false); }
+    } else {
+      // Store locally until Generate is clicked
+      setPendingPayments(prev => [...prev, paymentData]);
+    }
+    
+    setShowAddPayment(false);
+    setNewPayment({ payment_method: 'cash', amount: 0, reference_number: '', notes: '', bank_name: '', cheque_number: '', cheque_date: '', part_exchange_vehicle: '', part_exchange_chassis: '' });
   };
 
   const formatCurrency = (n: number) => new Intl.NumberFormat('en-AE', { minimumFractionDigits: 0 }).format(n);
@@ -565,107 +730,113 @@ export default function AccountSummaryModal({
   // RENDER
   // ============================================================
   return createPortal(
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-3">
-      <div className="bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-5xl h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      {/* Override browser autofill styles */}
+      <style>{`
+        .account-modal input,
+        .account-modal select,
+        .account-modal textarea {
+          background-color: #1a1a1a !important;
+        }
+        .account-modal input:-webkit-autofill,
+        .account-modal input:-webkit-autofill:hover,
+        .account-modal input:-webkit-autofill:focus,
+        .account-modal input:-webkit-autofill:active,
+        .account-modal select:-webkit-autofill {
+          -webkit-box-shadow: 0 0 0 1000px #1a1a1a inset !important;
+          -webkit-text-fill-color: white !important;
+          caret-color: white !important;
+          background-color: #1a1a1a !important;
+        }
+      `}</style>
+      <div className="account-modal bg-[#0d0d0d] rounded-xl w-full max-w-5xl h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-[#333]">
         
         {/* ============ HEADER ============ */}
-        <div className="p-5 bg-zinc-900 border-b border-zinc-700/50 shrink-0">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              {/* Customer Name - Primary */}
-              <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-2xl font-bold text-white tracking-tight">
-                  {formData.customerName || 'Customer'}
-                </h2>
-                {customerNumber && (
-                  <span className="px-2.5 py-1 bg-sky-500/30 text-sky-300 text-xs font-mono font-medium rounded-md border border-sky-500/40">
-                    {customerNumber}
-                  </span>
-                )}
-                {documentNumber && (
-                  <span className="px-2.5 py-1 bg-zinc-700 text-zinc-200 text-xs font-mono font-medium rounded-md border border-zinc-600">
-                    {documentNumber}
-                  </span>
-                )}
-                {isPaid && (
-                  <span className="px-2.5 py-1 bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-medium rounded-md flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Paid
-                  </span>
-                )}
+        <div className="shrink-0 bg-gradient-to-b from-[#1a1a1a] to-[#111] border-b border-[#333]">
+          {/* Top bar with customer info and close */}
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#888] to-[#444] flex items-center justify-center text-white font-semibold text-sm">
+                {(formData.customerName || 'C').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
               </div>
-              {/* Contact & Vehicle Info - Secondary */}
-              <div className="flex items-center gap-5 text-sm">
-                <span className="flex items-center gap-1.5 text-zinc-300">
-                  <Phone className="w-3.5 h-3.5" />
-                  {formData.contactNo}
-                </span>
-                {formData.emailAddress && (
-                  <span className="flex items-center gap-1.5 text-zinc-400">
-                    <Mail className="w-3.5 h-3.5" />
-                    {formData.emailAddress}
-                  </span>
-                )}
-                <span className="text-zinc-600">|</span>
-                <span className="flex items-center gap-1.5 text-zinc-400">
-                  <Car className="w-3.5 h-3.5" />
-                  {formData.makeModel} {formData.modelYear > 0 && `• ${formData.modelYear}`} {formData.exteriorColour && `• ${formData.exteriorColour}`}
-                </span>
+              <div>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-base font-semibold text-white">
+                    {formData.customerName || 'Customer'}
+                  </h2>
+                  {customerNumber && (
+                    <span className="px-2 py-0.5 bg-gradient-to-r from-[#444] to-[#333] text-[#ccc] text-[11px] font-mono rounded border border-[#555]">
+                      {customerNumber}
+                    </span>
+                  )}
+                  {isPaid && (
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[11px] font-medium rounded flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Paid
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 mt-0.5 text-[13px] text-[#888]">
+                  <span>{formData.contactNo}</span>
+                  {formData.emailAddress && (
+                    <>
+                      <span className="text-[#444]">•</span>
+                      <span>{formData.emailAddress}</span>
+                    </>
+                  )}
+                  <span className="text-[#444]">•</span>
+                  <span>{formData.makeModel} {formData.modelYear > 0 && formData.modelYear}</span>
+                </div>
               </div>
             </div>
             
-            {/* Close Button */}
-            <button onClick={onClose} className="p-2 hover:bg-zinc-700 rounded-lg transition-colors group">
-              <X className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" />
-            </button>
-          </div>
-          
-          {/* Quick Stats */}
-          <div className="flex items-center gap-6 mt-4 pt-4 border-t border-zinc-700/50">
-            <div className="bg-zinc-800/80 rounded-lg px-4 py-3">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Invoice Total</p>
-              <p className="text-lg font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p>
-            </div>
-            <div className="bg-zinc-800/80 rounded-lg px-4 py-3">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Paid</p>
-              <p className="text-lg font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p>
-            </div>
-            <div className="bg-zinc-800/80 rounded-lg px-4 py-3">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Balance Due</p>
-              <p className={`text-lg font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
-                AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}
-              </p>
-            </div>
-            <div className="flex-1" />
-            <div className="text-right">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{mode === 'reservation' ? 'Reservation' : 'Invoice'}</p>
-              <p className="text-sm text-zinc-300 mt-1">{formData.salesExecutive}</p>
+            {/* Stats & Close */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-5 text-right">
+                <div>
+                  <p className="text-[11px] text-[#666] uppercase tracking-wide">Total</p>
+                  <p className="text-sm font-semibold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p>
+                </div>
+                <div className="w-px h-8 bg-[#333]" />
+                <div>
+                  <p className="text-[11px] text-[#666] uppercase tracking-wide">Paid</p>
+                  <p className="text-sm font-semibold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p>
+                </div>
+                <div className="w-px h-8 bg-[#333]" />
+                <div>
+                  <p className="text-[11px] text-[#666] uppercase tracking-wide">Balance</p>
+                  <p className={`text-sm font-semibold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}
+                  </p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-2 hover:bg-[#333] rounded-lg transition-colors">
+                <X className="w-5 h-5 text-[#666] hover:text-white transition-colors" />
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* ============ TABS ============ */}
-        <div className="shrink-0 border-b border-white/10 px-2">
-          <div className="flex gap-1">
+          {/* Tabs */}
+          <div className="grid grid-cols-4">
             {[
               { key: 'form', label: 'Details', icon: ClipboardList },
-              { key: 'charges', label: 'Charges', icon: Receipt, count: charges.length },
-              { key: 'payments', label: 'Payments', icon: CreditCard, count: payments.length },
+              { key: 'charges', label: 'Charges', icon: Receipt, count: allCharges.length },
+              { key: 'payments', label: 'Payments', icon: CreditCard, count: allPayments.length },
               { key: 'documents', label: 'Documents', icon: FileText },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as TabType)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-all rounded-t-lg ${
+                className={`relative flex items-center justify-center gap-2 py-4 text-sm font-medium transition-all border-b-2 ${
                   activeTab === tab.key 
-                    ? 'text-white bg-white/10' 
-                    : 'text-white/50 hover:text-white/70 hover:bg-white/5'
+                    ? 'text-white bg-gradient-to-t from-[#222] to-transparent border-[#888]' 
+                    : 'text-[#666] hover:text-[#999] hover:bg-[#0d0d0d] border-transparent'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
                 {tab.count !== undefined && tab.count > 0 && (
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                    activeTab === tab.key ? 'bg-white/20' : 'bg-white/10'
+                    activeTab === tab.key ? 'bg-[#444] text-white' : 'bg-[#333] text-[#888]'
                   }`}>
                     {tab.count}
                   </span>
@@ -675,132 +846,167 @@ export default function AccountSummaryModal({
           </div>
         </div>
 
+        {/* ============ VALIDATION ERRORS ============ */}
+        {validationErrors.length > 0 && (
+          <div className="mx-6 mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <X className="w-3 h-3 text-red-400" />
+              </div>
+              <div>
+                <p className="text-red-400 font-medium text-sm mb-2">Please fix the following errors:</p>
+                <ul className="text-red-400/80 text-sm space-y-1">
+                  {validationErrors.map((error, i) => (
+                    <li key={i}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+              <button onClick={() => setValidationErrors([])} className="ml-auto text-red-400/50 hover:text-red-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ============ CONTENT ============ */}
-        <div className="flex-1 overflow-y-auto p-5 relative min-h-0">
+        <div className="flex-1 overflow-y-auto p-6 relative min-h-0 bg-[#0a0a0a]">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="w-10 h-10 border-2 border-white/10 border-t-white/60 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#333] border-t-[#888] rounded-full animate-spin" />
             </div>
           ) : (
             <>
               {/* FORM TAB */}
               {activeTab === 'form' && (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Customer Information - Full Width */}
-                  <div className="bg-zinc-800/60 rounded-xl p-4 border border-zinc-700/50">
-                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <User className="w-3.5 h-3.5" /> Customer
-                    </h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-[11px] text-white/40 mb-1.5">Full Name</label>
-                        <input type="text" value={formData.customerName} onChange={(e) => handleInputChange('customerName', e.target.value)} placeholder="Customer Name" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-white/40 mb-1.5">Phone Number</label>
-                        <input type="tel" value={formData.contactNo} onChange={(e) => handleInputChange('contactNo', e.target.value)} placeholder="+971 XX XXX XXXX" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-white/40 mb-1.5">Email Address</label>
-                        <input type="email" value={formData.emailAddress} onChange={(e) => handleInputChange('emailAddress', e.target.value)} placeholder="customer@email.com" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
-                      </div>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Customer Information */}
+                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#333] bg-[#111]">
+                      <h3 className="text-[13px] font-medium text-[#999] flex items-center gap-2">
+                        <User className="w-4 h-4" /> Customer Information
+                      </h3>
                     </div>
-                    <div className="grid grid-cols-4 gap-4 mt-3">
-                      <div>
-                        <label className="block text-[11px] text-white/40 mb-1.5">ID Type</label>
-                        <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none h-[42px]">
-                          <option value="EID" className="bg-black">EID</option>
-                          <option value="Passport" className="bg-black">Passport</option>
-                        </select>
+                    <div className="p-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-[12px] text-[#666] mb-2">Full Name</label>
+                          <input type="text" value={formData.customerName} onChange={(e) => handleInputChange('customerName', e.target.value)} placeholder="Customer Name" className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" required />
+                        </div>
+                        <div>
+                          <label className="block text-[12px] text-[#666] mb-2">Phone Number</label>
+                          <input type="tel" value={formData.contactNo} onChange={(e) => handleInputChange('contactNo', e.target.value)} placeholder="+971 XX XXX XXXX" className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" required />
+                        </div>
+                        <div>
+                          <label className="block text-[12px] text-[#666] mb-2">Email Address</label>
+                          <input type="email" value={formData.emailAddress} onChange={(e) => handleInputChange('emailAddress', e.target.value)} placeholder="customer@email.com" className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" required />
+                        </div>
                       </div>
-                      <div className="col-span-3">
-                        <label className="block text-[11px] text-white/40 mb-1.5">ID Number</label>
-                        <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20" required />
+                      <div className="grid grid-cols-4 gap-4 mt-4">
+                        <div>
+                          <label className="block text-[12px] text-[#666] mb-2">ID Type</label>
+                          <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner focus:outline-none focus:border-[#666] transition-colors h-[42px]">
+                            <option value="EID" className="bg-[#0d0d0d]">EID</option>
+                            <option value="Passport" className="bg-[#0d0d0d]">Passport</option>
+                          </select>
+                        </div>
+                        <div className="col-span-3">
+                          <label className="block text-[12px] text-[#666] mb-2">ID Number</label>
+                          <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" required />
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Vehicle Information */}
-                  <div className="bg-zinc-800/60 rounded-xl p-4 border border-zinc-700/50">
-                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <Car className="w-3.5 h-3.5" /> Vehicle Information
-                    </h3>
-                    <div className="grid grid-cols-4 gap-4">
-                      <div className="col-span-2"><label className="block text-[11px] text-white/40 mb-1.5">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Mileage (km)</label><input type="number" value={formData.mileage} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
+                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#333] bg-[#111]">
+                      <h3 className="text-[13px] font-medium text-[#999] flex items-center gap-2">
+                        <Car className="w-4 h-4" /> Vehicle Information
+                      </h3>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 mt-3">
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Exterior Colour</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Interior Colour</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm" /></div>
-                      <div><label className="block text-[11px] text-white/40 mb-1.5">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/60 text-sm font-mono" /></div>
-                    </div>
-                    {/* Coverage & Warranty */}
-                    <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/10">
-                      {/* Manufacturer Warranty */}
-                      <div className={`rounded-xl p-4 border transition-all ${formData.manufacturerWarranty ? 'bg-zinc-800/80 border-zinc-600' : 'bg-zinc-800/40 border-zinc-700/50'}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0 mr-3">
-                            <p className="text-sm font-medium text-white">Manufacturer Warranty</p>
-                            <p className="text-xs text-white/40 mt-0.5">Factory coverage details</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleInputChange('manufacturerWarranty', !formData.manufacturerWarranty)}
-                            className={`relative flex-shrink-0 w-9 h-5 rounded-full transition-colors ${formData.manufacturerWarranty ? 'bg-emerald-500' : 'bg-white/20'}`}
-                          >
-                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${formData.manufacturerWarranty ? 'left-[18px]' : 'left-0.5'}`} />
-                          </button>
-                        </div>
-                        {formData.manufacturerWarranty && (
-                          <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/10">
-                            <div>
-                              <label className="block text-[10px] text-white/40 uppercase tracking-wider mb-1">Expiry Date</label>
-                              <input type="date" value={formData.manufacturerWarrantyExpiryDate} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/30" />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] text-white/40 uppercase tracking-wider mb-1">Mileage Limit</label>
-                              <input type="number" value={formData.manufacturerWarrantyExpiryMileage} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryMileage', parseInt(e.target.value) || 0)} placeholder="e.g. 100000" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/30" />
-                            </div>
-                          </div>
-                        )}
+                    <div className="p-4">
+                      <div className="grid grid-cols-4 gap-4">
+                        <div className="col-span-2"><label className="block text-[12px] text-[#666] mb-2">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                        <div><label className="block text-[12px] text-[#666] mb-2">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                        <div><label className="block text-[12px] text-[#666] mb-2">Mileage (km)</label><input type="number" value={formData.mileage} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
                       </div>
-
-                      {/* Dealer Service Package */}
-                      <div className={`rounded-xl p-4 border transition-all ${formData.dealerServicePackage ? 'bg-zinc-800/80 border-zinc-600' : 'bg-zinc-800/40 border-zinc-700/50'}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0 mr-3">
-                            <p className="text-sm font-medium text-white">Dealer Service Package</p>
-                            <p className="text-xs text-white/40 mt-0.5">Prepaid service plan</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleInputChange('dealerServicePackage', !formData.dealerServicePackage)}
-                            className={`relative flex-shrink-0 w-9 h-5 rounded-full transition-colors ${formData.dealerServicePackage ? 'bg-emerald-500' : 'bg-white/20'}`}
-                          >
-                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${formData.dealerServicePackage ? 'left-[18px]' : 'left-0.5'}`} />
-                          </button>
-                        </div>
-                        {formData.dealerServicePackage && (
-                          <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/10">
-                            <div>
-                              <label className="block text-[10px] text-white/40 uppercase tracking-wider mb-1">Expiry Date</label>
-                              <input type="date" value={formData.dealerServicePackageExpiryDate} onChange={(e) => handleInputChange('dealerServicePackageExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-white/30" />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] text-white/40 uppercase tracking-wider mb-1">Mileage Limit</label>
-                              <input type="number" value={formData.dealerServicePackageExpiryMileage} onChange={(e) => handleInputChange('dealerServicePackageExpiryMileage', parseInt(e.target.value) || 0)} placeholder="e.g. 60000" className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/30" />
-                            </div>
-                          </div>
-                        )}
+                      <div className="grid grid-cols-3 gap-4 mt-4">
+                        <div><label className="block text-[12px] text-[#666] mb-2">Exterior Colour</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                        <div><label className="block text-[12px] text-[#666] mb-2">Interior Colour</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                        <div><label className="block text-[12px] text-[#666] mb-2">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner font-mono cursor-not-allowed" /></div>
                       </div>
                     </div>
                   </div>
 
+                  {/* Coverage & Warranty */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Manufacturer Warranty */}
+                    <div className={`bg-[#0a0a0a] rounded-lg border overflow-hidden transition-all ${formData.manufacturerWarranty ? 'border-[#555]' : 'border-[#333]'}`}>
+                      <div className="px-4 py-3 flex items-center justify-between border-b border-[#333]">
+                        <div>
+                          <p className="text-sm font-medium text-white">Manufacturer Warranty</p>
+                          <p className="text-[12px] text-[#666] mt-0.5">Factory coverage details</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('manufacturerWarranty', !formData.manufacturerWarranty)}
+                          className={`relative w-11 h-6 rounded-full transition-colors ${formData.manufacturerWarranty ? 'bg-gradient-to-r from-[#666] to-[#888]' : 'bg-[#333]'}`}
+                        >
+                          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.manufacturerWarranty ? 'left-6' : 'left-1'}`} />
+                        </button>
+                      </div>
+                      {formData.manufacturerWarranty && (
+                        <div className="p-4 grid grid-cols-2 gap-3 bg-[#0d0d0d]">
+                          <div>
+                            <label className="block text-[11px] text-[#666] uppercase tracking-wide mb-1.5">Expiry Date</label>
+                            <input type="date" value={formData.manufacturerWarrantyExpiryDate} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner focus:outline-none focus:border-[#666]" />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-[#666] uppercase tracking-wide mb-1.5">Mileage Limit</label>
+                            <input type="number" value={formData.manufacturerWarrantyExpiryMileage} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryMileage', parseInt(e.target.value) || 0)} placeholder="e.g. 100000" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dealer Service Package */}
+                    <div className={`bg-[#0a0a0a] rounded-lg border overflow-hidden transition-all ${formData.dealerServicePackage ? 'border-[#555]' : 'border-[#333]'}`}>
+                      <div className="px-4 py-3 flex items-center justify-between border-b border-[#333]">
+                        <div>
+                          <p className="text-sm font-medium text-white">Dealer Service Package</p>
+                          <p className="text-[12px] text-[#666] mt-0.5">Prepaid service plan</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('dealerServicePackage', !formData.dealerServicePackage)}
+                          className={`relative w-11 h-6 rounded-full transition-colors ${formData.dealerServicePackage ? 'bg-gradient-to-r from-[#666] to-[#888]' : 'bg-[#333]'}`}
+                        >
+                          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.dealerServicePackage ? 'left-6' : 'left-1'}`} />
+                        </button>
+                      </div>
+                      {formData.dealerServicePackage && (
+                        <div className="p-4 grid grid-cols-2 gap-3 bg-[#0d0d0d]">
+                          <div>
+                            <label className="block text-[11px] text-[#666] uppercase tracking-wide mb-1.5">Expiry Date</label>
+                            <input type="date" value={formData.dealerServicePackageExpiryDate} onChange={(e) => handleInputChange('dealerServicePackageExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner focus:outline-none focus:border-[#666]" />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-[#666] uppercase tracking-wide mb-1.5">Mileage Limit</label>
+                            <input type="number" value={formData.dealerServicePackageExpiryMileage} onChange={(e) => handleInputChange('dealerServicePackageExpiryMileage', parseInt(e.target.value) || 0)} placeholder="e.g. 60000" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Notes */}
-                  <div className="bg-zinc-800/60 rounded-xl p-4 border border-zinc-700/50">
-                    <label className="block text-[11px] text-white/40 mb-1.5">Additional Notes</label>
-                    <textarea value={formData.additionalNotes} onChange={(e) => handleInputChange('additionalNotes', e.target.value)} rows={2} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm resize-none placeholder-white/30 focus:outline-none focus:border-white/20" placeholder="Any notes for this transaction..." />
+                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#333] bg-[#111]">
+                      <h3 className="text-[13px] font-medium text-[#999]">Additional Notes</h3>
+                    </div>
+                    <div className="p-4">
+                      <textarea value={formData.additionalNotes} onChange={(e) => handleInputChange('additionalNotes', e.target.value)} rows={3} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner resize-none placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" placeholder="Any notes for this transaction..." />
+                    </div>
                   </div>
                 </form>
               )}
@@ -808,19 +1014,20 @@ export default function AccountSummaryModal({
               {/* CHARGES TAB */}
               {activeTab === 'charges' && (
                 <div className="space-y-5">
-                  {!reservationId ? (
-                    <div className="text-center py-12 text-white/40">
-                      <Receipt className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>Generate a reservation/invoice first to add charges</p>
+                  {/* Info banner when building quote */}
+                  {!reservationId && pendingCharges.length > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-amber-400 text-sm flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Building quote - charges will be saved when you Generate the document
                     </div>
-                  ) : (
-                    <>
+                  )}
+                  <>
                       {/* Quick Add Buttons */}
                       <div className="flex flex-wrap gap-2">
                         {CHARGE_TYPES.map((type) => {
                           const getDefaultPrice = () => {
                             if (type.value === 'vehicle_sale') return inventoryCar?.advertised_price_aed || formData.vehicleSalePrice || 0;
-                            if (type.value === 'rta_fees') return 2800; // Default RTA fees
+                            if (type.value === 'rta_fees') return 2800;
                             return 0;
                           };
                           const getDescription = () => {
@@ -840,9 +1047,13 @@ export default function AccountSummaryModal({
                                 }); 
                                 setShowAddCharge(true); 
                               }} 
-                              className="px-4 py-2 bg-zinc-700/50 hover:bg-zinc-700 border border-zinc-600/50 hover:border-zinc-500 rounded-lg text-sm text-white/70 hover:text-white transition-all flex items-center gap-2"
+                              className={`px-4 py-2 rounded-full text-[13px] font-medium transition-all ${
+                                type.value === 'discount' 
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20' 
+                                  : 'bg-[#222] text-[#aaa] border border-[#333] hover:bg-[#333] hover:text-white'
+                              }`}
                             >
-                              <span>{type.icon}</span> {type.label}
+                              {type.label}
                             </button>
                           );
                         })}
@@ -850,40 +1061,39 @@ export default function AccountSummaryModal({
 
                       {/* Add Form */}
                       {showAddCharge && (
-                        <div className="bg-zinc-800/60 rounded-xl p-5 border border-zinc-700/50">
+                        <div className="bg-[#0f0f0f] rounded-lg p-4 border border-[#333]">
                           <h4 className="text-sm font-medium text-white mb-4">Add Charge</h4>
                           <div className="grid grid-cols-4 gap-4 items-end">
-                            <div><label className="block text-[11px] text-white/40 mb-1.5">Type</label><select value={newCharge.charge_type} onChange={(e) => setNewCharge(prev => ({ ...prev, charge_type: e.target.value, description: CHARGE_TYPES.find(c => c.value === e.target.value)?.label || '' }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm">{CHARGE_TYPES.map((t) => <option key={t.value} value={t.value} className="bg-zinc-900">{t.icon} {t.label}</option>)}</select></div>
-                            <div><label className="block text-[11px] text-white/40 mb-1.5">Description</label><input type="text" value={newCharge.description} onChange={(e) => setNewCharge(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" /></div>
-                            <div><label className="block text-[11px] text-white/40 mb-1.5">Amount (AED)</label><input type="number" value={newCharge.unit_price} onChange={(e) => setNewCharge(prev => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" /></div>
+                            <div><label className="block text-[12px] text-[#666] mb-2">Type</label><select value={newCharge.charge_type} onChange={(e) => setNewCharge(prev => ({ ...prev, charge_type: e.target.value, description: CHARGE_TYPES.find(c => c.value === e.target.value)?.label || '' }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner">{CHARGE_TYPES.map((t) => <option key={t.value} value={t.value} className="bg-[#0d0d0d]">{t.label}</option>)}</select></div>
+                            <div><label className="block text-[12px] text-[#666] mb-2">Description</label><input type="text" value={newCharge.description} onChange={(e) => setNewCharge(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
+                            <div><label className="block text-[12px] text-[#666] mb-2">Amount (AED)</label><input type="number" value={newCharge.unit_price} onChange={(e) => setNewCharge(prev => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
                             <div className="flex gap-2">
-                              <button onClick={handleAddCharge} disabled={saving} className="flex-1 px-4 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors">{saving ? '...' : 'Add'}</button>
-                              <button onClick={() => setShowAddCharge(false)} className="px-4 py-2.5 bg-white/10 text-white text-sm rounded-lg">Cancel</button>
+                              <button onClick={handleAddCharge} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors">{saving ? '...' : 'Add'}</button>
+                              <button onClick={() => setShowAddCharge(false)} className="px-4 py-2.5 bg-[#333] text-white text-sm rounded-md hover:bg-[#444]">Cancel</button>
                             </div>
                           </div>
                         </div>
                       )}
 
                       {/* Charges Table */}
-                      <div className="bg-zinc-800/60 rounded-xl border border-zinc-700/50 overflow-hidden">
+                      <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
                         <table className="w-full">
-                          <thead><tr className="border-b border-white/10 bg-white/[0.02]"><th className="px-5 py-4 text-left text-xs font-medium text-white/50 uppercase tracking-wider">Description</th><th className="px-5 py-4 text-right text-xs font-medium text-white/50 uppercase tracking-wider">Amount</th><th className="px-5 py-4 w-12"></th></tr></thead>
-                          <tbody className="divide-y divide-white/5">
-                            {charges.length === 0 ? <tr><td colSpan={3} className="px-5 py-12 text-center text-white/30">No charges added yet</td></tr> : charges.map((c) => (
-                              <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
-                                <td className="px-5 py-4 text-white">{c.description}</td>
-                                <td className={`px-5 py-4 text-right font-medium ${c.unit_price < 0 ? 'text-emerald-400' : 'text-white'}`}>{c.unit_price < 0 ? '-' : ''}AED {formatCurrency(Math.abs(c.total_amount))}</td>
-                                <td className="px-5 py-4"><button onClick={() => handleDeleteCharge(c.id)} className="p-1.5 hover:bg-red-500/20 rounded-lg text-white/30 hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
+                          <thead><tr className="border-b border-[#333] bg-[#111]"><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Description</th><th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Amount</th><th className="px-4 py-3 w-12"></th></tr></thead>
+                          <tbody className="divide-y divide-[#333]">
+                            {allCharges.length === 0 ? <tr><td colSpan={3} className="px-4 py-12 text-center text-[#555]">No charges added yet. Click a button above to add.</td></tr> : allCharges.map((c) => (
+                              <tr key={c.id} className="hover:bg-[#0d0d0d] transition-colors">
+                                <td className="px-4 py-3 text-white text-sm">{c.description}</td>
+                                <td className={`px-4 py-3 text-right font-medium text-sm ${c.unit_price < 0 ? 'text-emerald-400' : 'text-white'}`}>{c.unit_price < 0 ? '-' : ''}AED {formatCurrency(Math.abs(c.total_amount || c.unit_price))}</td>
+                                <td className="px-4 py-3"><button onClick={() => handleDeleteCharge(c.id)} className="p-1.5 hover:bg-red-500/20 rounded text-[#555] hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
                               </tr>
                             ))}
                           </tbody>
-                          {charges.length > 0 && (
-                            <tfoot><tr className="bg-gradient-to-r from-zinc-800/80 to-zinc-700/80"><td className="px-5 py-4 text-sm font-bold text-white">Grand Total</td><td className="px-5 py-4 text-right text-lg font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</td><td></td></tr></tfoot>
+                          {allCharges.length > 0 && (
+                            <tfoot><tr className="bg-[#0d0d0d] border-t border-[#333]"><td className="px-4 py-3 text-sm font-semibold text-white">Grand Total</td><td className="px-4 py-3 text-right text-base font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</td><td></td></tr></tfoot>
                           )}
                         </table>
                       </div>
                     </>
-                  )}
                 </div>
               )}
 
@@ -891,60 +1101,68 @@ export default function AccountSummaryModal({
               {activeTab === 'payments' && (
                 <div className="space-y-5">
                   {/* Balance Header */}
-                  <div className="grid grid-cols-3 gap-4 p-5 bg-zinc-800/60 rounded-xl border border-zinc-700/50">
-                    <div><p className="text-xs text-white/40 uppercase tracking-wider">Invoice Total</p><p className="text-2xl font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p></div>
-                    <div><p className="text-xs text-white/40 uppercase tracking-wider">Total Paid</p><p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p></div>
-                    <div className="text-right"><p className="text-xs text-white/40 uppercase tracking-wider">Balance Due</p><p className={`text-2xl font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}</p></div>
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-[#0f0f0f] rounded-lg border border-[#333]">
+                    <div><p className="text-[11px] text-[#666] uppercase tracking-wide">Invoice Total</p><p className="text-xl font-bold text-white mt-1">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p></div>
+                    <div><p className="text-[11px] text-[#666] uppercase tracking-wide">Total Paid</p><p className="text-xl font-bold text-emerald-400 mt-1">AED {formatCurrency(chargesTotals.totalPaid)}</p></div>
+                    <div className="text-right"><p className="text-[11px] text-[#666] uppercase tracking-wide">Balance Due</p><p className={`text-xl font-bold mt-1 ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}</p></div>
                   </div>
 
                   {/* Add Payment Button */}
                   {!showAddPayment && !isPaid && (
-                    <button onClick={() => { setNewPayment(prev => ({ ...prev, amount: chargesTotals.balanceDue || formData.amountDue })); setShowAddPayment(true); }} className="w-full py-4 border-2 border-dashed border-white/20 hover:border-white/40 rounded-xl text-white/50 hover:text-white transition-all flex items-center justify-center gap-2 group">
-                      <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" /> Record New Payment
+                    <button onClick={() => { setNewPayment(prev => ({ ...prev, amount: chargesTotals.balanceDue || formData.amountDue })); setShowAddPayment(true); }} className="w-full py-3 border border-dashed border-[#333] hover:border-[#555] rounded-lg text-[#666] hover:text-white transition-all flex items-center justify-center gap-2 group">
+                      <Plus className="w-4 h-4" /> Record New Payment
                     </button>
                   )}
 
                   {/* Add Payment Form */}
                   {showAddPayment && (
-                    <div className="bg-zinc-800/60 rounded-xl p-5 border border-zinc-700/50">
+                    <div className="bg-[#0f0f0f] rounded-lg p-4 border border-[#333]">
                       <h4 className="text-sm font-medium text-white mb-4">Record Payment</h4>
                       <div className="grid grid-cols-3 gap-4">
-                        <div><label className="block text-[11px] text-white/40 mb-1.5">Method</label><select value={newPayment.payment_method} onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm">{PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value} className="bg-zinc-900">{m.label}</option>)}</select></div>
-                        <div><label className="block text-[11px] text-white/40 mb-1.5">Amount (AED)</label><input type="number" value={newPayment.amount} onChange={(e) => setNewPayment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" /></div>
-                        <div><label className="block text-[11px] text-white/40 mb-1.5">Reference</label><input type="text" value={newPayment.reference_number} onChange={(e) => setNewPayment(prev => ({ ...prev, reference_number: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" placeholder="Ref #" /></div>
+                        <div><label className="block text-[12px] text-[#666] mb-2">Method</label><select value={newPayment.payment_method} onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner">{PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value} className="bg-[#0d0d0d]">{m.label}</option>)}</select></div>
+                        <div><label className="block text-[12px] text-[#666] mb-2">Amount (AED)</label><input type="number" value={newPayment.amount} onChange={(e) => setNewPayment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
+                        <div><label className="block text-[12px] text-[#666] mb-2">Reference</label><input type="text" value={newPayment.reference_number} onChange={(e) => setNewPayment(prev => ({ ...prev, reference_number: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" placeholder="Ref #" /></div>
                       </div>
                       {newPayment.payment_method === 'cheque' && (
-                        <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/10">
-                          <div><label className="block text-[11px] text-white/40 mb-1.5">Bank</label><input type="text" value={newPayment.bank_name} onChange={(e) => setNewPayment(prev => ({ ...prev, bank_name: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" /></div>
-                          <div><label className="block text-[11px] text-white/40 mb-1.5">Cheque #</label><input type="text" value={newPayment.cheque_number} onChange={(e) => setNewPayment(prev => ({ ...prev, cheque_number: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" /></div>
-                          <div><label className="block text-[11px] text-white/40 mb-1.5">Date</label><input type="date" value={newPayment.cheque_date} onChange={(e) => setNewPayment(prev => ({ ...prev, cheque_date: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" /></div>
+                        <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-[#333]">
+                          <div><label className="block text-[12px] text-[#666] mb-2">Bank</label><input type="text" value={newPayment.bank_name} onChange={(e) => setNewPayment(prev => ({ ...prev, bank_name: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
+                          <div><label className="block text-[12px] text-[#666] mb-2">Cheque #</label><input type="text" value={newPayment.cheque_number} onChange={(e) => setNewPayment(prev => ({ ...prev, cheque_number: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
+                          <div><label className="block text-[12px] text-[#666] mb-2">Date</label><input type="date" value={newPayment.cheque_date} onChange={(e) => setNewPayment(prev => ({ ...prev, cheque_date: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
                         </div>
                       )}
                       {newPayment.payment_method === 'part_exchange' && (
-                        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/10">
-                          <div><label className="block text-[11px] text-white/40 mb-1.5">Vehicle</label><input type="text" value={newPayment.part_exchange_vehicle} onChange={(e) => setNewPayment(prev => ({ ...prev, part_exchange_vehicle: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" placeholder="Make/Model/Year" /></div>
-                          <div><label className="block text-[11px] text-white/40 mb-1.5">Chassis</label><input type="text" value={newPayment.part_exchange_chassis} onChange={(e) => setNewPayment(prev => ({ ...prev, part_exchange_chassis: e.target.value }))} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm" /></div>
+                        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-[#333]">
+                          <div><label className="block text-[12px] text-[#666] mb-2">Vehicle</label><input type="text" value={newPayment.part_exchange_vehicle} onChange={(e) => setNewPayment(prev => ({ ...prev, part_exchange_vehicle: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" placeholder="Make/Model/Year" /></div>
+                          <div><label className="block text-[12px] text-[#666] mb-2">Chassis</label><input type="text" value={newPayment.part_exchange_chassis} onChange={(e) => setNewPayment(prev => ({ ...prev, part_exchange_chassis: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
                         </div>
                       )}
                       <div className="flex gap-3 mt-4">
-                        <button onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-5 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50">{saving ? '...' : 'Save Payment'}</button>
-                        <button onClick={() => setShowAddPayment(false)} className="px-5 py-2.5 bg-white/10 text-white text-sm rounded-lg">Cancel</button>
+                        <button onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-4 py-2.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50">{saving ? '...' : 'Save Payment'}</button>
+                        <button onClick={() => setShowAddPayment(false)} className="px-4 py-2.5 bg-[#333] text-white text-sm rounded-md hover:bg-[#444]">Cancel</button>
                       </div>
                     </div>
                   )}
 
+                  {/* Info banner when building quote */}
+                  {!reservationId && pendingPayments.length > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-amber-400 text-sm flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Payments will be saved when you Generate the document
+                    </div>
+                  )}
+
                   {/* Payments Table */}
-                  <div className="bg-zinc-800/60 rounded-xl border border-zinc-700/50 overflow-hidden">
+                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
                     <table className="w-full">
-                      <thead><tr className="border-b border-white/10 bg-white/[0.02]"><th className="px-5 py-4 text-left text-xs font-medium text-white/50 uppercase">Date</th><th className="px-5 py-4 text-left text-xs font-medium text-white/50 uppercase">Method</th><th className="px-5 py-4 text-left text-xs font-medium text-white/50 uppercase">Reference</th><th className="px-5 py-4 text-right text-xs font-medium text-white/50 uppercase">Amount</th><th className="px-5 py-4 text-center text-xs font-medium text-white/50 uppercase">Status</th></tr></thead>
-                      <tbody className="divide-y divide-white/5">
-                        {payments.length === 0 ? <tr><td colSpan={5} className="px-5 py-12 text-center text-white/30">No payments recorded</td></tr> : payments.map((p) => (
-                          <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="px-5 py-4 text-white/70">{formatDate(p.payment_date)}</td>
-                            <td className="px-5 py-4 text-white capitalize">{p.payment_method.replace('_', ' ')}</td>
-                            <td className="px-5 py-4 text-white/50 font-mono text-sm">{p.reference_number || '-'}</td>
-                            <td className="px-5 py-4 text-right font-semibold text-emerald-400">AED {formatCurrency(p.amount)}</td>
-                            <td className="px-5 py-4 text-center"><span className={`px-2.5 py-1 rounded-full text-xs font-medium ${p.status === 'allocated' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-white/50'}`}>{p.status?.replace('_', ' ')}</span></td>
+                      <thead><tr className="border-b border-[#333] bg-[#111]"><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Date</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Method</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Reference</th><th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Amount</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">Status</th></tr></thead>
+                      <tbody className="divide-y divide-[#333]">
+                        {allPayments.length === 0 ? <tr><td colSpan={5} className="px-4 py-12 text-center text-[#555]">No payments recorded</td></tr> : allPayments.map((p: any) => (
+                          <tr key={p.id} className="hover:bg-[#0d0d0d] transition-colors">
+                            <td className="px-4 py-3 text-[#999] text-sm">{formatDate(p.payment_date)}</td>
+                            <td className="px-4 py-3 text-white text-sm capitalize">{p.payment_method.replace('_', ' ')}</td>
+                            <td className="px-4 py-3 text-[#666] font-mono text-sm">{p.reference_number || '-'}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-emerald-400 text-sm">AED {formatCurrency(p.amount)}</td>
+                            <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded text-[11px] font-medium ${p.status === 'allocated' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#333] text-[#888]'}`}>{p.status?.replace('_', ' ') || 'pending'}</span></td>
                           </tr>
                         ))}
                       </tbody>
@@ -957,24 +1175,24 @@ export default function AccountSummaryModal({
               {activeTab === 'documents' && (
                 <div className="space-y-4">
                   {/* RESERVATION DOCUMENT - Always show in reservation mode, view-only in invoice mode */}
-                  <div className={`rounded-xl p-5 border ${reservationPdfUrl ? 'bg-zinc-800/60 border-zinc-700/50' : 'bg-zinc-800/30 border-zinc-700/30'}`}>
-                    <div className="flex items-center justify-between mb-4">
+                  <div className={`rounded-lg border overflow-hidden ${reservationPdfUrl ? 'bg-[#0f0f0f] border-[#333]' : 'bg-[#0d0d0d] border-[#222]'}`}>
+                    <div className="px-4 py-3 border-b border-[#333] bg-[#111] flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${reservationPdfUrl ? 'bg-blue-500/20' : 'bg-white/10'}`}>
-                          <FileText className={`w-5 h-5 ${reservationPdfUrl ? 'text-blue-400' : 'text-white/40'}`} />
+                        <div className={`w-9 h-9 rounded-md flex items-center justify-center ${reservationPdfUrl ? 'bg-[#444]' : 'bg-[#333]'}`}>
+                          <FileText className={`w-4 h-4 ${reservationPdfUrl ? 'text-[#ccc]' : 'text-[#666]'}`} />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="text-sm font-medium text-white">Reservation Form</h3>
                             {reservationNumber && (
-                              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] font-mono font-medium rounded border border-blue-500/30">
+                              <span className="px-1.5 py-0.5 bg-[#444] text-[#ccc] text-[10px] font-mono rounded">
                                 {reservationNumber}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-white/40 mt-0.5">
+                          <p className="text-[12px] text-[#666] mt-0.5">
                             {reservationPdfUrl 
-                              ? (signingStatus === 'completed' ? '✓ Signed' : 'Ready') 
+                              ? (signingStatus === 'completed' ? 'Signed' : 'Ready') 
                               : 'Not generated'}
                           </p>
                         </div>
@@ -984,18 +1202,18 @@ export default function AccountSummaryModal({
                           <button 
                             onClick={handleSubmit} 
                             disabled={saving} 
-                            className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
                           >
-                            {saving ? <div className="w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> : null}
+                            {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
                             {reservationPdfUrl ? 'Regenerate' : 'Generate'}
                           </button>
                         )}
                         {reservationPdfUrl && (
                           <>
-                            <button onClick={() => window.open(signedPdfUrl || reservationPdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors">
+                            <button onClick={() => window.open(signedPdfUrl || reservationPdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
                               <Eye className="w-4 h-4" /> View
                             </button>
-                            <button onClick={() => window.open(signedPdfUrl || reservationPdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors">
+                            <button onClick={() => window.open(signedPdfUrl || reservationPdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
                               <Download className="w-4 h-4" />
                             </button>
                           </>
@@ -1003,27 +1221,49 @@ export default function AccountSummaryModal({
                       </div>
                     </div>
                     {/* Send for Signing - Reservation */}
-                    {mode === 'reservation' && reservationPdfUrl && signingStatus !== 'completed' && formData.emailAddress && (
-                      <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                        <p className="text-xs text-white/50">Send to {formData.emailAddress} for signing</p>
-                        <button 
-                          onClick={handleSendForSigning} 
-                          disabled={sendingForSigning} 
-                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-                        >
-                          {sendingForSigning ? 'Sending...' : 'Send for Signing'}
-                        </button>
+                    {mode === 'reservation' && reservationPdfUrl && signingStatus !== 'completed' && (
+                      <div className="px-4 py-4 border-t border-[#333] bg-gradient-to-r from-[#1a1a1a] to-[#111]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#555] to-[#333] flex items-center justify-center">
+                              <Mail className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-white font-medium text-sm">Send for DocuSign</p>
+                              <p className="text-[12px] text-[#888]">
+                                {formData.emailAddress ? `Will be sent to ${formData.emailAddress}` : 'Add customer email in Details tab first'}
+                              </p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={handleSendForSigning} 
+                            disabled={sendingForSigning || !formData.emailAddress} 
+                            className="px-4 py-2 bg-gradient-to-r from-[#555] to-[#666] hover:from-[#666] hover:to-[#777] text-white text-sm font-medium rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {sendingForSigning ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="w-4 h-4" />
+                                Send for Signing
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     )}
                     {/* Signed Badge */}
                     {signingStatus === 'completed' && signedPdfUrl && (
-                      <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                      <div className="px-4 py-3 border-t border-[#333] flex items-center justify-between bg-emerald-500/5">
                         <div className="flex items-center gap-2 text-emerald-400">
                           <Check className="w-4 h-4" />
-                          <span className="text-xs font-medium">Document Signed via DocuSign</span>
+                          <span className="text-[12px] font-medium">Document Signed via DocuSign</span>
                         </div>
-                        <button onClick={() => window.open(signedPdfUrl, '_blank')} className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs rounded-lg transition-colors flex items-center gap-1.5">
-                          <Download className="w-3.5 h-3.5" /> Signed Copy
+                        <button onClick={() => window.open(signedPdfUrl, '_blank')} className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-[12px] rounded-md transition-colors flex items-center gap-1.5">
+                          <Download className="w-3.5 h-3.5" /> Download Signed
                         </button>
                       </div>
                     )}
@@ -1031,22 +1271,22 @@ export default function AccountSummaryModal({
 
                   {/* INVOICE DOCUMENT - Only show in invoice mode */}
                   {mode === 'invoice' && (
-                    <div className={`rounded-xl p-5 border ${invoicePdfUrl ? 'bg-zinc-800/60 border-zinc-700/50' : 'bg-zinc-800/30 border-zinc-700/30'}`}>
-                      <div className="flex items-center justify-between mb-4">
+                    <div className={`rounded-lg border overflow-hidden ${invoicePdfUrl ? 'bg-[#0f0f0f] border-[#333]' : 'bg-[#0d0d0d] border-[#222]'}`}>
+                      <div className="px-4 py-3 border-b border-[#333] bg-[#111] flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${invoicePdfUrl ? 'bg-emerald-500/20' : 'bg-white/10'}`}>
-                            <Receipt className={`w-5 h-5 ${invoicePdfUrl ? 'text-emerald-400' : 'text-white/40'}`} />
+                          <div className={`w-9 h-9 rounded-md flex items-center justify-center ${invoicePdfUrl ? 'bg-emerald-500/10' : 'bg-[#333]'}`}>
+                            <Receipt className={`w-4 h-4 ${invoicePdfUrl ? 'text-emerald-400' : 'text-[#666]'}`} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="text-sm font-medium text-white">Invoice</h3>
                               {documentNumber && documentNumber.startsWith('INV') && (
-                                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-medium rounded border border-emerald-500/30">
+                                <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono rounded">
                                   {documentNumber}
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-white/40 mt-0.5">
+                            <p className="text-[12px] text-[#666] mt-0.5">
                               {invoicePdfUrl ? 'Ready' : 'Not generated'}
                             </p>
                           </div>
@@ -1055,17 +1295,17 @@ export default function AccountSummaryModal({
                           <button 
                             onClick={handleSubmit} 
                             disabled={saving} 
-                            className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
                           >
-                            {saving ? <div className="w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> : null}
+                            {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
                             {invoicePdfUrl ? 'Regenerate' : 'Generate'}
                           </button>
                           {invoicePdfUrl && (
                             <>
-                              <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors">
+                              <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
                                 <Eye className="w-4 h-4" /> View
                               </button>
-                              <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg flex items-center gap-2 transition-colors">
+                              <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
                                 <Download className="w-4 h-4" />
                               </button>
                             </>
@@ -1074,12 +1314,12 @@ export default function AccountSummaryModal({
                       </div>
                       {/* Send for Signing - Invoice */}
                       {invoicePdfUrl && formData.emailAddress && (
-                        <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                          <p className="text-xs text-white/50">Send to {formData.emailAddress} for signing</p>
+                        <div className="px-4 py-3 border-t border-[#333] flex items-center justify-between bg-[#0d0d0d]">
+                          <p className="text-[12px] text-[#888]">Send to {formData.emailAddress} for signing</p>
                           <button 
                             onClick={handleSendForSigning} 
                             disabled={sendingForSigning} 
-                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                            className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors disabled:opacity-50"
                           >
                             {sendingForSigning ? 'Sending...' : 'Send for Signing'}
                           </button>
@@ -1094,24 +1334,26 @@ export default function AccountSummaryModal({
         </div>
 
         {/* ============ FOOTER ============ */}
-        <div className="p-4 border-t border-white/10 flex items-center justify-between shrink-0 bg-black/30 relative">
-          <p className="text-xs text-white/40">{formData.salesExecutive} • {formatDate(formData.date)}</p>
-          <button onClick={onClose} className="px-5 py-2 bg-white/5 hover:bg-white/10 text-white/70 text-sm rounded-lg transition-colors">Close</button>
+        <div className="px-6 py-4 border-t border-[#333] flex items-center justify-between shrink-0 bg-[#111]">
+          <p className="text-[13px] text-[#666]">{formData.salesExecutive} • {formatDate(formData.date)}</p>
+          <button onClick={onClose} className="px-4 py-2 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors">Close</button>
         </div>
       </div>
 
       {/* Email Modal */}
       {showEmailModal && createPortal(
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[60] p-4">
-          <div className="bg-white/20 p-0.5 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="bg-zinc-900 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-2">Company Signer</h3>
-              <p className="text-sm text-white/50 mb-4">Enter the email of who should sign first from SilberArrows</p>
-              <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} placeholder="email@silberarrows.ae" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-white/20 mb-4" autoFocus />
-              <div className="flex gap-3 justify-end">
-                <button onClick={() => setShowEmailModal(false)} className="px-5 py-2.5 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors">Cancel</button>
-                <button onClick={handleConfirmSendForSigning} disabled={!companyEmail} className="px-5 py-2.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50">Send for Signing</button>
-              </div>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
+          <div className="bg-[#0d0d0d] rounded-xl w-full max-w-md shadow-2xl border border-[#333]">
+            <div className="px-5 py-4 border-b border-[#333]">
+              <h3 className="text-base font-semibold text-white">Company Signer</h3>
+              <p className="text-[13px] text-[#666] mt-1">Enter the email of who should sign first from SilberArrows</p>
+            </div>
+            <div className="p-5">
+              <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} placeholder="email@silberarrows.ae" className="w-full px-3 py-2.5 bg-[#111] border border-[#333] rounded-md text-white placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" autoFocus />
+            </div>
+            <div className="px-5 py-4 border-t border-[#333] flex gap-3 justify-end">
+              <button onClick={() => setShowEmailModal(false)} className="px-4 py-2 bg-[#333] text-white rounded-md hover:bg-[#444] transition-colors">Cancel</button>
+              <button onClick={handleConfirmSendForSigning} disabled={!companyEmail} className="px-4 py-2 bg-gradient-to-r from-[#555] to-[#666] text-white font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50">Send for Signing</button>
             </div>
           </div>
         </div>,

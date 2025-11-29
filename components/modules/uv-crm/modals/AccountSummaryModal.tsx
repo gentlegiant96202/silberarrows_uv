@@ -280,10 +280,8 @@ export default function AccountSummaryModal({
       // Check if reservation exists first
       const { data: resData } = await supabase.from('vehicle_reservations').select('*').eq('lead_id', lead.id).maybeSingle();
       
-      let carData: InventoryCar | null = null;
       if (lead.inventory_car_id) {
-        const { data } = await supabase.from('cars').select('*').eq('id', lead.inventory_car_id).single();
-        carData = data;
+        const { data: carData } = await supabase.from('cars').select('*').eq('id', lead.inventory_car_id).single();
         if (carData) {
           setInventoryCar(carData);
           setFormData(prev => ({

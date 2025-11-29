@@ -109,6 +109,10 @@ interface Lead {
   lost_reason_notes?: string; // Additional context for lost reason
   lost_at?: string; // When the lead was marked as lost
   archived_at?: string; // When the lead was archived
+  // Accounting data for reserved/delivered
+  total_charges?: number;
+  total_paid?: number;
+  balance_due?: number;
 }
 
 const columns = [
@@ -237,14 +241,14 @@ export default function KanbanBoard() {
         { key: 'new_lead', delay: 0, status: ['new_lead'] },           // NEW LEAD (leftmost)
         { key: 'new_customer', delay: 80, status: ['new_customer'] },  // NEW APPOINTMENT
         { key: 'negotiation', delay: 160, status: ['negotiation'] },   // NEGOTIATION
-        { key: 'won', delay: 240, status: ['won'] },                   // RESERVED
-        { key: 'delivered', delay: 320, status: ['delivered'] },       // DELIVERED
+        { key: 'won', delay: 240, status: ['won'], fetchBalance: true },           // RESERVED
+        { key: 'delivered', delay: 320, status: ['delivered'], fetchBalance: true }, // DELIVERED
         { key: 'lost', delay: 400, status: ['lost'] },                 // LOST
         { key: 'archived', delay: 480, status: ['archived'] }          // ARCHIVED (rightmost)
       ];
 
       // Load each column progressively
-      columnPriorities.forEach(({ key, delay, status }) => {
+      columnPriorities.forEach(({ key, delay, status, fetchBalance }) => {
         setTimeout(async () => {
           try {
             let query = supabase
@@ -260,9 +264,60 @@ export default function KanbanBoard() {
             if (data) {
               let sortedData = data as Lead[];
 
+              // Fetch balance data for won/delivered columns
+              if (fetchBalance && sortedData.length > 0) {
+                const leadIds = sortedData.map(l => l.id);
+                
+                // Get charges totals
+                const { data: chargesData } = await supabase
+                  .from('uv_charges')
+                  .select('reservation_id, unit_price, quantity')
+                  .in('reservation_id', 
+                    (await supabase
+                      .from('vehicle_reservations')
+                      .select('id, lead_id')
+                      .in('lead_id', leadIds)
+                    ).data?.map(r => r.id) || []
+                  );
+                
+                // Get reservations to map lead_id
+                const { data: reservations } = await supabase
+                  .from('vehicle_reservations')
+                  .select('id, lead_id')
+                  .in('lead_id', leadIds);
+                
+                // Get payments
+                const { data: paymentsData } = await supabase
+                  .from('uv_payments')
+                  .select('lead_id, amount');
+                
+                // Calculate totals per lead
+                const leadTotals: Record<string, { charges: number; paid: number }> = {};
+                
+                reservations?.forEach(res => {
+                  const leadCharges = chargesData?.filter(c => c.reservation_id === res.id) || [];
+                  const total = leadCharges.reduce((sum, c) => sum + (c.unit_price * (c.quantity || 1)), 0);
+                  leadTotals[res.lead_id] = { charges: total, paid: 0 };
+                });
+                
+                paymentsData?.forEach(p => {
+                  if (leadTotals[p.lead_id]) {
+                    leadTotals[p.lead_id].paid += p.amount || 0;
+                  }
+                });
+                
+                // Attach balance to leads
+                sortedData = sortedData.map(lead => ({
+                  ...lead,
+                  total_charges: leadTotals[lead.id]?.charges || 0,
+                  total_paid: leadTotals[lead.id]?.paid || 0,
+                  balance_due: (leadTotals[lead.id]?.charges || 0) - (leadTotals[lead.id]?.paid || 0)
+                }));
+              }
+
               // Apply specific sorting for new_customer column (appointments) in JavaScript
               if (key === 'new_customer') {
-                sortedData = [...data].sort((a, b) => {
+                sortedData = [...sortedData].sort((a, b) => {
                   // Both have appointment dates - sort by date then time
                   if (a.appointment_date && b.appointment_date) {
                     const dateComparison = new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime();
@@ -821,25 +876,17 @@ export default function KanbanBoard() {
                   return base + 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20';
                 })()}`}
               >
+                {/* Card Header - Name */}
                 <div className="flex items-start justify-between mb-1">
-                  <div className="text-xs font-medium text-white group-hover:text-white/90 transition-colors">
+                  <div className="text-xs font-medium text-white group-hover:text-white/90 transition-colors truncate flex-1 mr-1">
                     {highlight(l.full_name)}
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {/* Archive Button - For delivered and lost leads */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     {(l.status === 'delivered' || l.status === 'lost') && canEdit && (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent card click
-                          handleArchiveLead(l.id);
-                        }}
-                        className="
-                          p-0.5 rounded-full transition-all duration-200 
-                          bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-gray-700/70
-                          hover:shadow-lg hover:scale-110
-                          focus:outline-none focus:ring-2 focus:ring-gray-400/50
-                        "
-                        title="Archive lead"
+                        onClick={(e) => { e.stopPropagation(); handleArchiveLead(l.id); }}
+                        className="p-0.5 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-gray-700/70"
+                        title="Archive"
                       >
                         <Archive className="w-2.5 h-2.5" />
                       </button>
@@ -850,55 +897,62 @@ export default function KanbanBoard() {
                   </div>
                 </div>
                 
+                {/* Card Body */}
                 <div className="space-y-0.5">
-                  <div className="text-xs text-white/70 flex items-center gap-1">
-                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    {l.country_code} {l.phone_number}
-                    <span className="text-white/50">·</span>
+                  {/* Phone */}
+                  <div className="text-[10px] text-white/60 truncate">
+                    {l.phone_number}
                   </div>
                   
-                  <div className="text-xs text-white/70 flex items-center gap-1">
-                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    {highlight(l.model_of_interest)} (Max {l.max_age})
+                  {/* Model */}
+                  <div className="text-[10px] text-white/80 font-medium truncate">
+                    {highlight(l.model_of_interest)}
                   </div>
                   
-                  <div className="text-xs text-white/70 flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 text-white/70 font-bold text-[10px] flex items-center justify-center">د.إ</span>
-                    {formatBudget(l)}
-                  </div>
-                  
-                  <div className="text-[10px] text-white/70 flex items-center gap-1 mt-0.5 pt-0.5 border-t border-white/10">
-                    {col.key === 'new_customer' && l.appointment_date && l.time_slot ? (
-                      <>
-                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                        {dayjs(l.appointment_date).format('DD MMM')}
-                      <span className="text-white/50">at {formatTimeForDisplay(l.time_slot)}</span>
-                      </>
-                    ) : col.key === 'new_lead' ? (
-                      <>
-                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Drag to schedule appointment
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {(() => {
-                          const rel = dayjs(l.updated_at).fromNow();
-                          return rel.startsWith('in ') ? `a few seconds ago` : rel;
-                        })()}
-                      </>
-                    )}
-                  </div>
+                  {/* Balance/Budget Row */}
+                  {(col.key === 'won' || col.key === 'delivered') ? (
+                    // Reserved/Delivered: Show balance
+                    <div className="flex items-center justify-between pt-1 mt-1 border-t border-white/10">
+                      <span className="text-[9px] text-white/50 uppercase">Balance</span>
+                      <span className={`text-[11px] font-semibold ${
+                        (l.balance_due || 0) <= 0 
+                          ? 'text-emerald-400' 
+                          : 'text-amber-400'
+                      }`}>
+                        {(l.balance_due || 0) <= 0 
+                          ? 'PAID' 
+                          : `AED ${(l.balance_due || 0).toLocaleString()}`
+                        }
+                      </span>
+                    </div>
+                  ) : col.key === 'new_customer' && l.appointment_date ? (
+                    // Appointment: Show date/time
+                    <div className="flex items-center gap-1 pt-1 mt-1 border-t border-white/10 text-[10px] text-white/60">
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {dayjs(l.appointment_date).format('DD MMM')} {l.time_slot && `· ${formatTimeForDisplay(l.time_slot)}`}
+                    </div>
+                  ) : col.key === 'new_lead' ? (
+                    // New Lead: Show budget
+                    <div className="flex items-center justify-between pt-1 mt-1 border-t border-white/10">
+                      <span className="text-[9px] text-white/50 uppercase">Budget</span>
+                      <span className="text-[10px] text-white/70">
+                        {l.payment_type === 'monthly' 
+                          ? (l.monthly_budget ? `${l.monthly_budget.toLocaleString()}/mo` : '-')
+                          : (l.total_budget ? `AED ${l.total_budget.toLocaleString()}` : '-')
+                        }
+                      </span>
+                    </div>
+                  ) : (
+                    // Other columns: Show time ago
+                    <div className="flex items-center gap-1 pt-1 mt-1 border-t border-white/10 text-[10px] text-white/50">
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {dayjs(l.updated_at).fromNow()}
+                    </div>
+                  )}
                 </div>
               </div>
               ))

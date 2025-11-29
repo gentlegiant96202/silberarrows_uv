@@ -7,7 +7,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import { 
   X, FileText, CreditCard, Receipt, ClipboardList,
   Plus, Trash2, Download, Eye, Check, DollarSign, Car, User,
-  Phone, Mail, Calendar, Banknote, Shield, Sparkles
+  Phone, Mail, Calendar, Banknote, Shield, Sparkles, ScrollText
 } from 'lucide-react';
 
 // ============================================================
@@ -127,7 +127,7 @@ interface AccountSummaryModalProps {
   lead: Lead;
 }
 
-type TabType = 'form' | 'charges' | 'payments' | 'documents';
+type TabType = 'form' | 'charges' | 'payments' | 'soa' | 'documents';
 
 const CHARGE_TYPES = [
   { value: 'vehicle_sale', label: 'Vehicle Sale' },
@@ -749,7 +749,21 @@ export default function AccountSummaryModal({
       `}</style>
       <div className="account-modal bg-[#0d0d0d] rounded-xl w-full max-w-5xl h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-[#333]">
         
+        {/* ============ FULL SCREEN LOADER ============ */}
+        {loading && (
+          <>
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="w-10 h-10 border-2 border-[#333] border-t-[#888] rounded-full animate-spin mb-4" />
+              <p className="text-[#666] text-sm">Loading...</p>
+            </div>
+            <div className="px-6 py-4 border-t border-[#333] flex items-center justify-end shrink-0 bg-[#111]">
+              <button onClick={onClose} className="px-4 py-2 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors">Close</button>
+            </div>
+          </>
+        )}
+
         {/* ============ HEADER ============ */}
+        {!loading && (
         <div className="shrink-0 bg-gradient-to-b from-[#1a1a1a] to-[#111] border-b border-[#333]">
           {/* Top bar with customer info and close */}
           <div className="px-6 py-4 flex items-center justify-between">
@@ -814,11 +828,12 @@ export default function AccountSummaryModal({
           </div>
 
           {/* Tabs */}
-          <div className="grid grid-cols-4">
+          <div className="grid grid-cols-5">
             {[
               { key: 'form', label: 'Details', icon: ClipboardList },
               { key: 'charges', label: 'Charges', icon: Receipt, count: allCharges.length },
               { key: 'payments', label: 'Payments', icon: CreditCard, count: allPayments.length },
+              { key: 'soa', label: 'Statement', icon: ScrollText },
               { key: 'documents', label: 'Documents', icon: FileText },
             ].map((tab) => (
               <button
@@ -843,9 +858,10 @@ export default function AccountSummaryModal({
             ))}
           </div>
         </div>
+        )}
 
         {/* ============ VALIDATION ERRORS ============ */}
-        {validationErrors.length > 0 && (
+        {!loading && validationErrors.length > 0 && (
           <div className="mx-6 mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
             <div className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -867,12 +883,8 @@ export default function AccountSummaryModal({
         )}
 
         {/* ============ CONTENT ============ */}
+        {!loading && (
         <div className="flex-1 overflow-y-auto p-6 relative min-h-0 bg-[#0a0a0a]">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-2 border-[#333] border-t-[#888] rounded-full animate-spin" />
-            </div>
-          ) : (
             <>
               {/* FORM TAB */}
               {activeTab === 'form' && (
@@ -1062,7 +1074,7 @@ export default function AccountSummaryModal({
                         <div className="bg-[#0f0f0f] rounded-lg p-4 border border-[#333]">
                           <h4 className="text-sm font-medium text-white mb-4">Add Charge</h4>
                           <div className="grid grid-cols-4 gap-4 items-end">
-                            <div><label className="block text-[12px] text-[#666] mb-2">Type</label><select value={newCharge.charge_type} onChange={(e) => setNewCharge(prev => ({ ...prev, charge_type: e.target.value, description: CHARGE_TYPES.find(c => c.value === e.target.value)?.label || '' }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner">{CHARGE_TYPES.map((t) => <option key={t.value} value={t.value} className="bg-[#0d0d0d]">{t.label}</option>)}</select></div>
+                            <div><label className="block text-[12px] text-[#666] mb-2">Type</label><select value={newCharge.charge_type} onChange={(e) => setNewCharge(prev => ({ ...prev, charge_type: e.target.value, description: CHARGE_TYPES.find(c => c.value === e.target.value)?.label || '' }))} className="w-full px-3 h-[42px] bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner">{CHARGE_TYPES.map((t) => <option key={t.value} value={t.value} className="bg-[#0d0d0d]">{t.label}</option>)}</select></div>
                             <div><label className="block text-[12px] text-[#666] mb-2">Description</label><input type="text" value={newCharge.description} onChange={(e) => setNewCharge(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
                             <div><label className="block text-[12px] text-[#666] mb-2">Amount (AED)</label><input type="number" value={newCharge.unit_price} onChange={(e) => setNewCharge(prev => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
                             <div className="flex gap-2">
@@ -1117,7 +1129,7 @@ export default function AccountSummaryModal({
                     <div className="bg-[#0f0f0f] rounded-lg p-4 border border-[#333]">
                       <h4 className="text-sm font-medium text-white mb-4">Record Payment</h4>
                       <div className="grid grid-cols-3 gap-4">
-                        <div><label className="block text-[12px] text-[#666] mb-2">Method</label><select value={newPayment.payment_method} onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner">{PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value} className="bg-[#0d0d0d]">{m.label}</option>)}</select></div>
+                        <div><label className="block text-[12px] text-[#666] mb-2">Method</label><select value={newPayment.payment_method} onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))} className="w-full px-3 h-[42px] bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner">{PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value} className="bg-[#0d0d0d]">{m.label}</option>)}</select></div>
                         <div><label className="block text-[12px] text-[#666] mb-2">Amount (AED)</label><input type="number" value={newPayment.amount} onChange={(e) => setNewPayment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
                         <div><label className="block text-[12px] text-[#666] mb-2">Reference</label><input type="text" value={newPayment.reference_number} onChange={(e) => setNewPayment(prev => ({ ...prev, reference_number: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" placeholder="Ref #" /></div>
                       </div>
@@ -1165,6 +1177,200 @@ export default function AccountSummaryModal({
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+
+              {/* SOA TAB - Statement of Account */}
+              {activeTab === 'soa' && (
+                <div className="space-y-4">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
+                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Total Charges</p>
+                      <p className="text-xl font-semibold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</p>
+                    </div>
+                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
+                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Total Payments</p>
+                      <p className="text-xl font-semibold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p>
+                    </div>
+                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
+                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Balance Due</p>
+                      <p className={`text-xl font-semibold ${chargesTotals.balanceDue > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                        AED {formatCurrency(chargesTotals.balanceDue)}
+                      </p>
+                    </div>
+                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
+                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Status</p>
+                      <p className={`text-xl font-semibold ${chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : chargesTotals.totalPaid > 0 ? 'text-amber-400' : 'text-red-400'}`}>
+                        {chargesTotals.balanceDue <= 0 ? 'PAID' : chargesTotals.totalPaid > 0 ? 'PARTIAL' : 'UNPAID'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Transaction History */}
+                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#333] bg-[#111]">
+                      <h3 className="text-[13px] font-medium text-[#999] flex items-center gap-2">
+                        <ScrollText className="w-4 h-4" /> Transaction History
+                      </h3>
+                    </div>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-[#333] bg-[#0d0d0d]">
+                          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Date</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Description</th>
+                          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Reference</th>
+                          <th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Charges</th>
+                          <th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Payments</th>
+                          <th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#333]">
+                        {(() => {
+                          // Combine charges and payments into a single chronological list
+                          const transactions: Array<{
+                            date: string;
+                            type: 'charge' | 'payment';
+                            description: string;
+                            reference: string;
+                            amount: number;
+                          }> = [];
+
+                          // Add charges
+                          allCharges.forEach((charge: any) => {
+                            transactions.push({
+                              date: charge.created_at || new Date().toISOString(),
+                              type: 'charge',
+                              description: charge.description || charge.charge_type?.replace('_', ' '),
+                              reference: documentNumber || '-',
+                              amount: charge.unit_price * (charge.quantity || 1)
+                            });
+                          });
+
+                          // Add payments
+                          allPayments.forEach((payment: any) => {
+                            transactions.push({
+                              date: payment.payment_date || payment.created_at,
+                              type: 'payment',
+                              description: `Payment - ${payment.payment_method?.replace('_', ' ')}`,
+                              reference: payment.reference_number || payment.receipt_number || '-',
+                              amount: payment.amount
+                            });
+                          });
+
+                          // Sort by date
+                          transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                          // Calculate running balance
+                          let runningBalance = 0;
+                          const rows = transactions.map((txn, idx) => {
+                            if (txn.type === 'charge') {
+                              runningBalance += txn.amount;
+                            } else {
+                              runningBalance -= txn.amount;
+                            }
+                            return { ...txn, balance: runningBalance, idx };
+                          });
+
+                          if (rows.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={6} className="px-4 py-12 text-center text-[#555]">
+                                  No transactions recorded
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return rows.map((txn) => (
+                            <tr key={`${txn.type}-${txn.idx}`} className="hover:bg-[#0d0d0d] transition-colors">
+                              <td className="px-4 py-3 text-[#999] text-sm">{formatDate(txn.date)}</td>
+                              <td className="px-4 py-3 text-white text-sm">{txn.description}</td>
+                              <td className="px-4 py-3 text-[#666] font-mono text-sm">{txn.reference}</td>
+                              <td className="px-4 py-3 text-right text-sm">
+                                {txn.type === 'charge' ? (
+                                  <span className="text-white">AED {formatCurrency(txn.amount)}</span>
+                                ) : (
+                                  <span className="text-[#555]">-</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-right text-sm">
+                                {txn.type === 'payment' ? (
+                                  <span className="text-emerald-400">AED {formatCurrency(txn.amount)}</span>
+                                ) : (
+                                  <span className="text-[#555]">-</span>
+                                )}
+                              </td>
+                              <td className={`px-4 py-3 text-right font-semibold text-sm ${txn.balance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                AED {formatCurrency(Math.abs(txn.balance))}
+                                {txn.balance < 0 && ' CR'}
+                              </td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                      {/* Footer totals */}
+                      <tfoot className="border-t-2 border-[#444]">
+                        <tr className="bg-[#111]">
+                          <td colSpan={3} className="px-4 py-3 text-right text-[12px] font-medium text-[#888] uppercase">Totals</td>
+                          <td className="px-4 py-3 text-right font-semibold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</td>
+                          <td className={`px-4 py-3 text-right font-bold ${chargesTotals.balanceDue > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            AED {formatCurrency(Math.abs(chargesTotals.balanceDue))}
+                            {chargesTotals.balanceDue < 0 && ' CR'}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  {/* Customer & Document Info */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
+                      <h4 className="text-[12px] text-[#666] uppercase tracking-wide mb-3">Customer Details</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-[#666]">Name</span>
+                          <span className="text-white">{formData.customerName || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#666]">Customer ID</span>
+                          <span className="text-white font-mono">{customerNumber || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#666]">Phone</span>
+                          <span className="text-white">{formData.contactNo || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#666]">Email</span>
+                          <span className="text-white">{formData.emailAddress || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
+                      <h4 className="text-[12px] text-[#666] uppercase tracking-wide mb-3">Document Reference</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-[#666]">Vehicle</span>
+                          <span className="text-white">{formData.makeModel} {formData.modelYear > 0 && formData.modelYear}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#666]">Chassis</span>
+                          <span className="text-white font-mono">{formData.chassisNo || '-'}</span>
+                        </div>
+                        {documentNumber && (
+                          <div className="flex justify-between">
+                            <span className="text-[#666]">{documentNumber.startsWith('RES') ? 'Reservation' : 'Invoice'} #</span>
+                            <span className="text-white font-mono">{documentNumber}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-[#666]">Date</span>
+                          <span className="text-white">{formatDate(formData.date)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1328,14 +1534,16 @@ export default function AccountSummaryModal({
                 </div>
               )}
             </>
-          )}
         </div>
+        )}
 
         {/* ============ FOOTER ============ */}
+        {!loading && (
         <div className="px-6 py-4 border-t border-[#333] flex items-center justify-between shrink-0 bg-[#111]">
           <p className="text-[13px] text-[#666]">{formData.salesExecutive} • {formatDate(formData.date)}</p>
           <button onClick={onClose} className="px-4 py-2 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors">Close</button>
         </div>
+        )}
       </div>
 
       {/* Email Modal */}

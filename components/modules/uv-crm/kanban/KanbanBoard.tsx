@@ -237,7 +237,7 @@ export default function KanbanBoard() {
     if (!hasFetchedLeads.current) {
       
       // Define loading priority (left to right column order)
-      const columnPriorities: { key: ColKey; delay: number; status: string[] }[] = [
+      const columnPriorities: { key: ColKey; delay: number; status: string[]; fetchBalance?: boolean }[] = [
         { key: 'new_lead', delay: 0, status: ['new_lead'] },           // NEW LEAD (leftmost)
         { key: 'new_customer', delay: 80, status: ['new_customer'] },  // NEW APPOINTMENT
         { key: 'negotiation', delay: 160, status: ['negotiation'] },   // NEGOTIATION

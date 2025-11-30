@@ -493,7 +493,13 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
   useEffect(() => {
     if (targets.length > 0) {
       const currentYear = selectedYear; // Use selected year instead of current year
-      const currentMonth = new Date().getMonth() + 1; // Keep current month for progress tracking
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // Keep current month for progress tracking
+      const currentDay = now.getDate();
+      const daysInCurrentMonth = new Date(now.getFullYear(), currentMonth, 0).getDate();
+      
+      // Calculate the fractional position within the current month (0 = start of month, 1 = end of month)
+      const monthProgress = currentDay / daysInCurrentMonth;
       
       // Get all monthly targets for selected year
       const yearlyTargets = targets.filter(t => t.year === currentYear).sort((a, b) => a.month - b.month);
@@ -506,6 +512,7 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
       const data = [];
       let cumulativeTarget = 0;
       let cumulativeActual = 0;
+      const isCurrentYear = selectedYear === new Date().getFullYear();
       
       for (let month = 1; month <= 12; month++) {
         // Find target for this month
@@ -515,10 +522,9 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
         // Add to cumulative target
         cumulativeTarget += monthlyTargetAmount;
         
-        // Get actual for this month (only if month has passed or is current in selected year)
+        // Get actual for this month (only if month has fully passed in selected year)
         let monthlyActual = 0;
-        const isCurrentYear = selectedYear === new Date().getFullYear();
-        const shouldShowActual = isCurrentYear ? month <= currentMonth : true; // Show all months for past years
+        const shouldShowActual = isCurrentYear ? month < currentMonth : true; // Only show completed months for current year
         
         if (shouldShowActual) {
           const monthMetric = metrics.find(m => {
@@ -530,19 +536,64 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
         }
         
         data.push({
+          xPosition: month, // Numerical position for X-axis
           month: months[month - 1],
           monthNumber: month,
           cumulativeTarget: Math.round(cumulativeTarget),
           cumulativeActual: shouldShowActual ? Math.round(cumulativeActual) : null,
           isCurrentMonth: isCurrentYear && month === currentMonth,
           isPast: isCurrentYear ? month < currentMonth : true,
-          isFuture: isCurrentYear ? month > currentMonth : false
+          isFuture: isCurrentYear ? month > currentMonth : false,
+          isLivePoint: false
         });
+        
+        // Add a "live" data point for the current month at the current day's position
+        if (isCurrentYear && month === currentMonth) {
+          // Get the current month's actual data (partial month)
+          const currentMonthMetric = metrics.find(m => {
+            const metricDate = new Date(m.metric_date);
+            return metricDate.getFullYear() === currentYear && metricDate.getMonth() + 1 === month;
+          });
+          const currentMonthActual = currentMonthMetric?.gross_profit_month_actual || 0;
+          const liveActual = cumulativeActual + currentMonthActual;
+          
+          // Calculate the fractional X position (e.g., Dec 10 = 12 - 1 + 0.33 = 11.33)
+          const liveXPosition = month - 1 + monthProgress;
+          
+          // Calculate the target at this fractional position
+          const prevCumulativeTarget = cumulativeTarget - monthlyTargetAmount;
+          const liveTarget = prevCumulativeTarget + (monthlyTargetAmount * monthProgress);
+          
+          data.push({
+            xPosition: liveXPosition,
+            month: `${months[month - 1]} ${currentDay}`, // e.g., "Dec 10"
+            monthNumber: month,
+            cumulativeTarget: Math.round(liveTarget),
+            cumulativeActual: Math.round(liveActual),
+            isCurrentMonth: true,
+            isPast: false,
+            isFuture: false,
+            isLivePoint: true
+          });
+        }
       }
+      
+      // Sort by xPosition to ensure correct line drawing order
+      data.sort((a, b) => a.xPosition - b.xPosition);
       
       setChartData(data);
     }
   }, [metrics, targets, selectedYear]);
+
+  // Custom tick formatter to show month names at integer positions
+  const formatXAxis = (value: number) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    // Only show labels at integer positions (full months)
+    if (Number.isInteger(value) && value >= 1 && value <= 12) {
+      return months[value - 1];
+    }
+    return '';
+  };
 
   return (
     <div className="rounded-lg bg-black/70 backdrop-blur p-4 border border-white/10">
@@ -567,7 +618,11 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
           <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={animatedData} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
             <XAxis 
-              dataKey="month" 
+              dataKey="xPosition"
+              type="number"
+              domain={[1, 12]}
+              ticks={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
+              tickFormatter={formatXAxis}
               tick={{ fontSize: 10, fill: '#ffffff60' }}
             />
             <YAxis 
@@ -582,7 +637,15 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
                 borderRadius: '8px',
                 color: '#ffffff'
               }}
-              labelFormatter={(label: string | number) => `${label} ${new Date().getFullYear()}`}
+              labelFormatter={(label: string | number, payload: any[]) => {
+                if (payload && payload.length > 0) {
+                  const item = payload[0]?.payload;
+                  return item?.isLivePoint 
+                    ? `${item.month} ${selectedYear} (Live)`
+                    : `${item?.month || label} ${selectedYear}`;
+                }
+                return `${selectedYear}`;
+              }}
               formatter={(value: any, name: string) => [
                 value ? value.toLocaleString() : 'No data',
                 name === 'cumulativeTarget' ? 'Target Pace' : 'Yearly Progress'
@@ -614,7 +677,25 @@ const CumulativeYearlyTargetChart: React.FC<{metrics: any[], targets: any[], sel
               dataKey="cumulativeActual" 
               stroke="#10B981" 
               strokeWidth={3}
-              dot={{ fill: '#10B981', strokeWidth: 1, r: 3 }}
+              dot={(props: any) => {
+                const { cx, cy, payload } = props;
+                if (payload?.isLivePoint) {
+                  // Larger, pulsing dot for the live/current point
+                  return (
+                    <g key={`dot-${cx}-${cy}`}>
+                      <circle cx={cx} cy={cy} r={6} fill="#10B981" opacity={0.3}>
+                        <animate attributeName="r" values="6;10;6" dur="2s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite" />
+                      </circle>
+                      <circle cx={cx} cy={cy} r={5} fill="#10B981" stroke="#fff" strokeWidth={2} />
+                    </g>
+                  );
+                }
+                // Regular dot for completed months
+                return payload?.cumulativeActual !== null 
+                  ? <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={3} fill="#10B981" strokeWidth={1} />
+                  : null;
+              }}
               connectNulls={false}
               name="cumulativeActual"
               animationBegin={0}

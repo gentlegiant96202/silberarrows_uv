@@ -928,7 +928,7 @@ export default function KanbanBoard() {
                 <div className="space-y-0.5">
                   {/* Phone */}
                   <div className="text-[10px] text-white/60 truncate">
-                    {l.phone_number}
+                    {l.country_code} {l.phone_number}
                   </div>
                   
                   {/* Model */}

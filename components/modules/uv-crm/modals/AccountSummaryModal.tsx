@@ -247,6 +247,7 @@ export default function AccountSummaryModal({
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [newCharge, setNewCharge] = useState({ charge_type: 'vehicle_sale', description: '', unit_price: 0, vat_applicable: false });
   const [newPayment, setNewPayment] = useState({ payment_method: 'cash', amount: 0, reference_number: '', notes: '', bank_name: '', cheque_number: '', cheque_date: '', part_exchange_vehicle: '', part_exchange_chassis: '' });
+  const [generatingSOA, setGeneratingSOA] = useState(false);
 
   // PENDING DATA - stored in memory until "Generate" is clicked
   const [pendingCharges, setPendingCharges] = useState<Array<{ id: string; charge_type: string; description: string; unit_price: number; total_amount: number; vat_applicable: boolean; vat_amount: number }>>([]);
@@ -740,6 +741,47 @@ export default function AccountSummaryModal({
 
   const formatCurrency = (n: number) => new Intl.NumberFormat('en-AE', { minimumFractionDigits: 0 }).format(n);
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const handleGenerateSOA = async () => {
+    setGeneratingSOA(true);
+    try {
+      const response = await fetch('/api/generate-soa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id,
+          reservationId,
+          customerName: formData.customerName,
+          customerNumber,
+          customerPhone: formData.contactNo,
+          customerEmail: formData.emailAddress,
+          customerIdType: formData.customerIdType,
+          customerIdNumber: formData.customerIdNumber,
+          vehicleInfo: `${formData.makeModel} ${formData.modelYear > 0 ? formData.modelYear : ''}`.trim(),
+          chassisNo: formData.chassisNo,
+          documentNumber,
+          documentDate: formData.date,
+          charges: allCharges,
+          payments: allPayments
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate SOA');
+      }
+
+      const result = await response.json();
+      if (result.pdfUrl) {
+        window.open(result.pdfUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('SOA generation error:', error);
+      alert('Failed to generate Statement of Account. Please try again.');
+    } finally {
+      setGeneratingSOA(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -1254,10 +1296,27 @@ export default function AccountSummaryModal({
 
                   {/* Transaction History */}
                   <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
-                    <div className="px-4 py-3 border-b border-[#333] bg-[#111]">
+                    <div className="px-4 py-3 border-b border-[#333] bg-[#111] flex items-center justify-between">
                       <h3 className="text-[13px] font-medium text-[#999] flex items-center gap-2">
                         <ScrollText className="w-4 h-4" /> Transaction History
                       </h3>
+                      <button
+                        onClick={handleGenerateSOA}
+                        disabled={generatingSOA || allCharges.length === 0}
+                        className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-xs font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {generatingSOA ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-3 h-3" />
+                            Download Statement
+                          </>
+                        )}
+                      </button>
                     </div>
                     <table className="w-full">
                       <thead>

@@ -58,7 +58,7 @@ export default function ReservationsInvoicesGrid() {
     toDate: getDefaultToDate(),
     search: ''
   });
-
+  
   // Modal state
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerAccount | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -111,10 +111,17 @@ export default function ReservationsInvoicesGrid() {
           customerMap.set(customer.lead_id, customer);
         }
       });
-      customers = Array.from(customerMap.values());
+      
+      // Convert to CustomerAccount with default balance values
+      let customersWithBalance: CustomerAccount[] = Array.from(customerMap.values()).map(c => ({
+        ...c,
+        total_charges: c.invoice_total || 0,
+        total_paid: 0,
+        balance_due: c.invoice_total || 0
+      }));
 
       // Fetch balance data for each customer
-      const leadIds = customers.map(c => c.lead_id).filter(Boolean);
+      const leadIds = customersWithBalance.map(c => c.lead_id).filter(Boolean);
       
       if (leadIds.length > 0) {
         // Get reservations to map lead_id to reservation_id
@@ -156,8 +163,8 @@ export default function ReservationsInvoicesGrid() {
           leadTotals[p.lead_id].paid += p.amount || 0;
         });
 
-        // Attach balance to customers
-        customers = customers.map(customer => ({
+        // Update balance data for customers
+        customersWithBalance = customersWithBalance.map(customer => ({
           ...customer,
           total_charges: leadTotals[customer.lead_id]?.charges || customer.invoice_total || 0,
           total_paid: leadTotals[customer.lead_id]?.paid || 0,
@@ -168,7 +175,7 @@ export default function ReservationsInvoicesGrid() {
       // Apply search filter
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
-        customers = customers.filter(item =>
+        customersWithBalance = customersWithBalance.filter(item =>
           item.customer_name?.toLowerCase().includes(searchTerm) ||
           item.vehicle_make_model?.toLowerCase().includes(searchTerm) ||
           item.customer_number?.toLowerCase().includes(searchTerm) ||
@@ -176,7 +183,7 @@ export default function ReservationsInvoicesGrid() {
         );
       }
 
-      setData(customers);
+      setData(customersWithBalance);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -191,7 +198,7 @@ export default function ReservationsInvoicesGrid() {
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchData();
+          fetchData();
     }, 300);
     return () => clearTimeout(timer);
   }, [filters.search]);
@@ -357,16 +364,16 @@ export default function ReservationsInvoicesGrid() {
                       onClick={() => handleRowClick(item)}
                       className="hover:bg-white/5 transition-colors cursor-pointer group"
                     >
-                      <td className="px-4 py-3">
+                    <td className="px-4 py-3">
                         {item.customer_number ? (
-                          <span className="px-2 py-1 bg-brand/20 border border-brand/40 rounded text-brand text-xs font-mono font-bold">
+                        <span className="px-2 py-1 bg-brand/20 border border-brand/40 rounded text-brand text-xs font-mono font-bold">
                             {item.customer_number}
-                          </span>
-                        ) : (
+                        </span>
+                      ) : (
                           <span className="text-white/40 text-xs">No ID</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                         <div>
                           <div className="text-white text-sm font-medium">{item.customer_name}</div>
                           {item.contact_no && (
@@ -405,8 +412,8 @@ export default function ReservationsInvoicesGrid() {
                       </td>
                       <td className="px-4 py-3">
                         <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
-                      </td>
-                    </tr>
+                    </td>
+                  </tr>
                   );
                 })}
               </tbody>

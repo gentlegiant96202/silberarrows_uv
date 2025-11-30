@@ -706,6 +706,27 @@ export default function AccountSummaryModal({
           await supabase.from('uv_payments').update({ allocated_amount: allocateAmount, status: allocateAmount >= newPayment.amount ? 'allocated' : 'partially_allocated' }).eq('id', dbPayment.id);
         }
 
+        // Generate receipt PDF
+        if (dbPayment) {
+          try {
+            await fetch('/api/generate-receipt', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                paymentId: dbPayment.id,
+                customerName: formData.customerName,
+                customerPhone: formData.contactNo,
+                customerEmail: formData.emailAddress,
+                vehicleInfo: `${formData.makeModel} ${formData.modelYear}`,
+                reservationNumber: documentNumber,
+                notes: newPayment.notes
+              })
+            });
+          } catch (receiptError) {
+            console.error('Failed to generate receipt:', receiptError);
+          }
+        }
+
         await loadData();
       } catch (error) { alert('Failed to record payment'); } finally { setSaving(false); }
     } else {
@@ -747,7 +768,7 @@ export default function AccountSummaryModal({
           background-color: #1a1a1a !important;
         }
       `}</style>
-      <div className="account-modal bg-[#0d0d0d] rounded-xl w-full max-w-5xl h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-[#333]">
+      <div className="account-modal bg-[#0d0d0d] rounded-xl w-full max-w-6xl h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-[#333]">
         
         {/* ============ FULL SCREEN LOADER ============ */}
         {loading && (
@@ -888,40 +909,38 @@ export default function AccountSummaryModal({
             <>
               {/* FORM TAB */}
               {activeTab === 'form' && (
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-3">
                   {/* Customer Information */}
                   <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
-                    <div className="px-4 py-3 border-b border-[#333] bg-[#111]">
-                      <h3 className="text-[13px] font-medium text-[#999] flex items-center gap-2">
-                        <User className="w-4 h-4" /> Customer Information
+                    <div className="px-3 py-2 border-b border-[#333] bg-[#111]">
+                      <h3 className="text-[12px] font-medium text-[#999] flex items-center gap-2">
+                        <User className="w-3.5 h-3.5" /> Customer Information
                       </h3>
                     </div>
-                    <div className="p-4">
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-[12px] text-[#666] mb-2">Full Name</label>
-                          <input type="text" value={formData.customerName} onChange={(e) => handleInputChange('customerName', e.target.value)} placeholder="Customer Name" className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" required />
+                    <div className="p-3">
+                      <div className="flex gap-3">
+                        <div className="w-[180px] shrink-0">
+                          <label className="block text-[11px] text-[#666] mb-1">Full Name</label>
+                          <input type="text" value={formData.customerName} onChange={(e) => handleInputChange('customerName', e.target.value)} placeholder="Customer Name" className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" required />
                         </div>
-                        <div>
-                          <label className="block text-[12px] text-[#666] mb-2">Phone Number</label>
-                          <input type="tel" value={formData.contactNo} onChange={(e) => handleInputChange('contactNo', e.target.value)} placeholder="+971 XX XXX XXXX" className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" required />
+                        <div className="w-[130px] shrink-0">
+                          <label className="block text-[11px] text-[#666] mb-1">Phone</label>
+                          <input type="tel" value={formData.contactNo} onChange={(e) => handleInputChange('contactNo', e.target.value)} placeholder="+971 XX XXX" className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" required />
                         </div>
-                        <div>
-                          <label className="block text-[12px] text-[#666] mb-2">Email Address</label>
-                          <input type="email" value={formData.emailAddress} onChange={(e) => handleInputChange('emailAddress', e.target.value)} placeholder="customer@email.com" className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" required />
+                        <div className="flex-1 min-w-0">
+                          <label className="block text-[11px] text-[#666] mb-1">Email</label>
+                          <input type="email" value={formData.emailAddress} onChange={(e) => handleInputChange('emailAddress', e.target.value)} placeholder="email@example.com" className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" required />
                         </div>
-                      </div>
-                      <div className="grid grid-cols-4 gap-4 mt-4">
-                        <div>
-                          <label className="block text-[12px] text-[#666] mb-2">ID Type</label>
-                          <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner focus:outline-none focus:border-[#666] transition-colors h-[42px]">
+                        <div className="w-[80px] shrink-0">
+                          <label className="block text-[11px] text-[#666] mb-1">ID Type</label>
+                          <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-2 h-[34px] bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner focus:outline-none focus:border-[#666]">
                             <option value="EID" className="bg-[#0d0d0d]">EID</option>
                             <option value="Passport" className="bg-[#0d0d0d]">Passport</option>
                           </select>
                         </div>
-                        <div className="col-span-3">
-                          <label className="block text-[12px] text-[#666] mb-2">ID Number</label>
-                          <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" required />
+                        <div className="w-[200px] shrink-0">
+                          <label className="block text-[11px] text-[#666] mb-1">ID Number</label>
+                          <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" required />
                         </div>
                       </div>
                     </div>
@@ -929,81 +948,62 @@ export default function AccountSummaryModal({
 
                   {/* Vehicle Information */}
                   <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
-                    <div className="px-4 py-3 border-b border-[#333] bg-[#111]">
-                      <h3 className="text-[13px] font-medium text-[#999] flex items-center gap-2">
-                        <Car className="w-4 h-4" /> Vehicle Information
+                    <div className="px-3 py-2 border-b border-[#333] bg-[#111]">
+                      <h3 className="text-[12px] font-medium text-[#999] flex items-center gap-2">
+                        <Car className="w-3.5 h-3.5" /> Vehicle Information
                       </h3>
                     </div>
-                    <div className="p-4">
-                      <div className="grid grid-cols-4 gap-4">
-                        <div className="col-span-2"><label className="block text-[12px] text-[#666] mb-2">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
-                        <div><label className="block text-[12px] text-[#666] mb-2">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
-                        <div><label className="block text-[12px] text-[#666] mb-2">Mileage (km)</label><input type="number" value={formData.mileage} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                    <div className="p-3">
+                      <div className="grid grid-cols-6 gap-3">
+                        <div className="col-span-2"><label className="block text-[11px] text-[#666] mb-1">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                        <div><label className="block text-[11px] text-[#666] mb-1">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                        <div><label className="block text-[11px] text-[#666] mb-1">Mileage</label><input type="number" value={formData.mileage} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                        <div><label className="block text-[11px] text-[#666] mb-1">Exterior</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed truncate" /></div>
+                        <div><label className="block text-[11px] text-[#666] mb-1">Interior</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed truncate" /></div>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 mt-4">
-                        <div><label className="block text-[12px] text-[#666] mb-2">Exterior Colour</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
-                        <div><label className="block text-[12px] text-[#666] mb-2">Interior Colour</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner cursor-not-allowed" /></div>
-                        <div><label className="block text-[12px] text-[#666] mb-2">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner font-mono cursor-not-allowed" /></div>
+                      <div className="mt-2">
+                        <label className="block text-[11px] text-[#666] mb-1">Chassis Number</label>
+                        <input type="text" value={formData.chassisNo} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner font-mono cursor-not-allowed" />
                       </div>
                     </div>
                   </div>
 
                   {/* Coverage & Warranty */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {/* Manufacturer Warranty */}
-                    <div className={`bg-[#0a0a0a] rounded-lg border overflow-hidden transition-all ${formData.manufacturerWarranty ? 'border-[#555]' : 'border-[#333]'}`}>
-                      <div className="px-4 py-3 flex items-center justify-between border-b border-[#333]">
+                    <div className={`bg-[#0a0a0a] rounded-lg border overflow-hidden ${formData.manufacturerWarranty ? 'border-[#555]' : 'border-[#333]'}`}>
+                      <div className="px-3 py-2 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-white">Manufacturer Warranty</p>
-                          <p className="text-[12px] text-[#666] mt-0.5">Factory coverage details</p>
+                          <p className="text-[12px] font-medium text-white">Manufacturer Warranty</p>
+                          <p className="text-[10px] text-[#666]">Factory coverage</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange('manufacturerWarranty', !formData.manufacturerWarranty)}
-                          className={`relative w-11 h-6 rounded-full transition-colors ${formData.manufacturerWarranty ? 'bg-gradient-to-r from-[#666] to-[#888]' : 'bg-[#333]'}`}
-                        >
-                          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.manufacturerWarranty ? 'left-6' : 'left-1'}`} />
+                        <button type="button" onClick={() => handleInputChange('manufacturerWarranty', !formData.manufacturerWarranty)} className={`relative w-9 h-5 rounded-full transition-colors ${formData.manufacturerWarranty ? 'bg-gradient-to-r from-[#666] to-[#888]' : 'bg-[#333]'}`}>
+                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.manufacturerWarranty ? 'left-[18px]' : 'left-0.5'}`} />
                         </button>
                       </div>
                       {formData.manufacturerWarranty && (
-                        <div className="p-4 grid grid-cols-2 gap-3 bg-[#0d0d0d]">
-                          <div>
-                            <label className="block text-[11px] text-[#666] uppercase tracking-wide mb-1.5">Expiry Date</label>
-                            <input type="date" value={formData.manufacturerWarrantyExpiryDate} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner focus:outline-none focus:border-[#666]" />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] text-[#666] uppercase tracking-wide mb-1.5">Mileage Limit</label>
-                            <input type="number" value={formData.manufacturerWarrantyExpiryMileage} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryMileage', parseInt(e.target.value) || 0)} placeholder="e.g. 100000" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" />
-                          </div>
+                        <div className="px-3 pb-2 grid grid-cols-2 gap-2 border-t border-[#333] pt-2">
+                          <div><label className="block text-[10px] text-[#666] mb-1">Expiry</label><input type="date" value={formData.manufacturerWarrantyExpiryDate} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryDate', e.target.value)} className="w-full px-2 py-1.5 bg-[#1a1a1a] border border-[#444] rounded text-white text-xs shadow-inner" /></div>
+                          <div><label className="block text-[10px] text-[#666] mb-1">Mileage</label><input type="number" value={formData.manufacturerWarrantyExpiryMileage} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryMileage', parseInt(e.target.value) || 0)} placeholder="km" className="w-full px-2 py-1.5 bg-[#1a1a1a] border border-[#444] rounded text-white text-xs shadow-inner placeholder-[#555]" /></div>
                         </div>
                       )}
                     </div>
 
                     {/* Dealer Service Package */}
-                    <div className={`bg-[#0a0a0a] rounded-lg border overflow-hidden transition-all ${formData.dealerServicePackage ? 'border-[#555]' : 'border-[#333]'}`}>
-                      <div className="px-4 py-3 flex items-center justify-between border-b border-[#333]">
+                    <div className={`bg-[#0a0a0a] rounded-lg border overflow-hidden ${formData.dealerServicePackage ? 'border-[#555]' : 'border-[#333]'}`}>
+                      <div className="px-3 py-2 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-white">Dealer Service Package</p>
-                          <p className="text-[12px] text-[#666] mt-0.5">Prepaid service plan</p>
+                          <p className="text-[12px] font-medium text-white">Dealer Service Package</p>
+                          <p className="text-[10px] text-[#666]">Prepaid service</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange('dealerServicePackage', !formData.dealerServicePackage)}
-                          className={`relative w-11 h-6 rounded-full transition-colors ${formData.dealerServicePackage ? 'bg-gradient-to-r from-[#666] to-[#888]' : 'bg-[#333]'}`}
-                        >
-                          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.dealerServicePackage ? 'left-6' : 'left-1'}`} />
+                        <button type="button" onClick={() => handleInputChange('dealerServicePackage', !formData.dealerServicePackage)} className={`relative w-9 h-5 rounded-full transition-colors ${formData.dealerServicePackage ? 'bg-gradient-to-r from-[#666] to-[#888]' : 'bg-[#333]'}`}>
+                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.dealerServicePackage ? 'left-[18px]' : 'left-0.5'}`} />
                         </button>
                       </div>
                       {formData.dealerServicePackage && (
-                        <div className="p-4 grid grid-cols-2 gap-3 bg-[#0d0d0d]">
-                          <div>
-                            <label className="block text-[11px] text-[#666] uppercase tracking-wide mb-1.5">Expiry Date</label>
-                            <input type="date" value={formData.dealerServicePackageExpiryDate} onChange={(e) => handleInputChange('dealerServicePackageExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner focus:outline-none focus:border-[#666]" />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] text-[#666] uppercase tracking-wide mb-1.5">Mileage Limit</label>
-                            <input type="number" value={formData.dealerServicePackageExpiryMileage} onChange={(e) => handleInputChange('dealerServicePackageExpiryMileage', parseInt(e.target.value) || 0)} placeholder="e.g. 60000" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" />
-                          </div>
+                        <div className="px-3 pb-2 grid grid-cols-2 gap-2 border-t border-[#333] pt-2">
+                          <div><label className="block text-[10px] text-[#666] mb-1">Expiry</label><input type="date" value={formData.dealerServicePackageExpiryDate} onChange={(e) => handleInputChange('dealerServicePackageExpiryDate', e.target.value)} className="w-full px-2 py-1.5 bg-[#1a1a1a] border border-[#444] rounded text-white text-xs shadow-inner" /></div>
+                          <div><label className="block text-[10px] text-[#666] mb-1">Mileage</label><input type="number" value={formData.dealerServicePackageExpiryMileage} onChange={(e) => handleInputChange('dealerServicePackageExpiryMileage', parseInt(e.target.value) || 0)} placeholder="km" className="w-full px-2 py-1.5 bg-[#1a1a1a] border border-[#444] rounded text-white text-xs shadow-inner placeholder-[#555]" /></div>
                         </div>
                       )}
                     </div>
@@ -1011,11 +1011,11 @@ export default function AccountSummaryModal({
 
                   {/* Notes */}
                   <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
-                    <div className="px-4 py-3 border-b border-[#333] bg-[#111]">
-                      <h3 className="text-[13px] font-medium text-[#999]">Additional Notes</h3>
+                    <div className="px-3 py-2 border-b border-[#333] bg-[#111]">
+                      <h3 className="text-[12px] font-medium text-[#999]">Additional Notes</h3>
                     </div>
-                    <div className="p-4">
-                      <textarea value={formData.additionalNotes} onChange={(e) => handleInputChange('additionalNotes', e.target.value)} rows={3} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner resize-none placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors" placeholder="Any notes for this transaction..." />
+                    <div className="p-3">
+                      <textarea value={formData.additionalNotes} onChange={(e) => handleInputChange('additionalNotes', e.target.value)} rows={2} className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner resize-none placeholder-[#555] focus:outline-none focus:border-[#666]" placeholder="Any notes for this transaction..." />
                     </div>
                   </div>
                 </form>
@@ -1147,7 +1147,14 @@ export default function AccountSummaryModal({
                         </div>
                       )}
                       <div className="flex gap-3 mt-4">
-                        <button onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-4 py-2.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50">{saving ? '...' : 'Save Payment'}</button>
+                        <button onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-4 py-2.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2">
+                          {saving ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Generating Receipt...
+                            </>
+                          ) : 'Save Payment'}
+                        </button>
                         <button onClick={() => setShowAddPayment(false)} className="px-4 py-2.5 bg-[#333] text-white text-sm rounded-md hover:bg-[#444]">Cancel</button>
                       </div>
                     </div>
@@ -1164,15 +1171,52 @@ export default function AccountSummaryModal({
                   {/* Payments Table */}
                   <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
                     <table className="w-full">
-                      <thead><tr className="border-b border-[#333] bg-[#111]"><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Date</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Method</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Reference</th><th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Amount</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">Status</th></tr></thead>
+                      <thead><tr className="border-b border-[#333] bg-[#111]"><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Date</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Receipt</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Method</th><th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Amount</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">Status</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">PDF</th></tr></thead>
                       <tbody className="divide-y divide-[#333]">
-                        {allPayments.length === 0 ? <tr><td colSpan={5} className="px-4 py-12 text-center text-[#555]">No payments recorded</td></tr> : allPayments.map((p: any) => (
+                        {allPayments.length === 0 ? <tr><td colSpan={6} className="px-4 py-12 text-center text-[#555]">No payments recorded</td></tr> : allPayments.map((p: any) => (
                           <tr key={p.id} className="hover:bg-[#0d0d0d] transition-colors">
                             <td className="px-4 py-3 text-[#999] text-sm">{formatDate(p.payment_date)}</td>
+                            <td className="px-4 py-3 text-[#888] font-mono text-xs">{p.receipt_number || '-'}</td>
                             <td className="px-4 py-3 text-white text-sm capitalize">{p.payment_method.replace('_', ' ')}</td>
-                            <td className="px-4 py-3 text-[#666] font-mono text-sm">{p.reference_number || '-'}</td>
                             <td className="px-4 py-3 text-right font-semibold text-emerald-400 text-sm">AED {formatCurrency(p.amount)}</td>
                             <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded text-[11px] font-medium ${p.status === 'allocated' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#333] text-[#888]'}`}>{p.status?.replace('_', ' ') || 'pending'}</span></td>
+                            <td className="px-4 py-3 text-center">
+                              {p.receipt_url ? (
+                                <button onClick={() => window.open(p.receipt_url, '_blank')} className="p-1.5 bg-[#333] hover:bg-[#444] rounded text-white transition-colors" title="Download Receipt">
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                              ) : p.id?.startsWith('pending-') ? (
+                                <span className="text-[#555] text-xs">-</span>
+                              ) : (
+                                <button 
+                                  onClick={async () => {
+                                    try {
+                                      const res = await fetch('/api/generate-receipt', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          paymentId: p.id,
+                                          customerName: formData.customerName,
+                                          customerPhone: formData.contactNo,
+                                          customerEmail: formData.emailAddress,
+                                          vehicleInfo: `${formData.makeModel} ${formData.modelYear}`,
+                                          reservationNumber: documentNumber
+                                        })
+                                      });
+                                      if (res.ok) {
+                                        const data = await res.json();
+                                        if (data.receiptUrl) window.open(data.receiptUrl, '_blank');
+                                        await loadData();
+                                      }
+                                    } catch (e) { console.error(e); }
+                                  }} 
+                                  className="p-1.5 bg-[#444] hover:bg-[#555] rounded text-[#888] hover:text-white transition-colors" 
+                                  title="Generate Receipt"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

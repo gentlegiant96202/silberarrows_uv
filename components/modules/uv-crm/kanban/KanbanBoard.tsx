@@ -417,13 +417,29 @@ export default function KanbanBoard() {
                   newColumnData[normalizedStatus] = sortColumnData(updatedColumn, normalizedStatus);
                 }
               } else if (eventType === "UPDATE") {
+                // Find existing lead to preserve calculated balance data
+                let existingLead: Lead | undefined;
+                Object.keys(newColumnData).forEach(key => {
+                  const found = newColumnData[key as ColKey].find(l => l.id === lead.id);
+                  if (found) existingLead = found;
+                });
+                
+                // Merge: keep existing balance data if new lead doesn't have it
+                const mergedLead: Lead = {
+                  ...lead,
+                  // Preserve calculated balance fields that aren't in DB
+                  total_charges: lead.total_charges ?? existingLead?.total_charges,
+                  total_paid: lead.total_paid ?? existingLead?.total_paid,
+                  balance_due: lead.balance_due ?? existingLead?.balance_due,
+                };
+                
                 // Remove from all columns first
                 Object.keys(newColumnData).forEach(key => {
                   newColumnData[key as ColKey] = newColumnData[key as ColKey].filter(l => l.id !== lead.id);
                 });
                 // Add to correct column
                 if (newColumnData[normalizedStatus]) {
-                  const updatedColumn = [lead, ...newColumnData[normalizedStatus]];
+                  const updatedColumn = [mergedLead, ...newColumnData[normalizedStatus]];
                   newColumnData[normalizedStatus] = sortColumnData(updatedColumn, normalizedStatus);
                 }
               } else if (eventType === "DELETE") {
@@ -445,7 +461,18 @@ export default function KanbanBoard() {
             } else if (payload.eventType === "UPDATE") {
               const updatedLead = payload.new as Lead;
               updateColumnData(updatedLead, "UPDATE");
-              newLeads = prev.map(l => (l.id === updatedLead.id ? updatedLead : l));
+              // Preserve calculated balance fields when updating
+              newLeads = prev.map(l => {
+                if (l.id === updatedLead.id) {
+                  return {
+                    ...updatedLead,
+                    total_charges: updatedLead.total_charges ?? l.total_charges,
+                    total_paid: updatedLead.total_paid ?? l.total_paid,
+                    balance_due: updatedLead.balance_due ?? l.balance_due,
+                  };
+                }
+                return l;
+              });
             } else if (payload.eventType === "DELETE") {
               const deletedLead = payload.old as Lead;
               updateColumnData(deletedLead, "DELETE");

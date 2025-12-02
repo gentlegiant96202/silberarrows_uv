@@ -5,6 +5,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
 interface Transaction {
   date: string;
+  createdAt: string; // For sorting same-day transactions
   type: 'charge' | 'payment';
   description: string;
   reference: string;
@@ -51,8 +52,8 @@ function generateSOAHTML(data: SOAData, logoSrc: string) {
     return amount.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Inline SVG dirham icon for PDF
-  const dirhamIcon = `<svg style="width: 12px; height: 10px; display: inline-block; vertical-align: middle; margin-right: 2px;" viewBox="0 0 344.84 299.91" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg>`;
+  // Currency prefix for SOA
+  const currencyPrefix = 'AED ';
 
   const currentDate = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -79,13 +80,13 @@ function generateSOAHTML(data: SOAData, logoSrc: string) {
       <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; font-size: 10px; color: #1a1a1a;">${txn.description}</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; font-size: 10px; color: #666; font-family: monospace;">${txn.reference}</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; font-size: 10px; text-align: right; color: #1a1a1a;">
-        ${txn.type === 'charge' ? dirhamIcon + formatCurrency(txn.chargeAmount || 0) : '-'}
+        ${txn.type === 'charge' ? currencyPrefix + formatCurrency(txn.chargeAmount || 0) : '-'}
       </td>
-      <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; font-size: 10px; text-align: right; color: #10b981;">
-        ${txn.type === 'payment' ? dirhamIcon + formatCurrency(txn.paymentAmount || 0) : '-'}
+      <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; font-size: 10px; text-align: right; color: ${(txn.paymentAmount || 0) < 0 ? '#ef4444' : '#10b981'};">
+        ${txn.type === 'payment' ? ((txn.paymentAmount || 0) < 0 ? '-' : '') + currencyPrefix + formatCurrency(Math.abs(txn.paymentAmount || 0)) : '-'}
       </td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; font-size: 10px; text-align: right; font-weight: 600; color: ${txn.balance > 0 ? '#ef4444' : '#10b981'};">
-        ${dirhamIcon}${formatCurrency(Math.abs(txn.balance))}${txn.balance < 0 ? ' CR' : ''}
+        ${currencyPrefix}${formatCurrency(Math.abs(txn.balance))}${txn.balance < 0 ? ' CR' : ''}
       </td>
     </tr>
   `).join('');
@@ -234,19 +235,19 @@ function generateSOAHTML(data: SOAData, logoSrc: string) {
             <td style="width: 25%; padding: 0 5px;">
               <div style="background: #f0f0f0; padding: 12px; border-radius: 6px; border: 1px solid #ccc; text-align: center;">
                 <div style="font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Total Charges</div>
-                <div style="font-size: 16px; font-weight: 700; color: #1a1a1a;">${dirhamIcon}${formatCurrency(data.totalCharges)}</div>
+                <div style="font-size: 16px; font-weight: 700; color: #1a1a1a;">${currencyPrefix}${formatCurrency(data.totalCharges)}</div>
               </div>
             </td>
             <td style="width: 25%; padding: 0 5px;">
               <div style="background: #f0f0f0; padding: 12px; border-radius: 6px; border: 1px solid #ccc; text-align: center;">
                 <div style="font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Total Payments</div>
-                <div style="font-size: 16px; font-weight: 700; color: #10b981;">${dirhamIcon}${formatCurrency(data.totalPayments)}</div>
+                <div style="font-size: 16px; font-weight: 700; color: #10b981;">${currencyPrefix}${formatCurrency(data.totalPayments)}</div>
               </div>
             </td>
             <td style="width: 25%; padding: 0 5px;">
               <div style="background: #f0f0f0; padding: 12px; border-radius: 6px; border: 1px solid #ccc; text-align: center;">
                 <div style="font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Balance Due</div>
-                <div style="font-size: 16px; font-weight: 700; color: ${data.balanceDue > 0 ? '#ef4444' : '#10b981'};">${dirhamIcon}${formatCurrency(Math.abs(data.balanceDue))}${data.balanceDue < 0 ? ' CR' : ''}</div>
+                <div style="font-size: 16px; font-weight: 700; color: ${data.balanceDue > 0 ? '#ef4444' : '#10b981'};">${currencyPrefix}${formatCurrency(Math.abs(data.balanceDue))}${data.balanceDue < 0 ? ' CR' : ''}</div>
               </div>
             </td>
             <td style="width: 25%; padding: 0 5px;">
@@ -278,9 +279,9 @@ function generateSOAHTML(data: SOAData, logoSrc: string) {
             <tfoot>
               <tr style="background: #f8f8f8; border-top: 2px solid #ccc;">
                 <td colspan="3" style="padding: 12px; text-align: right; font-size: 10px; font-weight: 700; color: #1a1a1a; text-transform: uppercase;">Totals</td>
-                <td style="padding: 12px; text-align: right; font-size: 11px; font-weight: 700; color: #1a1a1a;">${dirhamIcon}${formatCurrency(data.totalCharges)}</td>
-                <td style="padding: 12px; text-align: right; font-size: 11px; font-weight: 700; color: #10b981;">${dirhamIcon}${formatCurrency(data.totalPayments)}</td>
-                <td style="padding: 12px; text-align: right; font-size: 11px; font-weight: 700; color: ${data.balanceDue > 0 ? '#ef4444' : '#10b981'};">${dirhamIcon}${formatCurrency(Math.abs(data.balanceDue))}${data.balanceDue < 0 ? ' CR' : ''}</td>
+                <td style="padding: 12px; text-align: right; font-size: 11px; font-weight: 700; color: #1a1a1a;">${currencyPrefix}${formatCurrency(data.totalCharges)}</td>
+                <td style="padding: 12px; text-align: right; font-size: 11px; font-weight: 700; color: #10b981;">${currencyPrefix}${formatCurrency(data.totalPayments)}</td>
+                <td style="padding: 12px; text-align: right; font-size: 11px; font-weight: 700; color: ${data.balanceDue > 0 ? '#ef4444' : '#10b981'};">${currencyPrefix}${formatCurrency(Math.abs(data.balanceDue))}${data.balanceDue < 0 ? ' CR' : ''}</td>
               </tr>
             </tfoot>
           </table>
@@ -335,43 +336,43 @@ export async function POST(request: NextRequest) {
 
     // Build transactions list
     const transactions: Transaction[] = [];
-    let runningBalance = 0;
 
     // Add charges
     if (charges && Array.isArray(charges)) {
       charges.forEach((charge: any) => {
         const amount = charge.unit_price * (charge.quantity || 1);
-        runningBalance += amount;
         transactions.push({
-          date: charge.created_at || new Date().toISOString(),
+          date: charge.created_at || documentDate || new Date().toISOString(),
+          createdAt: charge.created_at || documentDate || new Date().toISOString(),
           type: 'charge',
           description: charge.description || charge.charge_type?.replace('_', ' ') || 'Charge',
           reference: documentNumber || '-',
           chargeAmount: amount,
-          balance: runningBalance
+          balance: 0 // Will be recalculated
         });
       });
     }
 
-    // Add payments
+    // Add payments (including refunds which have negative amounts)
     if (payments && Array.isArray(payments)) {
       payments.forEach((payment: any) => {
-        runningBalance -= payment.amount;
+        const isRefund = payment.payment_method === 'refund' || payment.amount < 0;
         transactions.push({
           date: payment.payment_date || payment.created_at,
+          createdAt: payment.created_at || payment.payment_date || new Date().toISOString(),
           type: 'payment',
-          description: `Payment - ${payment.payment_method?.replace('_', ' ') || 'Payment'}`,
+          description: isRefund ? `Refund - ${payment.payment_method === 'refund' ? 'Refund' : payment.payment_method?.replace('_', ' ')}` : `Payment - ${payment.payment_method?.replace('_', ' ') || 'Payment'}`,
           reference: payment.reference_number || payment.receipt_number || '-',
           paymentAmount: payment.amount,
-          balance: runningBalance
+          balance: 0 // Will be recalculated
         });
       });
     }
 
-    // Sort by date
-    transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // Sort by created_at timestamp (true chronological order)
+    transactions.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    // Recalculate running balance after sorting
+    // Calculate running balance after sorting
     let balance = 0;
     transactions.forEach(txn => {
       if (txn.type === 'charge') {

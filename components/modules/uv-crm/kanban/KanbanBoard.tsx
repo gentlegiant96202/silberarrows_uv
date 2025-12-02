@@ -942,13 +942,17 @@ export default function KanbanBoard() {
                     <div className="flex items-center justify-between pt-1 mt-1 border-t border-white/10">
                       <span className="text-[9px] text-white/50 uppercase">Balance</span>
                       <span className={`text-[11px] font-semibold ${
-                        (l.balance_due || 0) <= 0 
+                        (l.total_charges || 0) > 0 && (l.balance_due || 0) <= 0 
                           ? 'text-emerald-400' 
-                          : 'text-amber-400'
+                          : (l.total_charges || 0) > 0 
+                            ? 'text-amber-400'
+                            : 'text-white/50'
                       }`}>
-                        {(l.balance_due || 0) <= 0 
-                          ? 'PAID' 
-                          : `AED ${(l.balance_due || 0).toLocaleString()}`
+                        {(l.total_charges || 0) === 0
+                          ? 'NO INVOICE'
+                          : (l.balance_due || 0) <= 0 
+                            ? 'PAID' 
+                            : `AED ${(l.balance_due || 0).toLocaleString()}`
                         }
                       </span>
                     </div>

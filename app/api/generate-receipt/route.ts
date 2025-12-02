@@ -14,8 +14,12 @@ function generateReceiptHTML(data: {
   amount: number;
   referenceNumber?: string;
   vehicleInfo?: string;
+  chassisNo?: string;
   reservationNumber?: string;
   notes?: string;
+  totalCharges?: number;
+  totalPaid?: number;
+  balanceDue?: number;
 }, logoSrc: string) {
   
   const formatDate = (dateString: string) => {
@@ -37,10 +41,10 @@ function generateReceiptHTML(data: {
   };
 
   // Inline SVG dirham icon for PDF
-  const dirhamIcon = `<svg style="width: 14px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 2px;" viewBox="0 0 344.84 299.91" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg>`;
+  const dirhamIcon = `<svg style="width: 12px; height: 10px; display: inline-block; vertical-align: middle; margin-right: 2px;" viewBox="0 0 344.84 299.91" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg>`;
   
   // Larger version for the main amount
-  const dirhamIconLarge = `<svg style="width: 22px; height: 19px; display: inline-block; vertical-align: middle; margin-right: 4px;" viewBox="0 0 344.84 299.91" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg>`;
+  const dirhamIconLarge = `<svg style="width: 24px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 4px;" viewBox="0 0 344.84 299.91" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M342.14,140.96l2.7,2.54v-7.72c0-17-11.92-30.84-26.56-30.84h-23.41C278.49,36.7,222.69,0,139.68,0c-52.86,0-59.65,0-109.71,0,0,0,15.03,12.63,15.03,52.4v52.58h-27.68c-5.38,0-10.43-2.08-14.61-6.01l-2.7-2.54v7.72c0,17.01,11.92,30.84,26.56,30.84h18.44s0,29.99,0,29.99h-27.68c-5.38,0-10.43-2.07-14.61-6.01l-2.7-2.54v7.71c0,17,11.92,30.82,26.56,30.82h18.44s0,54.89,0,54.89c0,38.65-15.03,50.06-15.03,50.06h109.71c85.62,0,139.64-36.96,155.38-104.98h32.46c5.38,0,10.43,2.07,14.61,6l2.7,2.54v-7.71c0-17-11.92-30.83-26.56-30.83h-18.9c.32-4.88.49-9.87.49-15s-.18-10.11-.51-14.99h28.17c5.37,0,10.43,2.07,14.61,6.01ZM89.96,15.01h45.86c61.7,0,97.44,27.33,108.1,89.94l-153.96.02V15.01ZM136.21,284.93h-46.26v-89.98l153.87-.02c-9.97,56.66-42.07,88.38-107.61,90ZM247.34,149.96c0,5.13-.11,10.13-.34,14.99l-157.04.02v-29.99l157.05-.02c.22,4.84.33,9.83.33,15Z"/></svg>`;
 
   const formatPaymentMethod = (method: string) => {
     const methods: Record<string, string> = {
@@ -52,6 +56,18 @@ function generateReceiptHTML(data: {
       'finance': 'Finance'
     };
     return methods[method] || method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const formatPhoneNumber = (phone: string) => {
+    if (!phone) return '-';
+    // Remove any spaces or dashes
+    const cleaned = phone.replace(/[\s-]/g, '');
+    // If already has country code (starts with +), return as is
+    if (cleaned.startsWith('+')) return cleaned;
+    // If starts with 00, replace with +
+    if (cleaned.startsWith('00')) return '+' + cleaned.slice(2);
+    // Otherwise add UAE country code
+    return '+971 ' + cleaned;
   };
 
   // Convert number to words
@@ -97,6 +113,11 @@ function generateReceiptHTML(data: {
     return result + ' Only';
   };
 
+  // Calculate balance after this payment (can be negative if overpaid)
+  const balanceAfterPayment = data.balanceDue !== undefined ? data.balanceDue : 0;
+  const isPaid = balanceAfterPayment <= 0;
+  const isOverpaid = balanceAfterPayment < 0;
+
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -119,8 +140,8 @@ function generateReceiptHTML(data: {
         body {
           background: #ffffff;
           color: #1a1a1a;
-          font-family: 'Arial', sans-serif;
-          font-size: 12px;
+          font-family: 'Helvetica Neue', Arial, sans-serif;
+          font-size: 11px;
           line-height: 1.4;
           width: 210mm;
           min-height: 297mm;
@@ -129,7 +150,7 @@ function generateReceiptHTML(data: {
         }
 
         .receipt {
-          padding: 25px 35px;
+          padding: 30px 40px;
           max-width: 210mm;
           margin: 0 auto;
         }
@@ -139,9 +160,9 @@ function generateReceiptHTML(data: {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 15px;
-          padding-bottom: 12px;
-          border-bottom: 2px solid #1a1a1a;
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+          border-bottom: 3px solid #1a1a1a;
         }
 
         .company-info {
@@ -149,43 +170,80 @@ function generateReceiptHTML(data: {
         }
 
         .company-name {
-          font-size: 20px;
+          font-size: 24px;
           font-weight: 700;
           color: #1a1a1a;
-          margin-bottom: 3px;
-          letter-spacing: 1px;
+          margin-bottom: 4px;
+          letter-spacing: 2px;
         }
 
         .company-details {
           font-size: 9px;
-          color: #666;
-          line-height: 1.4;
+          color: #555;
+          line-height: 1.5;
         }
 
         .logo {
-          width: 60px;
+          width: 70px;
           height: auto;
         }
 
         /* Receipt Title */
         .receipt-title {
           text-align: center;
-          margin-bottom: 15px;
+          margin-bottom: 20px;
+          padding: 12px 0;
+          background: #f5f5f5;
+          border-radius: 4px;
         }
 
         .receipt-title h1 {
-          font-size: 22px;
+          font-size: 20px;
           font-weight: 700;
           color: #1a1a1a;
           text-transform: uppercase;
-          letter-spacing: 2px;
-          margin-bottom: 5px;
+          letter-spacing: 3px;
+          margin-bottom: 4px;
         }
 
         .receipt-number {
-          font-size: 13px;
-          color: #666;
-          font-weight: 500;
+          font-size: 14px;
+          color: #444;
+          font-weight: 600;
+        }
+
+        /* Receipt Details Section (Top) */
+        .receipt-details {
+          background: #fafafa;
+          border: 1px solid #e0e0e0;
+          border-radius: 6px;
+          padding: 15px 20px;
+          margin-bottom: 15px;
+        }
+
+        .receipt-details-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+        }
+
+        .detail-item {
+          text-align: center;
+        }
+
+        .detail-label {
+          font-size: 8px;
+          font-weight: 700;
+          color: #888;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 4px;
+        }
+
+        .detail-value {
+          font-size: 12px;
+          font-weight: 600;
+          color: #1a1a1a;
         }
 
         /* Info Grid */
@@ -193,31 +251,31 @@ function generateReceiptHTML(data: {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 15px;
-          margin-bottom: 15px;
+          margin-bottom: 20px;
         }
 
         .info-section {
-          background: #f8f8f8;
-          padding: 12px;
+          background: #ffffff;
+          padding: 15px;
           border-radius: 6px;
-          border: 1px solid #e0e0e0;
+          border: 1px solid #ddd;
         }
 
         .info-section h3 {
           font-size: 9px;
           font-weight: 700;
-          color: #999;
+          color: #1a1a1a;
           text-transform: uppercase;
           letter-spacing: 1px;
-          margin-bottom: 8px;
-          padding-bottom: 5px;
-          border-bottom: 1px solid #e0e0e0;
+          margin-bottom: 10px;
+          padding-bottom: 6px;
+          border-bottom: 2px solid #1a1a1a;
         }
 
         .info-row {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 5px;
+          margin-bottom: 6px;
           font-size: 10px;
         }
 
@@ -233,29 +291,30 @@ function generateReceiptHTML(data: {
           font-weight: 600;
           color: #1a1a1a;
           text-align: right;
+          max-width: 60%;
         }
 
         /* Amount Section */
         .amount-section {
-          background: #f0f0f0;
-          border: 2px solid #ccc;
+          background: #f5f5f5;
+          border: 2px solid #ddd;
           color: #1a1a1a;
-          padding: 15px;
-          border-radius: 6px;
-          margin-bottom: 15px;
+          padding: 25px;
+          border-radius: 8px;
+          margin-bottom: 20px;
           text-align: center;
         }
 
         .amount-label {
           font-size: 10px;
           text-transform: uppercase;
-          letter-spacing: 2px;
+          letter-spacing: 3px;
           color: #666;
-          margin-bottom: 5px;
+          margin-bottom: 8px;
         }
 
         .amount-value {
-          font-size: 26px;
+          font-size: 32px;
           font-weight: 700;
           letter-spacing: 1px;
           color: #1a1a1a;
@@ -266,110 +325,153 @@ function generateReceiptHTML(data: {
         }
 
         .amount-words {
-          font-size: 9px;
-          color: #666;
-          margin-top: 5px;
+          font-size: 10px;
+          color: #555;
+          margin-top: 8px;
           font-style: italic;
+        }
+
+        /* Account Summary Table */
+        .account-summary {
+          margin-bottom: 20px;
+        }
+
+        .account-summary h3 {
+          font-size: 10px;
+          font-weight: 700;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 10px;
+        }
+
+        .summary-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+        }
+
+        .summary-table th {
+          background: #f0f0f0;
+          padding: 10px 15px;
+          text-align: left;
+          font-weight: 600;
+          color: #555;
+          text-transform: uppercase;
+          font-size: 9px;
+          letter-spacing: 0.5px;
+          border-bottom: 2px solid #ddd;
+        }
+
+        .summary-table th:last-child {
+          text-align: right;
+        }
+
+        .summary-table td {
+          padding: 12px 15px;
+          border-bottom: 1px solid #eee;
+          color: #333;
+        }
+
+        .summary-table td:last-child {
+          text-align: right;
+          font-weight: 600;
+        }
+
+        .summary-table tr:last-child td {
+          border-bottom: none;
+        }
+
+        .summary-table .total-row {
+          background: #f8f8f8;
+        }
+
+        .summary-table .total-row td {
+          font-weight: 700;
+          font-size: 12px;
+          border-top: 2px solid #1a1a1a;
+          border-bottom: none;
+        }
+
+        .summary-table .balance-row td {
+          font-weight: 700;
+          font-size: 13px;
+        }
+
+        .balance-paid {
+          color: #22c55e !important;
+        }
+
+        .balance-due {
+          color: #ef4444 !important;
         }
 
         /* Notes */
         .notes-section {
-          margin-bottom: 15px;
-          padding: 10px;
-          background: #fffef0;
-          border: 1px solid #f0e68c;
+          margin-bottom: 20px;
+          padding: 12px 15px;
+          background: #fffbeb;
+          border: 1px solid #fcd34d;
           border-radius: 6px;
         }
 
         .notes-section h3 {
           font-size: 9px;
           font-weight: 700;
-          color: #999;
+          color: #92400e;
           text-transform: uppercase;
           letter-spacing: 1px;
-          margin-bottom: 5px;
+          margin-bottom: 6px;
         }
 
         .notes-text {
           font-size: 10px;
-          color: #666;
-          font-style: italic;
+          color: #78350f;
         }
 
         /* Footer */
         .footer {
-          margin-top: 15px;
-          padding-top: 12px;
-          border-top: 1px solid #e0e0e0;
+          margin-top: 25px;
+          padding-top: 15px;
+          border-top: 2px solid #e0e0e0;
           text-align: center;
         }
 
         .footer-text {
           font-size: 8px;
-          color: #999;
-          margin-bottom: 3px;
+          color: #888;
+          margin-bottom: 4px;
         }
 
         .thank-you {
-          font-size: 12px;
-          font-weight: 600;
-          color: #1a1a1a;
-          margin-bottom: 10px;
-        }
-
-        .signature-area {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 20px;
-          gap: 30px;
-        }
-
-        .signature-box {
-          flex: 1;
-          text-align: center;
-        }
-
-        .signature-line {
-          border-top: 1px solid #1a1a1a;
-          padding-top: 8px;
-          margin-top: 35px;
-          font-size: 9px;
-          color: #666;
-        }
-
-        /* Payment Summary */
-        .payment-summary {
-          background: #fafafa;
-          border: 1px solid #e0e0e0;
-          border-radius: 6px;
-          padding: 12px;
-          margin-bottom: 15px;
-        }
-
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 5px 0;
-          border-bottom: 1px dashed #e0e0e0;
-          font-size: 10px;
-        }
-
-        .summary-row:last-child {
-          border-bottom: none;
+          font-size: 13px;
           font-weight: 700;
-          font-size: 12px;
-          padding-top: 8px;
-          margin-top: 5px;
-          border-top: 2px solid #ccc;
-        }
-
-        .summary-label {
-          color: #666;
-        }
-
-        .summary-value {
           color: #1a1a1a;
-          font-weight: 600;
+          margin-bottom: 8px;
+          letter-spacing: 1px;
+        }
+
+        .status-badge {
+          display: inline-block;
+          padding: 6px 20px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-top: 10px;
+        }
+
+        .status-paid {
+          background: #dcfce7;
+          color: #166534;
+          border: 1px solid #86efac;
+        }
+
+        .status-partial {
+          background: #fef3c7;
+          color: #92400e;
+          border: 1px solid #fcd34d;
         }
       </style>
     </head>
@@ -382,8 +484,7 @@ function generateReceiptHTML(data: {
             <div class="company-details">
               Silber Arrows 1934 Used Car Trading LLC<br>
               Al Manara St., Al Quoz 1, Dubai, UAE<br>
-              P.O. Box 185095<br>
-              TRN: 100281137800003<br>
+              P.O. Box 185095 | TRN: 100281137800003<br>
               Tel: +971 4 380 5515<br>
               sales@silberarrows.com | www.silberarrows.com
             </div>
@@ -397,48 +498,58 @@ function generateReceiptHTML(data: {
           <div class="receipt-number">${data.receiptNumber}</div>
         </div>
 
-        <!-- Info Grid -->
+        <!-- Receipt Details (Top Section) -->
+        <div class="receipt-details">
+          <div class="receipt-details-grid">
+            <div class="detail-item">
+              <div class="detail-label">Receipt Date</div>
+              <div class="detail-value">${formatDate(data.paymentDate)}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Payment Method</div>
+              <div class="detail-value">${formatPaymentMethod(data.paymentMethod)}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Reference</div>
+              <div class="detail-value">${data.referenceNumber || '-'}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Invoice / Reservation</div>
+              <div class="detail-value">${data.reservationNumber || '-'}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Customer & Vehicle Info Grid -->
         <div class="info-grid">
           <div class="info-section">
-            <h3>Receipt Details</h3>
+            <h3>Customer Details</h3>
             <div class="info-row">
-              <span class="info-label">Date:</span>
-              <span class="info-value">${formatDate(data.paymentDate)}</span>
+              <span class="info-label">Name</span>
+              <span class="info-value">${data.customerName}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Payment Method:</span>
-              <span class="info-value">${formatPaymentMethod(data.paymentMethod)}</span>
+              <span class="info-label">Phone</span>
+              <span class="info-value">${formatPhoneNumber(data.customerPhone)}</span>
             </div>
-            ${data.referenceNumber ? `
+            ${data.customerEmail ? `
             <div class="info-row">
-              <span class="info-label">Reference:</span>
-              <span class="info-value">${data.referenceNumber}</span>
-            </div>
-            ` : ''}
-            ${data.reservationNumber ? `
-            <div class="info-row">
-              <span class="info-label">Reservation:</span>
-              <span class="info-value">${data.reservationNumber}</span>
+              <span class="info-label">Email</span>
+              <span class="info-value">${data.customerEmail}</span>
             </div>
             ` : ''}
           </div>
 
           <div class="info-section">
-            <h3>Customer Details</h3>
+            <h3>Vehicle Details</h3>
             <div class="info-row">
-              <span class="info-label">Name:</span>
-              <span class="info-value">${data.customerName}</span>
+              <span class="info-label">Vehicle</span>
+              <span class="info-value">${data.vehicleInfo || '-'}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Phone:</span>
-              <span class="info-value">${data.customerPhone}</span>
+              <span class="info-label">Chassis No.</span>
+              <span class="info-value">${data.chassisNo || '-'}</span>
             </div>
-            ${data.customerEmail ? `
-            <div class="info-row">
-              <span class="info-label">Email:</span>
-              <span class="info-value">${data.customerEmail}</span>
-            </div>
-            ` : ''}
           </div>
         </div>
 
@@ -451,39 +562,36 @@ function generateReceiptHTML(data: {
           <div class="amount-words">${amountInWords(data.amount)}</div>
         </div>
 
-        <!-- Payment Summary -->
-        <div class="payment-summary">
-          <div class="summary-row">
-            <span class="summary-label">Payment Date</span>
-            <span class="summary-value">${formatDate(data.paymentDate)}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Payment Method</span>
-            <span class="summary-value">${formatPaymentMethod(data.paymentMethod)}</span>
-          </div>
-          ${data.referenceNumber ? `
-          <div class="summary-row">
-            <span class="summary-label">Reference Number</span>
-            <span class="summary-value">${data.referenceNumber}</span>
-          </div>
-          ` : ''}
-          ${data.reservationNumber ? `
-          <div class="summary-row">
-            <span class="summary-label">Reservation / Invoice</span>
-            <span class="summary-value">${data.reservationNumber}</span>
-          </div>
-          ` : ''}
-          ${data.vehicleInfo ? `
-          <div class="summary-row">
-            <span class="summary-label">Vehicle</span>
-            <span class="summary-value">${data.vehicleInfo}</span>
-          </div>
-          ` : ''}
-          <div class="summary-row">
-            <span class="summary-label">Total Amount Received</span>
-            <span class="summary-value">${dirhamIcon}${formatCurrency(data.amount)}</span>
-          </div>
+        <!-- Account Summary Table -->
+        ${(data.totalCharges !== undefined && data.totalCharges > 0) ? `
+        <div class="account-summary">
+          <h3>Account Summary</h3>
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Amount (AED)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Total Invoice Amount</td>
+                <td>${dirhamIcon}${formatCurrency(data.totalCharges || 0)}</td>
+              </tr>
+              <tr>
+                <td>Total Payments Received</td>
+                <td>${dirhamIcon}${formatCurrency(data.totalPaid || 0)}</td>
+              </tr>
+              <tr class="balance-row">
+                <td>Outstanding Balance</td>
+                <td class="${isPaid ? 'balance-paid' : 'balance-due'}">
+                  ${isOverpaid ? `${dirhamIcon}${formatCurrency(Math.abs(balanceAfterPayment))} CREDIT` : isPaid ? 'PAID IN FULL' : `${dirhamIcon}${formatCurrency(balanceAfterPayment)}`}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+        ` : ''}
 
         ${data.notes ? `
         <!-- Notes -->
@@ -493,20 +601,13 @@ function generateReceiptHTML(data: {
         </div>
         ` : ''}
 
-        <!-- Signature Area -->
-        <div class="signature-area">
-          <div class="signature-box">
-            <div class="signature-line">Received By (SilberArrows)</div>
-          </div>
-          <div class="signature-box">
-            <div class="signature-line">Customer Acknowledgment</div>
-          </div>
-        </div>
-
         <!-- Footer -->
         <div class="footer">
           <div class="thank-you">Thank you for your payment!</div>
-          <div class="footer-text">This is a computer-generated receipt and is valid without signature.</div>
+          <span class="status-badge ${isPaid ? 'status-paid' : 'status-partial'}">
+            ${isOverpaid ? '✓ Overpaid - Credit Balance' : isPaid ? '✓ Paid in Full' : 'Partial Payment'}
+          </span>
+          <div class="footer-text" style="margin-top: 15px;">This is a computer-generated receipt and is valid without signature.</div>
           <div class="footer-text">For any queries, please contact us at +971 4 380 5515 or sales@silberarrows.com</div>
         </div>
       </div>
@@ -517,7 +618,19 @@ function generateReceiptHTML(data: {
 
 export async function POST(request: NextRequest) {
   try {
-    const { paymentId, customerName, customerPhone, customerEmail, vehicleInfo, reservationNumber, notes } = await request.json();
+    const { 
+      paymentId, 
+      customerName, 
+      customerPhone, 
+      customerEmail, 
+      vehicleInfo, 
+      chassisNo,
+      reservationNumber, 
+      notes,
+      totalCharges,
+      totalPaid,
+      balanceDue
+    } = await request.json();
 
     // Validate required data
     if (!paymentId) {
@@ -579,8 +692,12 @@ export async function POST(request: NextRequest) {
       amount: payment.amount,
       referenceNumber: payment.reference_number,
       vehicleInfo: vehicleInfo,
+      chassisNo: chassisNo,
       reservationNumber: reservationNumber,
-      notes: notes || payment.notes
+      notes: notes || payment.notes,
+      totalCharges: totalCharges,
+      totalPaid: totalPaid,
+      balanceDue: balanceDue
     }, logoSrc);
 
     // Call PDFShift API
@@ -653,4 +770,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

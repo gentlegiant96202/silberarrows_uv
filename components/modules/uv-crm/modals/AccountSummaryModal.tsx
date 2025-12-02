@@ -112,13 +112,6 @@ interface Payment {
   notes: string | null;
 }
 
-interface PaymentAllocation {
-  id: string;
-  payment_id: string;
-  reservation_id: string;
-  allocated_amount: number;
-}
-
 interface AccountSummaryModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -147,6 +140,7 @@ const PAYMENT_METHODS = [
   { value: 'credit_card', label: 'Credit Card', icon: CreditCard },
   { value: 'part_exchange', label: 'Part Exchange', icon: Car },
   { value: 'finance', label: 'Finance', icon: DollarSign },
+  { value: 'refund', label: '↩ Refund', icon: DollarSign },
 ];
 
 // ============================================================
@@ -242,7 +236,6 @@ export default function AccountSummaryModal({
 
   const [charges, setCharges] = useState<Charge[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [allocations, setAllocations] = useState<PaymentAllocation[]>([]);
   const [showAddCharge, setShowAddCharge] = useState(false);
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [newCharge, setNewCharge] = useState({ charge_type: 'vehicle_sale', description: '', unit_price: 0, vat_applicable: false });
@@ -264,8 +257,9 @@ export default function AccountSummaryModal({
     subtotal: allCharges.reduce((sum, c) => sum + (c.total_amount || c.unit_price || 0), 0),
     vat: allCharges.reduce((sum, c) => sum + (c.vat_amount || 0), 0),
     get grandTotal() { return this.subtotal + this.vat; },
+    // Use actual payment amounts (not allocations) to correctly show overpayments/credits
     totalPaid: reservationId 
-      ? allocations.reduce((sum, a) => sum + (a.allocated_amount || 0), 0)
+      ? payments.reduce((sum, p) => sum + (p.amount || 0), 0)
       : pendingPayments.reduce((sum, p) => sum + (p.amount || 0), 0),
     get balanceDue() { return this.grandTotal - this.totalPaid; }
   };
@@ -377,12 +371,9 @@ export default function AccountSummaryModal({
 
         const { data: chargesData } = await supabase.from('uv_charges').select('*').eq('reservation_id', resData.id).order('display_order');
         setCharges(chargesData || []);
-
-        const { data: allocData } = await supabase.from('uv_payment_allocations').select('*').eq('reservation_id', resData.id);
-        setAllocations(allocData || []);
       }
 
-      const { data: paymentsData } = await supabase.from('uv_payments').select('*').eq('lead_id', lead.id).order('payment_date', { ascending: false });
+      const { data: paymentsData } = await supabase.from('uv_payments').select('*').eq('lead_id', lead.id).order('payment_date', { ascending: false }).order('created_at', { ascending: false });
       setPayments(paymentsData || []);
 
     } catch (error) {
@@ -543,19 +534,7 @@ export default function AccountSummaryModal({
               created_by: user?.id
             }).select().single();
 
-            // Allocate payment to this reservation
-            if (paymentData) {
-              await supabase.from('uv_payment_allocations').insert({
-                payment_id: paymentData.id,
-                reservation_id: data.id,
-                allocated_amount: payment.amount,
-                created_by: user?.id
-              });
-              await supabase.from('uv_payments').update({
-                allocated_amount: payment.amount,
-                status: 'allocated'
-              }).eq('id', paymentData.id);
-            }
+            // Payment is linked to lead - no separate allocation needed
           }
           setPendingPayments([]); // Clear pending after save
         }
@@ -672,12 +651,20 @@ export default function AccountSummaryModal({
   };
 
   const handleAddPayment = async () => {
-    if (!newPayment.amount) return;
+    console.log('handleAddPayment called', { amount: newPayment.amount, method: newPayment.payment_method, reservationId });
+    if (!newPayment.amount) {
+      console.log('No amount, returning');
+      return;
+    }
+    
+    // Refunds are stored as negative amounts
+    const isRefund = newPayment.payment_method === 'refund';
+    const finalAmount = isRefund ? -Math.abs(newPayment.amount) : Math.abs(newPayment.amount);
     
     const paymentData = {
       id: `pending-${Date.now()}`,
       payment_method: newPayment.payment_method,
-      amount: newPayment.amount,
+      amount: finalAmount,
       reference_number: newPayment.reference_number || '',
       notes: newPayment.notes || '',
       bank_name: newPayment.bank_name || '',
@@ -693,23 +680,30 @@ export default function AccountSummaryModal({
       // Save to DB if reservation exists
       setSaving(true);
       try {
-        const { data: dbPayment } = await supabase.from('uv_payments').insert({
-          lead_id: lead.id, payment_method: newPayment.payment_method, amount: newPayment.amount,
+        const { data: dbPayment, error: insertError } = await supabase.from('uv_payments').insert({
+          lead_id: lead.id, payment_method: newPayment.payment_method, amount: finalAmount,
           reference_number: newPayment.reference_number || null, notes: newPayment.notes || null,
           bank_name: newPayment.bank_name || null, cheque_number: newPayment.cheque_number || null,
           cheque_date: newPayment.cheque_date || null, part_exchange_vehicle: newPayment.part_exchange_vehicle || null,
           part_exchange_chassis: newPayment.part_exchange_chassis || null, created_by: user?.id
         }).select().single();
 
-        if (dbPayment && chargesTotals.balanceDue > 0) {
-          const allocateAmount = Math.min(newPayment.amount, chargesTotals.balanceDue);
-          await supabase.from('uv_payment_allocations').insert({ payment_id: dbPayment.id, reservation_id: reservationId, allocated_amount: allocateAmount, created_by: user?.id });
-          await supabase.from('uv_payments').update({ allocated_amount: allocateAmount, status: allocateAmount >= newPayment.amount ? 'allocated' : 'partially_allocated' }).eq('id', dbPayment.id);
+        if (insertError) {
+          console.error('Payment insert error:', insertError);
+          alert('Failed to save payment: ' + insertError.message);
+          setSaving(false);
+          return;
         }
+
+        // Payment is already linked to lead via lead_id - no separate allocation needed
 
         // Generate receipt PDF
         if (dbPayment) {
           try {
+            // Calculate updated totals after this payment (can be negative if overpaid or refund)
+            const updatedTotalPaid = chargesTotals.totalPaid + finalAmount;
+            const updatedBalanceDue = (chargesTotals.grandTotal || formData.invoiceTotal) - updatedTotalPaid;
+            
             await fetch('/api/generate-receipt', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -718,9 +712,13 @@ export default function AccountSummaryModal({
                 customerName: formData.customerName,
                 customerPhone: formData.contactNo,
                 customerEmail: formData.emailAddress,
-                vehicleInfo: `${formData.makeModel} ${formData.modelYear}`,
+                vehicleInfo: `${formData.modelYear} ${formData.makeModel}`,
+                chassisNo: formData.chassisNo,
                 reservationNumber: documentNumber,
-                notes: newPayment.notes
+                notes: newPayment.notes,
+                totalCharges: chargesTotals.grandTotal || formData.invoiceTotal,
+                totalPaid: updatedTotalPaid,
+                balanceDue: updatedBalanceDue
               })
             });
           } catch (receiptError) {
@@ -731,8 +729,8 @@ export default function AccountSummaryModal({
         await loadData();
       } catch (error) { alert('Failed to record payment'); } finally { setSaving(false); }
     } else {
-      // Store locally until Generate is clicked
-      setPendingPayments(prev => [...prev, paymentData]);
+      // Store locally until Generate is clicked (newest first)
+      setPendingPayments(prev => [paymentData, ...prev]);
     }
     
     setShowAddPayment(false);
@@ -785,7 +783,8 @@ export default function AccountSummaryModal({
 
   if (!isOpen) return null;
 
-  const isPaid = (chargesTotals.balanceDue <= 0 && chargesTotals.grandTotal > 0) || (formData.amountDue <= 0 && formData.invoiceTotal > 0);
+  // Only show as "PAID" if there are actual charges recorded AND balance is zero or credit
+  const isPaid = chargesTotals.grandTotal > 0 && chargesTotals.balanceDue <= 0;
 
   // ============================================================
   // RENDER
@@ -878,9 +877,9 @@ export default function AccountSummaryModal({
                 </div>
                 <div className="w-px h-8 bg-[#333]" />
                 <div>
-                  <p className="text-[11px] text-[#666] uppercase tracking-wide">Balance</p>
-                  <p className={`text-sm font-semibold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}
+                  <p className="text-[11px] text-[#666] uppercase tracking-wide">{chargesTotals.balanceDue < 0 ? 'Credit' : 'Balance'}</p>
+                  <p className={`text-sm font-semibold ${chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    AED {formatCurrency(Math.abs(chargesTotals.balanceDue))}{chargesTotals.balanceDue < 0 ? ' CR' : ''}
                   </p>
                 </div>
               </div>
@@ -996,16 +995,15 @@ export default function AccountSummaryModal({
                       </h3>
                     </div>
                     <div className="p-3">
-                      <div className="grid grid-cols-6 gap-3">
-                        <div className="col-span-2"><label className="block text-[11px] text-[#666] mb-1">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                      <div className="grid grid-cols-4 gap-3">
                         <div><label className="block text-[11px] text-[#666] mb-1">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                        <div><label className="block text-[11px] text-[#666] mb-1">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
                         <div><label className="block text-[11px] text-[#666] mb-1">Mileage</label><input type="number" value={formData.mileage} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
-                        <div><label className="block text-[11px] text-[#666] mb-1">Exterior</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed truncate" /></div>
-                        <div><label className="block text-[11px] text-[#666] mb-1">Interior</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed truncate" /></div>
+                        <div><label className="block text-[11px] text-[#666] mb-1">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner font-mono cursor-not-allowed" /></div>
                       </div>
-                      <div className="mt-2">
-                        <label className="block text-[11px] text-[#666] mb-1">Chassis Number</label>
-                        <input type="text" value={formData.chassisNo} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner font-mono cursor-not-allowed" />
+                      <div className="grid grid-cols-2 gap-3 mt-2">
+                        <div><label className="block text-[11px] text-[#666] mb-1">Exterior Colour</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                        <div><label className="block text-[11px] text-[#666] mb-1">Interior Colour</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
                       </div>
                     </div>
                   </div>
@@ -1156,12 +1154,12 @@ export default function AccountSummaryModal({
                   <div className="grid grid-cols-3 gap-4 p-4 bg-[#0f0f0f] rounded-lg border border-[#333]">
                     <div><p className="text-[11px] text-[#666] uppercase tracking-wide">Invoice Total</p><p className="text-xl font-bold text-white mt-1">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p></div>
                     <div><p className="text-[11px] text-[#666] uppercase tracking-wide">Total Paid</p><p className="text-xl font-bold text-emerald-400 mt-1">AED {formatCurrency(chargesTotals.totalPaid)}</p></div>
-                    <div className="text-right"><p className="text-[11px] text-[#666] uppercase tracking-wide">Balance Due</p><p className={`text-xl font-bold mt-1 ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>AED {formatCurrency(Math.max(0, (chargesTotals.grandTotal || formData.invoiceTotal) - chargesTotals.totalPaid))}</p></div>
+                    <div className="text-right"><p className="text-[11px] text-[#666] uppercase tracking-wide">{chargesTotals.balanceDue < 0 ? 'Credit Balance' : 'Balance Due'}</p><p className={`text-xl font-bold mt-1 ${chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>AED {formatCurrency(Math.abs(chargesTotals.balanceDue))}{chargesTotals.balanceDue < 0 ? ' CR' : ''}</p></div>
                   </div>
 
-                  {/* Add Payment Button */}
-                  {!showAddPayment && !isPaid && (
-                    <button onClick={() => { setNewPayment(prev => ({ ...prev, amount: chargesTotals.balanceDue || formData.amountDue })); setShowAddPayment(true); }} className="w-full py-3 border border-dashed border-[#333] hover:border-[#555] rounded-lg text-[#666] hover:text-white transition-all flex items-center justify-center gap-2 group">
+                  {/* Add Payment Button - always show (even for overpayments/credits) */}
+                  {!showAddPayment && (
+                    <button onClick={() => { setNewPayment(prev => ({ ...prev, amount: Math.max(0, chargesTotals.balanceDue) || Math.max(0, formData.amountDue) })); setShowAddPayment(true); }} className="w-full py-3 border border-dashed border-[#333] hover:border-[#555] rounded-lg text-[#666] hover:text-white transition-all flex items-center justify-center gap-2 group">
                       <Plus className="w-4 h-4" /> Record New Payment
                     </button>
                   )}
@@ -1189,7 +1187,7 @@ export default function AccountSummaryModal({
                         </div>
                       )}
                       <div className="flex gap-3 mt-4">
-                        <button onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-4 py-2.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2">
+                        <button type="button" onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-4 py-2.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2">
                           {saving ? (
                             <>
                               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1219,9 +1217,9 @@ export default function AccountSummaryModal({
                           <tr key={p.id} className="hover:bg-[#0d0d0d] transition-colors">
                             <td className="px-4 py-3 text-[#999] text-sm">{formatDate(p.payment_date)}</td>
                             <td className="px-4 py-3 text-[#888] font-mono text-xs">{p.receipt_number || '-'}</td>
-                            <td className="px-4 py-3 text-white text-sm capitalize">{p.payment_method.replace('_', ' ')}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-emerald-400 text-sm">AED {formatCurrency(p.amount)}</td>
-                            <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded text-[11px] font-medium ${p.status === 'allocated' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#333] text-[#888]'}`}>{p.status?.replace('_', ' ') || 'pending'}</span></td>
+                            <td className="px-4 py-3 text-white text-sm capitalize">{p.payment_method === 'refund' ? '↩ Refund' : p.payment_method.replace('_', ' ')}</td>
+                            <td className={`px-4 py-3 text-right font-semibold text-sm ${p.amount < 0 || p.payment_method === 'refund' ? 'text-red-400' : 'text-emerald-400'}`}>{p.amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(p.amount))}</td>
+                            <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded text-[11px] font-medium ${p.amount < 0 || p.payment_method === 'refund' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>{p.amount < 0 || p.payment_method === 'refund' ? 'refund' : 'received'}</span></td>
                             <td className="px-4 py-3 text-center">
                               {p.receipt_url ? (
                                 <button onClick={() => window.open(p.receipt_url, '_blank')} className="p-1.5 bg-[#333] hover:bg-[#444] rounded text-white transition-colors" title="Download Receipt">
@@ -1241,8 +1239,12 @@ export default function AccountSummaryModal({
                                           customerName: formData.customerName,
                                           customerPhone: formData.contactNo,
                                           customerEmail: formData.emailAddress,
-                                          vehicleInfo: `${formData.makeModel} ${formData.modelYear}`,
-                                          reservationNumber: documentNumber
+                                          vehicleInfo: `${formData.modelYear} ${formData.makeModel}`,
+                                          chassisNo: formData.chassisNo,
+                                          reservationNumber: documentNumber,
+                                          totalCharges: chargesTotals.grandTotal || formData.invoiceTotal,
+                                          totalPaid: chargesTotals.totalPaid,
+                                          balanceDue: chargesTotals.balanceDue
                                         })
                                       });
                                       if (res.ok) {
@@ -1288,8 +1290,8 @@ export default function AccountSummaryModal({
                     </div>
                     <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
                       <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Status</p>
-                      <p className={`text-xl font-semibold ${chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : chargesTotals.totalPaid > 0 ? 'text-amber-400' : 'text-red-400'}`}>
-                        {chargesTotals.balanceDue <= 0 ? 'PAID' : chargesTotals.totalPaid > 0 ? 'PARTIAL' : 'UNPAID'}
+                      <p className={`text-xl font-semibold ${chargesTotals.grandTotal > 0 && chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : chargesTotals.totalPaid > 0 ? 'text-amber-400' : chargesTotals.grandTotal > 0 ? 'text-red-400' : 'text-[#666]'}`}>
+                        {chargesTotals.grandTotal === 0 ? 'NO CHARGES' : chargesTotals.balanceDue <= 0 ? 'PAID' : chargesTotals.totalPaid > 0 ? 'PARTIAL' : 'UNPAID'}
                       </p>
                     </div>
                   </div>
@@ -1338,12 +1340,14 @@ export default function AccountSummaryModal({
                             description: string;
                             reference: string;
                             amount: number;
+                            createdAt: string;
                           }> = [];
 
                           // Add charges
                           allCharges.forEach((charge: any) => {
                             transactions.push({
-                              date: charge.created_at || new Date().toISOString(),
+                              date: charge.created_at || formData.date || new Date().toISOString(),
+                              createdAt: charge.created_at || formData.date || new Date().toISOString(),
                               type: 'charge',
                               description: charge.description || charge.charge_type?.replace('_', ' '),
                               reference: documentNumber || '-',
@@ -1353,17 +1357,19 @@ export default function AccountSummaryModal({
 
                           // Add payments
                           allPayments.forEach((payment: any) => {
+                            const isRefund = payment.payment_method === 'refund' || payment.amount < 0;
                             transactions.push({
                               date: payment.payment_date || payment.created_at,
+                              createdAt: payment.created_at || payment.payment_date || new Date().toISOString(),
                               type: 'payment',
-                              description: `Payment - ${payment.payment_method?.replace('_', ' ')}`,
+                              description: isRefund ? `Refund - ${payment.payment_method === 'refund' ? 'Refund' : payment.payment_method?.replace('_', ' ')}` : `Payment - ${payment.payment_method?.replace('_', ' ')}`,
                               reference: payment.reference_number || payment.receipt_number || '-',
                               amount: payment.amount
                             });
                           });
 
-                          // Sort by date
-                          transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                          // Sort by created_at timestamp (true chronological order)
+                          transactions.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
                           // Calculate running balance
                           let runningBalance = 0;
@@ -1400,7 +1406,7 @@ export default function AccountSummaryModal({
                               </td>
                               <td className="px-4 py-3 text-right text-sm">
                                 {txn.type === 'payment' ? (
-                                  <span className="text-emerald-400">AED {formatCurrency(txn.amount)}</span>
+                                  <span className={txn.amount < 0 ? 'text-red-400' : 'text-emerald-400'}>{txn.amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(txn.amount))}</span>
                                 ) : (
                                   <span className="text-[#555]">-</span>
                                 )}
@@ -1672,3 +1678,4 @@ export default function AccountSummaryModal({
     document.body
   );
 }
+

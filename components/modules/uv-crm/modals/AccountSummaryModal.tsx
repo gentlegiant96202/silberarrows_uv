@@ -436,6 +436,11 @@ export default function AccountSummaryModal({
       errors.push('At least one payment (deposit) is required for reservation');
     }
     
+    // Invoice requires full payment - balance must be zero or credit
+    if (mode === 'invoice' && chargesTotals.balanceDue > 0) {
+      errors.push(`Outstanding balance of AED ${formatCurrency(chargesTotals.balanceDue)} must be cleared before generating invoice`);
+    }
+    
     return errors;
   };
 
@@ -1599,16 +1604,19 @@ export default function AccountSummaryModal({
                                 </span>
                               )}
                             </div>
-                            <p className="text-[12px] text-[#666] mt-0.5">
-                              {invoicePdfUrl ? 'Ready' : 'Not generated'}
+                            <p className={`text-[12px] mt-0.5 ${chargesTotals.balanceDue > 0 ? 'text-amber-400' : 'text-[#666]'}`}>
+                              {chargesTotals.balanceDue > 0 
+                                ? `Clear balance (AED ${formatCurrency(chargesTotals.balanceDue)}) to generate` 
+                                : invoicePdfUrl ? 'Ready' : 'Not generated'}
                             </p>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <button 
                             onClick={handleSubmit} 
-                            disabled={saving} 
+                            disabled={saving || chargesTotals.balanceDue > 0} 
                             className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
+                            title={chargesTotals.balanceDue > 0 ? `Clear balance of AED ${formatCurrency(chargesTotals.balanceDue)} first` : ''}
                           >
                             {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
                             {invoicePdfUrl ? 'Regenerate' : 'Generate'}

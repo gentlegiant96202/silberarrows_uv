@@ -113,6 +113,10 @@ function generateReceiptHTML(data: {
     return result + ' Only';
   };
 
+  // Detect if this is a refund
+  const isRefund = data.paymentMethod === 'refund' || data.amount < 0;
+  const displayAmount = Math.abs(data.amount);
+  
   // Calculate balance after this payment (can be negative if overpaid)
   const balanceAfterPayment = data.balanceDue !== undefined ? data.balanceDue : 0;
   const isPaid = balanceAfterPayment <= 0;
@@ -124,7 +128,7 @@ function generateReceiptHTML(data: {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Payment Receipt - ${data.receiptNumber}</title>
+      <title>${isRefund ? 'Refund Receipt' : 'Payment Receipt'} - ${data.receiptNumber}</title>
       <style>
         @page {
           margin: 0;
@@ -494,7 +498,7 @@ function generateReceiptHTML(data: {
 
         <!-- Receipt Title -->
         <div class="receipt-title">
-          <h1>Payment Receipt</h1>
+          <h1>${isRefund ? 'Refund Receipt' : 'Payment Receipt'}</h1>
           <div class="receipt-number">${data.receiptNumber}</div>
         </div>
 
@@ -506,8 +510,8 @@ function generateReceiptHTML(data: {
               <div class="detail-value">${formatDate(data.paymentDate)}</div>
             </div>
             <div class="detail-item">
-              <div class="detail-label">Payment Method</div>
-              <div class="detail-value">${formatPaymentMethod(data.paymentMethod)}</div>
+              <div class="detail-label">${isRefund ? 'Refund Method' : 'Payment Method'}</div>
+              <div class="detail-value">${isRefund ? 'Refund' : formatPaymentMethod(data.paymentMethod)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Reference</div>
@@ -554,12 +558,12 @@ function generateReceiptHTML(data: {
         </div>
 
         <!-- Amount Section -->
-        <div class="amount-section">
-          <div class="amount-label">Amount Received</div>
-          <div class="amount-value">
-            ${dirhamIconLarge}${formatCurrency(data.amount)}
+        <div class="amount-section" style="${isRefund ? 'border-color: #fca5a5;' : ''}">
+          <div class="amount-label">${isRefund ? 'Amount Refunded' : 'Amount Received'}</div>
+          <div class="amount-value" style="${isRefund ? 'color: #dc2626;' : ''}">
+            ${dirhamIconLarge}${formatCurrency(displayAmount)}
           </div>
-          <div class="amount-words">${amountInWords(data.amount)}</div>
+          <div class="amount-words">${amountInWords(displayAmount)}</div>
         </div>
 
         <!-- Account Summary Table -->
@@ -603,9 +607,9 @@ function generateReceiptHTML(data: {
 
         <!-- Footer -->
         <div class="footer">
-          <div class="thank-you">Thank you for your payment!</div>
-          <span class="status-badge ${isPaid ? 'status-paid' : 'status-partial'}">
-            ${isOverpaid ? '✓ Overpaid - Credit Balance' : isPaid ? '✓ Paid in Full' : 'Partial Payment'}
+          <div class="thank-you">${isRefund ? 'Refund Processed Successfully' : 'Thank you for your payment!'}</div>
+          <span class="status-badge ${isRefund ? 'status-refund' : isPaid ? 'status-paid' : 'status-partial'}" style="${isRefund ? 'background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5;' : ''}">
+            ${isRefund ? '↩ Refund Processed' : isOverpaid ? '✓ Overpaid - Credit Balance' : isPaid ? '✓ Paid in Full' : 'Partial Payment'}
           </span>
           <div class="footer-text" style="margin-top: 15px;">This is a computer-generated receipt and is valid without signature.</div>
           <div class="footer-text">For any queries, please contact us at +971 4 380 5515 or sales@silberarrows.com</div>

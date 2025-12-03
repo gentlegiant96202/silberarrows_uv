@@ -232,7 +232,7 @@ export default function ReservationsInvoicesGrid() {
           receipt_url,
           created_at
         `)
-        .order('payment_date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       // Apply date range filter
       if (filters.fromDate) {

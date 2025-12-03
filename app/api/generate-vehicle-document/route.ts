@@ -6,7 +6,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 // Generate HTML content for reservation/invoice form
 function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
   const isInvoice = mode === 'invoice';
-  const documentTitle = isInvoice ? 'INVOICE DOCUMENT' : 'NEW AND PRE-OWNED VEHICLE RESERVATION FORM';
+  const documentTitle = isInvoice ? 'INVOICE DOCUMENT' : 'PRE-OWNED VEHICLE RESERVATION FORM';
   
   // Safely handle numeric values
   const safeNumber = (value: any) => {
@@ -42,12 +42,12 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
   
   // Invoice-specific customizations
   const headerTitle = isInvoice 
-    ? 'NEW AND PRE-OWNED VEHICLE<br>TAX INVOICE'
-    : 'NEW AND PRE-OWNED VEHICLE<br>RESERVATION FORM';
+    ? 'PRE-OWNED VEHICLE<br>TAX INVOICE'
+    : 'PRE-OWNED VEHICLE<br>RESERVATION FORM';
     
   const termsTitle = isInvoice
-    ? 'GENERAL TERMS & CONDITIONS FOR<br>NEW & PRE-OWNED VEHICLE SALES'
-    : 'GENERAL TERMS & CONDITIONS FOR<br>NEW & PRE-OWNED VEHICLE SALES';
+    ? 'GENERAL TERMS & CONDITIONS FOR<br>PRE-OWNED VEHICLE SALES'
+    : 'GENERAL TERMS & CONDITIONS FOR<br>PRE-OWNED VEHICLE SALES';
     
   // Different titles for signature section vs terms page
   const signatureTermsTitle = isInvoice
@@ -721,7 +721,7 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
               <div class="terms-col">
 <strong>Silber Arrows 1934 Used Car Trading LLC</strong> (hereinafter referred to as "SilberArrows")
 
-<strong>1. INTRODUCTION</strong> SilberArrows adheres to Federal Law No. 15 of 2020 on Consumer Protection. These terms and conditions govern the ${isInvoice ? 'sale' : 'reservation'} of both new and pre-owned vehicles by SilberArrows. By ${isInvoice ? 'purchasing' : 'reserving'} a vehicle ${isInvoice ? 'from' : 'with'} us, you agree to be bound by these terms and conditions.
+<strong>1. INTRODUCTION</strong> SilberArrows adheres to Federal Law No. 15 of 2020 on Consumer Protection. These terms and conditions govern the ${isInvoice ? 'sale' : 'reservation'} of pre-owned vehicles by SilberArrows. By ${isInvoice ? 'purchasing' : 'reserving'} a vehicle ${isInvoice ? 'from' : 'with'} us, you agree to be bound by these terms and conditions.
 
 <strong>2. VEHICLE INFORMATION</strong> All vehicles are ${isInvoice ? 'sold' : 'reserved'} as seen and described in the ${isInvoice ? 'invoice' : 'reservation form'}. We ensure that all descriptions and representations of vehicles are accurate to the best of our knowledge.
 

@@ -249,7 +249,13 @@ export default function ReservationsInvoicesGrid() {
         return;
       }
 
-      let receiptsWithCustomer: ReceiptData[] = paymentsData || [];
+      // Initialize with default customer fields
+      let receiptsWithCustomer: ReceiptData[] = (paymentsData || []).map(p => ({
+        ...p,
+        customer_name: 'Unknown',
+        customer_number: null,
+        vehicle_make_model: ''
+      }));
 
       // Get customer info from vehicle_reservations
       const leadIds = receiptsWithCustomer.map(r => r.lead_id).filter(Boolean);

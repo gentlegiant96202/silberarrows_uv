@@ -663,12 +663,16 @@ export default function AccountSummaryModal({
   const handleAddCharge = async () => {
     if (!newCharge.unit_price) return;
     
+    // Discounts are stored as negative values so they subtract from total
+    const isDiscount = newCharge.charge_type === 'discount';
+    const finalPrice = isDiscount ? -Math.abs(newCharge.unit_price) : Math.abs(newCharge.unit_price);
+    
     const chargeData = {
       id: `pending-${Date.now()}`,
       charge_type: newCharge.charge_type,
       description: newCharge.description || CHARGE_TYPES.find(c => c.value === newCharge.charge_type)?.label || '',
-      unit_price: newCharge.unit_price,
-      total_amount: newCharge.unit_price, // For now, same as unit_price (qty=1)
+      unit_price: finalPrice,
+      total_amount: finalPrice,
       vat_applicable: newCharge.vat_applicable,
       vat_amount: 0
     };
@@ -680,7 +684,7 @@ export default function AccountSummaryModal({
         await supabase.from('uv_charges').insert({
           reservation_id: reservationId, charge_type: chargeData.charge_type,
           description: chargeData.description,
-          quantity: 1, unit_price: chargeData.unit_price, vat_applicable: chargeData.vat_applicable,
+          quantity: 1, unit_price: finalPrice, vat_applicable: chargeData.vat_applicable,
           display_order: charges.length, created_by: user?.id
         });
         await loadData();

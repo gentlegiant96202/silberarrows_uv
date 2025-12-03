@@ -553,16 +553,38 @@ export default function AccountSummaryModal({
         setPendingPayments([]);
       }
 
-      // Enhance formData with payment totals from charges system
+      // Build add-ons from charges
+      const chargesForDoc = reservationId ? charges : pendingCharges;
+      const getChargePrice = (type: string) => {
+        const charge = chargesForDoc.find((c: any) => c.charge_type === type);
+        return charge ? (charge.total_amount || charge.unit_price || 0) : 0;
+      };
+      const hasCharge = (type: string) => chargesForDoc.some((c: any) => c.charge_type === type);
+
+      // Enhance formData with payment totals and charges from UV accounting system
       const enhancedFormData = {
         ...formData,
         totalCharges: chargesTotals.grandTotal,
         totalPaid: chargesTotals.totalPaid,
         balanceDue: chargesTotals.balanceDue,
-        // Override legacy fields with actual values
+        // Override legacy fields with actual values from charges
         invoiceTotal: chargesTotals.grandTotal || formData.invoiceTotal,
         deposit: chargesTotals.totalPaid,
-        amountDue: chargesTotals.balanceDue
+        amountDue: chargesTotals.balanceDue,
+        // Override add-on fields from actual charges
+        vehicleSalePrice: getChargePrice('vehicle_sale') || formData.vehicleSalePrice,
+        extendedWarranty: hasCharge('extended_warranty') || formData.extendedWarranty,
+        extendedWarrantyPrice: getChargePrice('extended_warranty') || formData.extendedWarrantyPrice,
+        ceramicTreatment: hasCharge('ceramic_treatment') || formData.ceramicTreatment,
+        ceramicTreatmentPrice: getChargePrice('ceramic_treatment') || formData.ceramicTreatmentPrice,
+        serviceCare: hasCharge('service_care') || formData.serviceCare,
+        serviceCarePrice: getChargePrice('service_care') || formData.serviceCarePrice,
+        windowTints: hasCharge('window_tints') || formData.windowTints,
+        windowTintsPrice: getChargePrice('window_tints') || formData.windowTintsPrice,
+        rtaFees: getChargePrice('rta_fees') || formData.rtaFees,
+        // Calculate add-ons total from charges
+        addOnsTotal: getChargePrice('extended_warranty') + getChargePrice('ceramic_treatment') + 
+                     getChargePrice('service_care') + getChargePrice('window_tints') + getChargePrice('rta_fees')
       };
 
       const response = await fetch('/api/generate-vehicle-document', {

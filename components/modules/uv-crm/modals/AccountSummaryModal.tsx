@@ -1684,11 +1684,11 @@ export default function AccountSummaryModal({
 
                   {/* INVOICE DOCUMENT - Only show in invoice mode */}
                   {mode === 'invoice' && (
-                    <div className={`rounded-lg border overflow-hidden ${invoicePdfUrl ? 'bg-[#0f0f0f] border-[#333]' : 'bg-[#0d0d0d] border-[#222]'}`}>
+                    <div className={`rounded-lg border overflow-hidden ${documentStatus === 'reversed' ? 'bg-[#0f0f0f] border-red-500/30' : invoicePdfUrl ? 'bg-[#0f0f0f] border-[#333]' : 'bg-[#0d0d0d] border-[#222]'}`}>
                       <div className="px-4 py-3 border-b border-[#333] bg-[#111] flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-md flex items-center justify-center ${invoicePdfUrl ? 'bg-emerald-500/10' : 'bg-[#333]'}`}>
-                            <Receipt className={`w-4 h-4 ${invoicePdfUrl ? 'text-emerald-400' : 'text-[#666]'}`} />
+                          <div className={`w-9 h-9 rounded-md flex items-center justify-center ${documentStatus === 'reversed' ? 'bg-red-500/10' : invoicePdfUrl ? 'bg-emerald-500/10' : 'bg-[#333]'}`}>
+                            <Receipt className={`w-4 h-4 ${documentStatus === 'reversed' ? 'text-red-400' : invoicePdfUrl ? 'text-emerald-400' : 'text-[#666]'}`} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
@@ -1699,14 +1699,17 @@ export default function AccountSummaryModal({
                                 </span>
                               )}
                             </div>
-                            <p className={`text-[12px] mt-0.5 ${chargesTotals.balanceDue > 0 ? 'text-amber-400' : 'text-[#666]'}`}>
-                              {chargesTotals.balanceDue > 0 
-                                ? `Clear balance (AED ${formatCurrency(chargesTotals.balanceDue)}) to generate` 
-                                : invoicePdfUrl ? 'Ready' : 'Not generated'}
+                            <p className={`text-[12px] mt-0.5 ${documentStatus === 'reversed' ? 'text-red-400' : chargesTotals.balanceDue > 0 ? 'text-amber-400' : 'text-[#666]'}`}>
+                              {documentStatus === 'reversed' 
+                                ? 'REVERSED' 
+                                : chargesTotals.balanceDue > 0 
+                                  ? `Clear balance (AED ${formatCurrency(chargesTotals.balanceDue)}) to generate` 
+                                  : invoicePdfUrl ? 'Ready' : 'Not generated'}
                             </p>
                           </div>
                         </div>
                         <div className="flex gap-2">
+                          {documentStatus !== 'reversed' && (
                           <button 
                             onClick={handleSubmit} 
                             disabled={saving || chargesTotals.balanceDue > 0} 
@@ -1716,6 +1719,7 @@ export default function AccountSummaryModal({
                             {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
                             {invoicePdfUrl ? 'Regenerate' : 'Generate'}
                           </button>
+                          )}
                           {invoicePdfUrl && (
                             <>
                               <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">

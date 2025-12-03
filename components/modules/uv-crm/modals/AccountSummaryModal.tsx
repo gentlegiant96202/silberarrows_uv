@@ -221,6 +221,8 @@ export default function AccountSummaryModal({
   const [documentNumber, setDocumentNumber] = useState<string | null>(null);
   const [reservationNumber, setReservationNumber] = useState<string | null>(null);
   const [customerNumber, setCustomerNumber] = useState<string | null>(null);
+  const [documentStatus, setDocumentStatus] = useState<string>('pending');
+  const [currentDocumentType, setCurrentDocumentType] = useState<string>('reservation');
   
   // Document URLs - store both separately
   const [reservationPdfUrl, setReservationPdfUrl] = useState<string | null>(null);
@@ -309,6 +311,8 @@ export default function AccountSummaryModal({
         setIsEditing(true);
         setReservationId(resData.id);
         setCustomerNumber(resData.customer_number);
+        setDocumentStatus(resData.document_status || 'pending');
+        setCurrentDocumentType(resData.document_type || 'reservation');
         // Set document numbers - RES number is either current (if reservation) or original (if invoice)
         setDocumentNumber(resData.document_number);
         setReservationNumber(
@@ -842,6 +846,33 @@ export default function AccountSummaryModal({
     }
   };
 
+  const handleReverseInvoice = async () => {
+    if (!reservationId) return;
+    if (!confirm('Are you sure you want to reverse this invoice? This will mark it as REVERSED and cannot be undone.')) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('vehicle_reservations')
+        .update({ 
+          document_status: 'reversed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', reservationId);
+      
+      if (error) throw error;
+      
+      setDocumentStatus('reversed');
+      alert('Invoice has been reversed successfully.');
+      await loadData(false);
+    } catch (error) {
+      console.error('Reverse invoice error:', error);
+      alert('Failed to reverse invoice. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   // Only show as "PAID" if there are actual charges recorded AND balance is zero or credit
@@ -904,9 +935,14 @@ export default function AccountSummaryModal({
                       {customerNumber}
                     </span>
                   )}
-                  {isPaid && (
+                  {isPaid && documentStatus !== 'reversed' && (
                     <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[11px] font-medium rounded flex items-center gap-1">
                       <Check className="w-3 h-3" /> Paid
+                    </span>
+                  )}
+                  {documentStatus === 'reversed' && (
+                    <span className="px-2 py-0.5 bg-red-500/10 text-red-400 text-[11px] font-medium rounded flex items-center gap-1">
+                      <X className="w-3 h-3" /> Reversed
                     </span>
                   )}
                 </div>
@@ -1692,7 +1728,7 @@ export default function AccountSummaryModal({
                         </div>
                       </div>
                       {/* Send for Signing - Invoice */}
-                      {invoicePdfUrl && formData.emailAddress && (
+                      {invoicePdfUrl && formData.emailAddress && documentStatus !== 'reversed' && (
                         <div className="px-4 py-3 border-t border-[#333] flex items-center justify-between bg-[#0d0d0d]">
                           <p className="text-[12px] text-[#888]">Send to {formData.emailAddress} for signing</p>
                           <button 
@@ -1701,6 +1737,28 @@ export default function AccountSummaryModal({
                             className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors disabled:opacity-50"
                           >
                             {sendingForSigning ? 'Sending...' : 'Send for Signing'}
+                          </button>
+                        </div>
+                      )}
+                      {/* Reversed Status Badge */}
+                      {documentStatus === 'reversed' && (
+                        <div className="px-4 py-3 border-t border-[#333] bg-red-500/10">
+                          <div className="flex items-center gap-2 text-red-400">
+                            <X className="w-4 h-4" />
+                            <span className="text-[12px] font-medium">This invoice has been REVERSED</span>
+                          </div>
+                        </div>
+                      )}
+                      {/* Reverse Invoice Button - Only for completed invoices */}
+                      {invoicePdfUrl && documentStatus !== 'reversed' && isAdmin && (
+                        <div className="px-4 py-3 border-t border-[#333] flex items-center justify-between bg-[#0d0d0d]">
+                          <p className="text-[12px] text-[#666]">Cancel this sale and mark as reversed</p>
+                          <button 
+                            onClick={handleReverseInvoice} 
+                            disabled={saving} 
+                            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm rounded-md transition-colors disabled:opacity-50"
+                          >
+                            {saving ? 'Reversing...' : 'Reverse Invoice'}
                           </button>
                         </div>
                       )}

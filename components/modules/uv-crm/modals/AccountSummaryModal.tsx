@@ -564,6 +564,9 @@ export default function AccountSummaryModal({
         if (savedReservation.document_number) setDocumentNumber(savedReservation.document_number);
       }
 
+      // Reload data from DB to update charges/payments state after saving
+      await loadData();
+
       if (onSubmit) onSubmit();
     } catch (error) {
       console.error('Error:', error);

@@ -553,9 +553,21 @@ export default function AccountSummaryModal({
         setPendingPayments([]);
       }
 
+      // Enhance formData with payment totals from charges system
+      const enhancedFormData = {
+        ...formData,
+        totalCharges: chargesTotals.grandTotal,
+        totalPaid: chargesTotals.totalPaid,
+        balanceDue: chargesTotals.balanceDue,
+        // Override legacy fields with actual values
+        invoiceTotal: chargesTotals.grandTotal || formData.invoiceTotal,
+        deposit: chargesTotals.totalPaid,
+        amountDue: chargesTotals.balanceDue
+      };
+
       const response = await fetch('/api/generate-vehicle-document', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, formData, leadId: lead.id, reservationId: savedReservation.id })
+        body: JSON.stringify({ mode, formData: enhancedFormData, leadId: lead.id, reservationId: savedReservation.id })
       });
 
       if (!response.ok) throw new Error('Failed to generate document');

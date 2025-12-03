@@ -267,9 +267,9 @@ export default function AccountSummaryModal({
   // ============================================================
   // DATA LOADING
   // ============================================================
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (showLoader = true) => {
     if (!lead.id) return;
-    setLoading(true);
+    if (showLoader) setLoading(true);
 
     try {
       // Check if reservation exists first
@@ -518,14 +518,17 @@ export default function AccountSummaryModal({
             display_order: index,
             created_by: user?.id
           }));
-          await supabase.from('uv_charges').insert(chargesForDB);
-          setPendingCharges([]); // Clear pending after save
+          const { error: chargesError } = await supabase.from('uv_charges').insert(chargesForDB);
+          if (chargesError) {
+            console.error('Failed to save charges:', chargesError);
+            throw new Error('Failed to save charges');
+          }
         }
 
         // Save pending payments to DB
         if (pendingPayments.length > 0) {
           for (const payment of pendingPayments) {
-            const { data: paymentData } = await supabase.from('uv_payments').insert({
+            const { error: paymentError } = await supabase.from('uv_payments').insert({
               lead_id: lead.id,
               payment_method: payment.payment_method,
               amount: payment.amount,
@@ -537,12 +540,17 @@ export default function AccountSummaryModal({
               part_exchange_vehicle: payment.part_exchange_vehicle || null,
               part_exchange_chassis: payment.part_exchange_chassis || null,
               created_by: user?.id
-            }).select().single();
-
-            // Payment is linked to lead - no separate allocation needed
+            });
+            if (paymentError) {
+              console.error('Failed to save payment:', paymentError);
+              throw new Error('Failed to save payment');
+            }
           }
-          setPendingPayments([]); // Clear pending after save
         }
+        
+        // Clear pending state - loadData will refresh from DB
+        setPendingCharges([]);
+        setPendingPayments([]);
       }
 
       const response = await fetch('/api/generate-vehicle-document', {
@@ -564,8 +572,8 @@ export default function AccountSummaryModal({
         if (savedReservation.document_number) setDocumentNumber(savedReservation.document_number);
       }
 
-      // Reload data from DB to update charges/payments state after saving
-      await loadData();
+      // Reload data from DB to update charges/payments state after saving (silent refresh, no loader)
+      await loadData(false);
 
       if (onSubmit) onSubmit();
     } catch (error) {

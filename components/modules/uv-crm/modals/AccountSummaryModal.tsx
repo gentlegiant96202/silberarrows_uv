@@ -584,7 +584,14 @@ export default function AccountSummaryModal({
         rtaFees: getChargePrice('rta_fees') || formData.rtaFees,
         // Calculate add-ons total from charges
         addOnsTotal: getChargePrice('extended_warranty') + getChargePrice('ceramic_treatment') + 
-                     getChargePrice('service_care') + getChargePrice('window_tints') + getChargePrice('rta_fees')
+                     getChargePrice('service_care') + getChargePrice('window_tints') + getChargePrice('rta_fees'),
+        // Discount (negative value)
+        hasDiscount: hasCharge('discount'),
+        discountAmount: Math.abs(getChargePrice('discount')),
+        // Other add-ons
+        hasOtherAddon: hasCharge('other_addon'),
+        otherAddonPrice: getChargePrice('other_addon'),
+        otherAddonDescription: chargesForDoc.find((c: any) => c.charge_type === 'other_addon')?.description || 'Other'
       };
 
       const response = await fetch('/api/generate-vehicle-document', {

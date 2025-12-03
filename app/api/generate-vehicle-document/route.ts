@@ -586,8 +586,16 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
               <tr>
                 <td class="label">RTA Fees:</td>
                 <td class="data">AED ${safeNumber(formData.rtaFees)}</td>
-                <td class="label">Add-Ons Total:</td>
-                <td class="data">AED ${safeNumber(formData.addOnsTotal)}</td>
+                <td class="label"></td>
+                <td class="data"></td>
+              </tr>
+              ` : ''}
+              ${formData.hasOtherAddon && Number(formData.otherAddonPrice) > 0 ? `
+              <tr>
+                <td class="label">${safeString(formData.otherAddonDescription)}:</td>
+                <td class="data">AED ${safeNumber(formData.otherAddonPrice)}</td>
+                <td class="label"></td>
+                <td class="data"></td>
               </tr>
               ` : ''}
             </table>
@@ -612,26 +620,39 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
                 <td class="label">Add-Ons & RTA:</td>
                 <td class="data">AED ${safeNumber((Number(formData.rtaFees || 0)) + (Number(formData.addOnsTotal || 0)))}</td>
               </tr>
+              ${formData.hasDiscount && Number(formData.discountAmount) > 0 ? `
+              <tr>
+                <td class="label">Discount:</td>
+                <td class="data" style="color: #90EE90;">- AED ${safeNumber(formData.discountAmount)}</td>
+                <td class="label">Total Invoice:</td>
+                <td class="data" style="font-weight: bold;">AED ${safeNumber(formData.invoiceTotal || formData.totalCharges)}</td>
+              </tr>
+              <tr>
+                <td class="label">Payments Received:</td>
+                <td class="data" style="color: #90EE90;">AED ${safeNumber(formData.totalPaid || formData.deposit)}</td>
+                <td class="label">${paymentStatusLabel}:</td>
+                <td class="data" style="font-weight: bold;">${paymentStatusValue}</td>
+              </tr>
+              ` : `
               <tr>
                 <td class="label">Total Invoice:</td>
                 <td class="data" style="font-weight: bold;">AED ${safeNumber(formData.invoiceTotal || formData.totalCharges)}</td>
                 <td class="label">Payments Received:</td>
                 <td class="data" style="color: #90EE90;">AED ${safeNumber(formData.totalPaid || formData.deposit)}</td>
               </tr>
-              ${formData.hasPartExchange && Number(formData.partExchangeValue) > 0 ? `
-              <tr>
-                <td class="label">Part Exchange Credit:</td>
-                <td class="data" style="color: #90EE90;">AED ${safeNumber(formData.partExchangeValue)}</td>
-                <td class="label">${paymentStatusLabel}:</td>
-                <td class="data" style="font-weight: bold;">${paymentStatusValue}</td>
-              </tr>
-              ` : `
               <tr>
                 <td class="label" colspan="2"></td>
                 <td class="label">${paymentStatusLabel}:</td>
                 <td class="data" style="font-weight: bold;">${paymentStatusValue}</td>
               </tr>
               `}
+              ${formData.hasPartExchange && Number(formData.partExchangeValue) > 0 ? `
+              <tr>
+                <td class="label">Part Exchange Credit:</td>
+                <td class="data" style="color: #90EE90;">AED ${safeNumber(formData.partExchangeValue)}</td>
+                <td class="label" colspan="2"></td>
+              </tr>
+              ` : ''}
             </table>
 
             ${isInvoice && formData.taxInvoice ? `

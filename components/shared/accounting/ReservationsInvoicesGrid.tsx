@@ -16,6 +16,7 @@ interface CustomerAccount {
   model_year: number;
   document_type: 'reservation' | 'invoice';
   document_number: string | null;
+  document_status: string;
   invoice_total: number;
   created_at: string;
   // Balance data
@@ -81,6 +82,7 @@ export default function ReservationsInvoicesGrid() {
           model_year,
           document_type,
           document_number,
+          document_status,
           invoice_total,
           created_at
         `)
@@ -398,13 +400,15 @@ export default function ReservationsInvoicesGrid() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          isPaid
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : isPartial
-                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          item.document_status === 'reversed'
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            : isPaid
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : isPartial
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
                         }`}>
-                          {isPaid ? 'Paid' : isPartial ? 'Partial' : 'Unpaid'}
+                          {item.document_status === 'reversed' ? 'Reversed' : isPaid ? 'Paid' : isPartial ? 'Partial' : 'Unpaid'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-white/60 text-sm">

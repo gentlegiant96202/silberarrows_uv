@@ -36,9 +36,9 @@ interface ReceiptData {
   receipt_url: string | null;
   created_at: string;
   // Joined data
-  customer_name?: string;
-  customer_number?: string;
-  vehicle_make_model?: string;
+  customer_name: string;
+  customer_number: string | null;
+  vehicle_make_model: string;
 }
 
 interface Lead {

@@ -113,6 +113,7 @@ interface Lead {
   total_charges?: number;
   total_paid?: number;
   balance_due?: number;
+  document_status?: string; // 'pending' | 'completed' | 'cancelled' | 'reversed'
 }
 
 const columns = [
@@ -280,10 +281,10 @@ export default function KanbanBoard() {
                     ).data?.map(r => r.id) || []
                   );
                 
-                // Get reservations to map lead_id
+                // Get reservations to map lead_id and document_status
                 const { data: reservations } = await supabase
                   .from('vehicle_reservations')
-                  .select('id, lead_id')
+                  .select('id, lead_id, document_status')
                   .in('lead_id', leadIds);
                 
                 // Get payments
@@ -292,12 +293,12 @@ export default function KanbanBoard() {
                   .select('lead_id, amount');
                 
                 // Calculate totals per lead
-                const leadTotals: Record<string, { charges: number; paid: number }> = {};
+                const leadTotals: Record<string, { charges: number; paid: number; document_status?: string }> = {};
                 
                 reservations?.forEach(res => {
                   const leadCharges = chargesData?.filter(c => c.reservation_id === res.id) || [];
                   const total = leadCharges.reduce((sum, c) => sum + (c.unit_price * (c.quantity || 1)), 0);
-                  leadTotals[res.lead_id] = { charges: total, paid: 0 };
+                  leadTotals[res.lead_id] = { charges: total, paid: 0, document_status: res.document_status };
                 });
                 
                 paymentsData?.forEach(p => {
@@ -306,12 +307,13 @@ export default function KanbanBoard() {
                   }
                 });
                 
-                // Attach balance to leads
+                // Attach balance and document status to leads
                 sortedData = sortedData.map(lead => ({
                   ...lead,
                   total_charges: leadTotals[lead.id]?.charges || 0,
                   total_paid: leadTotals[lead.id]?.paid || 0,
-                  balance_due: (leadTotals[lead.id]?.charges || 0) - (leadTotals[lead.id]?.paid || 0)
+                  balance_due: (leadTotals[lead.id]?.charges || 0) - (leadTotals[lead.id]?.paid || 0),
+                  document_status: leadTotals[lead.id]?.document_status
                 }));
               }
 
@@ -431,6 +433,7 @@ export default function KanbanBoard() {
                   total_charges: lead.total_charges ?? existingLead?.total_charges,
                   total_paid: lead.total_paid ?? existingLead?.total_paid,
                   balance_due: lead.balance_due ?? existingLead?.balance_due,
+                  document_status: lead.document_status ?? existingLead?.document_status,
                 };
                 
                 // Remove from all columns first
@@ -469,6 +472,7 @@ export default function KanbanBoard() {
                     total_charges: updatedLead.total_charges ?? l.total_charges,
                     total_paid: updatedLead.total_paid ?? l.total_paid,
                     balance_due: updatedLead.balance_due ?? l.balance_due,
+                    document_status: updatedLead.document_status ?? l.document_status,
                   };
                 }
                 return l;
@@ -942,17 +946,21 @@ export default function KanbanBoard() {
                     <div className="flex items-center justify-between pt-1 mt-1 border-t border-white/10">
                       <span className="text-[9px] text-white/50 uppercase">Balance</span>
                       <span className={`text-[11px] font-semibold ${
-                        (l.total_charges || 0) > 0 && (l.balance_due || 0) <= 0 
-                          ? 'text-emerald-400' 
-                          : (l.total_charges || 0) > 0 
-                            ? 'text-amber-400'
-                            : 'text-white/50'
+                        l.document_status === 'reversed'
+                          ? 'text-red-400'
+                          : (l.total_charges || 0) > 0 && (l.balance_due || 0) <= 0 
+                            ? 'text-emerald-400' 
+                            : (l.total_charges || 0) > 0 
+                              ? 'text-amber-400'
+                              : 'text-white/50'
                       }`}>
-                        {(l.total_charges || 0) === 0
-                          ? 'NO INVOICE'
-                          : (l.balance_due || 0) <= 0 
-                            ? 'PAID' 
-                            : `AED ${(l.balance_due || 0).toLocaleString()}`
+                        {l.document_status === 'reversed'
+                          ? 'REVERSED'
+                          : (l.total_charges || 0) === 0
+                            ? 'NO INVOICE'
+                            : (l.balance_due || 0) <= 0 
+                              ? 'PAID' 
+                              : `AED ${(l.balance_due || 0).toLocaleString()}`
                         }
                       </span>
                     </div>

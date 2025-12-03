@@ -406,6 +406,8 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
           z-index: 2;
           min-height: 40px;
           white-space: pre-wrap;
+          text-align: left;
+          text-indent: 0;
         }
       </style>
     </head>
@@ -605,9 +607,7 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
           <!-- NOTES SECTION -->
           <div class="section">
             <div class="section-title">ADDITIONAL NOTES</div>
-            <div class="notes-content">
-              ${formData.additionalNotes ? safeString(formData.additionalNotes).replace(/\n/g, '<br/>') : ''}
-            </div>
+            <div class="notes-content">${formData.additionalNotes ? safeString(formData.additionalNotes).trim().replace(/\n/g, '<br/>') : ''}</div>
           </div>
 
           <!-- PAYMENT SECTION -->

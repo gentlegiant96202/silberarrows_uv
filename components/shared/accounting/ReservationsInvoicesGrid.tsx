@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRole } from '@/lib/useUserRole';
-import { FileText, Search, Shield, Users, ChevronRight, Receipt, Download } from 'lucide-react';
+import { FileText, Search, Shield, Users, ChevronRight, Download } from 'lucide-react';
 import AccountSummaryModal from '@/components/modules/uv-crm/modals/AccountSummaryModal';
 
 interface CustomerAccount {
@@ -417,13 +417,13 @@ export default function ReservationsInvoicesGrid() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2">
+      <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-1.5 inline-flex gap-1">
         <button
           onClick={() => setActiveTab('accounts')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             activeTab === 'accounts'
-              ? 'bg-brand text-white'
-              : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+              ? 'bg-brand text-white shadow-lg shadow-brand/25'
+              : 'text-white/50 hover:text-white hover:bg-white/5'
           }`}
         >
           <Users className="w-4 h-4" />
@@ -431,13 +431,13 @@ export default function ReservationsInvoicesGrid() {
         </button>
         <button
           onClick={() => setActiveTab('receipts')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             activeTab === 'receipts'
-              ? 'bg-brand text-white'
-              : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+              ? 'bg-brand text-white shadow-lg shadow-brand/25'
+              : 'text-white/50 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Receipt className="w-4 h-4" />
+          <FileText className="w-4 h-4" />
           Receipts
         </button>
       </div>
@@ -630,7 +630,7 @@ export default function ReservationsInvoicesGrid() {
               </div>
             ) : receipts.length === 0 ? (
               <div className="p-8 text-center">
-                <Receipt className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
                 <p className="text-white/60">No receipts found for the selected date range</p>
               </div>
             ) : (

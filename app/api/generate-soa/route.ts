@@ -25,6 +25,7 @@ interface SOAData {
   chassisNo?: string;
   documentNumber?: string;
   documentDate?: string;
+  documentStatus?: string;
   transactions: Transaction[];
   totalCharges: number;
   totalPayments: number;
@@ -62,12 +63,14 @@ function generateSOAHTML(data: SOAData, logoSrc: string) {
   });
 
   const getStatusColor = () => {
+    if (data.documentStatus === 'reversed') return '#ef4444'; // red for reversed
     if (data.balanceDue <= 0) return '#10b981'; // emerald
     if (data.totalPayments > 0) return '#f59e0b'; // amber
     return '#ef4444'; // red
   };
 
   const getStatusText = () => {
+    if (data.documentStatus === 'reversed') return 'REVERSED';
     if (data.balanceDue <= 0) return 'PAID IN FULL';
     if (data.totalPayments > 0) return 'PARTIAL PAYMENT';
     return 'UNPAID';
@@ -314,6 +317,7 @@ export async function POST(request: NextRequest) {
       chassisNo,
       documentNumber,
       documentDate,
+      documentStatus,
       charges,
       payments
     } = body;
@@ -423,6 +427,7 @@ export async function POST(request: NextRequest) {
       chassisNo,
       documentNumber,
       documentDate,
+      documentStatus,
       transactions,
       totalCharges,
       totalPayments,

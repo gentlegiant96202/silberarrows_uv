@@ -5,9 +5,10 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useUserRole } from '@/lib/useUserRole';
 import { 
-  X, FileText, CreditCard, Receipt, ClipboardList,
+  X, FileText, CreditCard, Receipt, ClipboardList, List,
   Plus, Trash2, Download, Eye, Check, DollarSign, Car, User,
-  Phone, Mail, Calendar, Banknote, Shield, Sparkles, ScrollText
+  Phone, Mail, Calendar, Banknote, Shield, Sparkles, ScrollText,
+  Building2, Upload, CheckCircle2, Clock, AlertCircle, ChevronRight
 } from 'lucide-react';
 
 // ============================================================
@@ -121,7 +122,44 @@ interface AccountSummaryModalProps {
   lead: Lead;
 }
 
-type TabType = 'form' | 'charges' | 'payments' | 'soa' | 'documents';
+type TabType = 'form' | 'charges' | 'payments' | 'soa' | 'finance' | 'documents';
+
+type SaleType = 'cash' | 'finance';
+type FinanceStatus = 'pending_docs' | 'docs_ready' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'funds_received';
+
+interface Bank {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
+interface FinanceDocument {
+  type: string;
+  url: string;
+  uploaded_at: string;
+  uploaded_by?: string;
+}
+
+const FINANCE_DOCUMENT_TYPES = [
+  { key: 'emirates_id_front', label: 'Emirates ID (Front)', required: true, multiple: false },
+  { key: 'emirates_id_back', label: 'Emirates ID (Back)', required: true, multiple: false },
+  { key: 'passport', label: 'Passport', required: true, multiple: false },
+  { key: 'visa_page', label: 'Visa Page', required: true, multiple: false },
+  { key: 'salary_certificate', label: 'Salary Certificate', required: true, multiple: false },
+  { key: 'bank_statement', label: '6-Month Bank Statements', required: true, multiple: true, maxCount: 6 },
+  { key: 'trade_license', label: 'Trade License (Self-employed)', required: false, multiple: false },
+  { key: 'other', label: 'Other Documents', required: false, multiple: true },
+];
+
+const FINANCE_STATUS_CONFIG: Record<FinanceStatus, { label: string; color: string; icon: any }> = {
+  pending_docs: { label: 'Documents Required', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30', icon: Clock },
+  docs_ready: { label: 'Documents Ready', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30', icon: CheckCircle2 },
+  submitted: { label: 'Submitted to Bank', color: 'text-purple-400 bg-purple-500/10 border-purple-500/30', icon: Building2 },
+  under_review: { label: 'Bank Reviewing', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30', icon: Clock },
+  approved: { label: 'Approved', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', icon: CheckCircle2 },
+  rejected: { label: 'Rejected', color: 'text-red-400 bg-red-500/10 border-red-500/30', icon: AlertCircle },
+  funds_received: { label: 'Funds Received', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', icon: CheckCircle2 },
+};
 
 const CHARGE_TYPES = [
   { value: 'vehicle_sale', label: 'Vehicle Sale' },
@@ -226,6 +264,20 @@ export default function AccountSummaryModal({
   const [documentStatus, setDocumentStatus] = useState<string>('pending');
   const [currentDocumentType, setCurrentDocumentType] = useState<string>('reservation');
   
+  // Bank Finance state
+  const [saleType, setSaleType] = useState<SaleType>('cash');
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
+  const [customBankName, setCustomBankName] = useState<string>('');
+  const [downpaymentPercent, setDownpaymentPercent] = useState<number>(20);
+  const [financeStatus, setFinanceStatus] = useState<FinanceStatus>('pending_docs');
+  const [financeBankReference, setFinanceBankReference] = useState<string>('');
+  const [financeDocuments, setFinanceDocuments] = useState<FinanceDocument[]>([]);
+  const [financeNotes, setFinanceNotes] = useState<string>('');
+  const [uploadingDocument, setUploadingDocument] = useState<string | null>(null);
+  const [showBankDropdown, setShowBankDropdown] = useState(false);
+  const [bankSearchTerm, setBankSearchTerm] = useState('');
+  
   // Document URLs - store both separately
   const [reservationPdfUrl, setReservationPdfUrl] = useState<string | null>(null);
   const [invoicePdfUrl, setInvoicePdfUrl] = useState<string | null>(null);
@@ -266,6 +318,16 @@ export default function AccountSummaryModal({
       ? payments.reduce((sum, p) => sum + (p.amount || 0), 0)
       : pendingPayments.reduce((sum, p) => sum + (p.amount || 0), 0),
     get balanceDue() { return this.grandTotal - this.totalPaid; }
+  };
+
+  // Finance calculations
+  const financeCalculations = {
+    vehicleTotal: chargesTotals.grandTotal,
+    downpaymentAmount: Math.round(chargesTotals.grandTotal * (downpaymentPercent / 100)),
+    get financeAmount() { return this.vehicleTotal - this.downpaymentAmount; },
+    get customerOwes() { return saleType === 'finance' ? this.downpaymentAmount : this.vehicleTotal; },
+    get customerPaid() { return chargesTotals.totalPaid; },
+    get customerBalance() { return this.customerOwes - this.customerPaid; }
   };
 
   // ============================================================
@@ -377,10 +439,24 @@ export default function AccountSummaryModal({
 
         const { data: chargesData } = await supabase.from('uv_charges').select('*').eq('reservation_id', resData.id).order('display_order');
         setCharges(chargesData || []);
+        
+        // Load finance data
+        setSaleType(resData.sale_type || 'cash');
+        setSelectedBankId(resData.finance_bank_id || null);
+        setCustomBankName(resData.finance_bank_name || '');
+        setDownpaymentPercent(resData.downpayment_percent || 20);
+        setFinanceStatus(resData.finance_status || 'pending_docs');
+        setFinanceBankReference(resData.finance_bank_reference || '');
+        setFinanceDocuments(resData.finance_documents || []);
+        setFinanceNotes(resData.finance_notes || '');
       }
 
       const { data: paymentsData } = await supabase.from('uv_payments').select('*').eq('lead_id', lead.id).order('payment_date', { ascending: false }).order('created_at', { ascending: false });
       setPayments(paymentsData || []);
+      
+      // Load banks for dropdown
+      const { data: banksData } = await supabase.from('banks').select('*').eq('is_active', true).order('name');
+      setBanks(banksData || []);
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -394,6 +470,15 @@ export default function AccountSummaryModal({
       // Reset pending state when modal opens
       setPendingCharges([]);
       setPendingPayments([]);
+      // Reset finance state
+      setSaleType('cash');
+      setSelectedBankId(null);
+      setCustomBankName('');
+      setDownpaymentPercent(20);
+      setFinanceStatus('pending_docs');
+      setFinanceBankReference('');
+      setFinanceDocuments([]);
+      setFinanceNotes('');
       loadData();
       setActiveTab('form');
     }
@@ -419,6 +504,91 @@ export default function AccountSummaryModal({
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  // Save finance data to DB (for existing reservations)
+  const saveFinanceData = useCallback(async (updates: Record<string, any>) => {
+    if (!reservationId) return; // Only save if reservation exists
+    
+    try {
+      const { error } = await supabase
+        .from('vehicle_reservations')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', reservationId);
+      
+      if (error) {
+        console.error('Failed to save finance data:', error);
+      }
+    } catch (err) {
+      console.error('Error saving finance data:', err);
+    }
+  }, [reservationId]);
+
+  // Handle sale type toggle
+  const handleSaleTypeChange = (newSaleType: SaleType) => {
+    setSaleType(newSaleType);
+    
+    // Auto-save for existing reservations
+    if (reservationId) {
+      const financeData = newSaleType === 'finance' 
+        ? {
+            sale_type: newSaleType,
+            downpayment_percent: downpaymentPercent,
+            downpayment_amount: financeCalculations.downpaymentAmount,
+            finance_amount: financeCalculations.financeAmount,
+            finance_status: financeStatus,
+          }
+        : {
+            sale_type: newSaleType,
+            finance_bank_id: null,
+            finance_bank_name: null,
+            downpayment_percent: null,
+            downpayment_amount: null,
+            finance_amount: null,
+            finance_status: null,
+            finance_bank_reference: null,
+            finance_documents: [],
+            finance_notes: null,
+          };
+      saveFinanceData(financeData);
+    }
+  };
+
+  // Handle finance field changes (auto-save for existing reservations)
+  const handleFinanceFieldChange = useCallback((field: string, value: any) => {
+    // Update local state
+    switch (field) {
+      case 'selectedBankId':
+        setSelectedBankId(value);
+        if (reservationId) saveFinanceData({ finance_bank_id: value, finance_bank_name: null });
+        break;
+      case 'customBankName':
+        setCustomBankName(value);
+        if (reservationId) saveFinanceData({ finance_bank_name: value, finance_bank_id: null });
+        break;
+      case 'downpaymentPercent':
+        setDownpaymentPercent(value);
+        const dpAmount = Math.round(chargesTotals.grandTotal * (value / 100));
+        const finAmount = chargesTotals.grandTotal - dpAmount;
+        if (reservationId) saveFinanceData({ downpayment_percent: value, downpayment_amount: dpAmount, finance_amount: finAmount });
+        break;
+      case 'financeStatus':
+        setFinanceStatus(value);
+        if (reservationId) saveFinanceData({ finance_status: value });
+        break;
+      case 'financeBankReference':
+        setFinanceBankReference(value);
+        if (reservationId) saveFinanceData({ finance_bank_reference: value });
+        break;
+      case 'financeNotes':
+        setFinanceNotes(value);
+        if (reservationId) saveFinanceData({ finance_notes: value });
+        break;
+      case 'financeDocuments':
+        setFinanceDocuments(value);
+        if (reservationId) saveFinanceData({ finance_documents: value });
+        break;
+    }
+  }, [reservationId, saveFinanceData, chargesTotals.grandTotal]);
 
   const validateForm = (): string[] => {
     const errors: string[] = [];
@@ -498,7 +668,18 @@ export default function AccountSummaryModal({
         rta_fees: formData.rtaFees, vehicle_sale_price: formData.vehicleSalePrice,
         add_ons_total: formData.addOnsTotal, invoice_total: formData.invoiceTotal,
         deposit: formData.deposit, amount_due: formData.amountDue,
-        additional_notes: formData.additionalNotes, created_by: user?.id || null
+        additional_notes: formData.additionalNotes, created_by: user?.id || null,
+        // Bank Finance fields
+        sale_type: saleType,
+        finance_bank_id: saleType === 'finance' ? selectedBankId : null,
+        finance_bank_name: saleType === 'finance' && !selectedBankId ? customBankName : null,
+        downpayment_percent: saleType === 'finance' ? downpaymentPercent : null,
+        downpayment_amount: saleType === 'finance' ? financeCalculations.downpaymentAmount : null,
+        finance_amount: saleType === 'finance' ? financeCalculations.financeAmount : null,
+        finance_status: saleType === 'finance' ? financeStatus : null,
+        finance_bank_reference: saleType === 'finance' ? financeBankReference : null,
+        finance_documents: saleType === 'finance' ? financeDocuments : [],
+        finance_notes: saleType === 'finance' ? financeNotes : null,
       };
 
       let savedReservation;
@@ -826,6 +1007,7 @@ export default function AccountSummaryModal({
           chassisNo: formData.chassisNo,
           documentNumber,
           documentDate: formData.date,
+          documentStatus,
           charges: allCharges,
           payments: allPayments
         })
@@ -989,18 +1171,19 @@ export default function AccountSummaryModal({
           </div>
 
           {/* Tabs */}
-          <div className="grid grid-cols-5">
+          <div className="flex w-full">
             {[
               { key: 'form', label: 'Details', icon: ClipboardList },
-              { key: 'charges', label: 'Charges', icon: Receipt, count: allCharges.length },
+              { key: 'charges', label: 'Charges', icon: List, count: allCharges.length },
               { key: 'payments', label: 'Payments', icon: CreditCard, count: allPayments.length },
               { key: 'soa', label: 'Statement', icon: ScrollText },
+              ...(saleType === 'finance' && reservationId ? [{ key: 'finance', label: 'Bank Finance', icon: Building2 }] : []),
               { key: 'documents', label: 'Documents', icon: FileText },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as TabType)}
-                className={`relative flex items-center justify-center gap-2 py-4 text-sm font-medium transition-all border-b-2 ${
+                className={`flex-1 relative flex items-center justify-center gap-2 py-4 text-sm font-medium transition-all border-b-2 ${
                   activeTab === tab.key 
                     ? 'text-white bg-gradient-to-t from-[#222] to-transparent border-[#888]' 
                     : 'text-[#666] hover:text-[#999] hover:bg-[#0d0d0d] border-transparent'
@@ -1082,6 +1265,37 @@ export default function AccountSummaryModal({
                           <label className="block text-[11px] text-[#666] mb-1">ID Number</label>
                           <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" required />
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sale Type Toggle */}
+                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-3 mb-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] text-[#888] font-medium">Sale Type</span>
+                      <div className="flex items-center bg-[#111] rounded-lg p-1 border border-[#333]">
+                        <button
+                          type="button"
+                          onClick={() => handleSaleTypeChange('cash')}
+                          className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${
+                            saleType === 'cash'
+                              ? 'bg-[#333] text-white'
+                              : 'text-[#666] hover:text-[#999]'
+                          }`}
+                        >
+                          Cash Sale
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSaleTypeChange('finance')}
+                          className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${
+                            saleType === 'finance'
+                              ? 'bg-[#333] text-white'
+                              : 'text-[#666] hover:text-[#999]'
+                          }`}
+                        >
+                          Bank Finance
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1389,8 +1603,8 @@ export default function AccountSummaryModal({
                     </div>
                     <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
                       <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Status</p>
-                      <p className={`text-xl font-semibold ${chargesTotals.grandTotal > 0 && chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : chargesTotals.totalPaid > 0 ? 'text-amber-400' : chargesTotals.grandTotal > 0 ? 'text-red-400' : 'text-[#666]'}`}>
-                        {chargesTotals.grandTotal === 0 ? 'NO CHARGES' : chargesTotals.balanceDue <= 0 ? 'PAID' : chargesTotals.totalPaid > 0 ? 'PARTIAL' : 'UNPAID'}
+                      <p className={`text-xl font-semibold ${documentStatus === 'reversed' ? 'text-red-400' : chargesTotals.grandTotal > 0 && chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : chargesTotals.totalPaid > 0 ? 'text-amber-400' : chargesTotals.grandTotal > 0 ? 'text-red-400' : 'text-[#666]'}`}>
+                        {documentStatus === 'reversed' ? 'REVERSED' : chargesTotals.grandTotal === 0 ? 'NO CHARGES' : chargesTotals.balanceDue <= 0 ? 'PAID' : chargesTotals.totalPaid > 0 ? 'PARTIAL' : 'UNPAID'}
                       </p>
                     </div>
                   </div>
@@ -1579,6 +1793,438 @@ export default function AccountSummaryModal({
                           <span className="text-[#666]">Date</span>
                           <span className="text-white">{formatDate(formData.date)}</span>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* BANK FINANCE TAB */}
+              {activeTab === 'finance' && saleType === 'finance' && reservationId && (
+                <div className="space-y-4">
+                  {/* Finance Summary Card */}
+                  <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] rounded-xl border border-[#333] p-5">
+                    <div className="flex items-start justify-between mb-5">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-1">Bank Finance Application</h3>
+                        <p className="text-[#555] text-sm">Track the progress of the finance application</p>
+                      </div>
+                      <div className="px-3 py-1.5 rounded-lg bg-[#222] border border-[#444] text-sm font-medium text-[#999] flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${
+                          financeStatus === 'approved' || financeStatus === 'funds_received' ? 'bg-white' :
+                          financeStatus === 'rejected' ? 'bg-[#666]' : 'bg-[#888] animate-pulse'
+                        }`} />
+                        {FINANCE_STATUS_CONFIG[financeStatus].label}
+                      </div>
+                    </div>
+                    
+                    {/* Finance Breakdown */}
+                    <div className="grid grid-cols-4 gap-3 mb-5">
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#222]">
+                        <p className="text-[10px] text-[#555] uppercase tracking-wider mb-2">Vehicle Total</p>
+                        <p className="text-xl font-bold text-white">AED {formatCurrency(financeCalculations.vehicleTotal)}</p>
+                      </div>
+                      <div className={`bg-[#0a0a0a] rounded-lg p-4 border ${downpaymentPercent > 0 ? 'border-[#444] ring-1 ring-[#555]' : 'border-[#222]'}`}>
+                        <p className="text-[10px] text-[#888] uppercase tracking-wider mb-2">↓ Collect from Customer</p>
+                        {downpaymentPercent > 0 ? (
+                          <>
+                            <p className="text-xl font-bold text-white">AED {formatCurrency(financeCalculations.downpaymentAmount)}</p>
+                            <p className="text-[10px] text-[#555] mt-1">{downpaymentPercent}% Downpayment</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xl font-bold text-[#666]">AED 0</p>
+                            <p className="text-[10px] text-[#555] mt-1">100% Bank Finance</p>
+                          </>
+                        )}
+                      </div>
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#222]">
+                        <p className="text-[10px] text-[#555] uppercase tracking-wider mb-2">Bank Finance Amount</p>
+                        <p className="text-xl font-bold text-[#888]">AED {formatCurrency(financeCalculations.financeAmount)}</p>
+                      </div>
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#222]">
+                        <p className="text-[10px] text-[#555] uppercase tracking-wider mb-2">Customer Paid</p>
+                        <p className="text-xl font-bold text-white">AED {formatCurrency(financeCalculations.customerPaid)}</p>
+                        {financeCalculations.customerBalance > 0 ? (
+                          <p className="text-[10px] text-[#666] mt-1">Remaining: AED {formatCurrency(financeCalculations.customerBalance)}</p>
+                        ) : (
+                          <p className="text-[10px] text-[#888] mt-1">✓ Downpayment complete</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Downpayment % Adjustment */}
+                    <div className="flex items-center gap-4 pt-4 border-t border-[#333]">
+                      <label className="text-sm text-[#666]">Downpayment %</label>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="50" 
+                        value={downpaymentPercent}
+                        onChange={(e) => handleFinanceFieldChange('downpaymentPercent', parseInt(e.target.value))}
+                        className="flex-1 h-1 bg-[#333] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
+                      />
+                      <span className="text-white font-semibold w-14 text-center bg-[#222] px-2 py-1 rounded">{downpaymentPercent}%</span>
+                    </div>
+                  </div>
+
+                  {/* Bank Details */}
+                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#333] bg-gradient-to-r from-[#111] to-[#0d0d0d]">
+                      <h3 className="text-[12px] font-medium text-[#888] flex items-center gap-2">
+                        <Building2 className="w-3.5 h-3.5" /> Bank Details
+                      </h3>
+                    </div>
+                    <div className="p-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="relative">
+                          <label className="block text-[11px] text-[#555] mb-1.5">Finance Bank</label>
+                          <div 
+                            className="w-full px-3 py-2.5 bg-[#111] border border-[#333] rounded-lg text-white text-sm cursor-pointer flex items-center justify-between hover:border-[#444] transition-colors"
+                            onClick={() => setShowBankDropdown(!showBankDropdown)}
+                          >
+                            <span className={selectedBankId || customBankName ? 'text-white' : 'text-[#555]'}>
+                              {selectedBankId 
+                                ? banks.find(b => b.id === selectedBankId)?.name 
+                                : customBankName || 'Select or type bank name...'}
+                            </span>
+                            <ChevronRight className={`w-4 h-4 text-[#555] transition-transform ${showBankDropdown ? 'rotate-90' : ''}`} />
+                          </div>
+                          {showBankDropdown && (
+                            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-[#111] border border-[#333] rounded-lg shadow-2xl max-h-60 overflow-auto">
+                              <input 
+                                type="text"
+                                placeholder="Search or add bank..."
+                                value={bankSearchTerm}
+                                onChange={(e) => setBankSearchTerm(e.target.value)}
+                                className="w-full px-3 py-2.5 bg-[#0a0a0a] border-b border-[#333] text-white text-sm focus:outline-none"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              {banks
+                                .filter(b => b.name.toLowerCase().includes(bankSearchTerm.toLowerCase()))
+                                .map(bank => (
+                                  <div 
+                                    key={bank.id}
+                                    className={`px-3 py-2.5 hover:bg-[#1a1a1a] cursor-pointer text-sm transition-colors ${selectedBankId === bank.id ? 'bg-[#222] text-white' : 'text-[#999]'}`}
+                                    onClick={() => {
+                                      handleFinanceFieldChange('selectedBankId', bank.id);
+                                      setShowBankDropdown(false);
+                                      setBankSearchTerm('');
+                                    }}
+                                  >
+                                    {bank.name}
+                                  </div>
+                                ))}
+                              {bankSearchTerm && !banks.some(b => b.name.toLowerCase() === bankSearchTerm.toLowerCase()) && (
+                                <div 
+                                  className="px-3 py-2.5 hover:bg-[#1a1a1a] cursor-pointer text-sm text-white border-t border-[#333]"
+                                  onClick={() => {
+                                    handleFinanceFieldChange('customBankName', bankSearchTerm);
+                                    setShowBankDropdown(false);
+                                    setBankSearchTerm('');
+                                  }}
+                                >
+                                  + Add "{bankSearchTerm}"
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-[#555] mb-1.5">Bank Reference Number</label>
+                          <input 
+                            type="text"
+                            value={financeBankReference}
+                            onChange={(e) => handleFinanceFieldChange('financeBankReference', e.target.value)}
+                            placeholder="Bank's reference #"
+                            className="w-full px-3 py-2.5 bg-[#111] border border-[#333] rounded-lg text-white text-sm focus:outline-none focus:border-[#444] transition-colors"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-[#555] mb-1.5">Notes</label>
+                        <textarea
+                          value={financeNotes}
+                          onChange={(e) => handleFinanceFieldChange('financeNotes', e.target.value)}
+                          rows={2}
+                          placeholder="Any notes about this finance application..."
+                          className="w-full px-3 py-2.5 bg-[#111] border border-[#333] rounded-lg text-white text-sm resize-none focus:outline-none focus:border-[#444] transition-colors"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Document Checklist */}
+                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#333] bg-gradient-to-r from-[#111] to-[#0d0d0d] flex items-center justify-between">
+                      <h3 className="text-[12px] font-medium text-[#888] flex items-center gap-2">
+                        <FileText className="w-3.5 h-3.5" /> Customer Documents
+                      </h3>
+                      <span className="text-[11px] text-[#555]">
+                        {financeDocuments.length} uploaded
+                      </span>
+                    </div>
+                    <div className="divide-y divide-[#222]">
+                      {FINANCE_DOCUMENT_TYPES.map((docType) => {
+                        const uploadedDocs = financeDocuments.filter(d => d.type === docType.key);
+                        const hasUploads = uploadedDocs.length > 0;
+                        const isMultiple = docType.multiple;
+                        const maxCount = (docType as any).maxCount || 99;
+                        const canAddMore = isMultiple && uploadedDocs.length < maxCount;
+                        
+                        return (
+                          <div key={docType.key} className="px-4 py-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center border ${
+                                  hasUploads ? 'bg-[#1a1a1a] border-[#444]' : 'bg-[#111] border-[#333]'
+                                }`}>
+                                  {hasUploads ? (
+                                    isMultiple ? (
+                                      <span className="text-xs font-medium text-white">{uploadedDocs.length}</span>
+                                    ) : (
+                                      <Check className="w-4 h-4 text-white" />
+                                    )
+                                  ) : (
+                                    <Upload className="w-4 h-4 text-[#555]" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-sm text-white">{docType.label}</p>
+                                  <p className="text-[10px] text-[#555]">
+                                    {docType.required ? 'Required' : 'Optional'}
+                                    {isMultiple && docType.key === 'bank_statement' && ` • ${uploadedDocs.length}/6 months`}
+                                    {isMultiple && docType.key === 'other' && uploadedDocs.length > 0 && ` • ${uploadedDocs.length} files`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {/* Single document: show View/Replace if uploaded, Upload if not */}
+                                {!isMultiple && hasUploads && (
+                                  <>
+                                    <a 
+                                      href={uploadedDocs[0].url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-1.5 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg text-xs text-white transition-colors"
+                                    >
+                                      View
+                                    </a>
+                                    <label className="px-3 py-1.5 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg text-xs text-[#888] cursor-pointer transition-colors">
+                                      Replace
+                                      <input 
+                                        type="file" 
+                                        className="hidden" 
+                                        accept="image/*,.pdf"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (!file) return;
+                                          setUploadingDocument(docType.key);
+                                          try {
+                                            const fileName = `finance-docs/${reservationId}/${docType.key}-${Date.now()}.${file.name.split('.').pop()}`;
+                                            const { error: uploadError } = await supabase.storage.from('documents').upload(fileName, file);
+                                            if (uploadError) throw uploadError;
+                                            const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
+                                            const newDocs = financeDocuments.map(d => d.type === docType.key ? { ...d, url: publicUrl, uploaded_at: new Date().toISOString() } : d);
+                                            handleFinanceFieldChange('financeDocuments', newDocs);
+                                          } catch (err) {
+                                            console.error('Upload error:', err);
+                                            alert('Failed to upload document');
+                                          }
+                                          setUploadingDocument(null);
+                                        }}
+                                      />
+                                    </label>
+                                  </>
+                                )}
+                                {/* Single or multiple: Upload button */}
+                                {(!hasUploads || canAddMore) && (
+                                  <label className={`px-3 py-1.5 rounded-lg text-xs cursor-pointer transition-colors flex items-center gap-1.5 border ${
+                                    uploadingDocument === docType.key 
+                                      ? 'bg-[#333] border-[#444] text-white' 
+                                      : 'bg-[#222] border-[#333] text-[#888] hover:bg-[#333] hover:text-white'
+                                  }`}>
+                                    {uploadingDocument === docType.key ? (
+                                      <>Uploading...</>
+                                    ) : (
+                                      <><Upload className="w-3 h-3" /> {hasUploads && isMultiple ? 'Add More' : 'Upload'}</>
+                                    )}
+                                    <input 
+                                      type="file" 
+                                      className="hidden" 
+                                      accept="image/*,.pdf"
+                                      multiple={isMultiple}
+                                      disabled={uploadingDocument === docType.key}
+                                      onChange={async (e) => {
+                                        const files = e.target.files;
+                                        if (!files || files.length === 0 || !reservationId) return;
+                                        setUploadingDocument(docType.key);
+                                        try {
+                                          const newDocsToAdd: FinanceDocument[] = [];
+                                          for (let i = 0; i < files.length; i++) {
+                                            const file = files[i];
+                                            const fileName = `finance-docs/${reservationId}/${docType.key}-${Date.now()}-${i}.${file.name.split('.').pop()}`;
+                                            const { error: uploadError } = await supabase.storage.from('documents').upload(fileName, file);
+                                            if (uploadError) throw uploadError;
+                                            const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
+                                            newDocsToAdd.push({ type: docType.key, url: publicUrl, uploaded_at: new Date().toISOString() });
+                                          }
+                                          const newDocs = [...financeDocuments, ...newDocsToAdd];
+                                          handleFinanceFieldChange('financeDocuments', newDocs);
+                                        } catch (err) {
+                                          console.error('Upload error:', err);
+                                          alert('Failed to upload document');
+                                        }
+                                        setUploadingDocument(null);
+                                      }}
+                                    />
+                                  </label>
+                                )}
+                                {!docType.required && !hasUploads && (
+                                  <button className="px-3 py-1.5 bg-[#111] hover:bg-[#222] border border-[#333] rounded-lg text-xs text-[#555] transition-colors">
+                                    N/A
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {/* Show list of uploaded files for multiple document types */}
+                            {isMultiple && uploadedDocs.length > 0 && (
+                              <div className="mt-3 pl-12 space-y-2">
+                                {uploadedDocs.map((doc, idx) => (
+                                  <div key={idx} className="flex items-center justify-between bg-[#111] rounded-lg px-3 py-2 border border-[#222]">
+                                    <span className="text-xs text-[#888]">
+                                      {docType.key === 'bank_statement' ? `Month ${idx + 1}` : `File ${idx + 1}`}
+                                      <span className="text-[#555] ml-2">• {new Date(doc.uploaded_at).toLocaleDateString()}</span>
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <a 
+                                        href={doc.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-[#888] hover:text-white transition-colors"
+                                      >
+                                        View
+                                      </a>
+                                      <button 
+                                        onClick={() => {
+                                          const newDocs = financeDocuments.filter((d, i) => !(d.type === docType.key && financeDocuments.filter(fd => fd.type === docType.key).indexOf(d) === idx));
+                                          // Simpler approach: filter by URL since each is unique
+                                          const filteredDocs = financeDocuments.filter(d => d.url !== doc.url);
+                                          handleFinanceFieldChange('financeDocuments', filteredDocs);
+                                        }}
+                                        className="text-xs text-[#555] hover:text-white transition-colors"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Application Progress */}
+                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#333] bg-gradient-to-r from-[#111] to-[#0d0d0d]">
+                      <h3 className="text-[12px] font-medium text-[#888]">Application Progress</h3>
+                    </div>
+                    <div className="p-5">
+                      {/* Progress Steps */}
+                      <div className="flex items-center justify-between mb-6">
+                        {(['pending_docs', 'docs_ready', 'submitted', 'under_review', 'approved'] as FinanceStatus[]).map((status, index, arr) => {
+                          const isActive = status === financeStatus;
+                          const isPast = arr.indexOf(financeStatus) > index || financeStatus === 'funds_received';
+                          const config = FINANCE_STATUS_CONFIG[status];
+                          const Icon = config.icon;
+                          return (
+                            <React.Fragment key={status}>
+                              <div className="flex flex-col items-center">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
+                                  isActive ? 'border-white bg-[#333]' :
+                                  isPast ? 'border-[#666] bg-[#333]' : 'border-[#333] bg-[#111]'
+                                }`}>
+                                  {isPast ? (
+                                    <Check className="w-5 h-5 text-white" />
+                                  ) : (
+                                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#444]'}`} />
+                                  )}
+                                </div>
+                                <span className={`text-[10px] mt-2 text-center max-w-[70px] ${
+                                  isActive ? 'text-white font-medium' : isPast ? 'text-[#888]' : 'text-[#444]'
+                                }`}>
+                                  {config.label}
+                                </span>
+                              </div>
+                              {index < arr.length - 1 && (
+                                <div className={`flex-1 h-px mx-2 ${isPast ? 'bg-[#555]' : 'bg-[#333]'}`} />
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+
+                      {/* Status Update Buttons */}
+                      <div className="flex items-center justify-center gap-3 pt-5 border-t border-[#333]">
+                        {financeStatus === 'pending_docs' && (
+                          <button 
+                            onClick={() => handleFinanceFieldChange('financeStatus', 'docs_ready')}
+                            className="px-5 py-2.5 bg-[#222] border border-[#444] rounded-lg text-white text-sm font-medium hover:bg-[#333] transition-colors"
+                          >
+                            Mark Documents Ready
+                          </button>
+                        )}
+                        {financeStatus === 'docs_ready' && (
+                          <button 
+                            onClick={() => handleFinanceFieldChange('financeStatus', 'submitted')}
+                            className="px-5 py-2.5 bg-[#222] border border-[#444] rounded-lg text-white text-sm font-medium hover:bg-[#333] transition-colors"
+                          >
+                            Mark as Submitted to Bank
+                          </button>
+                        )}
+                        {financeStatus === 'submitted' && (
+                          <button 
+                            onClick={() => handleFinanceFieldChange('financeStatus', 'under_review')}
+                            className="px-5 py-2.5 bg-[#222] border border-[#444] rounded-lg text-white text-sm font-medium hover:bg-[#333] transition-colors"
+                          >
+                            Bank is Reviewing
+                          </button>
+                        )}
+                        {(financeStatus === 'submitted' || financeStatus === 'under_review') && (
+                          <>
+                            <button 
+                              onClick={() => handleFinanceFieldChange('financeStatus', 'approved')}
+                              className="px-5 py-2.5 bg-white text-black rounded-lg text-sm font-medium hover:bg-[#eee] transition-colors"
+                            >
+                              ✓ Approved
+                            </button>
+                            <button 
+                              onClick={() => handleFinanceFieldChange('financeStatus', 'rejected')}
+                              className="px-5 py-2.5 bg-[#222] border border-[#444] rounded-lg text-[#888] text-sm font-medium hover:bg-[#333] hover:text-white transition-colors"
+                            >
+                              ✗ Rejected
+                            </button>
+                          </>
+                        )}
+                        {financeStatus === 'approved' && (
+                          <button 
+                            onClick={() => handleFinanceFieldChange('financeStatus', 'funds_received')}
+                            className="px-5 py-2.5 bg-white text-black rounded-lg text-sm font-medium hover:bg-[#eee] transition-colors"
+                          >
+                            Funds Received
+                          </button>
+                        )}
+                        {financeStatus === 'rejected' && (
+                          <button 
+                            onClick={() => handleFinanceFieldChange('financeStatus', 'pending_docs')}
+                            className="px-5 py-2.5 bg-[#222] border border-[#444] rounded-lg text-white text-sm font-medium hover:bg-[#333] transition-colors"
+                          >
+                            ↩ Restart Application
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

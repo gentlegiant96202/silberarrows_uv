@@ -691,7 +691,37 @@ export default function ReservationsInvoicesGrid() {
                               <Download className="w-4 h-4" />
                             </button>
                           ) : (
-                            <span className="text-white/30 text-xs">No PDF</span>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch('/api/generate-receipt', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      paymentId: receipt.id,
+                                      customerName: receipt.customer_name,
+                                      vehicleInfo: receipt.vehicle_make_model,
+                                    })
+                                  });
+                                  if (res.ok) {
+                                    const data = await res.json();
+                                    if (data.receiptUrl) {
+                                      window.open(data.receiptUrl, '_blank');
+                                      fetchReceipts(); // Refresh to show the new PDF
+                                    }
+                                  } else {
+                                    alert('Failed to generate receipt');
+                                  }
+                                } catch (e) {
+                                  console.error(e);
+                                  alert('Failed to generate receipt');
+                                }
+                              }}
+                              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
+                              title="Generate Receipt PDF"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </button>
                           )}
                         </td>
                       </tr>

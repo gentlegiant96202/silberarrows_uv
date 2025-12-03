@@ -125,9 +125,10 @@ type TabType = 'form' | 'charges' | 'payments' | 'soa' | 'documents';
 
 const CHARGE_TYPES = [
   { value: 'vehicle_sale', label: 'Vehicle Sale' },
-  { value: 'extended_warranty', label: 'Warranty' },
+  { value: 'extended_warranty', label: 'Extended Warranty' },
   { value: 'ceramic_treatment', label: 'Ceramic' },
-  { value: 'service_care', label: 'Service' },
+  { value: 'service_care_standard', label: 'ServiceCare - Standard' },
+  { value: 'service_care_premium', label: 'ServiceCare - Premium' },
   { value: 'window_tints', label: 'Tints' },
   { value: 'rta_fees', label: 'RTA Fees' },
   { value: 'other_addon', label: 'Other' },

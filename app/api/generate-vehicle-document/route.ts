@@ -564,45 +564,53 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
           ` : ''}
 
           <!-- ADD-ONS SECTION -->
-          ${(formData.extendedWarranty || formData.ceramicTreatment || formData.serviceCare || formData.windowTints || Number(formData.rtaFees) > 0) ? `
-          <div class="section">
-            <div class="section-title">ADD-ONS</div>
-            <table class="form-table">
-              ${(formData.extendedWarranty || formData.ceramicTreatment) ? `
-              <tr>
-                <td class="label">Extended Warranty:</td>
-                <td class="data">${formData.extendedWarranty ? `AED ${safeNumber(formData.extendedWarrantyPrice)}` : '-'}</td>
-                <td class="label">Ceramic Treatment:</td>
-                <td class="data">${formData.ceramicTreatment ? `AED ${safeNumber(formData.ceramicTreatmentPrice)}` : '-'}</td>
-              </tr>
-              ` : ''}
-              ${(formData.serviceCare || formData.windowTints) ? `
-              <tr>
-                <td class="label">ServiceCare:</td>
-                <td class="data">${formData.serviceCare ? `AED ${safeNumber(formData.serviceCarePrice)}` : '-'}</td>
-                <td class="label">Window Tints:</td>
-                <td class="data">${formData.windowTints ? `AED ${safeNumber(formData.windowTintsPrice)}` : '-'}</td>
-              </tr>
-              ` : ''}
-              ${Number(formData.rtaFees) > 0 ? `
-              <tr>
-                <td class="label">RTA Fees:</td>
-                <td class="data">AED ${safeNumber(formData.rtaFees)}</td>
-                <td class="label"></td>
-                <td class="data"></td>
-              </tr>
-              ` : ''}
-              ${formData.hasOtherAddon && Number(formData.otherAddonPrice) > 0 ? `
-              <tr>
-                <td class="label">${safeString(formData.otherAddonDescription)}:</td>
-                <td class="data">AED ${safeNumber(formData.otherAddonPrice)}</td>
-                <td class="label"></td>
-                <td class="data"></td>
-              </tr>
-              ` : ''}
-            </table>
-          </div>
-          ` : ''}
+          ${(() => {
+            // Get add-on charges from charges array (exclude vehicle_sale and discount)
+            const addOnTypes = ['extended_warranty', 'ceramic_treatment', 'service_care_standard', 'service_care_premium', 'service_care', 'window_tints', 'rta_fees', 'other_addon'];
+            const addOnCharges = (formData.charges || []).filter((c: any) => 
+              addOnTypes.includes(c.charge_type) && Number(c.unit_price) > 0
+            );
+            
+            // Map charge types to display labels
+            const labelMap: Record<string, string> = {
+              'extended_warranty': 'Extended Warranty',
+              'ceramic_treatment': 'Ceramic Treatment',
+              'service_care_standard': 'ServiceCare - Standard',
+              'service_care_premium': 'ServiceCare - Premium',
+              'service_care': 'ServiceCare',
+              'window_tints': 'Window Tints',
+              'rta_fees': 'RTA Fees',
+              'other_addon': 'Other'
+            };
+            
+            if (addOnCharges.length === 0) return '';
+            
+            // Build rows - two items per row
+            let rows = '';
+            for (let i = 0; i < addOnCharges.length; i += 2) {
+              const first = addOnCharges[i];
+              const second = addOnCharges[i + 1];
+              const firstLabel = first.charge_type === 'other_addon' && first.description 
+                ? first.description 
+                : labelMap[first.charge_type] || first.description || 'Add-on';
+              rows += '<tr>';
+              rows += '<td class="label">' + firstLabel + ':</td>';
+              rows += '<td class="data">AED ' + safeNumber(first.unit_price) + '</td>';
+              if (second) {
+                const secondLabel = second.charge_type === 'other_addon' && second.description
+                  ? second.description
+                  : labelMap[second.charge_type] || second.description || 'Add-on';
+                rows += '<td class="label">' + secondLabel + ':</td>';
+                rows += '<td class="data">AED ' + safeNumber(second.unit_price) + '</td>';
+              } else {
+                rows += '<td class="label"></td>';
+                rows += '<td class="data"></td>';
+              }
+              rows += '</tr>';
+            }
+            
+            return '<div class="section"><div class="section-title">ADD-ONS</div><table class="form-table">' + rows + '</table></div>';
+          })()}
 
           <!-- NOTES SECTION -->
           <div class="section">

@@ -386,7 +386,7 @@ export default function ReservationsInvoicesGrid() {
   const unpaidCount = data.filter(c => c.balance_due > 0 && c.total_paid === 0).length;
 
   // Calculate summary stats for receipts
-  const totalReceiptsAmount = receipts.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const totalReceiptsAmount = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
   const receiptsWithPdf = receipts.filter(r => r.receipt_url).length;
 
   return (

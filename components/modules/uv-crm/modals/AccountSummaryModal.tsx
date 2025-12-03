@@ -1460,7 +1460,9 @@ export default function AccountSummaryModal({
                               <td className="px-4 py-3 text-[#666] font-mono text-sm">{txn.reference}</td>
                               <td className="px-4 py-3 text-right text-sm">
                                 {txn.type === 'charge' ? (
-                                  <span className="text-white">AED {formatCurrency(txn.amount)}</span>
+                                  <span className={txn.amount < 0 ? 'text-emerald-400' : 'text-white'}>
+                                    {txn.amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(txn.amount))}
+                                  </span>
                                 ) : (
                                   <span className="text-[#555]">-</span>
                                 )}

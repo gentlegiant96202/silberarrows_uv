@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRole } from '@/lib/useUserRole';
-import { FileText, Search, Shield, Users, ChevronRight } from 'lucide-react';
+import { FileText, Search, Shield, Users, ChevronRight, Receipt, Download } from 'lucide-react';
 import AccountSummaryModal from '@/components/modules/uv-crm/modals/AccountSummaryModal';
 
 interface CustomerAccount {
@@ -25,10 +25,27 @@ interface CustomerAccount {
   balance_due: number;
 }
 
+interface ReceiptData {
+  id: string;
+  lead_id: string;
+  receipt_number: string | null;
+  payment_date: string;
+  payment_method: string;
+  amount: number;
+  reference_number: string | null;
+  receipt_url: string | null;
+  created_at: string;
+  // Joined data
+  customer_name?: string;
+  customer_number?: string;
+  vehicle_make_model?: string;
+}
+
 interface Lead {
   id: string;
   full_name: string;
   phone_number: string;
+  country_code?: string;
   model_of_interest: string;
   inventory_car_id?: string;
 }
@@ -39,8 +56,12 @@ interface FilterState {
   search: string;
 }
 
+type TabType = 'accounts' | 'receipts';
+
 export default function ReservationsInvoicesGrid() {
+  const [activeTab, setActiveTab] = useState<TabType>('accounts');
   const [data, setData] = useState<CustomerAccount[]>([]);
+  const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
   const { role } = useUserRole();
 
@@ -193,14 +214,107 @@ export default function ReservationsInvoicesGrid() {
     }
   };
 
+  const fetchReceipts = async () => {
+    try {
+      setLoading(true);
+
+      // Query uv_payments with date range
+      let query = supabase
+        .from('uv_payments')
+        .select(`
+          id,
+          lead_id,
+          receipt_number,
+          payment_date,
+          payment_method,
+          amount,
+          reference_number,
+          receipt_url,
+          created_at
+        `)
+        .order('payment_date', { ascending: false });
+
+      // Apply date range filter
+      if (filters.fromDate) {
+        query = query.gte('payment_date', filters.fromDate);
+      }
+      if (filters.toDate) {
+        query = query.lte('payment_date', filters.toDate);
+      }
+
+      const { data: paymentsData, error } = await query;
+
+      if (error) {
+        console.error('Error fetching receipts:', error);
+        return;
+      }
+
+      let receiptsWithCustomer: ReceiptData[] = paymentsData || [];
+
+      // Get customer info from vehicle_reservations
+      const leadIds = receiptsWithCustomer.map(r => r.lead_id).filter(Boolean);
+      
+      if (leadIds.length > 0) {
+        const { data: reservations } = await supabase
+          .from('vehicle_reservations')
+          .select('lead_id, customer_name, customer_number, vehicle_make_model')
+          .in('lead_id', leadIds);
+
+        // Map customer info to receipts
+        const customerMap = new Map<string, { customer_name: string; customer_number: string | null; vehicle_make_model: string }>();
+        reservations?.forEach(r => {
+          if (!customerMap.has(r.lead_id)) {
+            customerMap.set(r.lead_id, {
+              customer_name: r.customer_name,
+              customer_number: r.customer_number,
+              vehicle_make_model: r.vehicle_make_model
+            });
+          }
+        });
+
+        receiptsWithCustomer = receiptsWithCustomer.map(receipt => ({
+          ...receipt,
+          customer_name: customerMap.get(receipt.lead_id)?.customer_name || 'Unknown',
+          customer_number: customerMap.get(receipt.lead_id)?.customer_number || null,
+          vehicle_make_model: customerMap.get(receipt.lead_id)?.vehicle_make_model || ''
+        }));
+      }
+
+      // Apply search filter
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        receiptsWithCustomer = receiptsWithCustomer.filter(item =>
+          item.customer_name?.toLowerCase().includes(searchTerm) ||
+          item.receipt_number?.toLowerCase().includes(searchTerm) ||
+          item.customer_number?.toLowerCase().includes(searchTerm) ||
+          item.payment_method?.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      setReceipts(receiptsWithCustomer);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchData();
-  }, [filters.fromDate, filters.toDate]);
+    if (activeTab === 'accounts') {
+      fetchData();
+    } else {
+      fetchReceipts();
+    }
+  }, [filters.fromDate, filters.toDate, activeTab]);
 
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-          fetchData();
+      if (activeTab === 'accounts') {
+        fetchData();
+      } else {
+        fetchReceipts();
+      }
     }, 300);
     return () => clearTimeout(timer);
   }, [filters.search]);
@@ -209,7 +323,7 @@ export default function ReservationsInvoicesGrid() {
     return new Intl.NumberFormat('en-AE', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount);
+    }).format(Math.abs(amount));
   };
 
   const formatDate = (dateString: string) => {
@@ -218,6 +332,19 @@ export default function ReservationsInvoicesGrid() {
       month: 'short',
       year: 'numeric'
     });
+  };
+
+  const formatPaymentMethod = (method: string) => {
+    const methods: Record<string, string> = {
+      'cash': 'Cash',
+      'bank_transfer': 'Bank Transfer',
+      'cheque': 'Cheque',
+      'credit_card': 'Credit Card',
+      'part_exchange': 'Part Exchange',
+      'finance': 'Finance',
+      'refund': 'Refund'
+    };
+    return methods[method] || method;
   };
 
   const handleRowClick = (customer: CustomerAccount) => {
@@ -229,7 +356,11 @@ export default function ReservationsInvoicesGrid() {
     setShowModal(false);
     setSelectedCustomer(null);
     // Refresh data in case changes were made
-    fetchData();
+    if (activeTab === 'accounts') {
+      fetchData();
+    } else {
+      fetchReceipts();
+    }
   };
 
   // Create lead object for modal
@@ -240,7 +371,7 @@ export default function ReservationsInvoicesGrid() {
     model_of_interest: customer.vehicle_make_model || ''
   });
 
-  // Calculate summary stats
+  // Calculate summary stats for accounts
   const totalCharges = data.reduce((sum, c) => sum + (c.total_charges || 0), 0);
   const totalPaid = data.reduce((sum, c) => sum + (c.total_paid || 0), 0);
   const totalBalance = data.reduce((sum, c) => sum + (c.balance_due || 0), 0);
@@ -248,13 +379,23 @@ export default function ReservationsInvoicesGrid() {
   const partialCount = data.filter(c => c.balance_due > 0 && c.total_paid > 0).length;
   const unpaidCount = data.filter(c => c.balance_due > 0 && c.total_paid === 0).length;
 
+  // Calculate summary stats for receipts
+  const totalReceiptsAmount = receipts.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const receiptsWithPdf = receipts.filter(r => r.receipt_url).length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-white">Customer Accounts</h1>
-          <p className="text-sm text-white/60">View and manage customer account balances</p>
+          <h1 className="text-xl font-semibold text-white">
+            {activeTab === 'accounts' ? 'Customer Accounts' : 'Payment Receipts'}
+          </h1>
+          <p className="text-sm text-white/60">
+            {activeTab === 'accounts' 
+              ? 'View and manage customer account balances' 
+              : 'View and download payment receipts'}
+          </p>
           {role && (
             <div className="flex items-center gap-2 mt-1">
               <Shield className="w-3 h-3 text-brand" />
@@ -265,8 +406,34 @@ export default function ReservationsInvoicesGrid() {
           )}
         </div>
         <div className="text-sm text-white/60">
-          Total: {data.length} customers
+          Total: {activeTab === 'accounts' ? `${data.length} customers` : `${receipts.length} receipts`}
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveTab('accounts')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'accounts'
+              ? 'bg-brand text-white'
+              : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Customer Accounts
+        </button>
+        <button
+          onClick={() => setActiveTab('receipts')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'receipts'
+              ? 'bg-brand text-white'
+              : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          <Receipt className="w-4 h-4" />
+          Receipts
+        </button>
       </div>
 
       {/* Filters */}
@@ -303,7 +470,7 @@ export default function ReservationsInvoicesGrid() {
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                placeholder="Customer name, ID, phone..."
+                placeholder={activeTab === 'accounts' ? "Customer name, ID, phone..." : "Receipt #, customer name..."}
                 className="w-full h-[42px] pl-10 pr-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm placeholder-white/40"
               />
             </div>
@@ -311,152 +478,253 @@ export default function ReservationsInvoicesGrid() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
-            <p className="text-white/60">Loading customer accounts...</p>
+      {/* Customer Accounts Table */}
+      {activeTab === 'accounts' && (
+        <>
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
+                <p className="text-white/60">Loading customer accounts...</p>
+              </div>
+            ) : data.length === 0 ? (
+              <div className="p-8 text-center">
+                <Users className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <p className="text-white/60">No customers found for the selected date range</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Vehicle</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Total Charges</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Paid</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Balance</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Created</th>
+                      <th className="px-4 py-3 w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {data.map((item) => {
+                      const isPaid = item.balance_due <= 0 && item.total_charges > 0;
+                      const isPartial = item.balance_due > 0 && item.total_paid > 0;
+                      
+                      return (
+                        <tr 
+                          key={item.id} 
+                          onClick={() => handleRowClick(item)}
+                          className="hover:bg-white/5 transition-colors cursor-pointer group"
+                        >
+                          <td className="px-4 py-3">
+                            {item.customer_number ? (
+                              <span className="px-2 py-1 bg-brand/20 border border-brand/40 rounded text-brand text-xs font-mono font-bold">
+                                {item.customer_number}
+                              </span>
+                            ) : (
+                              <span className="text-white/40 text-xs">No ID</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div>
+                              <div className="text-white text-sm font-medium">{item.customer_name}</div>
+                              {item.contact_no && (
+                                <div className="text-white/50 text-xs">{item.contact_no}</div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-white/80 text-sm">
+                            {item.vehicle_make_model} {item.model_year > 0 && item.model_year}
+                          </td>
+                          <td className="px-4 py-3 text-right text-white text-sm">
+                            AED {formatCurrency(item.total_charges || 0)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-emerald-400 text-sm">
+                            AED {formatCurrency(item.total_paid || 0)}
+                          </td>
+                          <td className={`px-4 py-3 text-right text-sm font-semibold ${
+                            isPaid ? 'text-emerald-400' : 'text-amber-400'
+                          }`}>
+                            AED {formatCurrency(Math.abs(item.balance_due || 0))}
+                            {item.balance_due < 0 && ' CR'}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              item.document_status === 'reversed'
+                                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                : isPaid
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  : isPartial
+                                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            }`}>
+                              {item.document_status === 'reversed' ? 'Reversed' : isPaid ? 'Paid' : isPartial ? 'Partial' : 'Unpaid'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-white/60 text-sm">
+                            {formatDate(item.created_at)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        ) : data.length === 0 ? (
-          <div className="p-8 text-center">
-            <Users className="w-12 h-12 text-white/20 mx-auto mb-4" />
-            <p className="text-white/60">No customers found for the selected date range</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-                    Customer ID
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-                    Customer Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-                    Vehicle
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
-                    Total Charges
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
-                    Paid
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
-                    Balance
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-4 py-3 w-8"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {data.map((item) => {
-                  const isPaid = item.balance_due <= 0 && item.total_charges > 0;
-                  const isPartial = item.balance_due > 0 && item.total_paid > 0;
-                  
-                  return (
-                    <tr 
-                      key={item.id} 
-                      onClick={() => handleRowClick(item)}
-                      className="hover:bg-white/5 transition-colors cursor-pointer group"
-                    >
-                    <td className="px-4 py-3">
-                        {item.customer_number ? (
-                        <span className="px-2 py-1 bg-brand/20 border border-brand/40 rounded text-brand text-xs font-mono font-bold">
-                            {item.customer_number}
-                        </span>
-                      ) : (
-                          <span className="text-white/40 text-xs">No ID</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                        <div>
-                          <div className="text-white text-sm font-medium">{item.customer_name}</div>
-                          {item.contact_no && (
-                            <div className="text-white/50 text-xs">{item.contact_no}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-white/80 text-sm">
-                        {item.vehicle_make_model} {item.model_year > 0 && item.model_year}
-                      </td>
-                      <td className="px-4 py-3 text-right text-white text-sm">
-                        AED {formatCurrency(item.total_charges || 0)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-emerald-400 text-sm">
-                        AED {formatCurrency(item.total_paid || 0)}
-                      </td>
-                      <td className={`px-4 py-3 text-right text-sm font-semibold ${
-                        isPaid ? 'text-emerald-400' : 'text-amber-400'
-                      }`}>
-                        AED {formatCurrency(Math.abs(item.balance_due || 0))}
-                        {item.balance_due < 0 && ' CR'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          item.document_status === 'reversed'
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                            : isPaid
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : isPartial
-                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                        }`}>
-                          {item.document_status === 'reversed' ? 'Reversed' : isPaid ? 'Paid' : isPartial ? 'Partial' : 'Unpaid'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-white/60 text-sm">
-                        {formatDate(item.created_at)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
-                    </td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
-      {/* Summary */}
-      <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
-          <div>
-            <p className="text-2xl font-bold text-white">{data.length}</p>
-            <p className="text-sm text-white/60">Customers</p>
+          {/* Summary for Accounts */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold text-white">{data.length}</p>
+                <p className="text-sm text-white/60">Customers</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">AED {formatCurrency(totalCharges)}</p>
+                <p className="text-sm text-white/60">Total Charges</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(totalPaid)}</p>
+                <p className="text-sm text-white/60">Total Paid</p>
+              </div>
+              <div>
+                <p className={`text-2xl font-bold ${totalBalance > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  AED {formatCurrency(Math.abs(totalBalance))}
+                </p>
+                <p className="text-sm text-white/60">Outstanding</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-400">{paidCount}</p>
+                <p className="text-sm text-white/60">Paid</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-400">{partialCount + unpaidCount}</p>
+                <p className="text-sm text-white/60">Outstanding</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="text-2xl font-bold text-white">AED {formatCurrency(totalCharges)}</p>
-            <p className="text-sm text-white/60">Total Charges</p>
+        </>
+      )}
+
+      {/* Receipts Table */}
+      {activeTab === 'receipts' && (
+        <>
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
+                <p className="text-white/60">Loading receipts...</p>
+              </div>
+            ) : receipts.length === 0 ? (
+              <div className="p-8 text-center">
+                <Receipt className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <p className="text-white/60">No receipts found for the selected date range</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Receipt #</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Vehicle</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Method</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Download</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {receipts.map((receipt) => (
+                      <tr key={receipt.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-4 py-3">
+                          {receipt.receipt_number ? (
+                            <span className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs font-mono">
+                              {receipt.receipt_number}
+                            </span>
+                          ) : (
+                            <span className="text-white/40 text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-white/80 text-sm">
+                          {formatDate(receipt.payment_date)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>
+                            <div className="text-white text-sm font-medium">{receipt.customer_name || 'Unknown'}</div>
+                            {receipt.customer_number && (
+                              <div className="text-brand text-xs font-mono">{receipt.customer_number}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-white/60 text-sm">
+                          {receipt.vehicle_make_model || '-'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            receipt.payment_method === 'refund' || receipt.amount < 0
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-white/10 text-white/80'
+                          }`}>
+                            {formatPaymentMethod(receipt.payment_method)}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-3 text-right text-sm font-semibold ${
+                          receipt.amount < 0 ? 'text-red-400' : 'text-emerald-400'
+                        }`}>
+                          {receipt.amount < 0 ? '-' : ''}AED {formatCurrency(receipt.amount)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {receipt.receipt_url ? (
+                            <button
+                              onClick={() => window.open(receipt.receipt_url!, '_blank')}
+                              className="p-2 bg-brand/20 hover:bg-brand/30 rounded-lg text-brand transition-colors"
+                              title="Download Receipt"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <span className="text-white/30 text-xs">No PDF</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-          <div>
-            <p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(totalPaid)}</p>
-            <p className="text-sm text-white/60">Total Paid</p>
+
+          {/* Summary for Receipts */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold text-white">{receipts.length}</p>
+                <p className="text-sm text-white/60">Total Receipts</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(totalReceiptsAmount)}</p>
+                <p className="text-sm text-white/60">Total Amount</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-brand">{receiptsWithPdf}</p>
+                <p className="text-sm text-white/60">With PDF</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white/50">{receipts.length - receiptsWithPdf}</p>
+                <p className="text-sm text-white/60">No PDF</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className={`text-2xl font-bold ${totalBalance > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-              AED {formatCurrency(Math.abs(totalBalance))}
-            </p>
-            <p className="text-sm text-white/60">Outstanding</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-emerald-400">{paidCount}</p>
-            <p className="text-sm text-white/60">Paid</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-amber-400">{partialCount + unpaidCount}</p>
-            <p className="text-sm text-white/60">Outstanding</p>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Account Summary Modal */}
       {showModal && selectedCustomer && (

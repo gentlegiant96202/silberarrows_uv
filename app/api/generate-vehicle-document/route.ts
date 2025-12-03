@@ -462,7 +462,7 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
                 <td class="label">Customer Name:</td>
                 <td class="data">${safeString(formData.customerName)}</td>
                 <td class="label">Contact No.:</td>
-                <td class="data">+971 ${safeString(formData.contactNo)}</td>
+                <td class="data">${safeString(formData.contactNo)}</td>
               </tr>
               <tr>
                 <td class="label">Email Address:</td>

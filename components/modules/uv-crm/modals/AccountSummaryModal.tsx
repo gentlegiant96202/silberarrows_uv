@@ -16,6 +16,7 @@ import {
 interface Lead {
   id: string;
   full_name: string;
+  country_code?: string;
   phone_number: string;
   model_of_interest: string;
   inventory_car_id?: string;
@@ -172,7 +173,7 @@ export default function AccountSummaryModal({
     salesExecutive: getUserDisplayName(),
     date: new Date().toISOString().split('T')[0],
     customerName: lead.full_name,
-    contactNo: lead.phone_number,
+    contactNo: `${lead.country_code || '+971'} ${lead.phone_number}`,
     emailAddress: '',
     customerIdType: 'EID',
     customerIdNumber: '',

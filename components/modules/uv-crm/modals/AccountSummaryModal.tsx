@@ -122,7 +122,7 @@ interface AccountSummaryModalProps {
   lead: Lead;
 }
 
-type TabType = 'form' | 'charges' | 'payments' | 'soa' | 'finance' | 'documents';
+type TabType = 'form' | 'charges' | 'payments' | 'soa' | 'finance';
 
 type SaleType = 'cash' | 'finance';
 type FinanceStatus = 'pending_docs' | 'docs_ready' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'funds_received';
@@ -1360,10 +1360,36 @@ export default function AccountSummaryModal({
 
   const handleReverseInvoice = async () => {
     if (!reservationId) return;
-    if (!confirm('Are you sure you want to reverse this invoice? This will mark it as REVERSED and cannot be undone.')) return;
+    if (!confirm('Are you sure you want to reverse this invoice? This will:\n\n• Mark the invoice as REVERSED\n• Release all payment allocations\n• Unlock charges for editing\n\nThis action cannot be undone.')) return;
     
     setSaving(true);
     try {
+      // 1. Delete payment allocations linked to this invoice (payments become unallocated)
+      if (invoiceId) {
+        const { error: allocError } = await supabase
+          .from('uv_payment_allocations')
+          .delete()
+          .eq('invoice_id', invoiceId);
+        
+        if (allocError) {
+          console.error('Error removing allocations:', allocError);
+        }
+      }
+      
+      // 2. Update invoice status to reversed
+      if (invoiceId) {
+        await supabase
+          .from('invoices')
+          .update({ 
+            status: 'reversed',
+            paid_amount: 0,
+            reversed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', invoiceId);
+      }
+      
+      // 3. Also update vehicle_reservations for backwards compatibility
       const { error } = await supabase
         .from('vehicle_reservations')
         .update({ 
@@ -1375,7 +1401,8 @@ export default function AccountSummaryModal({
       if (error) throw error;
       
       setDocumentStatus('reversed');
-      alert('Invoice has been reversed successfully.');
+      setInvoiceStatus('reversed');
+      alert('Invoice has been reversed. Payment allocations have been released.');
       await loadData(false);
     } catch (error) {
       console.error('Reverse invoice error:', error);
@@ -1385,10 +1412,67 @@ export default function AccountSummaryModal({
     }
   };
 
+  // Create a new invoice after the previous one was reversed
+  const handleCreateNewInvoice = async () => {
+    if (!reservationId) return;
+    if (!confirm('Create a new invoice for this deal? The previous charges will remain linked to the reversed invoice. You will need to add new charges.')) return;
+    
+    setSaving(true);
+    try {
+      // Create new invoice record
+      const { data: newInvoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          deal_id: reservationId,
+          invoice_date: new Date().toISOString().split('T')[0],
+          status: 'pending',
+          subtotal: 0,
+          vat_amount: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          created_by: user?.id
+        })
+        .select()
+        .single();
+
+      if (invoiceError) throw invoiceError;
+
+      // Update state with new invoice
+      setInvoiceId(newInvoice.id);
+      setInvoiceNumber(newInvoice.invoice_number);
+      setInvoiceStatus('pending');
+      setInvoicePdfUrl(null);
+      setDocumentStatus('pending');
+      
+      // Clear charges array (old charges stay linked to old invoice)
+      setCharges([]);
+      
+      // Reset document_status on vehicle_reservations
+      await supabase
+        .from('vehicle_reservations')
+        .update({ 
+          document_status: 'pending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', reservationId);
+
+      alert(`New invoice ${newInvoice.invoice_number} created. Please add charges.`);
+      await loadData(false);
+    } catch (error) {
+      console.error('Create new invoice error:', error);
+      alert('Failed to create new invoice. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   // Only show as "PAID" if there are actual charges recorded AND balance is zero or credit
   const isPaid = chargesTotals.grandTotal > 0 && chargesTotals.balanceDue <= 0;
+  
+  // Charges are locked once invoice PDF is generated (unless reversed)
+  const chargesLocked = invoicePdfUrl && invoiceStatus !== 'reversed' && documentStatus !== 'reversed';
 
   // ============================================================
   // RENDER
@@ -1516,7 +1600,6 @@ export default function AccountSummaryModal({
               { key: 'payments', label: 'Payments', icon: CreditCard, count: allPayments.length },
               { key: 'soa', label: 'Statement', icon: ScrollText },
               ...(saleType === 'finance' && reservationId ? [{ key: 'finance', label: 'Bank Finance', icon: Building2 }] : []),
-              { key: 'documents', label: 'Documents', icon: FileText },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -1717,6 +1800,19 @@ export default function AccountSummaryModal({
                 <div className="space-y-5">
                   <>
                       {/* Quick Add Buttons */}
+                      {/* Locked Status Banner */}
+                      {chargesLocked && (
+                        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center gap-3">
+                          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+                          <div>
+                            <p className="text-amber-400 text-sm font-medium">Charges Locked</p>
+                            <p className="text-amber-400/70 text-xs">Invoice has been generated. To modify charges, reverse the invoice first.</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Add Charge Buttons - Hidden when locked */}
+                      {!chargesLocked && (
                       <div className="flex flex-wrap gap-2">
                         {CHARGE_TYPES.map((type) => {
                           const getDefaultPrice = () => {
@@ -1748,6 +1844,7 @@ export default function AccountSummaryModal({
                           );
                         })}
                       </div>
+                      )}
 
                       {/* Add Form */}
                       {showAddCharge && (
@@ -1774,7 +1871,7 @@ export default function AccountSummaryModal({
                               <tr key={c.id} className="hover:bg-[#0d0d0d] transition-colors">
                                 <td className="px-4 py-3 text-white text-sm">{c.description}</td>
                                 <td className={`px-4 py-3 text-right font-medium text-sm ${c.unit_price < 0 ? 'text-emerald-400' : 'text-white'}`}>{c.unit_price < 0 ? '-' : ''}AED {formatCurrency(Math.abs(c.total_amount || c.unit_price))}</td>
-                                <td className="px-4 py-3"><button onClick={() => handleDeleteCharge(c.id)} className="p-1.5 hover:bg-red-500/20 rounded text-[#555] hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button></td>
+                                <td className="px-4 py-3">{!chargesLocked && <button onClick={() => handleDeleteCharge(c.id)} className="p-1.5 hover:bg-red-500/20 rounded text-[#555] hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1782,6 +1879,165 @@ export default function AccountSummaryModal({
                             <tfoot><tr className="bg-[#0d0d0d] border-t border-[#333]"><td className="px-4 py-3 text-sm font-semibold text-white">Grand Total</td><td className="px-4 py-3 text-right text-base font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</td><td></td></tr></tfoot>
                           )}
                         </table>
+                      </div>
+
+                      {/* ============================================ */}
+                      {/* DOCUMENT GENERATION SECTION */}
+                      {/* ============================================ */}
+                      <div className="mt-6 pt-6 border-t border-[#333]">
+                        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Documents
+                        </h3>
+                        
+                        <div className="space-y-4">
+                          {/* RESERVATION DOCUMENT */}
+                          <div className={`rounded-lg border overflow-hidden ${reservationPdfUrl ? 'bg-[#0f0f0f] border-[#333]' : 'bg-[#0d0d0d] border-[#222]'}`}>
+                            <div className="px-4 py-3 bg-[#111] flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-md flex items-center justify-center ${reservationPdfUrl ? 'bg-[#444]' : 'bg-[#333]'}`}>
+                                  <FileText className={`w-4 h-4 ${reservationPdfUrl ? 'text-[#ccc]' : 'text-[#666]'}`} />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-medium text-white">Reservation Form</h3>
+                                    {dealNumber && (
+                                      <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-mono rounded">
+                                        {dealNumber}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[12px] text-[#666] mt-0.5">
+                                    {reservationPdfUrl ? 'Generated' : 'Not generated'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={(e) => { e.preventDefault(); handleSubmit(e as any); }}
+                                  disabled={saving || allCharges.length === 0} 
+                                  className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
+                                >
+                                  {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                                  {reservationPdfUrl ? 'Regenerate' : 'Generate Reservation'}
+                                </button>
+                                {reservationPdfUrl && (
+                                  <>
+                                    <button onClick={() => window.open(reservationPdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
+                                      <Eye className="w-4 h-4" /> View
+                                    </button>
+                                    {formData.emailAddress && (
+                                      <button 
+                                        onClick={handleSendForSigning} 
+                                        disabled={sendingForSigning} 
+                                        className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+                                      >
+                                        <Mail className="w-4 h-4" />
+                                        {sendingForSigning ? 'Sending...' : 'Sign'}
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* INVOICE DOCUMENT */}
+                          <div className={`rounded-lg border overflow-hidden ${invoiceStatus === 'reversed' ? 'bg-[#0f0f0f] border-red-500/30' : invoicePdfUrl ? 'bg-[#0f0f0f] border-emerald-500/30' : 'bg-[#0d0d0d] border-[#222]'}`}>
+                            <div className="px-4 py-3 bg-[#111] flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-md flex items-center justify-center ${invoiceStatus === 'reversed' ? 'bg-red-500/10' : invoicePdfUrl ? 'bg-emerald-500/10' : 'bg-[#333]'}`}>
+                                  <Receipt className={`w-4 h-4 ${invoiceStatus === 'reversed' ? 'text-red-400' : invoicePdfUrl ? 'text-emerald-400' : 'text-[#666]'}`} />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-medium text-white">Invoice</h3>
+                                    {invoiceNumber && (
+                                      <span className={`px-1.5 py-0.5 text-[10px] font-mono rounded ${invoiceStatus === 'reversed' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                        {invoiceNumber}
+                                      </span>
+                                    )}
+                                    {invoiceStatus === 'reversed' && (
+                                      <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-medium rounded">
+                                        REVERSED
+                                      </span>
+                                    )}
+                                    {signingStatus === 'sent' && (
+                                      <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded flex items-center gap-1">
+                                        <Clock className="w-3 h-3" /> Awaiting Signature
+                                      </span>
+                                    )}
+                                    {signingStatus === 'completed' && (
+                                      <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-medium rounded flex items-center gap-1">
+                                        <Check className="w-3 h-3" /> Signed
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className={`text-[12px] mt-0.5 ${invoiceStatus === 'reversed' ? 'text-red-400' : chargesTotals.balanceDue > 0 ? 'text-amber-400' : 'text-[#666]'}`}>
+                                    {invoiceStatus === 'reversed' 
+                                      ? 'Invoice has been reversed' 
+                                      : chargesTotals.balanceDue > 0 
+                                        ? `Outstanding: AED ${formatCurrency(chargesTotals.balanceDue)}` 
+                                        : invoicePdfUrl ? 'Paid in full' : 'Not generated'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                {invoiceStatus !== 'reversed' && (
+                                  <button 
+                                    onClick={(e) => { e.preventDefault(); handleSubmit(e as any); }}
+                                    disabled={saving || allCharges.length === 0} 
+                                    className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-medium rounded-md hover:from-emerald-700 hover:to-emerald-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+                                  >
+                                    {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                                    {invoicePdfUrl ? 'Regenerate' : 'Generate Invoice'}
+                                  </button>
+                                )}
+                                {invoicePdfUrl && invoiceStatus !== 'reversed' && (
+                                  <>
+                                    <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
+                                      <Eye className="w-4 h-4" /> View
+                                    </button>
+                                    {formData.emailAddress && signingStatus !== 'completed' && (
+                                      <button 
+                                        onClick={handleSendForSigning} 
+                                        disabled={sendingForSigning} 
+                                        className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+                                      >
+                                        <Mail className="w-4 h-4" />
+                                        {sendingForSigning ? 'Sending...' : 'Sign'}
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+                                {/* Create New Invoice Button - After Reversal */}
+                                {invoiceStatus === 'reversed' && (
+                                  <button 
+                                    onClick={handleCreateNewInvoice} 
+                                    disabled={saving} 
+                                    className="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+                                  >
+                                    {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus className="w-4 h-4" />}
+                                    New Invoice
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {/* Reverse Invoice - Separate Line */}
+                            {invoicePdfUrl && invoiceStatus !== 'reversed' && isAdmin && (
+                              <div className="px-4 py-2.5 border-t border-[#333] flex items-center justify-between bg-[#0d0d0d]">
+                                <p className="text-[12px] text-[#555]">Cancel this invoice and unlock charges</p>
+                                <button 
+                                  onClick={handleReverseInvoice} 
+                                  disabled={saving} 
+                                  className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm rounded-md transition-colors disabled:opacity-50"
+                                >
+                                  {saving ? 'Reversing...' : 'Reverse Invoice'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </>
                 </div>
@@ -2683,193 +2939,6 @@ export default function AccountSummaryModal({
                 </div>
               )}
 
-              {/* DOCUMENTS TAB */}
-              {activeTab === 'documents' && (
-                <div className="space-y-4">
-                  {/* RESERVATION DOCUMENT - Always show in reservation mode, view-only in invoice mode */}
-                  <div className={`rounded-lg border overflow-hidden ${reservationPdfUrl ? 'bg-[#0f0f0f] border-[#333]' : 'bg-[#0d0d0d] border-[#222]'}`}>
-                    <div className="px-4 py-3 border-b border-[#333] bg-[#111] flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-md flex items-center justify-center ${reservationPdfUrl ? 'bg-[#444]' : 'bg-[#333]'}`}>
-                          <FileText className={`w-4 h-4 ${reservationPdfUrl ? 'text-[#ccc]' : 'text-[#666]'}`} />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-medium text-white">Reservation Form</h3>
-                            {reservationNumber && (
-                              <span className="px-1.5 py-0.5 bg-[#444] text-[#ccc] text-[10px] font-mono rounded">
-                                {reservationNumber}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[12px] text-[#666] mt-0.5">
-                            {reservationPdfUrl 
-                              ? (signingStatus === 'completed' ? 'Signed' : 'Ready') 
-                              : 'Not generated'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        {mode === 'reservation' && (
-                          <button 
-                            onClick={handleSubmit} 
-                            disabled={saving} 
-                            className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
-                          >
-                            {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                            {reservationPdfUrl ? 'Regenerate' : 'Generate'}
-                          </button>
-                        )}
-                        {reservationPdfUrl && (
-                          <>
-                            <button onClick={() => window.open(signedPdfUrl || reservationPdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
-                              <Eye className="w-4 h-4" /> View
-                            </button>
-                            <button onClick={() => window.open(signedPdfUrl || reservationPdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
-                              <Download className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {/* Send for Signing - Reservation */}
-                    {mode === 'reservation' && reservationPdfUrl && signingStatus !== 'completed' && (
-                      <div className="px-4 py-4 border-t border-[#333] bg-gradient-to-r from-[#1a1a1a] to-[#111]">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#555] to-[#333] flex items-center justify-center">
-                              <Mail className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                              <p className="text-white font-medium text-sm">Send for DocuSign</p>
-                              <p className="text-[12px] text-[#888]">
-                                {formData.emailAddress ? `Will be sent to ${formData.emailAddress}` : 'Add customer email in Details tab first'}
-                              </p>
-                            </div>
-                          </div>
-                          <button 
-                            onClick={handleSendForSigning} 
-                            disabled={sendingForSigning || !formData.emailAddress} 
-                            className="px-4 py-2 bg-gradient-to-r from-[#555] to-[#666] hover:from-[#666] hover:to-[#777] text-white text-sm font-medium rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                          >
-                            {sendingForSigning ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Sending...
-                              </>
-                            ) : (
-                              <>
-                                <FileText className="w-4 h-4" />
-                                Send for Signing
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    {/* Signed Badge */}
-                    {signingStatus === 'completed' && signedPdfUrl && (
-                      <div className="px-4 py-3 border-t border-[#333] flex items-center justify-between bg-emerald-500/5">
-                        <div className="flex items-center gap-2 text-emerald-400">
-                          <Check className="w-4 h-4" />
-                          <span className="text-[12px] font-medium">Document Signed via DocuSign</span>
-                        </div>
-                        <button onClick={() => window.open(signedPdfUrl, '_blank')} className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-[12px] rounded-md transition-colors flex items-center gap-1.5">
-                          <Download className="w-3.5 h-3.5" /> Download Signed
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* INVOICE DOCUMENT - Only show in invoice mode */}
-                  {mode === 'invoice' && (
-                    <div className={`rounded-lg border overflow-hidden ${documentStatus === 'reversed' ? 'bg-[#0f0f0f] border-red-500/30' : invoicePdfUrl ? 'bg-[#0f0f0f] border-[#333]' : 'bg-[#0d0d0d] border-[#222]'}`}>
-                      <div className="px-4 py-3 border-b border-[#333] bg-[#111] flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-md flex items-center justify-center ${documentStatus === 'reversed' ? 'bg-red-500/10' : invoicePdfUrl ? 'bg-emerald-500/10' : 'bg-[#333]'}`}>
-                            <Receipt className={`w-4 h-4 ${documentStatus === 'reversed' ? 'text-red-400' : invoicePdfUrl ? 'text-emerald-400' : 'text-[#666]'}`} />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-medium text-white">Invoice</h3>
-                              {invoiceNumber && (
-                                <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono rounded">
-                                  {invoiceNumber}
-                                </span>
-                              )}
-                            </div>
-                            <p className={`text-[12px] mt-0.5 ${documentStatus === 'reversed' ? 'text-red-400' : chargesTotals.balanceDue > 0 ? 'text-amber-400' : 'text-[#666]'}`}>
-                              {documentStatus === 'reversed' 
-                                ? 'REVERSED' 
-                                : chargesTotals.balanceDue > 0 
-                                  ? `Outstanding: AED ${formatCurrency(chargesTotals.balanceDue)}` 
-                                  : invoicePdfUrl ? 'Ready' : 'Not generated'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          {documentStatus !== 'reversed' && (
-                          <button 
-                            onClick={handleSubmit} 
-                            disabled={saving} 
-                            className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
-                            title=""
-                          >
-                            {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                            {invoicePdfUrl ? 'Regenerate' : 'Generate'}
-                          </button>
-                          )}
-                          {invoicePdfUrl && (
-                            <>
-                              <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
-                                <Eye className="w-4 h-4" /> View
-                              </button>
-                              <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
-                                <Download className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {/* Send for Signing - Invoice */}
-                      {invoicePdfUrl && formData.emailAddress && documentStatus !== 'reversed' && (
-                        <div className="px-4 py-3 border-t border-[#333] flex items-center justify-between bg-[#0d0d0d]">
-                          <p className="text-[12px] text-[#888]">Send to {formData.emailAddress} for signing</p>
-                          <button 
-                            onClick={handleSendForSigning} 
-                            disabled={sendingForSigning} 
-                            className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors disabled:opacity-50"
-                          >
-                            {sendingForSigning ? 'Sending...' : 'Send for Signing'}
-                          </button>
-                        </div>
-                      )}
-                      {/* Reversed Status Badge */}
-                      {documentStatus === 'reversed' && (
-                        <div className="px-4 py-3 border-t border-[#333] bg-red-500/10">
-                          <div className="flex items-center gap-2 text-red-400">
-                            <X className="w-4 h-4" />
-                            <span className="text-[12px] font-medium">This invoice has been REVERSED</span>
-                          </div>
-                        </div>
-                      )}
-                      {/* Reverse Invoice Button - Only for completed invoices */}
-                      {invoicePdfUrl && documentStatus !== 'reversed' && isAdmin && (
-                        <div className="px-4 py-3 border-t border-[#333] flex items-center justify-between bg-[#0d0d0d]">
-                          <p className="text-[12px] text-[#666]">Cancel this sale and mark as reversed</p>
-                          <button 
-                            onClick={handleReverseInvoice} 
-                            disabled={saving} 
-                            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm rounded-md transition-colors disabled:opacity-50"
-                          >
-                            {saving ? 'Reversing...' : 'Reverse Invoice'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </>
         </div>
         )}
@@ -2905,7 +2974,7 @@ export default function AccountSummaryModal({
           <div className="bg-[#0d0d0d] rounded-xl w-full max-w-md shadow-2xl border border-[#333]">
             <div className="px-5 py-4 border-b border-[#333]">
               <h3 className="text-base font-semibold text-white">Allocate Payment</h3>
-              <p className="text-[13px] text-[#666] mt-1">Link this payment to the current reservation</p>
+              <p className="text-[13px] text-[#666] mt-1">Link this payment to invoice {invoiceNumber || 'pending'}</p>
             </div>
             <div className="p-5 space-y-4">
               {/* Payment Info */}
@@ -2930,8 +2999,11 @@ export default function AccountSummaryModal({
               {/* Allocation Target */}
               <div className="bg-[#111] rounded-lg p-4">
                 <p className="text-[11px] text-[#666] uppercase tracking-wide mb-2">Allocating to:</p>
-                <p className="text-white font-medium">{documentNumber || 'This Reservation'}</p>
-                <p className="text-[#666] text-sm">{formData.makeModel}</p>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-sm font-mono rounded">{invoiceNumber || 'Pending'}</span>
+                  <span className="text-white font-medium">{formData.customerName}</span>
+                </div>
+                <p className="text-[#666] text-sm mt-1">{formData.makeModel}</p>
               </div>
               
               {/* Amount Input */}
@@ -2964,10 +3036,10 @@ export default function AccountSummaryModal({
               </button>
               <button 
                 onClick={handleAllocatePayment}
-                disabled={allocationAmount <= 0 || allocatingPayment || !reservationId}
+                disabled={allocationAmount <= 0 || allocatingPayment || !reservationId || !invoiceId}
                 className="px-4 py-2 bg-gradient-to-r from-[#555] to-[#666] text-white font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50"
               >
-                {allocatingPayment ? 'Allocating...' : 'Allocate Payment'}
+                {allocatingPayment ? 'Allocating...' : `Allocate to ${invoiceNumber || 'Invoice'}`}
               </button>
             </div>
           </div>

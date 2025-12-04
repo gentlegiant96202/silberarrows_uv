@@ -170,7 +170,6 @@ const CHARGE_TYPES = [
   { value: 'window_tints', label: 'Tints' },
   { value: 'rta_fees', label: 'RTA Fees' },
   { value: 'other_addon', label: 'Other' },
-  { value: 'discount', label: 'Discount' },
 ];
 
 const PAYMENT_METHODS = [
@@ -270,10 +269,14 @@ export default function AccountSummaryModal({
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [customBankName, setCustomBankName] = useState<string>('');
   const [downpaymentPercent, setDownpaymentPercent] = useState<number>(20);
+  const [financeVehiclePrice, setFinanceVehiclePrice] = useState<number>(0);
+  const [financeDownpayment, setFinanceDownpayment] = useState<number>(0);
+  const [financeTerm, setFinanceTerm] = useState<number>(36);
   const [financeStatus, setFinanceStatus] = useState<FinanceStatus>('pending_docs');
   const [financeBankReference, setFinanceBankReference] = useState<string>('');
   const [financeDocuments, setFinanceDocuments] = useState<FinanceDocument[]>([]);
   const [financeNotes, setFinanceNotes] = useState<string>('');
+  const [financeStatusHistory, setFinanceStatusHistory] = useState<Array<{ status: string; timestamp: string; }>>([]);
   const [uploadingDocument, setUploadingDocument] = useState<string | null>(null);
   const [showBankDropdown, setShowBankDropdown] = useState(false);
   const [bankSearchTerm, setBankSearchTerm] = useState('');
@@ -320,12 +323,12 @@ export default function AccountSummaryModal({
     get balanceDue() { return this.grandTotal - this.totalPaid; }
   };
 
-  // Finance calculations
+  // Finance calculations - using manual inputs
   const financeCalculations = {
-    vehicleTotal: chargesTotals.grandTotal,
-    downpaymentAmount: Math.round(chargesTotals.grandTotal * (downpaymentPercent / 100)),
-    get financeAmount() { return this.vehicleTotal - this.downpaymentAmount; },
-    get customerOwes() { return saleType === 'finance' ? this.downpaymentAmount : this.vehicleTotal; },
+    vehiclePrice: financeVehiclePrice || formData.vehicleSalePrice,
+    downpaymentAmount: financeDownpayment,
+    get financeAmount() { return this.vehiclePrice - this.downpaymentAmount; },
+    get customerOwes() { return saleType === 'finance' ? this.downpaymentAmount : chargesTotals.grandTotal; },
     get customerPaid() { return chargesTotals.totalPaid; },
     get customerBalance() { return this.customerOwes - this.customerPaid; }
   };
@@ -445,10 +448,14 @@ export default function AccountSummaryModal({
         setSelectedBankId(resData.finance_bank_id || null);
         setCustomBankName(resData.finance_bank_name || '');
         setDownpaymentPercent(resData.downpayment_percent || 20);
+        setFinanceVehiclePrice(resData.finance_vehicle_price || resData.vehicle_sale_price || 0);
+        setFinanceDownpayment(resData.downpayment_amount || 0);
+        setFinanceTerm(resData.finance_term || 36);
         setFinanceStatus(resData.finance_status || 'pending_docs');
         setFinanceBankReference(resData.finance_bank_reference || '');
         setFinanceDocuments(resData.finance_documents || []);
         setFinanceNotes(resData.finance_notes || '');
+        setFinanceStatusHistory(resData.finance_status_history || []);
       }
 
       const { data: paymentsData } = await supabase.from('uv_payments').select('*').eq('lead_id', lead.id).order('payment_date', { ascending: false }).order('created_at', { ascending: false });
@@ -475,10 +482,14 @@ export default function AccountSummaryModal({
       setSelectedBankId(null);
       setCustomBankName('');
       setDownpaymentPercent(20);
+      setFinanceVehiclePrice(0);
+      setFinanceDownpayment(0);
+      setFinanceTerm(36);
       setFinanceStatus('pending_docs');
       setFinanceBankReference('');
       setFinanceDocuments([]);
       setFinanceNotes('');
+      setFinanceStatusHistory([]);
       loadData();
       setActiveTab('form');
     }
@@ -527,20 +538,24 @@ export default function AccountSummaryModal({
   const handleSaleTypeChange = (newSaleType: SaleType) => {
     setSaleType(newSaleType);
     
+    // Don't auto-initialize - let user enter values manually
+    
     // Auto-save for existing reservations
     if (reservationId) {
       const financeData = newSaleType === 'finance' 
         ? {
             sale_type: newSaleType,
+            finance_vehicle_price: financeVehiclePrice || formData.vehicleSalePrice,
             downpayment_percent: downpaymentPercent,
-            downpayment_amount: financeCalculations.downpaymentAmount,
-            finance_amount: financeCalculations.financeAmount,
+            downpayment_amount: financeDownpayment || Math.round((financeVehiclePrice || formData.vehicleSalePrice) * (downpaymentPercent / 100)),
+            finance_amount: (financeVehiclePrice || formData.vehicleSalePrice) - (financeDownpayment || Math.round((financeVehiclePrice || formData.vehicleSalePrice) * (downpaymentPercent / 100))),
             finance_status: financeStatus,
           }
         : {
             sale_type: newSaleType,
             finance_bank_id: null,
             finance_bank_name: null,
+            finance_vehicle_price: null,
             downpayment_percent: null,
             downpayment_amount: null,
             finance_amount: null,
@@ -567,13 +582,37 @@ export default function AccountSummaryModal({
         break;
       case 'downpaymentPercent':
         setDownpaymentPercent(value);
-        const dpAmount = Math.round(chargesTotals.grandTotal * (value / 100));
-        const finAmount = chargesTotals.grandTotal - dpAmount;
-        if (reservationId) saveFinanceData({ downpayment_percent: value, downpayment_amount: dpAmount, finance_amount: finAmount });
+        // Also update the downpayment amount based on new percentage
+        const newDpAmount = Math.round(financeVehiclePrice * (value / 100));
+        setFinanceDownpayment(newDpAmount);
+        if (reservationId) saveFinanceData({ downpayment_percent: value, downpayment_amount: newDpAmount, finance_amount: financeVehiclePrice - newDpAmount });
+        break;
+      case 'financeVehiclePrice':
+        setFinanceVehiclePrice(value);
+        // Recalculate downpayment based on percentage
+        const recalcDp = Math.round(value * (downpaymentPercent / 100));
+        setFinanceDownpayment(recalcDp);
+        if (reservationId) saveFinanceData({ finance_vehicle_price: value, downpayment_amount: recalcDp, finance_amount: value - recalcDp });
+        break;
+      case 'financeDownpayment':
+        setFinanceDownpayment(value);
+        // Update percentage based on manual downpayment entry
+        if (financeVehiclePrice > 0) {
+          const newPercent = Math.round((value / financeVehiclePrice) * 100);
+          setDownpaymentPercent(Math.min(100, Math.max(0, newPercent)));
+        }
+        if (reservationId) saveFinanceData({ downpayment_amount: value, finance_amount: financeVehiclePrice - value });
+        break;
+      case 'financeTerm':
+        setFinanceTerm(value);
+        if (reservationId) saveFinanceData({ finance_term: value });
         break;
       case 'financeStatus':
         setFinanceStatus(value);
-        if (reservationId) saveFinanceData({ finance_status: value });
+        // Record status change with timestamp
+        const newHistory = [...financeStatusHistory, { status: value, timestamp: new Date().toISOString() }];
+        setFinanceStatusHistory(newHistory);
+        if (reservationId) saveFinanceData({ finance_status: value, finance_status_history: newHistory });
         break;
       case 'financeBankReference':
         setFinanceBankReference(value);
@@ -588,7 +627,7 @@ export default function AccountSummaryModal({
         if (reservationId) saveFinanceData({ finance_documents: value });
         break;
     }
-  }, [reservationId, saveFinanceData, chargesTotals.grandTotal]);
+  }, [reservationId, saveFinanceData, chargesTotals.grandTotal, financeStatusHistory, financeVehiclePrice, downpaymentPercent]);
 
   const validateForm = (): string[] => {
     const errors: string[] = [];
@@ -673,13 +712,16 @@ export default function AccountSummaryModal({
         sale_type: saleType,
         finance_bank_id: saleType === 'finance' ? selectedBankId : null,
         finance_bank_name: saleType === 'finance' && !selectedBankId ? customBankName : null,
+        finance_vehicle_price: saleType === 'finance' ? financeVehiclePrice : null,
         downpayment_percent: saleType === 'finance' ? downpaymentPercent : null,
-        downpayment_amount: saleType === 'finance' ? financeCalculations.downpaymentAmount : null,
+        downpayment_amount: saleType === 'finance' ? financeDownpayment : null,
         finance_amount: saleType === 'finance' ? financeCalculations.financeAmount : null,
+        finance_term: saleType === 'finance' ? financeTerm : null,
         finance_status: saleType === 'finance' ? financeStatus : null,
         finance_bank_reference: saleType === 'finance' ? financeBankReference : null,
         finance_documents: saleType === 'finance' ? financeDocuments : [],
         finance_notes: saleType === 'finance' ? financeNotes : null,
+        finance_status_history: saleType === 'finance' ? financeStatusHistory : [],
       };
 
       let savedReservation;
@@ -1410,11 +1452,7 @@ export default function AccountSummaryModal({
                                 }); 
                                 setShowAddCharge(true); 
                               }} 
-                              className={`px-4 py-2 rounded-full text-[13px] font-medium transition-all ${
-                                type.value === 'discount' 
-                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20' 
-                                  : 'bg-[#222] text-[#aaa] border border-[#333] hover:bg-[#333] hover:text-white'
-                              }`}
+                              className="px-4 py-2 rounded-full text-[13px] font-medium transition-all bg-[#222] text-[#aaa] border border-[#333] hover:bg-[#333] hover:text-white"
                             >
                               {type.label}
                             </button>
@@ -1821,22 +1859,31 @@ export default function AccountSummaryModal({
                     {/* Finance Breakdown */}
                     <div className="grid grid-cols-4 gap-3 mb-5">
                       <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#222]">
-                        <p className="text-[10px] text-[#555] uppercase tracking-wider mb-2">Vehicle Total</p>
-                        <p className="text-xl font-bold text-white">AED {formatCurrency(financeCalculations.vehicleTotal)}</p>
+                        <p className="text-[10px] text-[#555] uppercase tracking-wider mb-2">Total Amount</p>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[#666] text-sm">AED</span>
+                          <input
+                            type="number"
+                            value={financeVehiclePrice > 0 ? financeVehiclePrice : ''}
+                            onChange={(e) => handleFinanceFieldChange('financeVehiclePrice', parseInt(e.target.value) || 0)}
+                            placeholder="Enter amount"
+                            className="w-full bg-transparent text-xl font-bold text-white focus:outline-none placeholder:text-[#444] placeholder:font-normal placeholder:text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </div>
                       </div>
-                      <div className={`bg-[#0a0a0a] rounded-lg p-4 border ${downpaymentPercent > 0 ? 'border-[#444] ring-1 ring-[#555]' : 'border-[#222]'}`}>
+                      <div className={`bg-[#0a0a0a] rounded-lg p-4 border ${financeDownpayment > 0 ? 'border-[#444] ring-1 ring-[#555]' : 'border-[#222]'}`}>
                         <p className="text-[10px] text-[#888] uppercase tracking-wider mb-2">↓ Collect from Customer</p>
-                        {downpaymentPercent > 0 ? (
-                          <>
-                            <p className="text-xl font-bold text-white">AED {formatCurrency(financeCalculations.downpaymentAmount)}</p>
-                            <p className="text-[10px] text-[#555] mt-1">{downpaymentPercent}% Downpayment</p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-xl font-bold text-[#666]">AED 0</p>
-                            <p className="text-[10px] text-[#555] mt-1">100% Bank Finance</p>
-                          </>
-                        )}
+                        <div className="flex items-center gap-1">
+                          <span className="text-[#666] text-sm">AED</span>
+                          <input
+                            type="number"
+                            value={financeDownpayment > 0 ? financeDownpayment : ''}
+                            onChange={(e) => handleFinanceFieldChange('financeDownpayment', parseInt(e.target.value) || 0)}
+                            placeholder="Enter amount"
+                            className="w-full bg-transparent text-xl font-bold text-white focus:outline-none placeholder:text-[#444] placeholder:font-normal placeholder:text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </div>
+                        <p className="text-[10px] text-[#555] mt-1">{financeVehiclePrice > 0 ? `${downpaymentPercent}% Downpayment` : ''}</p>
                       </div>
                       <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#222]">
                         <p className="text-[10px] text-[#555] uppercase tracking-wider mb-2">Bank Finance Amount</p>
@@ -1853,18 +1900,33 @@ export default function AccountSummaryModal({
                       </div>
                     </div>
 
-                    {/* Downpayment % Adjustment */}
-                    <div className="flex items-center gap-4 pt-4 border-t border-[#333]">
-                      <label className="text-sm text-[#666]">Downpayment %</label>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="50" 
-                        value={downpaymentPercent}
-                        onChange={(e) => handleFinanceFieldChange('downpaymentPercent', parseInt(e.target.value))}
-                        className="flex-1 h-1 bg-[#333] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
-                      />
-                      <span className="text-white font-semibold w-14 text-center bg-[#222] px-2 py-1 rounded">{downpaymentPercent}%</span>
+                    {/* Downpayment % & Term Adjustment */}
+                    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-[#333]">
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm text-[#666] whitespace-nowrap">Downpayment</label>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="50" 
+                          value={downpaymentPercent}
+                          onChange={(e) => handleFinanceFieldChange('downpaymentPercent', parseInt(e.target.value))}
+                          className="flex-1 h-1 bg-[#333] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
+                        />
+                        <span className="text-white font-semibold w-14 text-center bg-[#222] px-2 py-1 rounded">{downpaymentPercent}%</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm text-[#666] whitespace-nowrap">Term</label>
+                        <input 
+                          type="range" 
+                          min="12" 
+                          max="60" 
+                          step="12"
+                          value={financeTerm}
+                          onChange={(e) => handleFinanceFieldChange('financeTerm', parseInt(e.target.value))}
+                          className="flex-1 h-1 bg-[#333] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
+                        />
+                        <span className="text-white font-semibold w-20 text-center bg-[#222] px-2 py-1 rounded">{financeTerm} mo</span>
+                      </div>
                     </div>
                   </div>
 
@@ -2133,6 +2195,30 @@ export default function AccountSummaryModal({
                       <h3 className="text-[12px] font-medium text-[#888]">Application Progress</h3>
                     </div>
                     <div className="p-5">
+                      {/* Days Counter */}
+                      {(() => {
+                        const docsReadyEntry = financeStatusHistory.find(h => h.status === 'docs_ready');
+                        const approvedEntry = financeStatusHistory.find(h => h.status === 'approved');
+                        if (docsReadyEntry) {
+                          const startDate = new Date(docsReadyEntry.timestamp);
+                          const endDate = approvedEntry ? new Date(approvedEntry.timestamp) : new Date();
+                          const daysDiff = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                          return (
+                            <div className="flex items-center justify-center gap-3 mb-5 py-3 px-4 bg-[#0a0a0a] rounded-lg border border-[#222]">
+                              <Clock className="w-4 h-4 text-[#666]" />
+                              <span className="text-sm text-[#888]">
+                                {approvedEntry ? (
+                                  <>Approved in <span className="text-white font-semibold">{daysDiff} day{daysDiff !== 1 ? 's' : ''}</span></>
+                                ) : (
+                                  <>Processing: <span className="text-white font-semibold">{daysDiff} day{daysDiff !== 1 ? 's' : ''}</span> since docs ready</>
+                                )}
+                              </span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
                       {/* Progress Steps */}
                       <div className="flex items-center justify-between mb-6">
                         {(['pending_docs', 'docs_ready', 'submitted', 'under_review', 'approved'] as FinanceStatus[]).map((status, index, arr) => {
@@ -2140,6 +2226,8 @@ export default function AccountSummaryModal({
                           const isPast = arr.indexOf(financeStatus) > index || financeStatus === 'funds_received';
                           const config = FINANCE_STATUS_CONFIG[status];
                           const Icon = config.icon;
+                          const statusEntry = financeStatusHistory.find(h => h.status === status);
+                          const statusDate = statusEntry ? new Date(statusEntry.timestamp) : null;
                           return (
                             <React.Fragment key={status}>
                               <div className="flex flex-col items-center">
@@ -2158,6 +2246,16 @@ export default function AccountSummaryModal({
                                 }`}>
                                   {config.label}
                                 </span>
+                                {statusDate && (isPast || isActive) && (
+                                  <div className="flex flex-col items-center mt-0.5">
+                                    <span className="text-[9px] text-[#666]">
+                                      {statusDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                    </span>
+                                    <span className="text-[8px] text-[#444]">
+                                      {statusDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                               {index < arr.length - 1 && (
                                 <div className={`flex-1 h-px mx-2 ${isPast ? 'bg-[#555]' : 'bg-[#333]'}`} />

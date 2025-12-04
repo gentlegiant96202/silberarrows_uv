@@ -34,6 +34,10 @@ ON CONFLICT (name) DO NOTHING;
 -- RLS for banks table
 ALTER TABLE banks ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Anyone can view banks" ON banks;
+DROP POLICY IF EXISTS "Admin can manage banks" ON banks;
+
 CREATE POLICY "Anyone can view banks" ON banks
     FOR SELECT USING (true);
 
@@ -61,6 +65,10 @@ ADD COLUMN IF NOT EXISTS finance_bank_id UUID REFERENCES banks(id);
 ALTER TABLE vehicle_reservations 
 ADD COLUMN IF NOT EXISTS finance_bank_name TEXT; -- For banks not in list
 
+-- Finance vehicle price (may differ from sale price)
+ALTER TABLE vehicle_reservations 
+ADD COLUMN IF NOT EXISTS finance_vehicle_price DECIMAL(12,2);
+
 -- Downpayment tracking
 ALTER TABLE vehicle_reservations 
 ADD COLUMN IF NOT EXISTS downpayment_percent DECIMAL(5,2) DEFAULT 20;
@@ -70,6 +78,10 @@ ADD COLUMN IF NOT EXISTS downpayment_amount DECIMAL(12,2);
 
 ALTER TABLE vehicle_reservations 
 ADD COLUMN IF NOT EXISTS finance_amount DECIMAL(12,2);
+
+-- Finance term (months)
+ALTER TABLE vehicle_reservations 
+ADD COLUMN IF NOT EXISTS finance_term INTEGER DEFAULT 36;
 
 -- Finance application status
 ALTER TABLE vehicle_reservations 
@@ -106,6 +118,10 @@ ADD COLUMN IF NOT EXISTS finance_documents JSONB DEFAULT '[]'::jsonb;
 -- Notes/comments for finance application
 ALTER TABLE vehicle_reservations 
 ADD COLUMN IF NOT EXISTS finance_notes TEXT;
+
+-- Finance status history with timestamps
+ALTER TABLE vehicle_reservations 
+ADD COLUMN IF NOT EXISTS finance_status_history JSONB DEFAULT '[]'::jsonb;
 
 -- Rejection reason (if rejected)
 ALTER TABLE vehicle_reservations 

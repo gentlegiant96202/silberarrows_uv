@@ -887,7 +887,7 @@ export async function POST(request: NextRequest) {
         .from('vehicle_reservations')
         .update({ document_type: 'invoice', updated_at: new Date().toISOString() })
         .eq('id', reservationId)
-        .select('pdf_url, document_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
+        .select('pdf_url, document_number, deal_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
         .single();
       if (convError) {
       } else if (conv) {

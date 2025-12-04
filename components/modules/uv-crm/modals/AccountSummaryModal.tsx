@@ -257,10 +257,14 @@ export default function AccountSummaryModal({
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [reservationId, setReservationId] = useState<string | null>(null);
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
+  const [dealNumber, setDealNumber] = useState<string | null>(null);
+  const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
   const [documentNumber, setDocumentNumber] = useState<string | null>(null);
   const [reservationNumber, setReservationNumber] = useState<string | null>(null);
   const [customerNumber, setCustomerNumber] = useState<string | null>(null);
   const [documentStatus, setDocumentStatus] = useState<string>('pending');
+  const [invoiceStatus, setInvoiceStatus] = useState<string>('pending');
   const [currentDocumentType, setCurrentDocumentType] = useState<string>('reservation');
   
   // Bank Finance state
@@ -405,16 +409,41 @@ export default function AccountSummaryModal({
       }
 
       setReservationId(newReservation.id);
+      setDealNumber(newReservation.deal_number);
       setDocumentNumber(newReservation.document_number);
       setCustomerNumber(newReservation.customer_number);
       setDocumentStatus('pending');
       setCurrentDocumentType(mode);
       setIsEditing(true);
 
+      // CREATE INVOICE for this deal
+      const { data: newInvoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          deal_id: newReservation.id,
+          invoice_date: formData.date,
+          status: 'pending',
+          subtotal: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          created_by: user?.id
+        })
+        .select()
+        .single();
+
+      if (invoiceError) {
+        console.error('Error creating invoice:', invoiceError.message);
+      } else if (newInvoice) {
+        setInvoiceId(newInvoice.id);
+        setInvoiceNumber(newInvoice.invoice_number);
+        setInvoiceStatus(newInvoice.status);
+      }
+
       // Auto-add Vehicle Sale as first charge if car has a price
-      if (carData?.advertised_price_aed && carData.advertised_price_aed > 0) {
+      if (carData?.advertised_price_aed && carData.advertised_price_aed > 0 && newInvoice) {
         const { error: chargeError } = await supabase.from('uv_charges').insert({
           reservation_id: newReservation.id,
+          invoice_id: newInvoice.id,
           charge_type: 'vehicle_sale',
           description: `Vehicle Sale - ${carData.vehicle_model || 'Vehicle'}`,
           quantity: 1,
@@ -494,12 +523,7 @@ export default function AccountSummaryModal({
             ? resData.document_number 
             : resData.original_reservation_number || null
         );
-        // Load both document URLs
-        setReservationPdfUrl(resData.reservation_pdf_url || null);
-        setInvoicePdfUrl(resData.invoice_pdf_url || null);
-        setSignedPdfUrl(resData.signed_pdf_url || null);
-        setDocusignEnvelopeId(resData.docusign_envelope_id);
-        setSigningStatus(resData.signing_status || 'pending');
+        // Document URLs are now loaded from invoices table below
 
         setFormData(prev => ({
           ...prev,
@@ -549,6 +573,51 @@ export default function AccountSummaryModal({
 
         const { data: chargesData } = await supabase.from('uv_charges').select('*').eq('reservation_id', resData.id).order('display_order');
         setCharges(chargesData || []);
+        
+        // Load invoice data for this deal
+        const { data: invoiceData } = await supabase
+          .from('invoices')
+          .select('*')
+          .eq('deal_id', resData.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (invoiceData) {
+          setInvoiceId(invoiceData.id);
+          setInvoiceNumber(invoiceData.invoice_number);
+          setInvoiceStatus(invoiceData.status);
+          // Load PDF URLs from invoice
+          setReservationPdfUrl(invoiceData.reservation_pdf_url || null);
+          setInvoicePdfUrl(invoiceData.invoice_pdf_url || null);
+          setSignedPdfUrl(invoiceData.reservation_signed_pdf_url || invoiceData.invoice_signed_pdf_url || null);
+          setDocusignEnvelopeId(invoiceData.reservation_docusign_envelope_id || invoiceData.invoice_docusign_envelope_id || null);
+          setSigningStatus(invoiceData.reservation_signing_status || invoiceData.invoice_signing_status || 'pending');
+        } else {
+          // No invoice exists yet for this deal - create one
+          const { data: newInvoice } = await supabase
+            .from('invoices')
+            .insert({
+              deal_id: resData.id,
+              invoice_date: resData.document_date || new Date().toISOString().split('T')[0],
+              status: 'pending',
+              subtotal: 0,
+              total_amount: 0,
+              paid_amount: 0,
+              created_by: user?.id
+            })
+            .select()
+            .single();
+          
+          if (newInvoice) {
+            setInvoiceId(newInvoice.id);
+            setInvoiceNumber(newInvoice.invoice_number);
+            setInvoiceStatus(newInvoice.status);
+          }
+        }
+        
+        // Set deal number
+        setDealNumber(resData.deal_number || resData.document_number);
         
         // Load finance data - only populate if sale_type is 'finance'
         const isFinanceSale = resData.sale_type === 'finance';
@@ -778,7 +847,7 @@ export default function AccountSummaryModal({
 
   // Handle payment allocation
   const handleAllocatePayment = async () => {
-    if (!selectedPaymentForAllocation || !reservationId || allocationAmount <= 0) return;
+    if (!selectedPaymentForAllocation || !reservationId || !invoiceId || allocationAmount <= 0) return;
     
     setAllocatingPayment(true);
     try {
@@ -787,7 +856,7 @@ export default function AccountSummaryModal({
         .from('uv_payment_allocations')
         .select('id, allocated_amount')
         .eq('payment_id', selectedPaymentForAllocation.id)
-        .eq('reservation_id', reservationId)
+        .eq('invoice_id', invoiceId)
         .maybeSingle();
       
       if (existing) {
@@ -799,12 +868,13 @@ export default function AccountSummaryModal({
         
         if (error) throw error;
       } else {
-        // Create new allocation
+        // Create new allocation with invoice_id
         const { error } = await supabase
           .from('uv_payment_allocations')
           .insert({
             payment_id: selectedPaymentForAllocation.id,
             reservation_id: reservationId,
+            invoice_id: invoiceId,
             allocated_amount: allocationAmount
           });
         
@@ -1019,12 +1089,29 @@ export default function AccountSummaryModal({
 
       const result = await response.json();
       if (result.pdfUrl) {
-        await supabase.from('vehicle_reservations').update({ pdf_url: result.pdfUrl, document_status: 'completed' }).eq('id', savedReservation.id);
-        if (mode === 'reservation') {
-          setReservationPdfUrl(result.pdfUrl);
-        } else {
-          setInvoicePdfUrl(result.pdfUrl);
+        // Update vehicle_reservations with basic status
+        await supabase.from('vehicle_reservations').update({ 
+          document_status: 'completed',
+          updated_at: new Date().toISOString()
+        }).eq('id', savedReservation.id);
+        
+        // Save PDF URL to invoices table based on document type
+        if (invoiceId) {
+          if (mode === 'reservation') {
+            await supabase.from('invoices').update({
+              reservation_pdf_url: result.pdfUrl,
+              updated_at: new Date().toISOString()
+            }).eq('id', invoiceId);
+            setReservationPdfUrl(result.pdfUrl);
+          } else {
+            await supabase.from('invoices').update({
+              invoice_pdf_url: result.pdfUrl,
+              updated_at: new Date().toISOString()
+            }).eq('id', invoiceId);
+            setInvoicePdfUrl(result.pdfUrl);
+          }
         }
+        
         if (result.documentNumber) setDocumentNumber(result.documentNumber);
         if (savedReservation.document_number) setDocumentNumber(savedReservation.document_number);
       }
@@ -1069,6 +1156,23 @@ export default function AccountSummaryModal({
       const result = await response.json();
       setDocusignEnvelopeId(result.envelopeId);
       setSigningStatus('sent');
+      
+      // Save signing status to invoices table
+      if (invoiceId) {
+        if (mode === 'reservation') {
+          await supabase.from('invoices').update({
+            reservation_docusign_envelope_id: result.envelopeId,
+            reservation_signing_status: 'sent',
+            updated_at: new Date().toISOString()
+          }).eq('id', invoiceId);
+        } else {
+          await supabase.from('invoices').update({
+            invoice_docusign_envelope_id: result.envelopeId,
+            invoice_signing_status: 'sent',
+            updated_at: new Date().toISOString()
+          }).eq('id', invoiceId);
+        }
+      }
     } catch (error) {
       alert('Failed to send for signing');
     } finally {
@@ -1077,18 +1181,19 @@ export default function AccountSummaryModal({
   };
 
   const handleAddCharge = async () => {
-    if (!newCharge.unit_price || !reservationId) return;
+    if (!newCharge.unit_price || !reservationId || !invoiceId) return;
     
     // Discounts are stored as negative values so they subtract from total
     const isDiscount = newCharge.charge_type === 'discount';
     const finalPrice = isDiscount ? -Math.abs(newCharge.unit_price) : Math.abs(newCharge.unit_price);
     const description = newCharge.description || CHARGE_TYPES.find(c => c.value === newCharge.charge_type)?.label || '';
 
-    // Always save directly to DB
+    // Always save directly to DB - include invoice_id
     setSaving(true);
     try {
       await supabase.from('uv_charges').insert({
         reservation_id: reservationId,
+        invoice_id: invoiceId,
         charge_type: newCharge.charge_type,
         description: description,
         quantity: 1,
@@ -1338,6 +1443,16 @@ export default function AccountSummaryModal({
                   {customerNumber && (
                     <span className="px-2 py-0.5 bg-gradient-to-r from-[#444] to-[#333] text-[#ccc] text-[11px] font-mono rounded border border-[#555]">
                       {customerNumber}
+                    </span>
+                  )}
+                  {dealNumber && (
+                    <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-400 text-[11px] font-mono rounded border border-blue-500/30">
+                      {dealNumber}
+                    </span>
+                  )}
+                  {invoiceNumber && (
+                    <span className="px-2 py-0.5 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-400 text-[11px] font-mono rounded border border-emerald-500/30">
+                      {invoiceNumber}
                     </span>
                   )}
                   {isPaid && documentStatus !== 'reversed' && (
@@ -2030,6 +2145,14 @@ export default function AccountSummaryModal({
                           <span className="text-white font-mono">{customerNumber || '-'}</span>
                         </div>
                         <div className="flex justify-between">
+                          <span className="text-[#666]">Deal #</span>
+                          <span className="text-blue-400 font-mono">{dealNumber || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#666]">Invoice #</span>
+                          <span className="text-emerald-400 font-mono">{invoiceNumber || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
                           <span className="text-[#666]">Phone</span>
                           <span className="text-white">{formData.contactNo || '-'}</span>
                         </div>
@@ -2667,9 +2790,9 @@ export default function AccountSummaryModal({
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="text-sm font-medium text-white">Invoice</h3>
-                              {documentNumber && documentNumber.startsWith('INV') && (
+                              {invoiceNumber && (
                                 <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono rounded">
-                                  {documentNumber}
+                                  {invoiceNumber}
                                 </span>
                               )}
                             </div>

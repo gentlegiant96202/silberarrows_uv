@@ -746,10 +746,8 @@ export default function AccountSummaryModal({
       errors.push('At least one payment (deposit) is required for reservation');
     }
     
-    // Invoice requires full payment - balance must be zero or credit
-    if (mode === 'invoice' && chargesTotals.balanceDue > 0) {
-      errors.push(`Outstanding balance of AED ${formatCurrency(chargesTotals.balanceDue)} must be cleared before generating invoice`);
-    }
+    // Invoice can be generated even with outstanding balance
+    // (Removed restriction that required full payment)
     
     return errors;
   };
@@ -2598,7 +2596,7 @@ export default function AccountSummaryModal({
                               {documentStatus === 'reversed' 
                                 ? 'REVERSED' 
                                 : chargesTotals.balanceDue > 0 
-                                  ? `Clear balance (AED ${formatCurrency(chargesTotals.balanceDue)}) to generate` 
+                                  ? `Outstanding: AED ${formatCurrency(chargesTotals.balanceDue)}` 
                                   : invoicePdfUrl ? 'Ready' : 'Not generated'}
                             </p>
                           </div>
@@ -2607,9 +2605,9 @@ export default function AccountSummaryModal({
                           {documentStatus !== 'reversed' && (
                           <button 
                             onClick={handleSubmit} 
-                            disabled={saving || chargesTotals.balanceDue > 0} 
+                            disabled={saving} 
                             className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
-                            title={chargesTotals.balanceDue > 0 ? `Clear balance of AED ${formatCurrency(chargesTotals.balanceDue)} first` : ''}
+                            title=""
                           >
                             {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
                             {invoicePdfUrl ? 'Regenerate' : 'Generate'}

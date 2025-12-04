@@ -1113,7 +1113,9 @@ export default function AccountSummaryModal({
         }
         
         if (result.documentNumber) setDocumentNumber(result.documentNumber);
+        if (result.invoiceNumber) setInvoiceNumber(result.invoiceNumber);
         if (savedReservation.document_number) setDocumentNumber(savedReservation.document_number);
+        if (savedReservation.deal_number) setDealNumber(savedReservation.deal_number);
       }
 
       // Reload data from DB to update charges/payments state after saving (silent refresh, no loader)

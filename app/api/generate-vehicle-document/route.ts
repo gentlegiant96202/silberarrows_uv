@@ -430,7 +430,7 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
                 <td class="label">Date:</td>
                 <td class="data">${formatDate(formData.date)}</td>
                 <td class="label">Invoice No.:</td>
-                <td class="data">${safeString(formData.documentNumber || 'Pending')}</td>
+                <td class="data">${safeString(formData.invoiceNumber || 'Pending')}</td>
               </tr>
               ` : `
               <tr>
@@ -445,7 +445,7 @@ function generateReservationHTML(formData: any, mode: string, logoSrc: string) {
                 <td class="data">${safeString(formData.salesExecutive)}</td>
                 ${isInvoice ? `
                 <td class="label">Reservation No.:</td>
-                <td class="data">${safeString(formData.originalReservationNumber || 'Direct Invoice')}</td>
+                <td class="data">${safeString(formData.originalReservationNumber || formData.documentNumber || 'Direct Invoice')}</td>
                 ` : `
                 <td class="label">Reservation No.:</td>
                 <td class="data">${safeString(formData.documentNumber || 'Pending')}</td>
@@ -866,9 +866,18 @@ export async function POST(request: NextRequest) {
     // Check for existing data and get document number
     const { data: existingReservation } = await supabase
       .from('vehicle_reservations')
-      .select('pdf_url, document_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
+      .select('pdf_url, document_number, deal_number, document_type, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
       .eq('id', reservationId)
       .single();
+
+    // Get invoice number from invoices table
+    const { data: existingInvoice } = await supabase
+      .from('invoices')
+      .select('invoice_number')
+      .eq('deal_id', reservationId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     // If requested to generate an invoice but the row is still a reservation,
     // convert it first so the trigger assigns INV-xxxx and preserves RES-xxxx
@@ -887,11 +896,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Deletion disabled by policy: always generate a new file and update URL
-    // Add document number and original reservation number to form data (use converted values if applicable)
+    // Add document number, invoice number, and deal number to form data
     const enhancedFormData = {
       ...formData,
-      documentNumber: sourceReservation?.document_number || 'Pending',
-      originalReservationNumber: sourceReservation?.original_reservation_number || null,
+      // For reservations, use deal_number (RES-XXXX) or document_number as fallback
+      documentNumber: sourceReservation?.deal_number || sourceReservation?.document_number || 'Pending',
+      // For invoices, use the invoice_number from invoices table (INV-XXXX)
+      invoiceNumber: existingInvoice?.invoice_number || 'Pending',
+      // Keep original reservation number for reference
+      originalReservationNumber: sourceReservation?.original_reservation_number || sourceReservation?.deal_number || sourceReservation?.document_number || null,
       taxInvoice: !!taxInvoice
     };
 
@@ -960,7 +973,7 @@ export async function POST(request: NextRequest) {
     // Get the updated document number after generation
     const { data: updatedReservation } = await supabase
       .from('vehicle_reservations')
-      .select('document_number, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
+      .select('document_number, deal_number, original_reservation_number, reservation_pdf_url, invoice_pdf_url')
       .eq('id', reservationId)
       .single();
 
@@ -969,7 +982,8 @@ export async function POST(request: NextRequest) {
       pdfUrl: publicUrl,
       documentType: mode,
       reservationId,
-      documentNumber: updatedReservation?.document_number || existingReservation?.document_number,
+      documentNumber: updatedReservation?.deal_number || updatedReservation?.document_number || existingReservation?.deal_number || existingReservation?.document_number,
+      invoiceNumber: existingInvoice?.invoice_number,
       originalReservationNumber: updatedReservation?.original_reservation_number || existingReservation?.original_reservation_number,
       message: `${mode} document generated successfully`
     });

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRole } from '@/lib/useUserRole';
-import { FileText, Search, Shield, Users, ChevronRight, Download } from 'lucide-react';
+import { FileText, Search, Shield, Users, ChevronRight, Download, Receipt } from 'lucide-react';
 import AccountSummaryModal from '@/components/modules/uv-crm/modals/AccountSummaryModal';
 
 interface CustomerAccount {
@@ -66,17 +66,39 @@ interface Lead {
   inventory_car_id?: string;
 }
 
+interface InvoiceData {
+  id: string;
+  deal_id: string;
+  invoice_number: string | null;
+  invoice_date: string;
+  status: 'pending' | 'partial' | 'paid' | 'reversed';
+  subtotal: number;
+  vat_amount: number;
+  total_amount: number;
+  paid_amount: number;
+  balance_due: number;
+  invoice_pdf_url: string | null;
+  created_at: string;
+  // Joined data
+  customer_name: string;
+  customer_number: string | null;
+  deal_number: string | null;
+  vehicle_make_model: string;
+}
+
 interface FilterState {
   fromDate: string;
   toDate: string;
   search: string;
+  status: string;
 }
 
-type TabType = 'accounts' | 'receipts';
+type TabType = 'accounts' | 'invoices' | 'receipts';
 
 export default function ReservationsInvoicesGrid() {
   const [activeTab, setActiveTab] = useState<TabType>('accounts');
   const [data, setData] = useState<CustomerAccount[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceData[]>([]);
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
   const { role } = useUserRole();
@@ -94,7 +116,8 @@ export default function ReservationsInvoicesGrid() {
   const [filters, setFilters] = useState<FilterState>({
     fromDate: getDefaultFromDate(),
     toDate: getDefaultToDate(),
-    search: ''
+    search: '',
+    status: ''
   });
   
   // Modal state
@@ -383,19 +406,123 @@ export default function ReservationsInvoicesGrid() {
     }
   };
 
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+
+      // Query invoices table with joins to vehicle_reservations for customer info
+      let query = supabase
+        .from('invoices')
+        .select(`
+          id,
+          deal_id,
+          invoice_number,
+          invoice_date,
+          status,
+          subtotal,
+          vat_amount,
+          total_amount,
+          paid_amount,
+          invoice_pdf_url,
+          created_at
+        `)
+        .order('created_at', { ascending: false });
+
+      // Apply date range filter
+      if (filters.fromDate) {
+        query = query.gte('invoice_date', filters.fromDate);
+      }
+      if (filters.toDate) {
+        query = query.lte('invoice_date', filters.toDate);
+      }
+
+      // Apply status filter
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data: invoicesData, error } = await query;
+
+      if (error) {
+        console.error('Error fetching invoices:', error);
+        return;
+      }
+
+      // Get customer info from vehicle_reservations
+      const dealIds = (invoicesData || []).map(inv => inv.deal_id).filter(Boolean);
+      
+      let invoicesWithCustomer: InvoiceData[] = (invoicesData || []).map(inv => ({
+        ...inv,
+        balance_due: (inv.total_amount || 0) - (inv.paid_amount || 0),
+        customer_name: 'Unknown',
+        customer_number: null,
+        deal_number: null,
+        vehicle_make_model: ''
+      }));
+
+      if (dealIds.length > 0) {
+        const { data: reservations } = await supabase
+          .from('vehicle_reservations')
+          .select('id, customer_name, customer_number, deal_number, document_number, vehicle_make_model')
+          .in('id', dealIds);
+
+        // Map customer info to invoices
+        const dealMap = new Map<string, { customer_name: string; customer_number: string | null; deal_number: string | null; vehicle_make_model: string }>();
+        reservations?.forEach(r => {
+          dealMap.set(r.id, {
+            customer_name: r.customer_name,
+            customer_number: r.customer_number,
+            deal_number: r.deal_number || r.document_number,
+            vehicle_make_model: r.vehicle_make_model
+          });
+        });
+
+        invoicesWithCustomer = invoicesWithCustomer.map(inv => ({
+          ...inv,
+          customer_name: dealMap.get(inv.deal_id)?.customer_name || 'Unknown',
+          customer_number: dealMap.get(inv.deal_id)?.customer_number || null,
+          deal_number: dealMap.get(inv.deal_id)?.deal_number || null,
+          vehicle_make_model: dealMap.get(inv.deal_id)?.vehicle_make_model || ''
+        }));
+      }
+
+      // Apply search filter
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        invoicesWithCustomer = invoicesWithCustomer.filter(item =>
+          item.customer_name?.toLowerCase().includes(searchTerm) ||
+          item.invoice_number?.toLowerCase().includes(searchTerm) ||
+          item.customer_number?.toLowerCase().includes(searchTerm) ||
+          item.deal_number?.toLowerCase().includes(searchTerm) ||
+          item.vehicle_make_model?.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      setInvoices(invoicesWithCustomer);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'accounts') {
       fetchData();
+    } else if (activeTab === 'invoices') {
+      fetchInvoices();
     } else {
       fetchReceipts();
     }
-  }, [filters.fromDate, filters.toDate, activeTab]);
+  }, [filters.fromDate, filters.toDate, filters.status, activeTab]);
 
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       if (activeTab === 'accounts') {
         fetchData();
+      } else if (activeTab === 'invoices') {
+        fetchInvoices();
       } else {
         fetchReceipts();
       }
@@ -579,12 +706,14 @@ export default function ReservationsInvoicesGrid() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">
-            {activeTab === 'accounts' ? 'Customer Accounts' : 'Payment Receipts'}
+            {activeTab === 'accounts' ? 'Customer Accounts' : activeTab === 'invoices' ? 'Invoices' : 'Payment Receipts'}
           </h1>
           <p className="text-sm text-white/60">
             {activeTab === 'accounts' 
               ? 'View and manage customer account balances' 
-              : 'View and download payment receipts'}
+              : activeTab === 'invoices'
+                ? 'View all invoices chronologically'
+                : 'View and download payment receipts'}
           </p>
           {role && (
             <div className="flex items-center gap-2 mt-1">
@@ -596,7 +725,7 @@ export default function ReservationsInvoicesGrid() {
           )}
         </div>
         <div className="text-sm text-white/60">
-          Total: {activeTab === 'accounts' ? `${data.length} customers` : `${receipts.length} receipts`}
+          Total: {activeTab === 'accounts' ? `${data.length} customers` : activeTab === 'invoices' ? `${invoices.length} invoices` : `${receipts.length} receipts`}
         </div>
       </div>
 
@@ -614,6 +743,17 @@ export default function ReservationsInvoicesGrid() {
           Customer Accounts
         </button>
         <button
+          onClick={() => setActiveTab('invoices')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'invoices'
+              ? 'bg-brand text-white shadow-lg shadow-brand/25'
+              : 'text-white/50 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Receipt className="w-4 h-4" />
+          Invoices
+        </button>
+        <button
           onClick={() => setActiveTab('receipts')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             activeTab === 'receipts'
@@ -628,7 +768,7 @@ export default function ReservationsInvoicesGrid() {
 
       {/* Filters */}
       <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div className={`grid grid-cols-1 gap-4 items-end ${activeTab === 'invoices' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
           {/* From Date */}
           <div>
             <label className="block text-xs font-medium text-white/70 mb-1">From Date</label>
@@ -651,6 +791,24 @@ export default function ReservationsInvoicesGrid() {
             />
           </div>
 
+          {/* Status Filter - Only show for Invoices tab */}
+          {activeTab === 'invoices' && (
+            <div>
+              <label className="block text-xs font-medium text-white/70 mb-1">Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+              >
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="partial">Partial</option>
+                <option value="paid">Paid</option>
+                <option value="reversed">Reversed</option>
+              </select>
+            </div>
+          )}
+
           {/* Search */}
           <div>
             <label className="block text-xs font-medium text-white/70 mb-1">Search</label>
@@ -660,7 +818,7 @@ export default function ReservationsInvoicesGrid() {
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                placeholder={activeTab === 'accounts' ? "Customer name, ID, phone..." : "Receipt #, customer name..."}
+                placeholder={activeTab === 'accounts' ? "Customer name, ID, phone..." : activeTab === 'invoices' ? "Invoice #, customer, deal #..." : "Receipt #, customer name..."}
                 className="w-full h-[42px] pl-10 pr-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm placeholder-white/40"
               />
             </div>
@@ -797,6 +955,144 @@ export default function ReservationsInvoicesGrid() {
               <div>
                 <p className="text-2xl font-bold text-amber-400">{partialCount + unpaidCount}</p>
                 <p className="text-sm text-white/60">Outstanding</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Invoices Table */}
+      {activeTab === 'invoices' && (
+        <>
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
+                <p className="text-white/60">Loading invoices...</p>
+              </div>
+            ) : invoices.length === 0 ? (
+              <div className="p-8 text-center">
+                <Receipt className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <p className="text-white/60">No invoices found for the selected filters</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Invoice #</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Vehicle</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Total</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Paid</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Balance</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">PDF</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {invoices.map((invoice) => (
+                      <tr key={invoice.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-4 py-3">
+                          {invoice.invoice_number ? (
+                            <span className={`px-2 py-1 rounded text-xs font-mono font-bold ${
+                              invoice.status === 'reversed'
+                                ? 'bg-red-500/20 border border-red-500/40 text-red-400'
+                                : 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400'
+                            }`}>
+                              {invoice.invoice_number}
+                            </span>
+                          ) : (
+                            <span className="text-white/40 text-xs">Pending</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-white/80 text-sm">
+                          {formatDate(invoice.invoice_date)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>
+                            <div className="text-white text-sm font-medium">{invoice.customer_name}</div>
+                            {invoice.customer_number && (
+                              <div className="text-brand text-xs font-mono">{invoice.customer_number}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-white/60 text-sm">
+                          {invoice.vehicle_make_model || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-right text-white text-sm">
+                          AED {formatCurrency(invoice.total_amount || 0)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-emerald-400 text-sm">
+                          AED {formatCurrency(invoice.paid_amount || 0)}
+                        </td>
+                        <td className={`px-4 py-3 text-right text-sm font-semibold ${
+                          invoice.balance_due <= 0 ? 'text-emerald-400' : 'text-amber-400'
+                        }`}>
+                          AED {formatCurrency(Math.abs(invoice.balance_due || 0))}
+                          {invoice.balance_due < 0 && ' CR'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            invoice.status === 'reversed'
+                              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                              : invoice.status === 'paid'
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                : invoice.status === 'partial'
+                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                  : 'bg-white/10 text-white/60 border border-white/20'
+                          }`}>
+                            {invoice.status === 'reversed' ? 'Reversed' : invoice.status === 'paid' ? 'Paid' : invoice.status === 'partial' ? 'Partial' : 'Pending'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {invoice.invoice_pdf_url ? (
+                            <button
+                              onClick={() => window.open(invoice.invoice_pdf_url!, '_blank')}
+                              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
+                              title="View Invoice PDF"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <span className="text-white/30 text-xs">No PDF</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Summary for Invoices */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold text-white">{invoices.length}</p>
+                <p className="text-sm text-white/60">Total Invoices</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">AED {formatCurrency(invoices.reduce((sum, i) => sum + (i.total_amount || 0), 0))}</p>
+                <p className="text-sm text-white/60">Total Amount</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(invoices.reduce((sum, i) => sum + (i.paid_amount || 0), 0))}</p>
+                <p className="text-sm text-white/60">Total Paid</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-400">AED {formatCurrency(invoices.reduce((sum, i) => sum + (i.balance_due || 0), 0))}</p>
+                <p className="text-sm text-white/60">Outstanding</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-400">{invoices.filter(i => i.status === 'paid').length}</p>
+                <p className="text-sm text-white/60">Paid</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-red-400">{invoices.filter(i => i.status === 'reversed').length}</p>
+                <p className="text-sm text-white/60">Reversed</p>
               </div>
             </div>
           </div>

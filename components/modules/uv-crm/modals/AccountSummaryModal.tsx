@@ -295,8 +295,13 @@ export default function AccountSummaryModal({
 
   const [charges, setCharges] = useState<Charge[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentAllocations, setPaymentAllocations] = useState<Map<string, { reservation_id: string; allocated_amount: number; document_number: string | null }[]>>(new Map());
   const [showAddCharge, setShowAddCharge] = useState(false);
   const [showAddPayment, setShowAddPayment] = useState(false);
+  const [showAllocatePayment, setShowAllocatePayment] = useState(false);
+  const [selectedPaymentForAllocation, setSelectedPaymentForAllocation] = useState<Payment | null>(null);
+  const [allocationAmount, setAllocationAmount] = useState<number>(0);
+  const [allocatingPayment, setAllocatingPayment] = useState(false);
   const [newCharge, setNewCharge] = useState({ charge_type: 'vehicle_sale', description: '', unit_price: 0, vat_applicable: false });
   const [newPayment, setNewPayment] = useState({ payment_method: 'cash', amount: 0, reference_number: '', notes: '', bank_name: '', cheque_number: '', cheque_date: '', part_exchange_vehicle: '', part_exchange_chassis: '' });
   const [generatingSOA, setGeneratingSOA] = useState(false);
@@ -443,23 +448,59 @@ export default function AccountSummaryModal({
         const { data: chargesData } = await supabase.from('uv_charges').select('*').eq('reservation_id', resData.id).order('display_order');
         setCharges(chargesData || []);
         
-        // Load finance data
+        // Load finance data - only populate if sale_type is 'finance'
+        const isFinanceSale = resData.sale_type === 'finance';
         setSaleType(resData.sale_type || 'cash');
-        setSelectedBankId(resData.finance_bank_id || null);
-        setCustomBankName(resData.finance_bank_name || '');
-        setDownpaymentPercent(resData.downpayment_percent || 20);
-        setFinanceVehiclePrice(resData.finance_vehicle_price || resData.vehicle_sale_price || 0);
-        setFinanceDownpayment(resData.downpayment_amount || 0);
-        setFinanceTerm(resData.finance_term || 36);
-        setFinanceStatus(resData.finance_status || 'pending_docs');
-        setFinanceBankReference(resData.finance_bank_reference || '');
-        setFinanceDocuments(resData.finance_documents || []);
-        setFinanceNotes(resData.finance_notes || '');
-        setFinanceStatusHistory(resData.finance_status_history || []);
+        setSelectedBankId(isFinanceSale ? (resData.finance_bank_id || null) : null);
+        setCustomBankName(isFinanceSale ? (resData.finance_bank_name || '') : '');
+        setDownpaymentPercent(isFinanceSale ? (resData.downpayment_percent || 20) : 20);
+        setFinanceVehiclePrice(isFinanceSale ? (resData.finance_vehicle_price || 0) : 0);
+        setFinanceDownpayment(isFinanceSale ? (resData.downpayment_amount || 0) : 0);
+        setFinanceTerm(isFinanceSale ? (resData.finance_term || 36) : 36);
+        setFinanceStatus(isFinanceSale ? (resData.finance_status || 'pending_docs') : 'pending_docs');
+        setFinanceBankReference(isFinanceSale ? (resData.finance_bank_reference || '') : '');
+        setFinanceDocuments(isFinanceSale ? (resData.finance_documents || []) : []);
+        setFinanceNotes(isFinanceSale ? (resData.finance_notes || '') : '');
+        setFinanceStatusHistory(isFinanceSale ? (resData.finance_status_history || []) : []);
       }
 
       const { data: paymentsData } = await supabase.from('uv_payments').select('*').eq('lead_id', lead.id).order('payment_date', { ascending: false }).order('created_at', { ascending: false });
       setPayments(paymentsData || []);
+      
+      // Fetch payment allocations
+      if (paymentsData && paymentsData.length > 0) {
+        const paymentIds = paymentsData.map(p => p.id);
+        const { data: allocationsData } = await supabase
+          .from('uv_payment_allocations')
+          .select('payment_id, reservation_id, allocated_amount')
+          .in('payment_id', paymentIds);
+        
+        if (allocationsData && allocationsData.length > 0) {
+          // Get document numbers for reservations
+          const resIds = [...new Set(allocationsData.map(a => a.reservation_id))];
+          const { data: resDocs } = await supabase
+            .from('vehicle_reservations')
+            .select('id, document_number')
+            .in('id', resIds);
+          
+          const docMap = new Map<string, string | null>();
+          resDocs?.forEach(r => docMap.set(r.id, r.document_number));
+          
+          const allocMap = new Map<string, { reservation_id: string; allocated_amount: number; document_number: string | null }[]>();
+          allocationsData.forEach(a => {
+            const existing = allocMap.get(a.payment_id) || [];
+            existing.push({
+              reservation_id: a.reservation_id,
+              allocated_amount: a.allocated_amount,
+              document_number: docMap.get(a.reservation_id) || null
+            });
+            allocMap.set(a.payment_id, existing);
+          });
+          setPaymentAllocations(allocMap);
+        } else {
+          setPaymentAllocations(new Map());
+        }
+      }
       
       // Load banks for dropdown
       const { data: banksData } = await supabase.from('banks').select('*').eq('is_active', true).order('name');
@@ -494,6 +535,13 @@ export default function AccountSummaryModal({
       setActiveTab('form');
     }
   }, [isOpen, loadData]);
+
+  // Reset to form tab if sale type is cash but active tab is finance
+  useEffect(() => {
+    if (saleType === 'cash' && activeTab === 'finance') {
+      setActiveTab('form');
+    }
+  }, [saleType, activeTab]);
 
   useEffect(() => {
     const addOnsTotal =
@@ -628,6 +676,53 @@ export default function AccountSummaryModal({
         break;
     }
   }, [reservationId, saveFinanceData, chargesTotals.grandTotal, financeStatusHistory, financeVehiclePrice, downpaymentPercent]);
+
+  // Handle payment allocation
+  const handleAllocatePayment = async () => {
+    if (!selectedPaymentForAllocation || !reservationId || allocationAmount <= 0) return;
+    
+    setAllocatingPayment(true);
+    try {
+      // Check if allocation already exists
+      const { data: existing } = await supabase
+        .from('uv_payment_allocations')
+        .select('id, allocated_amount')
+        .eq('payment_id', selectedPaymentForAllocation.id)
+        .eq('reservation_id', reservationId)
+        .maybeSingle();
+      
+      if (existing) {
+        // Update existing allocation
+        const { error } = await supabase
+          .from('uv_payment_allocations')
+          .update({ allocated_amount: existing.allocated_amount + allocationAmount })
+          .eq('id', existing.id);
+        
+        if (error) throw error;
+      } else {
+        // Create new allocation
+        const { error } = await supabase
+          .from('uv_payment_allocations')
+          .insert({
+            payment_id: selectedPaymentForAllocation.id,
+            reservation_id: reservationId,
+            allocated_amount: allocationAmount
+          });
+        
+        if (error) throw error;
+      }
+      
+      // Refresh data
+      await loadData();
+      setShowAllocatePayment(false);
+      setSelectedPaymentForAllocation(null);
+    } catch (err) {
+      console.error('Error allocating payment:', err);
+      alert('Failed to allocate payment');
+    } finally {
+      setAllocatingPayment(false);
+    }
+  };
 
   const validateForm = (): string[] => {
     const errors: string[] = [];
@@ -1562,7 +1657,7 @@ export default function AccountSummaryModal({
                   {/* Payments Table */}
                   <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
                     <table className="w-full">
-                      <thead><tr className="border-b border-[#333] bg-[#111]"><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Date</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Receipt</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Method</th><th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Amount</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">Status</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">PDF</th></tr></thead>
+                      <thead><tr className="border-b border-[#333] bg-[#111]"><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Date</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Receipt</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Method</th><th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Amount</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">Allocation</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">Actions</th></tr></thead>
                       <tbody className="divide-y divide-[#333]">
                         {allPayments.length === 0 ? <tr><td colSpan={6} className="px-4 py-12 text-center text-[#555]">No payments recorded</td></tr> : allPayments.map((p: any) => (
                           <tr key={p.id} className="hover:bg-[#0d0d0d] transition-colors">
@@ -1570,47 +1665,102 @@ export default function AccountSummaryModal({
                             <td className="px-4 py-3 text-[#888] font-mono text-xs">{p.receipt_number || '-'}</td>
                             <td className="px-4 py-3 text-white text-sm capitalize">{p.payment_method === 'refund' ? '↩ Refund' : p.payment_method.replace('_', ' ')}</td>
                             <td className={`px-4 py-3 text-right font-semibold text-sm ${p.amount < 0 || p.payment_method === 'refund' ? 'text-red-400' : 'text-emerald-400'}`}>{p.amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(p.amount))}</td>
-                            <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded text-[11px] font-medium ${p.amount < 0 || p.payment_method === 'refund' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>{p.amount < 0 || p.payment_method === 'refund' ? 'refund' : 'received'}</span></td>
                             <td className="px-4 py-3 text-center">
-                              {p.receipt_url ? (
-                                <button onClick={() => window.open(p.receipt_url, '_blank')} className="p-1.5 bg-[#333] hover:bg-[#444] rounded text-white transition-colors" title="Download Receipt">
-                                  <Download className="w-3.5 h-3.5" />
-                                </button>
-                              ) : p.id?.startsWith('pending-') ? (
-                                <span className="text-[#555] text-xs">-</span>
-                              ) : (
-                                <button 
-                                  onClick={async () => {
-                                    try {
-                                      const res = await fetch('/api/generate-receipt', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          paymentId: p.id,
-                                          customerName: formData.customerName,
-                                          customerPhone: formData.contactNo,
-                                          customerEmail: formData.emailAddress,
-                                          vehicleInfo: `${formData.modelYear} ${formData.makeModel}`,
-                                          chassisNo: formData.chassisNo,
-                                          reservationNumber: documentNumber,
-                                          totalCharges: chargesTotals.grandTotal || formData.invoiceTotal,
-                                          totalPaid: chargesTotals.totalPaid,
-                                          balanceDue: chargesTotals.balanceDue
-                                        })
-                                      });
-                                      if (res.ok) {
-                                        const data = await res.json();
-                                        if (data.receiptUrl) window.open(data.receiptUrl, '_blank');
-                                        await loadData();
-                                      }
-                                    } catch (e) { console.error(e); }
-                                  }} 
-                                  className="p-1.5 bg-[#444] hover:bg-[#555] rounded text-[#888] hover:text-white transition-colors" 
-                                  title="Generate Receipt"
-                                >
-                                  <FileText className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                              {(() => {
+                                const allocs = paymentAllocations.get(p.id) || [];
+                                const totalAllocated = allocs.reduce((sum, a) => sum + a.allocated_amount, 0);
+                                const isFullyAllocated = totalAllocated >= p.amount;
+                                const isThisReservation = allocs.some(a => a.reservation_id === reservationId);
+                                
+                                if (p.amount < 0 || p.payment_method === 'refund') {
+                                  return <span className="text-[#555] text-xs">-</span>;
+                                }
+                                
+                                if (allocs.length === 0) {
+                                  return (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedPaymentForAllocation(p);
+                                        setAllocationAmount(p.amount);
+                                        setShowAllocatePayment(true);
+                                      }}
+                                      className="px-2 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-[10px] font-medium hover:bg-amber-500/30 transition-colors"
+                                    >
+                                      Not Allocated
+                                    </button>
+                                  );
+                                }
+                                
+                                return (
+                                  <div className="flex flex-col items-center gap-1">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                                      isFullyAllocated 
+                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                    }`}>
+                                      {isFullyAllocated ? 'Allocated' : 'Partial'}
+                                    </span>
+                                    {isThisReservation && (
+                                      <span className="text-[9px] text-emerald-400">✓ This invoice</span>
+                                    )}
+                                    {!isFullyAllocated && (
+                                      <button
+                                        onClick={() => {
+                                          setSelectedPaymentForAllocation(p);
+                                          setAllocationAmount(p.amount - totalAllocated);
+                                          setShowAllocatePayment(true);
+                                        }}
+                                        className="text-[9px] text-brand hover:underline"
+                                      >
+                                        + Allocate more
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                {p.receipt_url ? (
+                                  <button onClick={() => window.open(p.receipt_url, '_blank')} className="p-1.5 bg-[#333] hover:bg-[#444] rounded text-white transition-colors" title="Download Receipt">
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                ) : p.id?.startsWith('pending-') ? (
+                                  <span className="text-[#555] text-xs">-</span>
+                                ) : (
+                                  <button 
+                                    onClick={async () => {
+                                      try {
+                                        const res = await fetch('/api/generate-receipt', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            paymentId: p.id,
+                                            customerName: formData.customerName,
+                                            customerPhone: formData.contactNo,
+                                            customerEmail: formData.emailAddress,
+                                            vehicleInfo: `${formData.modelYear} ${formData.makeModel}`,
+                                            chassisNo: formData.chassisNo,
+                                            reservationNumber: documentNumber,
+                                            totalCharges: chargesTotals.grandTotal || formData.invoiceTotal,
+                                            totalPaid: chargesTotals.totalPaid,
+                                            balanceDue: chargesTotals.balanceDue
+                                          })
+                                        });
+                                        if (res.ok) {
+                                          const data = await res.json();
+                                          if (data.receiptUrl) window.open(data.receiptUrl, '_blank');
+                                          await loadData();
+                                        }
+                                      } catch (e) { console.error(e); }
+                                    }} 
+                                    className="p-1.5 bg-[#444] hover:bg-[#555] rounded text-[#888] hover:text-white transition-colors" 
+                                    title="Generate Receipt"
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -2528,6 +2678,81 @@ export default function AccountSummaryModal({
         </div>
         )}
       </div>
+
+      {/* Payment Allocation Modal */}
+      {showAllocatePayment && selectedPaymentForAllocation && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
+          <div className="bg-[#0d0d0d] rounded-xl w-full max-w-md shadow-2xl border border-[#333]">
+            <div className="px-5 py-4 border-b border-[#333]">
+              <h3 className="text-base font-semibold text-white">Allocate Payment</h3>
+              <p className="text-[13px] text-[#666] mt-1">Link this payment to the current reservation</p>
+            </div>
+            <div className="p-5 space-y-4">
+              {/* Payment Info */}
+              <div className="bg-[#111] rounded-lg p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#666]">Receipt #</span>
+                  <span className="text-white font-mono">{selectedPaymentForAllocation.receipt_number || '-'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#666]">Payment Amount</span>
+                  <span className="text-emerald-400 font-semibold">AED {formatCurrency(selectedPaymentForAllocation.amount)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#666]">Already Allocated</span>
+                  <span className="text-white">{(() => {
+                    const allocs = paymentAllocations.get(selectedPaymentForAllocation.id) || [];
+                    return `AED ${formatCurrency(allocs.reduce((s, a) => s + a.allocated_amount, 0))}`;
+                  })()}</span>
+                </div>
+              </div>
+              
+              {/* Allocation Target */}
+              <div className="bg-[#111] rounded-lg p-4">
+                <p className="text-[11px] text-[#666] uppercase tracking-wide mb-2">Allocating to:</p>
+                <p className="text-white font-medium">{documentNumber || 'This Reservation'}</p>
+                <p className="text-[#666] text-sm">{formData.makeModel}</p>
+              </div>
+              
+              {/* Amount Input */}
+              <div>
+                <label className="block text-[12px] text-[#666] mb-2">Amount to Allocate</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#666]">AED</span>
+                  <input
+                    type="number"
+                    value={allocationAmount}
+                    onChange={(e) => {
+                      const allocs = paymentAllocations.get(selectedPaymentForAllocation.id) || [];
+                      const maxAmount = selectedPaymentForAllocation.amount - allocs.reduce((s, a) => s + a.allocated_amount, 0);
+                      setAllocationAmount(Math.min(maxAmount, Math.max(0, Number(e.target.value))));
+                    }}
+                    className="flex-1 px-3 py-2.5 bg-[#111] border border-[#333] rounded-md text-white focus:outline-none focus:border-[#666]"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-[#333] flex gap-3 justify-end">
+              <button 
+                onClick={() => {
+                  setShowAllocatePayment(false);
+                  setSelectedPaymentForAllocation(null);
+                }} 
+                className="px-4 py-2 bg-[#333] text-white rounded-md hover:bg-[#444] transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleAllocatePayment}
+                disabled={allocationAmount <= 0 || allocatingPayment || !reservationId}
+                className="px-4 py-2 bg-gradient-to-r from-[#555] to-[#666] text-white font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50"
+              >
+                {allocatingPayment ? 'Allocating...' : 'Allocate Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Email Modal */}
       {showEmailModal && createPortal(

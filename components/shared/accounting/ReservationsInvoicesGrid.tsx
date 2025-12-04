@@ -39,6 +39,22 @@ interface ReceiptData {
   customer_name: string;
   customer_number: string | null;
   vehicle_make_model: string;
+  // Allocation data
+  allocated_amount: number;
+  unallocated_amount: number;
+  allocations: Array<{
+    reservation_id: string;
+    allocated_amount: number;
+    document_number: string | null;
+  }>;
+}
+
+interface ReservationOption {
+  id: string;
+  document_number: string | null;
+  customer_name: string;
+  vehicle_make_model: string;
+  balance_due: number;
 }
 
 interface Lead {
@@ -84,6 +100,14 @@ export default function ReservationsInvoicesGrid() {
   // Modal state
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerAccount | null>(null);
   const [showModal, setShowModal] = useState(false);
+  
+  // Allocation modal state
+  const [showAllocationModal, setShowAllocationModal] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
+  const [reservationOptions, setReservationOptions] = useState<ReservationOption[]>([]);
+  const [selectedReservationId, setSelectedReservationId] = useState<string>('');
+  const [allocationAmount, setAllocationAmount] = useState<number>(0);
+  const [allocating, setAllocating] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -249,13 +273,59 @@ export default function ReservationsInvoicesGrid() {
         return;
       }
 
-      // Initialize with default customer fields
-      let receiptsWithCustomer: ReceiptData[] = (paymentsData || []).map(p => ({
-        ...p,
-        customer_name: 'Unknown',
-        customer_number: null,
-        vehicle_make_model: ''
-      }));
+      // Get allocations for these payments
+      const paymentIds = (paymentsData || []).map(p => p.id);
+      let allocationsMap = new Map<string, Array<{ reservation_id: string; allocated_amount: number; document_number: string | null }>>();
+      
+      if (paymentIds.length > 0) {
+        try {
+          const { data: allocations, error: allocError } = await supabase
+            .from('uv_payment_allocations')
+            .select('payment_id, reservation_id, allocated_amount')
+            .in('payment_id', paymentIds);
+          
+          if (!allocError && allocations) {
+            // Get document numbers for allocated reservations
+            const reservationIds = [...new Set(allocations.map(a => a.reservation_id))];
+            const { data: reservationDocs } = await supabase
+              .from('vehicle_reservations')
+              .select('id, document_number')
+              .in('id', reservationIds);
+            
+            const docMap = new Map<string, string | null>();
+            reservationDocs?.forEach(r => docMap.set(r.id, r.document_number));
+            
+            allocations.forEach(a => {
+              const existing = allocationsMap.get(a.payment_id) || [];
+              existing.push({
+                reservation_id: a.reservation_id,
+                allocated_amount: a.allocated_amount,
+                document_number: docMap.get(a.reservation_id) || null
+              });
+              allocationsMap.set(a.payment_id, existing);
+            });
+          }
+        } catch (allocErr) {
+          // Table might not exist yet - continue without allocations
+          console.log('Allocations table not available:', allocErr);
+        }
+      }
+
+      // Initialize with default customer fields and allocation data
+      let receiptsWithCustomer: ReceiptData[] = (paymentsData || []).map(p => {
+        const allocs = allocationsMap.get(p.id) || [];
+        // Calculate total allocated from allocations
+        const totalAllocated = allocs.reduce((sum, a) => sum + (a.allocated_amount || 0), 0);
+        return {
+          ...p,
+          customer_name: 'Unknown',
+          customer_number: null,
+          vehicle_make_model: '',
+          allocated_amount: totalAllocated,
+          unallocated_amount: p.amount - totalAllocated,
+          allocations: allocs
+        };
+      });
 
       // Get customer info from vehicle_reservations
       const leadIds = receiptsWithCustomer.map(r => r.lead_id).filter(Boolean);
@@ -338,6 +408,112 @@ export default function ReservationsInvoicesGrid() {
       month: 'short',
       year: 'numeric'
     });
+  };
+
+  // Open allocation modal
+  const openAllocationModal = async (receipt: ReceiptData) => {
+    console.log('Opening allocation modal for receipt:', receipt.id);
+    
+    // Show modal immediately
+    setSelectedReceipt(receipt);
+    setAllocationAmount(receipt.amount); // Use full amount since unallocated might be 0
+    setSelectedReservationId('');
+    setShowAllocationModal(true);
+    
+    // Fetch reservations for this customer (same lead_id)
+    try {
+      const { data: reservations, error } = await supabase
+        .from('vehicle_reservations')
+        .select('id, document_number, customer_name, vehicle_make_model')
+        .eq('lead_id', receipt.lead_id)
+        .order('created_at', { ascending: false });
+      
+      console.log('Found reservations:', reservations, error);
+      
+      if (error) {
+        console.error('Error fetching reservations:', error);
+        setReservationOptions([]);
+        return;
+      }
+      
+      // Calculate balance due for each reservation
+      const reservationsWithBalance: ReservationOption[] = [];
+      
+      for (const res of reservations || []) {
+        // Get total charges
+        const { data: charges } = await supabase
+          .from('uv_charges')
+          .select('total_amount')
+          .eq('reservation_id', res.id);
+        
+        // Get allocated payments
+        const { data: allocations } = await supabase
+          .from('uv_payment_allocations')
+          .select('allocated_amount')
+          .eq('reservation_id', res.id);
+        
+        const totalCharges = (charges || []).reduce((sum, c) => sum + (c.total_amount || 0), 0);
+        const totalAllocated = (allocations || []).reduce((sum, a) => sum + (a.allocated_amount || 0), 0);
+        const balanceDue = totalCharges - totalAllocated;
+        
+        reservationsWithBalance.push({
+          ...res,
+          balance_due: balanceDue
+        });
+      }
+      
+      console.log('Reservations with balance:', reservationsWithBalance);
+      setReservationOptions(reservationsWithBalance);
+    } catch (err) {
+      console.error('Error fetching reservations:', err);
+      setReservationOptions([]);
+    }
+  };
+
+  // Handle allocation
+  const handleAllocate = async () => {
+    if (!selectedReceipt || !selectedReservationId || allocationAmount <= 0) return;
+    
+    setAllocating(true);
+    try {
+      // Check if allocation already exists
+      const { data: existing } = await supabase
+        .from('uv_payment_allocations')
+        .select('id, allocated_amount')
+        .eq('payment_id', selectedReceipt.id)
+        .eq('reservation_id', selectedReservationId)
+        .maybeSingle();
+      
+      if (existing) {
+        // Update existing allocation
+        const { error } = await supabase
+          .from('uv_payment_allocations')
+          .update({ allocated_amount: existing.allocated_amount + allocationAmount })
+          .eq('id', existing.id);
+        
+        if (error) throw error;
+      } else {
+        // Create new allocation
+        const { error } = await supabase
+          .from('uv_payment_allocations')
+          .insert({
+            payment_id: selectedReceipt.id,
+            reservation_id: selectedReservationId,
+            allocated_amount: allocationAmount
+          });
+        
+        if (error) throw error;
+      }
+      
+      // Refresh receipts
+      await fetchReceipts();
+      setShowAllocationModal(false);
+    } catch (err) {
+      console.error('Error allocating payment:', err);
+      alert('Failed to allocate payment. Make sure the uv_payment_allocations table exists.');
+    } finally {
+      setAllocating(false);
+    }
   };
 
   const formatPaymentMethod = (method: string) => {
@@ -644,7 +820,8 @@ export default function ReservationsInvoicesGrid() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Vehicle</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Method</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Amount</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Download</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Allocated To</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
@@ -688,47 +865,83 @@ export default function ReservationsInvoicesGrid() {
                           {receipt.amount < 0 ? '-' : ''}AED {formatCurrency(receipt.amount)}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {receipt.receipt_url ? (
-                            <button
-                              onClick={() => window.open(receipt.receipt_url!, '_blank')}
-                              className="p-2 bg-brand/20 hover:bg-brand/30 rounded-lg text-brand transition-colors"
-                              title="Download Receipt"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
+                          {receipt.allocations && receipt.allocations.length > 0 ? (
+                            <div className="flex flex-col gap-1 items-center">
+                              {receipt.allocated_amount >= receipt.amount ? (
+                                <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-xs font-medium">
+                                  Fully Allocated
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-xs font-medium">
+                                  Partial
+                                </span>
+                              )}
+                              <div className="text-[10px] text-white/50 mt-1">
+                                {receipt.allocations.map((alloc, idx) => (
+                                  <div key={idx}>{alloc.document_number || 'RES'}: {formatCurrency(alloc.allocated_amount)}</div>
+                                ))}
+                              </div>
+                            </div>
                           ) : (
+                            <span className="px-2 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded text-xs font-medium">
+                              Not Allocated
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
                             <button
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch('/api/generate-receipt', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      paymentId: receipt.id,
-                                      customerName: receipt.customer_name,
-                                      vehicleInfo: receipt.vehicle_make_model,
-                                    })
-                                  });
-                                  if (res.ok) {
-                                    const data = await res.json();
-                                    if (data.receiptUrl) {
-                                      window.open(data.receiptUrl, '_blank');
-                                      fetchReceipts(); // Refresh to show the new PDF
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openAllocationModal(receipt);
+                                }}
+                                className="px-3 py-1.5 bg-brand/20 hover:bg-brand/30 rounded-lg text-brand text-xs font-medium transition-colors flex items-center gap-1"
+                                title="Allocate to Reservation"
+                              >
+                                Allocate <ChevronRight className="w-3 h-3" />
+                              </button>
+                            {receipt.receipt_url ? (
+                              <button
+                                onClick={() => window.open(receipt.receipt_url!, '_blank')}
+                                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
+                                title="Download Receipt"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch('/api/generate-receipt', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        paymentId: receipt.id,
+                                        customerName: receipt.customer_name,
+                                        vehicleInfo: receipt.vehicle_make_model,
+                                      })
+                                    });
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      if (data.receiptUrl) {
+                                        window.open(data.receiptUrl, '_blank');
+                                        fetchReceipts(); // Refresh to show the new PDF
+                                      }
+                                    } else {
+                                      alert('Failed to generate receipt');
                                     }
-                                  } else {
+                                  } catch (e) {
+                                    console.error(e);
                                     alert('Failed to generate receipt');
                                   }
-                                } catch (e) {
-                                  console.error(e);
-                                  alert('Failed to generate receipt');
-                                }
-                              }}
-                              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
-                              title="Generate Receipt PDF"
-                            >
-                              <FileText className="w-4 h-4" />
-                            </button>
-                          )}
+                                }}
+                                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
+                                title="Generate Receipt PDF"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -770,6 +983,82 @@ export default function ReservationsInvoicesGrid() {
           lead={getLeadForModal(selectedCustomer)}
           onClose={handleModalClose}
         />
+      )}
+
+      {/* Allocation Modal */}
+      {showAllocationModal && selectedReceipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowAllocationModal(false)} />
+          <div className="relative bg-[#111] border border-white/20 rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-xl font-semibold text-white mb-4">Allocate Payment</h3>
+            
+            {/* Receipt Info */}
+            <div className="bg-white/5 rounded-lg p-4 mb-4">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-white/60">Receipt #</span>
+                <span className="text-white font-mono">{selectedReceipt.receipt_number || '-'}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-white/60">Total Amount</span>
+                <span className="text-emerald-400 font-semibold">AED {formatCurrency(selectedReceipt.amount)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60">Available to Allocate</span>
+                <span className="text-amber-400 font-semibold">AED {formatCurrency(selectedReceipt.unallocated_amount)}</span>
+              </div>
+            </div>
+
+            {/* Reservation Selection */}
+            <div className="mb-4">
+              <label className="block text-sm text-white/70 mb-2">Select Reservation</label>
+              <select
+                value={selectedReservationId}
+                onChange={(e) => setSelectedReservationId(e.target.value)}
+                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand"
+              >
+                <option value="">-- Select a reservation --</option>
+                {reservationOptions.map((res) => (
+                  <option key={res.id} value={res.id}>
+                    {res.document_number || 'No Doc #'} - {res.vehicle_make_model} (Balance: AED {formatCurrency(res.balance_due)})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Allocation Amount */}
+            <div className="mb-6">
+              <label className="block text-sm text-white/70 mb-2">Amount to Allocate</label>
+              <div className="flex items-center gap-2">
+                <span className="text-white/60">AED</span>
+                <input
+                  type="number"
+                  value={allocationAmount}
+                  onChange={(e) => setAllocationAmount(Math.min(selectedReceipt.unallocated_amount, Math.max(0, Number(e.target.value))))}
+                  max={selectedReceipt.unallocated_amount}
+                  min={0}
+                  className="flex-1 bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAllocationModal(false)}
+                className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-lg text-white/80 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAllocate}
+                disabled={!selectedReservationId || allocationAmount <= 0 || allocating}
+                className="flex-1 px-4 py-3 bg-brand hover:bg-brand/80 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {allocating ? 'Allocating...' : 'Allocate Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

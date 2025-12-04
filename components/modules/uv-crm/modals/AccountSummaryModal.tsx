@@ -305,26 +305,32 @@ export default function AccountSummaryModal({
   const [newCharge, setNewCharge] = useState({ charge_type: 'vehicle_sale', description: '', unit_price: 0, vat_applicable: false });
   const [newPayment, setNewPayment] = useState({ payment_method: 'cash', amount: 0, reference_number: '', notes: '', bank_name: '', cheque_number: '', cheque_date: '', part_exchange_vehicle: '', part_exchange_chassis: '' });
   const [generatingSOA, setGeneratingSOA] = useState(false);
-
-  // PENDING DATA - stored in memory until "Generate" is clicked
-  const [pendingCharges, setPendingCharges] = useState<Array<{ id: string; charge_type: string; description: string; unit_price: number; total_amount: number; vat_applicable: boolean; vat_amount: number }>>([]);
-  const [pendingPayments, setPendingPayments] = useState<Array<{ id: string; payment_method: string; amount: number; reference_number: string; notes: string; bank_name?: string; cheque_number?: string; cheque_date?: string; part_exchange_vehicle?: string; part_exchange_chassis?: string }>>([]);
+  
+  // Track if we have unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [creatingDraft, setCreatingDraft] = useState(false);
 
   // Validation state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  // Combine DB charges with pending charges for display
-  const allCharges = reservationId ? charges : pendingCharges;
-  const allPayments = reservationId ? payments : pendingPayments;
+  // All charges and payments now come from DB (no more pending arrays)
+  const allCharges = charges;
+  const allPayments = payments;
 
   const chargesTotals = {
     subtotal: allCharges.reduce((sum, c) => sum + (c.total_amount || c.unit_price || 0), 0),
     vat: allCharges.reduce((sum, c) => sum + (c.vat_amount || 0), 0),
     get grandTotal() { return this.subtotal + this.vat; },
-    // Use actual payment amounts (not allocations) to correctly show overpayments/credits
-    totalPaid: reservationId 
-      ? payments.reduce((sum, p) => sum + (p.amount || 0), 0)
-      : pendingPayments.reduce((sum, p) => sum + (p.amount || 0), 0),
+    // Separate payments received from refunds given
+    paymentsReceived: payments
+      .filter(p => p.amount > 0 && p.payment_method !== 'refund')
+      .reduce((sum, p) => sum + (p.amount || 0), 0),
+    refundsGiven: payments
+      .filter(p => p.amount < 0 || p.payment_method === 'refund')
+      .reduce((sum, p) => sum + Math.abs(p.amount || 0), 0),
+    // Net paid = payments received minus refunds given
+    get totalPaid() { return this.paymentsReceived - this.refundsGiven; },
+    // Balance = what's owed minus what we actually received (net of refunds)
     get balanceDue() { return this.grandTotal - this.totalPaid; }
   };
 
@@ -339,6 +345,99 @@ export default function AccountSummaryModal({
   };
 
   // ============================================================
+  // CREATE RESERVATION (when modal opens and none exists)
+  // ============================================================
+  const createReservation = useCallback(async (carData?: InventoryCar) => {
+    if (creatingDraft) return null;
+    setCreatingDraft(true);
+    
+    try {
+      // Double-check no reservation exists (race condition protection)
+      const { data: existingRes } = await supabase
+        .from('vehicle_reservations')
+        .select('id, document_number, customer_number, document_status, document_type')
+        .eq('lead_id', lead.id)
+        .maybeSingle();
+      
+      if (existingRes) {
+        // Reservation already exists, use it instead of creating new
+        setReservationId(existingRes.id);
+        setDocumentNumber(existingRes.document_number);
+        setCustomerNumber(existingRes.customer_number);
+        setDocumentStatus(existingRes.document_status || 'pending');
+        setCurrentDocumentType(existingRes.document_type || mode);
+        setIsEditing(true);
+        return existingRes;
+      }
+
+      const reservationData = {
+        lead_id: lead.id,
+        document_type: mode,
+        document_status: 'pending',
+        sales_executive: formData.salesExecutive || 'TBD',
+        document_date: formData.date,
+        customer_name: formData.customerName || lead.full_name || 'TBD',
+        contact_no: formData.contactNo || '',
+        email_address: formData.emailAddress || '',
+        customer_id_type: formData.customerIdType || 'EID',
+        customer_id_number: formData.customerIdNumber || '',
+        vehicle_make_model: carData?.vehicle_model || formData.makeModel || lead.model_of_interest || 'TBD',
+        model_year: carData?.model_year || formData.modelYear || 0,
+        chassis_no: carData?.chassis_number || formData.chassisNo || '',
+        vehicle_exterior_colour: carData?.colour || formData.exteriorColour || '',
+        vehicle_interior_colour: carData?.interior_colour || formData.interiorColour || '',
+        vehicle_mileage: carData?.current_mileage_km || formData.mileage || 0,
+        vehicle_sale_price: carData?.advertised_price_aed || formData.vehicleSalePrice || 0,
+        invoice_total: carData?.advertised_price_aed || formData.vehicleSalePrice || 0,
+        amount_due: carData?.advertised_price_aed || formData.vehicleSalePrice || 0,
+        created_by: user?.id || null,
+      };
+
+      const { data: newReservation, error } = await supabase
+        .from('vehicle_reservations')
+        .insert([reservationData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error creating reservation:', error.message, error.details, error.hint);
+        throw error;
+      }
+
+      setReservationId(newReservation.id);
+      setDocumentNumber(newReservation.document_number);
+      setCustomerNumber(newReservation.customer_number);
+      setDocumentStatus('pending');
+      setCurrentDocumentType(mode);
+      setIsEditing(true);
+
+      // Auto-add Vehicle Sale as first charge if car has a price
+      if (carData?.advertised_price_aed && carData.advertised_price_aed > 0) {
+        const { error: chargeError } = await supabase.from('uv_charges').insert({
+          reservation_id: newReservation.id,
+          charge_type: 'vehicle_sale',
+          description: `Vehicle Sale - ${carData.vehicle_model || 'Vehicle'}`,
+          quantity: 1,
+          unit_price: carData.advertised_price_aed,
+          vat_applicable: false,
+          display_order: 0,
+          created_by: user?.id
+        });
+        if (chargeError) {
+          console.error('Error adding vehicle sale charge:', chargeError.message);
+        }
+      }
+
+      return newReservation;
+    } catch (error: any) {
+      console.error('Error creating reservation:', error?.message || error);
+      return null;
+    } finally {
+      setCreatingDraft(false);
+    }
+  }, [lead.id, lead.model_of_interest, mode, formData.salesExecutive, formData.date, formData.customerName, formData.contactNo, formData.makeModel, user?.id, creatingDraft]);
+
+  // ============================================================
   // DATA LOADING
   // ============================================================
   const loadData = useCallback(async (showLoader = true) => {
@@ -347,35 +446,38 @@ export default function AccountSummaryModal({
 
     try {
       // Check if reservation exists first
-      const { data: resData } = await supabase.from('vehicle_reservations').select('*').eq('lead_id', lead.id).maybeSingle();
+      let resData: any = null;
+      const { data: existingRes } = await supabase.from('vehicle_reservations').select('*').eq('lead_id', lead.id).maybeSingle();
+      resData = existingRes;
       
+      // Load car data first (we need it for draft creation)
+      let carData: InventoryCar | null = null;
       if (lead.inventory_car_id) {
-        const { data: carData } = await supabase.from('cars').select('*').eq('id', lead.inventory_car_id).single();
-        if (carData) {
-          setInventoryCar(carData);
+        const { data: carResult } = await supabase.from('cars').select('*').eq('id', lead.inventory_car_id).single();
+        if (carResult) {
+          carData = carResult;
+          setInventoryCar(carResult);
           setFormData(prev => ({
             ...prev,
-            makeModel: carData.vehicle_model || '',
-            modelYear: carData.model_year || 0,
-            chassisNo: carData.chassis_number || '',
-            exteriorColour: carData.colour || '',
-            interiorColour: carData.interior_colour || '',
-            mileage: carData.current_mileage_km || 0,
-            vehicleSalePrice: carData.advertised_price_aed || 0,
+            makeModel: carResult.vehicle_model || '',
+            modelYear: carResult.model_year || 0,
+            chassisNo: carResult.chassis_number || '',
+            exteriorColour: carResult.colour || '',
+            interiorColour: carResult.interior_colour || '',
+            mileage: carResult.current_mileage_km || 0,
+            vehicleSalePrice: carResult.advertised_price_aed || 0,
           }));
-          
-          // Auto-add Vehicle Sale as first charge if no existing reservation
-          if (!resData && carData.advertised_price_aed > 0) {
-            setPendingCharges([{
-              id: `pending-vehicle-sale`,
-              charge_type: 'vehicle_sale',
-              description: `Vehicle Sale - ${carData.vehicle_model || 'Vehicle'}`,
-              unit_price: carData.advertised_price_aed,
-              total_amount: carData.advertised_price_aed,
-              vat_applicable: false,
-              vat_amount: 0
-            }]);
-          }
+        }
+      }
+
+      // CREATE RESERVATION if none exists
+      if (!resData) {
+        const newRes = await createReservation(carData || undefined);
+        if (newRes) {
+          resData = newRes;
+          // Reload charges after draft creation
+          const { data: chargesData } = await supabase.from('uv_charges').select('*').eq('reservation_id', newRes.id).order('display_order');
+          setCharges(chargesData || []);
         }
       }
 
@@ -515,10 +617,7 @@ export default function AccountSummaryModal({
 
   useEffect(() => {
     if (isOpen) {
-      // Reset pending state when modal opens
-      setPendingCharges([]);
-      setPendingPayments([]);
-      // Reset finance state
+      // Reset finance state when modal opens
       setSaleType('cash');
       setSelectedBankId(null);
       setCustomBankName('');
@@ -752,8 +851,101 @@ export default function AccountSummaryModal({
     return errors;
   };
 
+  // Build reservation data object (reusable for save and generate)
+  const buildReservationData = () => ({
+    lead_id: lead.id,
+    document_type: mode,
+    sales_executive: formData.salesExecutive,
+    document_date: formData.date,
+    customer_name: formData.customerName,
+    contact_no: formData.contactNo,
+    email_address: formData.emailAddress,
+    customer_id_type: formData.customerIdType,
+    customer_id_number: formData.customerIdNumber,
+    vehicle_make_model: formData.makeModel,
+    model_year: formData.modelYear,
+    chassis_no: formData.chassisNo,
+    vehicle_exterior_colour: formData.exteriorColour,
+    vehicle_interior_colour: formData.interiorColour,
+    vehicle_mileage: formData.mileage,
+    manufacturer_warranty: formData.manufacturerWarranty,
+    manufacturer_warranty_expiry_date: formData.manufacturerWarrantyExpiryDate || null,
+    manufacturer_warranty_expiry_mileage: formData.manufacturerWarrantyExpiryMileage || null,
+    dealer_service_package: formData.dealerServicePackage,
+    dealer_service_package_expiry_date: formData.dealerServicePackageExpiryDate || null,
+    dealer_service_package_expiry_mileage: formData.dealerServicePackageExpiryMileage || null,
+    has_part_exchange: formData.hasPartExchange,
+    part_exchange_make_model: formData.hasPartExchange ? formData.partExchangeMakeModel : null,
+    part_exchange_model_year: formData.hasPartExchange ? formData.partExchangeModelYear : null,
+    part_exchange_chassis_no: formData.hasPartExchange ? formData.partExchangeChassisNo : null,
+    part_exchange_exterior_colour: formData.hasPartExchange ? formData.partExchangeExteriorColour : null,
+    part_exchange_engine_no: formData.hasPartExchange ? formData.partExchangeEngineNo : null,
+    part_exchange_mileage: formData.hasPartExchange ? formData.partExchangeMileage : null,
+    part_exchange_value: formData.hasPartExchange ? formData.partExchangeValue : 0,
+    extended_warranty: formData.extendedWarranty,
+    extended_warranty_price: formData.extendedWarranty ? formData.extendedWarrantyPrice : 0,
+    ceramic_treatment: formData.ceramicTreatment,
+    ceramic_treatment_price: formData.ceramicTreatment ? formData.ceramicTreatmentPrice : 0,
+    service_care: formData.serviceCare,
+    service_care_price: formData.serviceCare ? formData.serviceCarePrice : 0,
+    window_tints: formData.windowTints,
+    window_tints_price: formData.windowTints ? formData.windowTintsPrice : 0,
+    rta_fees: formData.rtaFees,
+    vehicle_sale_price: formData.vehicleSalePrice,
+    add_ons_total: formData.addOnsTotal,
+    invoice_total: formData.invoiceTotal,
+    deposit: formData.deposit,
+    amount_due: formData.amountDue,
+    additional_notes: formData.additionalNotes,
+    // Bank Finance fields
+    sale_type: saleType,
+    finance_bank_id: saleType === 'finance' ? selectedBankId : null,
+    finance_bank_name: saleType === 'finance' && !selectedBankId ? customBankName : null,
+    finance_vehicle_price: saleType === 'finance' ? financeVehiclePrice : null,
+    downpayment_percent: saleType === 'finance' ? downpaymentPercent : null,
+    downpayment_amount: saleType === 'finance' ? financeDownpayment : null,
+    finance_amount: saleType === 'finance' ? financeCalculations.financeAmount : null,
+    finance_term: saleType === 'finance' ? financeTerm : null,
+    finance_status: saleType === 'finance' ? financeStatus : null,
+    finance_bank_reference: saleType === 'finance' ? financeBankReference : null,
+    finance_documents: saleType === 'finance' ? financeDocuments : [],
+    finance_notes: saleType === 'finance' ? financeNotes : null,
+    finance_status_history: saleType === 'finance' ? financeStatusHistory : [],
+  });
+
+  // SAVE - Saves form data and closes modal
+  const handleSave = async () => {
+    if (!reservationId) return;
+    
+    setSaving(true);
+    try {
+      const reservationData = buildReservationData();
+      const { error } = await supabase
+        .from('vehicle_reservations')
+        .update({ ...reservationData, updated_at: new Date().toISOString() })
+        .eq('id', reservationId);
+      
+      if (error) throw error;
+      
+      setHasUnsavedChanges(false);
+      if (onSubmit) onSubmit();
+      onClose();
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // GENERATE - Validates, saves form data, and generates PDF
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!reservationId) {
+      alert('Please wait for the account to be created.');
+      return;
+    }
     
     // Validate before generating
     const errors = validateForm();
@@ -767,121 +959,23 @@ export default function AccountSummaryModal({
     setSaving(true);
 
     try {
-      const reservationData = {
-        lead_id: lead.id, document_type: mode, document_status: 'pending',
-        sales_executive: formData.salesExecutive, document_date: formData.date,
-        customer_name: formData.customerName, contact_no: formData.contactNo,
-        email_address: formData.emailAddress, customer_id_type: formData.customerIdType,
-        customer_id_number: formData.customerIdNumber, vehicle_make_model: formData.makeModel,
-        model_year: formData.modelYear, chassis_no: formData.chassisNo,
-        vehicle_exterior_colour: formData.exteriorColour, vehicle_interior_colour: formData.interiorColour,
-        vehicle_mileage: formData.mileage, manufacturer_warranty: formData.manufacturerWarranty,
-        manufacturer_warranty_expiry_date: formData.manufacturerWarrantyExpiryDate || null,
-        manufacturer_warranty_expiry_mileage: formData.manufacturerWarrantyExpiryMileage || null,
-        dealer_service_package: formData.dealerServicePackage,
-        dealer_service_package_expiry_date: formData.dealerServicePackageExpiryDate || null,
-        dealer_service_package_expiry_mileage: formData.dealerServicePackageExpiryMileage || null,
-        has_part_exchange: formData.hasPartExchange,
-        part_exchange_make_model: formData.hasPartExchange ? formData.partExchangeMakeModel : null,
-        part_exchange_model_year: formData.hasPartExchange ? formData.partExchangeModelYear : null,
-        part_exchange_chassis_no: formData.hasPartExchange ? formData.partExchangeChassisNo : null,
-        part_exchange_exterior_colour: formData.hasPartExchange ? formData.partExchangeExteriorColour : null,
-        part_exchange_engine_no: formData.hasPartExchange ? formData.partExchangeEngineNo : null,
-        part_exchange_mileage: formData.hasPartExchange ? formData.partExchangeMileage : null,
-        part_exchange_value: formData.hasPartExchange ? formData.partExchangeValue : 0,
-        extended_warranty: formData.extendedWarranty,
-        extended_warranty_price: formData.extendedWarranty ? formData.extendedWarrantyPrice : 0,
-        ceramic_treatment: formData.ceramicTreatment,
-        ceramic_treatment_price: formData.ceramicTreatment ? formData.ceramicTreatmentPrice : 0,
-        service_care: formData.serviceCare,
-        service_care_price: formData.serviceCare ? formData.serviceCarePrice : 0,
-        window_tints: formData.windowTints,
-        window_tints_price: formData.windowTints ? formData.windowTintsPrice : 0,
-        rta_fees: formData.rtaFees, vehicle_sale_price: formData.vehicleSalePrice,
-        add_ons_total: formData.addOnsTotal, invoice_total: formData.invoiceTotal,
-        deposit: formData.deposit, amount_due: formData.amountDue,
-        additional_notes: formData.additionalNotes, created_by: user?.id || null,
-        // Bank Finance fields
-        sale_type: saleType,
-        finance_bank_id: saleType === 'finance' ? selectedBankId : null,
-        finance_bank_name: saleType === 'finance' && !selectedBankId ? customBankName : null,
-        finance_vehicle_price: saleType === 'finance' ? financeVehiclePrice : null,
-        downpayment_percent: saleType === 'finance' ? downpaymentPercent : null,
-        downpayment_amount: saleType === 'finance' ? financeDownpayment : null,
-        finance_amount: saleType === 'finance' ? financeCalculations.financeAmount : null,
-        finance_term: saleType === 'finance' ? financeTerm : null,
-        finance_status: saleType === 'finance' ? financeStatus : null,
-        finance_bank_reference: saleType === 'finance' ? financeBankReference : null,
-        finance_documents: saleType === 'finance' ? financeDocuments : [],
-        finance_notes: saleType === 'finance' ? financeNotes : null,
-        finance_status_history: saleType === 'finance' ? financeStatusHistory : [],
-      };
-
-      let savedReservation;
-      if (reservationId) {
-        const { data, error } = await supabase.from('vehicle_reservations').update({ ...reservationData, updated_at: new Date().toISOString() }).eq('id', reservationId).select().single();
-        if (error) throw error;
-        savedReservation = data;
-      } else {
-        const { data, error } = await supabase.from('vehicle_reservations').insert([reservationData]).select().single();
-        if (error) throw error;
-        savedReservation = data;
-        setReservationId(data.id);
-
-        // Save pending charges to DB now that we have a reservation_id
-        if (pendingCharges.length > 0) {
-          const chargesForDB = pendingCharges.map((c, index) => ({
-            reservation_id: data.id,
-            charge_type: c.charge_type,
-            description: c.description,
-            quantity: 1,
-            unit_price: c.unit_price,
-            vat_applicable: c.vat_applicable,
-            display_order: index,
-            created_by: user?.id
-          }));
-          const { error: chargesError } = await supabase.from('uv_charges').insert(chargesForDB);
-          if (chargesError) {
-            console.error('Failed to save charges:', chargesError);
-            throw new Error('Failed to save charges');
-          }
-        }
-
-        // Save pending payments to DB
-        if (pendingPayments.length > 0) {
-          for (const payment of pendingPayments) {
-            const { error: paymentError } = await supabase.from('uv_payments').insert({
-              lead_id: lead.id,
-              payment_method: payment.payment_method,
-              amount: payment.amount,
-              reference_number: payment.reference_number || null,
-              notes: payment.notes || null,
-              bank_name: payment.bank_name || null,
-              cheque_number: payment.cheque_number || null,
-              cheque_date: payment.cheque_date || null,
-              part_exchange_vehicle: payment.part_exchange_vehicle || null,
-              part_exchange_chassis: payment.part_exchange_chassis || null,
-              created_by: user?.id
-            });
-            if (paymentError) {
-              console.error('Failed to save payment:', paymentError);
-              throw new Error('Failed to save payment');
-            }
-          }
-        }
-        
-        // Clear pending state - loadData will refresh from DB
-        setPendingCharges([]);
-        setPendingPayments([]);
-      }
+      // Save form data first
+      const reservationData = buildReservationData();
+      const { data: savedReservation, error } = await supabase
+        .from('vehicle_reservations')
+        .update({ ...reservationData, updated_at: new Date().toISOString() })
+        .eq('id', reservationId)
+        .select()
+        .single();
+      
+      if (error) throw error;
 
       // Build add-ons from charges
-      const chargesForDoc = reservationId ? charges : pendingCharges;
       const getChargePrice = (type: string) => {
-        const charge = chargesForDoc.find((c: any) => c.charge_type === type);
+        const charge = charges.find((c: any) => c.charge_type === type);
         return charge ? (charge.total_amount || charge.unit_price || 0) : 0;
       };
-      const hasCharge = (type: string) => chargesForDoc.some((c: any) => c.charge_type === type);
+      const hasCharge = (type: string) => charges.some((c: any) => c.charge_type === type);
 
       // Enhance formData with payment totals and charges from UV accounting system
       const enhancedFormData = {
@@ -913,7 +1007,7 @@ export default function AccountSummaryModal({
         // Other add-ons
         hasOtherAddon: hasCharge('other_addon'),
         otherAddonPrice: getChargePrice('other_addon'),
-        otherAddonDescription: chargesForDoc.find((c: any) => c.charge_type === 'other_addon')?.description || 'Other'
+        otherAddonDescription: charges.find((c: any) => c.charge_type === 'other_addon')?.description || 'Other'
       };
 
       const response = await fetch('/api/generate-vehicle-document', {
@@ -983,37 +1077,32 @@ export default function AccountSummaryModal({
   };
 
   const handleAddCharge = async () => {
-    if (!newCharge.unit_price) return;
+    if (!newCharge.unit_price || !reservationId) return;
     
     // Discounts are stored as negative values so they subtract from total
     const isDiscount = newCharge.charge_type === 'discount';
     const finalPrice = isDiscount ? -Math.abs(newCharge.unit_price) : Math.abs(newCharge.unit_price);
-    
-    const chargeData = {
-      id: `pending-${Date.now()}`,
-      charge_type: newCharge.charge_type,
-      description: newCharge.description || CHARGE_TYPES.find(c => c.value === newCharge.charge_type)?.label || '',
-      unit_price: finalPrice,
-      total_amount: finalPrice,
-      vat_applicable: newCharge.vat_applicable,
-      vat_amount: 0
-    };
+    const description = newCharge.description || CHARGE_TYPES.find(c => c.value === newCharge.charge_type)?.label || '';
 
-    if (reservationId) {
-      // Save to DB if reservation exists
-      setSaving(true);
-      try {
-        await supabase.from('uv_charges').insert({
-          reservation_id: reservationId, charge_type: chargeData.charge_type,
-          description: chargeData.description,
-          quantity: 1, unit_price: finalPrice, vat_applicable: chargeData.vat_applicable,
-          display_order: charges.length, created_by: user?.id
-        });
-        await loadData();
-      } catch (error) { alert('Failed to add charge'); } finally { setSaving(false); }
-    } else {
-      // Store locally until Generate is clicked
-      setPendingCharges(prev => [...prev, chargeData]);
+    // Always save directly to DB
+    setSaving(true);
+    try {
+      await supabase.from('uv_charges').insert({
+        reservation_id: reservationId,
+        charge_type: newCharge.charge_type,
+        description: description,
+        quantity: 1,
+        unit_price: finalPrice,
+        vat_applicable: newCharge.vat_applicable,
+        display_order: charges.length,
+        created_by: user?.id
+      });
+      await loadData(false);
+    } catch (error) {
+      console.error('Failed to add charge:', error);
+      alert('Failed to add charge');
+    } finally {
+      setSaving(false);
     }
     
     setShowAddCharge(false);
@@ -1023,97 +1112,94 @@ export default function AccountSummaryModal({
   const handleDeleteCharge = async (id: string) => {
     if (!confirm('Delete this charge?')) return;
     
-    if (id.startsWith('pending-')) {
-      // Remove from pending (local) state
-      setPendingCharges(prev => prev.filter(c => c.id !== id));
-    } else {
-      // Remove from DB
+    // Always delete from DB
+    setSaving(true);
+    try {
       await supabase.from('uv_charges').delete().eq('id', id);
-      await loadData();
+      await loadData(false);
+    } catch (error) {
+      console.error('Failed to delete charge:', error);
+      alert('Failed to delete charge');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleAddPayment = async () => {
-    console.log('handleAddPayment called', { amount: newPayment.amount, method: newPayment.payment_method, reservationId });
-    if (!newPayment.amount) {
-      console.log('No amount, returning');
-      return;
-    }
+    if (!newPayment.amount || !reservationId) return;
     
     // Refunds are stored as negative amounts
     const isRefund = newPayment.payment_method === 'refund';
-    const finalAmount = isRefund ? -Math.abs(newPayment.amount) : Math.abs(newPayment.amount);
     
-    const paymentData = {
-      id: `pending-${Date.now()}`,
-      payment_method: newPayment.payment_method,
-      amount: finalAmount,
-      reference_number: newPayment.reference_number || '',
-      notes: newPayment.notes || '',
-      bank_name: newPayment.bank_name || '',
-      cheque_number: newPayment.cheque_number || '',
-      cheque_date: newPayment.cheque_date || '',
-      part_exchange_vehicle: newPayment.part_exchange_vehicle || '',
-      part_exchange_chassis: newPayment.part_exchange_chassis || '',
-      payment_date: new Date().toISOString(),
-      status: 'pending'
-    };
+    // VALIDATION: Prevent refunding more than what was paid
+    if (isRefund) {
+      const maxRefundable = chargesTotals.paymentsReceived - chargesTotals.refundsGiven;
+      if (Math.abs(newPayment.amount) > maxRefundable) {
+        alert(`Cannot refund more than what was paid.\n\nMaximum refundable: AED ${maxRefundable.toLocaleString()}`);
+        return;
+      }
+    }
+    
+    const finalAmount = isRefund ? -Math.abs(newPayment.amount) : Math.abs(newPayment.amount);
 
-    if (reservationId) {
-      // Save to DB if reservation exists
-      setSaving(true);
-      try {
-        const { data: dbPayment, error: insertError } = await supabase.from('uv_payments').insert({
-          lead_id: lead.id, payment_method: newPayment.payment_method, amount: finalAmount,
-          reference_number: newPayment.reference_number || null, notes: newPayment.notes || null,
-          bank_name: newPayment.bank_name || null, cheque_number: newPayment.cheque_number || null,
-          cheque_date: newPayment.cheque_date || null, part_exchange_vehicle: newPayment.part_exchange_vehicle || null,
-          part_exchange_chassis: newPayment.part_exchange_chassis || null, created_by: user?.id
-        }).select().single();
+    // Always save directly to DB
+    setSaving(true);
+    try {
+      const { data: dbPayment, error: insertError } = await supabase.from('uv_payments').insert({
+        lead_id: lead.id,
+        payment_method: newPayment.payment_method,
+        amount: finalAmount,
+        reference_number: newPayment.reference_number || null,
+        notes: newPayment.notes || null,
+        bank_name: newPayment.bank_name || null,
+        cheque_number: newPayment.cheque_number || null,
+        cheque_date: newPayment.cheque_date || null,
+        part_exchange_vehicle: newPayment.part_exchange_vehicle || null,
+        part_exchange_chassis: newPayment.part_exchange_chassis || null,
+        created_by: user?.id
+      }).select().single();
 
-        if (insertError) {
-          console.error('Payment insert error:', insertError);
-          alert('Failed to save payment: ' + insertError.message);
-          setSaving(false);
-          return;
+      if (insertError) {
+        console.error('Payment insert error:', insertError);
+        alert('Failed to save payment: ' + insertError.message);
+        setSaving(false);
+        return;
+      }
+
+      // Generate receipt PDF
+      if (dbPayment) {
+        try {
+          const updatedTotalPaid = chargesTotals.totalPaid + finalAmount;
+          const updatedBalanceDue = (chargesTotals.grandTotal || formData.invoiceTotal) - updatedTotalPaid;
+          
+          await fetch('/api/generate-receipt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paymentId: dbPayment.id,
+              customerName: formData.customerName,
+              customerPhone: formData.contactNo,
+              customerEmail: formData.emailAddress,
+              vehicleInfo: `${formData.modelYear} ${formData.makeModel}`,
+              chassisNo: formData.chassisNo,
+              reservationNumber: documentNumber,
+              notes: newPayment.notes,
+              totalCharges: chargesTotals.grandTotal || formData.invoiceTotal,
+              totalPaid: updatedTotalPaid,
+              balanceDue: updatedBalanceDue
+            })
+          });
+        } catch (receiptError) {
+          console.error('Failed to generate receipt:', receiptError);
         }
+      }
 
-        // Payment is already linked to lead via lead_id - no separate allocation needed
-
-        // Generate receipt PDF
-        if (dbPayment) {
-          try {
-            // Calculate updated totals after this payment (can be negative if overpaid or refund)
-            const updatedTotalPaid = chargesTotals.totalPaid + finalAmount;
-            const updatedBalanceDue = (chargesTotals.grandTotal || formData.invoiceTotal) - updatedTotalPaid;
-            
-            await fetch('/api/generate-receipt', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                paymentId: dbPayment.id,
-                customerName: formData.customerName,
-                customerPhone: formData.contactNo,
-                customerEmail: formData.emailAddress,
-                vehicleInfo: `${formData.modelYear} ${formData.makeModel}`,
-                chassisNo: formData.chassisNo,
-                reservationNumber: documentNumber,
-                notes: newPayment.notes,
-                totalCharges: chargesTotals.grandTotal || formData.invoiceTotal,
-                totalPaid: updatedTotalPaid,
-                balanceDue: updatedBalanceDue
-              })
-            });
-          } catch (receiptError) {
-            console.error('Failed to generate receipt:', receiptError);
-          }
-        }
-
-        await loadData();
-      } catch (error) { alert('Failed to record payment'); } finally { setSaving(false); }
-    } else {
-      // Store locally until Generate is clicked (newest first)
-      setPendingPayments(prev => [paymentData, ...prev]);
+      await loadData(false);
+    } catch (error) {
+      console.error('Failed to record payment:', error);
+      alert('Failed to record payment');
+    } finally {
+      setSaving(false);
     }
     
     setShowAddPayment(false);
@@ -1512,13 +1598,6 @@ export default function AccountSummaryModal({
               {/* CHARGES TAB */}
               {activeTab === 'charges' && (
                 <div className="space-y-5">
-                  {/* Info banner when building quote */}
-                  {!reservationId && pendingCharges.length > 0 && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-amber-400 text-sm flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" />
-                      Building quote - charges will be saved when you Generate the document
-                    </div>
-                  )}
                   <>
                       {/* Quick Add Buttons */}
                       <div className="flex flex-wrap gap-2">
@@ -1597,7 +1676,17 @@ export default function AccountSummaryModal({
                   {/* Balance Header */}
                   <div className="grid grid-cols-3 gap-4 p-4 bg-[#0f0f0f] rounded-lg border border-[#333]">
                     <div><p className="text-[11px] text-[#666] uppercase tracking-wide">Invoice Total</p><p className="text-xl font-bold text-white mt-1">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p></div>
-                    <div><p className="text-[11px] text-[#666] uppercase tracking-wide">Total Paid</p><p className="text-xl font-bold text-emerald-400 mt-1">AED {formatCurrency(chargesTotals.totalPaid)}</p></div>
+                    <div>
+                      <p className="text-[11px] text-[#666] uppercase tracking-wide">{chargesTotals.refundsGiven > 0 ? 'Net Paid' : 'Total Paid'}</p>
+                      <p className={`text-xl font-bold mt-1 ${chargesTotals.totalPaid >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        AED {formatCurrency(chargesTotals.totalPaid)}
+                      </p>
+                      {chargesTotals.refundsGiven > 0 && (
+                        <p className="text-[10px] text-[#555] mt-0.5">
+                          Received: {formatCurrency(chargesTotals.paymentsReceived)} | Refunded: {formatCurrency(chargesTotals.refundsGiven)}
+                        </p>
+                      )}
+                    </div>
                     <div className="text-right"><p className="text-[11px] text-[#666] uppercase tracking-wide">{chargesTotals.balanceDue < 0 ? 'Credit Balance' : 'Balance Due'}</p><p className={`text-xl font-bold mt-1 ${chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>AED {formatCurrency(Math.abs(chargesTotals.balanceDue))}{chargesTotals.balanceDue < 0 ? ' CR' : ''}</p></div>
                   </div>
 
@@ -1641,14 +1730,6 @@ export default function AccountSummaryModal({
                         </button>
                         <button onClick={() => setShowAddPayment(false)} className="px-4 py-2.5 bg-[#333] text-white text-sm rounded-md hover:bg-[#444]">Cancel</button>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Info banner when building quote */}
-                  {!reservationId && pendingPayments.length > 0 && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-amber-400 text-sm flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" />
-                      Payments will be saved when you Generate the document
                     </div>
                   )}
 
@@ -2672,7 +2753,23 @@ export default function AccountSummaryModal({
         {!loading && (
         <div className="px-6 py-4 border-t border-[#333] flex items-center justify-between shrink-0 bg-[#111]">
           <p className="text-[13px] text-[#666]">{formData.salesExecutive} • {formatDate(formData.date)}</p>
-          <button onClick={onClose} className="px-4 py-2 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors">Close</button>
+          <button 
+            onClick={handleSave}
+            disabled={saving || !reservationId}
+            className="px-4 py-2 bg-gradient-to-r from-[#555] to-[#666] hover:from-[#666] hover:to-[#777] text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" />
+                Save
+              </>
+            )}
+          </button>
         </div>
         )}
       </div>

@@ -413,3 +413,4 @@ CREATE TRIGGER trg_uv_payments_updated
 -- =====================================================
 SELECT 'UV Accounting Schema created successfully!' AS result;
 
+

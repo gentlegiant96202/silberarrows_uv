@@ -60,3 +60,4 @@ FROM information_schema.columns
 WHERE table_name = 'uv_payments' 
 AND column_name IN ('receipt_url', 'receipt_number');
 
+

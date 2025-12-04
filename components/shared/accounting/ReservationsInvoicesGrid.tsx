@@ -207,7 +207,15 @@ export default function ReservationsInvoicesGrid() {
           if (!leadTotals[p.lead_id]) {
             leadTotals[p.lead_id] = { charges: 0, paid: 0 };
           }
-          leadTotals[p.lead_id].paid += p.amount || 0;
+          // Only count positive payments (not refunds) for "paid" amount
+          // Refunds (negative amounts) reduce the paid total
+          const amount = p.amount || 0;
+          if (amount > 0) {
+            leadTotals[p.lead_id].paid += amount;
+          } else {
+            // Refunds reduce total paid (add negative to subtract)
+            leadTotals[p.lead_id].paid += amount;
+          }
         });
 
         // Update balance data for customers
@@ -242,7 +250,7 @@ export default function ReservationsInvoicesGrid() {
     try {
       setLoading(true);
 
-      // Query uv_payments with date range
+      // Query uv_payments with date range - order by receipt number descending for chronological display
       let query = supabase
         .from('uv_payments')
         .select(`
@@ -256,7 +264,7 @@ export default function ReservationsInvoicesGrid() {
           receipt_url,
           created_at
         `)
-        .order('created_at', { ascending: false });
+        .order('receipt_number', { ascending: false });
 
       // Apply date range filter
       if (filters.fromDate) {

@@ -264,7 +264,7 @@ export default function AccountSummaryModal({
   const [reservationNumber, setReservationNumber] = useState<string | null>(null);
   const [customerNumber, setCustomerNumber] = useState<string | null>(null);
   const [documentStatus, setDocumentStatus] = useState<string>('pending');
-  const [invoiceStatus, setInvoiceStatus] = useState<string>('pending');
+  const [invoiceStatus, setInvoiceStatus] = useState<string | null>('pending');
   const [currentDocumentType, setCurrentDocumentType] = useState<string>('reservation');
   
   // Bank Finance state

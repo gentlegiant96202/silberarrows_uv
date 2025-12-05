@@ -428,6 +428,7 @@ export default function ReservationsInvoicesGrid() {
           invoice_pdf_url,
           created_at
         `)
+        .order('invoice_date', { ascending: false })
         .order('created_at', { ascending: false });
 
       // Apply date range filter

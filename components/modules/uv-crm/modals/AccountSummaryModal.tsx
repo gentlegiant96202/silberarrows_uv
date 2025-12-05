@@ -1748,14 +1748,30 @@ export default function AccountSummaryModal({
                       {invoiceNumber}
                     </span>
                   )}
-                  {isPaid && documentStatus !== 'reversed' && (
+                  {/* Invoice Status Badge - uses actual invoice status */}
+                  {invoiceStatus === 'paid' && (
                     <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[11px] font-semibold rounded-md flex items-center gap-1 border border-emerald-500/20">
                       <Check className="w-3 h-3" /> Paid
                     </span>
                   )}
-                  {(documentStatus === 'reversed' || documentStatus === 'credited') && (
+                  {invoiceStatus === 'partial' && (
+                    <span className="px-2 py-1 bg-amber-500/10 text-amber-400 text-[11px] font-semibold rounded-md flex items-center gap-1 border border-amber-500/20">
+                      Partial
+                    </span>
+                  )}
+                  {invoiceStatus === 'pending' && invoiceNumber && (
+                    <span className="px-2 py-1 bg-gray-500/10 text-gray-400 text-[11px] font-semibold rounded-md flex items-center gap-1 border border-gray-500/20">
+                      Pending
+                    </span>
+                  )}
+                  {(invoiceStatus === 'credited' || invoiceStatus === 'reversed') && (
                     <span className="px-2 py-1 bg-red-500/10 text-red-400 text-[11px] font-semibold rounded-md flex items-center gap-1 border border-red-500/20">
                       <X className="w-3 h-3" /> Credited
+                    </span>
+                  )}
+                  {!invoiceNumber && !invoiceStatus && (
+                    <span className="px-2 py-1 bg-[#333]/50 text-[#888] text-[11px] font-semibold rounded-md border border-[#444]">
+                      Draft
                     </span>
                   )}
                 </div>
@@ -2620,12 +2636,26 @@ export default function AccountSummaryModal({
                         AED {formatCurrency(chargesTotals.balanceDue)}
                       </p>
                     </div>
-                    <div className={`rounded-xl border p-4 shadow-lg ${chargesTotals.totalPaid > 0 && isInvoiceCredited ? 'bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-500/30' : 'bg-gradient-to-br from-[#111] to-[#0a0a0a] border-[#2a2a2a]'}`}>
-                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Unallocated</p>
-                      <p className={`text-xl font-bold ${chargesTotals.totalPaid > 0 && isInvoiceCredited ? 'text-blue-400' : 'text-[#555]'}`}>
-                        AED {formatCurrency(isInvoiceCredited ? chargesTotals.paymentsReceived : 0)}
-                      </p>
-                    </div>
+                    {(() => {
+                      // Calculate total unallocated payments from allocations
+                      const totalUnallocated = payments
+                        .filter(p => p.amount > 0 && p.payment_method !== 'refund')
+                        .reduce((sum, p) => {
+                          const allocs = paymentAllocations.get(p.id) || [];
+                          const allocated = allocs.reduce((s, a) => s + (a.allocated_amount || 0), 0);
+                          const unallocated = p.amount - allocated;
+                          return sum + Math.max(0, unallocated);
+                        }, 0);
+                      const hasUnallocated = totalUnallocated > 0;
+                      return (
+                        <div className={`rounded-xl border p-4 shadow-lg ${hasUnallocated ? 'bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-500/30' : 'bg-gradient-to-br from-[#111] to-[#0a0a0a] border-[#2a2a2a]'}`}>
+                          <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Unallocated</p>
+                          <p className={`text-xl font-bold ${hasUnallocated ? 'text-blue-400' : 'text-[#555]'}`}>
+                            AED {formatCurrency(totalUnallocated)}
+                          </p>
+                        </div>
+                      );
+                    })()}
                     <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] p-4 shadow-lg">
                       <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Status</p>
                       <p className={`text-xl font-bold ${(documentStatus === 'reversed' || documentStatus === 'credited' || invoiceStatus === 'credited' || invoiceStatus === 'reversed') ? 'text-red-400' : chargesTotals.grandTotal > 0 && chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : chargesTotals.totalPaid > 0 ? 'text-amber-400' : chargesTotals.grandTotal > 0 ? 'text-red-400' : 'text-[#666]'}`}>

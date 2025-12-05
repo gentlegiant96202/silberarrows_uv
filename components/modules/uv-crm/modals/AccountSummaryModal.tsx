@@ -2647,7 +2647,7 @@ export default function AccountSummaryModal({
                           const currentInvoiceCreditNote = creditNotes.find((cn: any) => cn.original_invoice_id === invoiceId);
                           if (currentInvoiceCreditNote) {
                             transactions.push({
-                              date: currentInvoiceCreditNote.credit_note_date || currentInvoiceCreditNote.created_at,
+                              date: currentInvoiceCreditNote.credit_note_date || currentInvoiceCreditNote.created_at || new Date().toISOString(),
                               createdAt: currentInvoiceCreditNote.created_at || currentInvoiceCreditNote.credit_note_date || new Date().toISOString(),
                               type: 'credit_note',
                               description: `Credit Note - ${currentInvoiceCreditNote.reason}`,

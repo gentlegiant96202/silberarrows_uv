@@ -448,46 +448,9 @@ export default function AccountSummaryModal({
       setCurrentDocumentType(mode);
       setIsEditing(true);
 
-      // CREATE INVOICE for this deal
-      const { data: newInvoice, error: invoiceError } = await supabase
-        .from('invoices')
-        .insert({
-          deal_id: newReservation.id,
-          invoice_date: formData.date,
-          status: 'pending',
-          subtotal: 0,
-          total_amount: 0,
-          paid_amount: 0,
-          created_by: user?.id
-        })
-        .select()
-        .single();
-
-      if (invoiceError) {
-        console.error('Error creating invoice:', invoiceError.message);
-      } else if (newInvoice) {
-        setInvoiceId(newInvoice.id);
-        setInvoiceNumber(newInvoice.invoice_number);
-        setInvoiceStatus(newInvoice.status);
-      }
-
-      // Auto-add Vehicle Sale as first charge if car has a price
-      if (carData?.advertised_price_aed && carData.advertised_price_aed > 0 && newInvoice) {
-        const { error: chargeError } = await supabase.from('uv_charges').insert({
-          reservation_id: newReservation.id,
-          invoice_id: newInvoice.id,
-          charge_type: 'vehicle_sale',
-          description: `Vehicle Sale - ${carData.vehicle_model || 'Vehicle'}`,
-          quantity: 1,
-          unit_price: carData.advertised_price_aed,
-          vat_applicable: false,
-          display_order: 0,
-          created_by: user?.id
-        });
-        if (chargeError) {
-          console.error('Error adding vehicle sale charge:', chargeError.message);
-        }
-      }
+      // NOTE: Invoice is NOT created automatically anymore
+      // User should add charges first, then generate invoice when ready
+      // Invoice will be created when user clicks "Generate Invoice"
 
       return newReservation;
     } catch (error: any) {
@@ -1088,6 +1051,12 @@ export default function AccountSummaryModal({
       return;
     }
     
+    // Check if there are charges before generating
+    if (charges.length === 0) {
+      alert('Please add at least one charge before generating documents.');
+      return;
+    }
+    
     // Validate before generating
     const errors = validateForm();
     if (errors.length > 0) {
@@ -1100,6 +1069,45 @@ export default function AccountSummaryModal({
     setSaving(true);
 
     try {
+      // Create invoice if it doesn't exist
+      let currentInvoiceId = invoiceId;
+      if (!currentInvoiceId) {
+        const { data: newInvoice, error: invoiceError } = await supabase
+          .from('invoices')
+          .insert({
+            deal_id: reservationId,
+            invoice_date: formData.date,
+            status: 'pending',
+            subtotal: chargesTotals.grandTotal,
+            total_amount: chargesTotals.grandTotal,
+            paid_amount: 0,
+            created_by: user?.id
+          })
+          .select()
+          .single();
+
+        if (invoiceError) {
+          console.error('Error creating invoice:', invoiceError.message);
+          throw new Error('Failed to create invoice');
+        }
+        
+        currentInvoiceId = newInvoice.id;
+        setInvoiceId(newInvoice.id);
+        setInvoiceNumber(newInvoice.invoice_number);
+        setInvoiceStatus(newInvoice.status);
+        
+        // Link all unlinked charges to this invoice
+        const { error: linkError } = await supabase
+          .from('uv_charges')
+          .update({ invoice_id: newInvoice.id })
+          .eq('reservation_id', reservationId)
+          .is('invoice_id', null);
+        
+        if (linkError) {
+          console.error('Error linking charges to invoice:', linkError.message);
+        }
+      }
+
       // Save form data first
       const reservationData = buildReservationData();
       const { data: savedReservation, error } = await supabase
@@ -1176,18 +1184,18 @@ export default function AccountSummaryModal({
         }).eq('id', savedReservation.id);
         
         // Save PDF URL to invoices table based on document type
-        if (invoiceId) {
+        if (currentInvoiceId) {
           if (documentMode === 'reservation') {
             await supabase.from('invoices').update({
               reservation_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
-            }).eq('id', invoiceId);
+            }).eq('id', currentInvoiceId);
           setReservationPdfUrl(result.pdfUrl);
         } else {
             await supabase.from('invoices').update({
               invoice_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
-            }).eq('id', invoiceId);
+            }).eq('id', currentInvoiceId);
           setInvoicePdfUrl(result.pdfUrl);
         }
         }
@@ -1285,10 +1293,8 @@ export default function AccountSummaryModal({
       alert('No reservation found. Please save the form first.');
       return;
     }
-    if (!invoiceId) {
-      alert('No active invoice. Please create a new invoice first.');
-      return;
-    }
+    // Note: invoiceId can be null - charges can be added before invoice is created
+    // They will be linked to the invoice when it's generated
     
     // Discounts are stored as negative values so they subtract from total
     const isDiscount = newCharge.charge_type === 'discount';
@@ -1300,7 +1306,7 @@ export default function AccountSummaryModal({
       try {
         await supabase.from('uv_charges').insert({
         reservation_id: reservationId,
-        invoice_id: invoiceId,
+        invoice_id: invoiceId || null, // Can be null if invoice not yet created
         charge_type: newCharge.charge_type,
         description: description,
         quantity: 1,

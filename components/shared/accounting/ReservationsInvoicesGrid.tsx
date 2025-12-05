@@ -1164,6 +1164,7 @@ export default function ReservationsInvoicesGrid() {
                             balance_due: invoice.balance_due || 0
                           };
                           setSelectedCustomer(customerAccount);
+                          setShowModal(true);
                         }}
                       >
                         <td className="px-4 py-3">

@@ -1128,12 +1128,18 @@ export default function AccountSummaryModal({
         otherAddonDescription: charges.find((c: any) => c.charge_type === 'other_addon')?.description || 'Other'
       };
 
+      console.log('Generating document with:', { mode, leadId: lead.id, reservationId: savedReservation.id, chargesCount: charges.length });
+      
       const response = await fetch('/api/generate-vehicle-document', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode, formData: enhancedFormData, leadId: lead.id, reservationId: savedReservation.id })
       });
 
-      if (!response.ok) throw new Error('Failed to generate document');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Generate document failed:', response.status, errorText);
+        throw new Error(`Failed to generate document: ${errorText}`);
+      }
 
       const result = await response.json();
       if (result.pdfUrl) {
@@ -1170,9 +1176,9 @@ export default function AccountSummaryModal({
       await loadData(false);
 
       if (onSubmit) onSubmit();
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error generating document. Please try again.');
+    } catch (error: any) {
+      console.error('Generate document error:', error);
+      alert(`Error generating document: ${error.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }

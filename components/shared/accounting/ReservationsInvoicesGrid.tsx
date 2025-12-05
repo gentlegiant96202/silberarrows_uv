@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRole } from '@/lib/useUserRole';
-import { FileText, Search, Shield, Users, ChevronRight, Download, Receipt } from 'lucide-react';
+import { FileText, Search, Shield, Users, ChevronRight, Download, Receipt, AlertTriangle } from 'lucide-react';
 import AccountSummaryModal from '@/components/modules/uv-crm/modals/AccountSummaryModal';
 
 interface CustomerAccount {
@@ -93,12 +93,13 @@ interface FilterState {
   status: string;
 }
 
-type TabType = 'accounts' | 'invoices' | 'receipts';
+type TabType = 'accounts' | 'invoices' | 'unallocated' | 'receipts';
 
 export default function ReservationsInvoicesGrid() {
   const [activeTab, setActiveTab] = useState<TabType>('accounts');
   const [data, setData] = useState<CustomerAccount[]>([]);
   const [invoices, setInvoices] = useState<InvoiceData[]>([]);
+  const [unallocatedPayments, setUnallocatedPayments] = useState<ReceiptData[]>([]);
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
   const { role } = useUserRole();
@@ -506,11 +507,129 @@ export default function ReservationsInvoicesGrid() {
     }
   };
 
+  const fetchUnallocatedPayments = async () => {
+    try {
+      setLoading(true);
+
+      // Query all payments
+      const { data: paymentsData, error } = await supabase
+        .from('uv_payments')
+        .select(`
+          id,
+          lead_id,
+          receipt_number,
+          payment_date,
+          payment_method,
+          amount,
+          reference_number,
+          receipt_url,
+          created_at
+        `)
+        .gt('amount', 0) // Only positive payments (not refunds)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching payments:', error);
+        return;
+      }
+
+      // Get allocations for these payments
+      const paymentIds = (paymentsData || []).map(p => p.id);
+      let allocationsMap = new Map<string, number>();
+      
+      if (paymentIds.length > 0) {
+        try {
+          const { data: allocations } = await supabase
+            .from('uv_payment_allocations')
+            .select('payment_id, allocated_amount')
+            .in('payment_id', paymentIds);
+          
+          if (allocations) {
+            allocations.forEach(a => {
+              const existing = allocationsMap.get(a.payment_id) || 0;
+              allocationsMap.set(a.payment_id, existing + (a.allocated_amount || 0));
+            });
+          }
+        } catch (allocErr) {
+          console.log('Allocations table not available:', allocErr);
+        }
+      }
+
+      // Filter to only unallocated payments
+      let unallocated: ReceiptData[] = (paymentsData || [])
+        .map(p => {
+          const totalAllocated = allocationsMap.get(p.id) || 0;
+          const unallocatedAmount = p.amount - totalAllocated;
+          return {
+            ...p,
+            customer_name: 'Unknown',
+            customer_number: null,
+            vehicle_make_model: '',
+            allocated_amount: totalAllocated,
+            unallocated_amount: unallocatedAmount,
+            allocations: []
+          };
+        })
+        .filter(p => p.unallocated_amount > 0); // Only show payments with unallocated amounts
+
+      // Get customer info from vehicle_reservations
+      const leadIds = unallocated.map(r => r.lead_id).filter(Boolean);
+      
+      if (leadIds.length > 0) {
+        const { data: reservations } = await supabase
+          .from('vehicle_reservations')
+          .select('lead_id, customer_name, customer_number, vehicle_make_model')
+          .in('lead_id', leadIds);
+
+        const customerMap = new Map<string, { customer_name: string; customer_number: string | null; vehicle_make_model: string }>();
+        reservations?.forEach(r => {
+          if (!customerMap.has(r.lead_id)) {
+            customerMap.set(r.lead_id, {
+              customer_name: r.customer_name,
+              customer_number: r.customer_number,
+              vehicle_make_model: r.vehicle_make_model
+            });
+          }
+        });
+
+        unallocated = unallocated.map(receipt => ({
+          ...receipt,
+          customer_name: customerMap.get(receipt.lead_id)?.customer_name || 'Unknown',
+          customer_number: customerMap.get(receipt.lead_id)?.customer_number || null,
+          vehicle_make_model: customerMap.get(receipt.lead_id)?.vehicle_make_model || ''
+        }));
+      }
+
+      // Apply search filter
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        unallocated = unallocated.filter(item =>
+          item.customer_name?.toLowerCase().includes(searchTerm) ||
+          item.receipt_number?.toLowerCase().includes(searchTerm) ||
+          item.customer_number?.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      setUnallocatedPayments(unallocated);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Always fetch unallocated count for badge
+  useEffect(() => {
+    fetchUnallocatedPayments();
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'accounts') {
       fetchData();
     } else if (activeTab === 'invoices') {
       fetchInvoices();
+    } else if (activeTab === 'unallocated') {
+      fetchUnallocatedPayments();
     } else {
       fetchReceipts();
     }
@@ -523,6 +642,8 @@ export default function ReservationsInvoicesGrid() {
         fetchData();
       } else if (activeTab === 'invoices') {
         fetchInvoices();
+      } else if (activeTab === 'unallocated') {
+        fetchUnallocatedPayments();
       } else {
         fetchReceipts();
       }
@@ -706,14 +827,16 @@ export default function ReservationsInvoicesGrid() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">
-            {activeTab === 'accounts' ? 'Customer Accounts' : activeTab === 'invoices' ? 'Invoices' : 'Payment Receipts'}
+            {activeTab === 'accounts' ? 'Customer Accounts' : activeTab === 'invoices' ? 'Invoices' : activeTab === 'unallocated' ? 'Unallocated Payments' : 'Payment Receipts'}
           </h1>
           <p className="text-sm text-white/60">
             {activeTab === 'accounts' 
               ? 'View and manage customer account balances' 
               : activeTab === 'invoices'
                 ? 'View all invoices chronologically'
-                : 'View and download payment receipts'}
+                : activeTab === 'unallocated'
+                  ? 'Payments that need to be allocated to an invoice'
+                  : 'View and download payment receipts'}
           </p>
           {role && (
             <div className="flex items-center gap-2 mt-1">
@@ -725,7 +848,7 @@ export default function ReservationsInvoicesGrid() {
           )}
         </div>
         <div className="text-sm text-white/60">
-          Total: {activeTab === 'accounts' ? `${data.length} customers` : activeTab === 'invoices' ? `${invoices.length} invoices` : `${receipts.length} receipts`}
+          Total: {activeTab === 'accounts' ? `${data.length} customers` : activeTab === 'invoices' ? `${invoices.length} invoices` : activeTab === 'unallocated' ? `${unallocatedPayments.length} payments` : `${receipts.length} receipts`}
         </div>
       </div>
 
@@ -752,6 +875,26 @@ export default function ReservationsInvoicesGrid() {
         >
           <Receipt className="w-4 h-4" />
           Invoices
+        </button>
+        <button
+          onClick={() => setActiveTab('unallocated')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all relative ${
+            activeTab === 'unallocated'
+              ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25'
+              : unallocatedPayments.length > 0
+                ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/30'
+                : 'text-white/50 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+          Unallocated
+          {unallocatedPayments.length > 0 && (
+            <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
+              activeTab === 'unallocated' ? 'bg-white/20 text-white' : 'bg-amber-500 text-white'
+            }`}>
+              {unallocatedPayments.length}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setActiveTab('receipts')}
@@ -1093,6 +1236,164 @@ export default function ReservationsInvoicesGrid() {
               <div>
                 <p className="text-2xl font-bold text-red-400">{invoices.filter(i => i.status === 'reversed').length}</p>
                 <p className="text-sm text-white/60">Reversed</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Unallocated Payments Tab */}
+      {activeTab === 'unallocated' && (
+        <>
+          {/* Prominent Warning Banner */}
+          {unallocatedPayments.length > 0 && (
+            <div className="bg-amber-500/20 border-2 border-amber-500/50 rounded-lg p-4 flex items-center gap-4">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="w-10 h-10 text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-amber-400">
+                  {unallocatedPayments.length} Payment{unallocatedPayments.length !== 1 ? 's' : ''} Require Allocation
+                </h3>
+                <p className="text-white/70 text-sm">
+                  Total unallocated amount: <span className="font-bold text-amber-400">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.unallocated_amount, 0))}</span>
+                </p>
+                <p className="text-white/50 text-xs mt-1">
+                  These payments need to be linked to an invoice. Open the customer account to allocate.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
+                <p className="text-white/60">Loading unallocated payments...</p>
+              </div>
+            ) : unallocatedPayments.length === 0 ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-emerald-400 font-semibold text-lg">All payments allocated!</p>
+                <p className="text-white/50 text-sm mt-1">No unallocated payments at this time</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-amber-500/5">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-amber-400 uppercase tracking-wider">Receipt #</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-amber-400 uppercase tracking-wider">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-amber-400 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-amber-400 uppercase tracking-wider">Method</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Total Amount</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Allocated</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Unallocated</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-amber-400 uppercase tracking-wider">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {unallocatedPayments.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-amber-500/5 transition-colors">
+                        <td className="px-4 py-3">
+                          {payment.receipt_number ? (
+                            <span className="px-2 py-1 bg-amber-500/20 border border-amber-500/40 rounded text-amber-400 text-xs font-mono font-bold">
+                              {payment.receipt_number}
+                            </span>
+                          ) : (
+                            <span className="text-white/40 text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-white/80 text-sm">
+                          {formatDate(payment.payment_date)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>
+                            <div className="text-white text-sm font-medium">{payment.customer_name}</div>
+                            {payment.customer_number && (
+                              <div className="text-brand text-xs font-mono">{payment.customer_number}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-white/60 text-sm capitalize">
+                          {payment.payment_method?.replace(/_/g, ' ') || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-right text-white text-sm">
+                          AED {formatCurrency(payment.amount)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-emerald-400 text-sm">
+                          AED {formatCurrency(payment.allocated_amount)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="px-2 py-1 bg-amber-500/20 border border-amber-500/40 rounded text-amber-400 text-sm font-bold">
+                            AED {formatCurrency(payment.unallocated_amount)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => {
+                              // Find customer account and open modal
+                              const account = data.find(d => d.lead_id === payment.lead_id);
+                              if (account) {
+                                setSelectedCustomer(account);
+                              } else {
+                                // Create a minimal account to open modal
+                                const minimalAccount: CustomerAccount = {
+                                  id: '',
+                                  lead_id: payment.lead_id,
+                                  customer_number: payment.customer_number,
+                                  customer_name: payment.customer_name,
+                                  contact_no: '',
+                                  email_address: '',
+                                  vehicle_make_model: payment.vehicle_make_model || '',
+                                  model_year: 0,
+                                  document_type: 'reservation',
+                                  document_number: null,
+                                  document_status: '',
+                                  invoice_total: 0,
+                                  created_at: '',
+                                  total_charges: 0,
+                                  total_paid: 0,
+                                  balance_due: 0
+                                };
+                                setSelectedCustomer(minimalAccount);
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded transition-colors"
+                          >
+                            Allocate
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Summary for Unallocated Payments */}
+          <div className="bg-amber-500/10 backdrop-blur border border-amber-500/30 rounded-lg p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold text-amber-400">{unallocatedPayments.length}</p>
+                <p className="text-sm text-white/60">Unallocated Payments</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.amount, 0))}</p>
+                <p className="text-sm text-white/60">Total Amount</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.allocated_amount, 0))}</p>
+                <p className="text-sm text-white/60">Allocated</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-400">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.unallocated_amount, 0))}</p>
+                <p className="text-sm text-white/60">Needs Allocation</p>
               </div>
             </div>
           </div>

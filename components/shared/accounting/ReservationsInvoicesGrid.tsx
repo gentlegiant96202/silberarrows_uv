@@ -80,6 +80,7 @@ interface InvoiceData {
   invoice_pdf_url: string | null;
   created_at: string;
   // Joined data
+  lead_id: string;
   customer_name: string;
   customer_number: string | null;
   deal_number: string | null;
@@ -455,6 +456,7 @@ export default function ReservationsInvoicesGrid() {
       let invoicesWithCustomer: InvoiceData[] = (invoicesData || []).map(inv => ({
         ...inv,
         balance_due: (inv.total_amount || 0) - (inv.paid_amount || 0),
+        lead_id: '',
         customer_name: 'Unknown',
         customer_number: null,
         deal_number: null,
@@ -464,13 +466,14 @@ export default function ReservationsInvoicesGrid() {
       if (dealIds.length > 0) {
         const { data: reservations } = await supabase
           .from('vehicle_reservations')
-          .select('id, customer_name, customer_number, deal_number, document_number, vehicle_make_model')
+          .select('id, lead_id, customer_name, customer_number, deal_number, document_number, vehicle_make_model')
           .in('id', dealIds);
 
         // Map customer info to invoices
-        const dealMap = new Map<string, { customer_name: string; customer_number: string | null; deal_number: string | null; vehicle_make_model: string }>();
+        const dealMap = new Map<string, { lead_id: string; customer_name: string; customer_number: string | null; deal_number: string | null; vehicle_make_model: string }>();
         reservations?.forEach(r => {
           dealMap.set(r.id, {
+            lead_id: r.lead_id,
             customer_name: r.customer_name,
             customer_number: r.customer_number,
             deal_number: r.deal_number || r.document_number,
@@ -480,6 +483,7 @@ export default function ReservationsInvoicesGrid() {
 
         invoicesWithCustomer = invoicesWithCustomer.map(inv => ({
           ...inv,
+          lead_id: dealMap.get(inv.deal_id)?.lead_id || '',
           customer_name: dealMap.get(inv.deal_id)?.customer_name || 'Unknown',
           customer_number: dealMap.get(inv.deal_id)?.customer_number || null,
           deal_number: dealMap.get(inv.deal_id)?.deal_number || null,
@@ -1136,7 +1140,32 @@ export default function ReservationsInvoicesGrid() {
                   </thead>
                   <tbody className="divide-y divide-white/10">
                     {invoices.map((invoice) => (
-                      <tr key={invoice.id} className="hover:bg-white/5 transition-colors">
+                      <tr 
+                        key={invoice.id} 
+                        className="hover:bg-white/5 transition-colors cursor-pointer"
+                        onClick={() => {
+                          // Create customer account object to open modal
+                          const customerAccount: CustomerAccount = {
+                            id: invoice.deal_id,
+                            lead_id: invoice.lead_id,
+                            customer_number: invoice.customer_number,
+                            customer_name: invoice.customer_name,
+                            contact_no: '',
+                            email_address: '',
+                            vehicle_make_model: invoice.vehicle_make_model || '',
+                            model_year: 0,
+                            document_type: 'invoice',
+                            document_number: invoice.invoice_number,
+                            document_status: invoice.status,
+                            invoice_total: invoice.total_amount || 0,
+                            created_at: invoice.created_at,
+                            total_charges: invoice.total_amount || 0,
+                            total_paid: invoice.paid_amount || 0,
+                            balance_due: invoice.balance_due || 0
+                          };
+                          setSelectedCustomer(customerAccount);
+                        }}
+                      >
                         <td className="px-4 py-3">
                           {invoice.invoice_number ? (
                             <span className={`px-2 py-1 rounded text-xs font-mono font-bold ${
@@ -1192,7 +1221,10 @@ export default function ReservationsInvoicesGrid() {
                         <td className="px-4 py-3 text-center">
                           {invoice.invoice_pdf_url ? (
                             <button
-                              onClick={() => window.open(invoice.invoice_pdf_url!, '_blank')}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent row click
+                                window.open(invoice.invoice_pdf_url!, '_blank');
+                              }}
                               className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
                               title="View Invoice PDF"
                             >

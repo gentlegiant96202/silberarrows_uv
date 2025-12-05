@@ -1293,6 +1293,7 @@ export default function ReservationsInvoicesGrid() {
                       <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Total Amount</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Allocated</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Unallocated</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-amber-400 uppercase tracking-wider">Receipt</th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-amber-400 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
@@ -1332,6 +1333,19 @@ export default function ReservationsInvoicesGrid() {
                           <span className="px-2 py-1 bg-amber-500/20 border border-amber-500/40 rounded text-amber-400 text-sm font-bold">
                             AED {formatCurrency(payment.unallocated_amount)}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {payment.receipt_url ? (
+                            <button
+                              onClick={() => window.open(payment.receipt_url!, '_blank')}
+                              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
+                              title="Download Receipt"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <span className="text-white/30 text-xs">-</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button

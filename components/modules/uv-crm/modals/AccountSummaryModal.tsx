@@ -296,6 +296,7 @@ export default function AccountSummaryModal({
   const [sendingForSigning, setSendingForSigning] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [companyEmail, setCompanyEmail] = useState('');
+  const [signingDocumentMode, setSigningDocumentMode] = useState<'reservation' | 'invoice'>('reservation');
 
   const [charges, setCharges] = useState<Charge[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -309,6 +310,19 @@ export default function AccountSummaryModal({
   const [newCharge, setNewCharge] = useState({ charge_type: 'vehicle_sale', description: '', unit_price: 0, vat_applicable: false });
   const [newPayment, setNewPayment] = useState({ payment_method: 'cash', amount: 0, reference_number: '', notes: '', bank_name: '', cheque_number: '', cheque_date: '', part_exchange_vehicle: '', part_exchange_chassis: '' });
   const [generatingSOA, setGeneratingSOA] = useState(false);
+
+  // Invoice History state (all invoices for this deal)
+  const [allInvoices, setAllInvoices] = useState<Array<{
+    id: string;
+    invoice_number: string;
+    invoice_date: string;
+    status: string;
+    total_amount: number;
+    paid_amount: number;
+    reservation_pdf_url: string | null;
+    invoice_pdf_url: string | null;
+    created_at: string;
+  }>>([]);
 
   // Credit Note state
   const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
@@ -632,6 +646,15 @@ export default function AccountSummaryModal({
           }
         }
         
+        // Load ALL invoices for this deal (for invoice history)
+        const { data: allInvoicesData } = await supabase
+          .from('invoices')
+          .select('id, invoice_number, invoice_date, status, total_amount, paid_amount, reservation_pdf_url, invoice_pdf_url, created_at')
+          .eq('deal_id', resData.id)
+          .order('created_at', { ascending: false });
+        
+        setAllInvoices(allInvoicesData || []);
+        
         // Load charges for the CURRENT invoice only (not old reversed invoices)
         if (currentInvoiceId) {
           const { data: chargesData } = await supabase
@@ -639,7 +662,7 @@ export default function AccountSummaryModal({
             .select('*')
             .eq('invoice_id', currentInvoiceId)
             .order('display_order');
-          setCharges(chargesData || []);
+        setCharges(chargesData || []);
         } else {
           // Fallback: load by reservation_id if no invoice_id (legacy data)
           const { data: chargesData } = await supabase
@@ -1128,7 +1151,7 @@ export default function AccountSummaryModal({
       };
 
       console.log('Generating document with:', { mode: documentMode, leadId: lead.id, reservationId: savedReservation.id, chargesCount: charges.length });
-      
+
       const response = await fetch('/api/generate-vehicle-document', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: documentMode, formData: enhancedFormData, leadId: lead.id, reservationId: savedReservation.id })
@@ -1158,14 +1181,14 @@ export default function AccountSummaryModal({
               reservation_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
             }).eq('id', invoiceId);
-            setReservationPdfUrl(result.pdfUrl);
-          } else {
+          setReservationPdfUrl(result.pdfUrl);
+        } else {
             await supabase.from('invoices').update({
               invoice_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
             }).eq('id', invoiceId);
-            setInvoicePdfUrl(result.pdfUrl);
-          }
+          setInvoicePdfUrl(result.pdfUrl);
+        }
         }
         
         if (result.documentNumber) setDocumentNumber(result.documentNumber);
@@ -1199,24 +1222,29 @@ export default function AccountSummaryModal({
   const currentPdfUrl = mode === 'reservation' ? reservationPdfUrl : invoicePdfUrl;
   const hasCurrentPdf = !!currentPdfUrl;
 
-  const handleSendForSigning = () => {
-    if (!currentPdfUrl) { alert('Generate document first'); return; }
+  const handleSendForSigning = (docMode: 'reservation' | 'invoice') => {
+    const pdfUrl = docMode === 'reservation' ? reservationPdfUrl : invoicePdfUrl;
+    if (!pdfUrl) { alert('Generate document first'); return; }
     if (!formData.emailAddress) { alert('Add customer email first'); return; }
+    setSigningDocumentMode(docMode);
     setShowEmailModal(true);
   };
 
   const handleConfirmSendForSigning = async () => {
     if (!companyEmail) return;
+    const pdfUrl = signingDocumentMode === 'reservation' ? reservationPdfUrl : invoicePdfUrl;
+    if (!pdfUrl) return;
+    
     setSendingForSigning(true);
     setShowEmailModal(false);
     try {
       const response = await fetch('/api/docusign/send-for-signing-vehicle', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          leadId: lead.id, documentType: mode, customerEmail: formData.emailAddress,
+          leadId: lead.id, documentType: signingDocumentMode, customerEmail: formData.emailAddress,
           customerName: formData.customerName, companySignerEmail: companyEmail,
-          documentTitle: mode === 'reservation' ? 'Vehicle Reservation Form' : 'Vehicle Invoice',
-          pdfUrl: currentPdfUrl, formData
+          documentTitle: signingDocumentMode === 'reservation' ? 'Vehicle Reservation Form' : 'Vehicle Invoice',
+          pdfUrl: pdfUrl, formData
         })
       });
       if (!response.ok) throw new Error('Failed to send');
@@ -1226,7 +1254,7 @@ export default function AccountSummaryModal({
       
       // Save signing status to invoices table
       if (invoiceId) {
-        if (mode === 'reservation') {
+        if (signingDocumentMode === 'reservation') {
           await supabase.from('invoices').update({
             reservation_docusign_envelope_id: result.envelopeId,
             reservation_signing_status: 'sent',
@@ -1439,12 +1467,33 @@ export default function AccountSummaryModal({
     
     setIssuingCreditNote(true);
     try {
+      // Check if credit note already exists for this invoice
+      const { data: existingCN } = await supabase
+        .from('credit_notes')
+        .select('id, credit_note_number')
+        .eq('original_invoice_id', invoiceId)
+        .maybeSingle();
+      
+      if (existingCN) {
+        alert(`A credit note (${existingCN.credit_note_number}) has already been issued for this invoice.`);
+        setIssuingCreditNote(false);
+        return;
+      }
+      
       // Get the invoice totals to credit
       const invoiceTotal = chargesTotals.grandTotal;
       const invoiceSubtotal = chargesTotals.subtotal;
       const invoiceVat = chargesTotals.vat;
       
-      // Create credit note record
+      // 1. Get total payments allocated to this invoice (before deallocating)
+      const { data: allocationsToRemove } = await supabase
+        .from('uv_payment_allocations')
+        .select('id, payment_id, allocated_amount')
+        .eq('invoice_id', invoiceId);
+      
+      const totalAllocatedPayments = allocationsToRemove?.reduce((sum, a) => sum + (a.allocated_amount || 0), 0) || 0;
+      
+      // 2. Create credit note record
       // The database triggers will automatically:
       // - Mark the original invoice as 'reversed' (credited)
       // - Add the credit to deal's credit_balance
@@ -1466,7 +1515,28 @@ export default function AccountSummaryModal({
       
       if (cnError) throw cnError;
       
-      // Also update vehicle_reservations for backwards compatibility
+      // 3. Deallocate all payments from this invoice (make them floating again)
+      if (allocationsToRemove && allocationsToRemove.length > 0) {
+        const { error: deallocError } = await supabase
+          .from('uv_payment_allocations')
+          .delete()
+          .eq('invoice_id', invoiceId);
+        
+        if (deallocError) {
+          console.error('Error deallocating payments:', deallocError);
+        }
+      }
+      
+      // 4. Update invoice paid_amount to 0 (payments are now unallocated)
+      await supabase
+        .from('invoices')
+        .update({ 
+          paid_amount: 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', invoiceId);
+      
+      // 5. Also update vehicle_reservations for backwards compatibility
       await supabase
         .from('vehicle_reservations')
         .update({ 
@@ -1477,10 +1547,16 @@ export default function AccountSummaryModal({
       
       setShowCreditNoteModal(false);
       setCreditNoteReason('');
-      setDocumentStatus('reversed');
-      setInvoiceStatus('reversed');
+      setDocumentStatus('credited');
+      setInvoiceStatus('credited');
       
-      alert(`Credit Note ${creditNote.credit_note_number} has been issued.\n\nCredit of AED ${formatCurrency(invoiceTotal)} is now available.`);
+      // Show detailed message
+      let message = `Credit Note ${creditNote.credit_note_number} has been issued.`;
+      if (totalAllocatedPayments > 0) {
+        message += `\n\nPayments totaling AED ${formatCurrency(totalAllocatedPayments)} have been deallocated and are now available to be re-allocated to a new invoice.`;
+      }
+      alert(message);
+      
       await loadData(false);
     } catch (error) {
       console.error('Error issuing credit note:', error);
@@ -1575,103 +1651,104 @@ export default function AccountSummaryModal({
           background-color: #1a1a1a !important;
         }
       `}</style>
-      <div className="account-modal bg-[#0d0d0d] rounded-xl w-full max-w-6xl h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-[#333]">
+      <div className="account-modal bg-gradient-to-br from-[#0f0f0f] to-[#080808] rounded-2xl w-full max-w-6xl h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-[#2a2a2a]">
         
         {/* ============ FULL SCREEN LOADER ============ */}
         {loading && (
           <>
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <div className="w-10 h-10 border-2 border-[#333] border-t-[#888] rounded-full animate-spin mb-4" />
-              <p className="text-[#666] text-sm">Loading...</p>
+            <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-[#0f0f0f] to-[#080808]">
+              <div className="w-12 h-12 border-2 border-[#2a2a2a] border-t-[#c0c0c0] rounded-full animate-spin mb-4" />
+              <p className="text-[#888] text-sm font-medium">Loading account...</p>
             </div>
-            <div className="px-6 py-4 border-t border-[#333] flex items-center justify-end shrink-0 bg-[#111]">
-              <button onClick={onClose} className="px-4 py-2 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors">Close</button>
+            <div className="px-6 py-4 border-t border-[#2a2a2a] flex items-center justify-end shrink-0 bg-gradient-to-r from-[#111] to-[#0d0d0d]">
+              <button onClick={onClose} className="px-5 py-2 bg-gradient-to-r from-[#333] to-[#2a2a2a] hover:from-[#444] hover:to-[#333] text-white text-sm font-medium rounded-lg transition-all border border-[#444]">Close</button>
             </div>
           </>
         )}
 
         {/* ============ HEADER ============ */}
         {!loading && (
-        <div className="shrink-0 bg-gradient-to-b from-[#1a1a1a] to-[#111] border-b border-[#333]">
+        <div className="shrink-0 bg-gradient-to-b from-[#1a1a1a] via-[#141414] to-[#0f0f0f] border-b border-[#2a2a2a]">
           {/* Top bar with customer info and close */}
-          <div className="px-6 py-4 flex items-center justify-between">
+          <div className="px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#888] to-[#444] flex items-center justify-center text-white font-semibold text-sm">
+              {/* Avatar with metallic gradient */}
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#c0c0c0] via-[#888] to-[#555] flex items-center justify-center text-[#111] font-bold text-sm shadow-lg">
                 {(formData.customerName || 'C').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
               </div>
               <div>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-base font-semibold text-white">
+                  <h2 className="text-lg font-semibold text-white tracking-tight">
                     {formData.customerName || 'Customer'}
                   </h2>
                   {customerNumber && (
-                    <span className="px-2 py-0.5 bg-gradient-to-r from-[#444] to-[#333] text-[#ccc] text-[11px] font-mono rounded border border-[#555]">
+                    <span className="px-2.5 py-1 bg-gradient-to-r from-[#2a2a2a] to-[#222] text-[#c0c0c0] text-[11px] font-mono rounded-md border border-[#444] shadow-inner">
                       {customerNumber}
                     </span>
                   )}
                   {dealNumber && (
-                    <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-400 text-[11px] font-mono rounded border border-blue-500/30">
+                    <span className="px-2.5 py-1 bg-gradient-to-r from-blue-900/30 to-blue-800/20 text-blue-400 text-[11px] font-mono rounded-md border border-blue-500/30">
                       {dealNumber}
                     </span>
                   )}
                   {invoiceNumber && (
-                    <span className="px-2 py-0.5 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-400 text-[11px] font-mono rounded border border-emerald-500/30">
+                    <span className="px-2.5 py-1 bg-gradient-to-r from-emerald-900/30 to-emerald-800/20 text-emerald-400 text-[11px] font-mono rounded-md border border-emerald-500/30">
                       {invoiceNumber}
                     </span>
                   )}
                   {isPaid && documentStatus !== 'reversed' && (
-                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[11px] font-medium rounded flex items-center gap-1">
+                    <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[11px] font-semibold rounded-md flex items-center gap-1 border border-emerald-500/20">
                       <Check className="w-3 h-3" /> Paid
                     </span>
                   )}
-                  {documentStatus === 'reversed' && (
-                    <span className="px-2 py-0.5 bg-red-500/10 text-red-400 text-[11px] font-medium rounded flex items-center gap-1">
-                      <X className="w-3 h-3" /> Reversed
+                  {(documentStatus === 'reversed' || documentStatus === 'credited') && (
+                    <span className="px-2 py-1 bg-red-500/10 text-red-400 text-[11px] font-semibold rounded-md flex items-center gap-1 border border-red-500/20">
+                      <X className="w-3 h-3" /> Credited
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 mt-0.5 text-[13px] text-[#888]">
-                  <span>{formData.contactNo}</span>
+                <div className="flex items-center gap-3 mt-1.5 text-[13px] text-[#999]">
+                  <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-[#666]" />{formData.contactNo}</span>
                   {formData.emailAddress && (
                     <>
-                      <span className="text-[#444]">•</span>
-                      <span>{formData.emailAddress}</span>
+                      <span className="text-[#333]">•</span>
+                      <span className="flex items-center gap-1.5"><Mail className="w-3 h-3 text-[#666]" />{formData.emailAddress}</span>
                     </>
                   )}
-                  <span className="text-[#444]">•</span>
-                  <span>{formData.makeModel} {formData.modelYear > 0 && formData.modelYear}</span>
+                  <span className="text-[#333]">•</span>
+                  <span className="flex items-center gap-1.5"><Car className="w-3 h-3 text-[#666]" />{formData.makeModel} {formData.modelYear > 0 && formData.modelYear}</span>
                 </div>
               </div>
             </div>
             
             {/* Stats & Close */}
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-5 text-right">
-                <div>
-                  <p className="text-[11px] text-[#666] uppercase tracking-wide">Total</p>
-                  <p className="text-sm font-semibold text-white">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p>
+              <div className="flex items-center gap-1 bg-gradient-to-r from-[#1a1a1a] to-[#141414] rounded-xl border border-[#2a2a2a] p-3">
+                <div className="px-4 text-center">
+                  <p className="text-[10px] text-[#666] uppercase tracking-wider font-medium">Total</p>
+                  <p className="text-base font-bold text-white mt-0.5">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p>
                 </div>
-                <div className="w-px h-8 bg-[#333]" />
-                <div>
-                  <p className="text-[11px] text-[#666] uppercase tracking-wide">Paid</p>
-                  <p className="text-sm font-semibold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p>
+                <div className="w-px h-10 bg-gradient-to-b from-transparent via-[#333] to-transparent" />
+                <div className="px-4 text-center">
+                  <p className="text-[10px] text-[#666] uppercase tracking-wider font-medium">Paid</p>
+                  <p className="text-base font-bold text-emerald-400 mt-0.5">AED {formatCurrency(chargesTotals.totalPaid)}</p>
                 </div>
-                <div className="w-px h-8 bg-[#333]" />
-                <div>
-                  <p className="text-[11px] text-[#666] uppercase tracking-wide">{chargesTotals.balanceDue < 0 ? 'Credit' : 'Balance'}</p>
-                  <p className={`text-sm font-semibold ${chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <div className="w-px h-10 bg-gradient-to-b from-transparent via-[#333] to-transparent" />
+                <div className="px-4 text-center">
+                  <p className="text-[10px] text-[#666] uppercase tracking-wider font-medium">{chargesTotals.balanceDue < 0 ? 'Credit' : 'Balance'}</p>
+                  <p className={`text-base font-bold mt-0.5 ${chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     AED {formatCurrency(Math.abs(chargesTotals.balanceDue))}{chargesTotals.balanceDue < 0 ? ' CR' : ''}
                   </p>
                 </div>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-[#333] rounded-lg transition-colors">
+              <button onClick={onClose} className="p-2.5 hover:bg-[#222] rounded-xl transition-all border border-transparent hover:border-[#333]">
                 <X className="w-5 h-5 text-[#666] hover:text-white transition-colors" />
               </button>
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex w-full">
+          {/* Tabs with luxury styling */}
+          <div className="flex w-full px-2">
             {[
               { key: 'form', label: 'Details', icon: ClipboardList },
               { key: 'charges', label: 'Charges', icon: List, count: allCharges.length },
@@ -1682,20 +1759,23 @@ export default function AccountSummaryModal({
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as TabType)}
-                className={`flex-1 relative flex items-center justify-center gap-2 py-4 text-sm font-medium transition-all border-b-2 ${
+                className={`flex-1 relative flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition-all rounded-t-xl mx-0.5 ${
                   activeTab === tab.key 
-                    ? 'text-white bg-gradient-to-t from-[#222] to-transparent border-[#888]' 
-                    : 'text-[#666] hover:text-[#999] hover:bg-[#0d0d0d] border-transparent'
+                    ? 'text-white bg-gradient-to-b from-[#222] to-[#0a0a0a] border-t border-x border-[#333] shadow-lg' 
+                    : 'text-[#666] hover:text-[#c0c0c0] hover:bg-[#111]'
                 }`}
               >
-                <tab.icon className="w-4 h-4" />
+                <tab.icon className={`w-4 h-4 ${activeTab === tab.key ? 'text-[#c0c0c0]' : ''}`} />
                 {tab.label}
                 {tab.count !== undefined && tab.count > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                    activeTab === tab.key ? 'bg-[#444] text-white' : 'bg-[#333] text-[#888]'
+                  <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
+                    activeTab === tab.key ? 'bg-gradient-to-r from-[#444] to-[#333] text-white' : 'bg-[#222] text-[#888]'
                   }`}>
                     {tab.count}
                   </span>
+                )}
+                {activeTab === tab.key && (
+                  <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-[#c0c0c0] to-transparent" />
                 )}
               </button>
             ))}
@@ -1727,27 +1807,27 @@ export default function AccountSummaryModal({
 
         {/* ============ CONTENT ============ */}
         {!loading && (
-        <div className="flex-1 overflow-y-auto p-6 relative min-h-0 bg-[#0a0a0a]">
+        <div className="flex-1 overflow-y-auto p-6 relative min-h-0 bg-gradient-to-b from-[#0a0a0a] to-[#080808]">
             <>
               {/* FORM TAB */}
               {activeTab === 'form' && (
-                <form onSubmit={handleSubmit} className="space-y-3">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Customer Information */}
-                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
-                    <div className="px-3 py-2 border-b border-[#333] bg-[#111]">
-                      <h3 className="text-[12px] font-medium text-[#999] flex items-center gap-2">
+                  <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] overflow-hidden shadow-lg">
+                    <div className="px-4 py-3 border-b border-[#2a2a2a] bg-gradient-to-r from-[#1a1a1a] to-[#141414]">
+                      <h3 className="text-xs font-semibold text-[#c0c0c0] flex items-center gap-2 uppercase tracking-wider">
                         <User className="w-3.5 h-3.5" /> Customer Information
                       </h3>
                     </div>
-                    <div className="p-3">
-                      <div className="flex gap-3">
+                    <div className="p-4">
+                      <div className="flex gap-4">
                         <div className="w-[180px] shrink-0">
-                          <label className="block text-[11px] text-[#666] mb-1">Full Name</label>
-                          <input type="text" value={formData.customerName} onChange={(e) => handleInputChange('customerName', e.target.value)} placeholder="Customer Name" className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" required />
+                          <label className="block text-[11px] text-[#888] mb-1.5 font-medium">Full Name</label>
+                          <input type="text" value={formData.customerName} onChange={(e) => handleInputChange('customerName', e.target.value)} placeholder="Customer Name" className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all" required />
                         </div>
                         <div className="w-[130px] shrink-0">
-                          <label className="block text-[11px] text-[#666] mb-1">Phone</label>
-                          <input type="tel" value={formData.contactNo} onChange={(e) => handleInputChange('contactNo', e.target.value)} placeholder="+971 XX XXX" className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" required />
+                          <label className="block text-[11px] text-[#888] mb-1.5 font-medium">Phone</label>
+                          <input type="tel" value={formData.contactNo} onChange={(e) => handleInputChange('contactNo', e.target.value)} placeholder="+971 XX XXX" className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all" required />
                         </div>
                         <div className="flex-1 min-w-0">
                           <label className="block text-[11px] text-[#666] mb-1">Email</label>
@@ -1755,31 +1835,31 @@ export default function AccountSummaryModal({
                         </div>
                         <div className="w-[80px] shrink-0">
                           <label className="block text-[11px] text-[#666] mb-1">ID Type</label>
-                          <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-2 h-[34px] bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner focus:outline-none focus:border-[#666]">
+                          <select value={formData.customerIdType} onChange={(e) => handleInputChange('customerIdType', e.target.value)} className="w-full px-3 h-[42px] bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner focus:outline-none focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all">
                             <option value="EID" className="bg-[#0d0d0d]">EID</option>
                             <option value="Passport" className="bg-[#0d0d0d]">Passport</option>
                           </select>
                         </div>
                         <div className="w-[200px] shrink-0">
-                          <label className="block text-[11px] text-[#666] mb-1">ID Number</label>
-                          <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#666]" required />
+                          <label className="block text-[11px] text-[#888] mb-1.5 font-medium">ID Number</label>
+                          <input type="text" value={formData.customerIdNumber} onChange={(e) => handleInputChange('customerIdNumber', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner placeholder-[#555] focus:outline-none focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all" required />
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Sale Type Toggle */}
-                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-3 mb-3">
+                  <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] p-4 shadow-lg">
                     <div className="flex items-center justify-between">
-                      <span className="text-[12px] text-[#888] font-medium">Sale Type</span>
-                      <div className="flex items-center bg-[#111] rounded-lg p-1 border border-[#333]">
+                      <span className="text-xs text-[#c0c0c0] font-semibold uppercase tracking-wider">Sale Type</span>
+                      <div className="flex items-center bg-[#0d0d0d] rounded-xl p-1 border border-[#333]">
                         <button
                           type="button"
                           onClick={() => handleSaleTypeChange('cash')}
-                          className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${
+                          className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all ${
                             saleType === 'cash'
-                              ? 'bg-[#333] text-white'
-                              : 'text-[#666] hover:text-[#999]'
+                              ? 'bg-gradient-to-r from-[#444] to-[#333] text-white shadow-md'
+                              : 'text-[#666] hover:text-[#c0c0c0]'
                           }`}
                         >
                           Cash Sale
@@ -1787,10 +1867,10 @@ export default function AccountSummaryModal({
                         <button
                           type="button"
                           onClick={() => handleSaleTypeChange('finance')}
-                          className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${
+                          className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all ${
                             saleType === 'finance'
-                              ? 'bg-[#333] text-white'
-                              : 'text-[#666] hover:text-[#999]'
+                              ? 'bg-gradient-to-r from-[#444] to-[#333] text-white shadow-md'
+                              : 'text-[#666] hover:text-[#c0c0c0]'
                           }`}
                         >
                           Bank Finance
@@ -1800,74 +1880,74 @@ export default function AccountSummaryModal({
                   </div>
 
                   {/* Vehicle Information */}
-                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
-                    <div className="px-3 py-2 border-b border-[#333] bg-[#111]">
-                      <h3 className="text-[12px] font-medium text-[#999] flex items-center gap-2">
+                  <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] overflow-hidden shadow-lg">
+                    <div className="px-4 py-3 border-b border-[#2a2a2a] bg-gradient-to-r from-[#1a1a1a] to-[#141414]">
+                      <h3 className="text-xs font-semibold text-[#c0c0c0] flex items-center gap-2 uppercase tracking-wider">
                         <Car className="w-3.5 h-3.5" /> Vehicle Information
                       </h3>
                     </div>
-                    <div className="p-3">
-                      <div className="grid grid-cols-4 gap-3">
-                        <div><label className="block text-[11px] text-[#666] mb-1">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
-                        <div><label className="block text-[11px] text-[#666] mb-1">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
-                        <div><label className="block text-[11px] text-[#666] mb-1">Mileage</label><input type="number" value={formData.mileage} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
-                        <div><label className="block text-[11px] text-[#666] mb-1">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner font-mono cursor-not-allowed" /></div>
+                    <div className="p-4">
+                      <div className="grid grid-cols-4 gap-4">
+                        <div><label className="block text-[11px] text-[#888] mb-1.5 font-medium">Year</label><input type="number" value={formData.modelYear} readOnly className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner cursor-not-allowed opacity-75" /></div>
+                        <div><label className="block text-[11px] text-[#888] mb-1.5 font-medium">Make & Model</label><input type="text" value={formData.makeModel} readOnly className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner cursor-not-allowed opacity-75" /></div>
+                        <div><label className="block text-[11px] text-[#888] mb-1.5 font-medium">Mileage</label><input type="number" value={formData.mileage} readOnly className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner cursor-not-allowed opacity-75" /></div>
+                        <div><label className="block text-[11px] text-[#888] mb-1.5 font-medium">Chassis Number</label><input type="text" value={formData.chassisNo} readOnly className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner font-mono cursor-not-allowed opacity-75" /></div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 mt-2">
-                        <div><label className="block text-[11px] text-[#666] mb-1">Exterior Colour</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
-                        <div><label className="block text-[11px] text-[#666] mb-1">Interior Colour</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner cursor-not-allowed" /></div>
+                      <div className="grid grid-cols-2 gap-4 mt-3">
+                        <div><label className="block text-[11px] text-[#888] mb-1.5 font-medium">Exterior Colour</label><input type="text" value={formData.exteriorColour} readOnly className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner cursor-not-allowed opacity-75" /></div>
+                        <div><label className="block text-[11px] text-[#888] mb-1.5 font-medium">Interior Colour</label><input type="text" value={formData.interiorColour} readOnly className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner cursor-not-allowed opacity-75" /></div>
                       </div>
                     </div>
                   </div>
 
                   {/* Coverage & Warranty */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     {/* Manufacturer Warranty */}
-                    <div className={`bg-[#0a0a0a] rounded-lg border overflow-hidden ${formData.manufacturerWarranty ? 'border-[#555]' : 'border-[#333]'}`}>
-                      <div className="px-3 py-2 flex items-center justify-between">
+                    <div className={`bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border overflow-hidden shadow-lg ${formData.manufacturerWarranty ? 'border-[#444]' : 'border-[#2a2a2a]'}`}>
+                      <div className="px-4 py-3 flex items-center justify-between">
                         <div>
-                          <p className="text-[12px] font-medium text-white">Manufacturer Warranty</p>
-                          <p className="text-[10px] text-[#666]">Factory coverage</p>
+                          <p className="text-sm font-medium text-white">Manufacturer Warranty</p>
+                          <p className="text-[11px] text-[#888]">Factory coverage</p>
                         </div>
-                        <button type="button" onClick={() => handleInputChange('manufacturerWarranty', !formData.manufacturerWarranty)} className={`relative w-9 h-5 rounded-full transition-colors ${formData.manufacturerWarranty ? 'bg-gradient-to-r from-[#666] to-[#888]' : 'bg-[#333]'}`}>
-                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.manufacturerWarranty ? 'left-[18px]' : 'left-0.5'}`} />
+                        <button type="button" onClick={() => handleInputChange('manufacturerWarranty', !formData.manufacturerWarranty)} className={`relative w-11 h-6 rounded-full transition-all ${formData.manufacturerWarranty ? 'bg-gradient-to-r from-[#888] to-[#c0c0c0]' : 'bg-[#222]'}`}>
+                          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md transition-all ${formData.manufacturerWarranty ? 'left-[22px]' : 'left-1'}`} />
                         </button>
                       </div>
                       {formData.manufacturerWarranty && (
-                        <div className="px-3 pb-2 grid grid-cols-2 gap-2 border-t border-[#333] pt-2">
-                          <div><label className="block text-[10px] text-[#666] mb-1">Expiry</label><input type="date" value={formData.manufacturerWarrantyExpiryDate} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryDate', e.target.value)} className="w-full px-2 py-1.5 bg-[#1a1a1a] border border-[#444] rounded text-white text-xs shadow-inner" /></div>
-                          <div><label className="block text-[10px] text-[#666] mb-1">Mileage</label><input type="number" value={formData.manufacturerWarrantyExpiryMileage} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryMileage', parseInt(e.target.value) || 0)} placeholder="km" className="w-full px-2 py-1.5 bg-[#1a1a1a] border border-[#444] rounded text-white text-xs shadow-inner placeholder-[#555]" /></div>
+                        <div className="px-4 pb-3 grid grid-cols-2 gap-3 border-t border-[#2a2a2a] pt-3">
+                          <div><label className="block text-[10px] text-[#888] mb-1.5 font-medium">Expiry</label><input type="date" value={formData.manufacturerWarrantyExpiryDate} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-xs shadow-inner" /></div>
+                          <div><label className="block text-[10px] text-[#888] mb-1.5 font-medium">Mileage</label><input type="number" value={formData.manufacturerWarrantyExpiryMileage} onChange={(e) => handleInputChange('manufacturerWarrantyExpiryMileage', parseInt(e.target.value) || 0)} placeholder="km" className="w-full px-3 py-2 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-xs shadow-inner placeholder-[#555]" /></div>
                         </div>
                       )}
                     </div>
 
                     {/* Dealer Service Package */}
-                    <div className={`bg-[#0a0a0a] rounded-lg border overflow-hidden ${formData.dealerServicePackage ? 'border-[#555]' : 'border-[#333]'}`}>
-                      <div className="px-3 py-2 flex items-center justify-between">
+                    <div className={`bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border overflow-hidden shadow-lg ${formData.dealerServicePackage ? 'border-[#444]' : 'border-[#2a2a2a]'}`}>
+                      <div className="px-4 py-3 flex items-center justify-between">
                         <div>
-                          <p className="text-[12px] font-medium text-white">Dealer Service Package</p>
-                          <p className="text-[10px] text-[#666]">Prepaid service</p>
+                          <p className="text-sm font-medium text-white">Dealer Service Package</p>
+                          <p className="text-[11px] text-[#888]">Prepaid service</p>
                         </div>
-                        <button type="button" onClick={() => handleInputChange('dealerServicePackage', !formData.dealerServicePackage)} className={`relative w-9 h-5 rounded-full transition-colors ${formData.dealerServicePackage ? 'bg-gradient-to-r from-[#666] to-[#888]' : 'bg-[#333]'}`}>
-                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.dealerServicePackage ? 'left-[18px]' : 'left-0.5'}`} />
+                        <button type="button" onClick={() => handleInputChange('dealerServicePackage', !formData.dealerServicePackage)} className={`relative w-11 h-6 rounded-full transition-all ${formData.dealerServicePackage ? 'bg-gradient-to-r from-[#888] to-[#c0c0c0]' : 'bg-[#222]'}`}>
+                          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md transition-all ${formData.dealerServicePackage ? 'left-[22px]' : 'left-1'}`} />
                         </button>
                       </div>
                       {formData.dealerServicePackage && (
-                        <div className="px-3 pb-2 grid grid-cols-2 gap-2 border-t border-[#333] pt-2">
-                          <div><label className="block text-[10px] text-[#666] mb-1">Expiry</label><input type="date" value={formData.dealerServicePackageExpiryDate} onChange={(e) => handleInputChange('dealerServicePackageExpiryDate', e.target.value)} className="w-full px-2 py-1.5 bg-[#1a1a1a] border border-[#444] rounded text-white text-xs shadow-inner" /></div>
-                          <div><label className="block text-[10px] text-[#666] mb-1">Mileage</label><input type="number" value={formData.dealerServicePackageExpiryMileage} onChange={(e) => handleInputChange('dealerServicePackageExpiryMileage', parseInt(e.target.value) || 0)} placeholder="km" className="w-full px-2 py-1.5 bg-[#1a1a1a] border border-[#444] rounded text-white text-xs shadow-inner placeholder-[#555]" /></div>
+                        <div className="px-4 pb-3 grid grid-cols-2 gap-3 border-t border-[#2a2a2a] pt-3">
+                          <div><label className="block text-[10px] text-[#888] mb-1.5 font-medium">Expiry</label><input type="date" value={formData.dealerServicePackageExpiryDate} onChange={(e) => handleInputChange('dealerServicePackageExpiryDate', e.target.value)} className="w-full px-3 py-2 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-xs shadow-inner" /></div>
+                          <div><label className="block text-[10px] text-[#888] mb-1.5 font-medium">Mileage</label><input type="number" value={formData.dealerServicePackageExpiryMileage} onChange={(e) => handleInputChange('dealerServicePackageExpiryMileage', parseInt(e.target.value) || 0)} placeholder="km" className="w-full px-3 py-2 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-xs shadow-inner placeholder-[#555]" /></div>
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* Notes */}
-                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
-                    <div className="px-3 py-2 border-b border-[#333] bg-[#111]">
-                      <h3 className="text-[12px] font-medium text-[#999]">Additional Notes</h3>
+                  <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] overflow-hidden shadow-lg">
+                    <div className="px-4 py-3 border-b border-[#2a2a2a] bg-gradient-to-r from-[#1a1a1a] to-[#141414]">
+                      <h3 className="text-xs font-semibold text-[#c0c0c0] uppercase tracking-wider">Additional Notes</h3>
                     </div>
-                    <div className="p-3">
-                      <textarea value={formData.additionalNotes} onChange={(e) => handleInputChange('additionalNotes', e.target.value)} rows={2} className="w-full px-2.5 py-2 bg-[#1a1a1a] border border-[#444] rounded text-white text-sm shadow-inner resize-none placeholder-[#555] focus:outline-none focus:border-[#666]" placeholder="Any notes for this transaction..." />
+                    <div className="p-4">
+                      <textarea value={formData.additionalNotes} onChange={(e) => handleInputChange('additionalNotes', e.target.value)} rows={3} className="w-full px-3 py-3 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner resize-none placeholder-[#555] focus:outline-none focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all" placeholder="Any notes for this transaction..." />
                     </div>
                   </div>
                 </form>
@@ -1877,17 +1957,18 @@ export default function AccountSummaryModal({
               {activeTab === 'charges' && (
                 <div className="space-y-5">
                   <>
-                      {/* Quick Add Buttons */}
                       {/* Locked Status Banner */}
                       {chargesLocked && (
-                        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center gap-3">
-                          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
-                          <div>
-                            <p className="text-amber-400 text-sm font-medium">Charges Locked</p>
-                            <p className="text-amber-400/70 text-xs">Invoice has been generated. To modify charges, reverse the invoice first.</p>
+                        <div className="p-4 bg-gradient-to-r from-amber-900/20 to-amber-800/10 border border-amber-500/30 rounded-xl flex items-center gap-4 shadow-lg">
+                          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                            <AlertCircle className="w-5 h-5 text-amber-400" />
                           </div>
-                        </div>
-                      )}
+                          <div>
+                            <p className="text-amber-400 text-sm font-semibold">Charges Locked</p>
+                            <p className="text-amber-400/70 text-xs mt-0.5">Invoice has been generated. Issue a credit note to modify charges.</p>
+                          </div>
+                    </div>
+                  )}
 
                       {/* Add Charge Buttons - Hidden when locked */}
                       {!chargesLocked && (
@@ -1915,9 +1996,9 @@ export default function AccountSummaryModal({
                                 }); 
                                 setShowAddCharge(true); 
                               }} 
-                              className="px-4 py-2 rounded-full text-[13px] font-medium transition-all bg-[#222] text-[#aaa] border border-[#333] hover:bg-[#333] hover:text-white"
+                              className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all bg-gradient-to-r from-[#1a1a1a] to-[#141414] text-[#c0c0c0] border border-[#333] hover:border-[#555] hover:text-white shadow-md hover:shadow-lg"
                             >
-                              {type.label}
+                              + {type.label}
                             </button>
                           );
                         })}
@@ -1926,197 +2007,357 @@ export default function AccountSummaryModal({
 
                       {/* Add Form */}
                       {showAddCharge && (
-                        <div className="bg-[#0f0f0f] rounded-lg p-4 border border-[#333]">
-                          <h4 className="text-sm font-medium text-white mb-4">Add Charge</h4>
+                        <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl p-5 border border-[#2a2a2a] shadow-lg">
+                          <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                            <Plus className="w-4 h-4 text-[#c0c0c0]" /> Add New Charge
+                          </h4>
                           <div className="grid grid-cols-4 gap-4 items-end">
-                            <div><label className="block text-[12px] text-[#666] mb-2">Type</label><select value={newCharge.charge_type} onChange={(e) => setNewCharge(prev => ({ ...prev, charge_type: e.target.value, description: CHARGE_TYPES.find(c => c.value === e.target.value)?.label || '' }))} className="w-full px-3 h-[42px] bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner">{CHARGE_TYPES.map((t) => <option key={t.value} value={t.value} className="bg-[#0d0d0d]">{t.label}</option>)}</select></div>
-                            <div><label className="block text-[12px] text-[#666] mb-2">Description</label><input type="text" value={newCharge.description} onChange={(e) => setNewCharge(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
-                            <div><label className="block text-[12px] text-[#666] mb-2">Amount (AED)</label><input type="number" value={newCharge.unit_price} onChange={(e) => setNewCharge(prev => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
+                            <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Type</label><select value={newCharge.charge_type} onChange={(e) => setNewCharge(prev => ({ ...prev, charge_type: e.target.value, description: CHARGE_TYPES.find(c => c.value === e.target.value)?.label || '' }))} className="w-full px-3 h-[44px] bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all">{CHARGE_TYPES.map((t) => <option key={t.value} value={t.value} className="bg-[#0d0d0d]">{t.label}</option>)}</select></div>
+                            <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Description</label><input type="text" value={newCharge.description} onChange={(e) => setNewCharge(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all" /></div>
+                            <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Amount (AED)</label><input type="number" value={newCharge.unit_price} onChange={(e) => setNewCharge(prev => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all" /></div>
                             <div className="flex gap-2">
-                              <button onClick={handleAddCharge} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors">{saving ? '...' : 'Add'}</button>
-                              <button onClick={() => setShowAddCharge(false)} className="px-4 py-2.5 bg-[#333] text-white text-sm rounded-md hover:bg-[#444]">Cancel</button>
+                              <button onClick={handleAddCharge} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#555] to-[#444] text-white text-sm font-semibold rounded-lg hover:from-[#666] hover:to-[#555] transition-all shadow-md">{saving ? '...' : 'Add'}</button>
+                              <button onClick={() => setShowAddCharge(false)} className="px-4 py-2.5 bg-[#222] border border-[#333] text-white text-sm rounded-lg hover:bg-[#333] transition-all">Cancel</button>
                             </div>
                           </div>
                         </div>
                       )}
 
                       {/* Charges Table */}
-                      <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
+                      <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] overflow-hidden shadow-lg">
                         <table className="w-full">
-                          <thead><tr className="border-b border-[#333] bg-[#111]"><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Description</th><th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Amount</th><th className="px-4 py-3 w-12"></th></tr></thead>
-                          <tbody className="divide-y divide-[#333]">
-                            {allCharges.length === 0 ? <tr><td colSpan={3} className="px-4 py-12 text-center text-[#555]">No charges added yet. Click a button above to add.</td></tr> : allCharges.map((c) => (
-                              <tr key={c.id} className="hover:bg-[#0d0d0d] transition-colors">
-                                <td className="px-4 py-3 text-white text-sm">{c.description}</td>
-                                <td className={`px-4 py-3 text-right font-medium text-sm ${c.unit_price < 0 ? 'text-emerald-400' : 'text-white'}`}>{c.unit_price < 0 ? '-' : ''}AED {formatCurrency(Math.abs(c.total_amount || c.unit_price))}</td>
-                                <td className="px-4 py-3">{!chargesLocked && <button onClick={() => handleDeleteCharge(c.id)} className="p-1.5 hover:bg-red-500/20 rounded text-[#555] hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>}</td>
+                          <thead><tr className="border-b border-[#2a2a2a] bg-gradient-to-r from-[#1a1a1a] to-[#141414]"><th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#888] uppercase tracking-wider">Description</th><th className="px-5 py-3.5 text-right text-[11px] font-semibold text-[#888] uppercase tracking-wider">Amount</th><th className="px-5 py-3.5 w-12"></th></tr></thead>
+                          <tbody className="divide-y divide-[#222]">
+                            {allCharges.length === 0 ? <tr><td colSpan={3} className="px-5 py-16 text-center text-[#666]">No charges added yet. Click a button above to add.</td></tr> : allCharges.map((c) => (
+                              <tr key={c.id} className="hover:bg-[#141414] transition-colors">
+                                <td className="px-5 py-4 text-white text-sm">{c.description}</td>
+                                <td className={`px-5 py-4 text-right font-semibold text-sm ${c.unit_price < 0 ? 'text-emerald-400' : 'text-white'}`}>{c.unit_price < 0 ? '-' : ''}AED {formatCurrency(Math.abs(c.total_amount || c.unit_price))}</td>
+                                <td className="px-5 py-4">{!chargesLocked && <button onClick={() => handleDeleteCharge(c.id)} className="p-2 hover:bg-red-500/20 rounded-lg text-[#555] hover:text-red-400 transition-all"><Trash2 className="w-4 h-4" /></button>}</td>
                               </tr>
                             ))}
                           </tbody>
                           {allCharges.length > 0 && (
-                            <tfoot><tr className="bg-[#0d0d0d] border-t border-[#333]"><td className="px-4 py-3 text-sm font-semibold text-white">Grand Total</td><td className="px-4 py-3 text-right text-base font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</td><td></td></tr></tfoot>
+                            <tfoot><tr className="bg-gradient-to-r from-[#1a1a1a] to-[#141414] border-t border-[#2a2a2a]"><td className="px-5 py-4 text-sm font-semibold text-[#c0c0c0]">Grand Total</td><td className="px-5 py-4 text-right text-lg font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</td><td></td></tr></tfoot>
                           )}
                         </table>
                       </div>
 
                       {/* ============================================ */}
-                      {/* DOCUMENT GENERATION SECTION */}
+                      {/* CURRENT INVOICE SECTION */}
                       {/* ============================================ */}
-                      <div className="mt-6 pt-6 border-t border-[#333]">
-                        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Documents
-                        </h3>
+                      <div className="mt-6 pt-6 border-t border-[#2a2a2a]">
+                        {/* Status Banner for Credited Invoice */}
+                        {(invoiceStatus === 'credited' || invoiceStatus === 'reversed') && (
+                          <div className="mb-5 p-4 bg-gradient-to-r from-red-900/20 to-red-800/10 border border-red-500/30 rounded-xl flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <AlertCircle className="w-5 h-5 text-red-400" />
+                              </div>
+                              <div>
+                                <p className="text-red-400 text-sm font-semibold">Invoice Credited</p>
+                                <p className="text-red-400/70 text-xs mt-0.5">This invoice has been credited. Create a new invoice to continue.</p>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={handleCreateNewInvoice} 
+                              disabled={saving} 
+                              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg"
+                            >
+                              {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus className="w-4 h-4" />}
+                              Create New Invoice
+                            </button>
+                          </div>
+                        )}
                         
-                        <div className="space-y-4">
-                          {/* RESERVATION DOCUMENT */}
-                          <div className={`rounded-lg border overflow-hidden ${reservationPdfUrl ? 'bg-[#0f0f0f] border-[#333]' : 'bg-[#0d0d0d] border-[#222]'}`}>
-                            <div className="px-4 py-3 bg-[#111] flex items-center justify-between">
+                        {/* Document Generation Card */}
+                        {invoiceStatus !== 'credited' && invoiceStatus !== 'reversed' && (
+                          <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] overflow-hidden shadow-lg">
+                            {/* Header */}
+                            <div className="px-5 py-4 bg-gradient-to-r from-[#1a1a1a] to-[#141414] border-b border-[#2a2a2a] flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-md flex items-center justify-center ${reservationPdfUrl ? 'bg-[#444]' : 'bg-[#333]'}`}>
-                                  <FileText className={`w-4 h-4 ${reservationPdfUrl ? 'text-[#ccc]' : 'text-[#666]'}`} />
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#333] to-[#222] flex items-center justify-center">
+                                  <FileText className="w-4 h-4 text-[#c0c0c0]" />
                                 </div>
                                 <div>
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="text-sm font-medium text-white">Reservation Form</h3>
-                                    {dealNumber && (
-                                      <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-mono rounded">
-                                        {dealNumber}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-[12px] text-[#666] mt-0.5">
-                                    {reservationPdfUrl ? 'Generated' : 'Not generated'}
-                                  </p>
+                                  <h3 className="text-sm font-semibold text-white">Documents</h3>
+                                  <p className="text-[11px] text-[#666] mt-0.5">Generate reservation and invoice PDFs</p>
                                 </div>
                               </div>
-                              <div className="flex gap-2">
-                                <button 
-                                  onClick={() => handleGenerateDocument('reservation')}
-                                  disabled={saving || allCharges.length === 0} 
-                                  className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
-                                >
-                                  {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                                  {reservationPdfUrl ? 'Regenerate' : 'Generate Reservation'}
-                                </button>
-                                {reservationPdfUrl && (
-                                  <>
-                                    <button onClick={() => window.open(reservationPdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
-                                      <Eye className="w-4 h-4" /> View
-                                    </button>
-                                    {formData.emailAddress && (
-                                      <button 
-                                        onClick={handleSendForSigning} 
-                                        disabled={sendingForSigning} 
-                                        className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
-                                      >
-                                        <Mail className="w-4 h-4" />
-                                        {sendingForSigning ? 'Sending...' : 'Sign'}
-                                      </button>
-                                    )}
-                                  </>
+                              <div className="flex items-center gap-2">
+                                {invoiceNumber && (
+                                  <span className="px-3 py-1.5 bg-gradient-to-r from-emerald-900/30 to-emerald-800/20 text-emerald-400 text-[11px] font-mono rounded-lg border border-emerald-500/30">
+                                    {invoiceNumber}
+                                  </span>
+                                )}
+                                {dealNumber && (
+                                  <span className="px-3 py-1.5 bg-gradient-to-r from-blue-900/30 to-blue-800/20 text-blue-400 text-[11px] font-mono rounded-lg border border-blue-500/30">
+                                    {dealNumber}
+                                  </span>
                                 )}
                               </div>
                             </div>
-                          </div>
-
-                          {/* INVOICE DOCUMENT */}
-                          <div className={`rounded-lg border overflow-hidden ${invoiceStatus === 'reversed' ? 'bg-[#0f0f0f] border-red-500/30' : invoicePdfUrl ? 'bg-[#0f0f0f] border-emerald-500/30' : 'bg-[#0d0d0d] border-[#222]'}`}>
-                            <div className="px-4 py-3 bg-[#111] flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-md flex items-center justify-center ${invoiceStatus === 'reversed' ? 'bg-red-500/10' : invoicePdfUrl ? 'bg-emerald-500/10' : 'bg-[#333]'}`}>
-                                  <Receipt className={`w-4 h-4 ${invoiceStatus === 'reversed' ? 'text-red-400' : invoicePdfUrl ? 'text-emerald-400' : 'text-[#666]'}`} />
-                                </div>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="text-sm font-medium text-white">Invoice</h3>
-                                    {invoiceNumber && (
-                                      <span className={`px-1.5 py-0.5 text-[10px] font-mono rounded ${invoiceStatus === 'reversed' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                                        {invoiceNumber}
-                                      </span>
-                                    )}
-                                    {invoiceStatus === 'reversed' && (
-                                      <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-medium rounded">
-                                        REVERSED
-                                      </span>
-                                    )}
-                                    {signingStatus === 'sent' && (
-                                      <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded flex items-center gap-1">
-                                        <Clock className="w-3 h-3" /> Awaiting Signature
-                                      </span>
-                                    )}
-                                    {signingStatus === 'completed' && (
-                                      <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-medium rounded flex items-center gap-1">
-                                        <Check className="w-3 h-3" /> Signed
-                                      </span>
-                                    )}
+                            
+                            {/* Document Rows */}
+                            <div className="divide-y divide-[#222]">
+                              {/* RESERVATION ROW */}
+                              <div className="px-5 py-4 flex items-center justify-between hover:bg-[#0d0d0d] transition-colors">
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${reservationPdfUrl ? 'bg-blue-500/10' : 'bg-[#1a1a1a]'}`}>
+                                    <FileText className={`w-5 h-5 ${reservationPdfUrl ? 'text-blue-400' : 'text-[#555]'}`} />
                                   </div>
-                                  <p className={`text-[12px] mt-0.5 ${invoiceStatus === 'reversed' ? 'text-red-400' : chargesTotals.balanceDue > 0 ? 'text-amber-400' : 'text-[#666]'}`}>
-                                    {invoiceStatus === 'reversed' 
-                                      ? 'Invoice has been reversed' 
-                                      : chargesTotals.balanceDue > 0 
-                                        ? `Outstanding: AED ${formatCurrency(chargesTotals.balanceDue)}` 
-                                        : invoicePdfUrl ? 'Paid in full' : 'Not generated'}
-                                  </p>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium text-white">Reservation Form</span>
+                                      {reservationPdfUrl && (
+                                        <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-medium rounded-md border border-blue-500/20">
+                                          ✓ Ready
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[11px] text-[#666] mt-0.5">
+                                      {reservationPdfUrl ? 'Document generated and ready to view or sign' : 'Generate the reservation form PDF'}
+                                    </p>
+                                  </div>
                                 </div>
+                                <div className="flex items-center gap-2">
+                                  {reservationPdfUrl && (
+                                    <>
+                                      <button onClick={() => window.open(reservationPdfUrl, '_blank')} className="px-3 py-2 bg-[#222] hover:bg-[#333] text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all border border-[#333]">
+                                        <Eye className="w-3.5 h-3.5" /> View
+                                      </button>
+                                      {formData.emailAddress && (
+                                        <button 
+                                          onClick={() => handleSendForSigning('reservation')} 
+                                          disabled={sendingForSigning} 
+                                          className="px-3 py-2 bg-[#222] hover:bg-[#333] text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center gap-1.5 border border-[#333]"
+                                        >
+                                          <Mail className="w-3.5 h-3.5" />
+                                          {sendingForSigning ? '...' : 'Send for Signing'}
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                  <button 
+                                    onClick={() => handleGenerateDocument('reservation')}
+                                    disabled={saving || allCharges.length === 0} 
+                                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-md"
+                                  >
+                                    {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                                    {reservationPdfUrl ? 'Regenerate' : 'Generate'}
+                                  </button>
+                </div>
                               </div>
-                              <div className="flex gap-2">
-                                {invoiceStatus !== 'reversed' && (
+
+                              {/* INVOICE ROW */}
+                              <div className="px-5 py-4 flex items-center justify-between hover:bg-[#0d0d0d] transition-colors">
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${invoicePdfUrl ? 'bg-emerald-500/10' : 'bg-[#1a1a1a]'}`}>
+                                    <Receipt className={`w-5 h-5 ${invoicePdfUrl ? 'text-emerald-400' : 'text-[#555]'}`} />
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium text-white">Tax Invoice</span>
+                                      {invoicePdfUrl && (
+                                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-medium rounded-md border border-emerald-500/20">
+                                          ✓ Ready
+                                        </span>
+                                      )}
+                                      {signingStatus === 'sent' && (
+                                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[10px] font-medium rounded-md border border-amber-500/20 flex items-center gap-1">
+                                          <Clock className="w-3 h-3" /> Awaiting Signature
+                                        </span>
+                                      )}
+                                      {signingStatus === 'completed' && (
+                                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-medium rounded-md border border-emerald-500/20 flex items-center gap-1">
+                                          <Check className="w-3 h-3" /> Signed
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className={`text-[11px] mt-0.5 ${chargesTotals.balanceDue > 0 ? 'text-amber-400' : 'text-[#666]'}`}>
+                                      {invoicePdfUrl 
+                                        ? chargesTotals.balanceDue > 0 
+                                          ? `Outstanding balance: AED ${formatCurrency(chargesTotals.balanceDue)}` 
+                                          : 'Paid in full'
+                                        : 'Generate the tax invoice PDF'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {invoicePdfUrl && (
+                                    <>
+                                      <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-3 py-2 bg-[#222] hover:bg-[#333] text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all border border-[#333]">
+                                        <Eye className="w-3.5 h-3.5" /> View
+                                      </button>
+                                      {formData.emailAddress && signingStatus !== 'completed' && (
+                                        <button 
+                                          onClick={() => handleSendForSigning('invoice')} 
+                                          disabled={sendingForSigning} 
+                                          className="px-3 py-2 bg-[#222] hover:bg-[#333] text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center gap-1.5 border border-[#333]"
+                                        >
+                                          <Mail className="w-3.5 h-3.5" />
+                                          {sendingForSigning ? '...' : 'Send for Signing'}
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
                                   <button 
                                     onClick={() => handleGenerateDocument('invoice')}
                                     disabled={saving || allCharges.length === 0} 
-                                    className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-medium rounded-md hover:from-emerald-700 hover:to-emerald-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+                                    className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-xs font-semibold rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-md"
                                   >
-                                    {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                                    {invoicePdfUrl ? 'Regenerate' : 'Generate Invoice'}
+                                    {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Receipt className="w-3.5 h-3.5" />}
+                                    {invoicePdfUrl ? 'Regenerate' : 'Generate'}
                                   </button>
-                                )}
-                                {invoicePdfUrl && invoiceStatus !== 'reversed' && (
-                                  <>
-                                    <button onClick={() => window.open(invoicePdfUrl, '_blank')} className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md flex items-center gap-2 transition-colors">
-                                      <Eye className="w-4 h-4" /> View
-                                    </button>
-                                    {formData.emailAddress && signingStatus !== 'completed' && (
-                                      <button 
-                                        onClick={handleSendForSigning} 
-                                        disabled={sendingForSigning} 
-                                        className="px-3 py-1.5 bg-[#333] hover:bg-[#444] text-white text-sm rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
-                                      >
-                                        <Mail className="w-4 h-4" />
-                                        {sendingForSigning ? 'Sending...' : 'Sign'}
-                                      </button>
-                                    )}
-                                  </>
-                                )}
-                                {/* Create New Invoice Button - After Reversal */}
-                                {invoiceStatus === 'reversed' && (
-                                  <button 
-                                    onClick={handleCreateNewInvoice} 
-                                    disabled={saving} 
-                                    className="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
-                                  >
-                                    {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus className="w-4 h-4" />}
-                                    New Invoice
-                                  </button>
-                                )}
+                                </div>
                               </div>
                             </div>
-                            {/* Issue Credit Note - Separate Line */}
-                            {invoicePdfUrl && invoiceStatus !== 'reversed' && isAdmin && (
-                              <div className="px-4 py-2.5 border-t border-[#333] flex items-center justify-between bg-[#0d0d0d]">
-                                <p className="text-[12px] text-[#555]">Issue a credit note to cancel this invoice</p>
+                            
+                            {/* Issue Credit Note - Footer */}
+                            {invoicePdfUrl && isAdmin && (
+                              <div className="px-5 py-3 bg-[#0a0a0a] border-t border-[#2a2a2a] flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-[11px] text-[#666]">
+                                  <AlertCircle className="w-3.5 h-3.5" />
+                                  <span>Need to cancel this invoice?</span>
+                                </div>
                                 <button 
                                   onClick={handleOpenCreditNoteModal} 
                                   disabled={saving} 
-                                  className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm rounded-md transition-colors disabled:opacity-50"
+                                  className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg transition-all disabled:opacity-50 border border-red-500/20"
                                 >
                                   Issue Credit Note
                                 </button>
                               </div>
                             )}
                           </div>
-                        </div>
+                        )}
                       </div>
+
+                      {/* ============================================ */}
+                      {/* INVOICE HISTORY SECTION */}
+                      {/* ============================================ */}
+                      {allInvoices.length > 1 && (
+                        <div className="mt-6 pt-6 border-t border-[#333]">
+                          <h3 className="text-sm font-semibold text-[#c0c0c0] mb-4 flex items-center gap-2 uppercase tracking-wider">
+                            <Clock className="w-4 h-4" />
+                            Invoice History
+                            <span className="px-2 py-0.5 bg-[#222] text-[#888] text-[10px] rounded-md border border-[#333]">
+                              {allInvoices.length} invoices
+                            </span>
+                          </h3>
+                          
+                          <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] overflow-hidden shadow-lg">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-[#2a2a2a] bg-gradient-to-r from-[#1a1a1a] to-[#141414]">
+                                  <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#888] uppercase tracking-wider">Invoice #</th>
+                                  <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#888] uppercase tracking-wider">Date</th>
+                                  <th className="px-5 py-3.5 text-right text-[11px] font-semibold text-[#888] uppercase tracking-wider">Amount</th>
+                                  <th className="px-5 py-3.5 text-center text-[11px] font-semibold text-[#888] uppercase tracking-wider">Status</th>
+                                  <th className="px-5 py-3.5 text-center text-[11px] font-semibold text-[#888] uppercase tracking-wider">Documents</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#222]">
+                                {allInvoices.map((inv, idx) => {
+                                  const isCurrentInvoice = inv.id === invoiceId;
+                                  const statusColors: Record<string, string> = {
+                                    'pending': 'bg-gray-500/20 text-gray-400 border border-gray-500/30',
+                                    'partial': 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+                                    'paid': 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+                                    'credited': 'bg-red-500/20 text-red-400 border border-red-500/30',
+                                    'reversed': 'bg-red-500/20 text-red-400 border border-red-500/30',
+                                  };
+                                  return (
+                                    <tr key={inv.id} className={`hover:bg-[#141414] transition-colors ${isCurrentInvoice ? 'bg-[#0f0f0f]' : ''}`}>
+                                      <td className="px-5 py-4">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-white text-sm font-mono">{inv.invoice_number}</span>
+                                          {isCurrentInvoice && (
+                                            <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[9px] font-semibold rounded border border-blue-500/30">
+                                              CURRENT
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-5 py-4 text-[#999] text-sm">
+                                        {inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString() : '-'}
+                                      </td>
+                                      <td className="px-5 py-4 text-right text-white text-sm font-semibold">
+                                        AED {formatCurrency(inv.total_amount || 0)}
+                                      </td>
+                                      <td className="px-5 py-4 text-center">
+                                        <span className={`px-2.5 py-1 text-[10px] font-semibold rounded-md uppercase ${statusColors[inv.status] || statusColors['pending']}`}>
+                                          {inv.status}
+                                        </span>
+                                      </td>
+                                      <td className="px-5 py-4">
+                                        <div className="flex items-center justify-center gap-2">
+                                          {inv.reservation_pdf_url && (
+                                            <button 
+                                              onClick={() => window.open(inv.reservation_pdf_url!, '_blank')} 
+                                              className="px-2.5 py-1.5 bg-[#222] hover:bg-[#333] text-white text-[10px] rounded-md flex items-center gap-1 transition-all border border-[#333]"
+                                              title="View Reservation"
+                                            >
+                                              <FileText className="w-3 h-3" /> Res
+                                            </button>
+                                          )}
+                                          {inv.invoice_pdf_url && (
+                                            <button 
+                                              onClick={() => window.open(inv.invoice_pdf_url!, '_blank')} 
+                                              className="px-2.5 py-1.5 bg-[#222] hover:bg-[#333] text-white text-[10px] rounded-md flex items-center gap-1 transition-all border border-[#333]"
+                                              title="View Invoice"
+                                            >
+                                              <Receipt className="w-3 h-3" /> Inv
+                                            </button>
+                                          )}
+                                          {!inv.reservation_pdf_url && !inv.invoice_pdf_url && (
+                                            <span className="text-[#555] text-[11px]">No documents</span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                          
+                          {/* Credit Notes for this deal */}
+                          {creditNotes.length > 0 && (
+                            <div className="mt-5">
+                              <h4 className="text-xs font-semibold text-[#888] mb-3 uppercase tracking-wider">Credit Notes</h4>
+                              <div className="space-y-2">
+                                {creditNotes.map((cn) => {
+                                  // Find which invoice this credit note belongs to
+                                  const relatedInvoice = allInvoices.find(inv => inv.id === cn.original_invoice_id);
+                                  return (
+                                    <div key={cn.id} className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-red-900/10 to-red-800/5 border border-red-500/20 rounded-xl">
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-red-400 font-mono text-sm px-2 py-0.5 bg-red-500/10 rounded border border-red-500/20">{cn.credit_note_number}</span>
+                                        <span className="text-[#555] text-sm">→</span>
+                                        {relatedInvoice && (
+                                          <span className="text-[#666] text-xs font-mono">{relatedInvoice.invoice_number}</span>
+                                        )}
+                                        <span className="text-[#999] text-sm">{cn.reason}</span>
+                                      </div>
+                                      <div className="flex items-center gap-4">
+                                        <span className="text-red-400 font-semibold">AED {formatCurrency(cn.total_amount)}</span>
+                                        {cn.pdf_url && (
+                                          <button 
+                                            onClick={() => window.open(cn.pdf_url!, '_blank')} 
+                                            className="px-2.5 py-1.5 bg-[#222] hover:bg-[#333] text-white text-[10px] rounded-md flex items-center gap-1 transition-all border border-[#333]"
+                                          >
+                                            <Eye className="w-3 h-3" /> View
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </>
                 </div>
               )}
@@ -2125,53 +2366,61 @@ export default function AccountSummaryModal({
               {activeTab === 'payments' && (
                 <div className="space-y-5">
                   {/* Balance Header */}
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-[#0f0f0f] rounded-lg border border-[#333]">
-                    <div><p className="text-[11px] text-[#666] uppercase tracking-wide">Invoice Total</p><p className="text-xl font-bold text-white mt-1">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p></div>
+                  <div className="grid grid-cols-3 gap-4 p-5 bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] shadow-lg">
                     <div>
-                      <p className="text-[11px] text-[#666] uppercase tracking-wide">{chargesTotals.refundsGiven > 0 ? 'Net Paid' : 'Total Paid'}</p>
-                      <p className={`text-xl font-bold mt-1 ${chargesTotals.totalPaid >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold">Invoice Total</p>
+                      <p className="text-2xl font-bold text-white mt-2">AED {formatCurrency(chargesTotals.grandTotal || formData.invoiceTotal)}</p>
+                    </div>
+                    <div className="text-center border-x border-[#2a2a2a] px-4">
+                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold">{chargesTotals.refundsGiven > 0 ? 'Net Paid' : 'Total Paid'}</p>
+                      <p className={`text-2xl font-bold mt-2 ${chargesTotals.totalPaid >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         AED {formatCurrency(chargesTotals.totalPaid)}
                       </p>
                       {chargesTotals.refundsGiven > 0 && (
-                        <p className="text-[10px] text-[#555] mt-0.5">
+                        <p className="text-[10px] text-[#666] mt-1">
                           Received: {formatCurrency(chargesTotals.paymentsReceived)} | Refunded: {formatCurrency(chargesTotals.refundsGiven)}
                         </p>
                       )}
                     </div>
-                    <div className="text-right"><p className="text-[11px] text-[#666] uppercase tracking-wide">{chargesTotals.balanceDue < 0 ? 'Credit Balance' : 'Balance Due'}</p><p className={`text-xl font-bold mt-1 ${chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>AED {formatCurrency(Math.abs(chargesTotals.balanceDue))}{chargesTotals.balanceDue < 0 ? ' CR' : ''}</p></div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold">{chargesTotals.balanceDue < 0 ? 'Credit Balance' : 'Balance Due'}</p>
+                      <p className={`text-2xl font-bold mt-2 ${chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>AED {formatCurrency(Math.abs(chargesTotals.balanceDue))}{chargesTotals.balanceDue < 0 ? ' CR' : ''}</p>
+                    </div>
                   </div>
 
-                  {/* Add Payment Button - always show (even for overpayments/credits) */}
+                  {/* Add Payment Button */}
                   {!showAddPayment && (
-                    <button onClick={() => { setNewPayment(prev => ({ ...prev, amount: Math.max(0, chargesTotals.balanceDue) || Math.max(0, formData.amountDue) })); setShowAddPayment(true); }} className="w-full py-3 border border-dashed border-[#333] hover:border-[#555] rounded-lg text-[#666] hover:text-white transition-all flex items-center justify-center gap-2 group">
+                    <button onClick={() => { setNewPayment(prev => ({ ...prev, amount: Math.max(0, chargesTotals.balanceDue) || Math.max(0, formData.amountDue) })); setShowAddPayment(true); }} className="w-full py-4 border border-dashed border-[#333] hover:border-[#555] rounded-xl text-[#888] hover:text-white transition-all flex items-center justify-center gap-2 group bg-gradient-to-r from-[#111] to-[#0d0d0d] hover:from-[#141414] hover:to-[#111]">
                       <Plus className="w-4 h-4" /> Record New Payment
                     </button>
                   )}
 
                   {/* Add Payment Form */}
                   {showAddPayment && (
-                    <div className="bg-[#0f0f0f] rounded-lg p-4 border border-[#333]">
-                      <h4 className="text-sm font-medium text-white mb-4">Record Payment</h4>
+                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl p-5 border border-[#2a2a2a] shadow-lg">
+                      <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-[#c0c0c0]" /> Record Payment
+                      </h4>
                       <div className="grid grid-cols-3 gap-4">
-                        <div><label className="block text-[12px] text-[#666] mb-2">Method</label><select value={newPayment.payment_method} onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))} className="w-full px-3 h-[42px] bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner">{PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value} className="bg-[#0d0d0d]">{m.label}</option>)}</select></div>
-                        <div><label className="block text-[12px] text-[#666] mb-2">Amount (AED)</label><input type="number" value={newPayment.amount} onChange={(e) => setNewPayment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
-                        <div><label className="block text-[12px] text-[#666] mb-2">Reference</label><input type="text" value={newPayment.reference_number} onChange={(e) => setNewPayment(prev => ({ ...prev, reference_number: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" placeholder="Ref #" /></div>
+                        <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Method</label><select value={newPayment.payment_method} onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))} className="w-full px-3 h-[44px] bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all">{PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value} className="bg-[#0d0d0d]">{m.label}</option>)}</select></div>
+                        <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Amount (AED)</label><input type="number" value={newPayment.amount} onChange={(e) => setNewPayment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all" /></div>
+                        <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Reference</label><input type="text" value={newPayment.reference_number} onChange={(e) => setNewPayment(prev => ({ ...prev, reference_number: e.target.value }))} className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner focus:border-[#555] focus:ring-1 focus:ring-[#444] transition-all" placeholder="Ref #" /></div>
                       </div>
                       {newPayment.payment_method === 'cheque' && (
-                        <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-[#333]">
-                          <div><label className="block text-[12px] text-[#666] mb-2">Bank</label><input type="text" value={newPayment.bank_name} onChange={(e) => setNewPayment(prev => ({ ...prev, bank_name: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
-                          <div><label className="block text-[12px] text-[#666] mb-2">Cheque #</label><input type="text" value={newPayment.cheque_number} onChange={(e) => setNewPayment(prev => ({ ...prev, cheque_number: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
-                          <div><label className="block text-[12px] text-[#666] mb-2">Date</label><input type="date" value={newPayment.cheque_date} onChange={(e) => setNewPayment(prev => ({ ...prev, cheque_date: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
+                        <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-[#2a2a2a]">
+                          <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Bank</label><input type="text" value={newPayment.bank_name} onChange={(e) => setNewPayment(prev => ({ ...prev, bank_name: e.target.value }))} className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner" /></div>
+                          <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Cheque #</label><input type="text" value={newPayment.cheque_number} onChange={(e) => setNewPayment(prev => ({ ...prev, cheque_number: e.target.value }))} className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner" /></div>
+                          <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Date</label><input type="date" value={newPayment.cheque_date} onChange={(e) => setNewPayment(prev => ({ ...prev, cheque_date: e.target.value }))} className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner" /></div>
                         </div>
                       )}
                       {newPayment.payment_method === 'part_exchange' && (
-                        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-[#333]">
-                          <div><label className="block text-[12px] text-[#666] mb-2">Vehicle</label><input type="text" value={newPayment.part_exchange_vehicle} onChange={(e) => setNewPayment(prev => ({ ...prev, part_exchange_vehicle: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" placeholder="Make/Model/Year" /></div>
-                          <div><label className="block text-[12px] text-[#666] mb-2">Chassis</label><input type="text" value={newPayment.part_exchange_chassis} onChange={(e) => setNewPayment(prev => ({ ...prev, part_exchange_chassis: e.target.value }))} className="w-full px-3 py-2.5 bg-[#1a1a1a] border border-[#444] rounded-md text-white text-sm shadow-inner" /></div>
+                        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-[#2a2a2a]">
+                          <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Vehicle</label><input type="text" value={newPayment.part_exchange_vehicle} onChange={(e) => setNewPayment(prev => ({ ...prev, part_exchange_vehicle: e.target.value }))} className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner" placeholder="Make/Model/Year" /></div>
+                          <div><label className="block text-[11px] text-[#888] mb-2 font-medium">Chassis</label><input type="text" value={newPayment.part_exchange_chassis} onChange={(e) => setNewPayment(prev => ({ ...prev, part_exchange_chassis: e.target.value }))} className="w-full px-3 py-2.5 bg-[#0d0d0d] border border-[#333] rounded-lg text-white text-sm shadow-inner" /></div>
                         </div>
                       )}
-                      <div className="flex gap-3 mt-4">
-                        <button type="button" onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-4 py-2.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2">
+                      <div className="flex gap-3 mt-5">
+                        <button type="button" onClick={handleAddPayment} disabled={saving || !newPayment.amount} className="px-5 py-2.5 bg-gradient-to-r from-[#555] to-[#444] text-white text-sm font-semibold rounded-lg hover:from-[#666] hover:to-[#555] transition-all disabled:opacity-50 flex items-center gap-2 shadow-md">
                           {saving ? (
                             <>
                               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -2179,23 +2428,23 @@ export default function AccountSummaryModal({
                             </>
                           ) : 'Save Payment'}
                         </button>
-                        <button onClick={() => setShowAddPayment(false)} className="px-4 py-2.5 bg-[#333] text-white text-sm rounded-md hover:bg-[#444]">Cancel</button>
+                        <button onClick={() => setShowAddPayment(false)} className="px-5 py-2.5 bg-[#222] border border-[#333] text-white text-sm rounded-lg hover:bg-[#333] transition-all">Cancel</button>
                       </div>
                     </div>
                   )}
 
                   {/* Payments Table */}
-                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
+                  <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] overflow-hidden shadow-lg">
                     <table className="w-full">
-                      <thead><tr className="border-b border-[#333] bg-[#111]"><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Date</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Receipt</th><th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Method</th><th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Amount</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">Allocation</th><th className="px-4 py-3 text-center text-[11px] font-medium text-[#666] uppercase tracking-wider">Actions</th></tr></thead>
-                      <tbody className="divide-y divide-[#333]">
-                        {allPayments.length === 0 ? <tr><td colSpan={6} className="px-4 py-12 text-center text-[#555]">No payments recorded</td></tr> : allPayments.map((p: any) => (
-                          <tr key={p.id} className="hover:bg-[#0d0d0d] transition-colors">
-                            <td className="px-4 py-3 text-[#999] text-sm">{formatDate(p.payment_date)}</td>
-                            <td className="px-4 py-3 text-[#888] font-mono text-xs">{p.receipt_number || '-'}</td>
-                            <td className="px-4 py-3 text-white text-sm capitalize">{p.payment_method === 'refund' ? '↩ Refund' : p.payment_method.replace('_', ' ')}</td>
-                            <td className={`px-4 py-3 text-right font-semibold text-sm ${p.amount < 0 || p.payment_method === 'refund' ? 'text-red-400' : 'text-emerald-400'}`}>{p.amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(p.amount))}</td>
-                            <td className="px-4 py-3 text-center">
+                      <thead><tr className="border-b border-[#2a2a2a] bg-gradient-to-r from-[#1a1a1a] to-[#141414]"><th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#888] uppercase tracking-wider">Date</th><th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#888] uppercase tracking-wider">Receipt</th><th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#888] uppercase tracking-wider">Method</th><th className="px-5 py-3.5 text-right text-[11px] font-semibold text-[#888] uppercase tracking-wider">Amount</th><th className="px-5 py-3.5 text-center text-[11px] font-semibold text-[#888] uppercase tracking-wider">Allocation</th><th className="px-5 py-3.5 text-center text-[11px] font-semibold text-[#888] uppercase tracking-wider">Actions</th></tr></thead>
+                      <tbody className="divide-y divide-[#222]">
+                        {allPayments.length === 0 ? <tr><td colSpan={6} className="px-5 py-16 text-center text-[#666]">No payments recorded</td></tr> : allPayments.map((p: any) => (
+                          <tr key={p.id} className="hover:bg-[#141414] transition-colors">
+                            <td className="px-5 py-4 text-[#999] text-sm">{formatDate(p.payment_date)}</td>
+                            <td className="px-5 py-4 text-[#c0c0c0] font-mono text-xs">{p.receipt_number || '-'}</td>
+                            <td className="px-5 py-4 text-white text-sm capitalize">{p.payment_method === 'refund' ? '↩ Refund' : p.payment_method.replace('_', ' ')}</td>
+                            <td className={`px-5 py-4 text-right font-semibold text-sm ${p.amount < 0 || p.payment_method === 'refund' ? 'text-red-400' : 'text-emerald-400'}`}>{p.amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(p.amount))}</td>
+                            <td className="px-5 py-4 text-center">
                               {(() => {
                                 const allocs = paymentAllocations.get(p.id) || [];
                                 const totalAllocated = allocs.reduce((sum, a) => sum + a.allocated_amount, 0);
@@ -2302,70 +2551,47 @@ export default function AccountSummaryModal({
 
               {/* SOA TAB - Statement of Account */}
               {activeTab === 'soa' && (
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {/* Summary Cards */}
                   <div className="grid grid-cols-5 gap-4">
-                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
-                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Total Charges</p>
-                      <p className="text-xl font-semibold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</p>
+                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] p-4 shadow-lg">
+                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Total Charges</p>
+                      <p className="text-xl font-bold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</p>
                     </div>
-                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
-                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Total Payments</p>
-                      <p className="text-xl font-semibold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p>
+                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] p-4 shadow-lg">
+                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Total Payments</p>
+                      <p className="text-xl font-bold text-emerald-400">AED {formatCurrency(chargesTotals.totalPaid)}</p>
                     </div>
-                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
-                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Balance Due</p>
-                      <p className={`text-xl font-semibold ${chargesTotals.balanceDue > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] p-4 shadow-lg">
+                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Balance Due</p>
+                      <p className={`text-xl font-bold ${chargesTotals.balanceDue > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                         AED {formatCurrency(chargesTotals.balanceDue)}
                       </p>
                     </div>
-                    <div className={`rounded-lg border p-4 ${creditBalance > 0 ? 'bg-amber-500/5 border-amber-500/30' : 'bg-[#0a0a0a] border-[#333]'}`}>
-                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Credit Available</p>
-                      <p className={`text-xl font-semibold ${creditBalance > 0 ? 'text-amber-400' : 'text-[#555]'}`}>
+                    <div className={`rounded-xl border p-4 shadow-lg ${creditBalance > 0 ? 'bg-gradient-to-br from-amber-900/20 to-amber-800/10 border-amber-500/30' : 'bg-gradient-to-br from-[#111] to-[#0a0a0a] border-[#2a2a2a]'}`}>
+                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Credit Available</p>
+                      <p className={`text-xl font-bold ${creditBalance > 0 ? 'text-amber-400' : 'text-[#555]'}`}>
                         AED {formatCurrency(creditBalance)}
                       </p>
                     </div>
-                    <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
-                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Status</p>
-                      <p className={`text-xl font-semibold ${documentStatus === 'reversed' ? 'text-red-400' : chargesTotals.grandTotal > 0 && chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : chargesTotals.totalPaid > 0 ? 'text-amber-400' : chargesTotals.grandTotal > 0 ? 'text-red-400' : 'text-[#666]'}`}>
-                        {documentStatus === 'reversed' ? 'CREDITED' : chargesTotals.grandTotal === 0 ? 'NO CHARGES' : chargesTotals.balanceDue <= 0 ? 'PAID' : chargesTotals.totalPaid > 0 ? 'PARTIAL' : 'UNPAID'}
+                    <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] p-4 shadow-lg">
+                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Status</p>
+                      <p className={`text-xl font-bold ${(documentStatus === 'reversed' || documentStatus === 'credited' || invoiceStatus === 'credited' || invoiceStatus === 'reversed') ? 'text-red-400' : chargesTotals.grandTotal > 0 && chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : chargesTotals.totalPaid > 0 ? 'text-amber-400' : chargesTotals.grandTotal > 0 ? 'text-red-400' : 'text-[#666]'}`}>
+                        {(documentStatus === 'reversed' || documentStatus === 'credited' || invoiceStatus === 'credited' || invoiceStatus === 'reversed') ? 'CREDITED' : chargesTotals.grandTotal === 0 ? 'NO CHARGES' : chargesTotals.balanceDue <= 0 ? 'PAID' : chargesTotals.totalPaid > 0 ? 'PARTIAL' : 'UNPAID'}
                       </p>
                     </div>
                   </div>
-                  
-                  {/* Credit Notes Summary - if any exist */}
-                  {creditNotes.length > 0 && (
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
-                      <h4 className="text-xs font-medium text-red-400 uppercase tracking-wider mb-3">Credit Notes Issued</h4>
-                      <div className="space-y-2">
-                        {creditNotes.map((cn) => (
-                          <div key={cn.id} className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-3">
-                              <span className="px-2 py-0.5 bg-red-500/10 text-red-400 text-xs font-mono rounded">{cn.credit_note_number}</span>
-                              <span className="text-[#888]">{cn.reason}</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <span className="text-red-400 font-medium">-AED {formatCurrency(cn.total_amount)}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded ${cn.status === 'applied' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                                {cn.status === 'applied' ? 'Applied' : `Credit: AED ${formatCurrency(cn.remaining_credit)}`}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Transaction History */}
-                  <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
-                    <div className="px-4 py-3 border-b border-[#333] bg-[#111] flex items-center justify-between">
-                      <h3 className="text-[13px] font-medium text-[#999] flex items-center gap-2">
+                  <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] overflow-hidden shadow-lg">
+                    <div className="px-5 py-4 border-b border-[#2a2a2a] bg-gradient-to-r from-[#1a1a1a] to-[#141414] flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-[#c0c0c0] flex items-center gap-2 uppercase tracking-wider">
                         <ScrollText className="w-4 h-4" /> Transaction History
                       </h3>
                       <button
                         onClick={handleGenerateSOA}
                         disabled={generatingSOA || allCharges.length === 0}
-                        className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-xs font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
+                        className="px-4 py-2 bg-gradient-to-r from-[#555] to-[#444] text-white text-xs font-semibold rounded-lg hover:from-[#666] hover:to-[#555] transition-all disabled:opacity-50 flex items-center gap-2 shadow-md"
                       >
                         {generatingSOA ? (
                           <>
@@ -2382,16 +2608,16 @@ export default function AccountSummaryModal({
                     </div>
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-[#333] bg-[#0d0d0d]">
-                          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Date</th>
-                          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Description</th>
-                          <th className="px-4 py-3 text-left text-[11px] font-medium text-[#666] uppercase tracking-wider">Reference</th>
-                          <th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Charges</th>
-                          <th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Payments</th>
-                          <th className="px-4 py-3 text-right text-[11px] font-medium text-[#666] uppercase tracking-wider">Balance</th>
+                        <tr className="border-b border-[#2a2a2a] bg-[#0d0d0d]">
+                          <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#888] uppercase tracking-wider">Date</th>
+                          <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#888] uppercase tracking-wider">Description</th>
+                          <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#888] uppercase tracking-wider">Reference</th>
+                          <th className="px-5 py-3.5 text-right text-[11px] font-semibold text-[#888] uppercase tracking-wider">Charges</th>
+                          <th className="px-5 py-3.5 text-right text-[11px] font-semibold text-[#888] uppercase tracking-wider">Payments</th>
+                          <th className="px-5 py-3.5 text-right text-[11px] font-semibold text-[#888] uppercase tracking-wider">Balance</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#333]">
+                      <tbody className="divide-y divide-[#222]">
                         {(() => {
                           // Combine charges, credit notes, and payments into a single chronological list
                           const transactions: Array<{
@@ -2415,17 +2641,19 @@ export default function AccountSummaryModal({
                             });
                           });
 
-                          // Add credit notes (they reduce the balance like payments)
-                          creditNotes.forEach((cn: any) => {
+                          // Add credit note ONLY for the current invoice (if it exists)
+                          // A credit note cancels the invoice, so we show it as reversing the charges
+                          const currentInvoiceCreditNote = creditNotes.find((cn: any) => cn.original_invoice_id === invoiceId);
+                          if (currentInvoiceCreditNote) {
                             transactions.push({
-                              date: cn.credit_note_date || cn.created_at,
-                              createdAt: cn.created_at || cn.credit_note_date || new Date().toISOString(),
+                              date: currentInvoiceCreditNote.credit_note_date || currentInvoiceCreditNote.created_at,
+                              createdAt: currentInvoiceCreditNote.created_at || currentInvoiceCreditNote.credit_note_date || new Date().toISOString(),
                               type: 'credit_note',
-                              description: `Credit Note - ${cn.reason}`,
-                              reference: cn.credit_note_number,
-                              amount: cn.total_amount // Positive amount, displayed as negative
+                              description: `Credit Note - ${currentInvoiceCreditNote.reason}`,
+                              reference: currentInvoiceCreditNote.credit_note_number,
+                              amount: currentInvoiceCreditNote.total_amount
                             });
-                          });
+                          }
 
                           // Add payments
                           allPayments.forEach((payment: any) => {
@@ -2448,8 +2676,11 @@ export default function AccountSummaryModal({
                           const rows = transactions.map((txn, idx) => {
                             if (txn.type === 'charge') {
                               runningBalance += txn.amount;
+                            } else if (txn.type === 'credit_note') {
+                              // Credit note CANCELS charges (negative charge)
+                              runningBalance -= txn.amount;
                             } else {
-                              // Both payments and credit notes reduce the balance
+                              // Payments reduce the balance
                               runningBalance -= txn.amount;
                             }
                             return { ...txn, balance: runningBalance, idx };
@@ -2483,6 +2714,8 @@ export default function AccountSummaryModal({
                                   <span className={txn.amount < 0 ? 'text-emerald-400' : 'text-white'}>
                                     {txn.amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(txn.amount))}
                                   </span>
+                                ) : txn.type === 'credit_note' ? (
+                                  <span className="text-red-400">-AED {formatCurrency(txn.amount)}</span>
                                 ) : (
                                   <span className="text-[#555]">-</span>
                                 )}
@@ -2490,8 +2723,6 @@ export default function AccountSummaryModal({
                               <td className="px-4 py-3 text-right text-sm">
                                 {txn.type === 'payment' ? (
                                   <span className={txn.amount < 0 ? 'text-red-400' : 'text-emerald-400'}>{txn.amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(txn.amount))}</span>
-                                ) : txn.type === 'credit_note' ? (
-                                  <span className="text-red-400">-AED {formatCurrency(txn.amount)}</span>
                                 ) : (
                                   <span className="text-[#555]">-</span>
                                 )}
@@ -3075,12 +3306,12 @@ export default function AccountSummaryModal({
 
         {/* ============ FOOTER ============ */}
         {!loading && (
-        <div className="px-6 py-4 border-t border-[#333] flex items-center justify-between shrink-0 bg-[#111]">
-          <p className="text-[13px] text-[#666]">{formData.salesExecutive} • {formatDate(formData.date)}</p>
+        <div className="px-6 py-4 border-t border-[#2a2a2a] flex items-center justify-between shrink-0 bg-gradient-to-r from-[#111] to-[#0d0d0d]">
+          <p className="text-[13px] text-[#888]">{formData.salesExecutive} • {formatDate(formData.date)}</p>
                           <button 
             onClick={handleSave}
             disabled={saving || !reservationId}
-            className="px-4 py-2 bg-gradient-to-r from-[#555] to-[#666] hover:from-[#666] hover:to-[#777] text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-5 py-2.5 bg-gradient-to-r from-[#555] to-[#444] hover:from-[#666] hover:to-[#555] text-white text-sm font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center gap-2 shadow-md"
           >
             {saving ? (
               <>

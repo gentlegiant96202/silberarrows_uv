@@ -1277,7 +1277,18 @@ export default function AccountSummaryModal({
   };
 
   const handleAddCharge = async () => {
-    if (!newCharge.unit_price || !reservationId || !invoiceId) return;
+    if (!newCharge.unit_price) {
+      alert('Please enter an amount');
+      return;
+    }
+    if (!reservationId) {
+      alert('No reservation found. Please save the form first.');
+      return;
+    }
+    if (!invoiceId) {
+      alert('No active invoice. Please create a new invoice first.');
+      return;
+    }
     
     // Discounts are stored as negative values so they subtract from total
     const isDiscount = newCharge.charge_type === 'discount';

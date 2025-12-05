@@ -1057,9 +1057,8 @@ export default function AccountSummaryModal({
   };
 
   // GENERATE - Validates, saves form data, and generates PDF
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // Generate document with explicit mode (reservation or invoice)
+  const handleGenerateDocument = async (documentMode: 'reservation' | 'invoice') => {
     if (!reservationId) {
       alert('Please wait for the account to be created.');
       return;
@@ -1128,11 +1127,11 @@ export default function AccountSummaryModal({
         otherAddonDescription: charges.find((c: any) => c.charge_type === 'other_addon')?.description || 'Other'
       };
 
-      console.log('Generating document with:', { mode, leadId: lead.id, reservationId: savedReservation.id, chargesCount: charges.length });
+      console.log('Generating document with:', { mode: documentMode, leadId: lead.id, reservationId: savedReservation.id, chargesCount: charges.length });
       
       const response = await fetch('/api/generate-vehicle-document', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, formData: enhancedFormData, leadId: lead.id, reservationId: savedReservation.id })
+        body: JSON.stringify({ mode: documentMode, formData: enhancedFormData, leadId: lead.id, reservationId: savedReservation.id })
       });
 
       if (!response.ok) {
@@ -1154,19 +1153,19 @@ export default function AccountSummaryModal({
         
         // Save PDF URL to invoices table based on document type
         if (invoiceId) {
-        if (mode === 'reservation') {
+          if (documentMode === 'reservation') {
             await supabase.from('invoices').update({
               reservation_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
             }).eq('id', invoiceId);
-          setReservationPdfUrl(result.pdfUrl);
-        } else {
+            setReservationPdfUrl(result.pdfUrl);
+          } else {
             await supabase.from('invoices').update({
               invoice_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
             }).eq('id', invoiceId);
-          setInvoicePdfUrl(result.pdfUrl);
-        }
+            setInvoicePdfUrl(result.pdfUrl);
+          }
         }
         
         if (result.documentNumber) setDocumentNumber(result.documentNumber);
@@ -1191,6 +1190,12 @@ export default function AccountSummaryModal({
     } finally {
       setSaving(false);
     }
+  };
+
+  // Legacy handler for form submit (uses mode prop)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleGenerateDocument(mode);
   };
 
   // Get current document URL based on mode
@@ -1990,7 +1995,7 @@ export default function AccountSummaryModal({
                               </div>
                               <div className="flex gap-2">
                                 <button 
-                                  onClick={(e) => { e.preventDefault(); handleSubmit(e as any); }}
+                                  onClick={() => handleGenerateDocument('reservation')}
                                   disabled={saving || allCharges.length === 0} 
                                   className="px-3 py-1.5 bg-gradient-to-r from-[#555] to-[#666] text-white text-sm font-medium rounded-md hover:from-[#666] hover:to-[#777] transition-colors disabled:opacity-50 flex items-center gap-2"
                                 >
@@ -2061,7 +2066,7 @@ export default function AccountSummaryModal({
                               <div className="flex gap-2">
                                 {invoiceStatus !== 'reversed' && (
                                   <button 
-                                    onClick={(e) => { e.preventDefault(); handleSubmit(e as any); }}
+                                    onClick={() => handleGenerateDocument('invoice')}
                                     disabled={saving || allCharges.length === 0} 
                                     className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-medium rounded-md hover:from-emerald-700 hover:to-emerald-800 transition-colors disabled:opacity-50 flex items-center gap-2"
                                   >

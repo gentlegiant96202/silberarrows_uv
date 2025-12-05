@@ -338,6 +338,7 @@ export default function AccountSummaryModal({
     remaining_credit: number;
     credit_note_date: string;
     pdf_url: string | null;
+    created_at?: string;
   }>>([]);
   const [creditBalance, setCreditBalance] = useState(0);
   

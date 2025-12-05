@@ -9,8 +9,6 @@ DECLARE
   payload  jsonb;
   resp     jsonb;
   event_type_name text;
-  make_part text;
-  model_part text;
   formatted_appointment_date text;
 BEGIN
   -- Use NEW record (current values)
@@ -40,29 +38,21 @@ BEGIN
     SELECT jsonb_build_object(
       'stock_number', c.stock_number,
       'model_year', c.model_year,
-      'full_model', c.vehicle_model,
+      'model_family', c.model_family,
+      'vehicle_model', c.vehicle_model,
       'vehicle_details_pdf_url', c.vehicle_details_pdf_url
     ) INTO car_data
     FROM public.cars c
     WHERE c.id = (payload->>'inventory_car_id')::uuid
     LIMIT 1;
     
-    -- Parse make and model from vehicle_model field
-    IF car_data IS NOT NULL AND car_data->>'full_model' IS NOT NULL THEN
-      IF car_data->>'full_model' ~ '^\S+(-\S+)?\s+' THEN
-        make_part := (regexp_match(car_data->>'full_model', '^(\S+(?:-\S+)?)\s+'))[1];
-        model_part := trim(regexp_replace(car_data->>'full_model', '^(\S+(?:-\S+)?)\s+', ''));
-      ELSE
-        -- Fallback: treat entire string as model if no clear separation
-        make_part := split_part(car_data->>'full_model', ' ', 1);
-        model_part := car_data->>'full_model';
-      END IF;
-      
-      -- Create simplified car_details with only essential info
+    -- Create simplified car_details with full model name
+    IF car_data IS NOT NULL THEN
       car_data := jsonb_build_object(
         'stock_number', car_data->>'stock_number',
         'model_year', car_data->>'model_year',
-        'model_name', COALESCE(model_part, car_data->>'full_model'),
+        'model_family', car_data->>'model_family',
+        'model_name', car_data->>'vehicle_model',  -- Full model like "A 200 HATCHBACK"
         'vehicle_details_pdf_url', car_data->>'vehicle_details_pdf_url'
       );
     END IF;

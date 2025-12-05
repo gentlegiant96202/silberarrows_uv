@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import RouteProtector from '@/components/shared/RouteProtector';
 import SalesDataGrid from '@/components/sales/SalesDataGrid';
 import SalesTargetsManager from '@/components/sales/SalesTargetsManager';
-import ReservationsInvoicesGrid from '@/components/shared/accounting/ReservationsInvoicesGrid';
 import { useSalesData } from '@/lib/useSalesData';
 import { supabase } from '@/lib/supabaseClient';
 import { Building2, Grid3X3, Target, TrendingUp, Calculator, Package, DollarSign, FileText } from 'lucide-react';
@@ -12,7 +11,7 @@ import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
 import dayjs from 'dayjs';
 
 export default function SalesDashboard() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'grid' | 'targets' | 'accounting'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'grid' | 'targets'>('dashboard');
   const [allSalesMetrics, setAllSalesMetrics] = useState<any[]>([]);
   const [allSalesTargets, setAllSalesTargets] = useState<any[]>([]);
   
@@ -25,7 +24,7 @@ export default function SalesDashboard() {
   } = useSalesData();
 
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab as 'dashboard' | 'grid' | 'targets' | 'accounting');
+    setActiveTab(tab as 'dashboard' | 'grid' | 'targets');
   };
 
   const fetchAllSalesTargets = async () => {
@@ -193,8 +192,6 @@ export default function SalesDashboard() {
                   loading={loading}
                   error={error}
                 />
-              ) : activeTab === 'accounting' ? (
-                <ReservationsInvoicesGrid />
               ) : (
                 <SalesTargetsManager
                   targets={allSalesTargets}

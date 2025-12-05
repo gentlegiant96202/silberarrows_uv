@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 // Icons are now inline SVGs to match main kanban
 import LeadDetailsModal from '@/components/modules/uv-crm/modals/LeadDetailsModal';
-import NewAppointmentModal from '@/components/modules/uv-crm/modals/NewAppointmentModal';
 import { useSearchStore } from '@/lib/searchStore';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -413,6 +412,7 @@ export default function TwoColumnKanban() {
       {/* Lead Details Modal */}
       {selectedLead && (
         <LeadDetailsModal
+          mode="edit"
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
           onUpdated={handleLeadUpdated}
@@ -422,11 +422,12 @@ export default function TwoColumnKanban() {
 
       {/* Conversion Modal - Converting lead to appointment */}
       {convertingLead && (
-        <NewAppointmentModal
+        <LeadDetailsModal
+          mode="edit"
+          lead={convertingLead}
           onClose={handleConversionCancelled}
-          onCreated={handleConversionCompleted}
-          mode="convert_appointment"
-          existingLead={convertingLead}
+          onUpdated={handleConversionCompleted}
+          isConverting={true}
         />
       )}
     </>

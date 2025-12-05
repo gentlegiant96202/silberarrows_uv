@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Calendar } from 'lucide-react';
-import NewAppointmentModal from '@/components/modules/uv-crm/modals/NewAppointmentModal';
+import LeadDetailsModal from '@/components/modules/uv-crm/modals/LeadDetailsModal';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 
 export default function MobileActions() {
@@ -61,23 +61,23 @@ export default function MobileActions() {
         </div>
       </div>
 
-      {/* Create Lead Modal - Uses main app's NewAppointmentModal */}
+      {/* Create Lead Modal */}
       {showCreateLead && (
-        <NewAppointmentModal
+        <LeadDetailsModal
+          mode="create"
           onClose={() => setShowCreateLead(false)}
           onCreated={handleLeadCreated}
-          mode="create_lead"
         />
       )}
 
-      {/* Create Appointment Modal - Uses main app's NewAppointmentModal */}
+      {/* Create Appointment Modal */}
       {showCreateAppointment && (
-        <NewAppointmentModal
+        <LeadDetailsModal
+          mode="create"
           onClose={() => setShowCreateAppointment(false)}
           onCreated={handleAppointmentCreated}
-          mode="create_lead"
         />
       )}
     </>
   );
-} 
+}

@@ -76,35 +76,45 @@ export default function MatchingCarsList({ model }: { model: string }) {
 
   if(!model){
     return (
-      <div className="border border-white/15 rounded-md p-3 bg-white/5 mt-4 sm:mt-0 h-full flex flex-col">
-        <h3 className="text-white text-[12px] font-bold mb-2 uppercase tracking-wide sticky top-0 bg-white/5">Matching Inventory</h3>
-        <p className="text-white/60 text-xs">Select a model to view inventory.</p>
+      <p className="text-white/50 text-xs text-center py-4">Select a model to view matching inventory</p>
+    );
+  }
+
+  if(loading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
+        <span className="text-white/50 text-xs ml-2">Loading...</span>
       </div>
     );
   }
 
+  if(cars.length === 0) {
+    return (
+      <p className="text-white/50 text-xs text-center py-4">No matching cars in stock</p>
+    );
+  }
+
   return (
-    <div className="border border-white/15 rounded-md p-3 bg-white/5 mt-4 sm:mt-0 h-full flex flex-col">
-      <h3 className="text-white text-[12px] font-bold mb-2 uppercase tracking-wide sticky top-0 bg-white/5">Matching Inventory</h3>
-      {loading? <p className="text-white/60 text-xs">Loading…</p> : (
-        cars.length===0? <p className="text-white/60 text-xs">No in-stock cars for this model.</p> : (
-          <ul className="space-y-2 flex-1 overflow-y-auto pr-1">
-            {cars.map(c=>(
-              <li key={c.id} draggable onDragStart={(e)=>e.dataTransfer.setData('text/plain',c.id)} className="bg-white/5 border border-white/10 rounded-lg p-1.5 text-xs text-white flex items-center gap-2 min-w-0 cursor-move">
-                {/* thumb */}
-                <div className="w-16 h-12 bg-white/10 flex-shrink-0 rounded overflow-hidden">
-                  {thumbs[c.id]? <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy"/>:null}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-semibold leading-tight break-words max-h-8 overflow-hidden">{c.stock_number}</div>
-                  <div className="text-[9px] text-white/60 leading-tight break-words max-h-8 overflow-hidden">{c.model_year} {c.vehicle_model}</div>
-                  <div className="text-[10px] font-semibold text-white mt-0.5 whitespace-nowrap truncate"><span className="font-bold">AED</span> {c.advertised_price_aed.toLocaleString()}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )
-      )}
-    </div>
+    <ul className="space-y-1.5">
+      {cars.map(c=>(
+        <li 
+          key={c.id} 
+          draggable 
+          onDragStart={(e)=>e.dataTransfer.setData('text/plain',c.id)} 
+          className="bg-black/30 border border-white/10 rounded-lg p-1.5 text-xs text-white flex items-center gap-2 cursor-grab hover:bg-black/40 hover:border-white/20 transition-colors active:cursor-grabbing"
+        >
+          {/* thumb */}
+          <div className="w-14 h-10 bg-black/40 flex-shrink-0 rounded overflow-hidden">
+            {thumbs[c.id] ? <img src={thumbs[c.id]} className="w-full h-full object-cover" loading="lazy" alt="" /> : null}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] font-semibold leading-tight truncate">{c.stock_number}</div>
+            <div className="text-[9px] text-white/50 leading-tight truncate">{c.model_year} {c.vehicle_model}</div>
+            <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">AED {c.advertised_price_aed?.toLocaleString()}</div>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
-} 
+}

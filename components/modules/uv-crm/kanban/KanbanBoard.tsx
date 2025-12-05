@@ -80,7 +80,6 @@ const SkeletonCRMColumn = ({ title, icon, canCreate = false }: {
     </div>
   </div>
 );
-import NewAppointmentModal from "../modals/NewAppointmentModal";
 import LeadDetailsModal from "../modals/LeadDetailsModal";
 import LostReasonModal from "../modals/LostReasonModal";
 import { useSearchStore } from "@/lib/searchStore";
@@ -353,8 +352,14 @@ export default function KanbanBoard() {
               
               if (eventType === "INSERT") {
                 if (newColumnData[normalizedStatus]) {
-                  const updatedColumn = [lead, ...newColumnData[normalizedStatus]];
-                  newColumnData[normalizedStatus] = sortColumnData(updatedColumn, normalizedStatus);
+                  // Check if lead already exists in any column to prevent duplicates
+                  const alreadyExists = Object.values(newColumnData).some(
+                    col => col.some(l => l.id === lead.id)
+                  );
+                  if (!alreadyExists) {
+                    const updatedColumn = [lead, ...newColumnData[normalizedStatus]];
+                    newColumnData[normalizedStatus] = sortColumnData(updatedColumn, normalizedStatus);
+                  }
                 }
               } else if (eventType === "UPDATE") {
                 // Find existing lead to preserve calculated balance data
@@ -391,6 +396,10 @@ export default function KanbanBoard() {
             let newLeads;
             if (payload.eventType === "INSERT") {
               const newLead = payload.new as Lead;
+              // Check if lead already exists to prevent duplicates
+              if (prev.some(l => l.id === newLead.id)) {
+                return prev; // Already exists, skip
+              }
               updateColumnData(newLead, "INSERT");
               newLeads = [newLead, ...prev];
             } else if (payload.eventType === "UPDATE") {
@@ -810,8 +819,8 @@ export default function KanbanBoard() {
       </div>
       
       {showModal && (
-        <NewAppointmentModal
-          mode="create_lead"
+        <LeadDetailsModal
+          mode="create"
           onClose={() => setShowModal(false)}
           onCreated={() => {}} // Real-time subscription will handle adding the lead
           initialSelectedCarId={selectedInventoryCarId}
@@ -820,18 +829,20 @@ export default function KanbanBoard() {
       )}
       
       {convertingLead && (
-        <NewAppointmentModal
-          mode="convert_appointment"
-          existingLead={convertingLead}
+        <LeadDetailsModal
+          mode="edit"
+          lead={convertingLead}
           onClose={handleConversionCancelled}
-          onCreated={handleConversionCompleted}
+          onUpdated={handleConversionCompleted}
           initialSelectedCarId={selectedInventoryCarId}
           onInventoryCarSelected={setSelectedInventoryCarId}
+          isConverting={true}
         />
       )}
       
       {selectedLead && (
         <LeadDetailsModal
+          mode="edit"
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
           onUpdated={handleLeadUpdated}

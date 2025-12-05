@@ -827,74 +827,84 @@ export default function ReservationsInvoicesGrid() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-white">
-            {activeTab === 'accounts' ? 'Customer Accounts' : activeTab === 'invoices' ? 'Invoices' : activeTab === 'unallocated' ? 'Unallocated Payments' : 'Payment Receipts'}
-          </h1>
-          <p className="text-sm text-white/60">
-            {activeTab === 'accounts' 
-              ? 'View and manage customer account balances' 
-              : activeTab === 'invoices'
-                ? 'View all invoices chronologically'
-                : activeTab === 'unallocated'
-                  ? 'Payments that need to be allocated to an invoice'
-                  : 'View and download payment receipts'}
-          </p>
-          {role && (
-            <div className="flex items-center gap-2 mt-1">
-              <Shield className="w-3 h-3 text-brand" />
-              <span className="text-xs text-brand font-medium">
-                Access: {role.charAt(0).toUpperCase() + role.slice(1)} Role
-              </span>
+      {/* Header - Luxury Style */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a1a1a] via-[#0d0d0d] to-[#1a1a1a] border border-[#333] p-6">
+        {/* Subtle silver accent line */}
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#c0c0c0]/30 to-transparent" />
+        
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <h1 className="text-2xl font-light tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white via-[#e8e8e8] to-[#a0a0a0]">
+              {activeTab === 'accounts' ? 'Customer Accounts' : activeTab === 'invoices' ? 'Invoices' : activeTab === 'unallocated' ? 'Unallocated Payments' : 'Payment Receipts'}
+            </h1>
+            <p className="text-sm text-[#808080] mt-1 font-light">
+              {activeTab === 'accounts' 
+                ? 'View and manage customer account balances' 
+                : activeTab === 'invoices'
+                  ? 'View all invoices chronologically'
+                  : activeTab === 'unallocated'
+                    ? 'Payments that need to be allocated to an invoice'
+                    : 'View and download payment receipts'}
+            </p>
+            {role && (
+              <div className="flex items-center gap-2 mt-2">
+                <Shield className="w-3.5 h-3.5 text-[#c0c0c0]" />
+                <span className="text-xs text-[#909090] font-medium tracking-wider uppercase">
+                  {role.charAt(0).toUpperCase() + role.slice(1)} Access
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-extralight text-white tracking-tight">
+              {activeTab === 'accounts' ? data.length : activeTab === 'invoices' ? invoices.length : activeTab === 'unallocated' ? unallocatedPayments.length : receipts.length}
             </div>
-          )}
-        </div>
-        <div className="text-sm text-white/60">
-          Total: {activeTab === 'accounts' ? `${data.length} customers` : activeTab === 'invoices' ? `${invoices.length} invoices` : activeTab === 'unallocated' ? `${unallocatedPayments.length} payments` : `${receipts.length} receipts`}
+            <div className="text-xs text-[#707070] uppercase tracking-widest">
+              {activeTab === 'accounts' ? 'Customers' : activeTab === 'invoices' ? 'Invoices' : activeTab === 'unallocated' ? 'Payments' : 'Receipts'}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-1.5 inline-flex gap-1">
+      {/* Tabs - Elegant Silver */}
+      <div className="bg-gradient-to-b from-[#1a1a1a] to-[#141414] border border-[#2a2a2a] rounded-xl p-1.5 inline-flex gap-1 shadow-lg">
         <button
           onClick={() => setActiveTab('accounts')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
             activeTab === 'accounts'
-              ? 'bg-brand text-white shadow-lg shadow-brand/25'
-              : 'text-white/50 hover:text-white hover:bg-white/5'
+              ? 'bg-gradient-to-b from-[#404040] to-[#2a2a2a] text-white shadow-inner border border-[#505050]'
+              : 'text-[#707070] hover:text-[#b0b0b0] hover:bg-[#1f1f1f]'
           }`}
         >
           <Users className="w-4 h-4" />
-          Customer Accounts
+          <span className="tracking-wide">Accounts</span>
         </button>
         <button
           onClick={() => setActiveTab('invoices')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
             activeTab === 'invoices'
-              ? 'bg-brand text-white shadow-lg shadow-brand/25'
-              : 'text-white/50 hover:text-white hover:bg-white/5'
+              ? 'bg-gradient-to-b from-[#404040] to-[#2a2a2a] text-white shadow-inner border border-[#505050]'
+              : 'text-[#707070] hover:text-[#b0b0b0] hover:bg-[#1f1f1f]'
           }`}
         >
           <Receipt className="w-4 h-4" />
-          Invoices
+          <span className="tracking-wide">Invoices</span>
         </button>
         <button
           onClick={() => setActiveTab('unallocated')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all relative ${
+          className={`flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 relative ${
             activeTab === 'unallocated'
-              ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/25'
+              ? 'bg-gradient-to-b from-[#5a4020] to-[#3d2a15] text-amber-200 shadow-inner border border-[#6a5030]'
               : unallocatedPayments.length > 0
-                ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/30'
-                : 'text-white/50 hover:text-white hover:bg-white/5'
+                ? 'text-amber-400/80 hover:text-amber-300 hover:bg-amber-900/20 border border-amber-700/30'
+                : 'text-[#707070] hover:text-[#b0b0b0] hover:bg-[#1f1f1f]'
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
-          Unallocated
+          <span className="tracking-wide">Unallocated</span>
           {unallocatedPayments.length > 0 && (
-            <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-              activeTab === 'unallocated' ? 'bg-white/20 text-white' : 'bg-amber-500 text-white'
+            <span className={`ml-1 px-2 py-0.5 text-xs font-bold rounded-full ${
+              activeTab === 'unallocated' ? 'bg-amber-400/20 text-amber-200' : 'bg-amber-500/80 text-white'
             }`}>
               {unallocatedPayments.length}
             </span>
@@ -902,50 +912,50 @@ export default function ReservationsInvoicesGrid() {
         </button>
         <button
           onClick={() => setActiveTab('receipts')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
             activeTab === 'receipts'
-              ? 'bg-brand text-white shadow-lg shadow-brand/25'
-              : 'text-white/50 hover:text-white hover:bg-white/5'
+              ? 'bg-gradient-to-b from-[#404040] to-[#2a2a2a] text-white shadow-inner border border-[#505050]'
+              : 'text-[#707070] hover:text-[#b0b0b0] hover:bg-[#1f1f1f]'
           }`}
         >
           <FileText className="w-4 h-4" />
-          Receipts
+          <span className="tracking-wide">Receipts</span>
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-        <div className={`grid grid-cols-1 gap-4 items-end ${activeTab === 'invoices' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+      {/* Filters - Refined */}
+      <div className="bg-gradient-to-b from-[#161616] to-[#111111] border border-[#2a2a2a] rounded-xl p-5">
+        <div className={`grid grid-cols-1 gap-5 items-end ${activeTab === 'invoices' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
           {/* From Date */}
           <div>
-            <label className="block text-xs font-medium text-white/70 mb-1">From Date</label>
+            <label className="block text-xs font-medium text-[#808080] mb-2 uppercase tracking-wider">From</label>
             <input
               type="date"
               value={filters.fromDate}
               onChange={(e) => setFilters(prev => ({ ...prev, fromDate: e.target.value }))}
-              className="w-full h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm [color-scheme:dark]"
+              className="w-full h-11 px-4 py-2 bg-[#0a0a0a] border border-[#333] rounded-lg text-white text-sm [color-scheme:dark] focus:border-[#505050] focus:outline-none transition-colors"
             />
           </div>
 
           {/* To Date */}
           <div>
-            <label className="block text-xs font-medium text-white/70 mb-1">To Date</label>
+            <label className="block text-xs font-medium text-[#808080] mb-2 uppercase tracking-wider">To</label>
             <input
               type="date"
               value={filters.toDate}
               onChange={(e) => setFilters(prev => ({ ...prev, toDate: e.target.value }))}
-              className="w-full h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm [color-scheme:dark]"
+              className="w-full h-11 px-4 py-2 bg-[#0a0a0a] border border-[#333] rounded-lg text-white text-sm [color-scheme:dark] focus:border-[#505050] focus:outline-none transition-colors"
             />
           </div>
 
           {/* Status Filter - Only show for Invoices tab */}
           {activeTab === 'invoices' && (
             <div>
-              <label className="block text-xs font-medium text-white/70 mb-1">Status</label>
+              <label className="block text-xs font-medium text-[#808080] mb-2 uppercase tracking-wider">Status</label>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                className="w-full h-[42px] px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                className="w-full h-11 px-4 py-2 bg-[#0a0a0a] border border-[#333] rounded-lg text-white text-sm focus:border-[#505050] focus:outline-none transition-colors"
               >
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -958,15 +968,15 @@ export default function ReservationsInvoicesGrid() {
 
           {/* Search */}
           <div>
-            <label className="block text-xs font-medium text-white/70 mb-1">Search</label>
+            <label className="block text-xs font-medium text-[#808080] mb-2 uppercase tracking-wider">Search</label>
             <div className="relative">
-              <Search className="absolute left-3 top-3 w-4 h-4 text-white/40" />
+              <Search className="absolute left-4 top-3.5 w-4 h-4 text-[#505050]" />
               <input
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                placeholder={activeTab === 'accounts' ? "Customer name, ID, phone..." : activeTab === 'invoices' ? "Invoice #, customer, deal #..." : "Receipt #, customer name..."}
-                className="w-full h-[42px] pl-10 pr-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm placeholder-white/40"
+                placeholder={activeTab === 'accounts' ? "Customer name, ID..." : activeTab === 'invoices' ? "Invoice #, customer..." : "Receipt #, customer..."}
+                className="w-full h-11 pl-11 pr-4 py-2 bg-[#0a0a0a] border border-[#333] rounded-lg text-white text-sm placeholder-[#505050] focus:border-[#505050] focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -976,34 +986,34 @@ export default function ReservationsInvoicesGrid() {
       {/* Customer Accounts Table */}
       {activeTab === 'accounts' && (
         <>
-          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
+          <div className="bg-gradient-to-b from-[#141414] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl overflow-hidden shadow-2xl">
             {loading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
-                <p className="text-white/60">Loading customer accounts...</p>
+              <div className="p-12 text-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#333] border-t-[#808080] mx-auto mb-4"></div>
+                <p className="text-[#606060] font-light">Loading customer accounts...</p>
               </div>
             ) : data.length === 0 ? (
-              <div className="p-8 text-center">
-                <Users className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                <p className="text-white/60">No customers found for the selected date range</p>
+              <div className="p-12 text-center">
+                <Users className="w-14 h-14 text-[#333] mx-auto mb-4" />
+                <p className="text-[#606060] font-light">No customers found for the selected date range</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer Name</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Vehicle</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Total Charges</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Paid</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Balance</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Created</th>
-                      <th className="px-4 py-3 w-8"></th>
+                    <tr className="border-b border-[#2a2a2a] bg-[#0a0a0a]">
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Customer ID</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Customer Name</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Vehicle</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-[#707070] uppercase tracking-wider">Total Charges</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-[#707070] uppercase tracking-wider">Paid</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-[#707070] uppercase tracking-wider">Balance</th>
+                      <th className="px-5 py-4 text-center text-xs font-medium text-[#707070] uppercase tracking-wider">Status</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Created</th>
+                      <th className="px-5 py-4 w-8"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/10">
+                  <tbody className="divide-y divide-[#1a1a1a]">
                     {data.map((item) => {
                       const isPaid = item.balance_due <= 0 && item.total_charges > 0;
                       const isPartial = item.balance_due > 0 && item.total_paid > 0;
@@ -1012,58 +1022,58 @@ export default function ReservationsInvoicesGrid() {
                         <tr 
                           key={item.id} 
                           onClick={() => handleRowClick(item)}
-                          className="hover:bg-white/5 transition-colors cursor-pointer group"
+                          className="hover:bg-[#1a1a1a] transition-all duration-200 cursor-pointer group"
                         >
-                          <td className="px-4 py-3">
+                          <td className="px-5 py-4">
                             {item.customer_number ? (
-                              <span className="px-2 py-1 bg-brand/20 border border-brand/40 rounded text-brand text-xs font-mono font-bold">
+                              <span className="px-2.5 py-1 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border border-[#404040] rounded text-[#c0c0c0] text-xs font-mono font-semibold">
                                 {item.customer_number}
                               </span>
                             ) : (
-                              <span className="text-white/40 text-xs">No ID</span>
+                              <span className="text-[#404040] text-xs">No ID</span>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-5 py-4">
                             <div>
                               <div className="text-white text-sm font-medium">{item.customer_name}</div>
                               {item.contact_no && (
-                                <div className="text-white/50 text-xs">{item.contact_no}</div>
+                                <div className="text-[#606060] text-xs mt-0.5">{item.contact_no}</div>
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-white/80 text-sm">
+                          <td className="px-5 py-4 text-[#909090] text-sm">
                             {item.vehicle_make_model} {item.model_year > 0 && item.model_year}
                           </td>
-                          <td className="px-4 py-3 text-right text-white text-sm">
+                          <td className="px-5 py-4 text-right text-white text-sm font-medium">
                             AED {formatCurrency(item.total_charges || 0)}
                           </td>
-                          <td className="px-4 py-3 text-right text-emerald-400 text-sm">
+                          <td className="px-5 py-4 text-right text-emerald-400 text-sm font-medium">
                             AED {formatCurrency(item.total_paid || 0)}
                           </td>
-                          <td className={`px-4 py-3 text-right text-sm font-semibold ${
+                          <td className={`px-5 py-4 text-right text-sm font-semibold ${
                             isPaid ? 'text-emerald-400' : 'text-amber-400'
                           }`}>
                             AED {formatCurrency(Math.abs(item.balance_due || 0))}
                             {item.balance_due < 0 && ' CR'}
                           </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          <td className="px-5 py-4 text-center">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                               item.document_status === 'reversed'
-                                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                ? 'bg-red-500/10 text-red-400 border border-red-500/20'
                                 : isPaid
-                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                   : isPartial
-                                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
                             }`}>
                               {item.document_status === 'reversed' ? 'Reversed' : isPaid ? 'Paid' : isPartial ? 'Partial' : 'Unpaid'}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-white/60 text-sm">
+                          <td className="px-5 py-4 text-[#606060] text-sm">
                             {formatDate(item.created_at)}
                           </td>
-                          <td className="px-4 py-3">
-                            <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" />
+                          <td className="px-5 py-4">
+                            <ChevronRight className="w-4 h-4 text-[#404040] group-hover:text-[#808080] transition-colors" />
                           </td>
                         </tr>
                       );
@@ -1074,35 +1084,33 @@ export default function ReservationsInvoicesGrid() {
             )}
           </div>
 
-          {/* Summary for Accounts */}
-          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-white">{data.length}</p>
-                <p className="text-sm text-white/60">Customers</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">AED {formatCurrency(totalCharges)}</p>
-                <p className="text-sm text-white/60">Total Charges</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(totalPaid)}</p>
-                <p className="text-sm text-white/60">Total Paid</p>
-              </div>
-              <div>
-                <p className={`text-2xl font-bold ${totalBalance > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  AED {formatCurrency(Math.abs(totalBalance))}
-                </p>
-                <p className="text-sm text-white/60">Outstanding</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-emerald-400">{paidCount}</p>
-                <p className="text-sm text-white/60">Paid</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-400">{partialCount + unpaidCount}</p>
-                <p className="text-sm text-white/60">Outstanding</p>
-              </div>
+          {/* Summary for Accounts - Luxury Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-white tracking-tight">{data.length}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Customers</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-2xl font-extralight text-white tracking-tight">AED {formatCurrency(totalCharges)}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Total Charges</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-2xl font-extralight text-emerald-400 tracking-tight">AED {formatCurrency(totalPaid)}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Total Paid</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className={`text-2xl font-extralight tracking-tight ${totalBalance > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                AED {formatCurrency(Math.abs(totalBalance))}
+              </p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Outstanding</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-emerald-400 tracking-tight">{paidCount}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Paid</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-amber-400 tracking-tight">{partialCount + unpaidCount}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Outstanding</p>
             </div>
           </div>
         </>
@@ -1111,40 +1119,39 @@ export default function ReservationsInvoicesGrid() {
       {/* Invoices Table */}
       {activeTab === 'invoices' && (
         <>
-          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
+          <div className="bg-gradient-to-b from-[#141414] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl overflow-hidden shadow-2xl">
             {loading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
-                <p className="text-white/60">Loading invoices...</p>
+              <div className="p-12 text-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#333] border-t-[#808080] mx-auto mb-4"></div>
+                <p className="text-[#606060] font-light">Loading invoices...</p>
               </div>
             ) : invoices.length === 0 ? (
-              <div className="p-8 text-center">
-                <Receipt className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                <p className="text-white/60">No invoices found for the selected filters</p>
+              <div className="p-12 text-center">
+                <Receipt className="w-14 h-14 text-[#333] mx-auto mb-4" />
+                <p className="text-[#606060] font-light">No invoices found for the selected filters</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Invoice #</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Vehicle</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Total</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Paid</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Balance</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">PDF</th>
+                    <tr className="border-b border-[#2a2a2a] bg-[#0a0a0a]">
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Invoice #</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Date</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Customer</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Vehicle</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-[#707070] uppercase tracking-wider">Total</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-[#707070] uppercase tracking-wider">Paid</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-[#707070] uppercase tracking-wider">Balance</th>
+                      <th className="px-5 py-4 text-center text-xs font-medium text-[#707070] uppercase tracking-wider">Status</th>
+                      <th className="px-5 py-4 text-center text-xs font-medium text-[#707070] uppercase tracking-wider">PDF</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/10">
+                  <tbody className="divide-y divide-[#1a1a1a]">
                     {invoices.map((invoice) => (
                       <tr 
                         key={invoice.id} 
-                        className="hover:bg-white/5 transition-colors cursor-pointer"
+                        className="hover:bg-[#1a1a1a] transition-all duration-200 cursor-pointer"
                         onClick={() => {
-                          // Create customer account object to open modal
                           const customerAccount: CustomerAccount = {
                             id: invoice.deal_id,
                             lead_id: invoice.lead_id,
@@ -1167,72 +1174,72 @@ export default function ReservationsInvoicesGrid() {
                           setShowModal(true);
                         }}
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-4">
                           {invoice.invoice_number ? (
-                            <span className={`px-2 py-1 rounded text-xs font-mono font-bold ${
+                            <span className={`px-2.5 py-1 rounded text-xs font-mono font-semibold ${
                               invoice.status === 'reversed'
-                                ? 'bg-red-500/20 border border-red-500/40 text-red-400'
-                                : 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400'
+                                ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                                : 'bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border border-[#404040] text-[#c0c0c0]'
                             }`}>
                               {invoice.invoice_number}
                             </span>
                           ) : (
-                            <span className="text-white/40 text-xs">Pending</span>
+                            <span className="text-[#404040] text-xs">Pending</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-white/80 text-sm">
+                        <td className="px-5 py-4 text-[#909090] text-sm">
                           {formatDate(invoice.invoice_date)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-4">
                           <div>
                             <div className="text-white text-sm font-medium">{invoice.customer_name}</div>
                             {invoice.customer_number && (
-                              <div className="text-brand text-xs font-mono">{invoice.customer_number}</div>
+                              <div className="text-[#707070] text-xs font-mono mt-0.5">{invoice.customer_number}</div>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-white/60 text-sm">
+                        <td className="px-5 py-4 text-[#707070] text-sm">
                           {invoice.vehicle_make_model || '-'}
                         </td>
-                        <td className="px-4 py-3 text-right text-white text-sm">
+                        <td className="px-5 py-4 text-right text-white text-sm font-medium">
                           AED {formatCurrency(invoice.total_amount || 0)}
                         </td>
-                        <td className="px-4 py-3 text-right text-emerald-400 text-sm">
+                        <td className="px-5 py-4 text-right text-emerald-400 text-sm font-medium">
                           AED {formatCurrency(invoice.paid_amount || 0)}
                         </td>
-                        <td className={`px-4 py-3 text-right text-sm font-semibold ${
+                        <td className={`px-5 py-4 text-right text-sm font-semibold ${
                           invoice.balance_due <= 0 ? 'text-emerald-400' : 'text-amber-400'
                         }`}>
                           AED {formatCurrency(Math.abs(invoice.balance_due || 0))}
                           {invoice.balance_due < 0 && ' CR'}
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        <td className="px-5 py-4 text-center">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                             invoice.status === 'reversed'
-                              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                              ? 'bg-red-500/10 text-red-400 border border-red-500/20'
                               : invoice.status === 'paid'
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                 : invoice.status === 'partial'
-                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                  : 'bg-white/10 text-white/60 border border-white/20'
+                                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                  : 'bg-[#1f1f1f] text-[#707070] border border-[#333]'
                           }`}>
                             {invoice.status === 'reversed' ? 'Reversed' : invoice.status === 'paid' ? 'Paid' : invoice.status === 'partial' ? 'Partial' : 'Pending'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-5 py-4 text-center">
                           {invoice.invoice_pdf_url ? (
                             <button
                               onClick={(e) => {
-                                e.stopPropagation(); // Prevent row click
+                                e.stopPropagation();
                                 window.open(invoice.invoice_pdf_url!, '_blank');
                               }}
-                              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
+                              className="p-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#333] hover:border-[#404040] rounded-lg text-[#707070] hover:text-white transition-all"
                               title="View Invoice PDF"
                             >
                               <Download className="w-4 h-4" />
                             </button>
                           ) : (
-                            <span className="text-white/30 text-xs">No PDF</span>
+                            <span className="text-[#333] text-xs">-</span>
                           )}
                         </td>
                       </tr>
@@ -1243,33 +1250,31 @@ export default function ReservationsInvoicesGrid() {
             )}
           </div>
 
-          {/* Summary for Invoices */}
-          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-white">{invoices.length}</p>
-                <p className="text-sm text-white/60">Total Invoices</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">AED {formatCurrency(invoices.reduce((sum, i) => sum + (i.total_amount || 0), 0))}</p>
-                <p className="text-sm text-white/60">Total Amount</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(invoices.reduce((sum, i) => sum + (i.paid_amount || 0), 0))}</p>
-                <p className="text-sm text-white/60">Total Paid</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-400">AED {formatCurrency(invoices.reduce((sum, i) => sum + (i.balance_due || 0), 0))}</p>
-                <p className="text-sm text-white/60">Outstanding</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-emerald-400">{invoices.filter(i => i.status === 'paid').length}</p>
-                <p className="text-sm text-white/60">Paid</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-red-400">{invoices.filter(i => i.status === 'reversed').length}</p>
-                <p className="text-sm text-white/60">Reversed</p>
-              </div>
+          {/* Summary for Invoices - Luxury Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-white tracking-tight">{invoices.length}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Invoices</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-xl font-extralight text-white tracking-tight">AED {formatCurrency(invoices.reduce((sum, i) => sum + (i.total_amount || 0), 0))}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Total</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-xl font-extralight text-emerald-400 tracking-tight">AED {formatCurrency(invoices.reduce((sum, i) => sum + (i.paid_amount || 0), 0))}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Paid</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-xl font-extralight text-amber-400 tracking-tight">AED {formatCurrency(invoices.reduce((sum, i) => sum + (i.balance_due || 0), 0))}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Outstanding</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-emerald-400 tracking-tight">{invoices.filter(i => i.status === 'paid').length}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Paid</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-red-400 tracking-tight">{invoices.filter(i => i.status === 'reversed').length}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Reversed</p>
             </div>
           </div>
         </>
@@ -1278,105 +1283,108 @@ export default function ReservationsInvoicesGrid() {
       {/* Unallocated Payments Tab */}
       {activeTab === 'unallocated' && (
         <>
-          {/* Prominent Warning Banner */}
+          {/* Prominent Warning Banner - Elegant */}
           {unallocatedPayments.length > 0 && (
-            <div className="bg-amber-500/20 border-2 border-amber-500/50 rounded-lg p-4 flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <AlertTriangle className="w-10 h-10 text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-amber-400">
-                  {unallocatedPayments.length} Payment{unallocatedPayments.length !== 1 ? 's' : ''} Require Allocation
-                </h3>
-                <p className="text-white/70 text-sm">
-                  Total unallocated amount: <span className="font-bold text-amber-400">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.unallocated_amount, 0))}</span>
-                </p>
-                <p className="text-white/50 text-xs mt-1">
-                  These payments need to be linked to an invoice by the sales team.
-                </p>
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#2d2010] via-[#1a1508] to-[#2d2010] border border-amber-700/30 rounded-xl p-5">
+              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+              <div className="flex items-center gap-5">
+                <div className="flex-shrink-0 w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                  <AlertTriangle className="w-7 h-7 text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-light text-amber-200 tracking-wide">
+                    {unallocatedPayments.length} Payment{unallocatedPayments.length !== 1 ? 's' : ''} Require Allocation
+                  </h3>
+                  <p className="text-[#a08060] text-sm mt-1">
+                    Total unallocated: <span className="font-semibold text-amber-400">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.unallocated_amount, 0))}</span>
+                  </p>
+                  <p className="text-[#706050] text-xs mt-2">
+                    These payments need to be linked to an invoice by the sales team.
+                  </p>
+                </div>
               </div>
             </div>
           )}
 
-          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
+          <div className="bg-gradient-to-b from-[#141414] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl overflow-hidden shadow-2xl">
             {loading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
-                <p className="text-white/60">Loading unallocated payments...</p>
+              <div className="p-12 text-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#333] border-t-amber-500/50 mx-auto mb-4"></div>
+                <p className="text-[#606060] font-light">Loading unallocated payments...</p>
               </div>
             ) : unallocatedPayments.length === 0 ? (
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
+              <div className="p-12 text-center">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <p className="text-emerald-400 font-semibold text-lg">All payments allocated!</p>
-                <p className="text-white/50 text-sm mt-1">No unallocated payments at this time</p>
+                <p className="text-emerald-400 font-light text-lg tracking-wide">All payments allocated</p>
+                <p className="text-[#505050] text-sm mt-2">No unallocated payments at this time</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/10 bg-amber-500/5">
-                      <th className="px-4 py-3 text-left text-xs font-medium text-amber-400 uppercase tracking-wider">Receipt #</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-amber-400 uppercase tracking-wider">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-amber-400 uppercase tracking-wider">Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-amber-400 uppercase tracking-wider">Method</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Total Amount</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Allocated</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Unallocated</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-amber-400 uppercase tracking-wider">Receipt</th>
+                    <tr className="border-b border-amber-900/30 bg-gradient-to-r from-[#1a1508] to-[#0d0d0d]">
+                      <th className="px-5 py-4 text-left text-xs font-medium text-amber-500/70 uppercase tracking-wider">Receipt #</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-amber-500/70 uppercase tracking-wider">Date</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-amber-500/70 uppercase tracking-wider">Customer</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-amber-500/70 uppercase tracking-wider">Method</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-amber-500/70 uppercase tracking-wider">Total</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-amber-500/70 uppercase tracking-wider">Allocated</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-amber-500/70 uppercase tracking-wider">Unallocated</th>
+                      <th className="px-5 py-4 text-center text-xs font-medium text-amber-500/70 uppercase tracking-wider">Receipt</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/10">
+                  <tbody className="divide-y divide-[#1a1a1a]">
                     {unallocatedPayments.map((payment) => (
-                      <tr key={payment.id} className="hover:bg-amber-500/5 transition-colors">
-                        <td className="px-4 py-3">
+                      <tr key={payment.id} className="hover:bg-amber-900/10 transition-all duration-200">
+                        <td className="px-5 py-4">
                           {payment.receipt_number ? (
-                            <span className="px-2 py-1 bg-amber-500/20 border border-amber-500/40 rounded text-amber-400 text-xs font-mono font-bold">
+                            <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded text-amber-400 text-xs font-mono font-semibold">
                               {payment.receipt_number}
                             </span>
                           ) : (
-                            <span className="text-white/40 text-xs">-</span>
+                            <span className="text-[#404040] text-xs">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-white/80 text-sm">
+                        <td className="px-5 py-4 text-[#909090] text-sm">
                           {formatDate(payment.payment_date)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-4">
                           <div>
                             <div className="text-white text-sm font-medium">{payment.customer_name}</div>
                             {payment.customer_number && (
-                              <div className="text-brand text-xs font-mono">{payment.customer_number}</div>
+                              <div className="text-[#707070] text-xs font-mono mt-0.5">{payment.customer_number}</div>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-white/60 text-sm capitalize">
+                        <td className="px-5 py-4 text-[#707070] text-sm capitalize">
                           {payment.payment_method?.replace(/_/g, ' ') || '-'}
                         </td>
-                        <td className="px-4 py-3 text-right text-white text-sm">
+                        <td className="px-5 py-4 text-right text-white text-sm font-medium">
                           AED {formatCurrency(payment.amount)}
                         </td>
-                        <td className="px-4 py-3 text-right text-emerald-400 text-sm">
+                        <td className="px-5 py-4 text-right text-emerald-400 text-sm font-medium">
                           AED {formatCurrency(payment.allocated_amount)}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="px-2 py-1 bg-amber-500/20 border border-amber-500/40 rounded text-amber-400 text-sm font-bold">
+                        <td className="px-5 py-4 text-right">
+                          <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-amber-400 text-sm font-semibold">
                             AED {formatCurrency(payment.unallocated_amount)}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-5 py-4 text-center">
                           {payment.receipt_url ? (
                             <button
                               onClick={() => window.open(payment.receipt_url!, '_blank')}
-                              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
+                              className="p-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#333] hover:border-[#404040] rounded-lg text-[#707070] hover:text-white transition-all"
                               title="Download Receipt"
                             >
                               <Download className="w-4 h-4" />
                             </button>
                           ) : (
-                            <span className="text-white/30 text-xs">-</span>
+                            <span className="text-[#333] text-xs">-</span>
                           )}
                         </td>
                       </tr>
@@ -1387,25 +1395,23 @@ export default function ReservationsInvoicesGrid() {
             )}
           </div>
 
-          {/* Summary for Unallocated Payments */}
-          <div className="bg-amber-500/10 backdrop-blur border border-amber-500/30 rounded-lg p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-amber-400">{unallocatedPayments.length}</p>
-                <p className="text-sm text-white/60">Unallocated Payments</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.amount, 0))}</p>
-                <p className="text-sm text-white/60">Total Amount</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.allocated_amount, 0))}</p>
-                <p className="text-sm text-white/60">Allocated</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-400">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.unallocated_amount, 0))}</p>
-                <p className="text-sm text-white/60">Needs Allocation</p>
-              </div>
+          {/* Summary for Unallocated - Amber Theme Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-[#1a1508] to-[#0d0d0d] border border-amber-900/30 rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-amber-400 tracking-tight">{unallocatedPayments.length}</p>
+              <p className="text-xs text-[#706050] uppercase tracking-wider mt-1">Payments</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-xl font-extralight text-white tracking-tight">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.amount, 0))}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Total</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-xl font-extralight text-emerald-400 tracking-tight">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.allocated_amount, 0))}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Allocated</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1508] to-[#0d0d0d] border border-amber-900/30 rounded-xl p-4 text-center">
+              <p className="text-xl font-extralight text-amber-400 tracking-tight">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.unallocated_amount, 0))}</p>
+              <p className="text-xs text-[#706050] uppercase tracking-wider mt-1">Needs Allocation</p>
             </div>
           </div>
         </>
@@ -1414,104 +1420,104 @@ export default function ReservationsInvoicesGrid() {
       {/* Receipts Table */}
       {activeTab === 'receipts' && (
         <>
-          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg overflow-hidden">
+          <div className="bg-gradient-to-b from-[#141414] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl overflow-hidden shadow-2xl">
             {loading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60 mx-auto mb-4"></div>
-                <p className="text-white/60">Loading receipts...</p>
+              <div className="p-12 text-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#333] border-t-[#808080] mx-auto mb-4"></div>
+                <p className="text-[#606060] font-light">Loading receipts...</p>
               </div>
             ) : receipts.length === 0 ? (
-              <div className="p-8 text-center">
-                <FileText className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                <p className="text-white/60">No receipts found for the selected date range</p>
+              <div className="p-12 text-center">
+                <FileText className="w-14 h-14 text-[#333] mx-auto mb-4" />
+                <p className="text-[#606060] font-light">No receipts found for the selected date range</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Receipt #</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Vehicle</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Method</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">Amount</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Allocated To</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">Actions</th>
+                    <tr className="border-b border-[#2a2a2a] bg-[#0a0a0a]">
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Receipt #</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Date</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Customer</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Vehicle</th>
+                      <th className="px-5 py-4 text-left text-xs font-medium text-[#707070] uppercase tracking-wider">Method</th>
+                      <th className="px-5 py-4 text-right text-xs font-medium text-[#707070] uppercase tracking-wider">Amount</th>
+                      <th className="px-5 py-4 text-center text-xs font-medium text-[#707070] uppercase tracking-wider">Status</th>
+                      <th className="px-5 py-4 text-center text-xs font-medium text-[#707070] uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/10">
+                  <tbody className="divide-y divide-[#1a1a1a]">
                     {receipts.map((receipt) => (
-                      <tr key={receipt.id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-4 py-3">
+                      <tr key={receipt.id} className="hover:bg-[#1a1a1a] transition-all duration-200">
+                        <td className="px-5 py-4">
                           {receipt.receipt_number ? (
-                            <span className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs font-mono">
+                            <span className="px-2.5 py-1 bg-gradient-to-r from-[#2a2a2a] to-[#1f1f1f] border border-[#404040] rounded text-[#c0c0c0] text-xs font-mono font-semibold">
                               {receipt.receipt_number}
                             </span>
                           ) : (
-                            <span className="text-white/40 text-xs">-</span>
+                            <span className="text-[#404040] text-xs">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-white/80 text-sm">
+                        <td className="px-5 py-4 text-[#909090] text-sm">
                           {formatDate(receipt.payment_date)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-4">
                           <div>
                             <div className="text-white text-sm font-medium">{receipt.customer_name || 'Unknown'}</div>
                             {receipt.customer_number && (
-                              <div className="text-brand text-xs font-mono">{receipt.customer_number}</div>
+                              <div className="text-[#707070] text-xs font-mono mt-0.5">{receipt.customer_number}</div>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-white/60 text-sm">
+                        <td className="px-5 py-4 text-[#707070] text-sm">
                           {receipt.vehicle_make_model || '-'}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        <td className="px-5 py-4">
+                          <span className={`px-2.5 py-1 rounded text-xs font-medium ${
                             receipt.payment_method === 'refund' || receipt.amount < 0
-                              ? 'bg-red-500/20 text-red-400'
-                              : 'bg-white/10 text-white/80'
+                              ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                              : 'bg-[#1f1f1f] text-[#909090] border border-[#333]'
                           }`}>
                             {formatPaymentMethod(receipt.payment_method)}
                           </span>
                         </td>
-                        <td className={`px-4 py-3 text-right text-sm font-semibold ${
+                        <td className={`px-5 py-4 text-right text-sm font-semibold ${
                           receipt.amount < 0 ? 'text-red-400' : 'text-emerald-400'
                         }`}>
                           {receipt.amount < 0 ? '-' : ''}AED {formatCurrency(receipt.amount)}
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-5 py-4 text-center">
                           {receipt.allocations && receipt.allocations.length > 0 ? (
                             <div className="flex flex-col gap-1 items-center">
                               {receipt.allocated_amount >= receipt.amount ? (
-                                <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-xs font-medium">
-                                  Fully Allocated
+                                <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium">
+                                  Allocated
                                 </span>
                               ) : (
-                                <span className="px-2 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-xs font-medium">
+                                <span className="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium">
                                   Partial
                                 </span>
                               )}
-                              <div className="text-[10px] text-white/50 mt-1">
+                              <div className="text-[10px] text-[#505050] mt-1">
                                 {receipt.allocations.map((alloc, idx) => (
                                   <div key={idx}>{alloc.document_number || 'RES'}: {formatCurrency(alloc.allocated_amount)}</div>
                                 ))}
                               </div>
                             </div>
                           ) : (
-                            <span className="px-2 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded text-xs font-medium">
-                              Not Allocated
+                            <span className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-medium">
+                              Unallocated
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-5 py-4 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   openAllocationModal(receipt);
                                 }}
-                                className="px-3 py-1.5 bg-brand/20 hover:bg-brand/30 rounded-lg text-brand text-xs font-medium transition-colors flex items-center gap-1"
+                                className="px-3 py-1.5 bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#404040] hover:border-[#505050] rounded-lg text-[#909090] hover:text-white text-xs font-medium transition-all flex items-center gap-1"
                                 title="Allocate to Reservation"
                               >
                                 Allocate <ChevronRight className="w-3 h-3" />
@@ -1519,7 +1525,7 @@ export default function ReservationsInvoicesGrid() {
                             {receipt.receipt_url ? (
                               <button
                                 onClick={() => window.open(receipt.receipt_url!, '_blank')}
-                                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
+                                className="p-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#333] hover:border-[#404040] rounded-lg text-[#707070] hover:text-white transition-all"
                                 title="Download Receipt"
                               >
                                 <Download className="w-4 h-4" />
@@ -1541,7 +1547,7 @@ export default function ReservationsInvoicesGrid() {
                                       const data = await res.json();
                                       if (data.receiptUrl) {
                                         window.open(data.receiptUrl, '_blank');
-                                        fetchReceipts(); // Refresh to show the new PDF
+                                        fetchReceipts();
                                       }
                                     } else {
                                       alert('Failed to generate receipt');
@@ -1551,7 +1557,7 @@ export default function ReservationsInvoicesGrid() {
                                     alert('Failed to generate receipt');
                                   }
                                 }}
-                                className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-colors"
+                                className="p-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#333] hover:border-[#404040] rounded-lg text-[#707070] hover:text-white transition-all"
                                 title="Generate Receipt PDF"
                               >
                                 <FileText className="w-4 h-4" />
@@ -1567,25 +1573,23 @@ export default function ReservationsInvoicesGrid() {
             )}
           </div>
 
-          {/* Summary for Receipts */}
-          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-white">{receipts.length}</p>
-                <p className="text-sm text-white/60">Total Receipts</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-emerald-400">AED {formatCurrency(totalReceiptsAmount)}</p>
-                <p className="text-sm text-white/60">Total Amount</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-brand">{receiptsWithPdf}</p>
-                <p className="text-sm text-white/60">With PDF</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white/50">{receipts.length - receiptsWithPdf}</p>
-                <p className="text-sm text-white/60">No PDF</p>
-              </div>
+          {/* Summary for Receipts - Luxury Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-white tracking-tight">{receipts.length}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Receipts</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-xl font-extralight text-emerald-400 tracking-tight">AED {formatCurrency(totalReceiptsAmount)}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Total</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-[#c0c0c0] tracking-tight">{receiptsWithPdf}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">With PDF</p>
+            </div>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-[#505050] tracking-tight">{receipts.length - receiptsWithPdf}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">No PDF</p>
             </div>
           </div>
         </>
@@ -1601,36 +1605,39 @@ export default function ReservationsInvoicesGrid() {
         />
       )}
 
-      {/* Allocation Modal */}
+      {/* Allocation Modal - Luxury */}
       {showAllocationModal && selectedReceipt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowAllocationModal(false)} />
-          <div className="relative bg-[#111] border border-white/20 rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h3 className="text-xl font-semibold text-white mb-4">Allocate Payment</h3>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAllocationModal(false)} />
+          <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d] border border-[#333] rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            {/* Silver accent line */}
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#c0c0c0]/20 to-transparent rounded-t-2xl" />
+            
+            <h3 className="text-xl font-light text-white tracking-wide mb-5">Allocate Payment</h3>
             
             {/* Receipt Info */}
-            <div className="bg-white/5 rounded-lg p-4 mb-4">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-white/60">Receipt #</span>
-                <span className="text-white font-mono">{selectedReceipt.receipt_number || '-'}</span>
+            <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl p-4 mb-5">
+              <div className="flex justify-between text-sm mb-3">
+                <span className="text-[#707070]">Receipt #</span>
+                <span className="text-[#c0c0c0] font-mono font-semibold">{selectedReceipt.receipt_number || '-'}</span>
               </div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-white/60">Total Amount</span>
+              <div className="flex justify-between text-sm mb-3">
+                <span className="text-[#707070]">Total Amount</span>
                 <span className="text-emerald-400 font-semibold">AED {formatCurrency(selectedReceipt.amount)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-white/60">Available to Allocate</span>
+                <span className="text-[#707070]">Available to Allocate</span>
                 <span className="text-amber-400 font-semibold">AED {formatCurrency(selectedReceipt.unallocated_amount)}</span>
               </div>
             </div>
 
             {/* Reservation Selection */}
-            <div className="mb-4">
-              <label className="block text-sm text-white/70 mb-2">Select Reservation</label>
+            <div className="mb-5">
+              <label className="block text-xs text-[#808080] mb-2 uppercase tracking-wider">Select Reservation</label>
               <select
                 value={selectedReservationId}
                 onChange={(e) => setSelectedReservationId(e.target.value)}
-                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand"
+                className="w-full bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#505050] transition-colors"
               >
                 <option value="">-- Select a reservation --</option>
                 {reservationOptions.map((res) => (
@@ -1643,16 +1650,16 @@ export default function ReservationsInvoicesGrid() {
 
             {/* Allocation Amount */}
             <div className="mb-6">
-              <label className="block text-sm text-white/70 mb-2">Amount to Allocate</label>
-              <div className="flex items-center gap-2">
-                <span className="text-white/60">AED</span>
+              <label className="block text-xs text-[#808080] mb-2 uppercase tracking-wider">Amount to Allocate</label>
+              <div className="flex items-center gap-3">
+                <span className="text-[#606060] text-sm">AED</span>
                 <input
                   type="number"
                   value={allocationAmount}
                   onChange={(e) => setAllocationAmount(Math.min(selectedReceipt.unallocated_amount, Math.max(0, Number(e.target.value))))}
                   max={selectedReceipt.unallocated_amount}
                   min={0}
-                  className="flex-1 bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand"
+                  className="flex-1 bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#505050] transition-colors"
                 />
               </div>
             </div>
@@ -1661,14 +1668,14 @@ export default function ReservationsInvoicesGrid() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowAllocationModal(false)}
-                className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-lg text-white/80 transition-colors"
+                className="flex-1 px-4 py-3 bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#333] rounded-lg text-[#909090] hover:text-white transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAllocate}
                 disabled={!selectedReservationId || allocationAmount <= 0 || allocating}
-                className="flex-1 px-4 py-3 bg-brand hover:bg-brand/80 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-3 bg-gradient-to-b from-[#404040] to-[#2a2a2a] hover:from-[#505050] hover:to-[#333] border border-[#505050] rounded-lg text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {allocating ? 'Allocating...' : 'Allocate Payment'}
               </button>

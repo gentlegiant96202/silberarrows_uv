@@ -1259,7 +1259,7 @@ export default function ReservationsInvoicesGrid() {
                   Total unallocated amount: <span className="font-bold text-amber-400">AED {formatCurrency(unallocatedPayments.reduce((sum, p) => sum + p.unallocated_amount, 0))}</span>
                 </p>
                 <p className="text-white/50 text-xs mt-1">
-                  These payments need to be linked to an invoice. Open the customer account to allocate.
+                  These payments need to be linked to an invoice by the sales team.
                 </p>
               </div>
             </div>
@@ -1294,7 +1294,6 @@ export default function ReservationsInvoicesGrid() {
                       <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Allocated</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-amber-400 uppercase tracking-wider">Unallocated</th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-amber-400 uppercase tracking-wider">Receipt</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-amber-400 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
@@ -1346,41 +1345,6 @@ export default function ReservationsInvoicesGrid() {
                           ) : (
                             <span className="text-white/30 text-xs">-</span>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => {
-                              // Find customer account and open modal
-                              const account = data.find(d => d.lead_id === payment.lead_id);
-                              if (account) {
-                                setSelectedCustomer(account);
-                              } else {
-                                // Create a minimal account to open modal
-                                const minimalAccount: CustomerAccount = {
-                                  id: '',
-                                  lead_id: payment.lead_id,
-                                  customer_number: payment.customer_number,
-                                  customer_name: payment.customer_name,
-                                  contact_no: '',
-                                  email_address: '',
-                                  vehicle_make_model: payment.vehicle_make_model || '',
-                                  model_year: 0,
-                                  document_type: 'reservation',
-                                  document_number: null,
-                                  document_status: '',
-                                  invoice_total: 0,
-                                  created_at: '',
-                                  total_charges: 0,
-                                  total_paid: 0,
-                                  balance_due: 0
-                                };
-                                setSelectedCustomer(minimalAccount);
-                              }
-                            }}
-                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded transition-colors"
-                          >
-                            Allocate
-                          </button>
                         </td>
                       </tr>
                     ))}

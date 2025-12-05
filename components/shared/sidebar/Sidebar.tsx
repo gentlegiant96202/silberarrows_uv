@@ -154,8 +154,7 @@ export default function Sidebar() {
       { key: 'customers', label: 'Customer Database', icon: UsersRound, href: '/customers' },
       { key: 'inventory', label: 'Inventory', icon: MercedesStar, href: '/inventory' },
       { key: 'consignments', label: 'Consignments', icon: FileText, href: '/consignments' },
-      { key: 'service', label: 'Service & Warranty', icon: Wrench, href: '/service', badge: pendingContractsCount },
-      { key: 'accounting', label: 'Accounting', icon: DirhamIconSmall, href: '/accounting' }
+      { key: 'service', label: 'Service & Warranty', icon: Wrench, href: '/service', badge: pendingContractsCount }
     ],
     'workshop': [
       { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/workshop/dashboard' },
@@ -205,8 +204,7 @@ export default function Sidebar() {
         subItems: [
           { key: 'sales_dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/accounts/dashboard?tab=sales&subtab=dashboard' },
           { key: 'sales_grid', label: 'Data Grid', icon: Grid3X3, href: '/accounts/dashboard?tab=sales&subtab=grid' },
-          { key: 'sales_targets', label: 'Targets', icon: Target, href: '/accounts/dashboard?tab=sales&subtab=targets' },
-          { key: 'sales_accounting', label: 'Accounting', icon: FileText, href: '/accounts/dashboard?tab=sales&subtab=accounting' }
+          { key: 'sales_targets', label: 'Targets', icon: Target, href: '/accounts/dashboard?tab=sales&subtab=targets' }
         ]
       },
       { key: 'accounts_leasing', label: 'Leasing', icon: Calculator, href: '/accounts/dashboard?tab=leasing' }

@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRole } from '@/lib/useUserRole';
 import { FileText, Search, Shield, Users, ChevronRight, Download, Receipt, AlertTriangle } from 'lucide-react';
-import AccountSummaryModal from '@/components/modules/uv-crm/modals/AccountSummaryModal';
 
 interface CustomerAccount {
   id: string;
@@ -57,14 +56,6 @@ interface ReservationOption {
   balance_due: number;
 }
 
-interface Lead {
-  id: string;
-  full_name: string;
-  phone_number: string;
-  country_code?: string;
-  model_of_interest: string;
-  inventory_car_id?: string;
-}
 
 interface InvoiceData {
   id: string;
@@ -122,9 +113,6 @@ export default function ReservationsInvoicesGrid() {
     status: ''
   });
   
-  // Modal state
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerAccount | null>(null);
-  const [showModal, setShowModal] = useState(false);
   
   // Allocation modal state
   const [showAllocationModal, setShowAllocationModal] = useState(false);
@@ -790,29 +778,6 @@ export default function ReservationsInvoicesGrid() {
     return methods[method] || method;
   };
 
-  const handleRowClick = (customer: CustomerAccount) => {
-    setSelectedCustomer(customer);
-    setShowModal(true);
-  };
-
-  const handleModalClose = () => {
-    setShowModal(false);
-    setSelectedCustomer(null);
-    // Refresh data in case changes were made
-    if (activeTab === 'accounts') {
-      fetchData();
-    } else {
-      fetchReceipts();
-    }
-  };
-
-  // Create lead object for modal
-  const getLeadForModal = (customer: CustomerAccount): Lead => ({
-    id: customer.lead_id,
-    full_name: customer.customer_name,
-    phone_number: customer.contact_no || '',
-    model_of_interest: customer.vehicle_make_model || ''
-  });
 
   // Calculate summary stats for accounts
   const totalCharges = data.reduce((sum, c) => sum + (c.total_charges || 0), 0);
@@ -1021,8 +986,7 @@ export default function ReservationsInvoicesGrid() {
                       return (
                         <tr 
                           key={item.id} 
-                          onClick={() => handleRowClick(item)}
-                          className="hover:bg-[#1a1a1a] transition-all duration-200 cursor-pointer group"
+                          className="hover:bg-[#1a1a1a] transition-all duration-200 group"
                         >
                           <td className="px-5 py-4">
                             {item.customer_number ? (
@@ -1593,16 +1557,6 @@ export default function ReservationsInvoicesGrid() {
             </div>
           </div>
         </>
-      )}
-
-      {/* Account Summary Modal */}
-      {showModal && selectedCustomer && (
-        <AccountSummaryModal
-          isOpen={showModal}
-          mode={selectedCustomer.document_type}
-          lead={getLeadForModal(selectedCustomer)}
-          onClose={handleModalClose}
-        />
       )}
 
       {/* Allocation Modal - Luxury */}

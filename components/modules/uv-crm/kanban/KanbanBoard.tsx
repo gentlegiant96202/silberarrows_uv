@@ -83,7 +83,6 @@ const SkeletonCRMColumn = ({ title, icon, canCreate = false }: {
 import NewAppointmentModal from "../modals/NewAppointmentModal";
 import LeadDetailsModal from "../modals/LeadDetailsModal";
 import LostReasonModal from "../modals/LostReasonModal";
-import AccountSummaryModal from "../modals/AccountSummaryModal";
 import { useSearchStore } from "@/lib/searchStore";
 import { useModulePermissions } from "@/lib/useModulePermissions";
 
@@ -109,11 +108,6 @@ interface Lead {
   lost_reason_notes?: string; // Additional context for lost reason
   lost_at?: string; // When the lead was marked as lost
   archived_at?: string; // When the lead was archived
-  // Accounting data for reserved/delivered
-  total_charges?: number;
-  total_paid?: number;
-  balance_due?: number;
-  document_status?: string; // 'pending' | 'completed' | 'cancelled' | 'reversed'
 }
 
 const columns = [
@@ -207,11 +201,6 @@ export default function KanbanBoard() {
   const { canEdit, canCreate } = useModulePermissions('uv_crm');
   const { isAdmin } = useUserRole();
   
-  // Vehicle Document Modal states
-  const [showVehicleDocumentModal, setShowVehicleDocumentModal] = useState(false);
-  const [vehicleDocumentMode, setVehicleDocumentMode] = useState<'reservation' | 'invoice'>('reservation');
-  const [leadForDocument, setLeadForDocument] = useState<Lead | null>(null);
-  const [leadOriginalStatus, setLeadOriginalStatus] = useState<string | null>(null);
 
   // Search store
   const { query } = useSearchStore();
@@ -238,18 +227,18 @@ export default function KanbanBoard() {
     if (!hasFetchedLeads.current) {
       
       // Define loading priority (left to right column order)
-      const columnPriorities: { key: ColKey; delay: number; status: string[]; fetchBalance?: boolean }[] = [
+      const columnPriorities: { key: ColKey; delay: number; status: string[] }[] = [
         { key: 'new_lead', delay: 0, status: ['new_lead'] },           // NEW LEAD (leftmost)
         { key: 'new_customer', delay: 80, status: ['new_customer'] },  // NEW APPOINTMENT
         { key: 'negotiation', delay: 160, status: ['negotiation'] },   // NEGOTIATION
-        { key: 'won', delay: 240, status: ['won'], fetchBalance: true },           // RESERVED
-        { key: 'delivered', delay: 320, status: ['delivered'], fetchBalance: true }, // DELIVERED
+        { key: 'won', delay: 240, status: ['won'] },                   // RESERVED
+        { key: 'delivered', delay: 320, status: ['delivered'] },       // DELIVERED
         { key: 'lost', delay: 400, status: ['lost'] },                 // LOST
         { key: 'archived', delay: 480, status: ['archived'] }          // ARCHIVED (rightmost)
       ];
 
       // Load each column progressively
-      columnPriorities.forEach(({ key, delay, status, fetchBalance }) => {
+      columnPriorities.forEach(({ key, delay, status }) => {
         setTimeout(async () => {
           try {
             let query = supabase
@@ -265,57 +254,6 @@ export default function KanbanBoard() {
             if (data) {
               let sortedData = data as Lead[];
 
-              // Fetch balance data for won/delivered columns
-              if (fetchBalance && sortedData.length > 0) {
-                const leadIds = sortedData.map(l => l.id);
-                
-                // Get charges totals
-                const { data: chargesData } = await supabase
-                  .from('uv_charges')
-                  .select('reservation_id, unit_price, quantity')
-                  .in('reservation_id', 
-                    (await supabase
-                      .from('vehicle_reservations')
-                      .select('id, lead_id')
-                      .in('lead_id', leadIds)
-                    ).data?.map(r => r.id) || []
-                  );
-                
-                // Get reservations to map lead_id and document_status
-                const { data: reservations } = await supabase
-                  .from('vehicle_reservations')
-                  .select('id, lead_id, document_status')
-                  .in('lead_id', leadIds);
-                
-                // Get payments
-                const { data: paymentsData } = await supabase
-                  .from('uv_payments')
-                  .select('lead_id, amount');
-                
-                // Calculate totals per lead
-                const leadTotals: Record<string, { charges: number; paid: number; document_status?: string }> = {};
-                
-                reservations?.forEach(res => {
-                  const leadCharges = chargesData?.filter(c => c.reservation_id === res.id) || [];
-                  const total = leadCharges.reduce((sum, c) => sum + (c.unit_price * (c.quantity || 1)), 0);
-                  leadTotals[res.lead_id] = { charges: total, paid: 0, document_status: res.document_status };
-                });
-                
-                paymentsData?.forEach(p => {
-                  if (leadTotals[p.lead_id]) {
-                    leadTotals[p.lead_id].paid += p.amount || 0;
-                  }
-                });
-                
-                // Attach balance and document status to leads
-                sortedData = sortedData.map(lead => ({
-                  ...lead,
-                  total_charges: leadTotals[lead.id]?.charges || 0,
-                  total_paid: leadTotals[lead.id]?.paid || 0,
-                  balance_due: (leadTotals[lead.id]?.charges || 0) - (leadTotals[lead.id]?.paid || 0),
-                  document_status: leadTotals[lead.id]?.document_status
-                }));
-              }
 
               // Apply specific sorting for new_customer column (appointments) in JavaScript
               if (key === 'new_customer') {
@@ -426,14 +364,8 @@ export default function KanbanBoard() {
                   if (found) existingLead = found;
                 });
                 
-                // Merge: keep existing balance data if new lead doesn't have it
                 const mergedLead: Lead = {
                   ...lead,
-                  // Preserve calculated balance fields that aren't in DB
-                  total_charges: lead.total_charges ?? existingLead?.total_charges,
-                  total_paid: lead.total_paid ?? existingLead?.total_paid,
-                  balance_due: lead.balance_due ?? existingLead?.balance_due,
-                  document_status: lead.document_status ?? existingLead?.document_status,
                 };
                 
                 // Remove from all columns first
@@ -464,19 +396,7 @@ export default function KanbanBoard() {
             } else if (payload.eventType === "UPDATE") {
               const updatedLead = payload.new as Lead;
               updateColumnData(updatedLead, "UPDATE");
-              // Preserve calculated balance fields when updating
-              newLeads = prev.map(l => {
-                if (l.id === updatedLead.id) {
-                  return {
-                    ...updatedLead,
-                    total_charges: updatedLead.total_charges ?? l.total_charges,
-                    total_paid: updatedLead.total_paid ?? l.total_paid,
-                    balance_due: updatedLead.balance_due ?? l.balance_due,
-                    document_status: updatedLead.document_status ?? l.document_status,
-                  };
-                }
-                return l;
-              });
+              newLeads = prev.map(l => l.id === updatedLead.id ? updatedLead : l);
             } else if (payload.eventType === "DELETE") {
               const deletedLead = payload.old as Lead;
               updateColumnData(deletedLead, "DELETE");
@@ -594,25 +514,7 @@ export default function KanbanBoard() {
     // Small delay to distinguish between drag and click
     setTimeout(async () => {
       if (!isDragging) {
-        // Check if lead is in won/delivered status and has a reservation document
-        if (lead.status === 'won' || lead.status === 'delivered') {
-          // Check for existing reservation (get most recent if multiple)
-          const { data: existingReservation, error } = await supabase
-            .from('vehicle_reservations')
-            .select('*')
-            .eq('lead_id', lead.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          // Always open vehicle document modal for won/delivered leads
-          setLeadForDocument(lead);
-          setLeadOriginalStatus(lead.status);
-          setVehicleDocumentMode(lead.status === 'won' ? 'reservation' : 'invoice');
-          setShowVehicleDocumentModal(true);
-          return;
-        }
-        
-        // Default behavior - open lead details modal
+        // Open lead details modal
         setSelectedLead(lead);
       }
     }, 10);
@@ -680,82 +582,6 @@ export default function KanbanBoard() {
     setLeadToLose(null);
   };
 
-  const handleVehicleDocumentSubmit = async () => {
-    if (!leadForDocument) return;
-    
-    // For invoice mode, verify invoice was actually created before updating status
-    if (vehicleDocumentMode === 'invoice') {
-      try {
-        // Check if invoice actually exists
-        const { data: invoiceCheck, error: checkErr } = await supabase
-          .from('vehicle_reservations')
-          .select('id, document_number, pdf_url')
-          .eq('lead_id', leadForDocument.id)
-          .eq('document_type', 'invoice')
-          .maybeSingle();
-        
-        if (checkErr) {
-          alert('Error verifying invoice. Status not updated.');
-          return;
-        }
-        
-        const hasValidInvoice = invoiceCheck && (invoiceCheck.document_number || invoiceCheck.pdf_url);
-        if (!hasValidInvoice) {
-          alert('Invoice must be generated before moving to DELIVERED. Please complete the invoice first.');
-          return;
-        }
-      } catch (error) {
-        alert('Cannot verify invoice creation. Status not updated.');
-        return;
-      }
-    }
-    
-    // Only update status if invoice is confirmed (for delivered) or for reservations
-    const newStatus = vehicleDocumentMode === 'reservation' ? 'won' : 'delivered';
-    const { error } = await supabase.from("leads").update({ 
-      status: newStatus,
-      updated_at: new Date().toISOString()
-    }).eq("id", leadForDocument.id);
-    
-    if (error) {
-      alert('Failed to update lead status.');
-    }
-    
-    // Keep modal open - user will close manually when ready
-    // Modal stays open to allow DocuSign workflow or further actions
-  };
-
-  const handleVehicleDocumentCancel = () => {
-    // Only revert if we were actively moving the card (not just viewing)
-    if (vehicleDocumentMode === 'invoice' && leadForDocument && leadOriginalStatus !== 'delivered') {
-      // Revert to original status (only if card wasn't already delivered)
-      supabase.from("leads").update({ 
-        status: leadOriginalStatus || 'won',
-        updated_at: new Date().toISOString()
-      }).eq("id", leadForDocument.id).then(({ error }) => {
-        if (error) {
-        } else {
-        }
-      });
-    }
-    
-    // Same logic for reservation mode
-    if (vehicleDocumentMode === 'reservation' && leadForDocument && leadOriginalStatus !== 'won') {
-      // Revert to original status (only if card wasn't already in reserved)
-      supabase.from("leads").update({ 
-        status: leadOriginalStatus || 'negotiation',
-        updated_at: new Date().toISOString()
-      }).eq("id", leadForDocument.id).then(({ error }) => {
-        if (error) {
-        } else {
-        }
-      });
-    }
-    
-    setShowVehicleDocumentModal(false);
-    setLeadForDocument(null);
-    setLeadOriginalStatus(null);
-  };
 
   // Archive lead function
   const handleArchiveLead = async (leadId: string) => {
@@ -943,30 +769,7 @@ export default function KanbanBoard() {
                   </div>
                   
                   {/* Balance/Budget Row */}
-                  {(col.key === 'won' || col.key === 'delivered') ? (
-                    // Reserved/Delivered: Show balance
-                    <div className="flex items-center justify-between pt-1 mt-1 border-t border-white/10">
-                      <span className="text-[9px] text-white/50 uppercase">Balance</span>
-                      <span className={`text-[11px] font-semibold ${
-                        l.document_status === 'reversed'
-                          ? 'text-red-400'
-                          : (l.total_charges || 0) > 0 && (l.balance_due || 0) <= 0 
-                            ? 'text-emerald-400' 
-                            : (l.total_charges || 0) > 0 
-                              ? 'text-amber-400'
-                              : 'text-white/50'
-                      }`}>
-                        {l.document_status === 'reversed'
-                          ? 'REVERSED'
-                          : (l.total_charges || 0) === 0
-                            ? 'NO INVOICE'
-                            : (l.balance_due || 0) <= 0 
-                              ? 'PAID' 
-                              : `AED ${(l.balance_due || 0).toLocaleString()}`
-                        }
-                      </span>
-                    </div>
-                  ) : col.key === 'new_customer' && l.appointment_date ? (
+                  {col.key === 'new_customer' && l.appointment_date ? (
                     // Appointment: Show date/time
                     <div className="flex items-center gap-1 pt-1 mt-1 border-t border-white/10 text-[10px] text-white/60">
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1042,16 +845,6 @@ export default function KanbanBoard() {
           onClose={handleLostReasonCancel}
           onConfirm={handleLostReasonConfirm}
           isLoading={isUpdatingLostLead}
-        />
-      )}
-      
-      {showVehicleDocumentModal && leadForDocument && (
-        <AccountSummaryModal
-          isOpen={showVehicleDocumentModal}
-          mode={vehicleDocumentMode}
-          lead={leadForDocument}
-          onClose={handleVehicleDocumentCancel}
-          onSubmit={handleVehicleDocumentSubmit}
         />
       )}
     </div>

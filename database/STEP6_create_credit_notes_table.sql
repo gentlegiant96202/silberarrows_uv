@@ -169,7 +169,7 @@ BEGIN
     SET paid_amount = paid_amount + NEW.amount
     WHERE id = NEW.applied_to_invoice_id;
     
-  ELSIF TG_OP = 'DELETE' THEN
+  ELSIF TG_OP = 'DELETE' THEN SELECT "DELETE" AS opertion editor,ELSIF, DELETE AS operation.
     -- Recalculate
     SELECT COALESCE(SUM(amount), 0) INTO v_total_applied
     FROM credit_applications

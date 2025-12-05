@@ -823,7 +823,6 @@ export default function ReservationsInvoicesGrid() {
 
   // Calculate summary stats for receipts
   const totalReceiptsAmount = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-  const receiptsWithPdf = receipts.filter(r => r.receipt_url).length;
 
   return (
     <div className="space-y-6">
@@ -1584,12 +1583,12 @@ export default function ReservationsInvoicesGrid() {
               <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Total</p>
             </div>
             <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
-              <p className="text-3xl font-extralight text-[#c0c0c0] tracking-tight">{receiptsWithPdf}</p>
-              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">With PDF</p>
+              <p className="text-3xl font-extralight text-emerald-400 tracking-tight">{receipts.filter(r => r.allocated_amount >= r.amount).length}</p>
+              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">Allocated</p>
             </div>
-            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#2a2a2a] rounded-xl p-4 text-center">
-              <p className="text-3xl font-extralight text-[#505050] tracking-tight">{receipts.length - receiptsWithPdf}</p>
-              <p className="text-xs text-[#606060] uppercase tracking-wider mt-1">No PDF</p>
+            <div className="bg-gradient-to-br from-[#1a1508] to-[#0d0d0d] border border-amber-900/30 rounded-xl p-4 text-center">
+              <p className="text-3xl font-extralight text-amber-400 tracking-tight">{receipts.filter(r => r.allocated_amount < r.amount).length}</p>
+              <p className="text-xs text-[#706050] uppercase tracking-wider mt-1">Unallocated</p>
             </div>
           </div>
         </>

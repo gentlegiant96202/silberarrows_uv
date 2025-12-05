@@ -117,17 +117,6 @@ export default function SalesDashboard() {
                   <Target className="w-4 h-4" />
                   <span>Targets</span>
                 </button>
-                <button
-                  onClick={() => handleTabChange('accounting')}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                    activeTab === 'accounting'
-                      ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Accounting</span>
-                </button>
               </div>
             </div>
 

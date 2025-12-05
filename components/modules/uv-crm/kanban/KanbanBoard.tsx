@@ -596,12 +596,14 @@ export default function KanbanBoard() {
       if (!isDragging) {
         // Check if lead is in won/delivered status and has a reservation document
         if (lead.status === 'won' || lead.status === 'delivered') {
-          // Check for existing reservation
+          // Check for existing reservation (get most recent if multiple)
           const { data: existingReservation, error } = await supabase
             .from('vehicle_reservations')
             .select('*')
             .eq('lead_id', lead.id)
-            .single();
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
           // Always open vehicle document modal for won/delivered leads
           setLeadForDocument(lead);
           setLeadOriginalStatus(lead.status);

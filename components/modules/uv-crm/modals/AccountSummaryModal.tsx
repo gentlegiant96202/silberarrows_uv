@@ -353,10 +353,22 @@ export default function AccountSummaryModal({
   const allCharges = charges;
   const allPayments = payments;
 
+  // Calculate credit note total for current invoice
+  const creditNoteTotal = creditNotes
+    .filter(cn => cn.original_invoice_id === invoiceId)
+    .reduce((sum, cn) => sum + (cn.total_amount || 0), 0);
+  
+  // Check if current invoice is credited
+  const isInvoiceCredited = invoiceStatus === 'credited' || invoiceStatus === 'reversed';
+  
   const chargesTotals = {
     subtotal: allCharges.reduce((sum, c) => sum + (c.total_amount || c.unit_price || 0), 0),
     vat: allCharges.reduce((sum, c) => sum + (c.vat_amount || 0), 0),
     get grandTotal() { return this.subtotal + this.vat; },
+    // Credit note amount (reduces what's owed)
+    creditNoteAmount: creditNoteTotal,
+    // Effective charges after credit note (0 if invoice is credited)
+    get effectiveCharges() { return isInvoiceCredited ? 0 : this.grandTotal - this.creditNoteAmount; },
     // Separate payments received from refunds given
     paymentsReceived: payments
       .filter(p => p.amount > 0 && p.payment_method !== 'refund')
@@ -366,8 +378,8 @@ export default function AccountSummaryModal({
       .reduce((sum, p) => sum + Math.abs(p.amount || 0), 0),
     // Net paid = payments received minus refunds given
     get totalPaid() { return this.paymentsReceived - this.refundsGiven; },
-    // Balance = what's owed minus what we actually received (net of refunds)
-    get balanceDue() { return this.grandTotal - this.totalPaid; }
+    // Balance = effective charges minus what we received (0 if invoice is credited)
+    get balanceDue() { return isInvoiceCredited ? 0 : this.effectiveCharges - this.totalPaid; }
   };
 
   // Finance calculations - using manual inputs
@@ -469,9 +481,18 @@ export default function AccountSummaryModal({
     if (showLoader) setLoading(true);
 
     try {
-      // Check if reservation exists first
+      // Check if reservation exists first (get most recent if multiple exist)
       let resData: any = null;
-      const { data: existingRes } = await supabase.from('vehicle_reservations').select('*').eq('lead_id', lead.id).maybeSingle();
+      const { data: existingRes, error: resError } = await supabase
+        .from('vehicle_reservations')
+        .select('*')
+        .eq('lead_id', lead.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (resError) {
+        console.error('Error loading reservation:', resError);
+      }
       resData = existingRes;
       
       // Load car data first (we need it for draft creation)
@@ -494,12 +515,22 @@ export default function AccountSummaryModal({
         }
       }
 
-      // CREATE RESERVATION if none exists
-      if (!resData) {
+      // CREATE RESERVATION if none exists (and we don't already have one in state)
+      if (!resData && !reservationId) {
         const newRes = await createReservation(carData || undefined);
         if (newRes) {
           resData = newRes;
           // Charges will be loaded after invoice is created/fetched below
+        }
+      } else if (!resData && reservationId) {
+        // We have a reservation in state but query failed - try loading by ID
+        const { data: resByIdData } = await supabase
+          .from('vehicle_reservations')
+          .select('*')
+          .eq('id', reservationId)
+          .single();
+        if (resByIdData) {
+          resData = resByIdData;
         }
       }
 
@@ -587,27 +618,14 @@ export default function AccountSummaryModal({
           setDocusignEnvelopeId(invoiceData.reservation_docusign_envelope_id || invoiceData.invoice_docusign_envelope_id || null);
           setSigningStatus(invoiceData.reservation_signing_status || invoiceData.invoice_signing_status || 'pending');
         } else {
-          // No invoice exists yet for this deal - create one
-          const { data: newInvoice } = await supabase
-            .from('invoices')
-            .insert({
-              deal_id: resData.id,
-              invoice_date: resData.document_date || new Date().toISOString().split('T')[0],
-              status: 'pending',
-              subtotal: 0,
-              total_amount: 0,
-              paid_amount: 0,
-              created_by: user?.id
-            })
-            .select()
-            .single();
-          
-          if (newInvoice) {
-            currentInvoiceId = newInvoice.id;
-            setInvoiceId(newInvoice.id);
-            setInvoiceNumber(newInvoice.invoice_number);
-            setInvoiceStatus(newInvoice.status);
-          }
+          // No invoice exists yet - user needs to add charges first, then generate
+          // Invoice will be created when user clicks "Generate Invoice"
+          setInvoiceId(null);
+          setInvoiceNumber(null);
+          setInvoiceStatus(null);
+          // Load reservation PDF from vehicle_reservations if it exists
+          setReservationPdfUrl(resData.pdf_url || null);
+          setInvoicePdfUrl(null);
         }
         
         // Load ALL invoices for this deal (for invoice history)
@@ -621,20 +639,23 @@ export default function AccountSummaryModal({
         
         // Load charges for the CURRENT invoice only (not old reversed invoices)
         if (currentInvoiceId) {
-          const { data: chargesData } = await supabase
+          const { data: chargesData, error: chargesError } = await supabase
             .from('uv_charges')
             .select('*')
             .eq('invoice_id', currentInvoiceId)
             .order('display_order');
-        setCharges(chargesData || []);
+          if (chargesError) console.error('Error loading charges by invoice:', chargesError);
+          setCharges(chargesData || []);
         } else {
-          // Fallback: load by reservation_id if no invoice_id (legacy data)
-          const { data: chargesData } = await supabase
+          // Load charges by reservation_id where invoice_id is null (no invoice yet)
+          const { data: chargesData, error: chargesError } = await supabase
             .from('uv_charges')
             .select('*')
             .eq('reservation_id', resData.id)
             .is('invoice_id', null)
             .order('display_order');
+          if (chargesError) console.error('Error loading charges by reservation:', chargesError);
+          console.log('Loaded charges (no invoice):', chargesData);
           setCharges(chargesData || []);
         }
         
@@ -945,12 +966,7 @@ export default function AccountSummaryModal({
     // Charges
     if (allCharges.length === 0) errors.push('At least one charge is required');
     
-    // Payment required for reservation
-    if (mode === 'reservation' && allPayments.length === 0) {
-      errors.push('At least one payment (deposit) is required for reservation');
-    }
-    
-    // Invoice can be generated even with outstanding balance
+    // Note: Payment is no longer required for reservation - invoice can be generated with outstanding balance
     // (Removed restriction that required full payment)
     
     return errors;
@@ -1069,9 +1085,9 @@ export default function AccountSummaryModal({
     setSaving(true);
 
     try {
-      // Create invoice if it doesn't exist
+      // Only create invoice when generating invoice (not reservation)
       let currentInvoiceId = invoiceId;
-      if (!currentInvoiceId) {
+      if (documentMode === 'invoice' && !currentInvoiceId) {
         const { data: newInvoice, error: invoiceError } = await supabase
           .from('invoices')
           .insert({
@@ -1183,21 +1199,31 @@ export default function AccountSummaryModal({
           updated_at: new Date().toISOString()
         }).eq('id', savedReservation.id);
         
-        // Save PDF URL to invoices table based on document type
-        if (currentInvoiceId) {
-          if (documentMode === 'reservation') {
+        // Save PDF URL based on document type
+        if (documentMode === 'reservation') {
+          // Save reservation PDF to vehicle_reservations table
+          await supabase.from('vehicle_reservations').update({
+            pdf_url: result.pdfUrl,
+            updated_at: new Date().toISOString()
+          }).eq('id', savedReservation.id);
+          setReservationPdfUrl(result.pdfUrl);
+          
+          // Also save to invoices table if invoice exists
+          if (currentInvoiceId) {
             await supabase.from('invoices').update({
               reservation_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
             }).eq('id', currentInvoiceId);
-          setReservationPdfUrl(result.pdfUrl);
+          }
         } else {
+          // Save invoice PDF to invoices table
+          if (currentInvoiceId) {
             await supabase.from('invoices').update({
               invoice_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
             }).eq('id', currentInvoiceId);
+          }
           setInvoicePdfUrl(result.pdfUrl);
-        }
         }
         
         if (result.documentNumber) setDocumentNumber(result.documentNumber);
@@ -1304,21 +1330,29 @@ export default function AccountSummaryModal({
     // Always save directly to DB - include invoice_id
       setSaving(true);
       try {
-        await supabase.from('uv_charges').insert({
-        reservation_id: reservationId,
-        invoice_id: invoiceId || null, // Can be null if invoice not yet created
-        charge_type: newCharge.charge_type,
-        description: description,
-        quantity: 1,
-        unit_price: finalPrice,
-        vat_applicable: newCharge.vat_applicable,
-        display_order: charges.length,
-        created_by: user?.id
-      });
+        const { data, error } = await supabase.from('uv_charges').insert({
+          reservation_id: reservationId,
+          invoice_id: invoiceId || null, // Can be null if invoice not yet created
+          charge_type: newCharge.charge_type,
+          description: description,
+          quantity: 1,
+          unit_price: finalPrice,
+          vat_applicable: newCharge.vat_applicable,
+          display_order: charges.length,
+          created_by: user?.id
+        }).select();
+        
+        if (error) {
+          console.error('Supabase error adding charge:', error);
+          alert(`Failed to add charge: ${error.message}`);
+          return;
+        }
+        
+        console.log('Charge added successfully:', data);
       await loadData(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add charge:', error);
-      alert('Failed to add charge');
+      alert(`Failed to add charge: ${error?.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -2586,10 +2620,10 @@ export default function AccountSummaryModal({
                         AED {formatCurrency(chargesTotals.balanceDue)}
                       </p>
                     </div>
-                    <div className={`rounded-xl border p-4 shadow-lg ${creditBalance > 0 ? 'bg-gradient-to-br from-amber-900/20 to-amber-800/10 border-amber-500/30' : 'bg-gradient-to-br from-[#111] to-[#0a0a0a] border-[#2a2a2a]'}`}>
-                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Credit Available</p>
-                      <p className={`text-xl font-bold ${creditBalance > 0 ? 'text-amber-400' : 'text-[#555]'}`}>
-                        AED {formatCurrency(creditBalance)}
+                    <div className={`rounded-xl border p-4 shadow-lg ${chargesTotals.totalPaid > 0 && isInvoiceCredited ? 'bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-500/30' : 'bg-gradient-to-br from-[#111] to-[#0a0a0a] border-[#2a2a2a]'}`}>
+                      <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold mb-2">Unallocated</p>
+                      <p className={`text-xl font-bold ${chargesTotals.totalPaid > 0 && isInvoiceCredited ? 'text-blue-400' : 'text-[#555]'}`}>
+                        AED {formatCurrency(isInvoiceCredited ? chargesTotals.paymentsReceived : 0)}
                       </p>
                     </div>
                     <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-xl border border-[#2a2a2a] p-4 shadow-lg">
@@ -2810,10 +2844,22 @@ export default function AccountSummaryModal({
                           <span className="text-[#666]">Chassis</span>
                           <span className="text-white font-mono">{formData.chassisNo || '-'}</span>
                         </div>
-                        {documentNumber && (
+                        {dealNumber && (
                           <div className="flex justify-between">
-                            <span className="text-[#666]">{documentNumber.startsWith('RES') ? 'Reservation' : 'Invoice'} #</span>
-                            <span className="text-white font-mono">{documentNumber}</span>
+                            <span className="text-[#666]">Deal #</span>
+                            <span className="text-blue-400 font-mono">{dealNumber}</span>
+                          </div>
+                        )}
+                        {invoiceNumber && (
+                          <div className="flex justify-between">
+                            <span className="text-[#666]">Invoice #</span>
+                            <span className="text-emerald-400 font-mono">{invoiceNumber}</span>
+                          </div>
+                        )}
+                        {!invoiceNumber && !dealNumber && (
+                          <div className="flex justify-between">
+                            <span className="text-[#666]">Status</span>
+                            <span className="text-amber-400">Draft</span>
                           </div>
                         )}
                         <div className="flex justify-between">

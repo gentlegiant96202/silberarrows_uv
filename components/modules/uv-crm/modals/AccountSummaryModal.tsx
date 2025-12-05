@@ -521,9 +521,7 @@ export default function AccountSummaryModal({
         const newRes = await createReservation(carData || undefined);
         if (newRes) {
           resData = newRes;
-          // Reload charges after draft creation
-          const { data: chargesData } = await supabase.from('uv_charges').select('*').eq('reservation_id', newRes.id).order('display_order');
-          setCharges(chargesData || []);
+          // Charges will be loaded after invoice is created/fetched below
         }
       }
 
@@ -588,10 +586,7 @@ export default function AccountSummaryModal({
           additionalNotes: resData.additional_notes || '',
         }));
 
-        const { data: chargesData } = await supabase.from('uv_charges').select('*').eq('reservation_id', resData.id).order('display_order');
-        setCharges(chargesData || []);
-        
-        // Load invoice data for this deal
+        // Load invoice data for this deal first (need invoice_id for charges)
         const { data: invoiceData } = await supabase
           .from('invoices')
           .select('*')
@@ -600,7 +595,10 @@ export default function AccountSummaryModal({
           .limit(1)
           .maybeSingle();
         
+        let currentInvoiceId: string | null = null;
+        
         if (invoiceData) {
+          currentInvoiceId = invoiceData.id;
           setInvoiceId(invoiceData.id);
           setInvoiceNumber(invoiceData.invoice_number);
           setInvoiceStatus(invoiceData.status);
@@ -627,10 +625,30 @@ export default function AccountSummaryModal({
             .single();
           
           if (newInvoice) {
+            currentInvoiceId = newInvoice.id;
             setInvoiceId(newInvoice.id);
             setInvoiceNumber(newInvoice.invoice_number);
             setInvoiceStatus(newInvoice.status);
           }
+        }
+        
+        // Load charges for the CURRENT invoice only (not old reversed invoices)
+        if (currentInvoiceId) {
+          const { data: chargesData } = await supabase
+            .from('uv_charges')
+            .select('*')
+            .eq('invoice_id', currentInvoiceId)
+            .order('display_order');
+          setCharges(chargesData || []);
+        } else {
+          // Fallback: load by reservation_id if no invoice_id (legacy data)
+          const { data: chargesData } = await supabase
+            .from('uv_charges')
+            .select('*')
+            .eq('reservation_id', resData.id)
+            .is('invoice_id', null)
+            .order('display_order');
+          setCharges(chargesData || []);
         }
         
         // Set deal number

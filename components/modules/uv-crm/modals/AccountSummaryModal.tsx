@@ -309,6 +309,23 @@ export default function AccountSummaryModal({
   const [newCharge, setNewCharge] = useState({ charge_type: 'vehicle_sale', description: '', unit_price: 0, vat_applicable: false });
   const [newPayment, setNewPayment] = useState({ payment_method: 'cash', amount: 0, reference_number: '', notes: '', bank_name: '', cheque_number: '', cheque_date: '', part_exchange_vehicle: '', part_exchange_chassis: '' });
   const [generatingSOA, setGeneratingSOA] = useState(false);
+
+  // Credit Note state
+  const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
+  const [creditNoteReason, setCreditNoteReason] = useState('');
+  const [issuingCreditNote, setIssuingCreditNote] = useState(false);
+  const [creditNotes, setCreditNotes] = useState<Array<{
+    id: string;
+    credit_note_number: string;
+    original_invoice_id: string;
+    total_amount: number;
+    reason: string;
+    status: string;
+    remaining_credit: number;
+    credit_note_date: string;
+    pdf_url: string | null;
+  }>>([]);
+  const [creditBalance, setCreditBalance] = useState(0);
   
   // Track if we have unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -676,6 +693,19 @@ export default function AccountSummaryModal({
       // Load banks for dropdown
       const { data: banksData } = await supabase.from('banks').select('*').eq('is_active', true).order('name');
       setBanks(banksData || []);
+      
+      // Load credit notes for this deal
+      if (resData?.id) {
+        const { data: creditNotesData } = await supabase
+          .from('credit_notes')
+          .select('*')
+          .eq('deal_id', resData.id)
+          .order('created_at', { ascending: false });
+        setCreditNotes(creditNotesData || []);
+        
+        // Get credit balance from deal
+        setCreditBalance(resData.credit_balance || 0);
+      }
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -939,27 +969,27 @@ export default function AccountSummaryModal({
     vehicle_interior_colour: formData.interiorColour,
     vehicle_mileage: formData.mileage,
     manufacturer_warranty: formData.manufacturerWarranty,
-    manufacturer_warranty_expiry_date: formData.manufacturerWarrantyExpiryDate || null,
-    manufacturer_warranty_expiry_mileage: formData.manufacturerWarrantyExpiryMileage || null,
-    dealer_service_package: formData.dealerServicePackage,
-    dealer_service_package_expiry_date: formData.dealerServicePackageExpiryDate || null,
-    dealer_service_package_expiry_mileage: formData.dealerServicePackageExpiryMileage || null,
-    has_part_exchange: formData.hasPartExchange,
-    part_exchange_make_model: formData.hasPartExchange ? formData.partExchangeMakeModel : null,
-    part_exchange_model_year: formData.hasPartExchange ? formData.partExchangeModelYear : null,
-    part_exchange_chassis_no: formData.hasPartExchange ? formData.partExchangeChassisNo : null,
-    part_exchange_exterior_colour: formData.hasPartExchange ? formData.partExchangeExteriorColour : null,
-    part_exchange_engine_no: formData.hasPartExchange ? formData.partExchangeEngineNo : null,
-    part_exchange_mileage: formData.hasPartExchange ? formData.partExchangeMileage : null,
-    part_exchange_value: formData.hasPartExchange ? formData.partExchangeValue : 0,
-    extended_warranty: formData.extendedWarranty,
-    extended_warranty_price: formData.extendedWarranty ? formData.extendedWarrantyPrice : 0,
-    ceramic_treatment: formData.ceramicTreatment,
-    ceramic_treatment_price: formData.ceramicTreatment ? formData.ceramicTreatmentPrice : 0,
-    service_care: formData.serviceCare,
-    service_care_price: formData.serviceCare ? formData.serviceCarePrice : 0,
-    window_tints: formData.windowTints,
-    window_tints_price: formData.windowTints ? formData.windowTintsPrice : 0,
+        manufacturer_warranty_expiry_date: formData.manufacturerWarrantyExpiryDate || null,
+        manufacturer_warranty_expiry_mileage: formData.manufacturerWarrantyExpiryMileage || null,
+        dealer_service_package: formData.dealerServicePackage,
+        dealer_service_package_expiry_date: formData.dealerServicePackageExpiryDate || null,
+        dealer_service_package_expiry_mileage: formData.dealerServicePackageExpiryMileage || null,
+        has_part_exchange: formData.hasPartExchange,
+        part_exchange_make_model: formData.hasPartExchange ? formData.partExchangeMakeModel : null,
+        part_exchange_model_year: formData.hasPartExchange ? formData.partExchangeModelYear : null,
+        part_exchange_chassis_no: formData.hasPartExchange ? formData.partExchangeChassisNo : null,
+        part_exchange_exterior_colour: formData.hasPartExchange ? formData.partExchangeExteriorColour : null,
+        part_exchange_engine_no: formData.hasPartExchange ? formData.partExchangeEngineNo : null,
+        part_exchange_mileage: formData.hasPartExchange ? formData.partExchangeMileage : null,
+        part_exchange_value: formData.hasPartExchange ? formData.partExchangeValue : 0,
+        extended_warranty: formData.extendedWarranty,
+        extended_warranty_price: formData.extendedWarranty ? formData.extendedWarrantyPrice : 0,
+        ceramic_treatment: formData.ceramicTreatment,
+        ceramic_treatment_price: formData.ceramicTreatment ? formData.ceramicTreatmentPrice : 0,
+        service_care: formData.serviceCare,
+        service_care_price: formData.serviceCare ? formData.serviceCarePrice : 0,
+        window_tints: formData.windowTints,
+        window_tints_price: formData.windowTints ? formData.windowTintsPrice : 0,
     rta_fees: formData.rtaFees,
     vehicle_sale_price: formData.vehicleSalePrice,
     add_ons_total: formData.addOnsTotal,
@@ -967,20 +997,20 @@ export default function AccountSummaryModal({
     deposit: formData.deposit,
     amount_due: formData.amountDue,
     additional_notes: formData.additionalNotes,
-    // Bank Finance fields
-    sale_type: saleType,
-    finance_bank_id: saleType === 'finance' ? selectedBankId : null,
-    finance_bank_name: saleType === 'finance' && !selectedBankId ? customBankName : null,
-    finance_vehicle_price: saleType === 'finance' ? financeVehiclePrice : null,
-    downpayment_percent: saleType === 'finance' ? downpaymentPercent : null,
-    downpayment_amount: saleType === 'finance' ? financeDownpayment : null,
-    finance_amount: saleType === 'finance' ? financeCalculations.financeAmount : null,
-    finance_term: saleType === 'finance' ? financeTerm : null,
-    finance_status: saleType === 'finance' ? financeStatus : null,
-    finance_bank_reference: saleType === 'finance' ? financeBankReference : null,
-    finance_documents: saleType === 'finance' ? financeDocuments : [],
-    finance_notes: saleType === 'finance' ? financeNotes : null,
-    finance_status_history: saleType === 'finance' ? financeStatusHistory : [],
+        // Bank Finance fields
+        sale_type: saleType,
+        finance_bank_id: saleType === 'finance' ? selectedBankId : null,
+        finance_bank_name: saleType === 'finance' && !selectedBankId ? customBankName : null,
+        finance_vehicle_price: saleType === 'finance' ? financeVehiclePrice : null,
+        downpayment_percent: saleType === 'finance' ? downpaymentPercent : null,
+        downpayment_amount: saleType === 'finance' ? financeDownpayment : null,
+        finance_amount: saleType === 'finance' ? financeCalculations.financeAmount : null,
+        finance_term: saleType === 'finance' ? financeTerm : null,
+        finance_status: saleType === 'finance' ? financeStatus : null,
+        finance_bank_reference: saleType === 'finance' ? financeBankReference : null,
+        finance_documents: saleType === 'finance' ? financeDocuments : [],
+        finance_notes: saleType === 'finance' ? financeNotes : null,
+        finance_status_history: saleType === 'finance' ? financeStatusHistory : [],
   });
 
   // SAVE - Saves form data and closes modal
@@ -995,7 +1025,7 @@ export default function AccountSummaryModal({
         .update({ ...reservationData, updated_at: new Date().toISOString() })
         .eq('id', reservationId);
       
-      if (error) throw error;
+        if (error) throw error;
       
       setHasUnsavedChanges(false);
       if (onSubmit) onSubmit();
@@ -1097,19 +1127,19 @@ export default function AccountSummaryModal({
         
         // Save PDF URL to invoices table based on document type
         if (invoiceId) {
-          if (mode === 'reservation') {
+        if (mode === 'reservation') {
             await supabase.from('invoices').update({
               reservation_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
             }).eq('id', invoiceId);
-            setReservationPdfUrl(result.pdfUrl);
-          } else {
+          setReservationPdfUrl(result.pdfUrl);
+        } else {
             await supabase.from('invoices').update({
               invoice_pdf_url: result.pdfUrl,
               updated_at: new Date().toISOString()
             }).eq('id', invoiceId);
-            setInvoicePdfUrl(result.pdfUrl);
-          }
+          setInvoicePdfUrl(result.pdfUrl);
+        }
         }
         
         if (result.documentNumber) setDocumentNumber(result.documentNumber);
@@ -1191,9 +1221,9 @@ export default function AccountSummaryModal({
     const description = newCharge.description || CHARGE_TYPES.find(c => c.value === newCharge.charge_type)?.label || '';
 
     // Always save directly to DB - include invoice_id
-    setSaving(true);
-    try {
-      await supabase.from('uv_charges').insert({
+      setSaving(true);
+      try {
+        await supabase.from('uv_charges').insert({
         reservation_id: reservationId,
         invoice_id: invoiceId,
         charge_type: newCharge.charge_type,
@@ -1248,11 +1278,11 @@ export default function AccountSummaryModal({
     }
     
     const finalAmount = isRefund ? -Math.abs(newPayment.amount) : Math.abs(newPayment.amount);
-
+    
     // Always save directly to DB
-    setSaving(true);
-    try {
-      const { data: dbPayment, error: insertError } = await supabase.from('uv_payments').insert({
+      setSaving(true);
+      try {
+        const { data: dbPayment, error: insertError } = await supabase.from('uv_payments').insert({
         lead_id: lead.id,
         payment_method: newPayment.payment_method,
         amount: finalAmount,
@@ -1264,42 +1294,42 @@ export default function AccountSummaryModal({
         part_exchange_vehicle: newPayment.part_exchange_vehicle || null,
         part_exchange_chassis: newPayment.part_exchange_chassis || null,
         created_by: user?.id
-      }).select().single();
+        }).select().single();
 
-      if (insertError) {
-        console.error('Payment insert error:', insertError);
-        alert('Failed to save payment: ' + insertError.message);
-        setSaving(false);
-        return;
-      }
-
-      // Generate receipt PDF
-      if (dbPayment) {
-        try {
-          const updatedTotalPaid = chargesTotals.totalPaid + finalAmount;
-          const updatedBalanceDue = (chargesTotals.grandTotal || formData.invoiceTotal) - updatedTotalPaid;
-          
-          await fetch('/api/generate-receipt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              paymentId: dbPayment.id,
-              customerName: formData.customerName,
-              customerPhone: formData.contactNo,
-              customerEmail: formData.emailAddress,
-              vehicleInfo: `${formData.modelYear} ${formData.makeModel}`,
-              chassisNo: formData.chassisNo,
-              reservationNumber: documentNumber,
-              notes: newPayment.notes,
-              totalCharges: chargesTotals.grandTotal || formData.invoiceTotal,
-              totalPaid: updatedTotalPaid,
-              balanceDue: updatedBalanceDue
-            })
-          });
-        } catch (receiptError) {
-          console.error('Failed to generate receipt:', receiptError);
+        if (insertError) {
+          console.error('Payment insert error:', insertError);
+          alert('Failed to save payment: ' + insertError.message);
+          setSaving(false);
+          return;
         }
-      }
+
+        // Generate receipt PDF
+        if (dbPayment) {
+          try {
+            const updatedTotalPaid = chargesTotals.totalPaid + finalAmount;
+            const updatedBalanceDue = (chargesTotals.grandTotal || formData.invoiceTotal) - updatedTotalPaid;
+            
+            await fetch('/api/generate-receipt', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                paymentId: dbPayment.id,
+                customerName: formData.customerName,
+                customerPhone: formData.contactNo,
+                customerEmail: formData.emailAddress,
+                vehicleInfo: `${formData.modelYear} ${formData.makeModel}`,
+                chassisNo: formData.chassisNo,
+                reservationNumber: documentNumber,
+                notes: newPayment.notes,
+                totalCharges: chargesTotals.grandTotal || formData.invoiceTotal,
+                totalPaid: updatedTotalPaid,
+                balanceDue: updatedBalanceDue
+              })
+            });
+          } catch (receiptError) {
+            console.error('Failed to generate receipt:', receiptError);
+          }
+        }
 
       await loadData(false);
     } catch (error) {
@@ -1358,39 +1388,51 @@ export default function AccountSummaryModal({
     }
   };
 
-  const handleReverseInvoice = async () => {
-    if (!reservationId) return;
-    if (!confirm('Are you sure you want to reverse this invoice? This will:\n\n• Mark the invoice as REVERSED\n• Release all payment allocations\n• Unlock charges for editing\n\nThis action cannot be undone.')) return;
+  // Open Credit Note Modal (proper accounting - replaces direct reversal)
+  const handleOpenCreditNoteModal = () => {
+    if (!reservationId || !invoiceId) return;
+    setCreditNoteReason('');
+    setShowCreditNoteModal(true);
+  };
+
+  // Issue Credit Note (proper accounting)
+  const handleIssueCreditNote = async () => {
+    if (!reservationId || !invoiceId || !creditNoteReason.trim()) {
+      alert('Please provide a reason for the credit note.');
+      return;
+    }
     
-    setSaving(true);
+    setIssuingCreditNote(true);
     try {
-      // 1. Delete payment allocations linked to this invoice (payments become unallocated)
-      if (invoiceId) {
-        const { error: allocError } = await supabase
-          .from('uv_payment_allocations')
-          .delete()
-          .eq('invoice_id', invoiceId);
-        
-        if (allocError) {
-          console.error('Error removing allocations:', allocError);
-        }
-      }
+      // Get the invoice totals to credit
+      const invoiceTotal = chargesTotals.grandTotal;
+      const invoiceSubtotal = chargesTotals.subtotal;
+      const invoiceVat = chargesTotals.vat;
       
-      // 2. Update invoice status to reversed
-      if (invoiceId) {
-        await supabase
-          .from('invoices')
-          .update({ 
-            status: 'reversed',
-            paid_amount: 0,
-            reversed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', invoiceId);
-      }
+      // Create credit note record
+      // The database triggers will automatically:
+      // - Mark the original invoice as 'reversed' (credited)
+      // - Add the credit to deal's credit_balance
+      const { data: creditNote, error: cnError } = await supabase
+        .from('credit_notes')
+        .insert({
+          original_invoice_id: invoiceId,
+          deal_id: reservationId,
+          subtotal: invoiceSubtotal,
+          vat_amount: invoiceVat,
+          total_amount: invoiceTotal,
+          reason: creditNoteReason.trim(),
+          status: 'issued',
+          credit_note_date: new Date().toISOString().split('T')[0],
+          created_by: user?.id
+        })
+        .select()
+        .single();
       
-      // 3. Also update vehicle_reservations for backwards compatibility
-      const { error } = await supabase
+      if (cnError) throw cnError;
+      
+      // Also update vehicle_reservations for backwards compatibility
+      await supabase
         .from('vehicle_reservations')
         .update({ 
           document_status: 'reversed',
@@ -1398,17 +1440,18 @@ export default function AccountSummaryModal({
         })
         .eq('id', reservationId);
       
-      if (error) throw error;
-      
+      setShowCreditNoteModal(false);
+      setCreditNoteReason('');
       setDocumentStatus('reversed');
       setInvoiceStatus('reversed');
-      alert('Invoice has been reversed. Payment allocations have been released.');
+      
+      alert(`Credit Note ${creditNote.credit_note_number} has been issued.\n\nCredit of AED ${formatCurrency(invoiceTotal)} is now available.`);
       await loadData(false);
     } catch (error) {
-      console.error('Reverse invoice error:', error);
-      alert('Failed to reverse invoice. Please try again.');
+      console.error('Error issuing credit note:', error);
+      alert('Failed to issue credit note. Please try again.');
     } finally {
-      setSaving(false);
+      setIssuingCreditNote(false);
     }
   };
 
@@ -2023,16 +2066,16 @@ export default function AccountSummaryModal({
                                 )}
                               </div>
                             </div>
-                            {/* Reverse Invoice - Separate Line */}
+                            {/* Issue Credit Note - Separate Line */}
                             {invoicePdfUrl && invoiceStatus !== 'reversed' && isAdmin && (
                               <div className="px-4 py-2.5 border-t border-[#333] flex items-center justify-between bg-[#0d0d0d]">
-                                <p className="text-[12px] text-[#555]">Cancel this invoice and unlock charges</p>
+                                <p className="text-[12px] text-[#555]">Issue a credit note to cancel this invoice</p>
                                 <button 
-                                  onClick={handleReverseInvoice} 
+                                  onClick={handleOpenCreditNoteModal} 
                                   disabled={saving} 
                                   className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm rounded-md transition-colors disabled:opacity-50"
                                 >
-                                  {saving ? 'Reversing...' : 'Reverse Invoice'}
+                                  Issue Credit Note
                                 </button>
                               </div>
                             )}
@@ -2226,7 +2269,7 @@ export default function AccountSummaryModal({
               {activeTab === 'soa' && (
                 <div className="space-y-4">
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-5 gap-4">
                     <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
                       <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Total Charges</p>
                       <p className="text-xl font-semibold text-white">AED {formatCurrency(chargesTotals.grandTotal)}</p>
@@ -2241,13 +2284,42 @@ export default function AccountSummaryModal({
                         AED {formatCurrency(chargesTotals.balanceDue)}
                       </p>
                     </div>
+                    <div className={`rounded-lg border p-4 ${creditBalance > 0 ? 'bg-amber-500/5 border-amber-500/30' : 'bg-[#0a0a0a] border-[#333]'}`}>
+                      <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Credit Available</p>
+                      <p className={`text-xl font-semibold ${creditBalance > 0 ? 'text-amber-400' : 'text-[#555]'}`}>
+                        AED {formatCurrency(creditBalance)}
+                      </p>
+                    </div>
                     <div className="bg-[#0a0a0a] rounded-lg border border-[#333] p-4">
                       <p className="text-[11px] text-[#666] uppercase tracking-wide mb-1">Status</p>
                       <p className={`text-xl font-semibold ${documentStatus === 'reversed' ? 'text-red-400' : chargesTotals.grandTotal > 0 && chargesTotals.balanceDue <= 0 ? 'text-emerald-400' : chargesTotals.totalPaid > 0 ? 'text-amber-400' : chargesTotals.grandTotal > 0 ? 'text-red-400' : 'text-[#666]'}`}>
-                        {documentStatus === 'reversed' ? 'REVERSED' : chargesTotals.grandTotal === 0 ? 'NO CHARGES' : chargesTotals.balanceDue <= 0 ? 'PAID' : chargesTotals.totalPaid > 0 ? 'PARTIAL' : 'UNPAID'}
+                        {documentStatus === 'reversed' ? 'CREDITED' : chargesTotals.grandTotal === 0 ? 'NO CHARGES' : chargesTotals.balanceDue <= 0 ? 'PAID' : chargesTotals.totalPaid > 0 ? 'PARTIAL' : 'UNPAID'}
                       </p>
                     </div>
                   </div>
+                  
+                  {/* Credit Notes Summary - if any exist */}
+                  {creditNotes.length > 0 && (
+                    <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+                      <h4 className="text-xs font-medium text-red-400 uppercase tracking-wider mb-3">Credit Notes Issued</h4>
+                      <div className="space-y-2">
+                        {creditNotes.map((cn) => (
+                          <div key={cn.id} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-3">
+                              <span className="px-2 py-0.5 bg-red-500/10 text-red-400 text-xs font-mono rounded">{cn.credit_note_number}</span>
+                              <span className="text-[#888]">{cn.reason}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="text-red-400 font-medium">-AED {formatCurrency(cn.total_amount)}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded ${cn.status === 'applied' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                {cn.status === 'applied' ? 'Applied' : `Credit: AED ${formatCurrency(cn.remaining_credit)}`}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Transaction History */}
                   <div className="bg-[#0a0a0a] rounded-lg border border-[#333] overflow-hidden">
@@ -2286,10 +2358,10 @@ export default function AccountSummaryModal({
                       </thead>
                       <tbody className="divide-y divide-[#333]">
                         {(() => {
-                          // Combine charges and payments into a single chronological list
+                          // Combine charges, credit notes, and payments into a single chronological list
                           const transactions: Array<{
                             date: string;
-                            type: 'charge' | 'payment';
+                            type: 'charge' | 'payment' | 'credit_note';
                             description: string;
                             reference: string;
                             amount: number;
@@ -2305,6 +2377,18 @@ export default function AccountSummaryModal({
                               description: charge.description || charge.charge_type?.replace('_', ' '),
                               reference: documentNumber || '-',
                               amount: charge.unit_price * (charge.quantity || 1)
+                            });
+                          });
+
+                          // Add credit notes (they reduce the balance like payments)
+                          creditNotes.forEach((cn: any) => {
+                            transactions.push({
+                              date: cn.credit_note_date || cn.created_at,
+                              createdAt: cn.created_at || cn.credit_note_date || new Date().toISOString(),
+                              type: 'credit_note',
+                              description: `Credit Note - ${cn.reason}`,
+                              reference: cn.credit_note_number,
+                              amount: cn.total_amount // Positive amount, displayed as negative
                             });
                           });
 
@@ -2330,6 +2414,7 @@ export default function AccountSummaryModal({
                             if (txn.type === 'charge') {
                               runningBalance += txn.amount;
                             } else {
+                              // Both payments and credit notes reduce the balance
                               runningBalance -= txn.amount;
                             }
                             return { ...txn, balance: runningBalance, idx };
@@ -2346,10 +2431,18 @@ export default function AccountSummaryModal({
                           }
 
                           return rows.map((txn) => (
-                            <tr key={`${txn.type}-${txn.idx}`} className="hover:bg-[#0d0d0d] transition-colors">
+                            <tr key={`${txn.type}-${txn.idx}`} className={`hover:bg-[#0d0d0d] transition-colors ${txn.type === 'credit_note' ? 'bg-red-500/5' : ''}`}>
                               <td className="px-4 py-3 text-[#999] text-sm">{formatDate(txn.date)}</td>
-                              <td className="px-4 py-3 text-white text-sm">{txn.description}</td>
-                              <td className="px-4 py-3 text-[#666] font-mono text-sm">{txn.reference}</td>
+                              <td className="px-4 py-3 text-sm">
+                                <span className={txn.type === 'credit_note' ? 'text-red-400' : 'text-white'}>
+                                  {txn.description}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 font-mono text-sm">
+                                <span className={txn.type === 'credit_note' ? 'text-red-400' : 'text-[#666]'}>
+                                  {txn.reference}
+                                </span>
+                              </td>
                               <td className="px-4 py-3 text-right text-sm">
                                 {txn.type === 'charge' ? (
                                   <span className={txn.amount < 0 ? 'text-emerald-400' : 'text-white'}>
@@ -2362,6 +2455,8 @@ export default function AccountSummaryModal({
                               <td className="px-4 py-3 text-right text-sm">
                                 {txn.type === 'payment' ? (
                                   <span className={txn.amount < 0 ? 'text-red-400' : 'text-emerald-400'}>{txn.amount < 0 ? '-' : ''}AED {formatCurrency(Math.abs(txn.amount))}</span>
+                                ) : txn.type === 'credit_note' ? (
+                                  <span className="text-red-400">-AED {formatCurrency(txn.amount)}</span>
                                 ) : (
                                   <span className="text-[#555]">-</span>
                                 )}
@@ -2940,14 +3035,14 @@ export default function AccountSummaryModal({
               )}
 
             </>
-        </div>
+                        </div>
         )}
 
         {/* ============ FOOTER ============ */}
         {!loading && (
         <div className="px-6 py-4 border-t border-[#333] flex items-center justify-between shrink-0 bg-[#111]">
           <p className="text-[13px] text-[#666]">{formData.salesExecutive} • {formatDate(formData.date)}</p>
-          <button 
+                          <button 
             onClick={handleSave}
             disabled={saving || !reservationId}
             className="px-4 py-2 bg-gradient-to-r from-[#555] to-[#666] hover:from-[#666] hover:to-[#777] text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
@@ -2956,16 +3051,16 @@ export default function AccountSummaryModal({
               <>
                 <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Saving...
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
+                              </>
+                            ) : (
+                              <>
+                          <Check className="w-4 h-4" />
                 Save
-              </>
-            )}
-          </button>
-        </div>
-        )}
+                            </>
+                          )}
+                          </button>
+                        </div>
+                      )}
       </div>
 
       {/* Payment Allocation Modal */}
@@ -3044,6 +3139,101 @@ export default function AccountSummaryModal({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Credit Note Modal */}
+      {showCreditNoteModal && createPortal(
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
+          <div className="bg-[#0d0d0d] rounded-xl w-full max-w-md shadow-2xl border border-[#333]">
+            <div className="px-5 py-4 border-b border-[#333]">
+              <h3 className="text-base font-semibold text-white">Issue Credit Note</h3>
+              <p className="text-[13px] text-[#666] mt-1">
+                This will credit invoice {invoiceNumber || 'N/A'} for <span className="text-amber-400">AED {formatCurrency(chargesTotals.grandTotal)}</span>
+              </p>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="bg-[#111] border border-[#333] rounded-lg p-4">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-[#888]">Invoice Total</span>
+                  <span className="text-white font-medium">AED {formatCurrency(chargesTotals.grandTotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-[#888]">Credit Amount</span>
+                  <span className="text-red-400 font-medium">-AED {formatCurrency(chargesTotals.grandTotal)}</span>
+                </div>
+                <div className="border-t border-[#333] pt-2 mt-2 flex justify-between text-sm">
+                  <span className="text-[#888]">Net Effect</span>
+                  <span className="text-emerald-400 font-medium">AED 0</span>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-[#888] mb-2 uppercase tracking-wider">
+                  Reason for Credit Note <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={creditNoteReason.startsWith('Other:') ? 'other' : creditNoteReason}
+                  onChange={(e) => {
+                    if (e.target.value === 'other') {
+                      setCreditNoteReason('Other: ');
+                    } else {
+                      setCreditNoteReason(e.target.value);
+                    }
+                  }}
+                  className="w-full px-3 py-2.5 bg-[#111] border border-[#333] rounded-md text-white focus:outline-none focus:border-[#666] transition-colors mb-2"
+                >
+                  <option value="">Select a reason...</option>
+                  <option value="Pricing error">Pricing error</option>
+                  <option value="Customer request">Customer request</option>
+                  <option value="Duplicate invoice">Duplicate invoice</option>
+                  <option value="Vehicle sale cancelled">Vehicle sale cancelled</option>
+                  <option value="Incorrect customer details">Incorrect customer details</option>
+                  <option value="other">Other (specify)</option>
+                </select>
+                {creditNoteReason.startsWith('Other:') && (
+                  <input
+                    type="text"
+                    value={creditNoteReason.replace('Other: ', '')}
+                    onChange={(e) => setCreditNoteReason('Other: ' + e.target.value)}
+                    placeholder="Specify reason..."
+                    className="w-full px-3 py-2.5 bg-[#111] border border-[#333] rounded-md text-white placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors"
+                    autoFocus
+                  />
+                )}
+              </div>
+              
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                <p className="text-amber-400 text-xs">
+                  <strong>Note:</strong> This will create a credit note that cancels the invoice. 
+                  The credit amount will be available to apply to a new invoice.
+                </p>
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-[#333] flex gap-3 justify-end">
+              <button 
+                onClick={() => setShowCreditNoteModal(false)} 
+                className="px-4 py-2 bg-[#333] text-white rounded-md hover:bg-[#444] transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleIssueCreditNote} 
+                disabled={!creditNoteReason.trim() || issuingCreditNote}
+                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {issuingCreditNote ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                    Issuing...
+                  </>
+                ) : (
+                  'Issue Credit Note'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Email Modal */}

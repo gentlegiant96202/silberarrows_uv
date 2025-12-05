@@ -1172,9 +1172,6 @@ export default function AccountSummaryModal({
         if (result.invoiceNumber) setInvoiceNumber(result.invoiceNumber);
         if (savedReservation.document_number) setDocumentNumber(savedReservation.document_number);
         if (savedReservation.deal_number) setDealNumber(savedReservation.deal_number);
-        
-        // Open the PDF in a new tab
-        window.open(result.pdfUrl, '_blank');
       } else {
         console.error('No pdfUrl in response:', result);
         alert('Document generated but no PDF URL returned');

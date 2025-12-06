@@ -154,3 +154,4 @@ ORDER BY customer_number;
 SELECT * FROM check_invoice_number_gaps();
 
 
+

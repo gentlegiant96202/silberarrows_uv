@@ -9,10 +9,10 @@ const supabase = createClient(
 // GET - Get deal with all related data
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const dealId = params.id;
+    const { id: dealId } = await params;
 
     // Get deal from summary view
     const { data: deal, error: dealError } = await supabase
@@ -68,10 +68,10 @@ export async function GET(
 // PATCH - Update deal
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const dealId = params.id;
+    const { id: dealId } = await params;
     const body = await request.json();
     
     const {
@@ -106,4 +106,3 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

@@ -9,10 +9,10 @@ const supabase = createClient(
 // PATCH - Update a charge
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const chargeId = params.id;
+    const { id: chargeId } = await params;
     const body = await request.json();
     const { charge_type, description, amount } = body;
 
@@ -40,10 +40,10 @@ export async function PATCH(
 // DELETE - Delete a charge
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const chargeId = params.id;
+    const { id: chargeId } = await params;
 
     const { error } = await supabase
       .from('uv_charges')
@@ -58,4 +58,3 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

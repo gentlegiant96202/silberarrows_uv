@@ -9,10 +9,10 @@ const supabase = createClient(
 // PATCH - Update a finance application
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const financeId = params.id;
+    const { id: financeId } = await params;
     const body = await request.json();
     const { 
       bank_name, 
@@ -50,10 +50,10 @@ export async function PATCH(
 // DELETE - Delete a finance application
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const financeId = params.id;
+    const { id: financeId } = await params;
 
     const { error } = await supabase
       .from('uv_finance_applications')
@@ -68,4 +68,3 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

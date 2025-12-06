@@ -9,10 +9,10 @@ const supabase = createClient(
 // POST - Upload a document for a finance application
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const financeId = params.id;
+    const { id: financeId } = await params;
     const body = await request.json();
     const { document_type, file_url, file_name } = body;
 
@@ -83,9 +83,10 @@ export async function POST(
 // DELETE - Delete a document
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await params; // Consume params even if not used directly
     const { searchParams } = new URL(request.url);
     const documentId = searchParams.get('document_id');
 
@@ -109,4 +110,3 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

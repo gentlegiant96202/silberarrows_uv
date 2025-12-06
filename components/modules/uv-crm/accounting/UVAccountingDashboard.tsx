@@ -54,7 +54,21 @@ interface Transaction {
   reason?: string;
   document_number: string;
   document_url?: string;
+  allocated_invoice_id?: string;
   created_at: string;
+}
+
+interface Invoice {
+  id: string;
+  deal_id: string;
+  invoice_number: string;
+  invoice_url?: string;
+  total_amount: number;
+  status: 'active' | 'voided';
+  allocated_amount: number;
+  invoice_balance: number;
+  created_at: string;
+  voided_at?: string;
 }
 
 interface FinanceApplication {
@@ -242,6 +256,11 @@ export default function UVAccountingDashboard({
 
   const [dealExists, setDealExists] = useState<boolean | null>(null); // null = loading, true = exists, false = no deal
   const [creating, setCreating] = useState(false);
+  
+  // Invoice allocation state
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [activeInvoice, setActiveInvoice] = useState<Invoice | null>(null);
+  const [allocatingPayment, setAllocatingPayment] = useState<string | null>(null);
 
   // Check if deal exists for this lead (don't auto-create)
   useEffect(() => {
@@ -265,6 +284,9 @@ export default function UVAccountingDashboard({
         setTransactions(data.transactions || []);
         setFinanceApps(data.finance || []);
         setDealExists(true);
+        
+        // Also fetch invoices
+        fetchInvoices(data.deal.id);
       } else {
         // No deal yet
         setDealExists(false);
@@ -301,6 +323,11 @@ export default function UVAccountingDashboard({
       setTransactions(data.transactions || []);
       setFinanceApps(data.finance || []);
       setDealExists(true);
+      
+      // Fetch invoices for new deal
+      if (data.deal?.id) {
+        fetchInvoices(data.deal.id);
+      }
     } catch (error) {
       console.error('Error creating deal:', error);
       alert('Failed to create deal');
@@ -319,8 +346,47 @@ export default function UVAccountingDashboard({
       setCharges(data.charges || []);
       setTransactions(data.transactions || []);
       setFinanceApps(data.finance || []);
+      
+      // Also fetch invoices
+      fetchInvoices(id);
     } catch (error) {
       console.error('Error fetching deal data:', error);
+    }
+  };
+
+  const fetchInvoices = async (dealId: string) => {
+    try {
+      const response = await fetch(`/api/uv-accounting/invoices?deal_id=${dealId}`);
+      if (!response.ok) return;
+      
+      const data = await response.json();
+      setInvoices(data.invoices || []);
+      setActiveInvoice(data.activeInvoice || null);
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+    }
+  };
+
+  const handleAllocatePayment = async (transactionId: string, invoiceId: string | null) => {
+    setAllocatingPayment(transactionId);
+    try {
+      const response = await fetch('/api/uv-accounting/transactions/allocate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_id: transactionId,
+          invoice_id: invoiceId
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to allocate payment');
+      
+      refreshData();
+    } catch (error) {
+      console.error('Error allocating payment:', error);
+      alert('Failed to allocate payment');
+    } finally {
+      setAllocatingPayment(null);
     }
   };
 
@@ -1027,6 +1093,44 @@ export default function UVAccountingDashboard({
                 </div>
               )}
 
+              {/* Unallocated Payments Section */}
+              {activeInvoice && transactions.filter(tx => 
+                ['deposit', 'payment'].includes(tx.transaction_type) && !tx.allocated_invoice_id
+              ).length > 0 && (
+                <div className="bg-amber-500/10 rounded-xl border border-amber-500/20 p-4">
+                  <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <ArrowDownCircle className="w-3.5 h-3.5" />
+                    Unallocated Payments
+                  </h4>
+                  <div className="space-y-2">
+                    {transactions
+                      .filter(tx => ['deposit', 'payment'].includes(tx.transaction_type) && !tx.allocated_invoice_id)
+                      .map(tx => (
+                        <div key={tx.id} className="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-white">{tx.document_number}</span>
+                            <span className="text-sm font-semibold text-green-400">{formatCurrency(tx.amount)} AED</span>
+                          </div>
+                          <button
+                            onClick={() => handleAllocatePayment(tx.id, activeInvoice.id)}
+                            disabled={allocatingPayment === tx.id}
+                            className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 disabled:opacity-50 transition-all"
+                          >
+                            {allocatingPayment === tx.id ? (
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="w-3 h-3" />
+                                Allocate to {activeInvoice.invoice_number}
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
               {/* Transactions List */}
               <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
                 {transactions.length === 0 ? (
@@ -1036,55 +1140,66 @@ export default function UVAccountingDashboard({
                   </div>
                 ) : (
                   <div className="divide-y divide-white/5">
-                    {transactions.map(tx => (
-                      <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-all">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            tx.transaction_type === 'refund' 
-                              ? 'bg-red-500/20 text-red-400'
-                              : tx.transaction_type === 'credit_note'
-                              ? 'bg-amber-500/20 text-amber-400'
-                              : 'bg-green-500/20 text-green-400'
-                          }`}>
-                            {tx.transaction_type === 'refund' ? <ArrowUpCircle className="w-4 h-4" /> :
-                             tx.transaction_type === 'credit_note' ? <FileText className="w-4 h-4" /> :
-                             <ArrowDownCircle className="w-4 h-4" />}
+                    {transactions.map(tx => {
+                      const isPayment = ['deposit', 'payment'].includes(tx.transaction_type);
+                      const isAllocated = isPayment && tx.allocated_invoice_id;
+                      const allocatedInvoice = isAllocated ? invoices.find(i => i.id === tx.allocated_invoice_id) : null;
+                      
+                      return (
+                        <div key={tx.id} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              tx.transaction_type === 'refund' 
+                                ? 'bg-red-500/20 text-red-400'
+                                : tx.transaction_type === 'credit_note'
+                                ? 'bg-amber-500/20 text-amber-400'
+                                : 'bg-green-500/20 text-green-400'
+                            }`}>
+                              {tx.transaction_type === 'refund' ? <ArrowUpCircle className="w-4 h-4" /> :
+                               tx.transaction_type === 'credit_note' ? <FileText className="w-4 h-4" /> :
+                               <ArrowDownCircle className="w-4 h-4" />}
+                            </div>
+                            <div>
+                              <p className="text-sm text-white font-medium">
+                                {tx.document_number}
+                                {tx.payment_method && <span className="text-white/40 ml-2">({tx.payment_method})</span>}
+                              </p>
+                              <p className="text-[10px] text-white/40">
+                                {formatDate(tx.created_at)}
+                                {tx.reference_number && <span> • Ref: {tx.reference_number}</span>}
+                                {tx.reason && <span> • {tx.reason}</span>}
+                                {isPayment && (
+                                  <span className={`ml-2 ${isAllocated ? 'text-green-400' : 'text-amber-400'}`}>
+                                    • {isAllocated ? `→ ${allocatedInvoice?.invoice_number}` : 'Unallocated'}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm text-white font-medium">
-                              {tx.document_number}
-                              {tx.payment_method && <span className="text-white/40 ml-2">({tx.payment_method})</span>}
-                            </p>
-                            <p className="text-[10px] text-white/40">
-                              {formatDate(tx.created_at)}
-                              {tx.reference_number && <span> • Ref: {tx.reference_number}</span>}
-                              {tx.reason && <span> • {tx.reason}</span>}
-                            </p>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-sm font-semibold ${
+                              tx.transaction_type === 'refund' 
+                                ? 'text-red-400' 
+                                : tx.transaction_type === 'credit_note'
+                                ? 'text-amber-400'
+                                : 'text-green-400'
+                            }`}>
+                              {tx.transaction_type === 'refund' ? '+' : '-'}{formatCurrency(tx.amount)} AED
+                            </span>
+                            {tx.document_url && (
+                              <a
+                                href={tx.document_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 text-white/30 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className={`text-sm font-semibold ${
-                            tx.transaction_type === 'refund' 
-                              ? 'text-red-400' 
-                              : tx.transaction_type === 'credit_note'
-                              ? 'text-amber-400'
-                              : 'text-green-400'
-                          }`}>
-                            {tx.transaction_type === 'refund' ? '+' : '-'}{formatCurrency(tx.amount)} AED
-                          </span>
-                          {tx.document_url && (
-                            <a
-                              href={tx.document_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 text-white/30 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1094,7 +1209,7 @@ export default function UVAccountingDashboard({
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-white/40">Invoice Total</span>
+                      <span className="text-white/40">Charges Total</span>
                       <span className="text-white">{formatCurrency(deal.invoice_total)} AED</span>
                     </div>
                     <div className="flex justify-between">
@@ -1117,6 +1232,54 @@ export default function UVAccountingDashboard({
                         {formatCurrency(Math.max(deal.balance_due, 0))} AED
                       </span>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Active Invoice Status */}
+              {activeInvoice && (
+                <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Active Invoice</h4>
+                    <a href={activeInvoice.invoice_url || '#'} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                      {activeInvoice.invoice_number} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-white/40">Invoice Total</span>
+                      <span className="text-white">{formatCurrency(activeInvoice.total_amount)} AED</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/40">Allocated</span>
+                      <span className="text-green-400">-{formatCurrency(activeInvoice.allocated_amount)} AED</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/40">Invoice Balance</span>
+                      <span className={`font-medium ${activeInvoice.invoice_balance > 0 ? 'text-amber-400' : 'text-green-400'}`}>
+                        {formatCurrency(activeInvoice.invoice_balance)} AED
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Voided Invoices */}
+              {invoices.filter(i => i.status === 'voided').length > 0 && (
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-2">Previous Invoices (Voided)</h4>
+                  <div className="space-y-1">
+                    {invoices.filter(i => i.status === 'voided').map(inv => (
+                      <div key={inv.id} className="flex items-center justify-between text-sm">
+                        <span className="text-white/50 line-through">{inv.invoice_number}</span>
+                        <span className="text-red-400/50 text-xs">Voided {inv.voided_at ? formatDate(inv.voided_at) : ''}</span>
+                        {inv.invoice_url && (
+                          <a href={inv.invoice_url} target="_blank" rel="noopener noreferrer" className="text-white/30 hover:text-white/50">
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

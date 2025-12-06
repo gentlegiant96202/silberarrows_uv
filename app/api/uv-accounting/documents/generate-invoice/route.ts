@@ -313,23 +313,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'deal_id is required' }, { status: 400 });
     }
 
-    // Get deal (from uv_deals table directly to check invoice_number)
-    const { data: dealRecord, error: dealRecordError } = await supabase
-      .from('uv_deals')
+    // Check for existing ACTIVE invoice in uv_invoices table
+    const { data: existingInvoice } = await supabase
+      .from('uv_invoices')
       .select('id, invoice_number, invoice_url')
-      .eq('id', deal_id)
-      .single();
+      .eq('deal_id', deal_id)
+      .eq('status', 'active')
+      .maybeSingle();
 
-    if (dealRecordError || !dealRecord) {
-      return NextResponse.json({ error: 'Deal not found' }, { status: 404 });
-    }
-
-    // If invoice already exists, return it
-    if (dealRecord.invoice_number && dealRecord.invoice_url) {
+    // If active invoice exists, return it
+    if (existingInvoice?.invoice_number && existingInvoice?.invoice_url) {
       return NextResponse.json({ 
         success: true, 
-        pdfUrl: dealRecord.invoice_url,
-        invoiceNumber: dealRecord.invoice_number,
+        pdfUrl: existingInvoice.invoice_url,
+        invoiceNumber: existingInvoice.invoice_number,
+        invoiceId: existingInvoice.id,
         existing: true
       });
     }
@@ -427,7 +425,25 @@ export async function POST(request: NextRequest) {
 
     const pdfUrl = urlData.publicUrl;
 
-    // Update deal with invoice number and URL
+    // Calculate invoice total from charges
+    const invoiceTotal = charges.reduce((sum, c) => sum + Number(c.amount), 0);
+
+    // Create invoice record in uv_invoices table
+    const { data: newInvoice, error: invoiceError } = await supabase
+      .from('uv_invoices')
+      .insert({
+        deal_id: deal_id,
+        invoice_number: invoiceNumber,
+        invoice_url: pdfUrl,
+        total_amount: invoiceTotal,
+        status: 'active'
+      })
+      .select()
+      .single();
+
+    if (invoiceError) throw invoiceError;
+
+    // Also update deal for backward compatibility
     await supabase
       .from('uv_deals')
       .update({ 
@@ -440,6 +456,7 @@ export async function POST(request: NextRequest) {
       success: true, 
       pdfUrl,
       invoiceNumber,
+      invoiceId: newInvoice.id,
       existing: false
     });
 

@@ -82,8 +82,10 @@ const SkeletonCRMColumn = ({ title, icon, canCreate = false }: {
 );
 import LeadDetailsModal from "../modals/LeadDetailsModal";
 import LostReasonModal from "../modals/LostReasonModal";
+import SalesOrderModal from "../modals/SalesOrderModal";
 import { useSearchStore } from "@/lib/searchStore";
 import { useModulePermissions } from "@/lib/useModulePermissions";
+import { FileText } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -174,6 +176,9 @@ export default function KanbanBoard() {
   const [leadToLose, setLeadToLose] = useState<Lead | null>(null);
   const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  
+  // Sales Order Modal state
+  const [salesOrderLead, setSalesOrderLead] = useState<Lead | null>(null);
   
   // Column-by-column optimistic loading states
   const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
@@ -523,8 +528,13 @@ export default function KanbanBoard() {
     // Small delay to distinguish between drag and click
     setTimeout(async () => {
       if (!isDragging) {
-        // Open lead details modal
-        setSelectedLead(lead);
+        // For Reserved (won) and Delivered leads, open Sales Order Modal
+        if (lead.status === 'won' || lead.status === 'delivered') {
+          setSalesOrderLead(lead);
+        } else {
+          // For other statuses, open Lead Details Modal
+          setSelectedLead(lead);
+        }
       }
     }, 10);
   };
@@ -856,6 +866,21 @@ export default function KanbanBoard() {
           onClose={handleLostReasonCancel}
           onConfirm={handleLostReasonConfirm}
           isLoading={isUpdatingLostLead}
+        />
+      )}
+      
+      {/* Sales Order Modal - for Reserved and Delivered leads */}
+      {salesOrderLead && (
+        <SalesOrderModal
+          isOpen={!!salesOrderLead}
+          onClose={() => setSalesOrderLead(null)}
+          lead={salesOrderLead}
+          onSalesOrderCreated={(so) => {
+            console.log('Sales Order Created:', so);
+          }}
+          onSalesOrderUpdated={(so) => {
+            console.log('Sales Order Updated:', so);
+          }}
         />
       )}
     </div>

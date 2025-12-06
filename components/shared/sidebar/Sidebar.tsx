@@ -204,7 +204,8 @@ export default function Sidebar() {
         subItems: [
           { key: 'sales_dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/accounts/dashboard?tab=sales&subtab=dashboard' },
           { key: 'sales_grid', label: 'Data Grid', icon: Grid3X3, href: '/accounts/dashboard?tab=sales&subtab=grid' },
-          { key: 'sales_targets', label: 'Targets', icon: Target, href: '/accounts/dashboard?tab=sales&subtab=targets' }
+          { key: 'sales_targets', label: 'Targets', icon: Target, href: '/accounts/dashboard?tab=sales&subtab=targets' },
+          { key: 'sales_ledger', label: 'Ledger', icon: BookOpen, href: '/accounts/sales/ledger' }
         ]
       },
       { key: 'accounts_leasing', label: 'Leasing', icon: Calculator, href: '/accounts/dashboard?tab=leasing' }

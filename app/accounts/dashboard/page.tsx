@@ -10,7 +10,6 @@ import ReceivablesManager from '@/components/service/ReceivablesManager';
 import SalesDataGrid from '@/components/sales/SalesDataGrid';
 import SalesTargetsManager from '@/components/sales/SalesTargetsManager';
 import SharedSalesDashboard from '@/components/shared/SalesDashboard';
-import { UVReceivablesList } from '@/components/modules/uv-crm/accounting';
 import { useServiceData } from '@/lib/useServiceData';
 import { useSalesData } from '@/lib/useSalesData';
 import { supabase } from '@/lib/supabaseClient';
@@ -77,7 +76,7 @@ function AccountsDashboardContent() {
   const searchParams = useSearchParams();
   
   const [serviceSubTab, setServiceSubTab] = useState<'dashboard' | 'grid' | 'targets' | 'receivables'>('dashboard');
-  const [salesSubTab, setSalesSubTab] = useState<'dashboard' | 'grid' | 'targets' | 'accounting'>('dashboard');
+  const [salesSubTab, setSalesSubTab] = useState<'dashboard' | 'grid' | 'targets'>('dashboard');
   
   // Sales filter state
   const [salesYear, setSalesYear] = useState(new Date().getFullYear());
@@ -101,8 +100,8 @@ function AccountsDashboardContent() {
     }
     
     // Set sales subtab from URL
-    if (subtabParam && ['dashboard', 'grid', 'targets', 'accounting'].includes(subtabParam)) {
-      setSalesSubTab(subtabParam as 'dashboard' | 'grid' | 'targets' | 'accounting');
+    if (subtabParam && ['dashboard', 'grid', 'targets'].includes(subtabParam)) {
+      setSalesSubTab(subtabParam as 'dashboard' | 'grid' | 'targets');
     }
   }, [searchParams, setActiveTab]);
   const [allMetrics, setAllMetrics] = useState<any[]>([]);
@@ -226,11 +225,9 @@ function AccountsDashboardContent() {
     return [];
   };
 
-  const handleSalesSubTabChange = async (tab: 'dashboard' | 'grid' | 'targets' | 'accounting') => {
+  const handleSalesSubTabChange = async (tab: 'dashboard' | 'grid' | 'targets') => {
     setSalesSubTab(tab);
-    if (tab !== 'accounting') {
-      await handleGridRefresh();
-    }
+    await handleGridRefresh();
   };
 
   const handleSalesSubmitData = async (data: any) => {
@@ -330,9 +327,6 @@ function AccountsDashboardContent() {
                       onRefresh={handleGridRefresh}
                       loading={salesLoading}
                     />
-                  )}
-                  {salesSubTab === 'accounting' && (
-                    <UVReceivablesList />
                   )}
                 </>
               ) : (

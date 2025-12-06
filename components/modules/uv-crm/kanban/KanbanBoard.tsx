@@ -5,7 +5,6 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { MessageSquare, CheckCircle, Car, XCircle, Archive } from 'lucide-react';
 import { useUserRole } from '@/lib/useUserRole';
-import { UVAccountingDashboard } from './../../uv-crm/accounting';
 
 // Skeleton Components
 const SkeletonLeadCard = () => (
@@ -175,10 +174,6 @@ export default function KanbanBoard() {
   const [leadToLose, setLeadToLose] = useState<Lead | null>(null);
   const [isUpdatingLostLead, setIsUpdatingLostLead] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const [accountingLead, setAccountingLead] = useState<Lead | null>(null);
-  
-  // Deal data for won/delivered leads (status & balance)
-  const [dealData, setDealData] = useState<Record<string, { status: string; balance_due: number; invoice_total: number }>>({});
   
   // Column-by-column optimistic loading states
   const [columnLoading, setColumnLoading] = useState<Record<ColKey, boolean>>({
@@ -433,80 +428,6 @@ export default function KanbanBoard() {
     };
   }, []);
 
-  // Track deal data refresh trigger
-  const [dealDataTrigger, setDealDataTrigger] = useState(0);
-  
-  // Fetch deal data for won/delivered leads
-  useEffect(() => {
-    const fetchDealData = async () => {
-      // Get all leads in won/delivered columns
-      const leadIds = [...(columnData.won || []), ...(columnData.delivered || [])].map(l => l.id);
-      
-      if (leadIds.length === 0) {
-        setDealData({});
-        return;
-      }
-
-      // Fetch deals for these leads
-      const { data: deals, error } = await supabase
-        .from('uv_deal_summary')
-        .select('id, lead_id, status, balance_due, invoice_total')
-        .in('lead_id', leadIds);
-
-      if (error) {
-        console.error('Error fetching deal data:', error);
-        return;
-      }
-
-      // Map by lead_id for easy lookup
-      const dealMap: Record<string, { status: string; balance_due: number; invoice_total: number }> = {};
-      deals?.forEach(deal => {
-        dealMap[deal.lead_id] = {
-          status: deal.status,
-          balance_due: deal.balance_due || 0,
-          invoice_total: deal.invoice_total || 0
-        };
-      });
-
-      setDealData(dealMap);
-    };
-
-    fetchDealData();
-  }, [columnData.won, columnData.delivered, dealDataTrigger]);
-
-  // Subscribe to deal-related table changes (separate effect to avoid re-subscription)
-  useEffect(() => {
-    const dealChannel = supabase
-      .channel('uv-deals-live-sync')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'uv_deals' },
-        () => {
-          // Trigger refetch by updating state
-          setDealDataTrigger(t => t + 1);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'uv_transactions' },
-        () => {
-          setDealDataTrigger(t => t + 1);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'uv_charges' },
-        () => {
-          setDealDataTrigger(t => t + 1);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(dealChannel);
-    };
-  }, []); // Empty deps - subscription stays stable
-
   // Use columnData for progressive loading, apply search filter
   const grouped: Record<ColKey, Lead[]> = {
     new_lead: [],
@@ -583,21 +504,6 @@ export default function KanbanBoard() {
       return;
     }
     
-    // Special case: moving to won (RESERVED) - open accounting modal
-    if (targetCol === 'won') {
-      // Update status first
-      const { error } = await supabase.from("leads").update({ 
-        status: targetCol,
-        updated_at: new Date().toISOString()
-      }).eq("id", id);
-      
-      if (!error) {
-        // Open accounting modal with updated lead
-        setAccountingLead({ ...leadToMove, status: targetCol });
-      }
-      return;
-    }
-    
     // Normal drag and drop - update database and let realtime subscription handle UI update
     const { error } = await supabase.from("leads").update({ 
       status: targetCol,
@@ -617,13 +523,8 @@ export default function KanbanBoard() {
     // Small delay to distinguish between drag and click
     setTimeout(async () => {
       if (!isDragging) {
-        // For won/delivered leads, open accounting modal instead of lead details
-        if (lead.status === 'won' || lead.status === 'delivered') {
-          setAccountingLead(lead);
-        } else {
-          // Open lead details modal for other statuses
-          setSelectedLead(lead);
-        }
+        // Open lead details modal
+        setSelectedLead(lead);
       }
     }, 10);
   };
@@ -896,32 +797,6 @@ export default function KanbanBoard() {
                         }
                       </span>
                     </div>
-                  ) : (col.key === 'won' || col.key === 'delivered') && dealData[l.id] ? (
-                    // Won/Delivered: Show deal status and balance
-                    <div className="flex items-center justify-between pt-1 mt-1 border-t border-white/10">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                        dealData[l.id].status === 'paid' ? 'bg-green-500/20 text-green-400' :
-                        dealData[l.id].status === 'partial' ? 'bg-blue-500/20 text-blue-400' :
-                        dealData[l.id].status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                        'bg-yellow-500/20 text-yellow-400'
-                      }`}>
-                        {dealData[l.id].status === 'paid' ? '●' : dealData[l.id].status === 'partial' ? '◐' : dealData[l.id].status === 'cancelled' ? '✕' : '○'} {dealData[l.id].status.toUpperCase()}
-                      </span>
-                      <span className={`text-[10px] font-semibold ${
-                        dealData[l.id].balance_due > 0 ? 'text-red-400' : 'text-green-400'
-                      }`}>
-                        {dealData[l.id].balance_due > 0 
-                          ? `${dealData[l.id].balance_due.toLocaleString()} due`
-                          : '✓ Paid'
-                        }
-                      </span>
-                    </div>
-                  ) : (col.key === 'won' || col.key === 'delivered') ? (
-                    // Won/Delivered without deal: Show "No deal" prompt
-                    <div className="flex items-center justify-between pt-1 mt-1 border-t border-white/10">
-                      <span className="text-[9px] text-white/40 italic">No deal yet</span>
-                      <span className="text-[10px] text-white/40">Click to create</span>
-                    </div>
                   ) : (
                     // Other columns: Show time ago
                     <div className="flex items-center gap-1 pt-1 mt-1 border-t border-white/10 text-[10px] text-white/50">
@@ -981,16 +856,6 @@ export default function KanbanBoard() {
           onClose={handleLostReasonCancel}
           onConfirm={handleLostReasonConfirm}
           isLoading={isUpdatingLostLead}
-        />
-      )}
-      
-      {accountingLead && (
-        <UVAccountingDashboard
-          leadId={accountingLead.id}
-          customerName={accountingLead.full_name}
-          customerPhone={`${accountingLead.country_code} ${accountingLead.phone_number}`}
-          vehicleId={accountingLead.inventory_car_id}
-          onClose={() => setAccountingLead(null)}
         />
       )}
     </div>

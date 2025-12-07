@@ -13,7 +13,13 @@
     "install-playwright-safe": "if [ \"$VERCEL\" = \"1\" ]; then echo 'Skipping Playwright installation on Vercel'; else playwright install --with-deps; fi",
     "install-playwright": "playwright install --with-deps",
     "install-sharp-vercel": "if [ \"$VERCEL\" = \"1\" ]; then npm install --include=optional sharp; else echo 'Skipping Sharp postinstall'; fi",
-    "remove:console": "tsx scripts/remove-console.ts"
+    "remove:console": "tsx scripts/remove-console.ts",
+    "server:start": "./start-server.sh",
+    "server:stop": "npx pm2 stop portal-server",
+    "server:restart": "npx pm2 restart portal-server",
+    "server:status": "npx pm2 status",
+    "server:logs": "npx pm2 logs portal-server",
+    "server:monitor": "npx pm2 monit"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
@@ -96,6 +102,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
     "playwright": "^1.42.0",
+    "pm2": "^6.0.14",
     "ts-morph": "^27.0.2",
     "tsx": "^4.7.0",
     "typescript": "^5"

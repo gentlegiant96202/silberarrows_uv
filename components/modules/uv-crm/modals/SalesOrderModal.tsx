@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
-import { X, FileText, Receipt, CreditCard, ClipboardList, ChevronDown, ChevronUp, Save, Loader2, Plus, Trash2 } from 'lucide-react';
+import { X, FileText, ArrowRightLeft, CreditCard, ClipboardList, ChevronDown, ChevronUp, Save, Loader2, Plus, Trash2, ScrollText } from 'lucide-react';
 
 // ===== INTERFACES =====
 interface Lead {
@@ -199,29 +199,34 @@ type TabKey = 'sales_order' | 'invoices' | 'payments' | 'soa';
 
 const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'sales_order', label: 'Sales Order', icon: <FileText className="w-4 h-4" /> },
-  { key: 'invoices', label: 'Invoices', icon: <Receipt className="w-4 h-4" /> },
-  { key: 'payments', label: 'Transactions', icon: <CreditCard className="w-4 h-4" /> },
+  { key: 'invoices', label: 'Invoices', icon: <ScrollText className="w-4 h-4" /> },
+  { key: 'payments', label: 'Transactions', icon: <ArrowRightLeft className="w-4 h-4" /> },
   { key: 'soa', label: 'SOA', icon: <ClipboardList className="w-4 h-4" /> },
 ];
 
 // ===== STYLING =====
 const inputClass = `
   w-full px-3 py-2 text-sm font-medium text-white
-  bg-black/40 border border-white/10 rounded-lg
-  hover:bg-black/50 hover:border-white/20
-  focus:bg-black/60 focus:border-white/30 focus:ring-1 focus:ring-white/20
+  bg-black border border-white/10 rounded-lg
+  hover:bg-zinc-900 hover:border-white/20
+  focus:bg-zinc-900 focus:border-white/30 focus:ring-1 focus:ring-white/20
   focus:outline-none transition-all duration-150
   placeholder-white/40
   [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+  [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgb(0,0,0)] [&:-webkit-autofill]:[-webkit-text-fill-color:white]
+  [&:-webkit-autofill:hover]:shadow-[inset_0_0_0px_1000px_rgb(24,24,27)] [&:-webkit-autofill:focus]:shadow-[inset_0_0_0px_1000px_rgb(24,24,27)]
 `.replace(/\s+/g, ' ').trim();
 
 const selectClass = `
-  w-full px-3 py-2 text-sm font-medium text-white
-  bg-black/40 border border-white/10 rounded-lg
-  hover:bg-black/50 hover:border-white/20
-  focus:bg-black/60 focus:border-white/30 focus:ring-1 focus:ring-white/20
+  w-full pl-3 pr-8 py-2 text-sm font-medium text-white
+  bg-black border border-white/10 rounded-lg
+  hover:bg-zinc-900 hover:border-white/20
+  focus:bg-zinc-900 focus:border-white/30 focus:ring-1 focus:ring-white/20
   focus:outline-none transition-all duration-150
   appearance-none cursor-pointer
+  bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22rgba(255%2C255%2C255%2C0.5)%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')]
+  bg-[length:12px_12px] bg-[position:right_10px_center] bg-no-repeat
+  [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgb(0,0,0)] [&:-webkit-autofill]:[-webkit-text-fill-color:white]
 `.replace(/\s+/g, ' ').trim();
 
 const labelClass = "text-[10px] font-medium text-white/50 uppercase tracking-wide block mb-1";
@@ -288,7 +293,8 @@ export default function SalesOrderModal({
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [convertingToInvoice, setConvertingToInvoice] = useState(false);
-  
+  const [generatingInvoicePdf, setGeneratingInvoicePdf] = useState<string | null>(null);
+
   // Payments state
   const [payments, setPayments] = useState<Payment[]>([]);
   const [allocations, setAllocations] = useState<PaymentAllocation[]>([]);
@@ -316,6 +322,19 @@ export default function SalesOrderModal({
   const [showCreditNoteForm, setShowCreditNoteForm] = useState<string | null>(null); // invoice_id
   const [showRefundForm, setShowRefundForm] = useState(false);
   const [savingAdjustment, setSavingAdjustment] = useState(false);
+  
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState<{ payments: boolean; credits: boolean; refunds: boolean }>({
+    payments: true,
+    credits: false,
+    refunds: false
+  });
+  const toggleSection = (section: 'payments' | 'credits' | 'refunds') => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+  
+  // Expanded invoice state
+  const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
   const [newCreditNote, setNewCreditNote] = useState({ amount: 0, reason: '' });
   const [newRefund, setNewRefund] = useState({ amount: 0, reason: '', method: 'bank_transfer', reference: '', invoiceId: '' });
   
@@ -852,8 +871,38 @@ export default function SalesOrderModal({
       
       if (error) throw error;
       
-      // Reload invoices
+      // Reload invoices to get the new invoice ID
       await loadInvoices(existingSalesOrder.id);
+      
+      // Get the newly created invoice (should be the only non-reversed one)
+      const { data: newInvoice } = await supabase
+        .from('uv_invoices')
+        .select('id, invoice_number')
+        .eq('sales_order_id', existingSalesOrder.id)
+        .neq('status', 'reversed')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      // Generate Invoice PDF
+      if (newInvoice) {
+        try {
+          const pdfResponse = await fetch('/api/generate-invoice-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoiceId: newInvoice.id })
+          });
+          
+          if (pdfResponse.ok) {
+            // Reload invoices to get updated PDF URL
+            await loadInvoices(existingSalesOrder.id);
+          } else {
+            console.warn('Invoice PDF generation failed, but invoice was created');
+          }
+        } catch (pdfError) {
+          console.warn('Invoice PDF generation error:', pdfError);
+        }
+      }
       
       // Switch to invoices tab
       setActiveTab('invoices');
@@ -873,6 +922,33 @@ export default function SalesOrderModal({
     }
   };
 
+  // Generate Invoice PDF
+  const handleGenerateInvoicePdf = async (invoiceId: string) => {
+    setGeneratingInvoicePdf(invoiceId);
+    try {
+      const response = await fetch('/api/generate-invoice-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate PDF');
+      }
+      
+      // Reload invoices to get updated PDF URL
+      if (existingSalesOrder) {
+        await loadInvoices(existingSalesOrder.id);
+      }
+    } catch (error: any) {
+      console.error('Error generating invoice PDF:', error);
+      alert('Error generating invoice PDF: ' + error.message);
+    } finally {
+      setGeneratingInvoicePdf(null);
+    }
+  };
+
   // Reverse an invoice - show confirmation form
   const handleReverseInvoice = (invoice: Invoice) => {
     setReversingInvoice(invoice);
@@ -882,7 +958,7 @@ export default function SalesOrderModal({
   // Confirm the invoice reversal
   const confirmReverseInvoice = async () => {
     if (!reversingInvoice || !reversalReason.trim()) return;
-    
+
     try {
       const { error } = await supabase
         .rpc('reverse_invoice', {
@@ -890,18 +966,31 @@ export default function SalesOrderModal({
           p_reason: reversalReason.trim(),
           p_reversed_by: user?.id
         });
-      
+
       if (error) throw error;
-      
+
       // Reload invoices
       if (existingSalesOrder) {
         await loadInvoices(existingSalesOrder.id);
+        
+        // Reload the sales order to get updated status
+        const { data: updatedSO } = await supabase
+          .from('uv_sales_orders')
+          .select('*')
+          .eq('id', existingSalesOrder.id)
+          .single();
+        
+        if (updatedSO) {
+          setExistingSalesOrder(updatedSO);
+          // Notify parent component of the update
+          onSalesOrderUpdated?.(updatedSO);
+        }
       }
-      
+
       // Reload payments (allocations may have been deleted) and SOA balance
       await loadPayments();
       await loadSoaBalance();
-      
+
       // Close the form
       setReversingInvoice(null);
       setReversalReason('');
@@ -1593,21 +1682,26 @@ export default function SalesOrderModal({
         </div>
 
         {/* Tabs */}
-        <div className="px-6 pt-4 border-b border-white/10 bg-white/[0.02]">
-          <div className="flex gap-1">
+        <div className="border-b border-white/10">
+          <div className="flex">
             {tabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`
-                  flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all
+                  flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium transition-colors relative
                   ${activeTab === tab.key 
-                    ? 'bg-white/10 text-white border-b-2 border-white/50' 
-                    : 'text-white/50 hover:text-white/70 hover:bg-white/5'}
+                    ? 'text-white' 
+                    : 'text-white/30 hover:text-white/50'}
                 `}
               >
-                {tab.icon}
+                <span className={activeTab === tab.key ? 'text-white/60' : 'text-white/20'}>
+                  {tab.icon}
+                </span>
                 {tab.label}
+                {activeTab === tab.key && (
+                  <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-white rounded-full" />
+                )}
               </button>
             ))}
           </div>
@@ -1741,7 +1835,7 @@ export default function SalesOrderModal({
                         id="hasManufacturerWarranty"
                         checked={formData.hasManufacturerWarranty}
                         onChange={(e) => handleInputChange('hasManufacturerWarranty', e.target.checked)}
-                        className="w-4 h-4 rounded border-white/20 bg-black/40 text-blue-500 focus:ring-blue-500/30"
+                        className="w-4 h-4 rounded border-white/20 bg-black text-blue-500 focus:ring-blue-500/30"
                       />
                       <label htmlFor="hasManufacturerWarranty" className="text-sm text-white/70">
                         Vehicle has manufacturer warranty
@@ -1778,7 +1872,7 @@ export default function SalesOrderModal({
                         id="hasManufacturerService"
                         checked={formData.hasManufacturerService}
                         onChange={(e) => handleInputChange('hasManufacturerService', e.target.checked)}
-                        className="w-4 h-4 rounded border-white/20 bg-black/40 text-blue-500 focus:ring-blue-500/30"
+                        className="w-4 h-4 rounded border-white/20 bg-black text-blue-500 focus:ring-blue-500/30"
                       />
                       <label htmlFor="hasManufacturerService" className="text-sm text-white/70">
                         Vehicle has manufacturer service package
@@ -1815,7 +1909,7 @@ export default function SalesOrderModal({
                         id="hasPartExchange"
                         checked={formData.hasPartExchange}
                         onChange={(e) => handleInputChange('hasPartExchange', e.target.checked)}
-                        className="w-4 h-4 rounded border-white/20 bg-black/40 text-blue-500 focus:ring-blue-500/30"
+                        className="w-4 h-4 rounded border-white/20 bg-black text-blue-500 focus:ring-blue-500/30"
                       />
                       <label htmlFor="hasPartExchange" className="text-sm text-white/70">
                         Customer has part exchange vehicle
@@ -1883,7 +1977,7 @@ export default function SalesOrderModal({
                         <h3 className="text-sm font-semibold text-white">Payment Method</h3>
                         <p className="text-xs text-white/50 mt-0.5">How will the customer pay?</p>
                       </div>
-                      <div className="flex bg-black/40 rounded-lg p-1 gap-1">
+                      <div className="flex bg-black rounded-lg p-1 gap-1">
                         <button
                           type="button"
                           onClick={() => handleInputChange('paymentMethod', 'cash')}
@@ -2065,7 +2159,7 @@ export default function SalesOrderModal({
                           </>
                         ) : (
                           <>
-                            <Receipt className="w-4 h-4" />
+                            <ScrollText className="w-4 h-4" />
                             Convert to Invoice
                           </>
                         )}
@@ -2104,167 +2198,169 @@ export default function SalesOrderModal({
                   {existingSalesOrder && lineItems.length > 0 && !loadingInvoices && invoices.length === 0 && (
                     <div className="flex items-center justify-center h-48 text-white/40 bg-white/5 rounded-xl border border-white/10">
                       <div className="text-center">
-                        <Receipt className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                        <ScrollText className="w-10 h-10 mx-auto mb-2 opacity-50" />
                         <p className="text-sm mb-3">No invoices yet</p>
                         <p className="text-xs">Click "Convert to Invoice" to create one</p>
                       </div>
                     </div>
                   )}
 
-                  {/* Invoice List */}
+                  {/* Invoice List - Condensed Expandable Cards */}
                   {!loadingInvoices && invoices.length > 0 && (
-                    <div className="space-y-3">
-                      {invoices.map((invoice) => (
-                        <div 
-                          key={invoice.id} 
-                          className={`bg-white/5 border rounded-xl p-4 ${
-                            invoice.status === 'reversed' 
-                              ? 'border-red-500/30 opacity-60' 
-                              : invoice.status === 'paid'
-                              ? 'border-green-500/30'
-                              : 'border-white/10'
-                          }`}
-                        >
-                          {/* Invoice Header */}
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <Receipt className="w-5 h-5 text-white/60" />
-                              <div>
-                                <p className="text-sm font-bold text-white">{invoice.invoice_number}</p>
-                                <p className="text-xs text-white/50">
-                                  {new Date(invoice.invoice_date).toLocaleDateString('en-GB', { 
-                                    day: '2-digit', 
-                                    month: 'short', 
-                                    year: 'numeric' 
-                                  })}
-                                </p>
+                    <div className="space-y-2">
+                      {invoices.map((invoice) => {
+                        const isExpanded = expandedInvoiceId === invoice.id;
+                        const isPaid = invoice.status === 'paid';
+                        const isReversed = invoice.status === 'reversed';
+                        
+                        return (
+                          <div 
+                            key={invoice.id} 
+                            className={`border rounded-lg overflow-hidden transition-all ${
+                              isReversed ? 'opacity-50 border-white/5' : 'border-white/10'
+                            }`}
+                          >
+                            {/* Condensed Header - Always Visible */}
+                            <button
+                              onClick={() => setExpandedInvoiceId(isExpanded ? null : invoice.id)}
+                              className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-left"
+                            >
+                              <div className="flex items-center gap-4">
+                                <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                                <div>
+                                  <p className="text-sm font-medium text-white">{invoice.invoice_number}</p>
+                                  <p className="text-xs text-white/40">
+                                    {new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                invoice.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                invoice.status === 'partial' ? 'bg-blue-500/20 text-blue-400' :
-                                invoice.status === 'paid' ? 'bg-green-500/20 text-green-400' :
-                                'bg-red-500/20 text-red-400'
-                              }`}>
-                                {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Invoice Amounts */}
-                          <div className="py-3 border-t border-b border-white/10 space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-white/50">Invoice Total</span>
-                              <span className="font-medium text-white">AED {formatCurrency(invoice.total_amount)}</span>
-                            </div>
-                            {(invoice.credit_note_total || 0) > 0 && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-purple-400">Credit Notes</span>
-                                <span className="font-medium text-purple-400">-AED {formatCurrency(invoice.credit_note_total || 0)}</span>
+                              <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                  <p className="text-sm font-semibold text-white">{formatCurrency(invoice.total_amount)}</p>
+                                  {!isPaid && !isReversed && invoice.balance_due > 0 && (
+                                    <p className="text-xs text-amber-400">{formatCurrency(invoice.balance_due)} due</p>
+                                  )}
+                                  {isPaid && <p className="text-xs text-white/40">Paid</p>}
+                                  {isReversed && <p className="text-xs text-white/30">Reversed</p>}
+                                </div>
+                                <div className={`w-2 h-2 rounded-full ${
+                                  isPaid ? 'bg-white/40' :
+                                  isReversed ? 'bg-white/20' :
+                                  invoice.status === 'partial' ? 'bg-amber-400' :
+                                  'bg-amber-400'
+                                }`} />
                               </div>
-                            )}
-                            {(invoice.credit_note_total || 0) > 0 && (
-                              <div className="flex justify-between text-sm border-t border-white/10 pt-2">
-                                <span className="text-white/50">Net Amount</span>
-                                <span className="font-medium text-white">AED {formatCurrency(invoice.total_amount - (invoice.credit_note_total || 0))}</span>
+                            </button>
+                            
+                            {/* Expanded Details */}
+                            {isExpanded && (
+                              <div className="px-4 py-3 border-t border-white/5 bg-black/20 space-y-3">
+                                {/* Amounts Breakdown */}
+                                <div className="space-y-1.5 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-white/40">Total</span>
+                                    <span className="text-white">{formatCurrency(invoice.total_amount)}</span>
+                                  </div>
+                                  {(invoice.credit_note_total || 0) > 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-white/40">Credits</span>
+                                      <span className="text-white/60">-{formatCurrency(invoice.credit_note_total || 0)}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between">
+                                    <span className="text-white/40">Paid</span>
+                                    <span className="text-white/60">{formatCurrency(invoice.paid_amount)}</span>
+                                  </div>
+                                  <div className="flex justify-between pt-1.5 border-t border-white/5">
+                                    <span className="text-white/60 font-medium">Balance</span>
+                                    <span className={`font-semibold ${invoice.balance_due > 0 ? 'text-amber-400' : 'text-white/40'}`}>
+                                      {formatCurrency(invoice.balance_due)}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Reversal Info */}
+                                {isReversed && invoice.reversal_reason && (
+                                  <div className="p-2 bg-white/5 rounded text-xs text-white/50">
+                                    Reversed: {invoice.reversal_reason}
+                                  </div>
+                                )}
+
+                                {/* Actions */}
+                                <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
+                                  {invoice.pdf_url ? (
+                                    <a
+                                      href={invoice.pdf_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-1.5 text-xs font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
+                                    >
+                                      View PDF
+                                    </a>
+                                  ) : !isReversed && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleGenerateInvoicePdf(invoice.id); }}
+                                      disabled={generatingInvoicePdf === invoice.id}
+                                      className="px-3 py-1.5 text-xs font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+                                    >
+                                      {generatingInvoicePdf === invoice.id ? 'Generating...' : 'Generate PDF'}
+                                    </button>
+                                  )}
+                                  {!isReversed && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleReverseInvoice(invoice); }}
+                                      className="px-3 py-1.5 text-xs font-medium text-white/40 hover:text-red-400 bg-white/5 hover:bg-red-500/10 rounded transition-colors"
+                                    >
+                                      Reverse
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                            <div className="flex justify-between text-sm">
-                              <span className="text-green-400">Paid</span>
-                              <span className="font-medium text-green-400">AED {formatCurrency(invoice.paid_amount)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm border-t border-white/10 pt-2">
-                              <span className="text-white/70 font-medium">Balance Due</span>
-                              <span className={`font-bold ${invoice.balance_due > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                AED {formatCurrency(invoice.balance_due)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Reversal Info */}
-                          {invoice.status === 'reversed' && invoice.reversal_reason && (
-                            <div className="mt-3 p-2 bg-red-500/10 rounded-lg">
-                              <p className="text-xs text-red-400">
-                                <strong>Reversed:</strong> {invoice.reversal_reason}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Credit Notes summary for this invoice */}
-                          {adjustments.filter(a => a.adjustment_type === 'credit_note' && a.invoice_id === invoice.id).length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-white/10">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-purple-400/70">
-                                  {adjustments.filter(a => a.adjustment_type === 'credit_note' && a.invoice_id === invoice.id).length} Credit Note(s)
-                                </span>
-                                <span className="text-purple-400 font-medium">
-                                  -AED {formatCurrency(adjustments.filter(a => a.adjustment_type === 'credit_note' && a.invoice_id === invoice.id).reduce((sum, a) => sum + a.amount, 0))}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Actions */}
-                          <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-white/10">
-                            {invoice.pdf_url && (
-                              <a
-                                href={invoice.pdf_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-1.5 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                              >
-                                View PDF
-                              </a>
-                            )}
-                            {invoice.status !== 'reversed' && invoice.status !== 'paid' && (
-                              <button
-                                onClick={() => handleReverseInvoice(invoice)}
-                                className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors"
-                              >
-                                Reverse
-                              </button>
                             )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                   
                   {/* Invoice Reversal Confirmation Form */}
                   {reversingInvoice && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                      <div className="bg-gray-900 border border-white/10 rounded-xl p-6 w-full max-w-md space-y-4">
-                        <h3 className="text-lg font-semibold text-white">Reverse Invoice</h3>
-                        <p className="text-sm text-white/60">
-                          You are about to reverse invoice <span className="text-white font-medium">{reversingInvoice.invoice_number}</span>. 
-                          This action cannot be undone.
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+                      <div className="bg-black border border-white/10 rounded-lg p-5 w-full max-w-sm space-y-4">
+                        <div>
+                          <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Reverse Invoice</p>
+                          <p className="text-lg font-semibold text-white">{reversingInvoice.invoice_number}</p>
+                        </div>
+                        <p className="text-sm text-white/50">
+                          This will void the invoice and create a credit note. This action cannot be undone.
                         </p>
-                        <Field label="Reason for Reversal *">
+                        <div>
+                          <label className="text-[10px] text-white/40 uppercase tracking-wider block mb-1.5">Reason *</label>
                           <input
                             type="text"
                             value={reversalReason}
                             onChange={(e) => setReversalReason(e.target.value)}
-                            placeholder="Enter the reason for reversing this invoice..."
-                            className="w-full px-3 py-2 text-sm font-medium text-white bg-black/40 border border-white/10 rounded-lg focus:border-white/30 focus:ring-1 focus:ring-white/20"
+                            placeholder="Why is this invoice being reversed?"
+                            className={inputClass}
+                            autoFocus
                           />
-                        </Field>
-                        <div className="flex items-center gap-3 pt-2">
+                        </div>
+                        <div className="flex items-center gap-2 pt-2">
                           <button
                             onClick={() => {
                               setReversingInvoice(null);
                               setReversalReason('');
                             }}
-                            className="flex-1 px-4 py-2 text-sm font-medium text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+                            className="flex-1 px-4 py-2.5 text-sm font-medium text-white/50 hover:text-white/70 transition-colors"
                           >
                             Cancel
                           </button>
                           <button
                             onClick={confirmReverseInvoice}
                             disabled={!reversalReason.trim()}
-                            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-4 py-2.5 text-sm font-medium text-black bg-white hover:bg-white/90 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                           >
-                            Confirm Reversal
+                            Reverse
                           </button>
                         </div>
                       </div>
@@ -2274,521 +2370,290 @@ export default function SalesOrderModal({
               )}
 
               {activeTab === 'payments' && (
-                <div className="space-y-4">
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-green-400/70 uppercase tracking-wider">Payments</p>
-                      <p className="text-lg font-bold text-green-400">
-                        {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}
-                      </p>
-                    </div>
-                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-purple-400/70 uppercase tracking-wider">Credit Notes</p>
-                      <p className="text-lg font-bold text-purple-400">
-                        {formatCurrency(adjustments.filter(a => a.adjustment_type === 'credit_note').reduce((sum, a) => sum + a.amount, 0))}
-                      </p>
-                    </div>
-                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-orange-400/70 uppercase tracking-wider">Refunds</p>
-                      <p className="text-lg font-bold text-orange-400">
-                        {formatCurrency(adjustments.filter(a => a.adjustment_type === 'refund').reduce((sum, a) => sum + a.amount, 0))}
-                      </p>
-                    </div>
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-yellow-400/70 uppercase tracking-wider">Unallocated</p>
-                      <p className="text-lg font-bold text-yellow-400">
-                        {formatCurrency(payments.reduce((sum, p) => sum + (p.unallocated_amount || 0), 0))}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowAddPaymentForm(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-400 bg-green-500/10 hover:bg-green-500/20 rounded-lg transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Payment
-                    </button>
-                    <button
-                      onClick={() => setShowCreditNoteForm(invoices.find(i => i.status !== 'reversed' && i.balance_due > 0)?.id || 'select')}
-                      disabled={!invoices.some(i => i.status !== 'reversed' && i.balance_due > 0)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Credit Note
-                    </button>
-                    <button
-                      onClick={() => setShowRefundForm(true)}
-                      disabled={!invoices.some(i => i.status !== 'reversed' && i.paid_amount > 0)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Refund
-                    </button>
-                  </div>
-
-                  {/* Add Payment Form */}
-                  {showAddPaymentForm && (
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
-                      <h4 className="text-sm font-semibold text-white">New Payment</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <Field label="Amount (AED)">
-                          <input
-                            type="number"
-                            className={inputClass}
-                            value={newPayment.amount || ''}
-                            onChange={(e) => setNewPayment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                            placeholder="0.00"
-                            step="0.01"
-                          />
-                        </Field>
-                        <Field label="Payment Method">
-                          <select
-                            className={selectClass}
-                            value={newPayment.payment_method}
-                            onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value as Payment['payment_method'] }))}
-                          >
-                            {paymentMethods.map(m => (
-                              <option key={m.value} value={m.value}>{m.label}</option>
-                            ))}
-                          </select>
-                        </Field>
-                        <Field label="Payment Date">
-                          <input
-                            type="date"
-                            className={inputClass}
-                            value={newPayment.payment_date}
-                            onChange={(e) => setNewPayment(prev => ({ ...prev, payment_date: e.target.value }))}
-                          />
-                        </Field>
-                        <Field label="Reference">
-                          <input
-                            type="text"
-                            className={inputClass}
-                            value={newPayment.reference}
-                            onChange={(e) => setNewPayment(prev => ({ ...prev, reference: e.target.value }))}
-                            placeholder="Cheque #, Transfer Ref..."
-                          />
-                        </Field>
-                        {(newPayment.payment_method === 'cheque' || newPayment.payment_method === 'bank_transfer') && (
-                          <Field label="Bank Name">
-                            <input
-                              type="text"
-                              className={inputClass}
-                              value={newPayment.bank_name}
-                              onChange={(e) => setNewPayment(prev => ({ ...prev, bank_name: e.target.value }))}
-                              placeholder="Bank name"
-                            />
-                          </Field>
-                        )}
-                        <Field label="Notes" className="col-span-2">
-                          <input
-                            type="text"
-                            className={inputClass}
-                            value={newPayment.notes}
-                            onChange={(e) => setNewPayment(prev => ({ ...prev, notes: e.target.value }))}
-                            placeholder="Optional notes..."
-                          />
-                        </Field>
-                      </div>
-                      <div className="flex justify-end gap-2 pt-2">
-                        <button
-                          onClick={() => setShowAddPaymentForm(false)}
-                          className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleAddPayment}
-                          disabled={savingPayment || newPayment.amount <= 0}
-                          className="px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          {savingPayment ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            'Save Payment'
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Add Credit Note Form (in Transactions tab) */}
-                  {showCreditNoteForm && (
-                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 space-y-3">
-                      <h4 className="text-sm font-semibold text-purple-400">New Credit Note</h4>
-                      <div className="grid grid-cols-3 gap-3">
-                        <Field label="Invoice" className="col-span-1">
-                          <select
-                            value={typeof showCreditNoteForm === 'string' && showCreditNoteForm !== 'select' ? showCreditNoteForm : ''}
-                            onChange={(e) => setShowCreditNoteForm(e.target.value || 'select')}
-                            className={selectClass}
-                          >
-                            <option value="">Select Invoice</option>
-                            {invoices
-                              .filter(inv => inv.status !== 'reversed' && inv.balance_due > 0)
-                              .map(inv => (
-                                <option key={inv.id} value={inv.id}>
-                                  {inv.invoice_number} - Balance: AED {formatCurrency(inv.balance_due)}
-                                </option>
-                              ))}
-                          </select>
-                        </Field>
-                        <Field label="Amount (AED)">
-                          <input
-                            type="number"
-                            placeholder="0.00"
-                            value={newCreditNote.amount || ''}
-                            onChange={(e) => setNewCreditNote(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                            className={inputClass}
-                          />
-                        </Field>
-                        <Field label="Reason">
-                          <input
-                            type="text"
-                            placeholder="Reason for credit"
-                            value={newCreditNote.reason}
-                            onChange={(e) => setNewCreditNote(prev => ({ ...prev, reason: e.target.value }))}
-                            className={inputClass}
-                          />
-                        </Field>
-                      </div>
-                      <div className="flex justify-end gap-2 pt-2">
-                        <button
-                          onClick={() => setShowCreditNoteForm(null)}
-                          className="px-3 py-1.5 text-xs text-white/50 hover:text-white"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => {
-                            const invoiceId = typeof showCreditNoteForm === 'string' && showCreditNoteForm !== 'select' ? showCreditNoteForm : null;
-                            if (invoiceId) handleAddCreditNote(invoiceId);
-                          }}
-                          disabled={savingAdjustment || !showCreditNoteForm || showCreditNoteForm === 'select' || newCreditNote.amount <= 0}
-                          className="px-4 py-2 text-sm font-medium text-purple-400 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {savingAdjustment ? 'Saving...' : 'Add Credit Note'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
+                <div className="space-y-3">
                   {/* Loading */}
                   {loadingPayments && (
                     <div className="flex items-center justify-center h-32">
-                      <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+                      <Loader2 className="w-6 h-6 animate-spin text-white/30" />
                     </div>
                   )}
 
-                  {/* No transactions */}
-                  {!loadingPayments && payments.length === 0 && adjustments.length === 0 && !showAddPaymentForm && !showCreditNoteForm && !showRefundForm && (
-                    <div className="flex items-center justify-center h-32 text-white/40 bg-white/5 rounded-xl border border-white/10">
-                      <div className="text-center">
-                        <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No transactions yet</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Credit Notes List */}
-                  {!loadingPayments && adjustments.filter(a => a.adjustment_type === 'credit_note').length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-purple-400/70 uppercase tracking-wider font-medium">Credit Notes</p>
-                      {adjustments
-                        .filter(a => a.adjustment_type === 'credit_note')
-                        .map(cn => {
-                          const linkedInvoice = invoices.find(inv => inv.id === cn.invoice_id);
-                          return (
-                            <div key={cn.id} className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 p-3 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                                  <Receipt className="w-4 h-4 text-purple-400" />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-purple-400">{cn.adjustment_number}</p>
-                                  <p className="text-xs text-white/50">
-                                    {linkedInvoice ? `→ ${linkedInvoice.invoice_number}` : ''} • {cn.reason}
-                                  </p>
-                                </div>
-                              </div>
-                              <p className="text-sm font-bold text-purple-400">-AED {formatCurrency(cn.amount)}</p>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-
-                  {/* Payments List */}
-                  {!loadingPayments && payments.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-green-400/70 uppercase tracking-wider font-medium">Payments</p>
-                      {payments.map((payment) => {
-                        const isUnallocated = (payment.unallocated_amount || 0) > 0;
-                        const paymentAllocations = allocations.filter(a => a.payment_id === payment.id);
+                  {!loadingPayments && (
+                    <>
+                      {/* PAYMENTS SECTION */}
+                      <div className="border border-white/10 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => toggleSection('payments')}
+                          className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${expandedSections.payments ? '' : '-rotate-90'}`} />
+                            <span className="text-sm font-medium text-white/80">Payments</span>
+                            <span className="text-xs text-white/40">({payments.length})</span>
+                          </div>
+                          <span className="text-sm font-semibold text-white">+{formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}</span>
+                        </button>
                         
-                        return (
-                          <div 
-                            key={payment.id} 
-                            className={`bg-white/5 border rounded-xl p-4 ${
-                              isUnallocated ? 'border-yellow-500/30' : 'border-white/10'
-                            }`}
-                          >
-                            {/* Payment Header */}
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                <CreditCard className="w-5 h-5 text-white/60" />
-                                <div>
-                                  <p className="text-sm font-bold text-white">{payment.payment_number}</p>
-                                  <p className="text-xs text-white/50">
-                                    {new Date(payment.payment_date).toLocaleDateString('en-GB', { 
-                                      day: '2-digit', 
-                                      month: 'short', 
-                                      year: 'numeric' 
-                                    })} • {paymentMethods.find(m => m.value === payment.payment_method)?.label}
-                                    {payment.reference && ` • ${payment.reference}`}
-                                  </p>
+                        {expandedSections.payments && (
+                          <div className="p-3 space-y-2 border-t border-white/10">
+                            {/* Add Payment Button */}
+                            {!showAddPaymentForm && (
+                              <button
+                                onClick={() => setShowAddPaymentForm(true)}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-white/50 hover:text-white/70 border border-dashed border-white/10 hover:border-white/20 rounded-lg transition-all"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Add Payment
+                              </button>
+                            )}
+
+                            {/* Add Payment Form */}
+                            {showAddPaymentForm && (
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <Field label="Amount (AED)">
+                                    <input type="number" className={inputClass} value={newPayment.amount || ''} onChange={(e) => setNewPayment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} placeholder="0.00" />
+                                  </Field>
+                                  <Field label="Method">
+                                    <select className={selectClass} value={newPayment.payment_method} onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value as Payment['payment_method'] }))}>
+                                      {paymentMethods.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                    </select>
+                                  </Field>
+                                  <Field label="Date">
+                                    <input type="date" className={inputClass} value={newPayment.payment_date} onChange={(e) => setNewPayment(prev => ({ ...prev, payment_date: e.target.value }))} />
+                                  </Field>
+                                  <Field label="Reference">
+                                    <input type="text" className={inputClass} value={newPayment.reference} onChange={(e) => setNewPayment(prev => ({ ...prev, reference: e.target.value }))} placeholder="Optional" />
+                                  </Field>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => setShowAddPaymentForm(false)} className="px-3 py-1.5 text-xs text-white/50 hover:text-white">Cancel</button>
+                                  <button onClick={handleAddPayment} disabled={savingPayment || newPayment.amount <= 0} className="px-3 py-1.5 text-xs font-medium text-black bg-white rounded-lg disabled:opacity-50">
+                                    {savingPayment ? 'Saving...' : 'Save'}
+                                  </button>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <p className="text-sm font-bold text-green-400">AED {formatCurrency(payment.amount)}</p>
-                                {isUnallocated && (
-                                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-500/20 text-yellow-400">
-                                    {formatCurrency(payment.unallocated_amount || 0)} unallocated
-                                  </span>
-                                )}
-                              </div>
-                            </div>
+                            )}
 
-                            {/* Allocations */}
-                            {paymentAllocations.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-                                <p className="text-xs text-white/50 uppercase tracking-wide">Allocated to:</p>
-                                {paymentAllocations.map(alloc => (
-                                  <div key={alloc.id} className="flex items-center justify-between bg-black/20 p-2 rounded-lg">
-                                    <span className="text-sm text-white/80">{alloc.invoice_number}</span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm font-medium text-white">AED {formatCurrency(alloc.amount)}</span>
-                                      <button
-                                        onClick={() => handleUnallocate(alloc.id)}
-                                        className="text-red-400 hover:text-red-300 text-xs"
-                                      >
-                                        Remove
-                                      </button>
+                            {/* Payments List */}
+                            {payments.map((payment) => {
+                              const isUnallocated = (payment.unallocated_amount || 0) > 0;
+                              const paymentAllocations = allocations.filter(a => a.payment_id === payment.id);
+                              return (
+                                <div key={payment.id} className="bg-black/20 rounded-lg p-3">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-sm font-medium text-white">{payment.payment_number}</p>
+                                      <p className="text-xs text-white/40">
+                                        {new Date(payment.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} • {paymentMethods.find(m => m.value === payment.payment_method)?.label}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-sm font-semibold text-white">+{formatCurrency(payment.amount)}</p>
+                                      {isUnallocated && <p className="text-[10px] text-amber-400">{formatCurrency(payment.unallocated_amount || 0)} unallocated</p>}
                                     </div>
                                   </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Allocate Button */}
-                            {isUnallocated && invoices.some(inv => inv.status !== 'reversed' && inv.balance_due > 0) && (
-                              <div className="mt-3 pt-3 border-t border-white/10">
-                                {allocatingPayment === payment.id ? (
-                                  <div className="space-y-3">
-                                    <p className="text-xs text-white/50 uppercase tracking-wide">Allocate to invoice:</p>
-                                    {invoices
-                                      .filter(inv => inv.status !== 'reversed' && inv.balance_due > 0)
-                                      .map(inv => {
-                                        const maxAmount = Math.min(payment.unallocated_amount || 0, inv.balance_due);
-                                        const isSelected = allocationInvoiceId === inv.id;
-                                        
-                                        return (
-                                          <div key={inv.id} className={`p-3 rounded-lg transition-colors ${isSelected ? 'bg-green-500/20 border border-green-500/30' : 'bg-black/20'}`}>
-                                            <div className="flex items-center justify-between">
-                                              <div>
-                                                <span className="text-sm text-white/80">{inv.invoice_number}</span>
-                                                <span className="text-xs text-white/50 ml-2">Balance: AED {formatCurrency(inv.balance_due)}</span>
-                                              </div>
-                                              {!isSelected && (
-                                                <button
-                                                  onClick={() => {
-                                                    setAllocationInvoiceId(inv.id);
-                                                    setAllocationAmount(maxAmount);
-                                                  }}
-                                                  className="px-3 py-1 text-xs font-medium text-green-400 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition-colors"
-                                                >
-                                                  Select
-                                                </button>
-                                              )}
-                                            </div>
-                                            {isSelected && (
-                                              <div className="mt-3 flex items-center gap-2">
-                                                <input
-                                                  type="number"
-                                                  value={allocationAmount || ''}
-                                                  onChange={(e) => setAllocationAmount(Math.min(parseFloat(e.target.value) || 0, maxAmount))}
-                                                  className={`${inputClass} w-32 text-sm`}
-                                                  placeholder="Amount"
-                                                  max={maxAmount}
-                                                />
-                                                <span className="text-xs text-white/50">Max: {formatCurrency(maxAmount)}</span>
-                                                <button
-                                                  onClick={() => {
-                                                    if (allocationAmount > 0) {
-                                                      handleAllocatePayment(payment.id, inv.id, allocationAmount);
-                                                      setAllocationInvoiceId(null);
-                                                      setAllocationAmount(0);
-                                                    }
-                                                  }}
-                                                  disabled={allocationAmount <= 0}
-                                                  className="px-3 py-1.5 text-xs font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 rounded-lg disabled:opacity-50"
-                                                >
-                                                  Allocate
-                                                </button>
-                                                <button
-                                                  onClick={() => {
-                                                    setAllocationInvoiceId(null);
-                                                    setAllocationAmount(0);
-                                                  }}
-                                                  className="text-xs text-white/50 hover:text-white"
-                                                >
-                                                  Cancel
-                                                </button>
-                                              </div>
-                                            )}
+                                  {/* Allocations */}
+                                  {paymentAllocations.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
+                                      {paymentAllocations.map(alloc => (
+                                        <div key={alloc.id} className="flex items-center justify-between text-xs">
+                                          <span className="text-white/50">→ {alloc.invoice_number}</span>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-white/70">{formatCurrency(alloc.amount)}</span>
+                                            <button onClick={() => handleUnallocate(alloc.id)} className="text-white/30 hover:text-red-400">×</button>
                                           </div>
-                                        );
-                                      })}
-                                    <button
-                                      onClick={() => {
-                                        setAllocatingPayment(null);
-                                        setAllocationInvoiceId(null);
-                                        setAllocationAmount(0);
-                                      }}
-                                      className="text-xs text-white/50 hover:text-white"
-                                    >
-                                      Close
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => setAllocatingPayment(payment.id)}
-                                    className="w-full px-3 py-2 text-sm font-medium text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20 rounded-lg transition-colors"
-                                  >
-                                    Allocate to Invoice
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {/* Allocate */}
+                                  {isUnallocated && invoices.some(inv => inv.status !== 'reversed' && inv.balance_due > 0) && (
+                                    <div className="mt-2 pt-2 border-t border-white/5">
+                                      {allocatingPayment === payment.id ? (
+                                        <div className="space-y-2">
+                                          {invoices.filter(inv => inv.status !== 'reversed' && inv.balance_due > 0).map(inv => {
+                                            const maxAmount = Math.min(payment.unallocated_amount || 0, inv.balance_due);
+                                            const isSelected = allocationInvoiceId === inv.id;
+                                            return (
+                                              <div key={inv.id} className={`p-2 rounded text-xs ${isSelected ? 'bg-white/10' : ''}`}>
+                                                <div className="flex items-center justify-between">
+                                                  <span className="text-white/70">{inv.invoice_number} <span className="text-white/40">({formatCurrency(inv.balance_due)})</span></span>
+                                                  {!isSelected && <button onClick={() => { setAllocationInvoiceId(inv.id); setAllocationAmount(maxAmount); }} className="text-white/50 hover:text-white">Select</button>}
+                                                </div>
+                                                {isSelected && (
+                                                  <div className="mt-2 flex items-center gap-2">
+                                                    <input type="number" value={allocationAmount || ''} onChange={(e) => setAllocationAmount(Math.min(parseFloat(e.target.value) || 0, maxAmount))} className={`${inputClass} w-24 text-xs`} />
+                                                    <button onClick={() => { if (allocationAmount > 0) { handleAllocatePayment(payment.id, inv.id, allocationAmount); setAllocationInvoiceId(null); setAllocationAmount(0); }}} className="px-2 py-1 text-xs bg-white text-black rounded">Apply</button>
+                                                    <button onClick={() => { setAllocationInvoiceId(null); setAllocationAmount(0); }} className="text-white/40">×</button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                          <button onClick={() => { setAllocatingPayment(null); setAllocationInvoiceId(null); }} className="text-xs text-white/40">Close</button>
+                                        </div>
+                                      ) : (
+                                        <button onClick={() => setAllocatingPayment(payment.id)} className="text-xs text-amber-400 hover:text-amber-300">Allocate →</button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* CREDIT NOTES SECTION */}
+                      <div className="border border-white/10 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => toggleSection('credits')}
+                          className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${expandedSections.credits ? '' : '-rotate-90'}`} />
+                            <span className="text-sm font-medium text-white/80">Credit Notes</span>
+                            <span className="text-xs text-white/40">({adjustments.filter(a => a.adjustment_type === 'credit_note').length})</span>
+                          </div>
+                          <span className="text-sm font-semibold text-white/60">-{formatCurrency(adjustments.filter(a => a.adjustment_type === 'credit_note').reduce((sum, a) => sum + a.amount, 0))}</span>
+                        </button>
+                        
+                        {expandedSections.credits && (
+                          <div className="p-3 space-y-2 border-t border-white/10">
+                            {/* Add Credit Note Button */}
+                            {!showCreditNoteForm && (
+                              <button
+                                onClick={() => setShowCreditNoteForm(invoices.find(i => i.status !== 'reversed' && i.balance_due > 0)?.id || 'select')}
+                                disabled={!invoices.some(i => i.status !== 'reversed' && i.balance_due > 0)}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-white/50 hover:text-white/70 border border-dashed border-white/10 hover:border-white/20 rounded-lg transition-all disabled:opacity-30"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Add Credit Note
+                              </button>
+                            )}
+
+                            {/* Add Credit Note Form */}
+                            {showCreditNoteForm && (
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 space-y-3">
+                                <div className="grid grid-cols-3 gap-3">
+                                  <Field label="Invoice">
+                                    <select value={typeof showCreditNoteForm === 'string' && showCreditNoteForm !== 'select' ? showCreditNoteForm : ''} onChange={(e) => setShowCreditNoteForm(e.target.value || 'select')} className={selectClass}>
+                                      <option value="">Select</option>
+                                      {invoices.filter(inv => inv.status !== 'reversed' && inv.balance_due > 0).map(inv => <option key={inv.id} value={inv.id}>{inv.invoice_number}</option>)}
+                                    </select>
+                                  </Field>
+                                  <Field label="Amount">
+                                    <input type="number" placeholder="0.00" value={newCreditNote.amount || ''} onChange={(e) => setNewCreditNote(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} className={inputClass} />
+                                  </Field>
+                                  <Field label="Reason">
+                                    <input type="text" placeholder="Reason" value={newCreditNote.reason} onChange={(e) => setNewCreditNote(prev => ({ ...prev, reason: e.target.value }))} className={inputClass} />
+                                  </Field>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => setShowCreditNoteForm(null)} className="px-3 py-1.5 text-xs text-white/50 hover:text-white">Cancel</button>
+                                  <button onClick={() => { const invoiceId = typeof showCreditNoteForm === 'string' && showCreditNoteForm !== 'select' ? showCreditNoteForm : null; if (invoiceId) handleAddCreditNote(invoiceId); }} disabled={savingAdjustment || !showCreditNoteForm || showCreditNoteForm === 'select' || newCreditNote.amount <= 0} className="px-3 py-1.5 text-xs font-medium text-black bg-white rounded-lg disabled:opacity-50">
+                                    {savingAdjustment ? 'Saving...' : 'Save'}
                                   </button>
-                                )}
+                                </div>
                               </div>
                             )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
 
-                  {/* Refunds Section */}
-                  {(adjustments.filter(a => a.adjustment_type === 'refund').length > 0 || showRefundForm) && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-orange-400/70 uppercase tracking-wider font-medium">Refunds</p>
-
-                      {/* Add Refund Form */}
-                      {showRefundForm && (
-                        <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 space-y-3">
-                          <h4 className="text-sm font-semibold text-orange-400">New Refund</h4>
-                          <div className="grid grid-cols-3 gap-3">
-                            <Field label="Invoice">
-                              <select
-                                value={newRefund.invoiceId}
-                                onChange={(e) => setNewRefund(prev => ({ ...prev, invoiceId: e.target.value }))}
-                                className={selectClass}
-                              >
-                                <option value="">Select Invoice</option>
-                                {invoices
-                                  .filter(inv => inv.status !== 'reversed' && inv.paid_amount > 0)
-                                  .map(inv => (
-                                    <option key={inv.id} value={inv.id}>
-                                      {inv.invoice_number} - Paid: AED {formatCurrency(inv.paid_amount)}
-                                    </option>
-                                  ))}
-                              </select>
-                            </Field>
-                            <Field label="Amount (AED)">
-                              <input
-                                type="number"
-                                value={newRefund.amount || ''}
-                                onChange={(e) => setNewRefund(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                                className={inputClass}
-                                placeholder="0.00"
-                              />
-                            </Field>
-                            <Field label="Method">
-                              <select
-                                value={newRefund.method}
-                                onChange={(e) => setNewRefund(prev => ({ ...prev, method: e.target.value }))}
-                                className={selectClass}
-                              >
-                                <option value="cash">Cash</option>
-                                <option value="bank_transfer">Bank Transfer</option>
-                                <option value="cheque">Cheque</option>
-                              </select>
-                            </Field>
-                            <Field label="Reference">
-                              <input
-                                type="text"
-                                value={newRefund.reference}
-                                onChange={(e) => setNewRefund(prev => ({ ...prev, reference: e.target.value }))}
-                                className={inputClass}
-                                placeholder="Optional"
-                              />
-                            </Field>
-                            <Field label="Reason" className="col-span-2">
-                              <input
-                                type="text"
-                                value={newRefund.reason}
-                                onChange={(e) => setNewRefund(prev => ({ ...prev, reason: e.target.value }))}
-                                className={inputClass}
-                                placeholder="Reason for refund"
-                              />
-                            </Field>
-                          </div>
-                          <div className="flex justify-end gap-2 pt-2">
-                            <button
-                              onClick={() => setShowRefundForm(false)}
-                              className="px-3 py-1.5 text-xs text-white/50 hover:text-white"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={handleAddRefund}
-                              disabled={savingAdjustment || !newRefund.invoiceId}
-                              className="px-4 py-2 text-sm font-medium text-orange-400 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg transition-colors disabled:opacity-50"
-                            >
-                              {savingAdjustment ? 'Saving...' : 'Issue Refund'}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Refunds List */}
-                      {adjustments
-                        .filter(a => a.adjustment_type === 'refund')
-                        .map(refund => {
-                          const linkedInvoice = invoices.find(inv => inv.id === refund.invoice_id);
-                          return (
-                            <div key={refund.id} className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 p-3 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center">
-                                  <Receipt className="w-4 h-4 text-orange-400" />
+                            {/* Credit Notes List */}
+                            {adjustments.filter(a => a.adjustment_type === 'credit_note').map(cn => {
+                              const linkedInvoice = invoices.find(inv => inv.id === cn.invoice_id);
+                              return (
+                                <div key={cn.id} className="flex items-center justify-between bg-black/20 rounded-lg p-3">
+                                  <div>
+                                    <p className="text-sm font-medium text-white/80">{cn.adjustment_number}</p>
+                                    <p className="text-xs text-white/40">{linkedInvoice ? `→ ${linkedInvoice.invoice_number}` : ''} • {cn.reason}</p>
+                                  </div>
+                                  <p className="text-sm font-semibold text-white/60">-{formatCurrency(cn.amount)}</p>
                                 </div>
-                                <div>
-                                  <p className="text-sm font-medium text-orange-400">{refund.adjustment_number}</p>
-                                  <p className="text-xs text-white/50">
-                                    {linkedInvoice ? `→ ${linkedInvoice.invoice_number}` : ''} • {refund.reason} • {refund.refund_method}
-                                  </p>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* REFUNDS SECTION */}
+                      <div className="border border-white/10 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => toggleSection('refunds')}
+                          className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${expandedSections.refunds ? '' : '-rotate-90'}`} />
+                            <span className="text-sm font-medium text-white/80">Refunds</span>
+                            <span className="text-xs text-white/40">({adjustments.filter(a => a.adjustment_type === 'refund').length})</span>
+                          </div>
+                          <span className="text-sm font-semibold text-white/60">-{formatCurrency(adjustments.filter(a => a.adjustment_type === 'refund').reduce((sum, a) => sum + a.amount, 0))}</span>
+                        </button>
+                        
+                        {expandedSections.refunds && (
+                          <div className="p-3 space-y-2 border-t border-white/10">
+                            {/* Add Refund Button */}
+                            {!showRefundForm && (
+                              <button
+                                onClick={() => setShowRefundForm(true)}
+                                disabled={!invoices.some(i => i.status !== 'reversed' && i.paid_amount > 0)}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-white/50 hover:text-white/70 border border-dashed border-white/10 hover:border-white/20 rounded-lg transition-all disabled:opacity-30"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Add Refund
+                              </button>
+                            )}
+
+                            {/* Add Refund Form */}
+                            {showRefundForm && (
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 space-y-3">
+                                <div className="grid grid-cols-3 gap-3">
+                                  <Field label="Invoice">
+                                    <select value={newRefund.invoiceId} onChange={(e) => setNewRefund(prev => ({ ...prev, invoiceId: e.target.value }))} className={selectClass}>
+                                      <option value="">Select</option>
+                                      {invoices.filter(inv => inv.status !== 'reversed' && inv.paid_amount > 0).map(inv => <option key={inv.id} value={inv.id}>{inv.invoice_number}</option>)}
+                                    </select>
+                                  </Field>
+                                  <Field label="Amount">
+                                    <input type="number" value={newRefund.amount || ''} onChange={(e) => setNewRefund(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} className={inputClass} placeholder="0.00" />
+                                  </Field>
+                                  <Field label="Method">
+                                    <select value={newRefund.method} onChange={(e) => setNewRefund(prev => ({ ...prev, method: e.target.value }))} className={selectClass}>
+                                      <option value="cash">Cash</option>
+                                      <option value="bank_transfer">Bank Transfer</option>
+                                      <option value="cheque">Cheque</option>
+                                    </select>
+                                  </Field>
+                                  <Field label="Reason" className="col-span-3">
+                                    <input type="text" value={newRefund.reason} onChange={(e) => setNewRefund(prev => ({ ...prev, reason: e.target.value }))} className={inputClass} placeholder="Reason for refund" />
+                                  </Field>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => setShowRefundForm(false)} className="px-3 py-1.5 text-xs text-white/50 hover:text-white">Cancel</button>
+                                  <button onClick={handleAddRefund} disabled={savingAdjustment || !newRefund.invoiceId} className="px-3 py-1.5 text-xs font-medium text-black bg-white rounded-lg disabled:opacity-50">
+                                    {savingAdjustment ? 'Saving...' : 'Save'}
+                                  </button>
                                 </div>
                               </div>
-                              <p className="text-sm font-bold text-orange-400">-AED {formatCurrency(refund.amount)}</p>
-                            </div>
-                          );
-                        })}
-                    </div>
+                            )}
+
+                            {/* Refunds List */}
+                            {adjustments.filter(a => a.adjustment_type === 'refund').map(refund => {
+                              const linkedInvoice = invoices.find(inv => inv.id === refund.invoice_id);
+                              return (
+                                <div key={refund.id} className="flex items-center justify-between bg-black/20 rounded-lg p-3">
+                                  <div>
+                                    <p className="text-sm font-medium text-white/80">{refund.adjustment_number}</p>
+                                    <p className="text-xs text-white/40">{linkedInvoice ? `→ ${linkedInvoice.invoice_number}` : ''} • {refund.reason}</p>
+                                  </div>
+                                  <p className="text-sm font-semibold text-white/60">-{formatCurrency(refund.amount)}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               )}
@@ -3055,7 +2920,7 @@ export default function SalesOrderModal({
                     </>
                   ) : (
                     <>
-                      <Receipt className="w-4 h-4" />
+                      <ScrollText className="w-4 h-4" />
                       Convert to Invoice
                     </>
                   )}
@@ -3152,7 +3017,7 @@ export default function SalesOrderModal({
                   value={companyEmail}
                   onChange={(e) => setCompanyEmail(e.target.value)}
                   placeholder="Or enter email..."
-                  className="w-full px-3 py-2 text-xs bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/30"
+                  className="w-full px-3 py-2 text-xs bg-black border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/30"
                 />
               </div>
 

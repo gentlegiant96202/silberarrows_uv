@@ -1,246 +1,119 @@
-"use client";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { getAccountingStatus } from '@/components/modules/leasing/accounting/IFRSAccountingDashboard';
 
-// ===== TYPES =====
-export interface AccountingStatus {
-  leadId: string;
-  hasSalesOrder: boolean;
-  salesOrderId?: string;
-  salesOrderNumber?: string;
-  salesOrderStatus?: 'draft' | 'invoiced' | 'lost';
-  hasInvoice: boolean;
-  invoiceId?: string;
-  invoiceNumber?: string;
-  invoiceStatus?: 'pending' | 'partial' | 'paid' | 'reversed';
-  totalAmount: number;
-  paidAmount: number;
-  balanceDue: number;
+interface AccountingStatus {
+  status: string;
+  color: string;
+  description: string;
+  loading: boolean;
 }
 
-export type AccountingStatusMap = Map<string, AccountingStatus>;
+export function useAccountingStatus(leaseId: string, leaseStartDate: string): AccountingStatus {
+  const [status, setStatus] = useState<AccountingStatus>({
+    status: "Loading...",
+    color: "gray",
+    description: "Checking accounting status...",
+    loading: true
+  });
 
-// ===== HOOK =====
-export function useAccountingStatus(leadIds: string[]) {
-  const [statusMap, setStatusMap] = useState<AccountingStatusMap>(new Map());
-  const [loading, setLoading] = useState(true);
-
-  // Fetch accounting status for given lead IDs
-  const fetchStatus = useCallback(async (ids: string[]) => {
-    if (ids.length === 0) {
-      setLoading(false);
+  useEffect(() => {
+    if (!leaseId || !leaseStartDate) {
+      setStatus({
+        status: "No Data",
+        color: "gray",
+        description: "No lease data available",
+        loading: false
+      });
       return;
     }
 
-    try {
-      // Fetch sales orders with their latest invoice status
-      const { data: salesOrders, error: soError } = await supabase
-        .from('uv_sales_orders')
-        .select(`
-          id,
-          order_number,
-          status,
-          lead_id,
-          uv_invoices (
-            id,
-            invoice_number,
-            status,
-            total_amount,
-            paid_amount,
-            balance_due
-          )
-        `)
-        .in('lead_id', ids);
+    const fetchAccountingStatus = async () => {
+      try {
+        // Fetch accounting records
+        const { data: records, error: recordsError } = await supabase
+          .from('ifrs_lease_accounting')
+          .select('*')
+          .eq('lease_id', leaseId)
+          .is('deleted_at', null);
 
-      if (soError) throw soError;
+        if (recordsError) throw recordsError;
 
-      // Build the status map
-      const newMap = new Map<string, AccountingStatus>();
+        // Fetch invoices (grouped by invoice_id)
+        const { data: invoiceData, error: invoiceError } = await supabase
+          .from('ifrs_lease_accounting')
+          .select('*')
+          .eq('lease_id', leaseId)
+          .not('invoice_id', 'is', null)
+          .is('deleted_at', null);
 
-      // Initialize all leads with empty status
-      ids.forEach(leadId => {
-        newMap.set(leadId, {
-          leadId,
-          hasSalesOrder: false,
-          hasInvoice: false,
-          totalAmount: 0,
-          paidAmount: 0,
-          balanceDue: 0
-        });
-      });
+        if (invoiceError) throw invoiceError;
 
-      // Update with actual data
-      (salesOrders || []).forEach((so: any) => {
-        // Find the active (non-reversed) invoice, or the latest one
-        const invoices = so.uv_invoices || [];
-        const activeInvoice = invoices.find((inv: any) => inv.status !== 'reversed') || invoices[0];
-
-        newMap.set(so.lead_id, {
-          leadId: so.lead_id,
-          hasSalesOrder: true,
-          salesOrderId: so.id,
-          salesOrderNumber: so.order_number,
-          salesOrderStatus: so.status,
-          hasInvoice: !!activeInvoice,
-          invoiceId: activeInvoice?.id,
-          invoiceNumber: activeInvoice?.invoice_number,
-          invoiceStatus: activeInvoice?.status,
-          totalAmount: activeInvoice?.total_amount || 0,
-          paidAmount: activeInvoice?.paid_amount || 0,
-          balanceDue: activeInvoice?.balance_due || 0
-        });
-      });
-
-      setStatusMap(newMap);
-    } catch (error) {
-      console.error('Error fetching accounting status:', error);
-    } finally {
-      setLoading(false);
-          }
-  }, []);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchStatus(leadIds);
-  }, [leadIds.join(',')]); // Re-fetch when lead IDs change
-
-  // Real-time subscription for sales orders
-  useEffect(() => {
-    if (leadIds.length === 0) return;
-
-    const salesOrderChannel = supabase
-      .channel('accounting-sales-orders')
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'uv_sales_orders',
-          filter: `lead_id=in.(${leadIds.join(',')})`
-        },
-        (payload: any) => {
-          console.log('Sales Order change:', payload);
-          // Refetch status for the affected lead
-          const leadId = payload.new?.lead_id || payload.old?.lead_id;
-          if (leadId) {
-            fetchStatus([leadId]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(salesOrderChannel);
-    };
-  }, [leadIds.join(','), fetchStatus]);
-
-  // Real-time subscription for invoices
-  useEffect(() => {
-    if (leadIds.length === 0) return;
-
-    // We need to get the sales order IDs first to filter invoices
-    const invoiceChannel = supabase
-      .channel('accounting-invoices')
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'uv_invoices'
-        },
-        async (payload: any) => {
-          console.log('Invoice change:', payload);
-          // Get the sales order to find the lead_id
-          const salesOrderId = payload.new?.sales_order_id || payload.old?.sales_order_id;
-          if (salesOrderId) {
-            const { data: so } = await supabase
-              .from('uv_sales_orders')
-              .select('lead_id')
-              .eq('id', salesOrderId)
-              .single();
-            
-            if (so && leadIds.includes(so.lead_id)) {
-              fetchStatus([so.lead_id]);
+        // Group by invoice_id to create invoice objects
+        const invoiceGroups: { [key: string]: any } = {};
+        
+        invoiceData?.forEach(record => {
+          if (record.invoice_id) {
+            if (!invoiceGroups[record.invoice_id]) {
+              invoiceGroups[record.invoice_id] = {
+                invoice_id: record.invoice_id,
+                invoice_number: record.invoice_number,
+                billing_period: record.billing_period,
+                created_at: record.created_at,
+                charges: [],
+                total_amount: 0,
+                is_paid: false
+              };
             }
+            
+            invoiceGroups[record.invoice_id].charges.push(record);
+            invoiceGroups[record.invoice_id].total_amount += record.total_amount;
+          }
+        });
+
+        // Check payment status for each invoice
+        const invoiceIds = Object.keys(invoiceGroups);
+        if (invoiceIds.length > 0) {
+          const { data: paymentData, error: paymentError } = await supabase
+            .from('ifrs_payment_applications')
+            .select('invoice_id, applied_amount')
+            .in('invoice_id', invoiceIds);
+
+          if (!paymentError && paymentData) {
+            // Calculate payment status for each invoice
+            Object.values(invoiceGroups).forEach((invoice: any) => {
+              const totalPaid = paymentData
+                .filter(payment => payment.invoice_id === invoice.invoice_id)
+                .reduce((sum, payment) => sum + payment.applied_amount, 0);
+              
+              invoice.is_paid = totalPaid >= invoice.total_amount - 0.01; // Allow for small rounding differences
+            });
           }
         }
-      )
-      .subscribe();
 
-    return () => {
-      supabase.removeChannel(invoiceChannel);
+        const invoices = Object.values(invoiceGroups);
+        
+        // Get the accounting status
+        const accountingStatus = getAccountingStatus(records || [], invoices, leaseStartDate);
+        
+        setStatus({
+          ...accountingStatus,
+          loading: false
+        });
+
+      } catch (error) {
+        console.error('Error fetching accounting status:', error);
+        setStatus({
+          status: "Error",
+          color: "red",
+          description: "Failed to load accounting status",
+          loading: false
+        });
+      }
     };
-  }, [leadIds.join(','), fetchStatus]);
 
-  // Real-time subscription for payments (affects invoice paid_amount)
-  useEffect(() => {
-    if (leadIds.length === 0) return;
+    fetchAccountingStatus();
+  }, [leaseId, leaseStartDate]);
 
-    const paymentChannel = supabase
-      .channel('accounting-payments')
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'uv_payments',
-          filter: `lead_id=in.(${leadIds.join(',')})`
-        }, 
-        (payload: any) => {
-          console.log('Payment change:', payload);
-          const leadId = payload.new?.lead_id || payload.old?.lead_id;
-          if (leadId) {
-            fetchStatus([leadId]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(paymentChannel);
-    };
-  }, [leadIds.join(','), fetchStatus]);
-
-  // Helper to get status for a specific lead
-  const getStatus = useCallback((leadId: string): AccountingStatus | undefined => {
-    return statusMap.get(leadId);
-  }, [statusMap]);
-
-  // Helper to get badge info for a lead
-  const getBadgeInfo = useCallback((leadId: string): { 
-    color: string; 
-    label: string; 
-    icon: 'none' | 'draft' | 'pending' | 'partial' | 'paid' | 'reversed';
-  } => {
-    const status = statusMap.get(leadId);
-    
-    if (!status?.hasSalesOrder) {
-      return { color: 'bg-white/20', label: 'No SO', icon: 'none' };
-    }
-    
-    if (!status.hasInvoice) {
-      return { color: 'bg-blue-500/30', label: 'Draft', icon: 'draft' };
-    }
-    
-    switch (status.invoiceStatus) {
-      case 'paid':
-        return { color: 'bg-green-500/30', label: 'Paid', icon: 'paid' };
-      case 'partial':
-        return { color: 'bg-yellow-500/30', label: 'Partial', icon: 'partial' };
-      case 'pending':
-        return { color: 'bg-orange-500/30', label: 'Pending', icon: 'pending' };
-      case 'reversed':
-        return { color: 'bg-red-500/30', label: 'Reversed', icon: 'reversed' };
-      default:
-        return { color: 'bg-white/20', label: 'Unknown', icon: 'none' };
-    }
-  }, [statusMap]);
-
-  return {
-    statusMap,
-    loading,
-    getStatus,
-    getBadgeInfo,
-    refetch: () => fetchStatus(leadIds)
-  };
+  return status;
 }

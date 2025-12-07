@@ -86,7 +86,7 @@ import SalesOrderModal from "../modals/SalesOrderModal";
 import { useSearchStore } from "@/lib/searchStore";
 import { useModulePermissions } from "@/lib/useModulePermissions";
 import { FileText, DollarSign, Receipt, CreditCard } from 'lucide-react';
-import { useAccountingStatus } from '@/hooks/useAccountingStatus';
+import { useUVAccountingStatus } from '@/hooks/useUVAccountingStatus';
 
 interface Lead {
   id: string;
@@ -235,7 +235,7 @@ export default function KanbanBoard() {
   }, [leads]);
 
   // Real-time accounting status for won/delivered leads
-  const { getBadgeInfo, getStatus } = useAccountingStatus(accountingLeadIds);
+  const { getBadgeInfo, getStatus } = useUVAccountingStatus(accountingLeadIds);
 
   // Column-by-column optimistic loading
   useEffect(() => {

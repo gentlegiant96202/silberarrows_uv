@@ -1,14 +1,15 @@
 -- =====================================================
--- UV SALES ACCOUNTING - FIX REFUND AS CREDIT
+-- UV SALES ACCOUNTING - REFUND AS DEBIT (STANDARD)
 -- =====================================================
--- ISSUE: Refunds were showing as DEBITS (increasing balance)
--- FIX: Refunds should be CREDITS (reducing balance)
--- 
--- Correct Logic:
+-- Standard Accounting Logic:
 --   Invoice    → Debit  (customer owes us)
 --   Payment    → Credit (customer paid)
 --   Credit Note → Credit (reduces what they owe)
---   Refund     → Credit (we return money to them)
+--   Refund     → Debit  (we return money, reduces their credit/overpayment)
+-- 
+-- Note: Refund as DEBIT is correct because:
+-- - When customer overpays, they have a credit balance (negative)
+-- - Refund reduces that credit balance (adds to balance = debit)
 -- =====================================================
 
 -- Drop and recreate the SOA view with corrected refund logic
@@ -73,16 +74,16 @@ WITH all_transactions AS (
 
     UNION ALL
 
-    -- Refunds (we return money to customer - CREDIT) ✅ FIXED!
-    -- Previously was DEBIT which caused confusing balance jumps
+    -- Refunds (we return money to customer - DEBIT)
+    -- Debit because it reduces customer's credit balance (overpayment)
     SELECT 
         adj.created_at as transaction_date,
         'refund' as transaction_type,
         adj.adjustment_number as reference,
         'Refund (' || COALESCE(adj.refund_method, 'N/A') || ') → ' || 
             COALESCE(inv.invoice_number, 'N/A') || ': ' || adj.reason as description,
-        0::numeric as debit,      -- ✅ Changed from adj.amount
-        adj.amount as credit,      -- ✅ Changed from 0
+        adj.amount as debit,       -- DEBIT (standard)
+        0::numeric as credit,
         adj.lead_id,
         adj.id as source_id
     FROM uv_adjustments adj
@@ -165,9 +166,9 @@ BEGIN
         COALESCE(SUM(CASE WHEN transaction_type = 'invoice' THEN debit ELSE 0 END), 0) as total_invoiced,
         COALESCE(SUM(CASE WHEN transaction_type = 'payment' THEN credit ELSE 0 END), 0) as total_paid,
         COALESCE(SUM(CASE WHEN transaction_type = 'credit_note' THEN credit ELSE 0 END), 0) as total_credit_notes,
-        COALESCE(SUM(CASE WHEN transaction_type = 'refund' THEN credit ELSE 0 END), 0) as total_refunds,
-        -- Balance = Invoices - Payments - Credit Notes - Refunds
-        -- Positive = Customer owes us, Negative = We owe customer
+        COALESCE(SUM(CASE WHEN transaction_type = 'refund' THEN debit ELSE 0 END), 0) as total_refunds,  -- DEBIT for refunds
+        -- Balance = Invoices + Refunds - Payments - Credit Notes
+        -- Positive = Customer owes us, Negative = We owe customer (CR)
         COALESCE(SUM(debit - credit), 0) as current_balance
     FROM uv_statement_of_account
     WHERE lead_id = p_lead_id;
@@ -179,7 +180,7 @@ GRANT SELECT ON uv_statement_of_account TO authenticated;
 GRANT EXECUTE ON FUNCTION get_customer_soa TO authenticated;
 GRANT EXECUTE ON FUNCTION get_customer_soa_balance TO authenticated;
 
--- Also update the ledger summary function to use credit for refunds
+-- Also update the ledger summary function (refunds as debit)
 CREATE OR REPLACE FUNCTION get_ledger_summary(
     p_from_date DATE DEFAULT NULL,
     p_to_date DATE DEFAULT NULL
@@ -198,7 +199,7 @@ BEGIN
         COALESCE(SUM(CASE WHEN transaction_type = 'invoice' THEN debit ELSE 0 END), 0) as total_invoiced,
         COALESCE(SUM(CASE WHEN transaction_type = 'payment' THEN credit ELSE 0 END), 0) as total_paid,
         COALESCE(SUM(CASE WHEN transaction_type = 'credit_note' THEN credit ELSE 0 END), 0) as total_credit_notes,
-        COALESCE(SUM(CASE WHEN transaction_type = 'refund' THEN credit ELSE 0 END), 0) as total_refunds,  -- ✅ Changed from debit to credit
+        COALESCE(SUM(CASE WHEN transaction_type = 'refund' THEN debit ELSE 0 END), 0) as total_refunds,  -- DEBIT for refunds
         COALESCE(SUM(debit - credit), 0) as net_receivables,
         COUNT(*) as transaction_count
     FROM uv_accounts_ledger
@@ -219,12 +220,11 @@ GRANT EXECUTE ON FUNCTION get_ledger_summary TO authenticated;
 -- Invoice          | Debit (increases balance)
 -- Payment          | Credit (decreases balance)
 -- Credit Note      | Credit (decreases balance)
--- Refund           | Credit (decreases balance) ✅ FIXED!
+-- Refund           | Debit (increases balance - reduces customer credit)
 --
--- Example clean SOA:
+-- Example SOA:
 -- Invoice:      +220,000   Balance: 220,000
--- Payment:       -5,000    Balance: 215,000
--- Credit Note:   -2,000    Balance: 213,000
--- Refund:        -2,000    Balance: 211,000 ← No more bouncing!
+-- Payment:      -225,000   Balance: -5,000 (customer overpaid, has credit)
+-- Refund:        +5,000    Balance: 0 (credit returned to customer)
 -- =====================================================
 

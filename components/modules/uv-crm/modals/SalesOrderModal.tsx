@@ -488,7 +488,14 @@ export default function SalesOrderModal({
     }
   }, [isOpen, lead.id]);
 
-  // Load SOA when tab is selected
+  // Load SOA balance on mount (for header status strip)
+  useEffect(() => {
+    if (isOpen && lead.id) {
+      loadSoaBalance();
+    }
+  }, [isOpen, lead.id]);
+
+  // Load full SOA data when tab is selected
   useEffect(() => {
     if (isOpen && lead.id && activeTab === 'soa') {
       loadSoaData();
@@ -807,8 +814,9 @@ export default function SalesOrderModal({
         await loadInvoices(existingSalesOrder.id);
       }
       
-      // Reload payments (allocations may have been deleted)
+      // Reload payments (allocations may have been deleted) and SOA balance
       await loadPayments();
+      await loadSoaBalance();
       
       // Close the form
       setReversingInvoice(null);
@@ -913,8 +921,9 @@ export default function SalesOrderModal({
       });
       setShowAddPaymentForm(false);
       
-      // Reload payments
+      // Reload payments and SOA balance
       await loadPayments();
+      await loadSoaBalance();
       
       alert(`Payment ${data.payment_number} added successfully!`);
     } catch (error: any) {
@@ -941,8 +950,9 @@ export default function SalesOrderModal({
       
       if (error) throw error;
       
-      // Reload data
+      // Reload data and SOA balance
       await loadPayments();
+      await loadSoaBalance();
       if (existingSalesOrder) {
         await loadInvoices(existingSalesOrder.id);
       }
@@ -965,8 +975,9 @@ export default function SalesOrderModal({
       
       if (error) throw error;
       
-      // Reload data
+      // Reload data and SOA balance
       await loadPayments();
+      await loadSoaBalance();
       if (existingSalesOrder) {
         await loadInvoices(existingSalesOrder.id);
       }
@@ -999,7 +1010,29 @@ export default function SalesOrderModal({
     }
   };
 
-  // Load SOA data
+  // Load SOA balance summary (lightweight - for header)
+  const loadSoaBalance = async () => {
+    if (!lead.id) return;
+    
+    try {
+      const { data: balanceResult, error: balanceError } = await supabase
+        .rpc('get_customer_balance', { p_lead_id: lead.id });
+      
+      if (!balanceError && balanceResult && balanceResult.length > 0) {
+        setSoaBalance({
+          total_invoiced: parseFloat(balanceResult[0].total_invoiced) || 0,
+          total_paid: parseFloat(balanceResult[0].total_paid) || 0,
+          total_credit_notes: parseFloat(balanceResult[0].total_credit_notes) || 0,
+          total_refunds: parseFloat(balanceResult[0].total_refunds) || 0,
+          current_balance: parseFloat(balanceResult[0].current_balance) || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading SOA balance:', error);
+    }
+  };
+
+  // Load full SOA data (transactions + balance)
   const loadSoaData = async () => {
     if (!lead.id) return;
     
@@ -1022,19 +1055,8 @@ export default function SalesOrderModal({
         })));
       }
       
-      // Get balance summary
-      const { data: balanceResult, error: balanceError } = await supabase
-        .rpc('get_customer_balance', { p_lead_id: lead.id });
-      
-      if (!balanceError && balanceResult && balanceResult.length > 0) {
-        setSoaBalance({
-          total_invoiced: parseFloat(balanceResult[0].total_invoiced) || 0,
-          total_paid: parseFloat(balanceResult[0].total_paid) || 0,
-          total_credit_notes: parseFloat(balanceResult[0].total_credit_notes) || 0,
-          total_refunds: parseFloat(balanceResult[0].total_refunds) || 0,
-          current_balance: parseFloat(balanceResult[0].current_balance) || 0,
-        });
-      }
+      // Also refresh balance summary
+      await loadSoaBalance();
     } catch (error) {
       console.error('Error loading SOA:', error);
     } finally {
@@ -1074,8 +1096,9 @@ export default function SalesOrderModal({
       setNewCreditNote({ amount: 0, reason: '' });
       setShowCreditNoteForm(null);
       
-      // Reload data
+      // Reload data and SOA balance
       await loadAdjustments();
+      await loadSoaBalance();
       if (existingSalesOrder) {
         await loadInvoices(existingSalesOrder.id);
       }
@@ -1127,8 +1150,9 @@ export default function SalesOrderModal({
       setNewRefund({ amount: 0, reason: '', method: 'bank_transfer', reference: '', invoiceId: '' });
       setShowRefundForm(false);
       
-      // Reload data
+      // Reload data and SOA balance
       await loadAdjustments();
+      await loadSoaBalance();
       if (existingSalesOrder) {
         await loadInvoices(existingSalesOrder.id);
       }
@@ -1365,19 +1389,30 @@ export default function SalesOrderModal({
                 // Use loaded invoice data if available, otherwise use initial status from hook
                 const hasInvoiceData = invoices.length > 0;
                 const hasInitialStatus = initialAccountingStatus?.invoiceNumber;
+                const hasSoaBalance = soaBalance !== null;
                 
                 if (!hasInvoiceData && !hasInitialStatus) return null;
                 
                 const activeInvoice = invoices.find(inv => inv.status !== 'reversed') || invoices[0];
-                const totalInvoiced = hasInvoiceData 
-                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + i.total_amount, 0)
-                  : (initialAccountingStatus?.totalAmount || 0);
-                const totalPaid = hasInvoiceData 
-                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.paid_amount || 0), 0)
-                  : (initialAccountingStatus?.paidAmount || 0);
-                const totalBalance = hasInvoiceData 
-                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.balance_due || 0), 0)
-                  : (initialAccountingStatus?.balanceDue || 0);
+                
+                // Use SOA balance for accurate customer-level totals (includes refunds)
+                // Fall back to invoice-level data if SOA not loaded yet
+                const totalInvoiced = hasSoaBalance 
+                  ? soaBalance.total_invoiced
+                  : hasInvoiceData 
+                    ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + i.total_amount, 0)
+                    : (initialAccountingStatus?.totalAmount || 0);
+                const totalPaid = hasSoaBalance 
+                  ? soaBalance.total_paid
+                  : hasInvoiceData 
+                    ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.paid_amount || 0), 0)
+                    : (initialAccountingStatus?.paidAmount || 0);
+                // CRITICAL: Use SOA current_balance for accurate balance (includes refunds, credit notes, etc.)
+                const totalBalance = hasSoaBalance 
+                  ? soaBalance.current_balance
+                  : hasInvoiceData 
+                    ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.balance_due || 0), 0)
+                    : (initialAccountingStatus?.balanceDue || 0);
                 const invoiceNumber = activeInvoice?.invoice_number || initialAccountingStatus?.invoiceNumber || '-';
                 
                 return (
@@ -1399,8 +1434,8 @@ export default function SalesOrderModal({
                     <div className="w-px h-8 bg-white/10" />
                     <div className="text-center px-2">
                       <p className="text-[9px] text-orange-400/70 uppercase tracking-wider">Balance</p>
-                      <p className={`text-xs font-semibold ${totalBalance > 0 ? 'text-orange-400' : 'text-green-400'}`}>
-                        {totalBalance > 0 ? totalBalance.toLocaleString() : 'Paid ✓'}
+                      <p className={`text-xs font-semibold ${totalBalance > 0 ? 'text-orange-400' : totalBalance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
+                        {totalBalance > 0 ? totalBalance.toLocaleString() : totalBalance < 0 ? `${Math.abs(totalBalance).toLocaleString()} CR` : 'Paid ✓'}
                       </p>
                     </div>
                   </div>

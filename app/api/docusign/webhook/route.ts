@@ -123,17 +123,34 @@ export async function POST(request: NextRequest) {
     if (!envelopeId) {
       return NextResponse.json({ error: 'No envelope ID' }, { status: 400 });
     }
-    // Determine signing status based on recipient completion
+    
+    // Determine signing status based on envelope and recipient status
     let customStatus = envelopeStatus?.toLowerCase();
     
-    // Check if only company has signed (for vehicle documents)
+    // Check recipient-level status for granular updates
     if (recipientStatus && recipientStatus.length >= 2) {
       const companySigner = recipientStatus.find(r => r.routingOrder === '1' || r.routingOrder === 1);
       const customerSigner = recipientStatus.find(r => r.routingOrder === '2' || r.routingOrder === 2);
-      // If company completed but customer hasn't
-      if (companySigner?.status?.toLowerCase() === 'completed' && 
-          customerSigner?.status?.toLowerCase() !== 'completed') {
+      
+      const companyStatus = companySigner?.status?.toLowerCase();
+      const customerStatus = customerSigner?.status?.toLowerCase();
+      
+      // Granular status detection:
+      // 1. Company signed, customer pending → company_signed
+      // 2. Customer has received/delivered but not signed → delivered (awaiting customer)
+      // 3. Both completed → completed (handled by envelope status)
+      
+      if (companyStatus === 'completed' && customerStatus !== 'completed') {
         customStatus = 'company_signed';
+      } else if (companyStatus === 'delivered' && customerStatus !== 'completed') {
+        // Company is viewing the document
+        customStatus = 'delivered';
+      }
+    } else if (recipientStatus && recipientStatus.length === 1) {
+      // Single signer scenario
+      const signer = recipientStatus[0];
+      if (signer?.status?.toLowerCase() === 'delivered') {
+        customStatus = 'delivered';
       }
     }
 

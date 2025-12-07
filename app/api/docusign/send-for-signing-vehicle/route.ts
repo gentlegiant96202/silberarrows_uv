@@ -220,10 +220,20 @@ export async function POST(request: NextRequest) {
         loggingEnabled: 'true',
         requireAcknowledgment: 'true',
         envelopeEvents: [
+          { envelopeEventStatusCode: 'sent' },
+          { envelopeEventStatusCode: 'delivered' },
           { envelopeEventStatusCode: 'completed' },
           { envelopeEventStatusCode: 'declined' },
           { envelopeEventStatusCode: 'voided' }
-        ]
+        ],
+        recipientEvents: [
+          { recipientEventStatusCode: 'Sent' },
+          { recipientEventStatusCode: 'Delivered' },
+          { recipientEventStatusCode: 'Completed' },
+          { recipientEventStatusCode: 'Declined' }
+        ],
+        includeDocumentFields: 'true',
+        includeRecipientStatus: 'true'
       },
       status: 'sent'
     };

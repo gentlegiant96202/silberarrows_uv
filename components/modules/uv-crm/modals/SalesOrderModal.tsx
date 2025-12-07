@@ -608,6 +608,94 @@ export default function SalesOrderModal({
     }
   }, [isOpen, user]);
 
+  // Poll for signing status updates when modal is open and document is in signing process
+  useEffect(() => {
+    if (!isOpen || !existingSalesOrder?.id) return;
+    
+    // Only poll if signing is in progress (not pending and not completed)
+    const shouldPoll = signingStatus !== 'pending' && signingStatus !== 'completed';
+    if (!shouldPoll) return;
+
+    const pollSigningStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('uv_sales_orders')
+          .select('signing_status, signed_pdf_url, docusign_envelope_id')
+          .eq('id', existingSalesOrder.id)
+          .single();
+
+        if (error || !data) return;
+
+        // Update state if status changed
+        if (data.signing_status && data.signing_status !== signingStatus) {
+          setSigningStatus(data.signing_status);
+          
+          // If completed, also update the signed PDF URL
+          if (data.signing_status === 'completed' && data.signed_pdf_url) {
+            setSignedPdfUrl(data.signed_pdf_url);
+            setPdfUrl(data.signed_pdf_url);
+          }
+        }
+      } catch (err) {
+        console.error('Error polling signing status:', err);
+      }
+    };
+
+    // Poll every 5 seconds
+    const interval = setInterval(pollSigningStatus, 5000);
+    
+    // Also poll immediately
+    pollSigningStatus();
+
+    return () => clearInterval(interval);
+  }, [isOpen, existingSalesOrder?.id, signingStatus]);
+
+  // Poll for invoice signing status updates
+  useEffect(() => {
+    if (!isOpen || !existingSalesOrder?.id) return;
+    
+    // Check if any invoice is in signing process
+    const signingInvoices = invoices.filter(inv => 
+      inv.signing_status && inv.signing_status !== 'pending' && inv.signing_status !== 'completed'
+    );
+    if (signingInvoices.length === 0) return;
+
+    const pollInvoiceStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('uv_invoices')
+          .select('id, signing_status, signed_pdf_url, pdf_url')
+          .eq('sales_order_id', existingSalesOrder.id);
+
+        if (error || !data) return;
+
+        // Check if any invoice status changed
+        let hasChanges = false;
+        data.forEach(inv => {
+          const existing = invoices.find(i => i.id === inv.id);
+          if (existing && inv.signing_status !== existing.signing_status) {
+            hasChanges = true;
+          }
+        });
+
+        // Reload invoices if changes detected
+        if (hasChanges) {
+          await loadInvoices(existingSalesOrder.id);
+        }
+      } catch (err) {
+        console.error('Error polling invoice signing status:', err);
+      }
+    };
+
+    // Poll every 5 seconds
+    const interval = setInterval(pollInvoiceStatus, 5000);
+    
+    // Also poll immediately
+    pollInvoiceStatus();
+
+    return () => clearInterval(interval);
+  }, [isOpen, existingSalesOrder?.id, invoices]);
+
   const loadInventoryCarData = async () => {
     if (!lead.inventory_car_id) return;
     
@@ -3029,8 +3117,8 @@ export default function SalesOrderModal({
                 </button>
               )}
               
-              {/* Create/Update Sales Order - Show when not locked and not in signing process */}
-              {activeTab === 'sales_order' && !isLocked && (signingStatus === 'pending' || !existingSalesOrder) && (
+              {/* Create/Update/Regenerate Sales Order - Show when not locked and not fully signed */}
+              {activeTab === 'sales_order' && !isLocked && signingStatus !== 'completed' && (
                 <button
                   onClick={handleSave}
                   disabled={saving || !canSave || saveSuccess}
@@ -3043,7 +3131,7 @@ export default function SalesOrderModal({
                   {saving ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      {existingSalesOrder ? 'Generating...' : 'Creating...'}
+                      {signingStatus !== 'pending' && existingSalesOrder ? 'Regenerating...' : existingSalesOrder ? 'Generating...' : 'Creating...'}
                     </>
                   ) : saveSuccess ? (
                     <>
@@ -3055,7 +3143,11 @@ export default function SalesOrderModal({
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      {existingSalesOrder ? 'Update Sales Order' : 'Create Sales Order'}
+                      {!existingSalesOrder 
+                        ? 'Create Sales Order' 
+                        : signingStatus !== 'pending' 
+                          ? 'Regenerate Sales Order' 
+                          : 'Update Sales Order'}
                     </>
                   )}
                 </button>
@@ -3064,7 +3156,7 @@ export default function SalesOrderModal({
           </div>
           
           {/* Validation warnings */}
-          {activeTab === 'sales_order' && !isLocked && (signingStatus === 'pending' || !existingSalesOrder) && missingFields.length > 0 && (
+          {activeTab === 'sales_order' && !isLocked && signingStatus !== 'completed' && missingFields.length > 0 && (
             <p className="text-[10px] text-yellow-400/70 mt-2 text-right">
               ⚠️ Required: {missingFields.slice(0, 3).join(', ')}{missingFields.length > 3 ? ` +${missingFields.length - 3} more` : ''}
             </p>

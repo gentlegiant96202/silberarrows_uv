@@ -113,6 +113,8 @@ interface Invoice {
   balance_due: number;
   pdf_url?: string;
   signed_pdf_url?: string;
+  docusign_envelope_id?: string;
+  signing_status?: 'pending' | 'sent' | 'delivered' | 'company_signed' | 'completed';
   reversed_at?: string;
   reversal_reason?: string;
   notes?: string;
@@ -294,6 +296,10 @@ export default function SalesOrderModal({
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [convertingToInvoice, setConvertingToInvoice] = useState(false);
   const [generatingInvoicePdf, setGeneratingInvoicePdf] = useState<string | null>(null);
+  const [sendingInvoiceForSigning, setSendingInvoiceForSigning] = useState<string | null>(null);
+  const [showInvoiceSigningModal, setShowInvoiceSigningModal] = useState(false);
+  const [signingInvoice, setSigningInvoice] = useState<Invoice | null>(null);
+  const [invoiceCompanyEmail, setInvoiceCompanyEmail] = useState('');
 
   // Payments state
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -871,38 +877,8 @@ export default function SalesOrderModal({
       
       if (error) throw error;
       
-      // Reload invoices to get the new invoice ID
+      // Reload invoices to show the new invoice
       await loadInvoices(existingSalesOrder.id);
-      
-      // Get the newly created invoice (should be the only non-reversed one)
-      const { data: newInvoice } = await supabase
-        .from('uv_invoices')
-        .select('id, invoice_number')
-        .eq('sales_order_id', existingSalesOrder.id)
-        .neq('status', 'reversed')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      // Generate Invoice PDF
-      if (newInvoice) {
-        try {
-          const pdfResponse = await fetch('/api/generate-invoice-document', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ invoiceId: newInvoice.id })
-          });
-          
-          if (pdfResponse.ok) {
-            // Reload invoices to get updated PDF URL
-            await loadInvoices(existingSalesOrder.id);
-          } else {
-            console.warn('Invoice PDF generation failed, but invoice was created');
-          }
-        } catch (pdfError) {
-          console.warn('Invoice PDF generation error:', pdfError);
-        }
-      }
       
       // Switch to invoices tab
       setActiveTab('invoices');
@@ -931,12 +907,12 @@ export default function SalesOrderModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invoiceId })
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to generate PDF');
       }
-      
+
       // Reload invoices to get updated PDF URL
       if (existingSalesOrder) {
         await loadInvoices(existingSalesOrder.id);
@@ -946,6 +922,67 @@ export default function SalesOrderModal({
       alert('Error generating invoice PDF: ' + error.message);
     } finally {
       setGeneratingInvoicePdf(null);
+    }
+  };
+
+  // Send Invoice for DocuSign signing - show modal to select company signer
+  const handleSendInvoiceForSigning = (invoice: Invoice) => {
+    if (!invoice.pdf_url) {
+      alert('Please generate the PDF first before sending for signing.');
+      return;
+    }
+
+    if (!formData.customerEmail) {
+      alert('Please add customer email address before sending for signing.');
+      return;
+    }
+
+    setSigningInvoice(invoice);
+    setInvoiceCompanyEmail('');
+    setShowInvoiceSigningModal(true);
+  };
+
+  // Confirm Send Invoice for Signing
+  const handleConfirmSendInvoiceForSigning = async () => {
+    if (!invoiceCompanyEmail || !signingInvoice) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(invoiceCompanyEmail)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    setSendingInvoiceForSigning(signingInvoice.id);
+    setShowInvoiceSigningModal(false);
+
+    try {
+      const response = await fetch('/api/docusign/send-for-signing-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceId: signingInvoice.id,
+          customerEmail: formData.customerEmail,
+          customerName: formData.customerName || 'Customer',
+          companySignerEmail: invoiceCompanyEmail,
+          pdfUrl: signingInvoice.pdf_url,
+          invoiceNumber: signingInvoice.invoice_number
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send for signing');
+      }
+
+      // Reload invoices to get updated signing status
+      if (existingSalesOrder) {
+        await loadInvoices(existingSalesOrder.id);
+      }
+    } catch (error: any) {
+      alert(error.message || 'Failed to send invoice for signing. Please try again.');
+    } finally {
+      setSendingInvoiceForSigning(null);
+      setSigningInvoice(null);
     }
   };
 
@@ -2286,18 +2323,59 @@ export default function SalesOrderModal({
                                   </div>
                                 )}
 
+                                {/* Signing Status */}
+                                {invoice.signing_status && invoice.signing_status !== 'pending' && (
+                                  <div className={`p-2 rounded-lg border ${
+                                    invoice.signing_status === 'completed'
+                                      ? 'bg-green-500/10 border-green-400/20'
+                                      : invoice.signing_status === 'company_signed'
+                                      ? 'bg-orange-500/10 border-orange-400/20'
+                                      : 'bg-blue-500/10 border-blue-400/20'
+                                  }`}>
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-2 h-2 rounded-full ${
+                                        invoice.signing_status === 'completed' ? 'bg-green-400' :
+                                        invoice.signing_status === 'company_signed' ? 'bg-orange-400 animate-pulse' :
+                                        'bg-blue-400 animate-pulse'
+                                      }`} />
+                                      <span className={`text-xs font-medium ${
+                                        invoice.signing_status === 'completed' ? 'text-green-400' :
+                                        invoice.signing_status === 'company_signed' ? 'text-orange-400' :
+                                        'text-blue-400'
+                                      }`}>
+                                        {invoice.signing_status === 'completed' ? '✓ Invoice Signed' :
+                                         invoice.signing_status === 'company_signed' ? 'Awaiting Customer Signature' :
+                                         'Sent for Signing'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Paid Status Notice - Show when not paid yet */}
+                                {!isPaid && !isReversed && (
+                                  <div className="p-2 bg-amber-500/10 border border-amber-400/20 rounded-lg">
+                                    <p className="text-xs text-amber-400/80">
+                                      💡 PDF generation and signing available once fully paid
+                                    </p>
+                                  </div>
+                                )}
+
                                 {/* Actions */}
                                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
-                                  {invoice.pdf_url ? (
+                                  {/* View PDF - available anytime if PDF exists */}
+                                  {invoice.pdf_url && (
                                     <a
-                                      href={invoice.pdf_url}
+                                      href={invoice.signed_pdf_url || invoice.pdf_url}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="px-3 py-1.5 text-xs font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
                                     >
-                                      View PDF
+                                      {invoice.signed_pdf_url ? 'View Signed' : 'View PDF'}
                                     </a>
-                                  ) : !isReversed && (
+                                  )}
+                                  
+                                  {/* Generate PDF - only when fully paid and no PDF exists */}
+                                  {isPaid && !invoice.pdf_url && !isReversed && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleGenerateInvoicePdf(invoice.id); }}
                                       disabled={generatingInvoicePdf === invoice.id}
@@ -2306,7 +2384,31 @@ export default function SalesOrderModal({
                                       {generatingInvoicePdf === invoice.id ? 'Generating...' : 'Generate PDF'}
                                     </button>
                                   )}
-                                  {!isReversed && (
+
+                                  {/* Regenerate PDF - only when fully paid and PDF exists but not sent for signing yet */}
+                                  {isPaid && invoice.pdf_url && !isReversed && (!invoice.signing_status || invoice.signing_status === 'pending') && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleGenerateInvoicePdf(invoice.id); }}
+                                      disabled={generatingInvoicePdf === invoice.id}
+                                      className="px-3 py-1.5 text-xs font-medium text-white/40 hover:text-white/60 bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+                                    >
+                                      {generatingInvoicePdf === invoice.id ? 'Regenerating...' : 'Regenerate'}
+                                    </button>
+                                  )}
+
+                                  {/* Send for Signing - only when fully paid and PDF exists and not already in signing process */}
+                                  {isPaid && invoice.pdf_url && !isReversed && (!invoice.signing_status || invoice.signing_status === 'pending') && formData.customerEmail && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleSendInvoiceForSigning(invoice); }}
+                                      disabled={sendingInvoiceForSigning === invoice.id}
+                                      className="px-3 py-1.5 text-xs font-medium text-white bg-white/10 hover:bg-white/20 rounded transition-colors disabled:opacity-50"
+                                    >
+                                      {sendingInvoiceForSigning === invoice.id ? 'Sending...' : 'Send for Signing'}
+                                    </button>
+                                  )}
+
+                                  {/* Reverse - always available unless already reversed or signed */}
+                                  {!isReversed && invoice.signing_status !== 'completed' && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleReverseInvoice(invoice); }}
                                       className="px-3 py-1.5 text-xs font-medium text-white/40 hover:text-red-400 bg-white/5 hover:bg-red-500/10 rounded transition-colors"
@@ -3043,6 +3145,81 @@ export default function SalesOrderModal({
                   className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all disabled:opacity-50"
                 >
                   {sendingForSigning ? 'Sending...' : 'Send'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Company Signer Email Modal */}
+      {showInvoiceSigningModal && signingInvoice && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-gradient-to-r from-gray-300 via-gray-400 to-gray-500 p-0.5 rounded-xl w-full max-w-xs shadow-2xl">
+            <div className="bg-black/95 backdrop-blur-2xl rounded-xl p-4 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent pointer-events-none rounded-xl" />
+
+              <div className="relative z-10 mb-4">
+                <h3 className="text-sm font-semibold text-white">Send Invoice for Signing</h3>
+                <p className="text-xs text-white/50 mt-1">{signingInvoice.invoice_number}</p>
+              </div>
+
+              {/* Quick Select Buttons */}
+              <div className="relative z-10 mb-3 flex flex-col gap-1.5">
+                {[
+                  { name: 'Samuel', email: 'samuel.sanjeev@silberarrows.com' },
+                  { name: 'Glen', email: 'glen.hawkins@silberarrows.com' },
+                  { name: 'Nick', email: 'nick.hurst@silberarrows.com' },
+                ].map((signer) => (
+                  <button
+                    key={signer.email}
+                    onClick={() => setInvoiceCompanyEmail(signer.email)}
+                    className={`w-full px-3 py-2 text-left text-xs rounded-lg border transition-all ${
+                      invoiceCompanyEmail === signer.email
+                        ? 'bg-blue-600/30 border-blue-500/50 text-white'
+                        : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <span className="font-medium">{signer.name}</span>
+                    <span className="text-white/50 ml-1">({signer.email.split('@')[0]})</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Or manual input */}
+              <div className="relative z-10 mb-3">
+                <input
+                  type="email"
+                  value={invoiceCompanyEmail}
+                  onChange={(e) => setInvoiceCompanyEmail(e.target.value)}
+                  placeholder="Or enter email..."
+                  className="w-full px-3 py-2 text-xs bg-black border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/30"
+                />
+              </div>
+
+              {/* Customer info */}
+              <div className="relative z-10 mb-3 p-2 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-[10px] text-white/50 mb-0.5">Then sent to customer:</p>
+                <p className="text-xs text-white/80">{formData.customerName} ({formData.customerEmail})</p>
+              </div>
+
+              <div className="relative z-10 flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowInvoiceSigningModal(false);
+                    setSigningInvoice(null);
+                    setInvoiceCompanyEmail('');
+                  }}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/20 text-white/70 border border-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSendInvoiceForSigning}
+                  disabled={!invoiceCompanyEmail || sendingInvoiceForSigning === signingInvoice.id}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all disabled:opacity-50"
+                >
+                  {sendingInvoiceForSigning === signingInvoice.id ? 'Sending...' : 'Send'}
                 </button>
               </div>
             </div>

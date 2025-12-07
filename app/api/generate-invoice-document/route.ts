@@ -455,11 +455,11 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%) rotate(-15deg);
-          font-size: 48px;
+          font-size: 120px;
           font-weight: bold;
-          color: rgba(144, 238, 144, 0.15);
+          color: rgba(144, 238, 144, 0.2);
           text-transform: uppercase;
-          letter-spacing: 10px;
+          letter-spacing: 20px;
           pointer-events: none;
           z-index: 1;
         }
@@ -611,6 +611,16 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
                 <td class="label-cell">TOTAL AMOUNT:</td>
                 <td class="value-cell" style="font-size: 14px;">${formatCurrency(totalAmount)}</td>
               </tr>
+              ${formData.status === 'paid' ? `
+              <tr>
+                <td class="label-cell">Amount Paid:</td>
+                <td class="value-cell" style="color: #90EE90;">${formatCurrency(formData.paidAmount)}</td>
+              </tr>
+              <tr>
+                <td class="label-cell" style="font-weight: bold;">BALANCE DUE:</td>
+                <td class="value-cell" style="font-size: 14px; font-weight: bold; color: #90EE90;">AED 0.00</td>
+              </tr>
+              ` : ''}
             </table>
           </div>
 

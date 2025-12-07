@@ -7,6 +7,8 @@ interface AccountingStatus {
   color: string;
   description: string;
   loading: boolean;
+  refresh: () => void;
+  invoiceDueDate: string | null;
 }
 
 export function useAccountingStatus(leaseId: string, leaseStartDate: string): AccountingStatus {
@@ -14,7 +16,9 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
     status: "Loading...",
     color: "gray",
     description: "Checking accounting status...",
-    loading: true
+    loading: true,
+    refresh: () => {},
+    invoiceDueDate: null
   });
 
   useEffect(() => {
@@ -23,13 +27,28 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         status: "No Data",
         color: "gray",
         description: "No lease data available",
-        loading: false
+        loading: false,
+        refresh: () => {},
+        invoiceDueDate: null
       });
       return;
     }
 
     const fetchAccountingStatus = async () => {
       try {
+        // Calculate invoice due date (last day of current billing period)
+        const today = new Date();
+        const leaseStart = new Date(leaseStartDate);
+        
+        // Calculate current billing period (monthly from lease start)
+        const monthsSinceStart = (today.getFullYear() - leaseStart.getFullYear()) * 12 + 
+                                (today.getMonth() - leaseStart.getMonth());
+        const currentPeriodStart = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart, leaseStart.getDate());
+        const currentPeriodEnd = new Date(leaseStart.getFullYear(), leaseStart.getMonth() + monthsSinceStart + 1, leaseStart.getDate() - 1);
+        
+        // Invoice due date is the last day of the current billing period
+        const invoiceDueDate = currentPeriodEnd.toISOString().split('T')[0];
+
         // Fetch accounting records
         const { data: records, error: recordsError } = await supabase
           .from('ifrs_lease_accounting')
@@ -98,21 +117,47 @@ export function useAccountingStatus(leaseId: string, leaseStartDate: string): Ac
         
         setStatus({
           ...accountingStatus,
-          loading: false
+          loading: false,
+          refresh: fetchAccountingStatus,
+          invoiceDueDate
         });
 
       } catch (error) {
-        console.error('Error fetching accounting status:', error);
         setStatus({
           status: "Error",
           color: "red",
           description: "Failed to load accounting status",
-          loading: false
+          loading: false,
+          refresh: fetchAccountingStatus,
+          invoiceDueDate: null
         });
       }
     };
 
     fetchAccountingStatus();
+
+    // Set up real-time subscription for lease-specific accounting data changes
+    // Note: We only listen to this specific lease's accounting records to avoid
+    // creating N subscriptions to the global payment_applications table
+    const accountingChannel = supabase
+      .channel(`accounting-${leaseId}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'ifrs_lease_accounting',
+          filter: `lease_id=eq.${leaseId}`
+        }, 
+        () => {
+          fetchAccountingStatus();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(accountingChannel);
+    };
   }, [leaseId, leaseStartDate]);
 
   return status;

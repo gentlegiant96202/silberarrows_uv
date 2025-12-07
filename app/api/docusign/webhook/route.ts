@@ -119,13 +119,25 @@ export async function POST(request: NextRequest) {
     } else {
       console.log('[DocuSign Webhook] Processing JSON format');
       body = JSON.parse(rawBody);
-      // Extract envelope information from JSON
-      envelopeId = body.data?.envelopeId || body.envelopeId;
-      envelopeStatus = body.data?.envelopeSummary?.status || body.status;
-      recipientStatus = body.data?.envelopeSummary?.recipients?.signers || body.recipients?.signers || [];
+      
+      // Log full payload structure for debugging
+      console.log('[DocuSign Webhook] Full payload keys:', Object.keys(body));
+      console.log('[DocuSign Webhook] Raw body (first 2000 chars):', rawBody.substring(0, 2000));
+      
+      // Extract envelope information from JSON - try multiple paths
+      envelopeId = body.data?.envelopeId || body.envelopeId || body.envelope?.envelopeId;
+      envelopeStatus = body.data?.envelopeSummary?.status || body.status || body.envelope?.status;
+      
+      // Try multiple paths for recipients
+      recipientStatus = body.data?.envelopeSummary?.recipients?.signers 
+        || body.recipients?.signers 
+        || body.envelope?.recipients?.signers
+        || body.envelopeSummary?.recipients?.signers
+        || [];
       
       console.log('[DocuSign Webhook] JSON - EnvelopeId:', envelopeId);
       console.log('[DocuSign Webhook] JSON - EnvelopeStatus:', envelopeStatus);
+      console.log('[DocuSign Webhook] JSON - Recipients count:', recipientStatus.length);
       console.log('[DocuSign Webhook] JSON - Recipients:', JSON.stringify(recipientStatus));
     }
 
@@ -178,12 +190,22 @@ export async function POST(request: NextRequest) {
     
     console.log('[DocuSign Webhook] Computed customStatus:', customStatus);
     console.log('[DocuSign Webhook] All signers completed:', allSignersCompleted);
+    console.log('[DocuSign Webhook] Recipient count:', recipientStatus.length);
 
-    // Only download PDF when ALL signers have completed (not just envelope status)
-    // Use allSignersCompleted flag instead of just envelope status
-    const isFullyCompleted = allSignersCompleted || (envelopeStatus?.toLowerCase() === 'completed' && recipientStatus.length === 0);
+    // IMPORTANT: Only download PDF when we can CONFIRM all signers completed
+    // If we don't have recipient info, do NOT assume completion - just update status
+    // This prevents marking as complete when only one signer has signed
+    const isFullyCompleted = allSignersCompleted;
+    
+    console.log('[DocuSign Webhook] Is fully completed:', isFullyCompleted);
     
     if (!isFullyCompleted) {
+      // If envelope says completed but we couldn't verify recipients, 
+      // still treat as company_signed to be safe
+      if (envelopeStatus?.toLowerCase() === 'completed' && !allSignersCompleted && recipientStatus.length === 0) {
+        console.log('[DocuSign Webhook] WARNING: Envelope says completed but no recipient info - treating as company_signed');
+        customStatus = 'company_signed';
+      }
       // Update status in car_media, vehicle_reservations, service_contracts, warranty_contracts, uv_sales_orders, uv_invoices
       const updates = await Promise.allSettled([
         supabase.from('car_media').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),

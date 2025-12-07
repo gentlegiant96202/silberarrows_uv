@@ -215,7 +215,7 @@ export function useUVAccountingStatus(leadIds: string[]) {
     const status = statusMap.get(leadId);
     
     if (!status?.hasSalesOrder) {
-      return { color: 'bg-white/20', label: 'No SO', icon: 'none' };
+      return { color: 'bg-white/20', label: 'Generate SO', icon: 'none' };
     }
     
     if (!status.hasInvoice) {

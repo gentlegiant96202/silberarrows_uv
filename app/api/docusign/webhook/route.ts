@@ -139,12 +139,13 @@ export async function POST(request: NextRequest) {
 
     // Only download PDF when fully completed (all signers)
     if (envelopeStatus?.toLowerCase() !== 'completed') {
-      // Update status in car_media, vehicle_reservations, service_contracts, warranty_contracts
+      // Update status in car_media, vehicle_reservations, service_contracts, warranty_contracts, uv_sales_orders
       const updates = await Promise.allSettled([
         supabase.from('car_media').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
         supabase.from('vehicle_reservations').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
         supabase.from('service_contracts').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
         supabase.from('warranty_contracts').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
+        supabase.from('uv_sales_orders').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
       ]);
 
       updates.forEach((res, idx) => {
@@ -156,9 +157,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Envelope is completed - replace with signed PDF
-    // Find the document in our database - check car_media, vehicle_reservations, then service/warranty contracts
+    // Find the document in our database - check car_media, vehicle_reservations, uv_sales_orders, then service/warranty contracts
     let document: any = null;
-    let documentType: 'consignment' | 'vehicle' | 'service' | 'warranty' | null = null;
+    let documentType: 'consignment' | 'vehicle' | 'sales_order' | 'service' | 'warranty' | null = null;
 
     // First check car_media (consignment documents)
     const { data: consignmentDoc } = await supabase
@@ -181,6 +182,18 @@ export async function POST(request: NextRequest) {
       if (vehicleDoc) {
         document = vehicleDoc;
         documentType = 'vehicle';
+      }
+    }
+
+    if (!document) {
+      const { data: salesOrderDoc } = await supabase
+        .from('uv_sales_orders')
+        .select('*')
+        .eq('docusign_envelope_id', envelopeId)
+        .single();
+      if (salesOrderDoc) {
+        document = salesOrderDoc;
+        documentType = 'sales_order';
       }
     }
 
@@ -291,6 +304,39 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await supabase
         .from('vehicle_reservations')
         .update(updateData)
+        .eq('id', document.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+    } else if (documentType === 'sales_order') {
+      // Handle sales orders
+      const fileName = `sales-order-${document.id}-signed-${Date.now()}.pdf`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, signedPdfBuffer, {
+          contentType: 'application/pdf',
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from('uv_sales_orders')
+        .update({
+          pdf_url: urlData.publicUrl,
+          signed_pdf_url: urlData.publicUrl,
+          signing_status: 'completed',
+          completed_at: new Date().toISOString()
+        })
         .eq('id', document.id);
 
       if (updateError) {

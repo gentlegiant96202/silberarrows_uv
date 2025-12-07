@@ -64,6 +64,9 @@ interface SalesOrder {
   subtotal: number;
   total_amount: number;
   pdf_url: string;
+  signed_pdf_url?: string;
+  docusign_envelope_id?: string;
+  signing_status?: string;
   notes: string;
   created_at: string;
 }
@@ -321,6 +324,16 @@ export default function SalesOrderModal({
   const [soaBalance, setSoaBalance] = useState<any>(null);
   const [loadingSoa, setLoadingSoa] = useState(false);
   
+  // PDF & DocuSign state
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [signedPdfUrl, setSignedPdfUrl] = useState<string | null>(null);
+  const [signingStatus, setSigningStatus] = useState<string>('pending');
+  const [docusignEnvelopeId, setDocusignEnvelopeId] = useState<string | null>(null);
+  const [sendingForSigning, setSendingForSigning] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [companyEmail, setCompanyEmail] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  
   // Generate unique ID for line items
   const generateId = () => `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
@@ -345,6 +358,64 @@ export default function SalesOrderModal({
   // Check SO status first (instant) to prevent flash, then verify with invoices
   const hasActiveInvoice = invoices.some(inv => inv.status !== 'reversed');
   const isLocked = existingSalesOrder?.status === 'invoiced' || hasActiveInvoice;
+  
+  // Send for Signing Handler
+  const handleSendForSigning = () => {
+    if (!pdfUrl) {
+      alert('Please generate the PDF first before sending for signing.');
+      return;
+    }
+    
+    if (!formData.customerEmail) {
+      alert('Please add customer email address before sending for signing.');
+      return;
+    }
+    
+    setCompanyEmail('');
+    setShowEmailModal(true);
+  };
+  
+  // Confirm Send for Signing
+  const handleConfirmSendForSigning = async () => {
+    if (!companyEmail || !existingSalesOrder) return;
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(companyEmail)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+    
+    setSendingForSigning(true);
+    setShowEmailModal(false);
+    
+    try {
+      const response = await fetch('/api/docusign/send-for-signing-sales-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salesOrderId: existingSalesOrder.id,
+          customerEmail: formData.customerEmail,
+          customerName: formData.customerName,
+          companySignerEmail: companyEmail,
+          pdfUrl: pdfUrl,
+          orderNumber: existingSalesOrder.order_number
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send for signing');
+      }
+      
+      const result = await response.json();
+      setDocusignEnvelopeId(result.envelopeId);
+      setSigningStatus('sent');
+    } catch (error: any) {
+      alert(error.message || 'Failed to send document for signing. Please try again.');
+    } finally {
+      setSendingForSigning(false);
+    }
+  };
   
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -606,6 +677,13 @@ export default function SalesOrderModal({
   const selectSalesOrder = async (data: SalesOrder) => {
     setExistingSalesOrder(data);
     setCreatingNewSO(false);
+    setSaveSuccess(false);
+    
+    // Set PDF and signing state
+    setPdfUrl(data.pdf_url || null);
+    setSignedPdfUrl(data.signed_pdf_url || null);
+    setDocusignEnvelopeId(data.docusign_envelope_id || null);
+    setSigningStatus(data.signing_status || 'pending');
     
     // Populate form with existing data
     setFormData({
@@ -672,6 +750,12 @@ export default function SalesOrderModal({
     setExistingSalesOrder(null);
     setLineItems([]);
     setInvoices([]);
+    
+    // Reset PDF and signing state
+    setPdfUrl(null);
+    setSignedPdfUrl(null);
+    setDocusignEnvelopeId(null);
+    setSigningStatus('pending');
     
     // Reset form with customer details from lead, but clear vehicle details
     setFormData({
@@ -1210,7 +1294,29 @@ export default function SalesOrderModal({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Validation helper
+  const getMissingFields = () => {
+    const missing: string[] = [];
+    if (!formData.customerName?.trim()) missing.push('Customer Name');
+    if (!formData.customerPhone?.trim()) missing.push('Customer Phone');
+    if (!formData.customerEmail?.trim()) missing.push('Customer Email');
+    if (!formData.customerIdNumber?.trim()) missing.push('Customer ID Number');
+    if (!formData.vehicleMakeModel?.trim()) missing.push('Vehicle Make & Model');
+    if (!formData.modelYear) missing.push('Model Year');
+    if (!formData.chassisNo?.trim()) missing.push('Chassis Number');
+    if (lineItems.length === 0) missing.push('Line Items');
+    return missing;
+  };
+  
+  const missingFields = getMissingFields();
+  const canSave = missingFields.length === 0;
+
   const handleSave = async () => {
+    // Validate all required fields
+    if (!canSave) {
+      return;
+    }
+    
     setSaving(true);
     try {
       const salesOrderData = {
@@ -1248,20 +1354,27 @@ export default function SalesOrderModal({
       };
 
       let salesOrderId: string;
+      let savedSalesOrder: SalesOrder;
+      const isUpdate = !!existingSalesOrder;
 
       if (existingSalesOrder) {
-        // Update existing Sales Order
+        // Update existing Sales Order - reset signing status since we're regenerating
         const { data, error } = await supabase
           .from('uv_sales_orders')
-          .update(salesOrderData)
+          .update({
+            ...salesOrderData,
+            // Reset signing status when updating (PDF will be regenerated)
+            signing_status: 'pending',
+            docusign_envelope_id: null,
+            signed_pdf_url: null,
+          })
           .eq('id', existingSalesOrder.id)
           .select()
           .single();
         
         if (error) throw error;
-        setExistingSalesOrder(data);
+        savedSalesOrder = data;
         salesOrderId = data.id;
-        onSalesOrderUpdated?.(data);
       } else {
         // Create new Sales Order
         const { data, error } = await supabase
@@ -1271,21 +1384,58 @@ export default function SalesOrderModal({
           .single();
         
         if (error) throw error;
-        setExistingSalesOrder(data);
+        savedSalesOrder = data;
         salesOrderId = data.id;
         setCreatingNewSO(false);
         // Add to the list of all SOs
         setAllSalesOrders(prev => [data, ...prev]);
-        onSalesOrderCreated?.(data);
       }
 
-      // Save line items
+      // Save line items first
       await saveLineItems(salesOrderId);
+      
+      // Now generate PDF (required step)
+      const pdfResponse = await fetch('/api/generate-sales-order-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ salesOrderId })
+      });
+      
+      if (!pdfResponse.ok) {
+        const pdfError = await pdfResponse.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('PDF Generation Error:', pdfError);
+        throw new Error(pdfError.details || pdfError.error || 'Failed to generate PDF');
+      }
+      
+      const pdfResult = await pdfResponse.json();
+      
+      // Update local state with PDF URL
+      setPdfUrl(pdfResult.pdfUrl);
+      setSigningStatus('pending');
+      setSignedPdfUrl(null);
+      setDocusignEnvelopeId(null);
+      
+      // Update the saved sales order with PDF URL
+      savedSalesOrder = { ...savedSalesOrder, pdf_url: pdfResult.pdfUrl, signing_status: 'pending' };
+      setExistingSalesOrder(savedSalesOrder);
+      
+      // Call appropriate callback
+      if (isUpdate) {
+        onSalesOrderUpdated?.(savedSalesOrder);
+      } else {
+        onSalesOrderCreated?.(savedSalesOrder);
+      }
+      
+      // Show success state briefly
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
       
     } catch (error: any) {
       console.error('Error saving sales order:', error);
       if (error.message?.includes('does not exist')) {
         alert('Database table not found. Please run the SQL migration first.');
+      } else if (error.message?.includes('PDF')) {
+        alert(`Sales Order saved but PDF generation failed: ${error.message}`);
       } else {
         alert('Error saving sales order. Please try again.');
       }
@@ -1474,20 +1624,6 @@ export default function SalesOrderModal({
             <>
               {activeTab === 'sales_order' && (
                 <div className="space-y-4">
-                  {/* Locked Indicator - Always reserve space to prevent layout shift */}
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg h-9 transition-all duration-200 ${
-                    isLocked 
-                      ? 'bg-yellow-500/10 border border-yellow-500/20' 
-                      : 'bg-transparent border border-transparent'
-                  }`}>
-                    {isLocked && (
-                      <>
-                        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-                        <span className="text-xs font-medium text-yellow-400">Locked — Invoice exists</span>
-                      </>
-                    )}
-                  </div>
-
                   {/* Form content - disabled when locked */}
                   <fieldset disabled={isLocked} className={`space-y-6 ${isLocked ? 'opacity-60' : ''}`} style={{ border: 'none', padding: 0, margin: 0 }}>
                   {/* Customer Details */}
@@ -2798,63 +2934,256 @@ export default function SalesOrderModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/10 bg-white/5 flex items-center justify-between">
-          <div className="text-xs text-white/40">
-            {existingSalesOrder && (
-              <span>Created: {new Date(existingSalesOrder.created_at).toLocaleDateString()}</span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            
-            {/* Show Convert to Invoice button only on Sales Order tab when SO exists, not locked, and no active invoice */}
-            {activeTab === 'sales_order' && existingSalesOrder && lineItems.length > 0 && !isLocked && (
+        <div className="px-6 py-4 border-t border-white/10 bg-white/5">
+          {/* Document Status Row - Show when SO exists */}
+          {activeTab === 'sales_order' && existingSalesOrder && pdfUrl && (
+            <div className={`mb-3 p-3 rounded-lg border ${
+              signingStatus === 'completed' 
+                ? 'bg-green-500/10 border-green-400/20' 
+                : signingStatus === 'company_signed'
+                ? 'bg-orange-500/10 border-orange-400/20'
+                : signingStatus === 'sent' || signingStatus === 'delivered'
+                ? 'bg-blue-500/10 border-blue-400/20'
+                : 'bg-white/5 border-white/10'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    signingStatus === 'completed' ? 'bg-green-400' :
+                    signingStatus === 'company_signed' ? 'bg-orange-400 animate-pulse' :
+                    signingStatus === 'sent' || signingStatus === 'delivered' ? 'bg-blue-400 animate-pulse' :
+                    'bg-white/40'
+                  }`} />
+                  <span className={`text-xs font-medium ${
+                    signingStatus === 'completed' ? 'text-green-400' :
+                    signingStatus === 'company_signed' ? 'text-orange-400' :
+                    signingStatus === 'sent' || signingStatus === 'delivered' ? 'text-blue-400' :
+                    'text-white/60'
+                  }`}>
+                    {signingStatus === 'completed' ? '✓ Document Signed - Ready for Invoice' :
+                     signingStatus === 'company_signed' ? 'Awaiting Customer Signature' :
+                     signingStatus === 'sent' || signingStatus === 'delivered' ? 'Sent for Signing' :
+                     `${existingSalesOrder.order_number} Generated`}
+                  </span>
+                  {docusignEnvelopeId && signingStatus !== 'completed' && (
+                    <span className="text-[10px] text-white/30 font-mono">
+                      {docusignEnvelopeId.slice(0, 8)}...
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* View/Download PDF */}
+                  <button
+                    onClick={() => window.open(signedPdfUrl || pdfUrl, '_blank')}
+                    className="px-2.5 py-1 text-xs font-medium text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded transition-colors flex items-center gap-1"
+                  >
+                    <FileText className="w-3 h-3" />
+                    View
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const url = signedPdfUrl || pdfUrl;
+                      try {
+                        const response = await fetch(url);
+                        const blob = await response.blob();
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = `${existingSalesOrder.order_number}${signedPdfUrl ? '-SIGNED' : ''}.pdf`;
+                        link.click();
+                        window.URL.revokeObjectURL(downloadUrl);
+                      } catch {
+                        window.open(url, '_blank');
+                      }
+                    }}
+                    className="px-2.5 py-1 text-xs font-medium text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded transition-colors"
+                  >
+                    Download
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Main Footer Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-white/40">
+              {existingSalesOrder && (
+                <span>{existingSalesOrder.order_number} • Created: {new Date(existingSalesOrder.created_at).toLocaleDateString()}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
               <button
-                onClick={handleConvertToInvoice}
-                disabled={convertingToInvoice}
-                className="px-4 py-2 text-sm font-medium text-green-500 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               >
-                {convertingToInvoice ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating Invoice...
-                  </>
-                ) : (
-                  <>
-                    <Receipt className="w-4 h-4" />
-                    Convert to Invoice →
-                  </>
-                )}
+                {existingSalesOrder ? 'Close' : 'Cancel'}
               </button>
-            )}
-            
-            {!isLocked && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    {existingSalesOrder ? 'Update' : 'Create'} Sales Order
-                  </>
-                )}
-              </button>
-            )}
+              
+              {/* Send for Signing - Show when PDF exists, not signed, and has customer email */}
+              {activeTab === 'sales_order' && existingSalesOrder && pdfUrl && signingStatus === 'pending' && formData.customerEmail && (
+                <button
+                  onClick={handleSendForSigning}
+                  disabled={sendingForSigning}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {sendingForSigning ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardList className="w-4 h-4" />
+                      Send for Signing
+                    </>
+                  )}
+                </button>
+              )}
+              
+              {/* Convert to Invoice - Only show when document is SIGNED */}
+              {activeTab === 'sales_order' && existingSalesOrder && signingStatus === 'completed' && !isLocked && (
+                <button
+                  onClick={handleConvertToInvoice}
+                  disabled={convertingToInvoice}
+                  className="px-4 py-2 text-sm font-medium text-green-400 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {convertingToInvoice ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating Invoice...
+                    </>
+                  ) : (
+                    <>
+                      <Receipt className="w-4 h-4" />
+                      Convert to Invoice
+                    </>
+                  )}
+                </button>
+              )}
+              
+              {/* Create/Update Sales Order - Show when not locked and not in signing process */}
+              {activeTab === 'sales_order' && !isLocked && (signingStatus === 'pending' || !existingSalesOrder) && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !canSave || saveSuccess}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all shadow-sm flex items-center gap-2 disabled:cursor-not-allowed ${
+                    saveSuccess 
+                      ? 'bg-green-500 text-white' 
+                      : 'text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 disabled:opacity-50'
+                  }`}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {existingSalesOrder ? 'Generating...' : 'Creating...'}
+                    </>
+                  ) : saveSuccess ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      PDF Generated
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      {existingSalesOrder ? 'Update Sales Order' : 'Create Sales Order'}
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
+          
+          {/* Validation warnings */}
+          {activeTab === 'sales_order' && !isLocked && (signingStatus === 'pending' || !existingSalesOrder) && missingFields.length > 0 && (
+            <p className="text-[10px] text-yellow-400/70 mt-2 text-right">
+              ⚠️ Required: {missingFields.slice(0, 3).join(', ')}{missingFields.length > 3 ? ` +${missingFields.length - 3} more` : ''}
+            </p>
+          )}
+          
+          {/* Helper text for missing email when PDF exists */}
+          {activeTab === 'sales_order' && existingSalesOrder && pdfUrl && signingStatus === 'pending' && !formData.customerEmail && missingFields.length === 0 && (
+            <p className="text-[10px] text-yellow-400/70 mt-2 text-right">
+              💡 Add customer email to enable "Send for Signing"
+            </p>
+          )}
         </div>
       </div>
+      
+      {/* Company Signer Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-gradient-to-r from-gray-300 via-gray-400 to-gray-500 p-0.5 rounded-xl w-full max-w-xs shadow-2xl">
+            <div className="bg-black/95 backdrop-blur-2xl rounded-xl p-4 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent pointer-events-none rounded-xl" />
+
+              <div className="relative z-10 mb-4">
+                <h3 className="text-sm font-semibold text-white">Select Company Signer</h3>
+              </div>
+
+              {/* Quick Select Buttons */}
+              <div className="relative z-10 mb-3 flex flex-col gap-1.5">
+                {[
+                  { name: 'Samuel', email: 'samuel.sanjeev@silberarrows.com' },
+                  { name: 'Glen', email: 'glen.hawkins@silberarrows.com' },
+                  { name: 'Nick', email: 'nick.hurst@silberarrows.com' },
+                ].map((signer) => (
+                  <button
+                    key={signer.email}
+                    onClick={() => setCompanyEmail(signer.email)}
+                    className={`w-full px-3 py-2 text-left text-xs rounded-lg border transition-all ${
+                      companyEmail === signer.email
+                        ? 'bg-blue-600/30 border-blue-500/50 text-white'
+                        : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <span className="font-medium">{signer.name}</span>
+                    <span className="text-white/50 ml-1">({signer.email.split('@')[0]})</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Or manual input */}
+              <div className="relative z-10 mb-3">
+                <input
+                  type="email"
+                  value={companyEmail}
+                  onChange={(e) => setCompanyEmail(e.target.value)}
+                  placeholder="Or enter email..."
+                  className="w-full px-3 py-2 text-xs bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-white/30"
+                />
+              </div>
+
+              {/* Customer info */}
+              <div className="relative z-10 mb-3 p-2 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-[10px] text-white/50 mb-0.5">Then sent to customer:</p>
+                <p className="text-xs text-white/80">{formData.customerName} ({formData.customerEmail})</p>
+              </div>
+
+              <div className="relative z-10 flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowEmailModal(false);
+                    setCompanyEmail('');
+                  }}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/20 text-white/70 border border-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSendForSigning}
+                  disabled={!companyEmail || sendingForSigning}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all disabled:opacity-50"
+                >
+                  {sendingForSigning ? 'Sending...' : 'Send'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

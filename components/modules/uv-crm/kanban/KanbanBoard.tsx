@@ -85,7 +85,6 @@ import LostReasonModal from "../modals/LostReasonModal";
 import SalesOrderModal from "../modals/SalesOrderModal";
 import { useSearchStore } from "@/lib/searchStore";
 import { useModulePermissions } from "@/lib/useModulePermissions";
-import { FileText, DollarSign, Receipt, CreditCard } from 'lucide-react';
 import { useUVAccountingStatus } from '@/hooks/useUVAccountingStatus';
 
 interface Lead {
@@ -825,13 +824,7 @@ export default function KanbanBoard() {
                       const status = getStatus(l.id);
                       return (
                         <div className="flex items-center justify-between pt-1 mt-1 border-t border-white/10">
-                          <div className="flex items-center gap-1">
-                            {badge.icon === 'none' && <FileText className="w-2.5 h-2.5 text-white/40" />}
-                            {badge.icon === 'draft' && <FileText className="w-2.5 h-2.5 text-blue-400" />}
-                            {badge.icon === 'pending' && <Receipt className="w-2.5 h-2.5 text-orange-400" />}
-                            {badge.icon === 'partial' && <CreditCard className="w-2.5 h-2.5 text-yellow-400" />}
-                            {badge.icon === 'paid' && <DollarSign className="w-2.5 h-2.5 text-green-400" />}
-                            {badge.icon === 'reversed' && <Receipt className="w-2.5 h-2.5 text-red-400" />}
+                          <div className="flex items-center">
                             <span className={`text-[9px] font-medium px-1 py-0.5 rounded ${badge.color} ${
                               badge.icon === 'none' ? 'text-white/50' :
                               badge.icon === 'draft' ? 'text-blue-300' :

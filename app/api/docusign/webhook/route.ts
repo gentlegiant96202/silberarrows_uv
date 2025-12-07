@@ -103,8 +103,11 @@ export async function POST(request: NextRequest) {
     let envelopeStatus: string | null = null;
     let recipientStatus: any[] = [];
 
+    console.log('[DocuSign Webhook] Received webhook, content type check...');
+
     // Handle both JSON and XML webhook formats
     if (rawBody.startsWith('<?xml')) {
+      console.log('[DocuSign Webhook] Processing XML format');
       // Parse XML to extract envelope info
       // Look for envelope ID and status in XML
       const envelopeIdMatch = rawBody.match(/<EnvelopeID>(.*?)<\/EnvelopeID>/i);
@@ -112,20 +115,28 @@ export async function POST(request: NextRequest) {
       
       envelopeId = envelopeIdMatch?.[1] || null;
       envelopeStatus = statusMatch?.[1] || null;
+      console.log('[DocuSign Webhook] XML - EnvelopeId:', envelopeId, 'Status:', envelopeStatus);
     } else {
+      console.log('[DocuSign Webhook] Processing JSON format');
       body = JSON.parse(rawBody);
       // Extract envelope information from JSON
       envelopeId = body.data?.envelopeId || body.envelopeId;
       envelopeStatus = body.data?.envelopeSummary?.status || body.status;
-      recipientStatus = body.data?.envelopeSummary?.recipients?.signers || [];
+      recipientStatus = body.data?.envelopeSummary?.recipients?.signers || body.recipients?.signers || [];
+      
+      console.log('[DocuSign Webhook] JSON - EnvelopeId:', envelopeId);
+      console.log('[DocuSign Webhook] JSON - EnvelopeStatus:', envelopeStatus);
+      console.log('[DocuSign Webhook] JSON - Recipients:', JSON.stringify(recipientStatus));
     }
 
     if (!envelopeId) {
+      console.log('[DocuSign Webhook] No envelope ID found');
       return NextResponse.json({ error: 'No envelope ID' }, { status: 400 });
     }
     
     // Determine signing status based on envelope and recipient status
     let customStatus = envelopeStatus?.toLowerCase();
+    let allSignersCompleted = false;
     
     // Check recipient-level status for granular updates
     if (recipientStatus && recipientStatus.length >= 2) {
@@ -135,12 +146,20 @@ export async function POST(request: NextRequest) {
       const companyStatus = companySigner?.status?.toLowerCase();
       const customerStatus = customerSigner?.status?.toLowerCase();
       
+      console.log('[DocuSign Webhook] Company signer status:', companyStatus);
+      console.log('[DocuSign Webhook] Customer signer status:', customerStatus);
+      
+      // Check if ALL signers have completed
+      allSignersCompleted = companyStatus === 'completed' && customerStatus === 'completed';
+      
       // Granular status detection:
       // 1. Company signed, customer pending → company_signed
       // 2. Customer has received/delivered but not signed → delivered (awaiting customer)
-      // 3. Both completed → completed (handled by envelope status)
+      // 3. Both completed → completed
       
-      if (companyStatus === 'completed' && customerStatus !== 'completed') {
+      if (allSignersCompleted) {
+        customStatus = 'completed';
+      } else if (companyStatus === 'completed' && customerStatus !== 'completed') {
         customStatus = 'company_signed';
       } else if (companyStatus === 'delivered' && customerStatus !== 'completed') {
         // Company is viewing the document
@@ -149,13 +168,22 @@ export async function POST(request: NextRequest) {
     } else if (recipientStatus && recipientStatus.length === 1) {
       // Single signer scenario
       const signer = recipientStatus[0];
-      if (signer?.status?.toLowerCase() === 'delivered') {
+      if (signer?.status?.toLowerCase() === 'completed') {
+        allSignersCompleted = true;
+        customStatus = 'completed';
+      } else if (signer?.status?.toLowerCase() === 'delivered') {
         customStatus = 'delivered';
       }
     }
+    
+    console.log('[DocuSign Webhook] Computed customStatus:', customStatus);
+    console.log('[DocuSign Webhook] All signers completed:', allSignersCompleted);
 
-    // Only download PDF when fully completed (all signers)
-    if (envelopeStatus?.toLowerCase() !== 'completed') {
+    // Only download PDF when ALL signers have completed (not just envelope status)
+    // Use allSignersCompleted flag instead of just envelope status
+    const isFullyCompleted = allSignersCompleted || (envelopeStatus?.toLowerCase() === 'completed' && recipientStatus.length === 0);
+    
+    if (!isFullyCompleted) {
       // Update status in car_media, vehicle_reservations, service_contracts, warranty_contracts, uv_sales_orders, uv_invoices
       const updates = await Promise.allSettled([
         supabase.from('car_media').update({ signing_status: customStatus }).eq('docusign_envelope_id', envelopeId),
@@ -171,9 +199,12 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      console.log('[DocuSign Webhook] Status updated to:', customStatus);
       return NextResponse.json({ success: true, message: 'Status updated' });
     }
 
+    console.log('[DocuSign Webhook] Document fully completed! Downloading signed PDF...');
+    
     // Envelope is completed - replace with signed PDF
     // Find the document in our database - check car_media, vehicle_reservations, uv_sales_orders, uv_invoices, then service/warranty contracts
     let document: any = null;

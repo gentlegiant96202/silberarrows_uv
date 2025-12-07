@@ -932,12 +932,14 @@ export async function POST(request: NextRequest) {
     }
     
     // Try to update signing_status separately (column may not exist yet)
-    await supabase
-      .from('uv_sales_orders')
-      .update({ signing_status: 'pending' })
-      .eq('id', salesOrderId)
-      .then(() => {})
-      .catch(() => {}); // Ignore errors if column doesn't exist
+    try {
+      await supabase
+        .from('uv_sales_orders')
+        .update({ signing_status: 'pending' })
+        .eq('id', salesOrderId);
+    } catch {
+      // Ignore errors if column doesn't exist
+    }
 
     return NextResponse.json({
       success: true,

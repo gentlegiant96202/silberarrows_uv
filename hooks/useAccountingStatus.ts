@@ -96,7 +96,7 @@ export function useAccountingStatus(leadIds: string[]) {
       console.error('Error fetching accounting status:', error);
     } finally {
       setLoading(false);
-    }
+          }
   }, []);
 
   // Initial fetch
@@ -185,7 +185,7 @@ export function useAccountingStatus(leadIds: string[]) {
           schema: 'public', 
           table: 'uv_payments',
           filter: `lead_id=in.(${leadIds.join(',')})`
-        },
+        }, 
         (payload: any) => {
           console.log('Payment change:', payload);
           const leadId = payload.new?.lead_id || payload.old?.lead_id;

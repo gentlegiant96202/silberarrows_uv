@@ -197,7 +197,7 @@ type TabKey = 'sales_order' | 'invoices' | 'payments' | 'soa';
 const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'sales_order', label: 'Sales Order', icon: <FileText className="w-4 h-4" /> },
   { key: 'invoices', label: 'Invoices', icon: <Receipt className="w-4 h-4" /> },
-  { key: 'payments', label: 'Payments', icon: <CreditCard className="w-4 h-4" /> },
+  { key: 'payments', label: 'Transactions', icon: <CreditCard className="w-4 h-4" /> },
   { key: 'soa', label: 'SOA', icon: <ClipboardList className="w-4 h-4" /> },
 ];
 
@@ -1324,10 +1324,10 @@ export default function SalesOrderModal({
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-150">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       
       {/* Modal */}
-      <div className="relative w-full max-w-5xl h-[85vh] bg-gradient-to-br from-zinc-900 via-zinc-900 to-black border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-5xl h-[85vh] bg-zinc-900/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="px-6 py-4 border-b border-white/10 bg-white/5">
           <div className="flex items-start justify-between">
@@ -1446,13 +1446,19 @@ export default function SalesOrderModal({
             <>
               {activeTab === 'sales_order' && (
                 <div className="space-y-4">
-                  {/* Locked Indicator */}
-                  {isLocked && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                      <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-                      <span className="text-xs font-medium text-yellow-400">Locked — Invoice exists</span>
-                    </div>
-                  )}
+                  {/* Locked Indicator - Always reserve space to prevent layout shift */}
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg h-9 transition-all duration-200 ${
+                    isLocked 
+                      ? 'bg-yellow-500/10 border border-yellow-500/20' 
+                      : 'bg-transparent border border-transparent'
+                  }`}>
+                    {isLocked && (
+                      <>
+                        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                        <span className="text-xs font-medium text-yellow-400">Locked — Invoice exists</span>
+                      </>
+                    )}
+                  </div>
 
                   {/* Form content - disabled when locked */}
                   <fieldset disabled={isLocked} className={`space-y-6 ${isLocked ? 'opacity-60' : ''}`} style={{ border: 'none', padding: 0, margin: 0 }}>
@@ -2021,72 +2027,22 @@ export default function SalesOrderModal({
                             </div>
                           )}
 
-                          {/* Credit Notes for this invoice */}
+                          {/* Credit Notes summary for this invoice */}
                           {adjustments.filter(a => a.adjustment_type === 'credit_note' && a.invoice_id === invoice.id).length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-                              <p className="text-xs text-white/50 uppercase tracking-wide">Credit Notes:</p>
-                              {adjustments
-                                .filter(a => a.adjustment_type === 'credit_note' && a.invoice_id === invoice.id)
-                                .map(cn => (
-                                  <div key={cn.id} className="flex items-center justify-between bg-purple-500/10 p-2 rounded-lg">
-                                    <div>
-                                      <span className="text-xs font-medium text-purple-400">{cn.adjustment_number}</span>
-                                      <span className="text-xs text-white/50 ml-2">{cn.reason}</span>
-                                    </div>
-                                    <span className="text-xs font-medium text-purple-400">-AED {formatCurrency(cn.amount)}</span>
-                                  </div>
-                                ))}
-                            </div>
-                          )}
-
-                          {/* Add Credit Note Form */}
-                          {showCreditNoteForm === invoice.id && (
-                            <div className="mt-3 pt-3 border-t border-white/10 space-y-3">
-                              <p className="text-xs text-white/50 uppercase tracking-wide">New Credit Note</p>
-                              <div className="grid grid-cols-2 gap-2">
-                                <input
-                                  type="number"
-                                  placeholder="Amount"
-                                  value={newCreditNote.amount || ''}
-                                  onChange={(e) => setNewCreditNote(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                                  className={`${inputClass} text-sm`}
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Reason"
-                                  value={newCreditNote.reason}
-                                  onChange={(e) => setNewCreditNote(prev => ({ ...prev, reason: e.target.value }))}
-                                  className={`${inputClass} text-sm`}
-                                />
-                              </div>
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={() => setShowCreditNoteForm(null)}
-                                  className="px-3 py-1.5 text-xs text-white/50 hover:text-white"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleAddCreditNote(invoice.id)}
-                                  disabled={savingAdjustment}
-                                  className="px-3 py-1.5 text-xs font-medium text-purple-400 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg transition-colors disabled:opacity-50"
-                                >
-                                  {savingAdjustment ? 'Saving...' : 'Add Credit Note'}
-                                </button>
+                            <div className="mt-3 pt-3 border-t border-white/10">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-purple-400/70">
+                                  {adjustments.filter(a => a.adjustment_type === 'credit_note' && a.invoice_id === invoice.id).length} Credit Note(s)
+                                </span>
+                                <span className="text-purple-400 font-medium">
+                                  -AED {formatCurrency(adjustments.filter(a => a.adjustment_type === 'credit_note' && a.invoice_id === invoice.id).reduce((sum, a) => sum + a.amount, 0))}
+                                </span>
                               </div>
                             </div>
                           )}
 
                           {/* Actions */}
                           <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-white/10">
-                            {invoice.status !== 'reversed' && invoice.balance_due > 0 && !showCreditNoteForm && (
-                              <button
-                                onClick={() => setShowCreditNoteForm(invoice.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg transition-colors"
-                              >
-                                + Credit Note
-                              </button>
-                            )}
                             {invoice.pdf_url && (
                               <a
                                 href={invoice.pdf_url}
@@ -2155,15 +2111,58 @@ export default function SalesOrderModal({
 
               {activeTab === 'payments' && (
                 <div className="space-y-4">
-                  {/* Header with Add Payment button */}
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Customer Payments</h3>
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-green-400/70 uppercase tracking-wider">Payments</p>
+                      <p className="text-lg font-bold text-green-400">
+                        {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}
+                      </p>
+                    </div>
+                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-purple-400/70 uppercase tracking-wider">Credit Notes</p>
+                      <p className="text-lg font-bold text-purple-400">
+                        {formatCurrency(adjustments.filter(a => a.adjustment_type === 'credit_note').reduce((sum, a) => sum + a.amount, 0))}
+                      </p>
+                    </div>
+                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-orange-400/70 uppercase tracking-wider">Refunds</p>
+                      <p className="text-lg font-bold text-orange-400">
+                        {formatCurrency(adjustments.filter(a => a.adjustment_type === 'refund').reduce((sum, a) => sum + a.amount, 0))}
+                      </p>
+                    </div>
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-yellow-400/70 uppercase tracking-wider">Unallocated</p>
+                      <p className="text-lg font-bold text-yellow-400">
+                        {formatCurrency(payments.reduce((sum, p) => sum + (p.unallocated_amount || 0), 0))}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowAddPaymentForm(true)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-400 bg-green-500/10 hover:bg-green-500/20 rounded-lg transition-colors"
                     >
-                      <Plus className="w-4 h-4" />
-                      Add Payment
+                      <Plus className="w-3 h-3" />
+                      Payment
+                    </button>
+                    <button
+                      onClick={() => setShowCreditNoteForm(invoices.find(i => i.status !== 'reversed' && i.balance_due > 0)?.id || 'select')}
+                      disabled={!invoices.some(i => i.status !== 'reversed' && i.balance_due > 0)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Credit Note
+                    </button>
+                    <button
+                      onClick={() => setShowRefundForm(true)}
+                      disabled={!invoices.some(i => i.status !== 'reversed' && i.paid_amount > 0)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Refund
                     </button>
                   </div>
 
@@ -2256,6 +2255,67 @@ export default function SalesOrderModal({
                     </div>
                   )}
 
+                  {/* Add Credit Note Form (in Transactions tab) */}
+                  {showCreditNoteForm && (
+                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 space-y-3">
+                      <h4 className="text-sm font-semibold text-purple-400">New Credit Note</h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        <Field label="Invoice" className="col-span-1">
+                          <select
+                            value={typeof showCreditNoteForm === 'string' && showCreditNoteForm !== 'select' ? showCreditNoteForm : ''}
+                            onChange={(e) => setShowCreditNoteForm(e.target.value || 'select')}
+                            className={selectClass}
+                          >
+                            <option value="">Select Invoice</option>
+                            {invoices
+                              .filter(inv => inv.status !== 'reversed' && inv.balance_due > 0)
+                              .map(inv => (
+                                <option key={inv.id} value={inv.id}>
+                                  {inv.invoice_number} - Balance: AED {formatCurrency(inv.balance_due)}
+                                </option>
+                              ))}
+                          </select>
+                        </Field>
+                        <Field label="Amount (AED)">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={newCreditNote.amount || ''}
+                            onChange={(e) => setNewCreditNote(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                            className={inputClass}
+                          />
+                        </Field>
+                        <Field label="Reason">
+                          <input
+                            type="text"
+                            placeholder="Reason for credit"
+                            value={newCreditNote.reason}
+                            onChange={(e) => setNewCreditNote(prev => ({ ...prev, reason: e.target.value }))}
+                            className={inputClass}
+                          />
+                        </Field>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <button
+                          onClick={() => setShowCreditNoteForm(null)}
+                          className="px-3 py-1.5 text-xs text-white/50 hover:text-white"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            const invoiceId = typeof showCreditNoteForm === 'string' && showCreditNoteForm !== 'select' ? showCreditNoteForm : null;
+                            if (invoiceId) handleAddCreditNote(invoiceId);
+                          }}
+                          disabled={savingAdjustment || !showCreditNoteForm || showCreditNoteForm === 'select' || newCreditNote.amount <= 0}
+                          className="px-4 py-2 text-sm font-medium text-purple-400 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {savingAdjustment ? 'Saving...' : 'Add Credit Note'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Loading */}
                   {loadingPayments && (
                     <div className="flex items-center justify-center h-32">
@@ -2263,26 +2323,48 @@ export default function SalesOrderModal({
                     </div>
                   )}
 
-                  {/* No payments */}
-                  {!loadingPayments && payments.length === 0 && !showAddPaymentForm && (
-                    <div className="flex items-center justify-center h-48 text-white/40 bg-white/5 rounded-xl border border-white/10">
+                  {/* No transactions */}
+                  {!loadingPayments && payments.length === 0 && adjustments.length === 0 && !showAddPaymentForm && !showCreditNoteForm && !showRefundForm && (
+                    <div className="flex items-center justify-center h-32 text-white/40 bg-white/5 rounded-xl border border-white/10">
                       <div className="text-center">
-                        <CreditCard className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm mb-3">No payments recorded</p>
-                        <button
-                          onClick={() => setShowAddPaymentForm(true)}
-                          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add First Payment
-                        </button>
+                        <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No transactions yet</p>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Credit Notes List */}
+                  {!loadingPayments && adjustments.filter(a => a.adjustment_type === 'credit_note').length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-purple-400/70 uppercase tracking-wider font-medium">Credit Notes</p>
+                      {adjustments
+                        .filter(a => a.adjustment_type === 'credit_note')
+                        .map(cn => {
+                          const linkedInvoice = invoices.find(inv => inv.id === cn.invoice_id);
+                          return (
+                            <div key={cn.id} className="flex items-center justify-between bg-purple-500/10 border border-purple-500/20 p-3 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                  <Receipt className="w-4 h-4 text-purple-400" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-purple-400">{cn.adjustment_number}</p>
+                                  <p className="text-xs text-white/50">
+                                    {linkedInvoice ? `→ ${linkedInvoice.invoice_number}` : ''} • {cn.reason}
+                                  </p>
+                                </div>
+                              </div>
+                              <p className="text-sm font-bold text-purple-400">-AED {formatCurrency(cn.amount)}</p>
+                            </div>
+                          );
+                        })}
                     </div>
                   )}
 
                   {/* Payments List */}
                   {!loadingPayments && payments.length > 0 && (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
+                      <p className="text-xs text-green-400/70 uppercase tracking-wider font-medium">Payments</p>
                       {payments.map((payment) => {
                         const isUnallocated = (payment.unallocated_amount || 0) > 0;
                         const paymentAllocations = allocations.filter(a => a.payment_id === payment.id);
@@ -2437,149 +2519,113 @@ export default function SalesOrderModal({
                     </div>
                   )}
 
-                  {/* Summary */}
-                  {!loadingPayments && payments.length > 0 && (
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-4">
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <p className="text-xs text-white/50 uppercase tracking-wide">Total Received</p>
-                          <p className="text-lg font-bold text-green-400">
-                            AED {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-white/50 uppercase tracking-wide">Allocated</p>
-                          <p className="text-lg font-bold text-white">
-                            AED {formatCurrency(payments.reduce((sum, p) => sum + (p.allocated_amount || 0), 0))}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-white/50 uppercase tracking-wide">Unallocated</p>
-                          <p className={`text-lg font-bold ${payments.some(p => (p.unallocated_amount || 0) > 0) ? 'text-yellow-400' : 'text-white/50'}`}>
-                            AED {formatCurrency(payments.reduce((sum, p) => sum + (p.unallocated_amount || 0), 0))}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Refunds Section */}
-                  <div className="mt-6 pt-6 border-t border-white/10">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Refunds</h3>
-                      <button
-                        onClick={() => setShowRefundForm(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 rounded-lg transition-colors"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Issue Refund
-                      </button>
-                    </div>
+                  {(adjustments.filter(a => a.adjustment_type === 'refund').length > 0 || showRefundForm) && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-orange-400/70 uppercase tracking-wider font-medium">Refunds</p>
 
-                    {/* Add Refund Form */}
-                    {showRefundForm && (
-                      <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4 space-y-3">
-                        <p className="text-xs text-white/50 uppercase tracking-wide">New Refund</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <Field label="Against Invoice" className="col-span-2">
-                            <select
-                              value={newRefund.invoiceId}
-                              onChange={(e) => setNewRefund(prev => ({ ...prev, invoiceId: e.target.value }))}
-                              className={selectClass}
+                      {/* Add Refund Form */}
+                      {showRefundForm && (
+                        <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 space-y-3">
+                          <h4 className="text-sm font-semibold text-orange-400">New Refund</h4>
+                          <div className="grid grid-cols-3 gap-3">
+                            <Field label="Invoice">
+                              <select
+                                value={newRefund.invoiceId}
+                                onChange={(e) => setNewRefund(prev => ({ ...prev, invoiceId: e.target.value }))}
+                                className={selectClass}
+                              >
+                                <option value="">Select Invoice</option>
+                                {invoices
+                                  .filter(inv => inv.status !== 'reversed' && inv.paid_amount > 0)
+                                  .map(inv => (
+                                    <option key={inv.id} value={inv.id}>
+                                      {inv.invoice_number} - Paid: AED {formatCurrency(inv.paid_amount)}
+                                    </option>
+                                  ))}
+                              </select>
+                            </Field>
+                            <Field label="Amount (AED)">
+                              <input
+                                type="number"
+                                value={newRefund.amount || ''}
+                                onChange={(e) => setNewRefund(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                                className={inputClass}
+                                placeholder="0.00"
+                              />
+                            </Field>
+                            <Field label="Method">
+                              <select
+                                value={newRefund.method}
+                                onChange={(e) => setNewRefund(prev => ({ ...prev, method: e.target.value }))}
+                                className={selectClass}
+                              >
+                                <option value="cash">Cash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="cheque">Cheque</option>
+                              </select>
+                            </Field>
+                            <Field label="Reference">
+                              <input
+                                type="text"
+                                value={newRefund.reference}
+                                onChange={(e) => setNewRefund(prev => ({ ...prev, reference: e.target.value }))}
+                                className={inputClass}
+                                placeholder="Optional"
+                              />
+                            </Field>
+                            <Field label="Reason" className="col-span-2">
+                              <input
+                                type="text"
+                                value={newRefund.reason}
+                                onChange={(e) => setNewRefund(prev => ({ ...prev, reason: e.target.value }))}
+                                className={inputClass}
+                                placeholder="Reason for refund"
+                              />
+                            </Field>
+                          </div>
+                          <div className="flex justify-end gap-2 pt-2">
+                            <button
+                              onClick={() => setShowRefundForm(false)}
+                              className="px-3 py-1.5 text-xs text-white/50 hover:text-white"
                             >
-                              <option value="">Select Invoice</option>
-                              {invoices
-                                .filter(inv => inv.status !== 'reversed' && inv.paid_amount > 0)
-                                .map(inv => (
-                                  <option key={inv.id} value={inv.id}>
-                                    {inv.invoice_number} - Paid: AED {formatCurrency(inv.paid_amount)}
-                                  </option>
-                                ))}
-                            </select>
-                          </Field>
-                          <Field label="Amount (AED)">
-                            <input
-                              type="number"
-                              value={newRefund.amount || ''}
-                              onChange={(e) => setNewRefund(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                              className={inputClass}
-                              placeholder="0.00"
-                            />
-                          </Field>
-                          <Field label="Method">
-                            <select
-                              value={newRefund.method}
-                              onChange={(e) => setNewRefund(prev => ({ ...prev, method: e.target.value }))}
-                              className={selectClass}
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleAddRefund}
+                              disabled={savingAdjustment || !newRefund.invoiceId}
+                              className="px-4 py-2 text-sm font-medium text-orange-400 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg transition-colors disabled:opacity-50"
                             >
-                              <option value="cash">Cash</option>
-                              <option value="bank_transfer">Bank Transfer</option>
-                              <option value="cheque">Cheque</option>
-                            </select>
-                          </Field>
-                          <Field label="Reference" className="col-span-1">
-                            <input
-                              type="text"
-                              value={newRefund.reference}
-                              onChange={(e) => setNewRefund(prev => ({ ...prev, reference: e.target.value }))}
-                              className={inputClass}
-                              placeholder="Optional"
-                            />
-                          </Field>
-                          <Field label="Reason" className="col-span-1">
-                            <input
-                              type="text"
-                              value={newRefund.reason}
-                              onChange={(e) => setNewRefund(prev => ({ ...prev, reason: e.target.value }))}
-                              className={inputClass}
-                              placeholder="Reason for refund"
-                            />
-                          </Field>
+                              {savingAdjustment ? 'Saving...' : 'Issue Refund'}
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                          <button
-                            onClick={() => setShowRefundForm(false)}
-                            className="px-3 py-1.5 text-xs text-white/50 hover:text-white"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleAddRefund}
-                            disabled={savingAdjustment || !newRefund.invoiceId}
-                            className="px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm disabled:opacity-50"
-                          >
-                            {savingAdjustment ? 'Saving...' : 'Issue Refund'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Refunds List */}
-                    {adjustments.filter(a => a.adjustment_type === 'refund').length === 0 && !showRefundForm && (
-                      <div className="text-center py-4 text-white/40">
-                        <p className="text-sm">No refunds issued</p>
-                      </div>
-                    )}
-
-                    {adjustments.filter(a => a.adjustment_type === 'refund').length > 0 && (
-                      <div className="space-y-2">
-                        {adjustments
-                          .filter(a => a.adjustment_type === 'refund')
-                          .map(refund => (
+                      {/* Refunds List */}
+                      {adjustments
+                        .filter(a => a.adjustment_type === 'refund')
+                        .map(refund => {
+                          const linkedInvoice = invoices.find(inv => inv.id === refund.invoice_id);
+                          return (
                             <div key={refund.id} className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 p-3 rounded-lg">
-                              <div>
-                                <p className="text-sm font-medium text-orange-400">{refund.adjustment_number}</p>
-                                <p className="text-xs text-white/50">
-                                  {refund.reason} • {refund.refund_method}
-                                  {refund.refund_reference && ` • ${refund.refund_reference}`}
-                                </p>
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+                                  <Receipt className="w-4 h-4 text-orange-400" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-orange-400">{refund.adjustment_number}</p>
+                                  <p className="text-xs text-white/50">
+                                    {linkedInvoice ? `→ ${linkedInvoice.invoice_number}` : ''} • {refund.reason} • {refund.refund_method}
+                                  </p>
+                                </div>
                               </div>
                               <p className="text-sm font-bold text-orange-400">-AED {formatCurrency(refund.amount)}</p>
                             </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
               )}
 

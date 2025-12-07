@@ -544,7 +544,7 @@ export default function KanbanBoard() {
           setSalesOrderLead(lead);
         } else {
           // For other statuses, open Lead Details Modal
-          setSelectedLead(lead);
+        setSelectedLead(lead);
         }
       }
     }, 10);
@@ -917,7 +917,7 @@ export default function KanbanBoard() {
       {salesOrderLead && (() => {
         const accountingStatus = getStatus(salesOrderLead.id);
         return (
-          <SalesOrderModal
+        <SalesOrderModal
             isOpen={!!salesOrderLead}
             onClose={() => setSalesOrderLead(null)}
             lead={salesOrderLead}
@@ -933,7 +933,7 @@ export default function KanbanBoard() {
               paidAmount: accountingStatus.paidAmount,
               balanceDue: accountingStatus.balanceDue
             } : undefined}
-          />
+        />
         );
       })()}
     </div>

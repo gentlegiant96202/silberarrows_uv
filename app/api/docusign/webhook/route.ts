@@ -69,6 +69,34 @@ async function getAccessToken() {
   return data.access_token;
 }
 
+// Fetch envelope recipients status directly from DocuSign API
+async function getEnvelopeRecipients(envelopeId: string) {
+  try {
+    const accessToken = await getAccessToken();
+    
+    const response = await fetch(
+      `${process.env.DOCUSIGN_BASE_URL}/restapi/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes/${envelopeId}/recipients`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        }
+      }
+    );
+
+    if (!response.ok) {
+      console.error('[DocuSign Webhook] Failed to fetch recipients:', response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log('[DocuSign Webhook] Fetched recipients from API:', JSON.stringify(data.signers));
+    return data.signers || [];
+  } catch (error) {
+    console.error('[DocuSign Webhook] Error fetching recipients:', error);
+    return null;
+  }
+}
+
 // Download signed PDF from DocuSign using REST API
 async function downloadSignedPDF(envelopeId: string) {
   try {
@@ -144,6 +172,19 @@ export async function POST(request: NextRequest) {
     if (!envelopeId) {
       console.log('[DocuSign Webhook] No envelope ID found');
       return NextResponse.json({ error: 'No envelope ID' }, { status: 400 });
+    }
+    
+    // IMPORTANT: Fetch recipient status directly from DocuSign API
+    // The webhook payload often doesn't include complete recipient info
+    console.log('[DocuSign Webhook] Fetching recipient status from DocuSign API...');
+    const apiRecipients = await getEnvelopeRecipients(envelopeId);
+    
+    // Use API recipients if available, otherwise fall back to webhook payload
+    if (apiRecipients && apiRecipients.length > 0) {
+      recipientStatus = apiRecipients;
+      console.log('[DocuSign Webhook] Using recipients from API, count:', recipientStatus.length);
+    } else {
+      console.log('[DocuSign Webhook] API returned no recipients, using webhook payload');
     }
     
     // Determine signing status based on envelope and recipient status

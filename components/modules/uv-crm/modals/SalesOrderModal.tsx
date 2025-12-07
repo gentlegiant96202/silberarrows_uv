@@ -851,29 +851,30 @@ export default function SalesOrderModal({
           allocated_amount: parseFloat(p.allocated_amount) || 0,
           unallocated_amount: parseFloat(p.unallocated_amount) || 0,
         })));
-      }
-      
-      // Load allocations for invoices in this SO
-      if (existingSalesOrder) {
-        const { data: allocData, error: allocError } = await supabase
-          .from('uv_payment_allocations')
-          .select(`
-            *,
-            uv_payments!inner(payment_number),
-            uv_invoices!inner(invoice_number, sales_order_id)
-          `)
-          .eq('uv_invoices.sales_order_id', existingSalesOrder.id);
         
-        if (!allocError && allocData) {
-          setAllocations(allocData.map(a => ({
-            id: a.id,
-            payment_id: a.payment_id,
-            invoice_id: a.invoice_id,
-            amount: parseFloat(a.amount) || 0,
-            created_at: a.created_at,
-            payment_number: a.uv_payments?.payment_number,
-            invoice_number: a.uv_invoices?.invoice_number,
-          })));
+        // Load ALL allocations for this customer's payments (not just current SO)
+        const paymentIds = paymentsData.map(p => p.id);
+        if (paymentIds.length > 0) {
+          const { data: allocData, error: allocError } = await supabase
+            .from('uv_payment_allocations')
+            .select(`
+              *,
+              uv_payments!inner(payment_number),
+              uv_invoices!inner(invoice_number)
+            `)
+            .in('payment_id', paymentIds);
+          
+          if (!allocError && allocData) {
+            setAllocations(allocData.map(a => ({
+              id: a.id,
+              payment_id: a.payment_id,
+              invoice_id: a.invoice_id,
+              amount: parseFloat(a.amount) || 0,
+              created_at: a.created_at,
+              payment_number: a.uv_payments?.payment_number,
+              invoice_number: a.uv_invoices?.invoice_number,
+            })));
+          }
         }
       }
     } catch (error) {
@@ -1384,35 +1385,27 @@ export default function SalesOrderModal({
             
             {/* Right: Invoice Status Strip + Close Button */}
             <div className="flex items-start gap-4">
-              {/* Quick Status Strip - Show from initial status or loaded invoices */}
+              {/* Quick Status Strip - Show invoice-level data */}
               {(() => {
                 // Use loaded invoice data if available, otherwise use initial status from hook
                 const hasInvoiceData = invoices.length > 0;
                 const hasInitialStatus = initialAccountingStatus?.invoiceNumber;
-                const hasSoaBalance = soaBalance !== null;
                 
                 if (!hasInvoiceData && !hasInitialStatus) return null;
                 
                 const activeInvoice = invoices.find(inv => inv.status !== 'reversed') || invoices[0];
                 
-                // Use SOA balance for accurate customer-level totals (includes refunds)
-                // Fall back to invoice-level data if SOA not loaded yet
-                const totalInvoiced = hasSoaBalance 
-                  ? soaBalance.total_invoiced
-                  : hasInvoiceData 
-                    ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + i.total_amount, 0)
-                    : (initialAccountingStatus?.totalAmount || 0);
-                const totalPaid = hasSoaBalance 
-                  ? soaBalance.total_paid
-                  : hasInvoiceData 
-                    ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.paid_amount || 0), 0)
-                    : (initialAccountingStatus?.paidAmount || 0);
-                // CRITICAL: Use SOA current_balance for accurate balance (includes refunds, credit notes, etc.)
-                const totalBalance = hasSoaBalance 
-                  ? soaBalance.current_balance
-                  : hasInvoiceData 
-                    ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.balance_due || 0), 0)
-                    : (initialAccountingStatus?.balanceDue || 0);
+                // Use invoice-level data (now includes refund_total in balance_due calculation)
+                const totalInvoiced = hasInvoiceData 
+                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + i.total_amount, 0)
+                  : (initialAccountingStatus?.totalAmount || 0);
+                const totalPaid = hasInvoiceData 
+                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.paid_amount || 0), 0)
+                  : (initialAccountingStatus?.paidAmount || 0);
+                // Invoice balance_due now includes: total - credit_notes - paid + refunds
+                const totalBalance = hasInvoiceData 
+                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.balance_due || 0), 0)
+                  : (initialAccountingStatus?.balanceDue || 0);
                 const invoiceNumber = activeInvoice?.invoice_number || initialAccountingStatus?.invoiceNumber || '-';
                 
                 return (

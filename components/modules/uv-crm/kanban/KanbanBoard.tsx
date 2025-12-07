@@ -85,7 +85,8 @@ import LostReasonModal from "../modals/LostReasonModal";
 import SalesOrderModal from "../modals/SalesOrderModal";
 import { useSearchStore } from "@/lib/searchStore";
 import { useModulePermissions } from "@/lib/useModulePermissions";
-import { FileText } from 'lucide-react';
+import { FileText, DollarSign, Receipt, CreditCard } from 'lucide-react';
+import { useAccountingStatus } from '@/hooks/useAccountingStatus';
 
 interface Lead {
   id: string;
@@ -225,6 +226,16 @@ export default function KanbanBoard() {
       </span>
     );
   };
+
+  // Get lead IDs for Reserved (won) and Delivered columns for accounting status
+  const accountingLeadIds = React.useMemo(() => {
+    return leads
+      .filter(l => l.status === 'won' || l.status === 'delivered')
+      .map(l => l.id);
+  }, [leads]);
+
+  // Real-time accounting status for won/delivered leads
+  const { getBadgeInfo, getStatus } = useAccountingStatus(accountingLeadIds);
 
   // Column-by-column optimistic loading
   useEffect(() => {
@@ -807,6 +818,39 @@ export default function KanbanBoard() {
                         }
                       </span>
                     </div>
+                  ) : (col.key === 'won' || col.key === 'delivered') ? (
+                    // Reserved/Delivered: Show accounting status
+                    (() => {
+                      const badge = getBadgeInfo(l.id);
+                      const status = getStatus(l.id);
+                      return (
+                        <div className="flex items-center justify-between pt-1 mt-1 border-t border-white/10">
+                          <div className="flex items-center gap-1">
+                            {badge.icon === 'none' && <FileText className="w-2.5 h-2.5 text-white/40" />}
+                            {badge.icon === 'draft' && <FileText className="w-2.5 h-2.5 text-blue-400" />}
+                            {badge.icon === 'pending' && <Receipt className="w-2.5 h-2.5 text-orange-400" />}
+                            {badge.icon === 'partial' && <CreditCard className="w-2.5 h-2.5 text-yellow-400" />}
+                            {badge.icon === 'paid' && <DollarSign className="w-2.5 h-2.5 text-green-400" />}
+                            {badge.icon === 'reversed' && <Receipt className="w-2.5 h-2.5 text-red-400" />}
+                            <span className={`text-[9px] font-medium px-1 py-0.5 rounded ${badge.color} ${
+                              badge.icon === 'none' ? 'text-white/50' :
+                              badge.icon === 'draft' ? 'text-blue-300' :
+                              badge.icon === 'pending' ? 'text-orange-300' :
+                              badge.icon === 'partial' ? 'text-yellow-300' :
+                              badge.icon === 'paid' ? 'text-green-300' :
+                              badge.icon === 'reversed' ? 'text-red-300' : 'text-white/70'
+                            }`}>
+                              {badge.label}
+                            </span>
+                          </div>
+                          {status?.balanceDue !== undefined && status.balanceDue > 0 && (
+                            <span className="text-[9px] text-white/60">
+                              {status.balanceDue.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()
                   ) : (
                     // Other columns: Show time ago
                     <div className="flex items-center gap-1 pt-1 mt-1 border-t border-white/10 text-[10px] text-white/50">
@@ -870,19 +914,28 @@ export default function KanbanBoard() {
       )}
       
       {/* Sales Order Modal - for Reserved and Delivered leads */}
-      {salesOrderLead && (
-        <SalesOrderModal
-          isOpen={!!salesOrderLead}
-          onClose={() => setSalesOrderLead(null)}
-          lead={salesOrderLead}
-          onSalesOrderCreated={(so) => {
-            console.log('Sales Order Created:', so);
-          }}
-          onSalesOrderUpdated={(so) => {
-            console.log('Sales Order Updated:', so);
-          }}
-        />
-      )}
+      {salesOrderLead && (() => {
+        const accountingStatus = getStatus(salesOrderLead.id);
+        return (
+          <SalesOrderModal
+            isOpen={!!salesOrderLead}
+            onClose={() => setSalesOrderLead(null)}
+            lead={salesOrderLead}
+            onSalesOrderCreated={(so) => {
+              console.log('Sales Order Created:', so);
+            }}
+            onSalesOrderUpdated={(so) => {
+              console.log('Sales Order Updated:', so);
+            }}
+            initialAccountingStatus={accountingStatus?.hasInvoice ? {
+              invoiceNumber: accountingStatus.invoiceNumber,
+              totalAmount: accountingStatus.totalAmount,
+              paidAmount: accountingStatus.paidAmount,
+              balanceDue: accountingStatus.balanceDue
+            } : undefined}
+          />
+        );
+      })()}
     </div>
   );
 } 

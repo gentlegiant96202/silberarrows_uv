@@ -68,12 +68,20 @@ interface SalesOrder {
   created_at: string;
 }
 
+interface InitialAccountingStatus {
+  invoiceNumber?: string;
+  totalAmount?: number;
+  paidAmount?: number;
+  balanceDue?: number;
+}
+
 interface SalesOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   lead: Lead;
   onSalesOrderCreated?: (salesOrder: SalesOrder) => void;
   onSalesOrderUpdated?: (salesOrder: SalesOrder) => void;
+  initialAccountingStatus?: InitialAccountingStatus;
 }
 
 // ===== LINE ITEMS =====
@@ -258,7 +266,8 @@ export default function SalesOrderModal({
   onClose, 
   lead,
   onSalesOrderCreated,
-  onSalesOrderUpdated 
+  onSalesOrderUpdated,
+  initialAccountingStatus
 }: SalesOrderModalProps) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('sales_order');
@@ -1313,37 +1322,96 @@ export default function SalesOrderModal({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-150">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       
       {/* Modal */}
-      <div className="relative w-full max-w-5xl max-h-[90vh] bg-gradient-to-br from-zinc-900 via-zinc-900 to-black border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-5xl h-[85vh] bg-gradient-to-br from-zinc-900 via-zinc-900 to-black border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-white">
-                {existingSalesOrder ? `Sales Order ${existingSalesOrder.order_number}` : 'New Sales Order'}
+        <div className="px-6 py-4 border-b border-white/10 bg-white/5">
+          <div className="flex items-start justify-between">
+            {/* Left: Customer Info */}
+            <div>
+              {/* Customer Name & CIN - Primary */}
+              <h2 className="text-xl font-bold text-white">
+                {lead.full_name}
               </h2>
-              {existingSalesOrder && (
-                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                  existingSalesOrder.status === 'draft' ? 'bg-blue-500/20 text-blue-400' :
-                  existingSalesOrder.status === 'invoiced' ? 'bg-green-500/20 text-green-400' :
-                  'bg-red-500/20 text-red-400'
-                }`}>
-                  {existingSalesOrder.status === 'draft' ? 'Draft' : 
-                   existingSalesOrder.status === 'invoiced' ? 'Invoiced' : 'Lost'}
+              <p className="text-sm text-white/60 mt-0.5">
+                {lead.customer_number || 'No Customer ID'} • {lead.phone_number}
+              </p>
+              {/* Sales Order Info - Secondary */}
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-white/40">
+                  {existingSalesOrder ? `SO: ${existingSalesOrder.order_number}` : 'New Sales Order'}
                 </span>
-              )}
+                {existingSalesOrder && (
+                  <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
+                    existingSalesOrder.status === 'draft' ? 'bg-blue-500/20 text-blue-400' :
+                    existingSalesOrder.status === 'invoiced' ? 'bg-green-500/20 text-green-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
+                    {existingSalesOrder.status === 'draft' ? 'Draft' : 
+                     existingSalesOrder.status === 'invoiced' ? 'Invoiced' : 'Lost'}
+                  </span>
+                )}
+              </div>
             </div>
-            <p className="text-xs text-white/50 mt-0.5">
-              {lead.full_name} {lead.customer_number ? `• ${lead.customer_number}` : ''}
-            </p>
+            
+            {/* Right: Invoice Status Strip + Close Button */}
+            <div className="flex items-start gap-4">
+              {/* Quick Status Strip - Show from initial status or loaded invoices */}
+              {(() => {
+                // Use loaded invoice data if available, otherwise use initial status from hook
+                const hasInvoiceData = invoices.length > 0;
+                const hasInitialStatus = initialAccountingStatus?.invoiceNumber;
+                
+                if (!hasInvoiceData && !hasInitialStatus) return null;
+                
+                const activeInvoice = invoices.find(inv => inv.status !== 'reversed') || invoices[0];
+                const totalInvoiced = hasInvoiceData 
+                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + i.total_amount, 0)
+                  : (initialAccountingStatus?.totalAmount || 0);
+                const totalPaid = hasInvoiceData 
+                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.paid_amount || 0), 0)
+                  : (initialAccountingStatus?.paidAmount || 0);
+                const totalBalance = hasInvoiceData 
+                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.balance_due || 0), 0)
+                  : (initialAccountingStatus?.balanceDue || 0);
+                const invoiceNumber = activeInvoice?.invoice_number || initialAccountingStatus?.invoiceNumber || '-';
+                
+                return (
+                  <div className="flex items-center gap-4 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
+                    <div className="text-center px-2">
+                      <p className="text-[9px] text-white/40 uppercase tracking-wider">Invoice</p>
+                      <p className="text-xs font-semibold text-white">{invoiceNumber}</p>
+                    </div>
+                    <div className="w-px h-8 bg-white/10" />
+                    <div className="text-center px-2">
+                      <p className="text-[9px] text-white/40 uppercase tracking-wider">Amount</p>
+                      <p className="text-xs font-semibold text-white">{totalInvoiced.toLocaleString()}</p>
+                    </div>
+                    <div className="w-px h-8 bg-white/10" />
+                    <div className="text-center px-2">
+                      <p className="text-[9px] text-green-400/70 uppercase tracking-wider">Paid</p>
+                      <p className="text-xs font-semibold text-green-400">{totalPaid.toLocaleString()}</p>
+                    </div>
+                    <div className="w-px h-8 bg-white/10" />
+                    <div className="text-center px-2">
+                      <p className="text-[9px] text-orange-400/70 uppercase tracking-wider">Balance</p>
+                      <p className={`text-xs font-semibold ${totalBalance > 0 ? 'text-orange-400' : 'text-green-400'}`}>
+                        {totalBalance > 0 ? totalBalance.toLocaleString() : 'Paid ✓'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-white/70" />
+              </button>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-            <X className="w-5 h-5 text-white/70" />
-          </button>
         </div>
 
         {/* Tabs */}
@@ -1369,9 +1437,9 @@ export default function SalesOrderModal({
 
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 min-h-[500px]">
           {loading ? (
-            <div className="flex items-center justify-center h-64">
+            <div className="flex items-center justify-center h-full min-h-[400px]">
               <Loader2 className="w-8 h-8 text-white/50 animate-spin" />
             </div>
           ) : (

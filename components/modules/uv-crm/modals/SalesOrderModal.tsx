@@ -965,6 +965,9 @@ export default function SalesOrderModal({
       // Reload invoices to show the new invoice
       await loadInvoices(existingSalesOrder.id);
       
+      // Reload sales order to ensure signing status is preserved
+      await loadExistingSalesOrder();
+      
       // Switch to invoices tab
       setActiveTab('invoices');
       

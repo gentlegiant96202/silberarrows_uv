@@ -175,29 +175,17 @@ function generateReceiptHTML(data: any, logoSrc: string) {
         }
 
         .amount-box {
-          background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+          background: #f5f5f5;
+          border: 2px solid #e0e0e0;
           border-radius: 10px;
           padding: 30px;
           text-align: center;
           margin: 25px 0;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .amount-box::before {
-          content: '';
-          position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-          pointer-events: none;
         }
 
         .amount-label {
           font-size: 12px;
-          color: rgba(255,255,255,0.7);
+          color: #666;
           text-transform: uppercase;
           letter-spacing: 2px;
           margin-bottom: 10px;
@@ -206,21 +194,14 @@ function generateReceiptHTML(data: any, logoSrc: string) {
         .amount-value {
           font-size: 38px;
           font-weight: 900;
-          color: #ffffff;
+          color: #1a1a1a;
           letter-spacing: 1px;
-        }
-
-        .amount-words {
-          font-size: 10px;
-          color: rgba(255,255,255,0.6);
-          margin-top: 8px;
-          font-style: italic;
         }
 
         .payment-method-badge {
           display: inline-block;
-          background: rgba(255,255,255,0.15);
-          color: #fff;
+          background: #e8e8e8;
+          color: #333;
           padding: 5px 15px;
           border-radius: 20px;
           font-size: 10px;

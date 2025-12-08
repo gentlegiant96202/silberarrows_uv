@@ -282,6 +282,7 @@ export default function SalesOrderModal({
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('sales_order');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [inventoryCar, setInventoryCar] = useState<InventoryCar | null>(null);
   const [allSalesOrders, setAllSalesOrders] = useState<SalesOrder[]>([]);
@@ -563,18 +564,25 @@ export default function SalesOrderModal({
     }
   }, [isOpen, lead.inventory_car_id]);
 
-  // Load existing sales order if any
+  // Load all initial data when modal opens
   useEffect(() => {
-    if (isOpen && lead.id) {
-      loadExistingSalesOrder();
-    }
-  }, [isOpen, lead.id]);
-
-  // Load payments for this customer
-  useEffect(() => {
-    if (isOpen && lead.id) {
-      loadPayments();
-    }
+    const loadAllData = async () => {
+      if (!isOpen || !lead.id) return;
+      
+      setInitialLoading(true);
+      try {
+        // Load all data in parallel
+        await Promise.all([
+          loadExistingSalesOrder(),
+          loadPayments(),
+          loadAdjustments(),
+        ]);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    
+    loadAllData();
   }, [isOpen, lead.id]);
 
   // Load adjustments for this customer
@@ -1709,6 +1717,20 @@ export default function SalesOrderModal({
   };
 
   if (!isOpen) return null;
+
+  // Show loading screen while initial data loads
+  if (initialLoading) {
+    return createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div className="relative flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-white/70" />
+          <p className="text-sm text-white/50">Loading...</p>
+        </div>
+      </div>,
+      document.body
+    );
+  }
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-150">

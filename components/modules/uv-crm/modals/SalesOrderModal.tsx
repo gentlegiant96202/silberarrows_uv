@@ -2335,13 +2335,13 @@ export default function SalesOrderModal({
                           <div 
                             key={invoice.id} 
                             className={`border rounded-lg overflow-hidden transition-all ${
-                              isReversed ? 'opacity-50 border-white/5' : 'border-white/10'
+                              isReversed ? 'opacity-50 border-white/10 bg-white/5' : 'border-white/15 bg-white/5'
                             }`}
                           >
                             {/* Condensed Header - Always Visible */}
                             <button
                               onClick={() => setExpandedInvoiceId(isExpanded ? null : invoice.id)}
-                              className="w-full flex items-center justify-between px-4 py-4 bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-left"
+                              className="w-full flex items-center justify-between px-4 py-4 bg-white/10 hover:bg-white/15 transition-colors text-left"
                             >
                               <div className="flex items-center gap-4">
                                 <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />

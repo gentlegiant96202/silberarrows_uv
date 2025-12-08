@@ -1146,9 +1146,9 @@ export default function SalesOrderModal({
     
     setLoadingPayments(true);
     try {
-      // Load payments using the summary view
+      // Load payments directly from base table
       const { data: paymentsData, error: paymentsError } = await supabase
-        .from('uv_payment_summary')
+        .from('uv_payments')
         .select('*')
         .eq('lead_id', lead.id)
         .order('created_at', { ascending: false });
@@ -1157,57 +1157,50 @@ export default function SalesOrderModal({
         throw paymentsError;
       }
       
+      // Load allocations for calculating allocated/unallocated amounts
+      let allocationsMap: Record<string, number> = {};
+      const paymentIds = paymentsData?.map(p => p.id) || [];
+      
+      if (paymentIds.length > 0) {
+        const { data: allocData, error: allocError } = await supabase
+          .from('uv_payment_allocations')
+          .select(`
+            *,
+            uv_payments!inner(payment_number),
+            uv_invoices!inner(invoice_number)
+          `)
+          .in('payment_id', paymentIds);
+        
+        if (!allocError && allocData) {
+          // Calculate total allocated per payment
+          allocData.forEach(a => {
+            const amount = parseFloat(a.amount) || 0;
+            allocationsMap[a.payment_id] = (allocationsMap[a.payment_id] || 0) + amount;
+          });
+          
+          setAllocations(allocData.map(a => ({
+            id: a.id,
+            payment_id: a.payment_id,
+            invoice_id: a.invoice_id,
+            amount: parseFloat(a.amount) || 0,
+            created_at: a.created_at,
+            payment_number: a.uv_payments?.payment_number,
+            invoice_number: a.uv_invoices?.invoice_number,
+          })));
+        }
+      }
+      
       if (paymentsData) {
-        // Also fetch pdf_url from base table (not in view)
-        const paymentIds = paymentsData.map(p => p.id);
-        let pdfUrls: Record<string, string> = {};
-        
-        if (paymentIds.length > 0) {
-          const { data: pdfData } = await supabase
-            .from('uv_payments')
-            .select('id, pdf_url')
-            .in('id', paymentIds);
-          
-          if (pdfData) {
-            pdfUrls = pdfData.reduce((acc, p) => {
-              if (p.pdf_url) acc[p.id] = p.pdf_url;
-              return acc;
-            }, {} as Record<string, string>);
-          }
-        }
-        
-        setPayments(paymentsData.map(p => ({
-          ...p,
-          amount: parseFloat(p.total_amount) || 0,
-          allocated_amount: parseFloat(p.allocated_amount) || 0,
-          unallocated_amount: parseFloat(p.unallocated_amount) || 0,
-          pdf_url: pdfUrls[p.id] || undefined,
-        })));
-        
-        // Load ALL allocations for this customer's payments (not just current SO)
-        const paymentIds = paymentsData.map(p => p.id);
-        if (paymentIds.length > 0) {
-          const { data: allocData, error: allocError } = await supabase
-            .from('uv_payment_allocations')
-            .select(`
-              *,
-              uv_payments!inner(payment_number),
-              uv_invoices!inner(invoice_number)
-            `)
-            .in('payment_id', paymentIds);
-          
-          if (!allocError && allocData) {
-            setAllocations(allocData.map(a => ({
-              id: a.id,
-              payment_id: a.payment_id,
-              invoice_id: a.invoice_id,
-              amount: parseFloat(a.amount) || 0,
-              created_at: a.created_at,
-              payment_number: a.uv_payments?.payment_number,
-              invoice_number: a.uv_invoices?.invoice_number,
-            })));
-          }
-        }
+        setPayments(paymentsData.map(p => {
+          const amount = parseFloat(p.amount) || 0;
+          const allocatedAmount = allocationsMap[p.id] || 0;
+          return {
+            ...p,
+            amount,
+            allocated_amount: allocatedAmount,
+            unallocated_amount: amount - allocatedAmount,
+          };
+        }));
       }
     } catch (error) {
       console.error('Error loading payments:', error);

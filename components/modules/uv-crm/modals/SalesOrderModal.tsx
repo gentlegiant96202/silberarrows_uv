@@ -1492,6 +1492,28 @@ export default function SalesOrderModal({
     }
   };
 
+  // View and download PDF - opens in new tab and triggers download
+  const handleViewAndDownloadPdf = async (url: string, filename: string) => {
+    // Open in new tab
+    window.open(url, '_blank');
+    
+    // Trigger download
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
+
   // Generate Receipt PDF
   const handleGenerateReceipt = async (paymentId: string) => {
     setGeneratingReceiptId(paymentId);
@@ -2775,14 +2797,12 @@ export default function SalesOrderModal({
                                     <div className="flex items-center gap-3">
                                       {/* Receipt PDF Actions */}
                                       {payment.pdf_url ? (
-                                        <a
-                                          href={payment.pdf_url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
+                                        <button
+                                          onClick={() => handleViewAndDownloadPdf(payment.pdf_url!, `${payment.payment_number}.pdf`)}
                                           className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
                                         >
                                           View Receipt
-                                        </a>
+                                        </button>
                                       ) : (
                                         <button
                                           onClick={() => handleGenerateReceipt(payment.id)}
@@ -2916,14 +2936,12 @@ export default function SalesOrderModal({
                                   <div className="flex items-center gap-3">
                                     {/* Credit Note PDF Actions */}
                                     {cn.pdf_url ? (
-                                      <a
-                                        href={cn.pdf_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                      <button
+                                        onClick={() => handleViewAndDownloadPdf(cn.pdf_url!, `${cn.adjustment_number}.pdf`)}
                                         className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
                                       >
                                         View
-                                      </a>
+                                      </button>
                                     ) : (
                                       <button
                                         onClick={() => handleGenerateCreditNote(cn.id)}
@@ -3015,14 +3033,12 @@ export default function SalesOrderModal({
                                   <div className="flex items-center gap-3">
                                     {/* Refund PDF Actions */}
                                     {refund.pdf_url ? (
-                                      <a
-                                        href={refund.pdf_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                      <button
+                                        onClick={() => handleViewAndDownloadPdf(refund.pdf_url!, `${refund.adjustment_number}.pdf`)}
                                         className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
                                       >
                                         View
-                                      </a>
+                                      </button>
                                     ) : (
                                       <button
                                         onClick={() => handleGenerateRefund(refund.id)}

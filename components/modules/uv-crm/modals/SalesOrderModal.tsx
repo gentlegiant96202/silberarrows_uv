@@ -194,9 +194,13 @@ const lineTypes = [
   { value: 'ceramic_treatment', label: 'Ceramic Treatment', defaultDescription: 'Ceramic Paint Protection' },
   { value: 'window_tints', label: 'Window Tints', defaultDescription: 'Window Tinting' },
   { value: 'rta_fees', label: 'RTA Fees', defaultDescription: 'RTA Registration & Transfer Fees' },
+  { value: 'discount', label: 'Discount', defaultDescription: 'Discount' },
   { value: 'part_exchange', label: 'Part Exchange (Deduction)', defaultDescription: 'Part Exchange Trade-in Value' },
   { value: 'other', label: 'Other', defaultDescription: '' },
 ];
+
+// Line types that are deductions (negative values)
+const deductionTypes = ['part_exchange', 'discount'];
 
 // ===== TABS =====
 type TabKey = 'sales_order' | 'invoices' | 'payments' | 'soa';
@@ -373,19 +377,24 @@ export default function SalesOrderModal({
   // Calculate totals from line items
   const calculateTotals = () => {
     const subtotal = lineItems
-      .filter(item => item.line_type !== 'part_exchange')
+      .filter(item => !deductionTypes.includes(item.line_type))
       .reduce((sum, item) => sum + item.line_total, 0);
-    
+
+    const discountValue = lineItems
+      .filter(item => item.line_type === 'discount')
+      .reduce((sum, item) => sum + Math.abs(item.line_total), 0);
+
     const partExchangeValue = lineItems
       .filter(item => item.line_type === 'part_exchange')
       .reduce((sum, item) => sum + Math.abs(item.line_total), 0);
-    
-    const total = subtotal - partExchangeValue;
-    
-    return { subtotal, partExchangeValue, total };
+
+    const totalDeductions = discountValue + partExchangeValue;
+    const total = subtotal - totalDeductions;
+
+    return { subtotal, discountValue, partExchangeValue, totalDeductions, total };
   };
 
-  const { subtotal, partExchangeValue, total } = calculateTotals();
+  const { subtotal, discountValue, partExchangeValue, totalDeductions, total } = calculateTotals();
   
   // Check if Sales Order is locked (has active invoice OR status is 'invoiced')
   // Check SO status first (instant) to prevent flash, then verify with invoices
@@ -491,17 +500,17 @@ export default function SalesOrderModal({
         const qty = field === 'quantity' ? value : updated.quantity;
         const price = field === 'unit_price' ? value : updated.unit_price;
         updated.line_total = qty * price;
-        
-        // Make part exchange negative
-        if (updated.line_type === 'part_exchange') {
+
+        // Make deduction types negative
+        if (deductionTypes.includes(updated.line_type)) {
           updated.line_total = -Math.abs(updated.line_total);
         }
       }
-      
-      // Handle part exchange sign change
-      if (field === 'line_type' && value === 'part_exchange') {
+
+      // Handle deduction type sign change
+      if (field === 'line_type' && deductionTypes.includes(value as string)) {
         updated.line_total = -Math.abs(updated.line_total);
-      } else if (field === 'line_type' && value !== 'part_exchange' && updated.line_total < 0) {
+      } else if (field === 'line_type' && !deductionTypes.includes(value as string) && updated.line_total < 0) {
         updated.line_total = Math.abs(updated.line_total);
       }
       
@@ -2343,10 +2352,10 @@ export default function SalesOrderModal({
                           {/* Line Items */}
                           {lineItems.map((item) => (
                             <div 
-                              key={item.id} 
+                              key={item.id}
                               className={`grid grid-cols-12 gap-2 items-center p-2 rounded-lg ${
-                                item.line_type === 'part_exchange' 
-                                  ? 'bg-red-500/10 border border-red-500/20' 
+                                deductionTypes.includes(item.line_type)
+                                  ? 'bg-red-500/10 border border-red-500/20'
                                   : 'bg-white/5 border border-white/10'
                               }`}
                             >
@@ -2389,9 +2398,9 @@ export default function SalesOrderModal({
                                 />
                               </div>
                               <div className={`col-span-1 text-right text-sm font-medium ${
-                                item.line_type === 'part_exchange' ? 'text-red-400' : 'text-white'
+                                deductionTypes.includes(item.line_type) ? 'text-red-400' : 'text-white'
                               }`}>
-                                {item.line_type === 'part_exchange' && item.line_total !== 0 ? '-' : ''}
+                                {deductionTypes.includes(item.line_type) && item.line_total !== 0 ? '-' : ''}
                                 {formatCurrency(Math.abs(item.line_total))}
                               </div>
                               <div className="col-span-1 flex justify-end">
@@ -2411,9 +2420,15 @@ export default function SalesOrderModal({
                               <span className="text-white/60">Subtotal</span>
                               <span className="text-white font-medium">AED {formatCurrency(subtotal)}</span>
                             </div>
+                            {discountValue > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-red-400">Discount</span>
+                                <span className="text-red-400 font-medium">- AED {formatCurrency(discountValue)}</span>
+                              </div>
+                            )}
                             {partExchangeValue > 0 && (
                               <div className="flex justify-between text-sm">
-                                <span className="text-red-400">Part Exchange Deduction</span>
+                                <span className="text-red-400">Part Exchange</span>
                                 <span className="text-red-400 font-medium">- AED {formatCurrency(partExchangeValue)}</span>
                               </div>
                             )}

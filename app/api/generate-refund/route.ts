@@ -203,26 +203,19 @@ function generateRefundHTML(data: any, logoSrc: string) {
           border-top: 1px solid #eee;
         }
 
-        .signature-section {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 50px;
-          gap: 60px;
+        .electronic-notice {
+          text-align: center;
+          margin-top: 40px;
+          padding: 15px;
+          background: #fafafa;
+          border: 1px dashed #ddd;
+          border-radius: 6px;
         }
 
-        .signature-box {
-          flex: 1;
-        }
-
-        .signature-label {
+        .electronic-notice-text {
           font-size: 10px;
-          color: #666;
-          margin-bottom: 8px;
-        }
-
-        .signature-line {
-          border-bottom: 1px solid #1a1a1a;
-          height: 50px;
+          color: #888;
+          font-style: italic;
         }
 
         .stamp {
@@ -354,19 +347,8 @@ function generateRefundHTML(data: any, logoSrc: string) {
           Please ensure proper verification before processing the refund.
         </div>
 
-        <div class="signature-section">
-          <div class="signature-box">
-            <div class="signature-label">Prepared By</div>
-            <div class="signature-line"></div>
-          </div>
-          <div class="signature-box">
-            <div class="signature-label">Authorized By</div>
-            <div class="signature-line"></div>
-          </div>
-          <div class="signature-box">
-            <div class="signature-label">Received By (Customer)</div>
-            <div class="signature-line"></div>
-          </div>
+        <div class="electronic-notice">
+          <p class="electronic-notice-text">This is an electronically generated document. No signature is required.</p>
         </div>
 
         <div class="footer">
@@ -438,7 +420,7 @@ export async function POST(request: NextRequest) {
     // Fetch lead/customer data
     const { data: lead } = await supabase
       .from('leads')
-      .select('full_name, customer_number, phone_number, email')
+      .select('id, full_name, customer_number, phone_number, email')
       .eq('id', adjustment.lead_id)
       .single();
 
@@ -473,7 +455,7 @@ export async function POST(request: NextRequest) {
       invoiceNumber,
       // Customer details from sales order or lead
       customerName: salesOrder?.customer_name || lead?.full_name || 'Customer',
-      customerId: lead?.customer_number,
+      customerId: lead?.customer_number || (lead?.id ? `CUS-${lead.id.substring(0, 8).toUpperCase()}` : null),
       customerPhone: salesOrder?.customer_phone || lead?.phone_number,
       customerEmail: salesOrder?.customer_email || lead?.email,
       customerIdType: salesOrder?.customer_id_type,

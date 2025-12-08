@@ -286,11 +286,11 @@ export default function AccountsLedger() {
         { wch: 15 }, // Balance
       ];
 
-      XLSX.utils.book_append_sheet(wb, ws, 'Ledger');
+      XLSX.utils.book_append_sheet(wb, ws, 'Customer Ledger');
 
       // Generate filename with date
       const dateStr = new Date().toISOString().split('T')[0];
-      const filename = `Accounts_Ledger_${dateStr}.xlsx`;
+      const filename = `Customer_Ledger_${dateStr}.xlsx`;
 
       // Download
       XLSX.writeFile(wb, filename);
@@ -306,8 +306,8 @@ export default function AccountsLedger() {
       <div className="px-6 py-4 border-b border-white/10">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-bold text-white">Accounts Ledger</h1>
-            <p className="text-sm text-white/50">All transactions in chronological order</p>
+            <h1 className="text-xl font-bold text-white">Customer Ledger</h1>
+            <p className="text-sm text-white/50">All customer transactions in chronological order</p>
           </div>
           <div className="flex items-center gap-3">
             <button

@@ -1755,7 +1755,11 @@ export default function SalesOrderModal({
               
               if (!hasInvoiceData && !hasInitialStatus) return null;
               
-              const activeInvoice = invoices.find(inv => inv.status !== 'reversed') || invoices[0];
+              // Only show status strip if there are active (non-reversed) invoices
+              const activeInvoices = invoices.filter(inv => inv.status !== 'reversed');
+              if (hasInvoiceData && activeInvoices.length === 0) return null;
+              
+              const activeInvoice = activeInvoices[0] || invoices[0];
               
               // Use invoice-level data (now includes refund_total in balance_due calculation)
               const totalInvoiced = hasInvoiceData 

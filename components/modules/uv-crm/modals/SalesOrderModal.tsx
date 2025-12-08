@@ -1775,23 +1775,23 @@ export default function SalesOrderModal({
               const invoiceNumber = activeInvoice?.invoice_number || initialAccountingStatus?.invoiceNumber || '-';
               
               return (
-                <div className="flex items-center gap-5 px-5 py-3 bg-white/5 rounded-lg border border-white/10">
-                  <div className="text-center px-3">
+                <div className="flex items-center px-4 py-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="text-center w-24">
                     <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Invoice</p>
                     <p className="text-sm font-semibold text-white">{invoiceNumber}</p>
                   </div>
                   <div className="w-px h-10 bg-white/10" />
-                  <div className="text-center px-3">
+                  <div className="text-center w-24">
                     <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Amount</p>
                     <p className="text-sm font-semibold text-white">{totalInvoiced.toLocaleString()}</p>
                   </div>
                   <div className="w-px h-10 bg-white/10" />
-                  <div className="text-center px-3">
+                  <div className="text-center w-24">
                     <p className="text-[10px] text-green-400/70 uppercase tracking-wider mb-0.5">Paid</p>
                     <p className="text-sm font-semibold text-green-400">{totalPaid.toLocaleString()}</p>
                   </div>
                   <div className="w-px h-10 bg-white/10" />
-                  <div className="text-center px-3">
+                  <div className="text-center w-24">
                     <p className={`text-[10px] uppercase tracking-wider mb-0.5 ${totalBalance === 0 ? 'text-green-400/70' : 'text-orange-400/70'}`}>Balance</p>
                     <p className={`text-sm font-semibold ${totalBalance > 0 ? 'text-orange-400' : totalBalance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
                       {totalBalance > 0 ? totalBalance.toLocaleString() : totalBalance < 0 ? `${Math.abs(totalBalance).toLocaleString()} CR` : 'Paid ✓'}

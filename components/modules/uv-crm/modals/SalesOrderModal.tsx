@@ -1722,8 +1722,8 @@ export default function SalesOrderModal({
   if (initialLoading) {
     return createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-        <div className="relative flex flex-col items-center gap-4">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300" />
+        <div className="relative flex flex-col items-center gap-4 animate-pulse">
           <Loader2 className="w-8 h-8 animate-spin text-white/70" />
           <p className="text-sm text-white/50">Loading...</p>
         </div>
@@ -1733,12 +1733,12 @@ export default function SalesOrderModal({
   }
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300" onClick={onClose} />
       
       {/* Modal */}
-      <div className="relative w-full max-w-5xl h-[85vh] bg-zinc-900/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-5xl h-[85vh] bg-zinc-900/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300 ease-out">
         {/* Header */}
         <div className="px-6 py-4 border-b border-white/10 bg-white/5">
           <div className="flex items-start justify-between">

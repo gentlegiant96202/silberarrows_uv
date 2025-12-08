@@ -2578,14 +2578,16 @@ export default function CarDetailsModal({ car, onClose, onDeleted, onSaved, isLo
                             <span className={`px-4 py-2 rounded text-sm font-medium ${
                               consignmentDocs.some(doc => doc.signing_status === 'completed' || doc.signing_status === 'signed') 
                                 ? 'text-green-400' 
+                                : consignmentDocs.some(doc => doc.signing_status === 'company_signed')
+                                ? 'text-orange-400'
                                 : consignmentDocs.some(doc => doc.signing_status === 'sent' || doc.signing_status === 'delivered')
                                 ? 'text-yellow-400'
                                 : 'text-gray-400'
                             }`}>
                               {consignmentDocs.find(doc => doc.signing_status === 'completed' || doc.signing_status === 'signed') ? 'Completed' :
+                               consignmentDocs.find(doc => doc.signing_status === 'company_signed') ? 'Awaiting Customer Signature' :
                                consignmentDocs.find(doc => doc.signing_status === 'sent') ? 'Sent for Signing' :
                                consignmentDocs.find(doc => doc.signing_status === 'delivered') ? 'Delivered' :
-                               consignmentDocs.find(doc => doc.signing_status === 'signed') ? 'Signed' :
                                consignmentDocs.find(doc => doc.signing_status === 'declined') ? 'Declined' :
                                consignmentDocs.find(doc => doc.signing_status === 'voided') ? 'Voided' :
                                'Ready'}

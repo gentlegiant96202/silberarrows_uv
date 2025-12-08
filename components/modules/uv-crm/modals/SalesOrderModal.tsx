@@ -953,10 +953,6 @@ export default function SalesOrderModal({
     
     setConvertingToInvoice(true);
     try {
-      // Log current state before conversion
-      console.log('[Convert to Invoice] Before - SO signing_status:', existingSalesOrder.signing_status);
-      console.log('[Convert to Invoice] Before - SO signed_pdf_url:', existingSalesOrder.signed_pdf_url);
-      
       // Call the database function to convert SO to Invoice
       const { data, error } = await supabase
         .rpc('convert_so_to_invoice', {
@@ -965,17 +961,6 @@ export default function SalesOrderModal({
         });
       
       if (error) throw error;
-      
-      console.log('[Convert to Invoice] RPC completed successfully');
-      
-      // Check DB immediately after RPC
-      const { data: checkData } = await supabase
-        .from('uv_sales_orders')
-        .select('signing_status, signed_pdf_url')
-        .eq('id', existingSalesOrder.id)
-        .single();
-      console.log('[Convert to Invoice] After RPC - DB signing_status:', checkData?.signing_status);
-      console.log('[Convert to Invoice] After RPC - DB signed_pdf_url:', checkData?.signed_pdf_url);
       
       // Reload invoices to show the new invoice
       await loadInvoices(existingSalesOrder.id);

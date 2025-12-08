@@ -16,8 +16,10 @@ import {
   Clock,
   XCircle,
   Eye,
-  ChevronRight
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react';
+import SalesOrderModal from '../modals/SalesOrderModal';
 
 // ===== INTERFACES =====
 interface Invoice {
@@ -107,6 +109,11 @@ export default function InvoicesList() {
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [loadingLineItems, setLoadingLineItems] = useState(false);
+  
+  // Modal state
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [loadingLead, setLoadingLead] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<FilterState>({
     status: '',
@@ -212,13 +219,44 @@ export default function InvoicesList() {
   };
 
   // Toggle expanded invoice
-  const toggleExpand = (invoiceId: string) => {
+  const toggleExpand = (invoiceId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (expandedInvoice === invoiceId) {
       setExpandedInvoice(null);
       setLineItems([]);
     } else {
       setExpandedInvoice(invoiceId);
       loadLineItems(invoiceId);
+    }
+  };
+
+  // Open account modal for invoice
+  const openAccountModal = async (invoice: Invoice) => {
+    if (!invoice.lead_id) {
+      alert('No customer linked to this invoice');
+      return;
+    }
+    
+    setLoadingLead(invoice.id);
+    try {
+      // Fetch the lead data
+      const { data: lead, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', invoice.lead_id)
+        .single();
+
+      if (error) throw error;
+      
+      if (lead) {
+        setSelectedLead(lead);
+        setShowAccountModal(true);
+      }
+    } catch (error) {
+      console.error('Error loading lead:', error);
+      alert('Failed to load customer data');
+    } finally {
+      setLoadingLead(null);
     }
   };
 
@@ -430,6 +468,7 @@ export default function InvoicesList() {
                 <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider">Balance</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-white/50 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-white/50 uppercase tracking-wider">Age</th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-white/50 uppercase tracking-wider w-20"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -440,58 +479,71 @@ export default function InvoicesList() {
                 return (
                   <React.Fragment key={invoice.id}>
                     <tr 
-                      className={`hover:bg-white/5 transition-colors cursor-pointer ${isExpanded ? 'bg-white/5' : ''}`}
-                      onClick={() => toggleExpand(invoice.id)}
+                      className={`hover:bg-white/5 transition-colors ${isExpanded ? 'bg-white/5' : ''}`}
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 cursor-pointer" onClick={(e) => toggleExpand(invoice.id, e)}>
                         <ChevronRight className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         <span className="text-sm font-mono text-white">{invoice.invoice_number}</span>
                         <div className="text-xs text-white/40">{invoice.order_number}</div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-white/70">
+                      <td className="px-4 py-3 text-sm text-white/70 cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         {formatDate(invoice.invoice_date)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         <div className="text-sm text-white">{invoice.customer_name}</div>
                         <div className="text-xs text-white/40">{invoice.customer_number || invoice.customer_phone}</div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         <div className="text-sm text-white/70 truncate max-w-[200px]" title={invoice.vehicle_make_model}>
                           {invoice.vehicle_make_model}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-white font-medium">
+                      <td className="px-4 py-3 text-right text-sm text-white font-medium cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         {formatCurrency(invoice.total_amount)}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-green-400">
+                      <td className="px-4 py-3 text-right text-sm text-green-400 cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         {formatCurrency(invoice.paid_amount || 0)}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         <span className={`text-sm font-medium ${
                           invoice.balance_due > 0 ? 'text-red-400' : 'text-green-400'
                         }`}>
                           {formatCurrency(invoice.balance_due || 0)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${getStatusColor(invoice.status)}`}>
                           {getStatusIcon(invoice.status)}
                           {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         <span className={`text-sm font-medium ${getAgingColor(agingDays, invoice.status)}`}>
                           {agingDays}d
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => openAccountModal(invoice)}
+                          disabled={loadingLead === invoice.id}
+                          className="p-1.5 text-white/40 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+                          title="View Account"
+                        >
+                          {loadingLead === invoice.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ExternalLink className="w-4 h-4" />
+                          )}
+                        </button>
                       </td>
                     </tr>
                     
                     {/* Expanded Line Items */}
                     {isExpanded && (
                       <tr>
-                        <td colSpan={10} className="bg-white/5 px-8 py-4">
+                        <td colSpan={11} className="bg-white/5 px-8 py-4">
                           {loadingLineItems ? (
                             <div className="flex items-center justify-center py-4">
                               <Loader2 className="w-5 h-5 text-white/50 animate-spin" />
@@ -541,6 +593,20 @@ export default function InvoicesList() {
           <span>All amounts in AED</span>
         </div>
       </div>
+
+      {/* Account Modal */}
+      {showAccountModal && selectedLead && (
+        <SalesOrderModal
+          isOpen={showAccountModal}
+          onClose={() => {
+            setShowAccountModal(false);
+            setSelectedLead(null);
+          }}
+          lead={selectedLead}
+          onSalesOrderCreated={() => loadInvoices()}
+          onSalesOrderUpdated={() => loadInvoices()}
+        />
+      )}
     </div>
   );
 }

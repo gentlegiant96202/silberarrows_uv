@@ -439,14 +439,20 @@ export async function POST(request: NextRequest) {
       .eq('id', payment.lead_id)
       .single();
 
-    // Fetch sales order to get vehicle and customer details
+    // Fetch sales order to get vehicle and customer details (with lead for customer_number)
     const { data: salesOrder } = await supabase
       .from('uv_sales_orders')
-      .select('*')
+      .select(`
+        *,
+        leads!inner(customer_number)
+      `)
       .eq('lead_id', payment.lead_id)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
+    
+    console.log('[generate-receipt] Lead customer_number:', lead?.customer_number);
+    console.log('[generate-receipt] Sales Order lead customer_number:', (salesOrder as any)?.leads?.customer_number);
 
     // Fetch first allocation to get invoice number
     const { data: firstAllocation } = await supabase
@@ -471,7 +477,7 @@ export async function POST(request: NextRequest) {
       invoiceNumber,
       // Customer details from sales order or lead
       customerName: salesOrder?.customer_name || lead?.full_name || 'Customer',
-      customerId: lead?.customer_number || (lead?.id ? `CUS-${lead.id.substring(0, 8).toUpperCase()}` : null),
+      customerId: lead?.customer_number || (salesOrder as any)?.leads?.customer_number || (lead?.id ? `CUS-${lead.id.substring(0, 8).toUpperCase()}` : null),
       customerPhone: salesOrder?.customer_phone || lead?.phone_number,
       customerEmail: salesOrder?.customer_email || lead?.email,
       customerIdType: salesOrder?.customer_id_type,

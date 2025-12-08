@@ -2462,25 +2462,25 @@ export default function SalesOrderModal({
                                     </a>
                                   )}
                                   
-                                  {/* Generate PDF - only when fully paid and no PDF exists */}
+                                  {/* Generate Invoice - only when fully paid and no PDF exists */}
                                   {isPaid && !invoice.pdf_url && !isReversed && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleGenerateInvoicePdf(invoice.id); }}
                                       disabled={generatingInvoicePdf === invoice.id}
                                       className="px-3 py-1.5 text-xs font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
                                     >
-                                      {generatingInvoicePdf === invoice.id ? 'Generating...' : 'Generate PDF'}
+                                      {generatingInvoicePdf === invoice.id ? 'Generating...' : 'Generate Invoice'}
                                     </button>
                                   )}
 
-                                  {/* Regenerate PDF - only when fully paid and PDF exists but not sent for signing yet */}
+                                  {/* Regenerate Invoice - only when fully paid and PDF exists but not sent for signing yet */}
                                   {isPaid && invoice.pdf_url && !isReversed && (!invoice.signing_status || invoice.signing_status === 'pending') && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleGenerateInvoicePdf(invoice.id); }}
                                       disabled={generatingInvoicePdf === invoice.id}
                                       className="px-3 py-1.5 text-xs font-medium text-white/40 hover:text-white/60 bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
                                     >
-                                      {generatingInvoicePdf === invoice.id ? 'Regenerating...' : 'Regenerate'}
+                                      {generatingInvoicePdf === invoice.id ? 'Regenerating...' : 'Regenerate Invoice'}
                                     </button>
                                   )}
 

@@ -2585,10 +2585,10 @@ export default function SalesOrderModal({
                   {!loadingPayments && (
                     <>
                       {/* PAYMENTS SECTION */}
-                      <div className="border border-white/10 rounded-lg overflow-hidden">
+                      <div className="border border-white/15 rounded-lg overflow-hidden bg-white/5">
                         <button
                           onClick={() => toggleSection('payments')}
-                          className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                          className="w-full flex items-center justify-between px-4 py-3 bg-white/10 hover:bg-white/15 transition-colors"
                         >
                           <div className="flex items-center gap-3">
                             <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${expandedSections.payments ? '' : '-rotate-90'}`} />
@@ -2710,10 +2710,10 @@ export default function SalesOrderModal({
                       </div>
 
                       {/* CREDIT NOTES SECTION */}
-                      <div className="border border-white/10 rounded-lg overflow-hidden">
+                      <div className="border border-white/15 rounded-lg overflow-hidden bg-white/5">
                         <button
                           onClick={() => toggleSection('credits')}
-                          className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                          className="w-full flex items-center justify-between px-4 py-3 bg-white/10 hover:bg-white/15 transition-colors"
                         >
                           <div className="flex items-center gap-3">
                             <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${expandedSections.credits ? '' : '-rotate-90'}`} />
@@ -2781,10 +2781,10 @@ export default function SalesOrderModal({
                       </div>
 
                       {/* REFUNDS SECTION */}
-                      <div className="border border-white/10 rounded-lg overflow-hidden">
+                      <div className="border border-white/15 rounded-lg overflow-hidden bg-white/5">
                         <button
                           onClick={() => toggleSection('refunds')}
-                          className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                          className="w-full flex items-center justify-between px-4 py-3 bg-white/10 hover:bg-white/15 transition-colors"
                         >
                           <div className="flex items-center gap-3">
                             <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${expandedSections.refunds ? '' : '-rotate-90'}`} />

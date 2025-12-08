@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
+
+export const runtime = 'edge';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // GET - Fetch public business card by ID (simple 5-digit number)
 export async function GET(request: NextRequest, context: { params: Promise<{ slug: string }> }) {

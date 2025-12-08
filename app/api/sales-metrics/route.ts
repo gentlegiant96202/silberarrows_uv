@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
 import type { SalesInputFormData } from '@/types/sales';
+
+export const runtime = 'edge';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(request: NextRequest) {
   try {
